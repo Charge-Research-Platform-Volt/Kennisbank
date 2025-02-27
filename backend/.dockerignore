@@ -4,3 +4,11 @@
 **/.vs
 .dotnet
 .Microsoft.DotNet.ImageBuilder
+
+Dockerfile
+.dockerignore
+
+.git
+.gitignore
+
+README.md

@@ -1,6 +1,8 @@
+/database
+
 # File created using '.gitignore Generator' for Visual Studio Code: https://bit.ly/vscode-gig
-# Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,macos,aspnetcore,csharp,dotnetcore,react,visualstudio
-# Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,macos,aspnetcore,csharp,dotnetcore,react,visualstudio
+# Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,visualstudio,react,macos,dotnetcore,csharp,aspnetcore,database
+# Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,visualstudio,react,macos,dotnetcore,csharp,aspnetcore,database
 
 ### ASPNETCore ###
 ## Ignore Visual Studio temporary files, build results, and
@@ -524,6 +526,15 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 
+### Database ###
+*.accdb
+*.db
+*.dbf
+*.mdb
+*.sqlite3
+*.db-shm
+*.db-wal
+
 ### DotnetCore ###
 # .NET Core build folders
 bin/
@@ -540,7 +551,8 @@ obj/
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*
@@ -774,7 +786,7 @@ sketch
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
 
-# End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,macos,aspnetcore,csharp,dotnetcore,react,visualstudio
+# End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,visualstudio,react,macos,dotnetcore,csharp,aspnetcore,database
 
 # Custom rules (everything added below won't be overriden by 'Generate .gitignore File' if you use 'Update' option)
 

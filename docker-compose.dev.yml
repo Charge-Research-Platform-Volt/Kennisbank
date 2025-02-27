@@ -11,7 +11,10 @@ services:
       - WATCHPACK_POLLING=true
     volumes:
       - ./website:/app
+      - /app/node_modules
       - /app/.next
+    depends_on:
+      - backend
     networks:
       - my_network
 
@@ -27,7 +30,11 @@ services:
       - WATCHPACK_POLLING=true
     volumes:
       - ./frontend:/app
+      - /app/node_modules
       - /app/.next
+    depends_on:
+      - backend
+      - database
     networks:
       - my_network
 
@@ -41,10 +48,24 @@ services:
       - "8081:8081"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - CONNECTION_STRING=Host=database;Port=5432;Username=postgres;Password=postgres;Database=postgres
     volumes:
       - ./backend:/app
-      - /app/bin
-      - /app/obj
+    depends_on:
+      - database
+    networks:
+      - my_network
+
+  database:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - ./database:/var/lib/postgresql/data
     networks:
       - my_network
 
