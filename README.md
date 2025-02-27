@@ -12,3 +12,6 @@ docker stop <container_id> # Stop the container
 docker rm <container_id> # Remove the container
 
 docker compose up --build
+
+
+test
