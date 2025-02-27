@@ -66,6 +66,7 @@ services:
       - POSTGRES_DB=postgres
     volumes:
       - ./database:/var/lib/postgresql/data
+      # - database_data:/var/lib/postgresql/data
     networks:
       - my_network
 
@@ -73,3 +74,12 @@ networks:
   my_network:
     name: my_network
     driver: bridge
+#
+# volumes:
+#   database_data:
+#     name: database_data
+#     driver: local
+#     driver_opts:
+#       type: none
+#       o: bind
+#       device: ./database
