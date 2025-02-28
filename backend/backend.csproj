@@ -4,22 +4,26 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>ef88ea2f-afc8-47b1-aec0-7bc86e979967</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>.</DockerfileContext>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Azure.Storage.Blobs" Version="12.23.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.2" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.2" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.3" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.Design" Version="1.1.0" />
     <PackageReference Include="Serilog" Version="4.2.0" />
     <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="7.2.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="7.2.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="7.2.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.2.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="7.3.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="7.3.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="7.3.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.3.1" />
   </ItemGroup>
 
 </Project>
