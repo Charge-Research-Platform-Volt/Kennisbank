@@ -2,15 +2,20 @@
 
 import { Icon } from '@iconify/react';
 import { useState } from "react";
+import UploadPopup from './sidebar/upload';
 
 export default function SideBar()
 {
-    const [nClicked, nSetClicked] = useState(false);
+    const [uploadPopup, setUploadPopup] = useState(false);
 
     const clickNew = () => {
-        nSetClicked(!nClicked);
         console.log("New button clicked");
+        setUploadPopup(true);
     };
+
+    const closeUploadPopup = () => {
+        setUploadPopup(false);
+    }
 
     return (
     <div className="h-screen w-64 bg-slate-50">
@@ -20,6 +25,8 @@ export default function SideBar()
             <Icon icon="mdi:plus-box" width="20" height="20"/>
             <div className='pb-0.5'>New</div>
         </button>
+
+        <UploadPopup isOpen={uploadPopup} onClose={closeUploadPopup} />
     </div>
     );
 }
