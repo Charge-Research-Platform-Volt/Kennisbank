@@ -24,11 +24,20 @@ namespace backend.Controllers
 
                 await blob.UploadBlobAsync("knowledgebank", uniqueBlobName, file.OpenReadStream());
 
-                return Ok(new { fileName = uniqueBlobName, url = "BLOB-URL-HERE" });
+                return Ok(new { fileName = uniqueBlobName });
             }catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+
+        [HttpGet("exists")]
+        public async Task<IResult> Exists(string name)
+        {
+            AzureBlob blob = new AzureBlob();
+
+            return Results.Json(await blob.BlobExistsAsync("knowledgebank", name));
+        }
     }
+
 }
