@@ -49,10 +49,12 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - CONNECTION_STRING=Host=database;Port=5432;Username=postgres;Password=postgres;Database=postgres
+      - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://storage:10000/devstoreaccount1;
     volumes:
       - ./backend:/app
     depends_on:
       - database
+      - storage
     networks:
       - my_network
 
@@ -67,6 +69,15 @@ services:
     volumes:
       - ./database:/var/lib/postgresql/data
       # - database_data:/var/lib/postgresql/data
+    networks:
+      - my_network
+  
+  storage:
+    image: mcr.microsoft.com/azure-storage/azurite
+    ports:
+      - "10000:10000"
+    volumes:
+      - ./storage:/data
     networks:
       - my_network
 
