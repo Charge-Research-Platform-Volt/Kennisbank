@@ -1,3 +1,4 @@
+using backend.Data;
 using Microsoft.OpenApi.Models;
 using Serilog;
 
@@ -17,6 +18,8 @@ namespace KnowledgeBank
             ConfigureLogging();
 
             services.AddControllers();
+
+            services.AddSingleton<IAzureBlobService, AzureBlobService>();
 
             services.AddSwaggerGen(c =>
             {
