@@ -14,6 +14,8 @@ namespace backend.Controllers
         private readonly IAzureBlobService blobService;
         private readonly Serilog.ILogger logger;
 
+        private const string DEFAULT_CONTAINER_NAME = "archive";
+
         public StorageController(IAzureBlobService blobService)
         {
             this.blobService = blobService;
@@ -30,7 +32,7 @@ namespace backend.Controllers
         [SwaggerResponse(409, "File already exists", typeof(FileResponse))]
         [SwaggerResponse(400, "Invalid file")]
         [SwaggerResponse(500, "Server error")]
-        public async Task<IActionResult> UploadFile(IFormFile file, string containerName = "knowledgebank", bool overwrite = false)
+        public async Task<IActionResult> UploadFile(IFormFile file, string containerName = DEFAULT_CONTAINER_NAME, bool overwrite = false)
         {
             if (file == null || file.Length == 0)
                 return BadRequest("No file was uploaded.");
@@ -39,17 +41,17 @@ namespace backend.Controllers
             {
                 string uniqueBlobName = generateUniqueBlobName(file.FileName);
 
-                BLOBRESPONSE result = await blobService.UploadBlobAsync(containerName, uniqueBlobName, file.OpenReadStream(), overwrite);
+                BLOBSTATUSCODE result = await blobService.UploadBlobAsync(containerName, uniqueBlobName, file.OpenReadStream(), overwrite);
 
                 switch (result)
                 {
-                    case BLOBRESPONSE.OK:
+                    case BLOBSTATUSCODE.OK:
                         return Ok(new FileUploadResult(uniqueBlobName, containerName, file.Length));
 
-                    case BLOBRESPONSE.NOTFOUND:
+                    case BLOBSTATUSCODE.NOTFOUND:
                         return NotFound(new ContainerResponse("Container could not be found", containerName));
 
-                    case BLOBRESPONSE.ALREADYEXISTS:
+                    case BLOBSTATUSCODE.ALREADYEXISTS:
                         return Conflict(new FileResponse("File already exists and overwrite is disabled.", uniqueBlobName, containerName));
 
                     default:
@@ -72,7 +74,7 @@ namespace backend.Controllers
         [SwaggerResponse(200, "File found and returned")]
         [SwaggerResponse(404, "Invalid file or container name", typeof(FileResponse))]
         [SwaggerResponse(500, "Server error")]
-        public async Task<IActionResult> DownloadFile(string fileName, string containerName = "knowledgebank")
+        public async Task<IActionResult> DownloadFile(string fileName, string containerName = DEFAULT_CONTAINER_NAME)
         {
             if (string.IsNullOrEmpty(fileName) || string.IsNullOrEmpty(containerName))
                 return BadRequest(new FileResponse("Invalid file or container name", fileName, containerName));
@@ -111,21 +113,21 @@ namespace backend.Controllers
         [SwaggerResponse(404, "File not found.", typeof(FileResponse))]
         [SwaggerResponse(400, "Invalid filename", typeof(FileResponse))]
         [SwaggerResponse(500, "Server error")]
-        public async Task<IActionResult> DeleteFile(string fileName, string containerName = "knowledgebank")
+        public async Task<IActionResult> DeleteFile(string fileName, string containerName = DEFAULT_CONTAINER_NAME)
         {
             if (string.IsNullOrEmpty(fileName) || string.IsNullOrEmpty(containerName))
                 return BadRequest(new FileResponse("Invalid file or container name", fileName, containerName));
 
             try
             {
-                BLOBRESPONSE result = await blobService.DeleteBlobAsync(containerName, fileName);
+                BLOBSTATUSCODE result = await blobService.DeleteBlobAsync(containerName, fileName);
 
                 switch (result)
                 {
-                    case BLOBRESPONSE.OK:
+                    case BLOBSTATUSCODE.OK:
                         return Ok(new FileResponse("File deleted successfully", fileName, containerName));
 
-                    case BLOBRESPONSE.NOTFOUND:
+                    case BLOBSTATUSCODE.NOTFOUND:
                         return NotFound(new FileResponse("File not found", fileName, containerName));
 
                     default:
@@ -149,7 +151,7 @@ namespace backend.Controllers
         [SwaggerResponse(409, "File already exists", typeof(FileResponse))]
         [SwaggerResponse(400, "Invalid file/container names", typeof(FileResponse))]
         [SwaggerResponse(500, "Server error")]
-        public async Task<IActionResult> CopyFile(string currentFileName, string destinationFileName, string currentContainerName = "knowledgebank", string destinationContainerName = "knowledgebank", bool overwrite = false)
+        public async Task<IActionResult> CopyFile(string currentFileName, string destinationFileName, string currentContainerName = DEFAULT_CONTAINER_NAME, string destinationContainerName = DEFAULT_CONTAINER_NAME, bool overwrite = false)
         {
             if (string.IsNullOrEmpty(currentContainerName) || string.IsNullOrEmpty(currentFileName))
                 return BadRequest(new FileResponse("Invalid source file or container name", currentFileName, currentContainerName));
@@ -161,17 +163,17 @@ namespace backend.Controllers
             {
                 string uniqueBlobName = generateUniqueBlobName(destinationFileName);
 
-                BLOBRESPONSE result = await blobService.CopyBlobAsync(currentContainerName, currentFileName, destinationContainerName, uniqueBlobName, overwrite);
+                BLOBSTATUSCODE result = await blobService.CopyBlobAsync(currentContainerName, currentFileName, destinationContainerName, uniqueBlobName, overwrite);
 
                 switch (result)
                 {
-                    case BLOBRESPONSE.OK:
+                    case BLOBSTATUSCODE.OK:
                         return Ok(new FileResponse("File copied successfully", uniqueBlobName, destinationContainerName));
 
-                    case BLOBRESPONSE.ALREADYEXISTS:
+                    case BLOBSTATUSCODE.ALREADYEXISTS:
                         return Conflict(new FileResponse("File already exists and overwrite is not enabled", uniqueBlobName, destinationContainerName));
 
-                    case BLOBRESPONSE.NOTFOUND:
+                    case BLOBSTATUSCODE.NOTFOUND:
                         return NotFound(new FileResponse("File not found", currentFileName, currentContainerName));
 
                     default:
@@ -195,7 +197,7 @@ namespace backend.Controllers
         [SwaggerResponse(409, "File already exists", typeof(FileResponse))]
         [SwaggerResponse(400, "Invalid file/container names", typeof(FileResponse))]
         [SwaggerResponse(500, "Server error")]
-        public async Task<IActionResult> MoveFile(string currentFileName, string destinationFileName, string currentContainerName = "knowledgebank", string destinationContainerName = "knowledgebank",  bool overwrite = false)
+        public async Task<IActionResult> MoveFile(string currentFileName, string destinationFileName, string currentContainerName = DEFAULT_CONTAINER_NAME, string destinationContainerName = DEFAULT_CONTAINER_NAME,  bool overwrite = false)
         {
             if (string.IsNullOrEmpty(currentContainerName) || string.IsNullOrEmpty(currentFileName))
                 return BadRequest(new FileResponse("Invalid source file or container name", currentFileName, currentContainerName));
@@ -207,17 +209,17 @@ namespace backend.Controllers
             {
                 string uniqueBlobName = generateUniqueBlobName(destinationFileName);
 
-                BLOBRESPONSE result = await blobService.MoveBlobAsync(currentContainerName, currentFileName, destinationContainerName, uniqueBlobName, overwrite);
+                BLOBSTATUSCODE result = await blobService.MoveBlobAsync(currentContainerName, currentFileName, destinationContainerName, uniqueBlobName, overwrite);
 
                 switch (result)
                 {
-                    case BLOBRESPONSE.OK:
+                    case BLOBSTATUSCODE.OK:
                         return Ok(new FileResponse("File moved successfully", uniqueBlobName, destinationContainerName));
 
-                    case BLOBRESPONSE.ALREADYEXISTS:
+                    case BLOBSTATUSCODE.ALREADYEXISTS:
                         return Conflict(new FileResponse("File already exists and overwrite is not enabled", uniqueBlobName, destinationContainerName));
 
-                    case BLOBRESPONSE.NOTFOUND:
+                    case BLOBSTATUSCODE.NOTFOUND:
                         return NotFound(new FileResponse("File not found", currentFileName, currentContainerName));
 
                     default:
@@ -241,7 +243,7 @@ namespace backend.Controllers
         [SwaggerResponse(409, "File already exists", typeof(FileResponse))]
         [SwaggerResponse(400, "Invalid file/container names", typeof(FileResponse))]
         [SwaggerResponse(500, "Server error")]
-        public async Task<IActionResult> MoveFile(string currentFileName, string newFileName, string containerName = "knowledgebank")
+        public async Task<IActionResult> MoveFile(string currentFileName, string newFileName, string containerName = DEFAULT_CONTAINER_NAME)
         {
             if (string.IsNullOrEmpty(containerName) || string.IsNullOrEmpty(currentFileName))
                 return BadRequest(new FileResponse("Invalid source file or container name", currentFileName, containerName));
@@ -253,17 +255,17 @@ namespace backend.Controllers
             {
                 string uniqueBlobName = generateUniqueBlobName(newFileName);
 
-                BLOBRESPONSE result = await blobService.RenameBlobAsync(containerName, currentFileName, uniqueBlobName);
+                BLOBSTATUSCODE result = await blobService.RenameBlobAsync(containerName, currentFileName, uniqueBlobName);
 
                 switch (result)
                 {
-                    case BLOBRESPONSE.OK:
+                    case BLOBSTATUSCODE.OK:
                         return Ok(new FileResponse("File renamed successfully", uniqueBlobName, containerName));
 
-                    case BLOBRESPONSE.ALREADYEXISTS:
+                    case BLOBSTATUSCODE.ALREADYEXISTS:
                         return Conflict(new FileResponse("File already exists and overwrite is not enabled", uniqueBlobName, containerName));
 
-                    case BLOBRESPONSE.NOTFOUND:
+                    case BLOBSTATUSCODE.NOTFOUND:
                         return NotFound(new FileResponse("File not found", currentFileName, containerName));
 
                     default:
@@ -318,14 +320,14 @@ namespace backend.Controllers
 
             try
             {
-                BLOBRESPONSE result = await blobService.DeleteContainerAsync(containerName);
+                BLOBSTATUSCODE result = await blobService.DeleteContainerAsync(containerName);
 
                 switch (result)
                 {
-                    case BLOBRESPONSE.OK:
+                    case BLOBSTATUSCODE.OK:
                         return Ok(new ContainerResponse("Container was removed successfully", containerName));
 
-                    case BLOBRESPONSE.NOTFOUND:
+                    case BLOBSTATUSCODE.NOTFOUND:
                         return NotFound(new ContainerResponse("The container does not exist", containerName));
 
                     default:
@@ -347,21 +349,21 @@ namespace backend.Controllers
         [SwaggerResponse(200, "Response with boolean indicating if file exists.", typeof(bool))]
         [SwaggerResponse(400, "Invalid filename", typeof(FileResponse))]
         [SwaggerResponse(500, "Server error")]
-        public async Task<IActionResult> Exists(string fileName, string containerName = "knowledgebank")
+        public async Task<IActionResult> Exists(string fileName, string containerName = DEFAULT_CONTAINER_NAME)
         {
             if (string.IsNullOrEmpty(fileName) || string.IsNullOrEmpty(containerName))
                 return BadRequest(new FileResponse("Invalid file or container name", fileName, containerName));
 
             try
             {
-                BLOBRESPONSE result = await blobService.BlobExistsAsync(containerName, fileName);
+                BLOBSTATUSCODE result = await blobService.BlobExistsAsync(containerName, fileName);
                 
                 switch (result)
                 {
-                    case BLOBRESPONSE.OK:
+                    case BLOBSTATUSCODE.OK:
                         return Ok(true);
 
-                    case BLOBRESPONSE.NOTFOUND:
+                    case BLOBSTATUSCODE.NOTFOUND:
                         return Ok(false);
 
                     default:
@@ -375,24 +377,37 @@ namespace backend.Controllers
             }
         }
 
-        [HttpGet("list")]
+        [HttpGet("page")]
         [SwaggerOperation(
-            Summary = "Lists files.",
-            Description = "Lists files in given container."
+            Summary = "Lists a page of files",
+            Description = "Lists a page of files in a given container."
         )]
-        [SwaggerResponse(200, "List of files", typeof(string[]))]
-        [SwaggerResponse(400, "Invalid container name.", typeof(ContainerResponse))]
+        [SwaggerResponse(200, "List of files", typeof(PageResponse))]
+        [SwaggerResponse(404, "Container does not exist", typeof(ContainerResponse))]
+        [SwaggerResponse(400, "Invalid input", typeof(PageResponse))]
         [SwaggerResponse(500, "Server error")]
-        public async Task<IActionResult> List(string containerName = "knowledgebank", string? prefix = null)
+        public async Task<IActionResult> Page(string containerName = DEFAULT_CONTAINER_NAME, int pageSize = 1, string? continuationToken = null, string prefix = "")
         {
-            if (string.IsNullOrEmpty(containerName))
-                return BadRequest(new ContainerResponse("Invalid container name", containerName));
-
             try
             {
-#pragma warning disable CS8604 // Possible null reference argument.
-                return Ok(await blobService.ListBlobsAsync(containerName, prefix));
-#pragma warning restore CS8604 // Possible null reference argument.
+                BlobPageResponse result = await blobService.ListBlobsPagedAsync(containerName, pageSize, continuationToken, prefix);
+
+                PageResponse response = new PageResponse(result.Message, containerName, result.ContinuationToken, result.Blobs, pageSize);
+
+                switch (result.Status)
+                {
+                    case BLOBSTATUSCODE.OK:
+                        return Ok(response);
+
+                    case BLOBSTATUSCODE.INVALID:
+                        return BadRequest(response);
+
+                    case BLOBSTATUSCODE.NOTFOUND:
+                        return NotFound(response);
+
+                    default:
+                        return StatusCode(500, "Error listing files.");
+                }
             }
             catch (Exception e)
             {
@@ -458,6 +473,24 @@ namespace backend.Controllers
         {
             this.Message = message;
             this.ContainerName = containerName;
+        }
+    }
+
+    public class PageResponse
+    {
+        public string Message { get; set; }
+        public string ContainerName { get; set; }
+        public string? ContinuationToken { get; set; }
+        public string[] Files { get; set; }
+        public int PageSize { get; set; }
+
+        public PageResponse(string message, string containerName, string? continuationToken, string[] files, int pageSize)
+        {
+            this.Message = message;
+            this.ContainerName = containerName;
+            this.ContinuationToken = continuationToken;
+            this.Files = files;
+            this.PageSize = pageSize;
         }
     }
 }
