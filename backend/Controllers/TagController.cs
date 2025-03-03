@@ -3,11 +3,13 @@ using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace KnowledgeBank.Controllers;
 
 [ApiController]
 [Route("[controller]")]
+[Produces("application/json")]
 public class TagController : ControllerBase
 {
     // Database context
@@ -25,8 +27,13 @@ public class TagController : ControllerBase
     /// <returns>
     /// Returns a 200 OK response containing a list of all Drive entities.
     /// </returns>
-    [HttpGet]
-    [Route("all-tags")]
+    [HttpGet("all-tags")]
+    [SwaggerOperation(
+            Summary = "List all tags.",
+            Description = "List all standarized tags created by admins."
+        )]
+    [SwaggerResponse(200, "List of tags", typeof(List<Tag>))]
+    [SwaggerResponse(500, "Internal server error")]
     public IActionResult Get()
     {
         try
@@ -43,18 +50,25 @@ public class TagController : ControllerBase
     /// <summary>
     /// Adds a new tag to the tag list.
     /// </summary>
-    /// <param name="tagDto">The Data Transfer Object for adding a tag.</param>
+    /// <param name="tagName">The name of the tag to add.</param>
     /// <returns>
     /// Returns a 200 OK response containing the added tag.
     // </returns>
-    [HttpPost]
-    [Route("add-tag")]
-    public async Task<IActionResult> AddTag([FromBody] TagCreateDto tagDto)
+    [HttpPost("add-tag/{tagName}")]
+    [SwaggerOperation(
+            Summary = "Adds new standard tag.",
+            Description = "Lets an admin add a new tag to the list of standarized tags."
+        )]
+    [SwaggerResponse(200, "New tag added", typeof(Tag))]
+    [SwaggerResponse(400, "Bad request")]
+    [SwaggerResponse(409, "Tag already exists")]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> AddTag(string tagName)
     {
-        Log.Information($"Adding new tag to tag list: {tagDto.Name}.");
+        Log.Information($"Adding new tag to tag list: {tagName}.");
 
         // Make sure we have the required fields from body
-        if (string.IsNullOrEmpty(tagDto.Name))
+        if (string.IsNullOrEmpty(tagName))
         {
             Log.Error("Name is required");
             return BadRequest("Name is required");
@@ -62,7 +76,7 @@ public class TagController : ControllerBase
 
         Tag tag = new()
         {
-            Name = tagDto.Name,
+            Name = tagName,
         };
 
         // Add the tag
@@ -85,39 +99,46 @@ public class TagController : ControllerBase
         }
 
         // Adding the tag was successful
-        Log.Information($"New tag added {tagDto.Name} to tag list.");
+        Log.Information($"New tag added {tagName} to tag list.");
         return Ok(tag);
     }
 
     /// <summary>
-    /// Removes a tag from the tag list.
+    /// Deletes a tag from the tag list.
     /// </summary>
-    /// <param name="tagDto">The Data Transfer Object for deleting a tag.</param>
+    /// <param name="tagName">The name of the tag to delete.</param>
     /// <returns>
-    /// Returns a 200 OK response containing the removed tag.
+    /// Returns a 200 OK response containing the deleted tag.
     // </returns>
-    [HttpDelete]
-    [Route("delete-tag")]
-    public async Task<IActionResult> DeleteTag([FromBody] TagDeleteDto tagDto)
+    [HttpDelete("delete-tag/{tagName}")]
+    [SwaggerOperation(
+            Summary = "Delete standard tag.",
+            Description = "Lets and admin delete a tag from the list of standarized tags."
+        )]
+    [SwaggerResponse(200, "Tag deleted", typeof(Tag))]
+    [SwaggerResponse(400, "Bad request")]
+    [SwaggerResponse(404, "Tag not found")]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> DeleteTag(string tagName)
     {
-        Log.Information($"Removing tag from tag list: {tagDto.Name}.");
+        Log.Information($"Removing tag from tag list: {tagName}.");
 
         // Make sure we have the required fields from body
-        if (string.IsNullOrEmpty(tagDto.Name))
+        if (string.IsNullOrEmpty(tagName))
         {
             Log.Error("Name is required");
             return BadRequest("Name is required");
         }
 
         //find tag in database
-        Tag tag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == tagDto.Name) 
+        Tag tag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == tagName) 
             ?? new Tag() {Name = ""}; //if not found: set tag to empty tag
 
         //check if tag is empty, if so: it was not found
         if(string.IsNullOrEmpty(tag.Name))
         {
-            Log.Error($"Tag {tagDto.Name} not found.");
-            return NotFound($"Tag {tagDto.Name} not found.");
+            Log.Error($"Tag {tagName} not found.");
+            return NotFound($"Tag {tagName} not found.");
         }
         
         //remove tag from database

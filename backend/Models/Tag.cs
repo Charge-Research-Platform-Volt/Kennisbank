@@ -9,13 +9,3 @@ public class Tag
     [Key]
     public required string Name { get; set; }
 }
-
-public class TagCreateDto //Data Transfer Object (DTO)
-{
-    public required string Name { get; set; }
-}
-
-public class TagDeleteDto //Data Transfer Object (DTO)
-{
-    public required string Name { get; set; }
-}
