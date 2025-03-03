@@ -26,6 +26,8 @@ namespace backend.Controllers
             Description = "Uploads a file to Azure Blob Storage and returns metadata."
         )]
         [SwaggerResponse(200, "File was uploaded successfully", typeof(FileUploadResult))]
+        [SwaggerResponse(404, "Container does not exist", typeof(ContainerResponse))]
+        [SwaggerResponse(409, "File already exists", typeof(FileResponse))]
         [SwaggerResponse(400, "Invalid file")]
         [SwaggerResponse(500, "Server error")]
         public async Task<IActionResult> UploadFile(IFormFile file, string containerName = "knowledgebank", bool overwrite = false)
@@ -44,8 +46,11 @@ namespace backend.Controllers
                     case BLOBRESPONSE.OK:
                         return Ok(new FileUploadResult(uniqueBlobName, containerName, file.Length));
 
+                    case BLOBRESPONSE.NOTFOUND:
+                        return NotFound(new ContainerResponse("Container could not be found", containerName));
+
                     case BLOBRESPONSE.ALREADYEXISTS:
-                        return Conflict("File already exists and overwrite is disabled.");
+                        return Conflict(new FileResponse("File already exists and overwrite is disabled.", uniqueBlobName, containerName));
 
                     default:
                         return StatusCode(500, "Error uploading file.");
@@ -77,7 +82,7 @@ namespace backend.Controllers
                 Stream? stream = await blobService.DownloadBlobAsync(containerName, fileName);
 
                 if (stream == null)
-                    return NotFound();
+                    return NotFound(new FileResponse("File could not be found", fileName, containerName));
 
                 string contentType = "application/octet-stream";
 

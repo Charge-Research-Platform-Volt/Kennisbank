@@ -160,6 +160,12 @@ namespace backend.Data
             BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
             BlobClient blob = container.GetBlobClient(blobName);
 
+            if (!await container.ExistsAsync())
+            {
+                logger.Information("The container {ContainerName} does not exist.", containerName);
+                return BLOBRESPONSE.NOTFOUND;
+            }
+
             if (await blob.ExistsAsync() && !overwrite)
             {
                 logger.Information("Blob {BlobName} already exists in {ContainerName} and overwrite is disabled.", blobName, containerName);
