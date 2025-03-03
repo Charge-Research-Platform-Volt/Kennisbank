@@ -2,7 +2,9 @@
 
 import { Icon } from '@iconify/react';
 import { useState } from "react";
-import UploadPopup from './sidebar/upload';
+import UploadPopup from './upload';
+import './sidebar.css';
+import '../Colors.css';
 
 export default function SideBar()
 {
@@ -18,15 +20,16 @@ export default function SideBar()
     }
 
     return (
-    <div className="h-screen w-64 bg-slate-50">
+    <div>
         <button  onClick={clickNew}
-                 className="w-full h-10 bg-purple-900 text-white text-lg font-semibold rounded-xl text-left pl-3 
-                           hover:bg-purple-800 active:bg-purple-900 flex items-center gap-1">
+                 className="w-full h-10 bgvp text-white text-lg font-semibold rounded-xl text-left pl-3 
+                           hover:bg-purple-800 active:bgvp flex items-center gap-1">
             <Icon icon="mdi:plus-box" width="20" height="20"/>
             <div className='pb-0.5'>New</div>
         </button>
 
         <UploadPopup isOpen={uploadPopup} onClose={closeUploadPopup} />
+        
     </div>
     );
 }

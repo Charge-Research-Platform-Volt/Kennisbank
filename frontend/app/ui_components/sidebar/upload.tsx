@@ -1,4 +1,5 @@
 import { useRef, useEffect } from "react";
+import './uploadPopup.css';
 
 interface PopupProps {
   isOpen: boolean;
@@ -26,14 +27,18 @@ const Popup: React.FC<PopupProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex justify-center items-center bg-slate-300 bg-opacity-50">
-      <div ref={popupRef} className="bg-white w-240 h-140 p-4 rounded-lg">
-        <h2 className="text-black font-bold text-2xl">Upload Document</h2>
-        <div className="border-4 border-dotted border-gray-600 w-180 h-90 flex justify-center items-center rounded-4xl">
+    <div className="popupContainer">
+    <div ref={popupRef} className="popup">
+    <h2 className="text-black pt-1 pl-5 font-bold text-2xl">Upload Document</h2>
+    <div className='flex justify-center pt-15 items-center'>
+        <div className="border-4 border-dotted border-gray-600 w-180 h-90 rounded-4xl">
 
         </div>
-      </div>
     </div>
+
+    </div>
+    </div>
+
   );
 };
 
