@@ -43,7 +43,7 @@ public class TagController : ControllerBase
         catch (Exception e)
         {
             Log.Error(e, "Failed to retrieve documents");
-            return StatusCode(500, "Internal server error");
+            return StatusCode(500, new { message = "Internal server error" });
         }
     }
 
@@ -71,7 +71,7 @@ public class TagController : ControllerBase
         if (string.IsNullOrEmpty(tagName))
         {
             Log.Error("Name is required");
-            return BadRequest("Name is required");
+            return BadRequest(new { message = "Name is required" });
         }
 
         Tag tag = new()
@@ -89,18 +89,18 @@ public class TagController : ControllerBase
         {
             // The tag already exists
             Log.Error(e, "Tag already exists.");
-            return Conflict("Tag already exists.");
+            return Conflict(new { message = "Tag already exists." });
         }
         catch (Exception e)
         {
             // Something else went wrong
             Log.Error(e, "Failed to add tag.");
-            return StatusCode(500, "Internal server error");
+            return StatusCode(500, new { message = "Internal server error" });
         }
 
         // Adding the tag was successful
         Log.Information($"New tag added {tagName} to tag list.");
-        return Ok(tag);
+        return Ok(new { message = "Tag added." });
     }
 
     /// <summary>
@@ -127,7 +127,7 @@ public class TagController : ControllerBase
         if (string.IsNullOrEmpty(tagName))
         {
             Log.Error("Name is required");
-            return BadRequest("Name is required");
+            return BadRequest(new { message = "Name is required" });
         }
 
         //find tag in database
@@ -138,13 +138,13 @@ public class TagController : ControllerBase
         if (string.IsNullOrEmpty(tag.Name))
         {
             Log.Error($"Tag {tagName} not found.");
-            return NotFound($"Tag {tagName} not found.");
+            return NotFound(new { message = "Tag not found." });
         }
 
         //remove tag from database
         _context.Tags.Remove(tag);
         await _context.SaveChangesAsync();
 
-        return Ok(tag);
+        return Ok(new { message = "Tag deleted." });
     }
 }
