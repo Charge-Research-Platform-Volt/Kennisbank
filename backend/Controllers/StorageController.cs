@@ -164,6 +164,7 @@ namespace backend.Controllers
 
             try
             {
+                destinationFileName = copyFileExtensionWhenMissing(currentFileName, destinationFileName);
                 string uniqueBlobName = generateUniqueBlobName(destinationFileName);
 
                 BLOB_STATUSCODE result = await blobService.CopyBlobAsync(currentContainerName, currentFileName, destinationContainerName, uniqueBlobName, overwrite);
@@ -210,6 +211,7 @@ namespace backend.Controllers
 
             try
             {
+                destinationFileName = copyFileExtensionWhenMissing(currentFileName, destinationFileName);
                 string uniqueBlobName = generateUniqueBlobName(destinationFileName);
 
                 BLOB_STATUSCODE result = await blobService.MoveBlobAsync(currentContainerName, currentFileName, destinationContainerName, uniqueBlobName, overwrite);
@@ -256,6 +258,7 @@ namespace backend.Controllers
 
             try
             {
+                newFileName = copyFileExtensionWhenMissing(currentFileName, newFileName);
                 string uniqueBlobName = generateUniqueBlobName(newFileName);
 
                 BLOB_STATUSCODE result = await blobService.RenameBlobAsync(containerName, currentFileName, uniqueBlobName);
@@ -422,6 +425,21 @@ namespace backend.Controllers
         private string generateUniqueBlobName(string fileName)
         {
             return $"{Guid.NewGuid()}-{fileName}";
+        }
+
+        /// <summary>
+        /// Copies the file extension of the source filename to the destination filename, when the destination filename does not have one
+        /// </summary>
+        /// <param name="source">Source file name</param>
+        /// <param name="dest">Destination filename</param>
+        /// <returns>Destination filename with file extension</returns>
+        private string copyFileExtensionWhenMissing(string source, string dest)
+        {
+            // Copy file extension if newFileName does not have it
+            if (string.IsNullOrEmpty(Path.GetExtension(dest)))
+                dest += Path.GetExtension(source);
+
+            return dest;
         }
     }
 }
