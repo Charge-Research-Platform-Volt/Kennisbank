@@ -2,6 +2,10 @@
     background-color: #502379;
 } /* Volt Purple */
 
+.bgdvp {
+    background-color: #6f2aaf;
+} /* slightly lighter volt purple for hover effect */
+
 .cvp {
     color: #502379;
 } /* Volt Purple */

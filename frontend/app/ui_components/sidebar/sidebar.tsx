@@ -22,8 +22,8 @@ export default function SideBar()
     return (
     <div>
         <button  onClick={clickNew}
-                 className="w-full h-10 bgvp text-white text-lg font-semibold rounded-xl text-left pl-3 
-                           hover:bg-purple-800 active:bgvp flex items-center gap-1">
+                 className="w-full h-10 bg-[#502379] text-white text-lg font-semibold rounded-xl text-left pl-3 
+                           hover:bg-[#6f2aaf] active:bg-[#502379] flex items-center gap-1">
             <Icon icon="mdi:plus-box" width="20" height="20"/>
             <div className='pb-0.5'>New</div>
         </button>
