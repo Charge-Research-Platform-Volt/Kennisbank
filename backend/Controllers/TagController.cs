@@ -131,16 +131,16 @@ public class TagController : ControllerBase
         }
 
         //find tag in database
-        Tag tag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == tagName) 
-            ?? new Tag() {Name = ""}; //if not found: set tag to empty tag
+        Tag tag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == tagName)
+            ?? new Tag() { Name = "" }; //if not found: set tag to empty tag
 
         //check if tag is empty, if so: it was not found
-        if(string.IsNullOrEmpty(tag.Name))
+        if (string.IsNullOrEmpty(tag.Name))
         {
             Log.Error($"Tag {tagName} not found.");
             return NotFound($"Tag {tagName} not found.");
         }
-        
+
         //remove tag from database
         _context.Tags.Remove(tag);
         await _context.SaveChangesAsync();
