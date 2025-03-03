@@ -432,6 +432,9 @@ namespace backend.Controllers
         /// </summary>
         public string FileName { get; set; }
 
+        /// <summary>
+        /// Name of the container it is uploaded in
+        /// </summary>
         public string ContainerName { get; set; }
 
         /// <summary>

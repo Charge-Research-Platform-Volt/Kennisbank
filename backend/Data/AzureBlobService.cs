@@ -117,7 +117,9 @@ namespace backend.Data
         Task<BLOBSTATUSCODE> RenameBlobAsync(string containerName, string oldFileName, string newFileName);
 
         /// <summary>
-        /// Lists all blobs in a given container
+        /// Lists all blobs in a given container <br></br><br></br><br></br>
+        /// Note:<br></br>
+        /// With large containers this can give a lot of strain on the server.
         /// </summary>
         /// <param name="containerName">The name of the container</param>
         /// <param name="prefix">A prefix to filter results</param>
