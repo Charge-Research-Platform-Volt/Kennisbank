@@ -35,7 +35,7 @@ public class DriveController : ControllerBase
         catch (Exception e)
         {
             Log.Error(e, "Failed to retrieve documents");
-            return StatusCode(500, "Internal server error");
+            return StatusCode(500, new { message = "An error occurred while retrieving documents." });
         }
     }
 
@@ -47,8 +47,8 @@ public class DriveController : ControllerBase
         // Make sure we have the required fields from body
         if (string.IsNullOrEmpty(driveDto.Name) || string.IsNullOrEmpty(driveDto.Description))
         {
-            Log.Error("Name and Description are required");
-            return BadRequest("Name and Description are required");
+            Log.Error("Name and Description are required.");
+            return BadRequest(new { message = "Name and Description are required." });
         }
 
         Drive drive = new()
@@ -60,7 +60,7 @@ public class DriveController : ControllerBase
 
         await _context.Drives.AddAsync(drive);
         await _context.SaveChangesAsync();
-        return Ok(drive);
+        return Ok(new { message = "Document created." });
     }
 
 

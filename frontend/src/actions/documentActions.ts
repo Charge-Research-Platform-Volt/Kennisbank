@@ -1,38 +1,62 @@
 "use server";
 
-import type { DocumentBase } from "@/types/document.type";
-import type { FormResponse, ReturnType } from "@/types/return.type";
+import { DocumentBaseSchema, type DocumentBase } from "@/types/document.type";
+import type { FormResponse } from "@/types/return.type";
 import { revalidatePath } from "next/cache";
 
 export const AddDocument = async (
 	prevState: FormResponse<DocumentBase>,
 	formData: FormData,
-): Promise<ReturnType> => {
-	const name = formData.get("name") as string;
-	if (!name) {return { success: false, message: "Name is required" }}
+): Promise<FormResponse<DocumentBase>> => {
+	try {
+		// Raw data from the form.
+		const rawData: DocumentBase = {
+			name: formData.get("name") as string,
+			description: formData.get("description") as string,
+		};
 
-	const description = formData.get("description") as string;
-	if (!description) {return { success: false, message: "Description is required" }}
+		// Validate the raw data, if it fails, return an error.
+		const validatedData = DocumentBaseSchema.safeParse(rawData);
 
-	const response = await fetch("http://backend:8080/Drive/add-document", {
-		method: "POST",
-		body: JSON.stringify({
-			name: name,
-			description: description,
-		}),
-		headers: { "Content-Type": "application/json" },
-	});
+		if (!validatedData.success) {
+			return {
+				success: false,
+				message: validatedData.error.errors[0].message,
+				inputs: rawData,
+			};
+		}
 
-	if (!response.ok) {
+		// Send the data to the backend.
+		const response = await fetch("http://backend:8080/Drive/add-document", {
+			method: "POST",
+			body: JSON.stringify({
+				name: rawData.name,
+				description: rawData.description,
+			}),
+			headers: { "Content-Type": "application/json" },
+		});
+		const data = await response.json();
+
+		// Check if the request was successful, if not, return an error.
+		if (!response.ok) {
+			return {
+				success: false,
+				message: data.message,
+				inputs: rawData,
+			};
+		}
+
+		// Revalidate the cache for the home page.
+		revalidatePath("/");
+
+		return {
+			success: true,
+			message: data.message,
+		};
+	} catch (error) {
 		return {
 			success: false,
-			message: "Failed to create document",
+			message: "An error occurred.",
 		};
 	}
-
-	revalidatePath("/");
-	return {
-		success: true,
-		message: "Document created",
-	};
 };

@@ -4,8 +4,3 @@ export interface FormResponse<T> {
 	errors?: { [K in keyof T]?: string[] };
 	inputs?: T;
 }
-
-export interface ReturnType {
-	success: boolean;
-	message: string;
-}

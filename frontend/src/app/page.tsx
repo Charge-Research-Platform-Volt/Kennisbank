@@ -14,17 +14,14 @@ export default async function Home() {
     "http://backend:8080/KnowledgeBank/members",
   );
 
-  if (!result.success) {
-    throw new Error("Data validation failed");
-  }
-
   return (
     <div>
       Hello World!
       <div>
         <h1>Team (from the backend):</h1>
 
-        {result.data.map((member) => (
+        {result.data &&
+        result.data.map((member) => (
           <div key={member.name}>
             <h2>{member.name}</h2>
           </div>

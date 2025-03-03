@@ -15,8 +15,6 @@ const initialState: FormResponse<DocumentBase> = {
 
 export default function CreateDocument() {
   const [state, action, isPending] = useActionState(AddDocument, initialState);
-  console.log("CreateDocument state:");
-  console.log(state.message);
 
   useEffect(() => {
     if (state.success) {
@@ -33,12 +31,14 @@ export default function CreateDocument() {
         name="name"
         placeholder="Document name"
         disabled={isPending}
+        defaultValue={state.inputs?.name}
       />
       <Input
         type="text"
         name="description"
         placeholder="Document description"
         disabled={isPending}
+        defaultValue={state.inputs?.description}
       />
       <Button
         className="w-24"

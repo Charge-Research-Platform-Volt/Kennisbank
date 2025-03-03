@@ -4,8 +4,8 @@ import { z } from "zod";
  * Base document schema without ID
  */
 export const DocumentBaseSchema = z.object({
-	name: z.string(),
-	description: z.string(),
+	name: z.string().min(1 , { message: "Name is required" }),
+	description: z.string().min(1 , { message: "Description is required" }),
 });
 
 /**
