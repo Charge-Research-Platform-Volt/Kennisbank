@@ -21,6 +21,8 @@ namespace backend.Controllers
         {
             this.blobService = blobService;
             this.logger = Log.ForContext<StorageController>();
+
+            blobService.GetOrCreateContainerAsync(DEFAULT_CONTAINER_NAME);
         }
 
         [HttpPost("upload")]
