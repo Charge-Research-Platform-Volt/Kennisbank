@@ -8,16 +8,16 @@ using System.Text;
 
 namespace backend.Data
 {
-    public enum BLOBSTATUSCODE { OK, FAILED, NOTFOUND, ALREADYEXISTS, INVALID }
+    public enum BLOB_STATUSCODE { OK, FAILED, NOTFOUND, ALREADYEXISTS, INVALID }
 
     public struct BlobPageResponse
     {
-        public BLOBSTATUSCODE Status { get; }
+        public BLOB_STATUSCODE Status { get; }
         public string Message { get; }
         public string? ContinuationToken { get; }
         public string[] Blobs { get; }
 
-        public BlobPageResponse(BLOBSTATUSCODE status, string message, string? continuationToken, string[] blobs)
+        public BlobPageResponse(BLOB_STATUSCODE status, string message, string? continuationToken, string[] blobs)
         {
             this.Status             = status;
             this.Message            = message;
@@ -45,7 +45,7 @@ namespace backend.Data
         /// </summary>
         /// <param name="containerName">The name of the container.</param>
         /// <returns>If the operation was successful.</returns>
-        Task<BLOBSTATUSCODE> DeleteContainerAsync(string containerName);
+        Task<BLOB_STATUSCODE> DeleteContainerAsync(string containerName);
 
         /// <summary>
         /// Uploads a blob to the given container.
@@ -55,7 +55,7 @@ namespace backend.Data
         /// <param name="content">The filestream</param>
         /// <param name="overwrite">Whether or not the file should be overwritten when it already exists</param>
         /// <returns>If the operation was successful</returns>
-        Task<BLOBSTATUSCODE> UploadBlobAsync(string containerName, string blobName, Stream content, bool overwrite = false);
+        Task<BLOB_STATUSCODE> UploadBlobAsync(string containerName, string blobName, Stream content, bool overwrite = false);
 
         /// <summary>
         /// Downloads a blob from the given container
@@ -71,7 +71,7 @@ namespace backend.Data
         /// <param name="containerName">The name of the container</param>
         /// <param name="blobName">The name of the blob</param>
         /// <returns>If the operation was successful</returns>
-        Task<BLOBSTATUSCODE> DeleteBlobAsync(string containerName, string blobName);
+        Task<BLOB_STATUSCODE> DeleteBlobAsync(string containerName, string blobName);
 
         /// <summary>
         /// Checks if a blob exists in a given container
@@ -79,7 +79,7 @@ namespace backend.Data
         /// <param name="containerName">The name of the container</param>
         /// <param name="blobName">The name of the blob</param>
         /// <returns>If the blob exists in the given container</returns>
-        Task<BLOBSTATUSCODE> BlobExistsAsync(string containerName, string blobName);
+        Task<BLOB_STATUSCODE> BlobExistsAsync(string containerName, string blobName);
 
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace backend.Data
         /// <param name="overwrite">Whether or not we overwrite the destination file if it already exists</param>
         /// <param name="surpressLogging">Whether or not logging should be surpressed for when you use this function inside another.</param>
         /// <returns>If the operation was successful</returns>
-        Task<BLOBSTATUSCODE> CopyBlobAsync(string currentContainername, string currentFileName, string newContainerName, string newFileName, bool overwrite = false, bool surpressLogging = false);
+        Task<BLOB_STATUSCODE> CopyBlobAsync(string currentContainername, string currentFileName, string newContainerName, string newFileName, bool overwrite = false, bool surpressLogging = false);
 
 
         /// <summary>
@@ -105,7 +105,7 @@ namespace backend.Data
         /// <param name="overwrite">Whether or not we overwrite the destination file if it already exists</param>
         /// <param name="surpressLogging">Whether or not logging should be surpressed for when you use this function inside another.</param>
         /// <returns>If the operation was successful</returns>
-        Task<BLOBSTATUSCODE> MoveBlobAsync(string currentContainername, string currentFileName, string newContainerName, string newFileName, bool overwrite = false, bool surpressLogging = false);
+        Task<BLOB_STATUSCODE> MoveBlobAsync(string currentContainername, string currentFileName, string newContainerName, string newFileName, bool overwrite = false, bool surpressLogging = false);
 
         /// <summary>
         /// Renames a blob in a given container
@@ -114,7 +114,7 @@ namespace backend.Data
         /// <param name="oldFileName">The old name of the blob</param>
         /// <param name="newFileName">The new name of the blob</param>
         /// <returns>If the operation was successful</returns>
-        Task<BLOBSTATUSCODE> RenameBlobAsync(string containerName, string oldFileName, string newFileName);
+        Task<BLOB_STATUSCODE> RenameBlobAsync(string containerName, string oldFileName, string newFileName);
 
         /// <summary>
         /// Lists all blobs in a given container <br></br><br></br><br></br>
@@ -175,7 +175,7 @@ namespace backend.Data
         }
 
         /// <inheritdoc/>
-        public async Task<BLOBSTATUSCODE> DeleteContainerAsync(string containerName)
+        public async Task<BLOB_STATUSCODE> DeleteContainerAsync(string containerName)
         {
             BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
 
@@ -183,11 +183,11 @@ namespace backend.Data
 
             logger.Information("Container {ContainerName} deleted successfully.");
 
-            return result ? BLOBSTATUSCODE.OK : BLOBSTATUSCODE.NOTFOUND;
+            return result ? BLOB_STATUSCODE.OK : BLOB_STATUSCODE.NOTFOUND;
         }
 
         /// <inheritdoc/>
-        public async Task<BLOBSTATUSCODE> UploadBlobAsync(string containerName, string blobName, Stream content, bool overwrite = false)
+        public async Task<BLOB_STATUSCODE> UploadBlobAsync(string containerName, string blobName, Stream content, bool overwrite = false)
         {
             BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
             BlobClient blob = container.GetBlobClient(blobName);
@@ -195,18 +195,18 @@ namespace backend.Data
             if (!await container.ExistsAsync())
             {
                 logger.Information("The container {ContainerName} does not exist.", containerName);
-                return BLOBSTATUSCODE.NOTFOUND;
+                return BLOB_STATUSCODE.NOTFOUND;
             }
 
             if (await blob.ExistsAsync() && !overwrite)
             {
                 logger.Information("Blob {BlobName} already exists in {ContainerName} and overwrite is disabled.", blobName, containerName);
-                return BLOBSTATUSCODE.ALREADYEXISTS;
+                return BLOB_STATUSCODE.ALREADYEXISTS;
             }
 
             await blob.UploadAsync(content, true);
             logger.Information("Blob {BlobName} successfully uploaded to container {ContainerName}.", blobName, containerName);
-            return BLOBSTATUSCODE.OK;
+            return BLOB_STATUSCODE.OK;
         }
 
         /// <inheritdoc/>
@@ -230,7 +230,7 @@ namespace backend.Data
         }
 
         /// <inheritdoc/>
-        public async Task<BLOBSTATUSCODE> DeleteBlobAsync(string containerName, string blobName)
+        public async Task<BLOB_STATUSCODE> DeleteBlobAsync(string containerName, string blobName)
         {
             BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
             BlobClient blob = container.GetBlobClient(blobName);
@@ -242,11 +242,11 @@ namespace backend.Data
             else
                 logger.Information("Attempted to delte non-existent blob {BlobName} in container {ContainerName}.", blobName, containerName);
 
-            return result ? BLOBSTATUSCODE.OK : BLOBSTATUSCODE.NOTFOUND;
+            return result ? BLOB_STATUSCODE.OK : BLOB_STATUSCODE.NOTFOUND;
         }
 
         /// <inheritdoc/>
-        public async Task<BLOBSTATUSCODE> BlobExistsAsync(string containerName, string blobName)
+        public async Task<BLOB_STATUSCODE> BlobExistsAsync(string containerName, string blobName)
         {
             BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
             BlobClient blob = container.GetBlobClient(blobName);
@@ -258,11 +258,11 @@ namespace backend.Data
             else
                 logger.Information("Blob {BlobName} does not exist in container {ContainerName}.", blobName, containerName);
 
-            return result ? BLOBSTATUSCODE.OK : BLOBSTATUSCODE.NOTFOUND;
+            return result ? BLOB_STATUSCODE.OK : BLOB_STATUSCODE.NOTFOUND;
         }
 
         /// <inheritdoc/>
-        public async Task<BLOBSTATUSCODE> CopyBlobAsync(string currentContainerName, string currentFileName, string newContainerName, string newFileName, bool overwrite = false, bool surpressLogging = false)
+        public async Task<BLOB_STATUSCODE> CopyBlobAsync(string currentContainerName, string currentFileName, string newContainerName, string newFileName, bool overwrite = false, bool surpressLogging = false)
         {
             BlobContainerClient currentContainer = blobService.GetBlobContainerClient(currentContainerName);
             BlobClient currentBlob = currentContainer.GetBlobClient(currentFileName);
@@ -270,7 +270,7 @@ namespace backend.Data
             if (!await currentBlob.ExistsAsync())
             {
                 logger.Information("Old blob {OldFileName} not found in container {OldContainerName}", currentFileName, currentContainerName);
-                return BLOBSTATUSCODE.NOTFOUND;
+                return BLOB_STATUSCODE.NOTFOUND;
             }
 
             BlobContainerClient newContainer = blobService.GetBlobContainerClient(newContainerName);
@@ -281,7 +281,7 @@ namespace backend.Data
             if (exists && !overwrite)
             {
                 logger.Information("The destination already contains a file with the given name and overwrite is not enabled.");
-                return BLOBSTATUSCODE.ALREADYEXISTS;
+                return BLOB_STATUSCODE.ALREADYEXISTS;
             }
 
             if (exists && overwrite)
@@ -293,21 +293,21 @@ namespace backend.Data
             if (!await newBlob.ExistsAsync())
             {
                 logger.Error("Copy operation completed, but destination blob {NewFileName} does not exist in destination container {NewContainerName}", newFileName, newContainerName);
-                return BLOBSTATUSCODE.FAILED;
+                return BLOB_STATUSCODE.FAILED;
             }
 
             if (!surpressLogging)
                 logger.Information("Successfully copied file {CurrentFileName} from container {CurrentContainerName} to {NewFileName} in container {NewContainerName}", currentFileName, currentContainerName, newContainerName);
 
-            return BLOBSTATUSCODE.OK;
+            return BLOB_STATUSCODE.OK;
         }
 
         /// <inheritdoc/>
-        public async Task<BLOBSTATUSCODE> MoveBlobAsync(string currentContainerName, string currentFileName, string newContainerName, string newFileName, bool overwrite = false, bool surpressLogging = false)
+        public async Task<BLOB_STATUSCODE> MoveBlobAsync(string currentContainerName, string currentFileName, string newContainerName, string newFileName, bool overwrite = false, bool surpressLogging = false)
         {
-            BLOBSTATUSCODE result = await CopyBlobAsync(currentContainerName, currentFileName, newContainerName, newFileName, overwrite, surpressLogging);
+            BLOB_STATUSCODE result = await CopyBlobAsync(currentContainerName, currentFileName, newContainerName, newFileName, overwrite, surpressLogging);
 
-            if (result == BLOBSTATUSCODE.OK)
+            if (result == BLOB_STATUSCODE.OK)
             {
                 BlobContainerClient container = blobService.GetBlobContainerClient(currentContainerName);
                 BlobClient blob = container.GetBlobClient(currentFileName);
@@ -323,7 +323,7 @@ namespace backend.Data
         }
 
         /// <inheritdoc/>
-        public async Task<BLOBSTATUSCODE> RenameBlobAsync(string containerName, string oldFileName, string newFileName)
+        public async Task<BLOB_STATUSCODE> RenameBlobAsync(string containerName, string oldFileName, string newFileName)
         {
             return await MoveBlobAsync(containerName, oldFileName, containerName, newFileName, surpressLogging: true);
         }
@@ -362,13 +362,13 @@ namespace backend.Data
             if (string.IsNullOrEmpty(containerName))
             {
                 logger.Error("Containername cannot be null or empty");
-                return new BlobPageResponse(BLOBSTATUSCODE.INVALID, "Container name cannot be null or empty.", null, Array.Empty<string>());
+                return new BlobPageResponse(BLOB_STATUSCODE.INVALID, "Container name cannot be null or empty.", null, Array.Empty<string>());
             }
 
             if (pageSize < 1)
             {
                 logger.Error("Pagesize cannot be smaller then 1.");
-                return new BlobPageResponse(BLOBSTATUSCODE.INVALID, "Page size cannot be smaller than 1.", null, Array.Empty<string>());
+                return new BlobPageResponse(BLOB_STATUSCODE.INVALID, "Page size cannot be smaller than 1.", null, Array.Empty<string>());
             }
 
             BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
@@ -376,7 +376,7 @@ namespace backend.Data
             if (!await container.ExistsAsync())
             {
                 logger.Warning("Container {ContainerName} does not exist.", containerName);
-                return new BlobPageResponse(BLOBSTATUSCODE.NOTFOUND, $"The container {containerName} does not exist.", null, Array.Empty<string>());
+                return new BlobPageResponse(BLOB_STATUSCODE.NOTFOUND, $"The container {containerName} does not exist.", null, Array.Empty<string>());
             }
 
             Page<BlobItem>? page = await container.GetBlobsAsync(prefix: prefix).AsPages(continuationToken, pageSize).FirstOrDefaultAsync();
@@ -384,7 +384,7 @@ namespace backend.Data
             if (page == null)
             {
                 logger.Information("Page was empty.");
-                return new BlobPageResponse(BLOBSTATUSCODE.OK, "The page was empty.", null, Array.Empty<string>());
+                return new BlobPageResponse(BLOB_STATUSCODE.OK, "The page was empty.", null, Array.Empty<string>());
             }
 
             List<string> blobs = new List<string>();
@@ -395,7 +395,7 @@ namespace backend.Data
             }
 
             logger.Information("Listed {Count} blobs in container {ContainerName}{PrefixInfo}", blobs.Count, containerName, prefix != null ? $" with prefix {prefix}" : "");
-            return new BlobPageResponse(BLOBSTATUSCODE.OK, $"Listed {blobs.Count} blobs.", page.ContinuationToken, blobs.ToArray());
+            return new BlobPageResponse(BLOB_STATUSCODE.OK, $"Listed {blobs.Count} blobs.", page.ContinuationToken, blobs.ToArray());
         }
     }
 }
