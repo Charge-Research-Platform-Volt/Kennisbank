@@ -9,15 +9,15 @@ namespace backend.Controllers
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
-    public class FileController : ControllerBase
+    public class StorageController : ControllerBase
     {
         private readonly IAzureBlobService blobService;
         private readonly Serilog.ILogger logger;
 
-        public FileController(IAzureBlobService blobService)
+        public StorageController(IAzureBlobService blobService)
         {
             this.blobService = blobService;
-            this.logger = Log.ForContext<FileController>();
+            this.logger = Log.ForContext<StorageController>();
         }
 
         [HttpPost("upload")]

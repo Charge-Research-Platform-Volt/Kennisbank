@@ -134,258 +134,175 @@ namespace backend.Data
         /// <inheritdoc/>
         public async Task<BlobContainerClient> GetOrCreateContainerAsync(string containerName)
         {
-            try
-            {
-                BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
-                await container.CreateIfNotExistsAsync();
+            BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
+            await container.CreateIfNotExistsAsync();
 
-                logger.Information("Container {ContainerName} retrieved or created successfully", containerName);
+            logger.Information("Container {ContainerName} retrieved or created successfully", containerName);
 
-                return container;
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error creating container {ContainerName}", containerName);
-                throw;
-            }
+            return container;
         }
 
         /// <inheritdoc/>
         public async Task<BLOBRESPONSE> DeleteContainerAsync(string containerName)
         {
-            try
-            {
-                BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
+            BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
 
-                bool result = await container.DeleteIfExistsAsync();
+            bool result = await container.DeleteIfExistsAsync();
 
-                logger.Information("Container {ContainerName} deleted successfully.");
+            logger.Information("Container {ContainerName} deleted successfully.");
 
-                return result ? BLOBRESPONSE.OK : BLOBRESPONSE.NOTFOUND;
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error deleting container {ContainerName}.", containerName);
-                throw;
-            }
+            return result ? BLOBRESPONSE.OK : BLOBRESPONSE.NOTFOUND;
         }
 
         /// <inheritdoc/>
         public async Task<BLOBRESPONSE> UploadBlobAsync(string containerName, string blobName, Stream content, bool overwrite = false)
         {
-            try
-            {
-                BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
-                BlobClient blob = container.GetBlobClient(blobName);
+            BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
+            BlobClient blob = container.GetBlobClient(blobName);
 
-                if (await blob.ExistsAsync() && !overwrite)
-                {
-                    logger.Information("Blob {BlobName} already exists in {ContainerName} and overwrite is disabled.", blobName, containerName);
-                    return BLOBRESPONSE.ALREADYEXISTS;
-                }
-
-                await blob.UploadAsync(content, true);
-                logger.Information("Blob {BlobName} successfully uploaded to container {ContainerName}.", blobName, containerName);
-                return BLOBRESPONSE.OK;
-            }
-            catch (Exception e)
+            if (await blob.ExistsAsync() && !overwrite)
             {
-                logger.Error(e, "Error uploading blob {BlobName} to container {ContainerName}.", blobName, containerName);
-                throw;
+                logger.Information("Blob {BlobName} already exists in {ContainerName} and overwrite is disabled.", blobName, containerName);
+                return BLOBRESPONSE.ALREADYEXISTS;
             }
+
+            await blob.UploadAsync(content, true);
+            logger.Information("Blob {BlobName} successfully uploaded to container {ContainerName}.", blobName, containerName);
+            return BLOBRESPONSE.OK;
         }
 
         /// <inheritdoc/>
         public async Task<Stream?> DownloadBlobAsync(string containerName, string blobName)
         {
-            try
+            BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
+            BlobClient blob = container.GetBlobClient(blobName);
+
+            if (!await blob.ExistsAsync())
             {
-                BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
-                BlobClient blob = container.GetBlobClient(blobName);
-
-                if (!await blob.ExistsAsync())
-                {
-                    logger.Information("Blob {BlobName} not found in container {ContainerName}.", blobName, containerName);
-                    return null;
-                }
-
-                MemoryStream stream = new MemoryStream();
-                await blob.DownloadToAsync(stream);
-                stream.Position = 0;
-
-                logger.Information("Blob {BlobName} downloaded from container {ContainerName}.", blobName, containerName);
-                return stream;
+                logger.Information("Blob {BlobName} not found in container {ContainerName}.", blobName, containerName);
+                return null;
             }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error while downloading blob {BlobName} from container {ContainerName}.", blobName, containerName);
-                throw;
-            }
+
+            MemoryStream stream = new MemoryStream();
+            await blob.DownloadToAsync(stream);
+            stream.Position = 0;
+
+            logger.Information("Blob {BlobName} downloaded from container {ContainerName}.", blobName, containerName);
+            return stream;
         }
 
         /// <inheritdoc/>
         public async Task<BLOBRESPONSE> DeleteBlobAsync(string containerName, string blobName)
         {
-            try
-            {
-                BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
-                BlobClient blob = container.GetBlobClient(blobName);
+            BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
+            BlobClient blob = container.GetBlobClient(blobName);
 
-                bool result = await blob.DeleteIfExistsAsync();
+            bool result = await blob.DeleteIfExistsAsync();
 
-                if (result)
-                    logger.Information("Successfully deleted blob {BlobName} in container {ContainerName}.", blobName, containerName);
-                else
-                    logger.Information("Attempted to delte non-existent blob {BlobName} in container {ContainerName}.", blobName, containerName);
+            if (result)
+                logger.Information("Successfully deleted blob {BlobName} in container {ContainerName}.", blobName, containerName);
+            else
+                logger.Information("Attempted to delte non-existent blob {BlobName} in container {ContainerName}.", blobName, containerName);
 
-                return result ? BLOBRESPONSE.OK : BLOBRESPONSE.NOTFOUND;
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error while deleting blob {BlobName} from container {ContainerName}.", blobName, containerName);
-                throw;
-            }
+            return result ? BLOBRESPONSE.OK : BLOBRESPONSE.NOTFOUND;
         }
 
         /// <inheritdoc/>
         public async Task<BLOBRESPONSE> BlobExistsAsync(string containerName, string blobName)
         {
-            try
-            {
-                BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
-                BlobClient blob = container.GetBlobClient(blobName);
+            BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
+            BlobClient blob = container.GetBlobClient(blobName);
 
-                bool result = await blob.ExistsAsync();
+            bool result = await blob.ExistsAsync();
 
-                if (result)
-                    logger.Information("Blob {BlobName} exists in container {ContainerName}.", blobName, containerName);
-                else
-                    logger.Information("Blob {BlobName} does not exist in container {ContainerName}.", blobName, containerName);
+            if (result)
+                logger.Information("Blob {BlobName} exists in container {ContainerName}.", blobName, containerName);
+            else
+                logger.Information("Blob {BlobName} does not exist in container {ContainerName}.", blobName, containerName);
 
-                return result ? BLOBRESPONSE.OK : BLOBRESPONSE.NOTFOUND;
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error while checking if blob {BlobName} in container {ContainerName} exists.", blobName, containerName);
-                throw;
-            }
+            return result ? BLOBRESPONSE.OK : BLOBRESPONSE.NOTFOUND;
         }
 
         /// <inheritdoc/>
         public async Task<BLOBRESPONSE> CopyBlobAsync(string currentContainerName, string currentFileName, string newContainerName, string newFileName, bool overwrite = false, bool surpressLogging = false)
         {
-            try
+            BlobContainerClient currentContainer = blobService.GetBlobContainerClient(currentContainerName);
+            BlobClient currentBlob = currentContainer.GetBlobClient(currentFileName);
+
+            if (!await currentBlob.ExistsAsync())
             {
-                BlobContainerClient currentContainer = blobService.GetBlobContainerClient(currentContainerName);
-                BlobClient currentBlob = currentContainer.GetBlobClient(currentFileName);
-
-                if (!await currentBlob.ExistsAsync())
-                {
-                    logger.Information("Old blob {OldFileName} not found in container {OldContainerName}", currentFileName, currentContainerName);
-                    return BLOBRESPONSE.NOTFOUND;
-                }
-
-                BlobContainerClient newContainer = blobService.GetBlobContainerClient(newContainerName);
-                BlobClient newBlob = newContainer.GetBlobClient(newFileName);
-
-                bool exists = await newBlob.ExistsAsync();
-
-                if (exists && !overwrite)
-                {
-                    logger.Information("The destination already contains a file with the given name and overwrite is not enabled.");
-                    return BLOBRESPONSE.ALREADYEXISTS;
-                }
-
-                if (exists && overwrite)
-                    await newBlob.DeleteAsync();
-
-                CopyFromUriOperation copyOperation = await newBlob.StartCopyFromUriAsync(currentBlob.Uri);
-                await copyOperation.WaitForCompletionAsync();
-
-                if (!await newBlob.ExistsAsync())
-                {
-                    logger.Error("Copy operation completed, but destination blob {NewFileName} does not exist in destination container {NewContainerName}", newFileName, newContainerName);
-                    return BLOBRESPONSE.FAILED;
-                }
-
-                if (!surpressLogging)
-                    logger.Information("Successfully copied file {CurrentFileName} from container {CurrentContainerName} to {NewFileName} in container {NewContainerName}", currentFileName, currentContainerName, newContainerName);
-                
-                return BLOBRESPONSE.OK;
+                logger.Information("Old blob {OldFileName} not found in container {OldContainerName}", currentFileName, currentContainerName);
+                return BLOBRESPONSE.NOTFOUND;
             }
-            catch (Exception e)
+
+            BlobContainerClient newContainer = blobService.GetBlobContainerClient(newContainerName);
+            BlobClient newBlob = newContainer.GetBlobClient(newFileName);
+
+            bool exists = await newBlob.ExistsAsync();
+
+            if (exists && !overwrite)
             {
-                if (!surpressLogging)
-                    logger.Error(e, "Error while copying file {CurrentFileName} in container {CurrentContainerName} to {NewFileName} in container {NewContainerName}", currentFileName, currentContainerName, newFileName, newContainerName);
-                throw;
+                logger.Information("The destination already contains a file with the given name and overwrite is not enabled.");
+                return BLOBRESPONSE.ALREADYEXISTS;
             }
+
+            if (exists && overwrite)
+                await newBlob.DeleteAsync();
+
+            CopyFromUriOperation copyOperation = await newBlob.StartCopyFromUriAsync(currentBlob.Uri);
+            await copyOperation.WaitForCompletionAsync();
+
+            if (!await newBlob.ExistsAsync())
+            {
+                logger.Error("Copy operation completed, but destination blob {NewFileName} does not exist in destination container {NewContainerName}", newFileName, newContainerName);
+                return BLOBRESPONSE.FAILED;
+            }
+
+            if (!surpressLogging)
+                logger.Information("Successfully copied file {CurrentFileName} from container {CurrentContainerName} to {NewFileName} in container {NewContainerName}", currentFileName, currentContainerName, newContainerName);
+
+            return BLOBRESPONSE.OK;
         }
 
         /// <inheritdoc/>
         public async Task<BLOBRESPONSE> MoveBlobAsync(string currentContainerName, string currentFileName, string newContainerName, string newFileName, bool overwrite = false, bool surpressLogging = false)
         {
-            try
+            BLOBRESPONSE result = await CopyBlobAsync(currentContainerName, currentFileName, newContainerName, newFileName, overwrite, surpressLogging);
+
+            if (result == BLOBRESPONSE.OK)
             {
-                BLOBRESPONSE result = await CopyBlobAsync(currentContainerName, currentFileName, newContainerName, newFileName, overwrite, surpressLogging);
+                BlobContainerClient container = blobService.GetBlobContainerClient(currentContainerName);
+                BlobClient blob = container.GetBlobClient(currentFileName);
 
-                if (result == BLOBRESPONSE.OK)
-                {
-                    BlobContainerClient container = blobService.GetBlobContainerClient(currentContainerName);
-                    BlobClient blob = container.GetBlobClient(currentFileName);
-
-                    await blob.DeleteAsync();
+                await blob.DeleteAsync();
 
 
-                    if (!surpressLogging)
-                        logger.Information("Successfully moved file {CurrentFileName} from container {CurrentContainerName} to {NewFileName} in container {NewContainerName}", currentFileName, currentContainerName, newContainerName);
-                }
-
-                return result;
-            }
-            catch (Exception e)
-            {
                 if (!surpressLogging)
-                    logger.Error(e, "Error while moving file {CurrentFileName} in container {CurrentContainerName} to {NewFileName} in container {NewContainerName}", currentFileName, currentContainerName, newFileName, newContainerName);
-                throw;
-
+                    logger.Information("Successfully moved file {CurrentFileName} from container {CurrentContainerName} to {NewFileName} in container {NewContainerName}", currentFileName, currentContainerName, newContainerName);
             }
+
+            return result;
         }
 
         /// <inheritdoc/>
         public async Task<BLOBRESPONSE> RenameBlobAsync(string containerName, string oldFileName, string newFileName)
         {
-            try
-            {
-                return await MoveBlobAsync(containerName, oldFileName, containerName, newFileName, surpressLogging : true);
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error while renaming file {OldFileName} to {NewFileName} in container {ContainerName}", oldFileName, newFileName, containerName);
-                throw;
-            }
+            return await MoveBlobAsync(containerName, oldFileName, containerName, newFileName, surpressLogging: true);
         }
 
         /// <inheritdoc/>
         public async Task<string[]> ListBlobsAsync(string containerName, string? prefix = null)
         {
-            try
-            {
-                BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
-                List<string> results = new List<string>();
+            BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
+            List<string> results = new List<string>();
 
-                await foreach (BlobItem blob in container.GetBlobsAsync(prefix: prefix))
-                {
-                    results.Add(blob.Name);
-                }
-
-                logger.Information("Listed {Count} blobs in container {ContainerName}{PrefixInfo}.", results.Count, containerName, prefix != null ? $" with prefix {prefix}" : "");
-                return results.ToArray();
-            }
-            catch (Exception e)
+            await foreach (BlobItem blob in container.GetBlobsAsync(prefix: prefix))
             {
-                logger.Error(e, "Error while listing blobs in container {ContainerName}.", containerName);
-                throw;
+                results.Add(blob.Name);
             }
+
+            logger.Information("Listed {Count} blobs in container {ContainerName}{PrefixInfo}.", results.Count, containerName, prefix != null ? $" with prefix {prefix}" : "");
+            return results.ToArray();
         }
 
         // TODO: PAGING
