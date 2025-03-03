@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import { Log } from "../../Pino";
 
 /**
  * Fetches data from a specified URL and validates it against a provided Zod schema.
@@ -14,34 +15,36 @@ import type { z } from "zod";
  * don't contain sensitive information.
  */
 export async function FetchWithValidation<T>(
-	schema: z.ZodSchema<T>,
-	url: string,
+    schema: z.ZodSchema<T>,
+    url: string,
 ): Promise<z.SafeParseReturnType<T, T>> {
-	try {
-		// Fetch the data from the backend
-		const response = await fetch(url);
+    try {
+        // Fetch the data from the backend
+        const response = await fetch(url);
 
-		// Parse the response as JSON
-		const data = await response.json();
+        // Parse the response as JSON
+        const data = await response.json();
 
-		// Check if the response is OK, if not, return an error got from the backend. (make sure the backend returns an error object and does not contain any sensitive information)
-		if (!response.ok) {
-			const fetchErrorResponse = {
-				success: false,
-				error: new Error(data.message),
-			} as z.SafeParseReturnType<T, T>;
-			return fetchErrorResponse;
-		}
+        // Check if the response is OK, if not, return an error got from the backend. (make sure the backend returns an error object and does not contain any sensitive information)
+        if (!response.ok) {
+            const fetchErrorResponse = {
+                success: false,
+                error: new Error(data.message),
+            } as z.SafeParseReturnType<T, T>;
+            return fetchErrorResponse;
+        }
 
-		// Validate the data with the schema
-		const result = schema.safeParse(data);
-		return result;
-	} catch (error) {
-		// Return an error object if an exception occurs
-		const fetchErrorResponse = {
-			success: false,
-			error: new Error("An error occurred."),
-		} as z.SafeParseReturnType<T, T>;
-		return fetchErrorResponse;
-	}
+        // Validate the data with the schema
+        const result = schema.safeParse(data);
+        return result;
+    } catch (error) {
+        Log.error(`An error occurred: ${error}`);
+
+        // Return an error object if an exception occurs
+        const fetchErrorResponse = {
+            success: false,
+            error: new Error("An error occurred."),
+        } as z.SafeParseReturnType<T, T>;
+        return fetchErrorResponse;
+    }
 }
