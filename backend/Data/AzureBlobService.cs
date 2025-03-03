@@ -273,6 +273,10 @@ namespace backend.Data
                 return BLOB_STATUSCODE.NOTFOUND;
             }
 
+            // Copy file extension if newFileName does not have it
+            if (Path.GetExtension(newFileName) == null)
+                newFileName += Path.GetExtension(currentFileName);
+
             BlobContainerClient newContainer = blobService.GetBlobContainerClient(newContainerName);
             BlobClient newBlob = newContainer.GetBlobClient(newFileName);
 
