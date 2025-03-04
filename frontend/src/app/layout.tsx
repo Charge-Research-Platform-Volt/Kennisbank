@@ -27,10 +27,9 @@ export default function RootLayout({
 }>) {
   return (
     <html>
-    <body className="h-dvh">
-    <div className='sideBar'>
+    <body className="h-screen w-screen">
       <SideBar />
-    </div>
+    
         <Toaster />
     </body>
     </html>

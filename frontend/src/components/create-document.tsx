@@ -6,8 +6,8 @@ import { Button } from "./ui/button";
 import type { DocumentBase } from "@/types/document.type";
 import type { FormResponse } from "@/types/return.type";
 import { AddDocument } from "@/actions/documentActions";
-import { toast } from "sonner";
 import { Log } from "../../Pino";
+import { toast } from "sonner";
 
 const initialState: FormResponse<DocumentBase> = {
     success: false,
