@@ -1,3 +1,4 @@
+using backend.Data;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -30,7 +31,7 @@ public class DriveController : ControllerBase
     {
         try
         {
-            return Ok(_context.Drives.ToList());
+            return Ok(_context.Files.ToList());
         }
         catch (Exception e)
         {
@@ -42,7 +43,7 @@ public class DriveController : ControllerBase
 
     [HttpPost]
     [Route("add-document")]
-    public async Task<IActionResult> Post([FromBody] DriveCreateDto driveDto)
+    public async Task<IActionResult> Post([FromForm] StorageUploadDto driveDto)
     {
         // Make sure we have the required fields from body
         if (string.IsNullOrEmpty(driveDto.Name) || string.IsNullOrEmpty(driveDto.Description))
@@ -51,14 +52,20 @@ public class DriveController : ControllerBase
             return BadRequest(new { message = "Name and Description are required." });
         }
 
-        Drive drive = new()
+        string extension = Path.GetExtension(driveDto.File.FileName);
+
+        if (!Filetype.Supported(extension))
+            return BadRequest(new { message = "Filetype is not supported." });
+
+        FileItem drive = new()
         {
             Id = Guid.NewGuid(), // Generate a new GUID
             Name = driveDto.Name,
-            Description = driveDto.Description
+            Description = driveDto.Description,
+            FileType = Filetype.ConvertExtensionToFiletype(extension)
         };
 
-        await _context.Drives.AddAsync(drive);
+        await _context.Files.AddAsync(drive);
         await _context.SaveChangesAsync();
         return Ok(new { message = "Document created." });
     }

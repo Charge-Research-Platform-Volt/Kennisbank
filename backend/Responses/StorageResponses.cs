@@ -31,36 +31,36 @@ namespace backend.Responses
         /// <summary>
         /// Name of the uploaded file
         /// </summary>
-        public string FileName { get; set; }
+        public string Id { get; set; }
 
         /// <summary>
         /// Name of the container it is uploaded in
         /// </summary>
-        public string ContainerName { get; set; }
+        public string FileType { get; set; }
 
         /// <summary>
         /// Size of the file in bytes
         /// </summary>
         public long Size { get; set; }
 
-        public FileUploadResult(string fileName, string containerName, long size) : base("File uploaded successfully", STORAGE_RESPONSE_TYPE.UPLOAD)
+        public FileUploadResult(string id, string fileType, long size) : base("File uploaded successfully", STORAGE_RESPONSE_TYPE.UPLOAD)
         {
-            this.FileName = fileName;
-            this.ContainerName = containerName;
+            this.Id = id;
+            this.FileType = fileType;
             this.Size = size;
         }
     }
 
     public class FileResponse : StorageResponse
     {
-        public string FileName { get; set; }
+        public string Id { get; set; }
 
-        public string ContainerName { get; set; }
+        public string FileType { get; set; }
 
-        public FileResponse(string message, string fileName, string containerName) : base(message, STORAGE_RESPONSE_TYPE.FILE)
+        public FileResponse(string message, string id, string fileType) : base(message, STORAGE_RESPONSE_TYPE.FILE)
         {
-            this.FileName = fileName;
-            this.ContainerName = containerName;
+            this.Id = id;
+            this.FileType = fileType;
         }
     }
 

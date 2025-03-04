@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace KnowledgeBank.Models;
 
 
-[Table("drive")]
-public class Drive
+[Table("files")]
+public class FileItem
 {
     [Column("id")]
     [Key]
@@ -18,10 +18,23 @@ public class Drive
     [Required]
     [MaxLength(255)]
     public required string Description { get; set; }
+
+    [Column("filetype")]
+    [Required]
+    [MaxLength(50)]
+    public required string FileType { get; set; }
 }
 
-public class DriveCreateDto //Data Transfer Object (DTO)
+public class StorageUploadDto //Data Transfer Object (DTO)
 {
     public required string Name { get; set; }
     public required string Description { get; set; }
+    public required IFormFile File { get; set; }
+    public bool Overwrite { get; set; } = false;
+}
+
+public class StorageRenameDto
+{
+    public required string Id { get; set; }
+    public required string Name { get; set; }
 }
