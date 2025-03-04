@@ -1,7 +1,6 @@
 import React from "react";
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
 import { TagsArraySchema } from "@/types/tag.type";
-import { Button } from "@/components/ui/button";
 import DeleteTagButton from "./delete-tag-button";
 
 export default async function ListStandarizedTags() {
