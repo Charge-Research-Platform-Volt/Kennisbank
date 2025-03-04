@@ -1,3 +1,4 @@
+using backend.Data;
 using KnowledgeBank.Data;
 using KnowledgeBank.Extensions;
 using Microsoft.EntityFrameworkCore;
@@ -20,11 +21,12 @@ namespace KnowledgeBank
             builder.Services.AddControllers();
             builder.Services.AddOpenApi();
             builder.Services.AddSwaggerGen(ConfigureSwagger);
+            builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
 
 
             // # Database context
             builder.Services.AddDbContext<DatabaseContext>(
-                // CONNECTION_STRING is set in docker-compose.dev.yml
+                // CONNECTION_STRING is set in docker-compose.dev.yml file
                 options => options.UseNpgsql(builder.Configuration.GetValue<string>("CONNECTION_STRING")
             ));
 
@@ -80,7 +82,6 @@ namespace KnowledgeBank
             c.RoutePrefix = "docs";
             c.DocumentTitle = "KnowledgeBank API";
         }
-
 
 
         /// <summary>
