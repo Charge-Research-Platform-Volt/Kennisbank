@@ -25,7 +25,7 @@ namespace backend.Controllers
             blobService.GetOrCreateContainerAsync(DEFAULT_CONTAINER_NAME);
         }
 
-        [HttpPost("upload")]
+        [HttpPut("upload")]
         [SwaggerOperation(
             Summary = "Upload a file to storage.",
             Description = "Uploads a file to Azure Blob Storage and returns metadata."
@@ -107,7 +107,7 @@ namespace backend.Controllers
             }
         }
 
-        [HttpGet("delete/{fileName}")]
+        [HttpDelete("delete/{fileName}")]
         [SwaggerOperation(
             Summary = "Delete a file from storage.",
             Description = "Deletes the given file from the given container in the Azure Blob Storage."
@@ -144,7 +144,7 @@ namespace backend.Controllers
             }
         }
 
-        [HttpGet("copy")]
+        [HttpPost("copy")]
         [SwaggerOperation(
             Summary = "Copies a file in storage.",
             Description = "Copies the given file to the new location in the Azure Blob Storage. The destination file name will be made unique by this function."
@@ -191,7 +191,7 @@ namespace backend.Controllers
             }
         }
 
-        [HttpGet("move")]
+        [HttpPost("move")]
         [SwaggerOperation(
             Summary = "Moves a file in storage.",
             Description = "Moves the given file to the new location in the Azure Blob Storage. The destination file name will be made unique by this function."
@@ -238,7 +238,7 @@ namespace backend.Controllers
             }
         }
 
-        [HttpGet("rename")]
+        [HttpPatch("rename")]
         [SwaggerOperation(
             Summary = "Renames a file in storage.",
             Description = "Rename the given file to the new location in the Azure Blob Storage. The destination file name will be made unique by this function."
@@ -285,7 +285,7 @@ namespace backend.Controllers
             }
         }
 
-        [HttpGet("create-container/{containerName}")]
+        [HttpPut("create-container/{containerName}")]
         [SwaggerOperation(
             Summary = "Create a container in storage.",
             Description = "Creates a container in the Azure Blob Storage."
@@ -311,7 +311,7 @@ namespace backend.Controllers
             }
         }
 
-        [HttpGet("delete-container/{containerName}")]
+        [HttpDelete("delete-container/{containerName}")]
         [SwaggerOperation(
             Summary = "Delete a container in storage.",
             Description = "Deletes a container in the Azure Blob Storage."

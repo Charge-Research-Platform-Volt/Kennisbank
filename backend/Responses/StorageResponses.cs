@@ -1,12 +1,22 @@
-﻿namespace backend.Responses
+﻿using System.ComponentModel;
+
+namespace backend.Responses
 {
-    public enum STORAGE_RESPONSE_TYPE { MESSAGE, UPLOAD, FILE, CONTAINER, PAGE }
+    public struct STORAGE_RESPONSE_TYPE
+    {
+        public const string MESSAGE = "message";
+        public const string UPLOAD = "upload";
+        public const string FILE = "file";
+        public const string CONTAINER = "container";
+        public const string PAGE = "page";
+    }
+
     public class StorageResponse
     {
         public string Message { get; }
-        public STORAGE_RESPONSE_TYPE ResponseType { get; }
+        public string ResponseType { get; }
 
-        public StorageResponse(string message, STORAGE_RESPONSE_TYPE responseType = STORAGE_RESPONSE_TYPE.MESSAGE)
+        public StorageResponse(string message, string responseType = STORAGE_RESPONSE_TYPE.MESSAGE)
         {
             Message = message;
             ResponseType = responseType;
