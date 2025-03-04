@@ -1,17 +1,107 @@
+using KnowledgeBank.Data;
+using KnowledgeBank.Extensions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
+using Serilog;
+using Swashbuckle.AspNetCore.SwaggerGen;
+using Swashbuckle.AspNetCore.SwaggerUI;
+
 namespace KnowledgeBank
 {
     public class Program
     {
         public static void Main(string[] args)
         {
-            CreateHostBuilder(args).Build().Run();
+            // # Builder
+            WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+            ConfigureLogging();
+
+            // # Services
+            builder.Services.AddControllers();
+            builder.Services.AddOpenApi();
+            builder.Services.AddSwaggerGen(ConfigureSwagger);
+
+
+            // # Database context
+            builder.Services.AddDbContext<DatabaseContext>(
+                // CONNECTION_STRING is set in docker-compose.dev.yml
+                options => options.UseNpgsql(builder.Configuration.GetValue<string>("CONNECTION_STRING")
+            ));
+
+
+            // # Application
+            WebApplication app = builder.Build();
+
+
+            // # Middleware
+            if (app.Environment.IsDevelopment())
+            {
+                // Run only in development environment:
+
+                app.MapOpenApi();
+                app.UseSwagger();
+                app.UseSwaggerUI(ConfigureSwaggerUI);
+                app.UseDeveloperExceptionPage();
+
+                app.ApplyMigrations();
+            }
+
+            app.UseRouting();
+            app.MapControllers();
+            app.Run();
         }
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
+
+        /// <summary>
+        /// Configures Swagger documentation settings.
+        /// </summary>
+        /// <param name="c">The <see cref="SwaggerGenOptions"/> instance to configure.</param>
+        /// <remarks>
+        /// This method sets up Swagger with API information and enables annotations.
+        /// </remarks>
+        private static void ConfigureSwagger(SwaggerGenOptions c)
+        {
+            c.SwaggerDoc("v1", new OpenApiInfo { Title = "KnowledgeBank", Version = "v1" });
+            c.EnableAnnotations();
+        }
+
+
+        /// <summary>
+        /// Configures the Swagger UI settings.
+        /// </summary>
+        /// <param name="c">The Swagger UI options to configure.</param>
+        /// <remarks>
+        /// This method sets up the Swagger endpoint, route prefix, and document title for the API documentation.
+        /// The documentation will be available at the "/docs" route.
+        /// </remarks>
+        private static void ConfigureSwaggerUI(SwaggerUIOptions c)
+        {
+            c.SwaggerEndpoint("/swagger/v1/swagger.json", "Version-1");
+            c.RoutePrefix = "docs";
+            c.DocumentTitle = "KnowledgeBank API";
+        }
+
+
+
+        /// <summary>
+        /// Configures the application logging system using Serilog.
+        /// </summary>
+        /// <remarks>
+        /// This method sets up Serilog with configuration from "serilogsettings.json" file
+        /// and establishes two logging sinks:
+        /// 1. Console output for immediate visibility
+        /// 2. Daily rolling text files stored in the "logs" directory with the naming pattern "log-YYYYMMDD.txt"
+        /// </remarks>
+        private static void ConfigureLogging()
+        {
+            var configuration = new ConfigurationBuilder()
+                                        .SetBasePath(Directory.GetCurrentDirectory())
+                                        .AddJsonFile("serilogsettings.json")
+                                        .Build();
+
+            Log.Logger = new LoggerConfiguration()
+                                .ReadFrom.Configuration(configuration)
+                                .CreateLogger();
+        }
     }
 }
