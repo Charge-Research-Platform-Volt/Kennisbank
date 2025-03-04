@@ -4,7 +4,7 @@ import type { FormResponse } from "@/types/return.type";
 import { Tag, TagBase, TagBaseSchema, TagSchema } from "@/types/tag.type";
 import { revalidatePath } from "next/cache";
 
-export const AddStandarizedTag = async (
+export const AddStandardizedTag = async (
     prevState: FormResponse<TagBase>,
     formData: FormData,
 ): Promise<FormResponse<TagBase>> => {
@@ -41,15 +41,15 @@ export const AddStandarizedTag = async (
         };
     }
 
-    // Revalidate the cache for the standarizedtags page
-    revalidatePath("/standarizedtags");
+    // Revalidate the cache for the standardizedtags page
+    revalidatePath("/standardizedtags");
     return {
         success: true,
         message: data.message,
     };
 };
 
-export const DeleteStandarizedTag = async (tag: Tag): Promise<FormResponse<Tag>> => {
+export const DeleteStandardizedTag = async (tag: Tag): Promise<FormResponse<Tag>> => {
     console.log("Deleting tag: ", tag.id);
     
     const rawData: Tag = {
@@ -86,15 +86,15 @@ export const DeleteStandarizedTag = async (tag: Tag): Promise<FormResponse<Tag>>
         }
     }
 
-    // Revalidate the cache for the standarizedtags page
-    revalidatePath("/standarizedtags");
+    // Revalidate the cache for the standardizedtags page
+    revalidatePath("/standardizedtags");
     return {
         success: true,
         message: data.message,
     };
 };
 
-export const SaveStandarizedTag = async (
+export const SaveStandardizedTag = async (
     prevState: FormResponse<Tag>,
     formData: FormData,
 ): Promise<FormResponse<Tag>> => {
@@ -132,8 +132,8 @@ export const SaveStandarizedTag = async (
         };
     }
 
-    // Revalidate the cache for the standarizedtags page
-    revalidatePath("/standarizedtags");
+    // Revalidate the cache for the standardizedtags page
+    revalidatePath("/standardizedtags");
     return {
         success: true,
         message: data.message,

@@ -30,7 +30,7 @@ public class TagController : ControllerBase
     [HttpGet("all-tags")]
     [SwaggerOperation(
             Summary = "List all tags.",
-            Description = "List all standarized tags created by admins."
+            Description = "List all standardized tags created by admins."
         )]
     [SwaggerResponse(200, "List of tags", typeof(List<Tag>))]
     [SwaggerResponse(500, "Internal server error")]
@@ -57,7 +57,7 @@ public class TagController : ControllerBase
     [HttpPost("add-tag/{tagName}")]
     [SwaggerOperation(
             Summary = "Adds new standard tag.",
-            Description = "Lets an admin add a new tag to the list of standarized tags."
+            Description = "Lets an admin add a new tag to the list of standardized tags."
         )]
     [SwaggerResponse(200, "New tag added", typeof(Tag))]
     [SwaggerResponse(400, "Bad request")]
@@ -114,7 +114,7 @@ public class TagController : ControllerBase
     [HttpDelete("delete-tag/{id}")]
     [SwaggerOperation(
             Summary = "Delete standard tag.",
-            Description = "Lets and admin delete a tag from the list of standarized tags."
+            Description = "Lets and admin delete a tag from the list of standardized tags."
         )]
     [SwaggerResponse(200, "Tag deleted", typeof(Tag))]
     [SwaggerResponse(400, "Bad request")]
@@ -158,7 +158,7 @@ public class TagController : ControllerBase
     [HttpPatch("change-tag-name/{id}/{newName}")]
     [SwaggerOperation(
             Summary = "Change tag name.",
-            Description = "Lets and admin change the name of a standarized tag."
+            Description = "Lets and admin change the name of a standardized tag."
         )]
     [SwaggerResponse(200, "Tag name changed", typeof(Tag))]
     [SwaggerResponse(400, "Bad request")]

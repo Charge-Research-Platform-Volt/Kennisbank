@@ -1,6 +1,6 @@
 "use client";
 
-import { DeleteStandarizedTag } from "@/actions/standarizedTagActions";
+import { DeleteStandardizedTag } from "@/actions/standardizedTagActions";
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/types/tag.type";
 import { useTransition } from "react";
@@ -10,7 +10,7 @@ export default function DeleteTagButton({tag} : {tag: Tag}) {
 
     function handleDelete() {
         startTransition(() => {
-            DeleteStandarizedTag(tag);
+            DeleteStandardizedTag(tag);
         });
     }
   

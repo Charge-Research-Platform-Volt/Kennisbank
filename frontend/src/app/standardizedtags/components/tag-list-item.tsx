@@ -6,8 +6,8 @@ import { Tag } from "@/types/tag.type";
 import DeleteTagButton from "./delete-tag-button";
 import { toast } from "sonner";
 import { useActionState, useEffect, useState } from "react";
-import { SaveStandarizedTag } from "@/actions/standarizedTagActions";
 import { FormResponse } from "@/types/return.type";
+import { SaveStandardizedTag } from "@/actions/standardizedTagActions";
 
 const initialState: FormResponse<Tag> = {
   success: false,
@@ -15,10 +15,10 @@ const initialState: FormResponse<Tag> = {
 };
 
 export default function TagListItem({tag}: {tag: Tag}) {
-  const [state, action, isPending] = useActionState(SaveStandarizedTag, initialState);
+  const [state, action, isPending] = useActionState(SaveStandardizedTag, initialState);
   const [tagName, setTagName] = useState(tag.name);
 
-  console.log("CreateStandarizedTag state:");
+  console.log("CreateStandardizedTag state:");
   console.log(state.message);
 
   useEffect(() => {

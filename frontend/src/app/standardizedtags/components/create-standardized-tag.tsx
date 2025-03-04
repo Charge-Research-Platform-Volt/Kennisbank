@@ -6,16 +6,16 @@ import { toast } from "sonner";
 import { TagBase } from "@/types/tag.type";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { AddStandarizedTag } from "@/actions/standarizedTagActions";
+import { AddStandardizedTag } from "@/actions/standardizedTagActions";
 
 const initialState: FormResponse<TagBase> = {
   success: false,
   message: "",
 };
 
-export default function CreateStandarizedTag() {
-  const [state, action, isPending] = useActionState(AddStandarizedTag, initialState);
-  console.log("CreateStandarizedTag state:");
+export default function CreateStandardizedTag() {
+  const [state, action, isPending] = useActionState(AddStandardizedTag, initialState);
+  console.log("CreateStandardizedTag state:");
   console.log(state.message);
 
   useEffect(() => {
