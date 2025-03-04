@@ -95,7 +95,7 @@ namespace backend.Controllers
             }
         }
 
-        [HttpGet("download/{fileType}/{id}")]
+        [HttpGet("download/{id}")]
         [SwaggerOperation(
             Summary = "Download a file from storage.",
             Description = "Downloads a given blob from the given container in the Azure Blob Storage."
@@ -104,27 +104,24 @@ namespace backend.Controllers
         [SwaggerResponse(404, "Invalid file or container name", typeof(StorageResponse))]
         [SwaggerResponse(400, "Invalid location.", typeof(StorageResponse))]
         [SwaggerResponse(500, "Server error")]
-        public async Task<IActionResult> DownloadFile(string fileType, string id)
+        public async Task<IActionResult> DownloadFile(string id)
         {
             if (string.IsNullOrEmpty(id))
                 return BadRequest(new StorageResponse("Invalid id."));
 
-            if (string.IsNullOrEmpty(fileType))
-                return BadRequest(new StorageResponse("Invalid filetype."));
-
             try
             {
-                BlobDownloadResponse? maybeResponse = await blobService.DownloadBlobAsync(fileType, id);
-
-                if (maybeResponse == null)
-                    return NotFound(new FileResponse("File could not be found", id, fileType));
-
-                BlobDownloadResponse response = (BlobDownloadResponse)maybeResponse;
-
                 FileItem? item = await database.Files.FindAsync(Guid.Parse(id));
 
                 if (item == null)
-                    return NotFound(new StorageResponse("Id not found in the database."));
+                    return NotFound(new StorageResponse("ID not found in the database."));
+
+                BlobDownloadResponse? maybeResponse = await blobService.DownloadBlobAsync(item.FileType, id);
+
+                if (maybeResponse == null)
+                    return NotFound(new FileResponse("File could not be found", id, item.FileType));
+
+                BlobDownloadResponse response = (BlobDownloadResponse)maybeResponse;
 
                 string contentType = "application/octet-stream";
                 string fileName = sanitizeFileName(item.Name) + response.Metadata["extension"];
@@ -140,12 +137,12 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error downloading file {FileName} from container {ContainerName}.", id, fileType);
+                logger.Error(e, "Error downloading file with ID {Id}.", id);
                 return StatusCode(500, "Error downloading file.");
             }
         }
 
-        [HttpDelete("delete/{fileType}/{id}")]
+        [HttpDelete("delete/{id}")]
         [SwaggerOperation(
             Summary = "Delete a file from storage.",
             Description = "Deletes the given file from the given container in the Azure Blob Storage."
@@ -154,34 +151,31 @@ namespace backend.Controllers
         [SwaggerResponse(404, "File not found.", typeof(StorageResponse))]
         [SwaggerResponse(400, "Invalid filename", typeof(StorageResponse))]
         [SwaggerResponse(500, "Server error")]
-        public async Task<IActionResult> DeleteFile(string fileType, string id)
+        public async Task<IActionResult> DeleteFile(string id)
         {
             if (string.IsNullOrEmpty(id))
                 return BadRequest(new StorageResponse("Invalid id."));
 
-            if (string.IsNullOrEmpty(fileType))
-                return BadRequest(new StorageResponse("Invalid filetype."));
-
             try
             {
-                BLOB_STATUSCODE result = await blobService.DeleteBlobAsync(fileType, id);
+                FileItem? item = await database.Files.FindAsync(Guid.Parse(id));
+
+                if (item == null)
+                    return NotFound(new StorageResponse("ID was not found in database. File was deleted succesfully."));
+
+                BLOB_STATUSCODE result = await blobService.DeleteBlobAsync(item.FileType, id);
 
                 switch (result)
                 {
                     case BLOB_STATUSCODE.OK:
 
-                        FileItem? item = await database.Files.FindAsync(Guid.Parse(id));
-
-                        if (item == null)
-                            return NotFound(new StorageResponse("ID was not found in database. File was deleted succesfully."));
-
                         database.Files.Remove(item);
                         await database.SaveChangesAsync();
 
-                        return Ok(new FileResponse("File deleted successfully", id, fileType));
+                        return Ok(new FileResponse("File deleted successfully", id, item.FileType));
 
                     case BLOB_STATUSCODE.NOTFOUND:
-                        return NotFound(new FileResponse("File not found", id, fileType));
+                        return NotFound(new FileResponse("File not found", id, item.FileType));
 
                     default:
                         return StatusCode(500, "Error while deleting file.");
@@ -189,7 +183,7 @@ namespace backend.Controllers
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error while deleting file {FileName} from container {ContainerName}.", id, fileType);
+                logger.Error(e, "Error while deleting file with ID {Id}", id);
                 return StatusCode(500, "Error while deleting file.");
             }
         }
