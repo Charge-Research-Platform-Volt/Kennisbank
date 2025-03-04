@@ -16,7 +16,7 @@ export default async function Home() {
   }
 
   return (
-    <div>
+    <div className="h-full">
       Hello World!
       <div>
         <h1>Team:</h1>

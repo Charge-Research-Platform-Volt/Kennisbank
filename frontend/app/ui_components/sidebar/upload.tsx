@@ -45,38 +45,38 @@ const Popup: React.FC<PopupProps> = ({ isOpen, onClose }) => {
     if (!file) return;
 
     setStatus("uploading");
-
     const formData = new FormData();
     formData.append('file', file);
 
-    try {
-        //await fetchrequest from backend
-        setStatus("succes");
-
-    } catch {
-        setStatus("error");
-    };
+    try { 
+      
+      setStatus("succes"); }
+    catch { setStatus("error"); }
   }
 
 
   return (
     <div className="popupContainer">
-        <div ref={popupRef} className="popup">
-            <h2 className="text-black pt-1 pl-5 font-bold text-2xl">Upload Document</h2>
-            <div className="pt-2">
-                <input type='file' onChange={handleFileChange} className="w-180 text-black border-gray-600 font-bold text-2xl border-4 border-dashed rounded-4xl pl-4 hover:bg-slate-200 text-center " />
-                {file && (<div className="mb-4 text-sm pt-2">
-                    <p>File name: {file.name}</p>
-                    <p>Size: {(file.size / 1024).toFixed(2)} KB</p>
-                    <p>Type: {file.type}</p>
-                </div>)}
-            </div>
-            <div className="pr-5 pt-96">
-                <button onClick={handleButton} className="float-right bg-[#E5E5E5] w-50 h-10 text-black text-lg font-bold rounded-xl hover:bg-[#c9c2c2] active:bg-[#E5E5E5]">
-                    <div className='pb-0.5'>Upload</div>
-                </button>
-            </div>
+      <div ref={popupRef} className="popup">
+        <div className="flex gap-4">
+          <h2 className="text-black pt-2.5 pl-5 font-bold text-2xl">Upload Document</h2>
+          <div className="pt-2">
+            <input type='file' onChange={handleFileChange} className="w-150 text-black border-gray-600 font-bold text-2xl border-4 border-dashed rounded-4xl pl-4 hover:bg-slate-200 text-center " />
+          </div>
         </div>
+        {file && (<div className="mb-4 text-sm pl-5">
+                    <div className="flex gap-2 pt-1 justify-center items-center">
+                      <p>Type: {file.type}</p>
+                      <p>Size: {(file.size / 1024).toFixed(2)} KB</p>
+                    </div>
+                      <p>File name: {file.name}</p>
+                </div>)}
+        <div className="pr-5">
+          <button onClick={handleButton} className="float-right bg-[#E5E5E5] w-50 h-10 text-black text-lg font-bold rounded-xl hover:bg-[#c9c2c2] active:bg-[#E5E5E5]">
+            <div className='pb-0.5'>Upload</div>
+          </button>
+        </div>
+      </div>
     </div>
 
   );
