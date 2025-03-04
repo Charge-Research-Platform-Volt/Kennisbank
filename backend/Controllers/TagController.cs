@@ -30,7 +30,7 @@ public class TagController : ControllerBase
     [HttpGet("all-tags")]
     [SwaggerOperation(
             Summary = "List all tags.",
-            Description = "List all standarized tags created by admins."
+            Description = "List all standardized tags created by admins."
         )]
     [SwaggerResponse(200, "List of tags", typeof(List<Tag>))]
     [SwaggerResponse(500, "Internal server error")]
@@ -38,7 +38,7 @@ public class TagController : ControllerBase
     {
         try
         {
-            return Ok(_context.Tags.ToList());
+            return Ok(_context.Tags.ToList().OrderBy(t => t.Name));
         }
         catch (Exception e)
         {
@@ -57,7 +57,7 @@ public class TagController : ControllerBase
     [HttpPost("add-tag/{tagName}")]
     [SwaggerOperation(
             Summary = "Adds new standard tag.",
-            Description = "Lets an admin add a new tag to the list of standarized tags."
+            Description = "Lets an admin add a new tag to the list of standardized tags."
         )]
     [SwaggerResponse(200, "New tag added", typeof(Tag))]
     [SwaggerResponse(400, "Bad request")]
@@ -67,7 +67,7 @@ public class TagController : ControllerBase
     {
         Log.Information("Adding new tag to tag list.");
 
-        // Make sure we have the required fields from body
+        // Make sure we have the required fields
         if (string.IsNullOrEmpty(tagName))
         {
             Log.Error("Name is required");
@@ -114,7 +114,7 @@ public class TagController : ControllerBase
     [HttpDelete("delete-tag/{id}")]
     [SwaggerOperation(
             Summary = "Delete standard tag.",
-            Description = "Lets and admin delete a tag from the list of standarized tags."
+            Description = "Lets and admin delete a tag from the list of standardized tags."
         )]
     [SwaggerResponse(200, "Tag deleted", typeof(Tag))]
     [SwaggerResponse(400, "Bad request")]
@@ -124,7 +124,7 @@ public class TagController : ControllerBase
     {
         Log.Information("Removing tag from tag list.");
 
-        // Make sure we have the required fields from body
+        // Make sure we have the required fields
         if (id == null)
         {
             Log.Error("Id is required");
@@ -136,7 +136,7 @@ public class TagController : ControllerBase
         //find tag in database
         Tag? tag = await _context.Tags.FirstOrDefaultAsync(t => t.Id == guid); //if not found: set tag to null
 
-        //check if tag is empty, if so: it was not found
+        //check if tag is found
         if (tag == null)
         {
             Log.Error("Tag not found.");
@@ -148,5 +148,75 @@ public class TagController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "Tag deleted." });
+    }
+
+    /// </summary>
+    /// <param name="tagName">The name of the tag to delete.</param>
+    /// <returns>
+    /// Returns a 200 OK response containing the deleted tag.
+    // </returns>
+    [HttpPatch("change-tag-name/{id}/{newName}")]
+    [SwaggerOperation(
+            Summary = "Change tag name.",
+            Description = "Lets and admin change the name of a standardized tag."
+        )]
+    [SwaggerResponse(200, "Tag name changed", typeof(Tag))]
+    [SwaggerResponse(400, "Bad request")]
+    [SwaggerResponse(404, "Tag not found")]
+    [SwaggerResponse(409, "Tag already exists")]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> ChangeTagName(string id, string newName)
+    {
+        Log.Information("Changing tag name.");
+
+        // Make sure we have the required fields
+        if (string.IsNullOrEmpty(id))
+        {
+            Log.Error("Id is required");
+            return BadRequest(new { message = "Id is required" });
+        }
+
+        if(string.IsNullOrEmpty(newName))
+        {
+            Log.Error("New name is required");
+            return BadRequest(new { message = "New name is required" });
+        }
+
+        //parse id
+        Guid guid;
+        try
+        {
+            guid = Guid.Parse(id);
+        }
+        catch (FormatException)
+        {
+            Log.Error("Invalid id format.");
+            return BadRequest(new { message = "Invalid id format." });
+        }
+
+        //find tag in database
+        Tag? tag = await _context.Tags.FirstOrDefaultAsync(t => t.Id == guid); //if not found: set tag to null
+
+        //check if tag is found
+        if (tag == null)
+        {
+            Log.Error("Tag not found.");
+            return NotFound(new { message = "Tag not found." });
+        }
+
+        //Change tag name
+        try
+        {
+            tag.Name = newName;
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
+        {
+            // The tag already exists
+            Log.Error(e, "Tag already exists.");
+            return Conflict(new { message = "New tag name already exists." });
+        }
+
+        return Ok(new { message = "Tag name changed." });
     }
 }
