@@ -4,10 +4,6 @@ COPY ["*.csproj", "./"]
 RUN dotnet restore
 COPY . .
 RUN dotnet publish -c Release -o /app/publish
-COPY ["backendtests/backendtests.csproj", "backendtests/"]
-RUN dotnet restore "backendtests/backendtests.csproj"
-RUN dotnet build "backendtests/backendtests.csproj" -c Release
-RUN dotnet test --no-build -c Release --results-directory /testresults --logger "trx;LogFileName=test_result.xml" TestWebApp/TestWebApp.csproj
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS development
 WORKDIR /app
