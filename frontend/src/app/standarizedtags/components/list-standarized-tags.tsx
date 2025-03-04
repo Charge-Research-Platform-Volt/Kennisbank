@@ -18,7 +18,7 @@ export default async function ListStandarizedTags() {
         <div>    
         {result.data.map((tag) => (
           <div key={tag.id} className="mb-4 flex max-w-xl justify-between items-center">
-            <h2>{tag.name} {tag.id}</h2>
+            <h2>{tag.name}</h2>
             <DeleteTagButton id={tag.id} />
           </div>
         ))}
