@@ -40,9 +40,9 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
-      target: development
+      context: .
+      dockerfile: /backend/Dockerfile
+      target: test
     ports:
       - "8080:8080"
       - "8081:8081"
