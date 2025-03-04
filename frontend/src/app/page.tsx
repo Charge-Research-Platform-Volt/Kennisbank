@@ -1,6 +1,7 @@
 import ListDocuments from "@/components/list-documents";
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
 import { z } from "zod";
+import Link from 'next/link'
 
 const UserSchema = z.object({
     name: z.string(),
@@ -8,17 +9,27 @@ const UserSchema = z.object({
 
 const UsersArraySchema = z.array(UserSchema);
 
+
+export default function Page() {
+  return (
+    <div>
+      <h1>Home</h1>
+      <Link href="/about">About</Link>
+    </div>
+  )
+}
+
 export default async function Home() {
     const result = await FetchWithValidation(
         UsersArraySchema,
         "http://backend:8080/KnowledgeBank/members",
     );
 
-    return (
-        <div>
-            Hello World!
-            <div>
-                <h1>Team (from the backend):</h1>
+  return (
+    <div>
+      Hello World!
+      <div>
+        <h1>Team (from the backend):</h1>
 
                 {result.data &&
                     result.data.map((member) => (
