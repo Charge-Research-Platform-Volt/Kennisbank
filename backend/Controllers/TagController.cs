@@ -163,6 +163,7 @@ public class TagController : ControllerBase
     [SwaggerResponse(200, "Tag name changed", typeof(Tag))]
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(404, "Tag not found")]
+    [SwaggerResponse(409, "Tag already exists")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> ChangeTagName(string id, string newName)
     {
