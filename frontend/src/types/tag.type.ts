@@ -4,7 +4,7 @@ import { z } from "zod";
  * Base tag scheme
  */
 export const TagBaseSchema = z.object({
-    name: z.string(),
+    name: z.string().min(1, { message: "Name is required" }),
 });
 
 export const TagSchema = TagBaseSchema.extend({

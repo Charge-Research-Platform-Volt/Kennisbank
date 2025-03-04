@@ -65,7 +65,7 @@ public class TagController : ControllerBase
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> AddTag(string tagName)
     {
-        Log.Information($"Adding new tag to tag list: {tagName}.");
+        Log.Information("Adding new tag to tag list.");
 
         // Make sure we have the required fields from body
         if (string.IsNullOrEmpty(tagName))
@@ -100,7 +100,7 @@ public class TagController : ControllerBase
         }
 
         // Adding the tag was successful
-        Log.Information($"New tag added {tagName} to tag list.");
+        Log.Information("New tag added to tag list.");
         return Ok(new { message = "Tag added." });
     }
 
@@ -122,7 +122,7 @@ public class TagController : ControllerBase
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> DeleteTag(string id)
     {
-        Log.Information($"Removing tag from tag list: {id}.");
+        Log.Information("Removing tag from tag list.");
 
         // Make sure we have the required fields from body
         if (id == null)
@@ -139,7 +139,7 @@ public class TagController : ControllerBase
         //check if tag is empty, if so: it was not found
         if (tag == null)
         {
-            Log.Error($"Tag with id {id} not found.");
+            Log.Error("Tag not found.");
             return NotFound(new { message = "Tag not found." });
         }
 

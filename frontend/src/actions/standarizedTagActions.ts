@@ -1,21 +1,31 @@
 "use server";
 
-import type { FormResponse, ReturnType } from "@/types/return.type";
-import { Tag } from "@/types/tag.type";
-import { UUID } from "crypto";
+import type { FormResponse } from "@/types/return.type";
+import { Tag, TagBase, TagBaseSchema } from "@/types/tag.type";
 import { revalidatePath } from "next/cache";
 
 export const AddStandarizedTag = async (
     prevState: FormResponse<Tag>,
     formData: FormData,
-): Promise<ReturnType> => {
-    const name = formData.get("name") as string;
-    if (!name) {
-        return { success: false, message: "Name is required" };
+): Promise<FormResponse<TagBase>> => {
+    const rawData: TagBase = {
+        name: formData.get("name") as string,
+    }
+    
+    // Validate the raw data, if it fails, return an error
+    const validatedData = TagBaseSchema.safeParse(rawData);
+
+    if (!validatedData.success) {
+        return {
+            success: false,
+            message: validatedData.error.errors[0].message,
+            inputs: rawData,
+        };
     }
 
+    // Send the data to the backend
     const response = await fetch(
-        `http://backend:8080/Tag/add-tag/${encodeURIComponent(name)}`,
+        `http://backend:8080/Tag/add-tag/${encodeURIComponent(rawData.name)}`,
         {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -23,6 +33,7 @@ export const AddStandarizedTag = async (
     );
     const data = await response.json();
 
+    // Check if the request was successful, if not, return an error
     if (!response.ok) {
         return {
             success: false,
@@ -30,21 +41,33 @@ export const AddStandarizedTag = async (
         };
     }
 
-    revalidatePath("/");
+    // Revalidate the cache for the standarizedtags page
+    revalidatePath("/standarizedtags");
     return {
         success: true,
         message: data.message,
     };
 };
 
-export const DeleteStandarizedTag = async (id: string): Promise<ReturnType> => {
+export const DeleteStandarizedTag = async (id: string): Promise<FormResponse<TagBase>> => {
     console.log("Deleting tag: ", id);
-    if (!id) {
-        return { success: false, message: "Id is required" };
+    
+    const rawData: TagBase = {
+        name: id,
     }
 
-    console.log("Deleting tag: ", id);
+    // Validate the raw data, if it fails, return an error
+    const validatedData = TagBaseSchema.safeParse(rawData);
 
+    if (!validatedData.success) {
+        return {
+            success: false,
+            message: validatedData.error.errors[0].message,
+            inputs: rawData,
+        };
+    }
+
+    // Send the data to the backend
     const response = await fetch(
         `http://backend:8080/Tag/delete-tag/${encodeURIComponent(id)}`,
         {
@@ -54,10 +77,15 @@ export const DeleteStandarizedTag = async (id: string): Promise<ReturnType> => {
     );
     const data = await response.json();
 
+    // Check if the request was successful, if not, return an error
     if (!response.ok) {
-        throw new Error("Failed to delete tag");
+        return {
+            success: false,
+            message: data.message
+        }
     }
 
+    // Revalidate the cache for the standarizedtags page
     revalidatePath("/standarizedtags");
     return {
         success: true,

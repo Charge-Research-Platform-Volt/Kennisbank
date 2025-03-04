@@ -5,9 +5,6 @@ import { Button } from "@/components/ui/button";
 import { useTransition } from "react";
 
 export default function DeleteTagButton({id} : {id: string}) {
-    // const [tag, setTag] = useTransition(DeleteStandarizedTag);
-    // console.log("CreateStandarizedTag state:");
-    // console.log(state.message);
     const [isPending, startTransition] = useTransition();
 
     function handleDelete() {
@@ -15,14 +12,6 @@ export default function DeleteTagButton({id} : {id: string}) {
             DeleteStandarizedTag(id);
         });
     }
-  
-    // useEffect(() => {
-    //   if (state.success) {
-    //     toast.success(state.message);
-    //   } else if (state.message) {
-    //     toast.error(state.message);
-    //   }
-    // }, [state]);
   
     return (
         <Button
