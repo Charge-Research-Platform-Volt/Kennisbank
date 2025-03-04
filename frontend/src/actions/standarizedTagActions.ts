@@ -1,11 +1,11 @@
 "use server";
 
 import type { FormResponse } from "@/types/return.type";
-import { Tag, TagBase, TagBaseSchema } from "@/types/tag.type";
+import { Tag, TagBase, TagBaseSchema, TagSchema } from "@/types/tag.type";
 import { revalidatePath } from "next/cache";
 
 export const AddStandarizedTag = async (
-    prevState: FormResponse<Tag>,
+    prevState: FormResponse<TagBase>,
     formData: FormData,
 ): Promise<FormResponse<TagBase>> => {
     const rawData: TagBase = {
@@ -49,15 +49,16 @@ export const AddStandarizedTag = async (
     };
 };
 
-export const DeleteStandarizedTag = async (id: string): Promise<FormResponse<TagBase>> => {
-    console.log("Deleting tag: ", id);
+export const DeleteStandarizedTag = async (tag: Tag): Promise<FormResponse<Tag>> => {
+    console.log("Deleting tag: ", tag.id);
     
-    const rawData: TagBase = {
-        name: id,
+    const rawData: Tag = {
+        id: tag.id,
+        name: tag.name,
     }
 
     // Validate the raw data, if it fails, return an error
-    const validatedData = TagBaseSchema.safeParse(rawData);
+    const validatedData = TagSchema.safeParse(rawData);
 
     if (!validatedData.success) {
         return {
@@ -69,7 +70,7 @@ export const DeleteStandarizedTag = async (id: string): Promise<FormResponse<Tag
 
     // Send the data to the backend
     const response = await fetch(
-        `http://backend:8080/Tag/delete-tag/${encodeURIComponent(id)}`,
+        `http://backend:8080/Tag/delete-tag/${encodeURIComponent(tag.id)}`,
         {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
@@ -83,6 +84,52 @@ export const DeleteStandarizedTag = async (id: string): Promise<FormResponse<Tag
             success: false,
             message: data.message
         }
+    }
+
+    // Revalidate the cache for the standarizedtags page
+    revalidatePath("/standarizedtags");
+    return {
+        success: true,
+        message: data.message,
+    };
+};
+
+export const SaveStandarizedTag = async (
+    prevState: FormResponse<Tag>,
+    formData: FormData,
+): Promise<FormResponse<Tag>> => {
+    const rawData: Tag = {
+        name: formData.get("name") as string,
+        id: formData.get("id") as string,
+    }
+    
+    // Validate the raw data, if it fails, return an error
+    const validatedData = TagSchema.safeParse(rawData);
+
+    if (!validatedData.success) {
+        return {
+            success: false,
+            message: validatedData.error.errors[0].message,
+            inputs: rawData,
+        };
+    }
+
+    // Send the data to the backend
+    const response = await fetch(
+        `http://backend:8080/Tag/change-tag-name/${encodeURIComponent(rawData.id)}/${encodeURIComponent(rawData.name)}`,
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+        },
+    );
+    const data = await response.json();
+
+    // Check if the request was successful, if not, return an error
+    if (!response.ok) {
+        return {
+            success: false,
+            message: data.message,
+        };
     }
 
     // Revalidate the cache for the standarizedtags page

@@ -38,7 +38,7 @@ public class TagController : ControllerBase
     {
         try
         {
-            return Ok(_context.Tags.ToList());
+            return Ok(_context.Tags.ToList().OrderBy(t => t.Name));
         }
         catch (Exception e)
         {
