@@ -76,6 +76,7 @@ public class TagController : ControllerBase
 
         Tag tag = new()
         {
+            Id = Guid.NewGuid(), 
             Name = tagName,
         };
 
@@ -110,7 +111,7 @@ public class TagController : ControllerBase
     /// <returns>
     /// Returns a 200 OK response containing the deleted tag.
     // </returns>
-    [HttpDelete("delete-tag/{tagName}")]
+    [HttpDelete("delete-tag/{id}")]
     [SwaggerOperation(
             Summary = "Delete standard tag.",
             Description = "Lets and admin delete a tag from the list of standarized tags."
@@ -119,25 +120,26 @@ public class TagController : ControllerBase
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(404, "Tag not found")]
     [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> DeleteTag(string tagName)
+    public async Task<IActionResult> DeleteTag(string id)
     {
-        Log.Information($"Removing tag from tag list: {tagName}.");
+        Log.Information($"Removing tag from tag list: {id}.");
 
         // Make sure we have the required fields from body
-        if (string.IsNullOrEmpty(tagName))
+        if (id == null)
         {
-            Log.Error("Name is required");
-            return BadRequest(new { message = "Name is required" });
+            Log.Error("Id is required");
+            return BadRequest(new { message = "Id is required" });
         }
 
+        Guid guid = Guid.Parse(id);
+
         //find tag in database
-        Tag tag = await _context.Tags.FirstOrDefaultAsync(t => t.Name == tagName)
-            ?? new Tag() { Name = "" }; //if not found: set tag to empty tag
+        Tag? tag = await _context.Tags.FirstOrDefaultAsync(t => t.Id == guid); //if not found: set tag to null
 
         //check if tag is empty, if so: it was not found
-        if (string.IsNullOrEmpty(tag.Name))
+        if (tag == null)
         {
-            Log.Error($"Tag {tagName} not found.");
+            Log.Error($"Tag with id {id} not found.");
             return NotFound(new { message = "Tag not found." });
         }
 

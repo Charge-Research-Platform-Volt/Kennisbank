@@ -1,11 +1,16 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 namespace KnowledgeBank.Models;
 
 [Table("tags")]
+[Index(nameof(Name), IsUnique = true)]
 public class Tag
 {
-    [Column("name")]
+    [Column("id")]
     [Key]
+    public required Guid Id { get; set; }
+
+    [Column("name")]
     public required string Name { get; set; }
 }
