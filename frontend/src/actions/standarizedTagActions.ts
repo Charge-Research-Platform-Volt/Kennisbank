@@ -118,7 +118,7 @@ export const SaveStandarizedTag = async (
     const response = await fetch(
         `http://backend:8080/Tag/change-tag-name/${encodeURIComponent(rawData.id)}/${encodeURIComponent(rawData.name)}`,
         {
-            method: "POST",
+            method: "PATCH",
             headers: { "Content-Type": "application/json" },
         },
     );

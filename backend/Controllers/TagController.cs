@@ -150,12 +150,12 @@ public class TagController : ControllerBase
         return Ok(new { message = "Tag deleted." });
     }
 
-        /// </summary>
+    /// </summary>
     /// <param name="tagName">The name of the tag to delete.</param>
     /// <returns>
     /// Returns a 200 OK response containing the deleted tag.
     // </returns>
-    [HttpPost("change-tag-name/{id}/{newName}")]
+    [HttpPatch("change-tag-name/{id}/{newName}")]
     [SwaggerOperation(
             Summary = "Change tag name.",
             Description = "Lets and admin change the name of a standarized tag."
