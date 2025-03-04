@@ -1,6 +1,6 @@
 import React from "react";
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
-import { TagsArraySchema } from "@/types/standarized-tag.type";
+import { TagsArraySchema } from "@/types/tag.type";
 import { Button } from "@/components/ui/button";
 import DeleteTagButton from "./delete-tag-button";
 
@@ -17,9 +17,9 @@ export default async function ListStandarizedTags() {
     return (
         <div>    
         {result.data.map((tag) => (
-          <div key={tag.name} className="mb-4 flex max-w-xl justify-between items-center">
-            <h2>{tag.name}</h2>
-            <DeleteTagButton name={tag.name} />
+          <div key={tag.id} className="mb-4 flex max-w-xl justify-between items-center">
+            <h2>{tag.name} {tag.id}</h2>
+            <DeleteTagButton id={tag.id} />
           </div>
         ))}
       </div>

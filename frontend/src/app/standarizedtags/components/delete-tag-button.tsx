@@ -2,19 +2,17 @@
 
 import { DeleteStandarizedTag } from "@/actions/standarizedTagActions";
 import { Button } from "@/components/ui/button";
-import { useEffect, useTransition } from "react";
-import { toast } from "sonner";
+import { useTransition } from "react";
 
-export default function DeleteTagButton({name} : {name: string}) {
+export default function DeleteTagButton({id} : {id: string}) {
     // const [tag, setTag] = useTransition(DeleteStandarizedTag);
     // console.log("CreateStandarizedTag state:");
     // console.log(state.message);
     const [isPending, startTransition] = useTransition();
 
-
     function handleDelete() {
         startTransition(() => {
-            DeleteStandarizedTag(name);
+            DeleteStandarizedTag(id);
         });
     }
   

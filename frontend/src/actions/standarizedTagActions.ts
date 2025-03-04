@@ -1,7 +1,8 @@
 "use server";
 
 import type { FormResponse, ReturnType } from "@/types/return.type";
-import { Tag } from "@/types/standarized-tag.type";
+import { Tag } from "@/types/tag.type";
+import { UUID } from "crypto";
 import { revalidatePath } from "next/cache";
 
 export const AddStandarizedTag = async (
@@ -31,13 +32,14 @@ export const AddStandarizedTag = async (
 };
 
 export const DeleteStandarizedTag = async (
-    name: string,
+    id: string,
 ): Promise<ReturnType> => {
-    if (!name) {return { success: false, message: "Name is required" }}
+    console.log("Deleting tag: ", id);
+    if (!id) {return { success: false, message: "Id is required" }}
 
-    console.log("Deleting tag: ", name);
+    console.log("Deleting tag: ", id);
 
-    const response = await fetch(`http://backend:8080/Tag/delete-tag/${encodeURIComponent(name)}`, {
+    const response = await fetch(`http://backend:8080/Tag/delete-tag/${encodeURIComponent(id)}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
     });

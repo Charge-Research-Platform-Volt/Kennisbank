@@ -3,7 +3,7 @@
 import React, { useActionState, useEffect } from "react";
 import type { FormResponse } from "@/types/return.type";
 import { toast } from "sonner";
-import { Tag } from "@/types/standarized-tag.type";
+import { Tag } from "@/types/tag.type";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AddStandarizedTag } from "@/actions/standarizedTagActions";

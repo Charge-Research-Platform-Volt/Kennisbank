@@ -1,6 +1,6 @@
 import ListDocuments from "@/components/list-documents";
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
-import { TagsArraySchema } from "@/types/standarized-tag.type";
+import { TagsArraySchema } from "@/types/tag.type";
 import { z } from "zod";
 import CreateStandarizedTag from "./components/create-standarized-tag";
 import ListStandarizedTags from "./components/list-standarized-tags";
