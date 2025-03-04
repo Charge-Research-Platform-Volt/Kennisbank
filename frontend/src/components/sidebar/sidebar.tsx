@@ -4,7 +4,6 @@ import { Icon } from '@iconify/react';
 import { useState } from "react";
 import UploadPopup from './upload';
 import './sidebar.css';
-import '../Colors.css';
 
 export default function SideBar()
 {
