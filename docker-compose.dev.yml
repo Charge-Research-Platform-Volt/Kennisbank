@@ -4,6 +4,7 @@ services:
       context: ./website
       dockerfile: Dockerfile
       target: development
+      no_cache: true
     ports:
       - "3001:3001"
     environment:
@@ -23,6 +24,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       target: development
+      no_cache: true
     ports:
       - "3000:3000"
     environment:
