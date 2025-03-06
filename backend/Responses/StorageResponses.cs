@@ -1,12 +1,25 @@
-﻿namespace backend.Responses
+﻿using KnowledgeBank.Models;
+using System.ComponentModel;
+
+namespace backend.Responses
 {
-    public enum STORAGE_RESPONSE_TYPE { MESSAGE, UPLOAD, FILE, CONTAINER, PAGE }
+    public struct STORAGE_RESPONSE_TYPE
+    {
+        public const string MESSAGE = "message";
+        public const string UPLOAD = "upload";
+        public const string FILE = "file";
+        public const string FILEINFO = "fileinfo";
+        public const string CONTAINER = "container";
+        public const string PAGE = "page";
+        public const string EXISTS = "exists";
+    }
+
     public class StorageResponse
     {
         public string Message { get; }
-        public STORAGE_RESPONSE_TYPE ResponseType { get; }
+        public string ResponseType { get; }
 
-        public StorageResponse(string message, STORAGE_RESPONSE_TYPE responseType = STORAGE_RESPONSE_TYPE.MESSAGE)
+        public StorageResponse(string message, string responseType = STORAGE_RESPONSE_TYPE.MESSAGE)
         {
             Message = message;
             ResponseType = responseType;
@@ -21,36 +34,36 @@
         /// <summary>
         /// Name of the uploaded file
         /// </summary>
-        public string FileName { get; set; }
+        public string Id { get; set; }
 
         /// <summary>
         /// Name of the container it is uploaded in
         /// </summary>
-        public string ContainerName { get; set; }
+        public string FileType { get; set; }
 
         /// <summary>
         /// Size of the file in bytes
         /// </summary>
         public long Size { get; set; }
 
-        public FileUploadResult(string fileName, string containerName, long size) : base("File uploaded successfully", STORAGE_RESPONSE_TYPE.UPLOAD)
+        public FileUploadResult(string id, string fileType, long size) : base("File uploaded successfully", STORAGE_RESPONSE_TYPE.UPLOAD)
         {
-            this.FileName = fileName;
-            this.ContainerName = containerName;
+            this.Id = id;
+            this.FileType = fileType;
             this.Size = size;
         }
     }
 
     public class FileResponse : StorageResponse
     {
-        public string FileName { get; set; }
+        public string Id { get; set; }
 
-        public string ContainerName { get; set; }
+        public string FileType { get; set; }
 
-        public FileResponse(string message, string fileName, string containerName) : base(message, STORAGE_RESPONSE_TYPE.FILE)
+        public FileResponse(string message, string id, string fileType) : base(message, STORAGE_RESPONSE_TYPE.FILE)
         {
-            this.FileName = fileName;
-            this.ContainerName = containerName;
+            this.Id = id;
+            this.FileType = fileType;
         }
     }
 
@@ -64,19 +77,37 @@
         }
     }
 
+    public class ExistsResponse : StorageResponse
+    {
+        public bool Exists { get; }
+
+        public ExistsResponse(string message, bool exists) : base(message, STORAGE_RESPONSE_TYPE.EXISTS)
+        {
+            this.Exists = exists;
+        }
+    }
+
+    public class FileInfoResponse : StorageResponse
+    {
+        public FileItem FileInfo { get; }
+
+        public FileInfoResponse(string message, FileItem fileInfo) : base(message, STORAGE_RESPONSE_TYPE.FILEINFO)
+        {
+            this.FileInfo = fileInfo;
+        }
+    }
+
     public class PageResponse : StorageResponse
     {
-        public string ContainerName { get; set; }
-        public string? ContinuationToken { get; set; }
-        public string[] Files { get; set; }
-        public int PageSize { get; set; }
+        public int PageIndex { get; }
+        public int PageSize { get; }
+        public FileItem[] Files { get; }
 
-        public PageResponse(string message, string containerName, string? continuationToken, string[] files, int pageSize) : base(message, STORAGE_RESPONSE_TYPE.PAGE)
+        public PageResponse(string message, int pageIndex, int pageSize, FileItem[] files) : base(message, STORAGE_RESPONSE_TYPE.PAGE)
         {
-            this.ContainerName = containerName;
-            this.ContinuationToken = continuationToken;
-            this.Files = files;
+            this.PageIndex = pageIndex;
             this.PageSize = pageSize;
+            this.Files = files;
         }
     }
 }

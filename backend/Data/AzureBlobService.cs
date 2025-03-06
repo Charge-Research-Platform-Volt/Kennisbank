@@ -26,6 +26,18 @@ namespace backend.Data
         }
     }
 
+    public struct BlobDownloadResponse
+    {
+        public Stream FileStream { get; }
+        public IDictionary<string, string> Metadata { get; }
+
+        public BlobDownloadResponse(Stream stream, IDictionary<string, string> metadata)
+        {
+            this.FileStream = stream;
+            this.Metadata = metadata;
+        }
+    }
+
     /// <summary>
     /// Service for interacting with Azure Blob Storage
     /// </summary>
@@ -52,10 +64,11 @@ namespace backend.Data
         /// </summary>
         /// <param name="containerName">The name of the container</param>
         /// <param name="blobName">The name of the blob</param>
+        /// <param name="metadata">The metadata of the file</param>
         /// <param name="content">The filestream</param>
         /// <param name="overwrite">Whether or not the file should be overwritten when it already exists</param>
         /// <returns>If the operation was successful</returns>
-        Task<BLOB_STATUSCODE> UploadBlobAsync(string containerName, string blobName, Stream content, bool overwrite = false);
+        Task<BLOB_STATUSCODE> UploadBlobAsync(string containerName, string blobName, IDictionary<string, string> metadata, Stream content, bool overwrite = false);
 
         /// <summary>
         /// Downloads a blob from the given container
@@ -63,7 +76,7 @@ namespace backend.Data
         /// <param name="containerName">The name of the container</param>
         /// <param name="blobName">The name of the blob</param>
         /// <returns>A stream if the file exists, null if it doesn't</returns>
-        Task<Stream?> DownloadBlobAsync(string containerName, string blobName);
+        Task<BlobDownloadResponse?> DownloadBlobAsync(string containerName, string blobName);
 
         /// <summary>
         /// Deletes a blob from the given container
@@ -131,10 +144,8 @@ namespace backend.Data
         /// </summary>
         /// <param name="containerName">The name of the container</param>
         /// <param name="pageSize">The size of the page</param>
+        /// <param name="continuationToken">The continuation token</param>
         /// <param name="prefix">A prefix to filter results</param>
-        /// <param name="page">The page to be retrieved<br></br><br></br><br></br>
-        /// Note:<br></br>
-        /// The page count starts at 1 for easier UI integration</param>
         /// <returns>A BlobPage which contains the current page, the total amount of pages and the list of blobs on the current page</returns>
         Task<BlobPageResponse> ListBlobsPagedAsync(string containerName, int pageSize, string? continuationToken = null, string prefix = "");
     }
@@ -187,9 +198,9 @@ namespace backend.Data
         }
 
         /// <inheritdoc/>
-        public async Task<BLOB_STATUSCODE> UploadBlobAsync(string containerName, string blobName, Stream content, bool overwrite = false)
+        public async Task<BLOB_STATUSCODE> UploadBlobAsync(string containerName, string blobName, IDictionary<string, string> metadata, Stream content, bool overwrite = false)
         {
-            BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
+            BlobContainerClient container = await GetOrCreateContainerAsync(containerName);
             BlobClient blob = container.GetBlobClient(blobName);
 
             if (!await container.ExistsAsync())
@@ -205,12 +216,13 @@ namespace backend.Data
             }
 
             await blob.UploadAsync(content, true);
+            await blob.SetMetadataAsync(metadata);
             logger.Information("Blob {BlobName} successfully uploaded to container {ContainerName}.", blobName, containerName);
             return BLOB_STATUSCODE.OK;
         }
 
         /// <inheritdoc/>
-        public async Task<Stream?> DownloadBlobAsync(string containerName, string blobName)
+        public async Task<BlobDownloadResponse?> DownloadBlobAsync(string containerName, string blobName)
         {
             BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
             BlobClient blob = container.GetBlobClient(blobName);
@@ -225,8 +237,10 @@ namespace backend.Data
             await blob.DownloadToAsync(stream);
             stream.Position = 0;
 
+            BlobProperties props = await blob.GetPropertiesAsync();
+
             logger.Information("Blob {BlobName} downloaded from container {ContainerName}.", blobName, containerName);
-            return stream;
+            return new BlobDownloadResponse(stream, props.Metadata);
         }
 
         /// <inheritdoc/>
