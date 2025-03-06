@@ -59,7 +59,8 @@ namespace backend.Controllers
 
             try
             {
-                BLOB_STATUSCODE result = await blobService.UploadBlobAsync(fileType, id.ToString(), extension, dto.File.OpenReadStream(), dto.Overwrite);
+                Dictionary<string, string> metadata = new Dictionary<string, string> { { "extension", extension } };
+                BLOB_STATUSCODE result = await blobService.UploadBlobAsync(fileType, id.ToString(), metadata, dto.File.OpenReadStream(), dto.Overwrite);
 
                 switch (result)
                 {

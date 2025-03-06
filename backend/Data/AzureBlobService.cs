@@ -62,13 +62,13 @@ namespace backend.Data
         /// <summary>
         /// Uploads a blob to the given container.
         /// </summary>
-        /// <param name="fileType">The name of the container</param>
-        /// <param name="id">The name of the blob</param>
-        /// <param name="extension">The extension of the file</param>
+        /// <param name="containerName">The name of the container</param>
+        /// <param name="blobName">The name of the blob</param>
+        /// <param name="metadata">The metadata of the file</param>
         /// <param name="content">The filestream</param>
         /// <param name="overwrite">Whether or not the file should be overwritten when it already exists</param>
         /// <returns>If the operation was successful</returns>
-        Task<BLOB_STATUSCODE> UploadBlobAsync(string fileType, string id, string extension, Stream content, bool overwrite = false);
+        Task<BLOB_STATUSCODE> UploadBlobAsync(string containerName, string blobName, IDictionary<string, string> metadata, Stream content, bool overwrite = false);
 
         /// <summary>
         /// Downloads a blob from the given container
@@ -144,10 +144,8 @@ namespace backend.Data
         /// </summary>
         /// <param name="containerName">The name of the container</param>
         /// <param name="pageSize">The size of the page</param>
+        /// <param name="continuationToken">The continuation token</param>
         /// <param name="prefix">A prefix to filter results</param>
-        /// <param name="page">The page to be retrieved<br></br><br></br><br></br>
-        /// Note:<br></br>
-        /// The page count starts at 1 for easier UI integration</param>
         /// <returns>A BlobPage which contains the current page, the total amount of pages and the list of blobs on the current page</returns>
         Task<BlobPageResponse> ListBlobsPagedAsync(string containerName, int pageSize, string? continuationToken = null, string prefix = "");
     }
@@ -200,38 +198,38 @@ namespace backend.Data
         }
 
         /// <inheritdoc/>
-        public async Task<BLOB_STATUSCODE> UploadBlobAsync(string filetype, string blobId, string extension, Stream content, bool overwrite = false)
+        public async Task<BLOB_STATUSCODE> UploadBlobAsync(string containerName, string blobName, IDictionary<string, string> metadata, Stream content, bool overwrite = false)
         {
-            BlobContainerClient container = await GetOrCreateContainerAsync(filetype);
-            BlobClient blob = container.GetBlobClient(blobId);
+            BlobContainerClient container = await GetOrCreateContainerAsync(containerName);
+            BlobClient blob = container.GetBlobClient(blobName);
 
             if (!await container.ExistsAsync())
             {
-                logger.Information("The container {ContainerName} does not exist.", filetype);
+                logger.Information("The container {ContainerName} does not exist.", containerName);
                 return BLOB_STATUSCODE.NOTFOUND;
             }
 
             if (await blob.ExistsAsync() && !overwrite)
             {
-                logger.Information("Blob {BlobName} already exists in {ContainerName} and overwrite is disabled.", blobId, filetype);
+                logger.Information("Blob {BlobName} already exists in {ContainerName} and overwrite is disabled.", blobName, containerName);
                 return BLOB_STATUSCODE.ALREADYEXISTS;
             }
 
             await blob.UploadAsync(content, true);
-            await blob.SetMetadataAsync(new Dictionary<string, string>{{ "extension", extension } });
-            logger.Information("Blob {BlobName} successfully uploaded to container {ContainerName}.", blobId, filetype);
+            await blob.SetMetadataAsync(metadata);
+            logger.Information("Blob {BlobName} successfully uploaded to container {ContainerName}.", blobName, containerName);
             return BLOB_STATUSCODE.OK;
         }
 
         /// <inheritdoc/>
-        public async Task<BlobDownloadResponse?> DownloadBlobAsync(string filetype, string blobId)
+        public async Task<BlobDownloadResponse?> DownloadBlobAsync(string containerName, string blobName)
         {
-            BlobContainerClient container = blobService.GetBlobContainerClient(filetype);
-            BlobClient blob = container.GetBlobClient(blobId);
+            BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
+            BlobClient blob = container.GetBlobClient(blobName);
 
             if (!await blob.ExistsAsync())
             {
-                logger.Information("Blob {BlobName} not found in container {ContainerName}.", blobId, filetype);
+                logger.Information("Blob {BlobName} not found in container {ContainerName}.", blobName, containerName);
                 return null;
             }
 
@@ -241,7 +239,7 @@ namespace backend.Data
 
             BlobProperties props = await blob.GetPropertiesAsync();
 
-            logger.Information("Blob {BlobName} downloaded from container {ContainerName}.", blobId, filetype);
+            logger.Information("Blob {BlobName} downloaded from container {ContainerName}.", blobName, containerName);
             return new BlobDownloadResponse(stream, props.Metadata);
         }
 
