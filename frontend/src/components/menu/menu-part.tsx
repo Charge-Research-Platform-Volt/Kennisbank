@@ -11,10 +11,13 @@ export default function MenuPart({ name, items }: { name: string; items: MenuIte
 
     return (
         <ul>
+            {/* Menu part title with line */}
             <li className="flex items-center w-full mt-10">
                 <p className="text-gray-400 text-xs">{name}</p>
                 <div className="h-px bg-gray-300 flex-1 ml-2"></div>
             </li>
+            
+            {/* Menu items */}
             {items.map((item) => (
                 <li key={item.path}>
                     <Link   

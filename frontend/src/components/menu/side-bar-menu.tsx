@@ -18,79 +18,83 @@ const SideBarMenu: React.FC<{ className?: string }> = ({ className = "" }) => {
 
   return (
     <div>
-        {!isOpen && (
-            <div className="flex items-center justify-between mb-4 mt-4">
-                <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="p-2 text-white rounded transition cursor-pointer bg-gray-100 rounded-r-lg rounded-l-none hover:bg-gray-200"
-                style={{cursor: 'pointer'}}
-                >
-                    <Image 
-                        src="/img/show-menu-icon.svg"
-                        alt="Hide menu" 
-                        width={24} 
-                        height={24}
-                    />
-                </button>
-            </div>
-        )}
-
-
-        {isOpen && (
-        <aside className={`h-screen p-4 transition-all duration-300 flex flex-col ${isOpen ? "w-64 bg-gray-100" : "w-16 bg-transparent"} ${className}`}>
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                    <h2 className="text-xl font-semibold">KnowledgeBase</h2>
-                </div>
-                <button
-                    onClick={() => setIsOpen(!isOpen)}
-                    className="p-2 text-white rounde transition hover:bg-gray-200 rounded-lg"
-                    style={{cursor: 'pointer'}}
-                >
+      {/* Show menu button if menu is closed */}
+      {!isOpen && (
+          <div className="flex items-center justify-between mb-4 mt-4">
+              <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="p-2 text-white rounded transition cursor-pointer bg-gray-100 rounded-r-lg rounded-l-none hover:bg-gray-200"
+              style={{cursor: 'pointer'}}
+              >
                   <Image 
-                      src="/img/hide-menu-icon.svg"
+                      src="/img/show-menu-icon.svg"
                       alt="Hide menu" 
                       width={24} 
                       height={24}
                   />
-                </button>
+              </button>
+          </div>
+      )}
+
+      {/* Show menu if it is opened */}
+      {isOpen && (
+        <aside className={`h-screen p-4 transition-all duration-300 flex flex-col ${isOpen ? "w-64 bg-gray-100" : "w-16 bg-transparent"} ${className}`}>
+          <div className="flex items-center justify-between mb-4">
+            {/* KnowledgeBase title */}
+            <div className="flex items-center space-x-2">
+                <h2 className="text-xl font-semibold">KnowledgeBase</h2>
             </div>
+            
+            {/* Hide menu button */}
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="p-2 text-white rounde transition hover:bg-gray-200 rounded-lg"
+                style={{cursor: 'pointer'}}
+            >
+              <Image 
+                  src="/img/hide-menu-icon.svg"
+                  alt="Hide menu" 
+                  width={24} 
+                  height={24}
+              />
+            </button>
+          </div>
 
-            <nav className="flex flex-col h-full">
+          {/* Menu items */}
+          <nav className="flex flex-col h-full">
+            <ul className="space-y-2">
+              {/* New icon */}
+              <li>
+                  <Link 
+                      href="/new"  
+                      className="flex p-2 rounded-xl bg-purple hover:bg-purple/90 text-white"
+                  >
+                      <Image 
+                          src="/img/new-icon.svg"
+                          alt="Hide menu" 
+                          width={24} 
+                          height={24}
+                          className="mr-2"
+                      />
+                      New
+                  </Link>
+              </li>
 
-              <ul className="space-y-2">
-                {/* New icon */}
-                <li>
-                    <Link 
-                        href="/new"  
-                        className="flex p-2 rounded-xl bg-purple hover:bg-purple/90 text-white"
-                    >
-                        <Image 
-                            src="/img/new-icon.svg"
-                            alt="Hide menu" 
-                            width={24} 
-                            height={24}
-                            className="mr-2"
-                        />
-                        New
-                    </Link>
-                </li>
+              {/* Search bar */}
+              <Input
+                  type="text"
+                  name="search"
+                  placeholder="&#x1F50E;&#xFE0E; Search"
+              />
+            </ul>
 
-                {/* Search bar */}
-                <Input
-                    type="text"
-                    name="search"
-                    placeholder="&#x1F50E;&#xFE0E; Search"
-                />
-              </ul>
+              {/* Menu and project parts */}
+              <MenuPart name="Menu" items={menuItems} />
+              <MenuPart name="Projects" items={projects} />
+          </nav>
 
-                {/* Menu and project parts */}
-                <MenuPart name="Menu" items={menuItems} />
-                <MenuPart name="Projects" items={projects} />
-            </nav>
-
-            {/* Bottom items of the menu */}
-            <nav className="mt-auto">
+          {/* Bottom items of the menu */}
+          <nav className="mt-auto">
             <ul>
               <li>
                 <Link href="/settings" className="flex p-2 rounded-xl hover:bg-gray-200">
