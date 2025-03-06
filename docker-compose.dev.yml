@@ -75,7 +75,7 @@ services:
       # - database_data:/var/lib/postgresql/data
     networks:
       - my_network
-  
+
   storage:
     image: mcr.microsoft.com/azure-storage/azurite
     ports:

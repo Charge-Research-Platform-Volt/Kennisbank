@@ -1,4 +1,5 @@
 import ListDocuments from "@/components/list-documents";
+import { SideBarMenu } from "@/components/menu/side-bar-menu";
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
 import { z } from "zod";
 
@@ -15,21 +16,24 @@ export default async function Home() {
     );
 
     return (
-        <div>
-            Hello World!
-            <div>
-                <h1>Team (from the backend):</h1>
+        <div className="flex">
+            <SideBarMenu className="w-64 h-screen bg-gray-100 p-4" />
+            <div className="flex-1 p6 p-4">
+                Hello World!
+                <div>
+                    <h1>Team (from the backend):</h1>
 
-                {result.data &&
-                    result.data.map((member) => (
-                        <div key={member.name}>
-                            <h2>{member.name}</h2>
-                        </div>
-                    ))}
+                    {result.data &&
+                        result.data.map((member) => (
+                            <div key={member.name}>
+                                <h2>{member.name}</h2>
+                            </div>
+                        ))}
+                </div>
+                <br />
+                <hr />
+                <ListDocuments />
             </div>
-            <br />
-            <hr />
-            <ListDocuments />
         </div>
     );
 }

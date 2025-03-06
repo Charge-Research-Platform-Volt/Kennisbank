@@ -9,6 +9,8 @@ namespace KnowledgeBank.Data
 
         public DbSet<Drive> Drives { get; set; }
 
+        public DbSet<Tag> Tags { get; set; }
+
 
         // protected override void OnModelCreating(ModelBuilder modelBuilder)
         // {
