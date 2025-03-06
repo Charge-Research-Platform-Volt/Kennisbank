@@ -106,13 +106,13 @@ namespace backend.Controllers
             Description = "Downloads a given blob from the given container in the Azure Blob Storage."
         )]
         [SwaggerResponse(200, "File found and returned")]
-        [SwaggerResponse(404, "Invalid file or container name", typeof(StorageResponse))]
+        [SwaggerResponse(404, "File not found", typeof(StorageResponse))]
         [SwaggerResponse(400, "Invalid location.", typeof(StorageResponse))]
         [SwaggerResponse(500, "Server error", typeof(StorageResponse))]
         public async Task<IActionResult> DownloadFile(string id)
         {
             if (string.IsNullOrEmpty(id))
-                return BadRequest(new StorageResponse("Invalid id."));
+                return BadRequest(new StorageResponse("Invalid ID."));
 
             try
             {
@@ -159,7 +159,7 @@ namespace backend.Controllers
         public async Task<IActionResult> DeleteFile(string id)
         {
             if (string.IsNullOrEmpty(id))
-                return BadRequest(new StorageResponse("Invalid id."));
+                return BadRequest(new StorageResponse("Invalid ID."));
 
             try
             {
