@@ -77,9 +77,9 @@ export default function NewButton() {
   return (
     <div>
       <DropdownMenu>
-            <DropdownMenuTrigger className="newButton bg-purple text-white text-lg font-semibold rounded-xl text-left pl-3 
+            <DropdownMenuTrigger className="h-9 w-full bg-purple text-white text-md rounded-md text-left pl-3 
                            hover:bg-[#6f2aaf] active:bg-purple flex items-center gap-1">
-                <Icon icon="mdi:plus-box" width="20" height="20"/>
+                <Icon icon="mdi:plus-box" width="16" height="16"/>
                 <div className='pb-0.5'>New</div>
             </DropdownMenuTrigger>
             <DropdownMenuContent>

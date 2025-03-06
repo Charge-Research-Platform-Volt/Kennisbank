@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from 'next/image';
 import { Input } from "../ui/input";
 import MenuPart from "./menu-part";
+import NewButton from "@/components/menu/newDropdown/newDropdown";
 
 const menuItems = [
   { name: "Home", path: "/", icon: "/img/home-icon.svg" },
@@ -68,7 +69,7 @@ const SideBarMenu: React.FC<{ className?: string }> = ({ className = "" }) => {
           {/* Menu items */}
           <nav className="flex flex-col h-full">
             <ul className="space-y-2">
-              {/* New icon */}
+              {/* New icon
               <li>
                   <Link 
                       href="/new"  
@@ -83,7 +84,8 @@ const SideBarMenu: React.FC<{ className?: string }> = ({ className = "" }) => {
                       />
                       New
                   </Link>
-              </li>
+              </li> */}
+              <NewButton />
 
               {/* Search bar */}
               <Input
