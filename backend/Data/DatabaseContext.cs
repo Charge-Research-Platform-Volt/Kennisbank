@@ -7,7 +7,7 @@ namespace KnowledgeBank.Data
     {
         public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options) { }
 
-        public DbSet<Drive> Drives { get; set; }
+        public DbSet<FileItem> Files { get; set; }
 
         public DbSet<Tag> Tags { get; set; }
 
