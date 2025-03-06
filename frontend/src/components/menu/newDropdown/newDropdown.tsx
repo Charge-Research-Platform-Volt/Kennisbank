@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState, ChangeEvent } from "react";
+import { useRef, useEffect, useState, ChangeEvent, useActionState, useTransition } from "react";
 import './newDropdown.css';
 import '@/app/globals.css';
 import { AddDocument } from "@/actions/documentActions";
@@ -11,10 +11,17 @@ import { DropdownMenu,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { input } from "zod";
-import { Content } from "next/font/google";
+import { toast } from "sonner";
+import { Roboto } from 'next/font/google'
+import { FormResponse } from "@/types/return.type";
+import { DocumentBase } from "@/types/document.type";
 
 type UploadStatus =  "idle" | "uploading" | "succes" | "error";
+
+const initialState: FormResponse<DocumentBase> = {
+  success: false,
+  message: "",
+};
 
 export default function NewButton() {
 
@@ -22,8 +29,21 @@ export default function NewButton() {
     const [status, setStatus] = useState<UploadStatus>("idle"); //upload status
     const [uploadPopup, setUploadPopup] = useState(false);      //bool which determines whether you can see the new popup
     const [newFile, setNewFile] = useState<File | null>(null);  //File for file upload
-    const [docName, setDocName] = useState<String>("");         //File name
-    const [docDescr, setDocDescr] = useState<String>("");       //File description
+    const [docName, setDocName] = useState<string>("");         //File name
+    const [docDescr, setDocDescr] = useState<string>("");       //File description
+    const [state, action, isPending] = useActionState(AddDocument, initialState)
+    const [isPending2, startTransition] = useTransition();
+
+
+  //error messaging //
+
+  useEffect(() => {
+    if (state.success) {
+      toast.success(state.message);
+    } else if (state.message) {
+      toast.error(state.message);
+    }
+  }, [state]);
 
   //upload new file popup //
   const closePopup = (e: MouseEvent) => {
@@ -71,8 +91,8 @@ export default function NewButton() {
   async function handleButton() { //is called when upload button is pressed
     if (!newFile) return;
 
-    const b = await docName == "";
-    var dName: String;
+    const b = docName == "";
+    var dName: string;
     if (b) dName = newFile.name;
     else dName = docName;
 
@@ -82,12 +102,17 @@ export default function NewButton() {
     setStatus("uploading");
     const formData = new FormData();
     formData.append('file', newFile);
+    formData.set("name", dName); 
+    formData.set("description", docDescr) 
 
     try { 
       //Name, Description, IFormFile File, Overwrite(bool)
-      //http put request await use dName
+      startTransition(() => {
+        AddDocument(initialState, formData);
+      })
       setStatus("succes");
-      //setUploadPopup(false); 
+      setUploadPopup(false);
+      console.log(status);
       }
     catch { setStatus("error"); }
   }
@@ -106,7 +131,7 @@ export default function NewButton() {
     <div>
       <DropdownMenu>
             {/* Purple New button */}
-            <DropdownMenuTrigger className="h-9 w-full bg-purple text-white text-md rounded-md text-left pl-3 
+            <DropdownMenuTrigger className="font-face h-9 w-full bg-purple text-white text-md rounded-md text-left pl-3 
                            hover:bg-[#6f2aaf] active:bg-purple flex items-center gap-1 cursor-pointer">
                 <Icon icon="mdi:plus-box" width="16" height="16"/>
                 <div className='pb-0.5'>New</div>
