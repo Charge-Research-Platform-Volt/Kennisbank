@@ -8,7 +8,6 @@ import { DropdownMenu,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Separator } from "@radix-ui/react-dropdown-menu";
 
 type UploadStatus =  "idle" | "uploading" | "succes" | "error";
 
