@@ -11,7 +11,12 @@ const menuItems = [
   { name: "Standardized Tags", path: "/standardizedtags", icon: "/img/tags-icon.svg" },
 ];
 
-const projects: Array<{id: string; path: string; icon: string; name: string}> = [];
+const projects: Array<{id: string; path: string; icon: string; name: string}> = [{
+  id: "1",
+  path: "/projects",
+  icon: "/img/placeholder-project.svg",
+  name: "Placeholder project"
+}];
 
 const SideBarMenu: React.FC<{ className?: string }> = ({ className = "" }) => {
   const [isOpen, setIsOpen] = useState(true);

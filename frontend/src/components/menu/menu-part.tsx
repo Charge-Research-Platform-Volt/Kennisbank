@@ -29,8 +29,8 @@ export default function MenuPart({ name, items }: { name: string; items: MenuIte
                         <Image 
                             src={item.icon}
                             alt={item.name} 
-                            width={24} 
-                            height={24}
+                            width={20} 
+                            height={20}
                             className="mr-2"
                         />
                     {item.name}
