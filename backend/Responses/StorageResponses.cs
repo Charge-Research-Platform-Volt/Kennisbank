@@ -8,8 +8,10 @@ namespace backend.Responses
         public const string MESSAGE = "message";
         public const string UPLOAD = "upload";
         public const string FILE = "file";
+        public const string FILEINFO = "fileinfo";
         public const string CONTAINER = "container";
         public const string PAGE = "page";
+        public const string EXISTS = "exists";
     }
 
     public class StorageResponse
@@ -72,6 +74,26 @@ namespace backend.Responses
         public ContainerResponse(string message, string containerName) : base(message, STORAGE_RESPONSE_TYPE.CONTAINER)
         {
             this.ContainerName = containerName;
+        }
+    }
+
+    public class ExistsResponse : StorageResponse
+    {
+        public bool Exists { get; }
+
+        public ExistsResponse(string message, bool exists) : base(message, STORAGE_RESPONSE_TYPE.EXISTS)
+        {
+            this.Exists = exists;
+        }
+    }
+
+    public class FileInfoResponse : StorageResponse
+    {
+        public FileItem FileInfo { get; }
+
+        public FileInfoResponse(string message, FileItem fileInfo) : base(message, STORAGE_RESPONSE_TYPE.FILEINFO)
+        {
+            this.FileInfo = fileInfo;
         }
     }
 

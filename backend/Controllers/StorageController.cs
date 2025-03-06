@@ -124,7 +124,7 @@ namespace backend.Controllers
                 BlobDownloadResponse? maybeResponse = await blobService.DownloadBlobAsync(item.FileType, id);
 
                 if (maybeResponse == null)
-                    return NotFound(new FileResponse("File could not be found", id, item.FileType));
+                    return NotFound(new FileResponse("File could not be found but exists in database.", id, item.FileType));
 
                 BlobDownloadResponse response = (BlobDownloadResponse)maybeResponse;
 
@@ -180,7 +180,7 @@ namespace backend.Controllers
                         return Ok(new FileResponse("File deleted successfully", id, item.FileType));
 
                     case BLOB_STATUSCODE.NOTFOUND:
-                        return NotFound(new FileResponse("File not found", id, item.FileType));
+                        return NotFound(new FileResponse("File not found but exists in database.", id, item.FileType));
 
                     default:
                         return StatusCode(500, new StorageResponse("Error while deleting file."));
@@ -256,6 +256,36 @@ namespace backend.Controllers
             {
                 logger.Error(e, "Error checking if file with ID {Id} exists.", id);
                 return StatusCode(500, new StorageResponse("Error while checking if file exists."));
+            }
+        }
+
+        [HttpGet("file/{id}")]
+        [SwaggerOperation(
+            Summary = "Get information of file.",
+            Description = "Retrieve the database information of the given file."
+        )]
+        [SwaggerResponse(200, "File information.", typeof(StorageResponse))]
+        [SwaggerResponse(404, "File not found.", typeof(StorageResponse))]
+        [SwaggerResponse(400, "Invalid ID.", typeof(StorageResponse))]
+        [SwaggerResponse(500, "Server error.", typeof(StorageResponse))]
+        public async Task<IActionResult> FileInfo(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+                return BadRequest(new StorageResponse("Invalid ID."));
+
+            try
+            {
+                FileItem? item = await database.Files.FindAsync(Guid.Parse(id));
+
+                if (item == null)
+                    return NotFound(new StorageResponse("File not found."));
+
+                return Ok(new FileInfoResponse("File found.", item));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error retrieving info of file with ID {Id}.", id);
+                return StatusCode(500, new StorageResponse("Error retrieving file info."));
             }
         }
 
