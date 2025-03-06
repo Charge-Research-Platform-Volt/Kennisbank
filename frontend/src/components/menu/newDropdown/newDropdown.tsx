@@ -70,9 +70,13 @@ export default function NewButton() {
   //upload code //
   async function handleButton() { //is called when upload button is pressed
     if (!newFile) return;
-    if (docName == "") setDocName(newFile.name);
 
-    console.log(docName);
+    const b = await docName == "";
+    var dName: String;
+    if (b) dName = newFile.name;
+    else dName = docName;
+
+    console.log(dName);
     console.log(docDescr);
 
     setStatus("uploading");
@@ -81,7 +85,7 @@ export default function NewButton() {
 
     try { 
       //Name, Description, IFormFile File, Overwrite(bool)
-      //http put request await 
+      //http put request await use dName
       setStatus("succes");
       //setUploadPopup(false); 
       }
