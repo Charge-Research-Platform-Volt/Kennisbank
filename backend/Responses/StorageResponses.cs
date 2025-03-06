@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using KnowledgeBank.Models;
+using System.ComponentModel;
 
 namespace backend.Responses
 {
@@ -76,17 +77,15 @@ namespace backend.Responses
 
     public class PageResponse : StorageResponse
     {
-        public string ContainerName { get; set; }
-        public string? ContinuationToken { get; set; }
-        public string[] Files { get; set; }
-        public int PageSize { get; set; }
+        public int PageIndex { get; }
+        public int PageSize { get; }
+        public FileItem[] Files { get; }
 
-        public PageResponse(string message, string containerName, string? continuationToken, string[] files, int pageSize) : base(message, STORAGE_RESPONSE_TYPE.PAGE)
+        public PageResponse(string message, int pageIndex, int pageSize, FileItem[] files) : base(message, STORAGE_RESPONSE_TYPE.PAGE)
         {
-            this.ContainerName = containerName;
-            this.ContinuationToken = continuationToken;
-            this.Files = files;
+            this.PageIndex = pageIndex;
             this.PageSize = pageSize;
+            this.Files = files;
         }
     }
 }

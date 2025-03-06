@@ -7,6 +7,7 @@ using backend.Responses;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 
 namespace backend.Controllers
 {
@@ -35,7 +36,7 @@ namespace backend.Controllers
         [SwaggerResponse(404, "Container does not exist", typeof(StorageResponse))]
         [SwaggerResponse(409, "File already exists", typeof(StorageResponse))]
         [SwaggerResponse(400, "Invalid file", typeof(StorageResponse))]
-        [SwaggerResponse(500, "Server error")]
+        [SwaggerResponse(500, "Server error", typeof(StorageResponse))]
         public async Task<IActionResult> UploadFile([FromForm] StorageUploadDto dto)
         {
             if (dto.File == null || dto.File.Length == 0)
@@ -84,14 +85,14 @@ namespace backend.Controllers
                         return Conflict(new FileResponse("File already exists and overwrite is disabled.", id.ToString(), fileType));
 
                     default:
-                        return StatusCode(500, "Error uploading file.");
+                        return StatusCode(500, new StorageResponse("Error uploading file."));
                 }
                     
             }
             catch (Exception e)
             {
                 logger.Error(e, "Error uploading file {FileName}.", dto.File.FileName);
-                return StatusCode(500, "Error uploading file.");
+                return StatusCode(500, new StorageResponse("Error uploading file."));
             }
         }
 
@@ -103,7 +104,7 @@ namespace backend.Controllers
         [SwaggerResponse(200, "File found and returned")]
         [SwaggerResponse(404, "Invalid file or container name", typeof(StorageResponse))]
         [SwaggerResponse(400, "Invalid location.", typeof(StorageResponse))]
-        [SwaggerResponse(500, "Server error")]
+        [SwaggerResponse(500, "Server error", typeof(StorageResponse))]
         public async Task<IActionResult> DownloadFile(string id)
         {
             if (string.IsNullOrEmpty(id))
@@ -138,7 +139,7 @@ namespace backend.Controllers
             catch (Exception e)
             {
                 logger.Error(e, "Error downloading file with ID {Id}.", id);
-                return StatusCode(500, "Error downloading file.");
+                return StatusCode(500, new StorageResponse("Error downloading file."));
             }
         }
 
@@ -150,7 +151,7 @@ namespace backend.Controllers
         [SwaggerResponse(200, "File deleted successfully.", typeof(StorageResponse))]
         [SwaggerResponse(404, "File not found.", typeof(StorageResponse))]
         [SwaggerResponse(400, "Invalid filename", typeof(StorageResponse))]
-        [SwaggerResponse(500, "Server error")]
+        [SwaggerResponse(500, "Server error", typeof(StorageResponse))]
         public async Task<IActionResult> DeleteFile(string id)
         {
             if (string.IsNullOrEmpty(id))
@@ -178,13 +179,13 @@ namespace backend.Controllers
                         return NotFound(new FileResponse("File not found", id, item.FileType));
 
                     default:
-                        return StatusCode(500, "Error while deleting file.");
+                        return StatusCode(500, new StorageResponse("Error while deleting file."));
                 }
             }
             catch (Exception e)
             {
                 logger.Error(e, "Error while deleting file with ID {Id}", id);
-                return StatusCode(500, "Error while deleting file.");
+                return StatusCode(500, new StorageResponse("Error while deleting file."));
             }
         }
 
@@ -196,7 +197,7 @@ namespace backend.Controllers
         [SwaggerResponse(200, "File renamed successfully", typeof(StorageResponse))]
         [SwaggerResponse(404, "File not found", typeof(StorageResponse))]
         [SwaggerResponse(400, "Invalid name or ID", typeof(StorageResponse))]
-        [SwaggerResponse(500, "Server error")]
+        [SwaggerResponse(500, "Server error", typeof(StorageResponse))]
         public async Task<IActionResult> Rename([FromBody] StorageRenameDto dto)
         {
             if (string.IsNullOrEmpty(dto.Id))
@@ -221,280 +222,149 @@ namespace backend.Controllers
             catch (Exception e)
             {
                 logger.Error(e, "Error while renaming file with ID {Id}.", dto.Id);
-                return StatusCode(500, "Error while renaming file.");
+                return StatusCode(500, new StorageResponse("Error while renaming file."));
             }
         }
 
-        /*
-
-        [HttpPost("copy")]
-        [SwaggerOperation(
-            Summary = "Copies a file in storage.",
-            Description = "Copies the given file to the new location in the Azure Blob Storage. The destination file name will be made unique by this function."
-        )]
-        [SwaggerResponse(200, "File copied successfully", typeof(StorageResponse))]
-        [SwaggerResponse(404, "File not found", typeof(StorageResponse))]
-        [SwaggerResponse(409, "File already exists", typeof(StorageResponse))]
-        [SwaggerResponse(400, "Invalid file/container names", typeof(StorageResponse))]
-        [SwaggerResponse(500, "Server error")]
-        public async Task<IActionResult> CopyFile(string currentFileName, string destinationFileName, string currentContainerName = DEFAULT_CONTAINER_NAME, string destinationContainerName = DEFAULT_CONTAINER_NAME, bool overwrite = false)
-        {
-            if (string.IsNullOrEmpty(currentContainerName) || string.IsNullOrEmpty(currentFileName))
-                return BadRequest(new FileResponse("Invalid source file or container name", currentFileName, currentContainerName));
-
-            if (string.IsNullOrEmpty(destinationContainerName) || string.IsNullOrEmpty(destinationFileName))
-                return BadRequest(new FileResponse("Invalid destination file or container name", destinationFileName, destinationContainerName));
-
-            try
-            {
-                destinationFileName = copyFileExtensionWhenMissing(currentFileName, destinationFileName);
-                string uniqueBlobName = generateUniqueBlobName(destinationFileName);
-
-                BLOB_STATUSCODE result = await blobService.CopyBlobAsync(currentContainerName, currentFileName, destinationContainerName, uniqueBlobName, overwrite);
-
-                switch (result)
-                {
-                    case BLOB_STATUSCODE.OK:
-                        return Ok(new FileResponse("File copied successfully", uniqueBlobName, destinationContainerName));
-
-                    case BLOB_STATUSCODE.ALREADYEXISTS:
-                        return Conflict(new FileResponse("File already exists and overwrite is not enabled", uniqueBlobName, destinationContainerName));
-
-                    case BLOB_STATUSCODE.NOTFOUND:
-                        return NotFound(new FileResponse("File not found", currentFileName, currentContainerName));
-
-                    default:
-                        return StatusCode(500, "Server error");
-                }
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error while copying file {CurrentFileName} from container {CurrentContainerName} to {DestinationFileName} in {DestinationContainerName}.", currentFileName, currentContainerName, destinationFileName, destinationFileName);
-                return StatusCode(500, "Error while copying file.");
-            }
-        }
-
-        [HttpPost("move")]
-        [SwaggerOperation(
-            Summary = "Moves a file in storage.",
-            Description = "Moves the given file to the new location in the Azure Blob Storage. The destination file name will be made unique by this function."
-        )]
-        [SwaggerResponse(200, "File moved successfully", typeof(StorageResponse))]
-        [SwaggerResponse(404, "File not found", typeof(StorageResponse))]
-        [SwaggerResponse(409, "File already exists", typeof(StorageResponse))]
-        [SwaggerResponse(400, "Invalid file/container names", typeof(StorageResponse))]
-        [SwaggerResponse(500, "Server error")]
-        public async Task<IActionResult> MoveFile(string currentFileName, string destinationFileName, string currentContainerName = DEFAULT_CONTAINER_NAME, string destinationContainerName = DEFAULT_CONTAINER_NAME,  bool overwrite = false)
-        {
-            if (string.IsNullOrEmpty(currentContainerName) || string.IsNullOrEmpty(currentFileName))
-                return BadRequest(new FileResponse("Invalid source file or container name", currentFileName, currentContainerName));
-
-            if (string.IsNullOrEmpty(destinationContainerName) || string.IsNullOrEmpty(destinationFileName))
-                return BadRequest(new FileResponse("Invalid destination file or container name", destinationFileName, destinationContainerName));
-
-            try
-            {
-                destinationFileName = copyFileExtensionWhenMissing(currentFileName, destinationFileName);
-                string uniqueBlobName = generateUniqueBlobName(destinationFileName);
-
-                BLOB_STATUSCODE result = await blobService.MoveBlobAsync(currentContainerName, currentFileName, destinationContainerName, uniqueBlobName, overwrite);
-
-                switch (result)
-                {
-                    case BLOB_STATUSCODE.OK:
-                        return Ok(new FileResponse("File moved successfully", uniqueBlobName, destinationContainerName));
-
-                    case BLOB_STATUSCODE.ALREADYEXISTS:
-                        return Conflict(new FileResponse("File already exists and overwrite is not enabled", uniqueBlobName, destinationContainerName));
-
-                    case BLOB_STATUSCODE.NOTFOUND:
-                        return NotFound(new FileResponse("File not found", currentFileName, currentContainerName));
-
-                    default:
-                        return StatusCode(500, "Server error");
-                }
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error while moving file {CurrentFileName} from container {CurrentContainerName} to {DestinationFileName} in {DestinationContainerName}.", currentFileName, currentContainerName, destinationFileName, destinationFileName);
-                return StatusCode(500, "Error while copying file.");
-            }
-        }
-
-        [HttpPut("create-container/{containerName}")]
-        [SwaggerOperation(
-            Summary = "Create a container in storage.",
-            Description = "Creates a container in the Azure Blob Storage."
-        )]
-        [SwaggerResponse(200, "Container was created successfully", typeof(StorageResponse))]
-        [SwaggerResponse(400, "Invalid container name", typeof(StorageResponse))]
-        [SwaggerResponse(500, "Server error")]
-        public async Task<IActionResult> CreateContainer(string containerName)
-        {
-            if (string.IsNullOrEmpty(containerName))
-                return BadRequest(new ContainerResponse("Invalid container name", containerName));
-
-            try
-            {
-                await blobService.GetOrCreateContainerAsync(containerName);
-
-                return Ok(new ContainerResponse("Successfully created container", containerName));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error creating container {ContainerName}.", containerName);
-                return StatusCode(500, "Error creating container.");
-            }
-        }
-
-        [HttpDelete("delete-container/{containerName}")]
-        [SwaggerOperation(
-            Summary = "Delete a container in storage.",
-            Description = "Deletes a container in the Azure Blob Storage."
-        )]
-        [SwaggerResponse(200, "Container was deleted successfully", typeof(StorageResponse))]
-        [SwaggerResponse(400, "Invalid container name", typeof(StorageResponse))]
-        [SwaggerResponse(500, "Server error")]
-        public async Task<IActionResult> DeleteContainer(string containerName)
-        {
-            if (string.IsNullOrEmpty(containerName))
-                return BadRequest(new ContainerResponse("Invalid container name", containerName));
-
-            try
-            {
-                BLOB_STATUSCODE result = await blobService.DeleteContainerAsync(containerName);
-
-                switch (result)
-                {
-                    case BLOB_STATUSCODE.OK:
-                        return Ok(new ContainerResponse("Container was removed successfully", containerName));
-
-                    case BLOB_STATUSCODE.NOTFOUND:
-                        return NotFound(new ContainerResponse("The container does not exist", containerName));
-
-                    default:
-                        return StatusCode(500, "Error deleting container.");
-                }
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error deleting container {ContainerName}.", containerName);
-                return StatusCode(500, "Error deleting container.");
-            }
-        }
-
-        */
-
-        [HttpGet("exists")]
+        [HttpGet("exists/{id}")]
         [SwaggerOperation(
             Summary = "Check if a file exists.",
             Description = "Checks if the given file exists in the given container."
         )]
         [SwaggerResponse(200, "Response with boolean indicating if file exists.", typeof(bool))]
         [SwaggerResponse(400, "Invalid filename", typeof(StorageResponse))]
-        [SwaggerResponse(500, "Server error")]
-        public async Task<IActionResult> Exists(string fileName, string containerName)
+        [SwaggerResponse(500, "Server error", typeof(StorageResponse))]
+        public async Task<IActionResult> Exists(string id)
         {
-            if (string.IsNullOrEmpty(fileName) || string.IsNullOrEmpty(containerName))
-                return BadRequest(new FileResponse("Invalid file or container name", fileName, containerName));
+            if (string.IsNullOrEmpty(id))
+                return BadRequest(new StorageResponse("Invalid ID."));
 
             try
             {
-                BLOB_STATUSCODE result = await blobService.BlobExistsAsync(containerName, fileName);
-                
-                switch (result)
-                {
-                    case BLOB_STATUSCODE.OK:
-                        return Ok(true);
+                FileItem? item = await database.Files.FindAsync(Guid.Parse(id));
 
-                    case BLOB_STATUSCODE.NOTFOUND:
-                        return Ok(false);
+                if (item == null)
+                    return Ok(false);
 
-                    default:
-                        return StatusCode(500, "Error while checking if file exists.");
-                }
+                return Ok(true);
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error checking if file {FileName} in container {ContainerName} exists.", fileName, containerName);
-                return StatusCode(500, "Error while checking if file exists.");
+                logger.Error(e, "Error checking if file with ID {Id} exists.", id);
+                return StatusCode(500, new StorageResponse("Error while checking if file exists."));
             }
         }
 
-        [HttpGet("page")]
+        [HttpGet("list-all")]
         [SwaggerOperation(
-            Summary = "Lists a page of files",
-            Description = "Lists a page of files in a given container."
+            Summary = "List all files in storage.",
+            Description = "Lists all files in the storage."
         )]
-        [SwaggerResponse(200, "List of files", typeof(StorageResponse))]
-        [SwaggerResponse(404, "Container does not exist", typeof(StorageResponse))]
-        [SwaggerResponse(400, "Invalid input", typeof(StorageResponse))]
-        [SwaggerResponse(500, "Server error")]
-        public async Task<IActionResult> Page(string containerName, int pageSize = 1, string? continuationToken = null, string prefix = "")
+        [SwaggerResponse(200, "A list of all files in the storage", typeof(StorageResponse))]
+        [SwaggerResponse(500, "Server error", typeof(StorageResponse))]
+        public async Task<IActionResult> ListAll()
         {
             try
             {
-                BlobPageResponse result = await blobService.ListBlobsPagedAsync(containerName, pageSize, continuationToken, prefix);
+                FileItem[]? items = await database.Files.ToArrayAsync();
 
-                PageResponse response = new PageResponse(result.Message, containerName, result.ContinuationToken, result.Blobs, pageSize);
+                if (items == null)
+                    return Ok(new PageResponse("No files in database.", 0, 0, Array.Empty<FileItem>()));
 
-                switch (result.Status)
-                {
-                    case BLOB_STATUSCODE.OK:
-                        return Ok(response);
-
-                    case BLOB_STATUSCODE.INVALID:
-                        return BadRequest(response);
-
-                    case BLOB_STATUSCODE.NOTFOUND:
-                        return NotFound(response);
-
-                    default:
-                        return StatusCode(500, "Error listing files.");
-                }
+                return Ok(new PageResponse($"{items.Length} files found.", 0, 0, items));
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error while listing files in container {ContainerName}.", containerName);
-                return StatusCode(500, "Error listing files.");
+                logger.Error(e, "Error listing all files.");
+                return StatusCode(500, new StorageResponse("Error listing all files."));
             }
         }
 
+        [HttpGet("list-paged")]
+        [SwaggerOperation(
+            Summary = "Lists files paged.",
+            Description = "Lists files on a certain page of certain size."
+        )]
+        [SwaggerResponse(200, "A specified page of files of a specified size.", typeof(StorageResponse))]
+        [SwaggerResponse(400, "Invalid page index or page size", typeof(StorageResponse))]
+        [SwaggerResponse(500, "Server error", typeof(StorageResponse))]
+        public async Task<IActionResult> ListPaged(int pageIndex = 1, int pageSize = 100)
+        {
+            if (pageIndex < 1)
+                return BadRequest(new StorageResponse("Page index cannot be lower than 1."));
+
+            if (pageSize < 1)
+                return BadRequest(new StorageResponse("Page size cannot be lower than 1."));
+
+            try
+            {
+                // Calculate how many records we need to skip
+                int skip = (pageIndex - 1) * pageSize;
+
+                FileItem[]? items = await database.Files.Skip(skip).Take(pageSize).ToArrayAsync();
+
+                if (items == null)
+                    return Ok(new PageResponse("No files on this page.", pageIndex, pageSize, Array.Empty<FileItem>()));
+
+                return Ok(new PageResponse($"{items.Length} files found.", pageIndex, pageSize, items));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error listing files on page {PageIndex} of size {PageSize}.", pageIndex, pageSize);
+                return StatusCode(500, new StorageResponse("Error listing files."));
+            }
+        }
+
+        // Makes a valid filename
         private string sanitizeFileName(string fileName, bool preserveSpaces = true)
         {
             if (string.IsNullOrEmpty(fileName))
                 return "unnamed";
 
+            // Get extension
             string extension = Path.GetExtension(fileName);
             fileName = Path.GetFileNameWithoutExtension(fileName);
 
+            // Retrieve invalid chars
             char[] invalidChars = Path.GetInvalidFileNameChars();
             StringBuilder sb = new StringBuilder();
 
             foreach (char c in fileName)
             {
+                // If space and preserve spaces is on, append
                 if (c == ' ' && preserveSpaces)
                     sb.Append(c);
 
+                // If space and preserve spaces is not on, put underscore
+                else if (c == ' ' && !preserveSpaces)
+                    sb.Append('_');
+
+                // If char is valid, append
                 else if (!invalidChars.Contains(c))
                     sb.Append(c);
 
+                // If char is invalid, put underscore
                 else
                     sb.Append('_');
             }
 
+            // Build string and trim
             string result = sb.ToString().Trim();
 
+            // Remove the '.' at start
             if (result.StartsWith('.'))
                 result = "_" + result.TrimStart('.');
 
+            // If resulting string is empty put in unnamed name and return with extension
             if (string.IsNullOrEmpty(result))
                 return "unnamed" + extension;
 
+            // Limit length of name
             int maxLength = 255 - extension.Length;
             if (result.Length > maxLength)
                 result = result.Substring(0, maxLength);
 
+            // Return result + extension
             return result + extension;
         }
     }
