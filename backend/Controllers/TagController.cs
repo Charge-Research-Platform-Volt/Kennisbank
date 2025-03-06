@@ -107,7 +107,7 @@ public class TagController : ControllerBase
     /// <summary>
     /// Deletes a tag from the tag list.
     /// </summary>
-    /// <param name="tagName">The name of the tag to delete.</param>
+    /// <param name="id">The id of the tag to delete.</param>
     /// <returns>
     /// Returns a 200 OK response containing the deleted tag.
     // </returns>
