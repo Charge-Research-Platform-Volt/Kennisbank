@@ -26,11 +26,12 @@ export default function RootLayout({
 }>) {
   return (
     <html>
-    <body className="h-screen w-screen">
+    <body className="h-screen w-screen flex">
       <SideBarMenu className="w-64 h-screen bg-gray-100 p-4" />
-    
-        <Toaster />
-    </body>
+      
+      {children}
+      <Toaster />
+    </body>
     </html>
   );
 }
