@@ -39,8 +39,11 @@ namespace backend.Controllers
         [SwaggerResponse(500, "Server error", typeof(StorageResponse))]
         public async Task<IActionResult> UploadFile([FromForm] StorageUploadDto dto)
         {
-            if (dto.File == null || dto.File.Length == 0)
+            if (dto.File == null)
                 return BadRequest(new StorageResponse("No file was uploaded."));
+
+            if (dto.File.Length == 0)
+                return BadRequest(new StorageResponse("The uploaded file was empty."));
 
             if (string.IsNullOrEmpty(dto.Name))
                 return BadRequest(new StorageResponse("No name was provided."));
