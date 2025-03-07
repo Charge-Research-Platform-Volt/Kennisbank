@@ -10,10 +10,12 @@ export const AddDocument = async (
     formData: FormData,
 ): Promise<FormResponse<DocumentBase>> => {
     try {
+        console.log("Üploading...?");
         // Raw data from the form.
         const rawData: DocumentBase = {
             name: formData.get("name") as string,
             description: formData.get("description") as string,
+            file: formData.get("file") as File
         };
 
         // Validate the raw data, if it fails, return an error.
@@ -27,16 +29,15 @@ export const AddDocument = async (
             };
         }
 
+            
+
         // Send the data to the backend.
-        const response = await fetch("http://backend:8080/Drive/add-document", {
-            method: "POST",
-            body: JSON.stringify({
-                name: rawData.name,
-                description: rawData.description,
-            }),
-            headers: { "Content-Type": "application/json" },
+        const response = await fetch("http://backend:8080/storage/upload", {
+            method: "PUT",
+            body: formData,
         });
         const data = await response.json();
+        console.log(data);
 
         // Check if the request was successful, if not, return an error.
         if (!response.ok) {
