@@ -64,3 +64,22 @@ export const AddDocument = async (
         };
     }
 };
+
+export const AddTagsToDocument = async (
+    prevState: FormResponse<DocumentBase>,
+    formData: FormData,
+): Promise<FormResponse<DocumentBase>> =>{
+    try{
+        
+
+    }
+    catch(error){
+        Log.error(`An unexpected error has occurred: ${error}`);
+
+        return {
+            success: false,
+            message: "An unexpected error has occurred"
+        };
+    }
+
+}
