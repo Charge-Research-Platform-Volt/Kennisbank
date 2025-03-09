@@ -15,7 +15,8 @@ export const AddDocument = async (
         const rawData: DocumentBase = {
             name: formData.get("name") as string,
             description: formData.get("description") as string,
-            file: formData.get("file") as File
+            file: formData.get("file") as File,
+            hash: formData.get("hash") as string,
         };
 
         // Validate the raw data, if it fails, return an error.

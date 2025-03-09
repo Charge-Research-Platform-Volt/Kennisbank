@@ -1,5 +1,4 @@
-import { ExistsResponse, ExistsResponseSchema, StorageResponseSchema, isExistsResponse } from "@/types/storage.type";
-import { FetchWithValidation } from "@/lib/fetchWithValidation";
+import { StorageResponse, ExistsResponse, ExistsResponseSchema, isExistsResponse, StorageResponseSchema } from "@/types/storage.type";
 
 const BACKEND_API_URL = "http://localhost:8080/";
 const BACKEND_API_EXIST_ROUTE = "storage/exists/"
@@ -84,21 +83,29 @@ export function createFileHasher() {
         
         const urlSafeHash = encodeURIComponent(hash);
 
-        const response = await FetchWithValidation(
-            StorageResponseSchema,
-            BACKEND_API_URL + BACKEND_API_EXIST_ROUTE + urlSafeHash,
-        );
+        const response = await fetch(BACKEND_API_URL + BACKEND_API_EXIST_ROUTE + urlSafeHash);
         
-        if (response.data) {
-            if (isExistsResponse(response.data)) {
-                const existsResponse: ExistsResponse = ExistsResponseSchema.parse(response);
-                return { hash, isDuplicate: existsResponse.exists, id: existsResponse.id }
-            }else {
-                throw new Error(`Server error: ${response.data.message}`);
+
+        if (response.ok) {
+            const rawData = await response.json();
+
+            try {
+                const existsResponse = ExistsResponseSchema.parse(rawData);
+                return {
+                    hash,
+                    isDuplicate: existsResponse.exists,
+                    id: existsResponse.id,
+                };
+            }catch (error: unknown) {
+                if (error instanceof Error) {
+                    throw new Error(`Invalid response format: ${error.message}`);
+                }
+                
+                throw new Error(`Invalid response format: ${String(error)}`);
             }
         }
 
-        throw new Error(`Server error: ${response.error}`);
+        throw new Error(`Server error: ${response.status}`);
     }
 
     /**

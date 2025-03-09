@@ -8,6 +8,7 @@ using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Cors;
 
 namespace backend.Controllers
 {
@@ -231,6 +232,7 @@ namespace backend.Controllers
             }
         }
 
+        [EnableCors("AllowFrontend")]
         [HttpGet("exists/{hash}")]
         [SwaggerOperation(
             Summary = "Check if a file exists.",

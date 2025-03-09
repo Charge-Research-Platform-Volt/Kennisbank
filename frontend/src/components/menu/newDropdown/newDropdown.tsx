@@ -35,7 +35,9 @@ export default function NewButton() {
     const [isDuplicate, setIsDuplicate] = useState<boolean>(false); // If file already exists in storage
     const [dupeId, setDupeId] = useState<string>("");           // The ID of the file if it already exists in archive
 
-    const [state, action, isPending] = useActionState(AddDocument, initialState)
+    const [isPendingTransition, startTransition] = useTransition();
+    const [state, action] = useActionState(AddDocument, initialState);
+    const isPending = isPendingTransition;
 
 
   //error messaging //
@@ -116,7 +118,9 @@ export default function NewButton() {
     setStatus("uploading");
 
     try {
-      await action(formData);
+      startTransition(async () => {
+        await action(formData);
+      });
       setStatus("success");
       closeUploadPopup();
     }catch (error) {
@@ -199,8 +203,8 @@ export default function NewButton() {
                   <h2>File name: </h2>
                   <input type="string" name="name" placeholder={newFile?.name} className="bg-slate-200 w-8/10 h-10 pl-2" /> {/* onChange={evt => updateDocName(evt)}/> */}
                   <h2 className="pt-2">Author name: </h2>
-                  <input type="string" className="bg-slate-200 w-8/10 h-10 pl-2"/>
-                  <input type="hidden" name="fileHash" value={fileHash} />
+                  <input type="string" name="author" className="bg-slate-200 w-8/10 h-10 pl-2"/>
+                  <input type="hidden" name="hash" value={fileHash} />
                 </div>
               
               </div>
@@ -215,8 +219,8 @@ export default function NewButton() {
               <textarea draggable='false' name="description" maxLength={512} placeholder="Description ..." className="bg-slate-200 w-9/10 m-3 h-5/10 pl-1 resize-none"/> {/* </textarea> onChange={evt => updateDescr(evt)}/> */}
               {/* Upload button */}
               <div className="pr-9">
-                <Button type='submit' className="float-right  w-50 h-10 text-lg font-bold rounded-xl" disabled={status === "checking" || status === "uploading" || isDuplicate}>
-                    <div className='pb-0.5 cursor-pointer'>{status === "uploading" ? "Uploading..." : "Upload"}</div>
+                <Button type='submit' className="float-right  w-50 h-10 text-lg font-bold rounded-xl" disabled={status === "checking" || isPending || isDuplicate}>
+                    <div className='pb-0.5 cursor-pointer'>{isPending ? "Uploading..." : "Upload"}</div>
                 </Button>
               </div>
             </div>
