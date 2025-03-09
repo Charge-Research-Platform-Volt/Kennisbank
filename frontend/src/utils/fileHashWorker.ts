@@ -13,6 +13,7 @@ export function createFileHasher() {
 
     function getWorker(): Worker {
         if (!worker) {
+            // Script to be executed on the webworker
             const workerScript = `self.onmessage = async function(e) {
                 const { id, file } = e.data;
 
@@ -31,16 +32,17 @@ export function createFileHasher() {
                 }
             };` as string;
 
+            // Create the webworker and get its url
             const blob = new Blob([workerScript], { type: 'application/javascript' });
             const workerUrl = URL.createObjectURL(blob);
-
             worker = new Worker(workerUrl);
-
             workerObjectUrl = workerUrl;
 
+            // Define what to do when the worker sends a message
             worker.onmessage = (event) => {
                 const { id, hash, error } = event.data;
 
+                // Check if the message sent is for something we are waiting on
                 if (pendingRequests.has(id)) {
                     const { resolve, reject } = pendingRequests.get(id);
                     pendingRequests.delete(id);
@@ -57,6 +59,7 @@ export function createFileHasher() {
         return worker;
     }
 
+    // Store pending requests and ID counter
     const pendingRequests = new Map();
     let nextId: number = 1;
 
@@ -66,6 +69,7 @@ export function createFileHasher() {
     function hashFile(file: File): Promise<string> {
         const worker = getWorker();
 
+        // Send file to worker to hash
         return new Promise((resolve, reject) => {
             const id: number = nextId++;
 
@@ -81,11 +85,11 @@ export function createFileHasher() {
     async function checkDuplicate(file: File): Promise<{ hash: string; isDuplicate: boolean; id: string }> {
         const hash = await hashFile(file);
         
+        // Ask backend if the file already exists
         const urlSafeHash = encodeURIComponent(hash);
-
         const response = await fetch(BACKEND_API_URL + BACKEND_API_EXIST_ROUTE + urlSafeHash);
         
-
+        // Parse response data and return
         if (response.ok) {
             const rawData = await response.json();
 
@@ -100,7 +104,7 @@ export function createFileHasher() {
                 if (error instanceof Error) {
                     throw new Error(`Invalid response format: ${error.message}`);
                 }
-                
+
                 throw new Error(`Invalid response format: ${String(error)}`);
             }
         }

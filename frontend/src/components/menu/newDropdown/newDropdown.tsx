@@ -84,6 +84,7 @@ export default function NewButton() {
       setNewFile(file);
       setStatus("checking");
       
+      // Hash the file and check if it already exists in the database
       try {
         const fileHasher = getFileHasher();
         const result = await fileHasher.checkDuplicate(file);
