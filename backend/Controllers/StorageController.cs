@@ -74,6 +74,7 @@ namespace backend.Controllers
                             Id = id,
                             Name = dto.Name,
                             Description = dto.Description,
+                            Hash = dto.Hash,
                             FileType = fileType,
                         };
 
@@ -230,31 +231,31 @@ namespace backend.Controllers
             }
         }
 
-        [HttpGet("exists/{id}")]
+        [HttpGet("exists/{hash}")]
         [SwaggerOperation(
             Summary = "Check if a file exists.",
-            Description = "Checks if the given file exists in the given container."
+            Description = "Checks if the given file exists based on its hash."
         )]
-        [SwaggerResponse(200, "Response with boolean indicating if file exists.", typeof(bool))]
+        [SwaggerResponse(200, "Response with boolean indicating if file exists.", typeof(StorageResponse))]
         [SwaggerResponse(400, "Invalid filename", typeof(StorageResponse))]
         [SwaggerResponse(500, "Server error", typeof(StorageResponse))]
-        public async Task<IActionResult> Exists(string id)
+        public async Task<IActionResult> Exists(string hash)
         {
-            if (string.IsNullOrEmpty(id))
-                return BadRequest(new StorageResponse("Invalid ID."));
+            if (string.IsNullOrEmpty(hash))
+                return BadRequest(new StorageResponse("Invalid hash."));
 
             try
             {
-                FileItem? item = await database.Files.FindAsync(Guid.Parse(id));
+                FileItem? item = await database.Files.Where(f => f.Hash == hash).FirstOrDefaultAsync();
 
                 if (item == null)
-                    return Ok(false);
+                    return Ok(new ExistsResponse("File does not exist.", false, ""));
 
-                return Ok(true);
+                return Ok(new ExistsResponse("File already exists", true, item.Id.ToString()));
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error checking if file with ID {Id} exists.", id);
+                logger.Error(e, "Error checking if file with hash {Hash} exists.", hash);
                 return StatusCode(500, new StorageResponse("Error while checking if file exists."));
             }
         }

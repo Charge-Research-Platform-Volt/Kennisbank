@@ -16,8 +16,9 @@ import { Roboto } from 'next/font/google'
 import { FormResponse } from "@/types/return.type";
 import { DocumentBase } from "@/types/document.type";
 import { Button } from "@/components/ui/button";
+import { getFileHasher } from "@/utils/fileHashWorker";
 
-type UploadStatus =  "idle" | "uploading" | "succes" | "error";
+type UploadStatus =  "idle" | "uploading" | "success" | "error" | "checking";
 
 const initialState: FormResponse<DocumentBase> = {
   success: false,
@@ -30,7 +31,9 @@ export default function NewButton() {
     const [status, setStatus] = useState<UploadStatus>("idle"); //upload status
     const [uploadPopup, setUploadPopup] = useState(false);      //bool which determines whether you can see the new popup
     const [newFile, setNewFile] = useState<File | null>(null);  //File for file upload
-
+    const [fileHash, setFileHash] = useState<string>("");       // Hash of the file
+    const [isDuplicate, setIsDuplicate] = useState<boolean>(false); // If file already exists in storage
+    const [dupeId, setDupeId] = useState<string>("");           // The ID of the file if it already exists in archive
 
     const [state, action, isPending] = useActionState(AddDocument, initialState)
 
@@ -73,13 +76,54 @@ export default function NewButton() {
   }, [uploadPopup]);
 
   
-  function handleFileChange(e: ChangeEvent<HTMLInputElement>) { //is called when a file is selected from explorer
+  async function handleFileChange(e: ChangeEvent<HTMLInputElement>) { //is called when a file is selected from explorer
     if (e.target.files && e.target.files.length > 0) {
-      console.log(e.target.files[0])
-      setNewFile(e.target.files[0]);
-  
+      const file = e.target.files[0];
+      setNewFile(file);
+      setStatus("checking");
+      
+      try {
+        const fileHasher = getFileHasher();
+        const result = await fileHasher.checkDuplicate(file);
+
+        setFileHash(result.hash);
+        setIsDuplicate(result.isDuplicate);
+
+        if (result.isDuplicate) {
+          toast.warning("This file already exists in the archive.");
+          setDupeId(result.id);
+        }
+        setStatus("idle");
+      }catch (error) {
+        console.error("Error checking file: ", error);
+        toast.error("Error checking file. Please try again.");
+        setStatus("error");
+      }
     }
   }
+
+  const handleSubmit = async (formData: FormData) => {
+    if (isDuplicate) {
+      toast.error("Cannot upload duplicate file!");
+      return;
+    }
+
+    if (!newFile) {
+      toast.error("Please select a file.");
+      return;
+    }
+
+    setStatus("uploading");
+
+    try {
+      await action(formData);
+      setStatus("success");
+      closeUploadPopup();
+    }catch (error) {
+      console.error("Upload error: ", error);
+      setStatus("error");
+    }
+  };
 
 
   return (
@@ -115,7 +159,11 @@ export default function NewButton() {
       {uploadPopup && (
       <div className="popupContainer">
         <div ref={popupRef} className="popup">
-          <form className="grid gridcols-2" action={action}>
+          <form className="grid gridcols-2" onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            handleSubmit(formData);
+          }}>
             {/* LEFT COLUMN */}
             <div className="col-[1] w-full">
               <div className="grid gridrows-4">
@@ -125,9 +173,9 @@ export default function NewButton() {
                   <div className="w-3/10 h-10 ml-5 mt-3 mb-2">
 
                     {/* Label is what you see however you click the input */}
-                    <label htmlFor="file-Picker" className="labelCSS font-bold bg-[#E5E5E5] hover:bg-[#c9c2c2] rounded-xl flex items-center justify-center w-full h-full cursor-pointer" >Upload New File</label>
+                    <label htmlFor="file-Picker" className="labelCSS font-bold bg-[#E5E5E5] hover:bg-[#c9c2c2] rounded-xl flex items-center justify-center w-full h-full cursor-pointer" >{status === "checking" ? "Checking file..." : "Upload New File"}</label>
                     <input id="file-Picker" name="file" style={{visibility:"hidden", position:"absolute"}} 
-                        type='file' onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                        type='file' onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" disabled={status === "checking" || status === "uploading"} />
                   </div>
                   <div className="mb-4 text-sm pl-5 pt-3">
                     {newFile && (
@@ -135,6 +183,12 @@ export default function NewButton() {
                     <div>
                       <p>Type: {newFile.type}</p>
                       <p>Size: {(newFile.size / 1024).toFixed(2)} KB</p>
+                      {isDuplicate && (
+                        <p className="text-red-500 font-bold">Duplicate file detected!</p>
+                      )}
+                      {fileHash && (
+                        <p className="text-xs text-gray-500">Hash: {fileHash.substring(0,10)}...</p>
+                      )}
                     </div>
                     )}
                   </div>
@@ -146,6 +200,7 @@ export default function NewButton() {
                   <input type="string" name="name" placeholder={newFile?.name} className="bg-slate-200 w-8/10 h-10 pl-2" /> {/* onChange={evt => updateDocName(evt)}/> */}
                   <h2 className="pt-2">Author name: </h2>
                   <input type="string" className="bg-slate-200 w-8/10 h-10 pl-2"/>
+                  <input type="hidden" name="fileHash" value={fileHash} />
                 </div>
               
               </div>
@@ -160,8 +215,8 @@ export default function NewButton() {
               <textarea draggable='false' name="description" maxLength={512} placeholder="Description ..." className="bg-slate-200 w-9/10 m-3 h-5/10 pl-1 resize-none"/> {/* </textarea> onChange={evt => updateDescr(evt)}/> */}
               {/* Upload button */}
               <div className="pr-9">
-                <Button type='submit' className="float-right  w-50 h-10 text-lg font-bold rounded-xl">
-                    <div className='pb-0.5 cursor-pointer'>Upload</div>
+                <Button type='submit' className="float-right  w-50 h-10 text-lg font-bold rounded-xl" disabled={status === "checking" || status === "uploading" || isDuplicate}>
+                    <div className='pb-0.5 cursor-pointer'>{status === "uploading" ? "Uploading..." : "Upload"}</div>
                 </Button>
               </div>
             </div>
