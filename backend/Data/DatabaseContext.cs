@@ -1,5 +1,6 @@
 using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
+using KnowledgeBank.Models.User;
 
 namespace KnowledgeBank.Data
 {
@@ -10,6 +11,8 @@ namespace KnowledgeBank.Data
         public DbSet<FileItem> Files { get; set; }
 
         public DbSet<Tag> Tags { get; set; }
+
+        public DbSet<User> Users { get; set; }
 
 
         // protected override void OnModelCreating(ModelBuilder modelBuilder)
