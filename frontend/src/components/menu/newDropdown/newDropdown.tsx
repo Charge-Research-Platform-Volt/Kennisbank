@@ -41,7 +41,7 @@ export default function NewButton() {
     const [isPendingTransition, startTransition] = useTransition();
     const [state, action] = useActionState(
       (prevState: FormResponse<DocumentBase>, formData: FormData) => {
-        const fileName = newFile?.name.split(".")[0] || "";
+        const fileName = newFile?.name.substring(0, newFile?.name.lastIndexOf(".")) || "";
         return AddDocument(fileName, fileHash, prevState, formData)
       }, initialState);
         
@@ -216,7 +216,7 @@ export default function NewButton() {
                 {/* Name and Author entries */}
                 <div className="row-[3] text-xl font-semibold ml-5">
                   <h2>File name: </h2>
-                  <input type="string" name="name" placeholder={newFile?.name} className="bg-slate-200 w-8/10 h-10 pl-2" /> {/* onChange={evt => updateDocName(evt)}/> */}
+                  <input type="string" name="name" placeholder={newFile?.name.substring(0, newFile?.name.lastIndexOf(".")) || ""} className="bg-slate-200 w-8/10 h-10 pl-2" /> {/* onChange={evt => updateDocName(evt)}/> */}
                   <h2 className="pt-2">Author name: </h2>
                   <input type="string" name="author" className="bg-slate-200 w-8/10 h-10 pl-2" onChange={(e) => setAuthor(e.target.value.trim())}/>
                   <input type="hidden" name="hash" value={fileHash} />
