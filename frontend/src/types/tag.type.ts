@@ -14,16 +14,12 @@ export const TagSchema = TagBaseSchema.extend({
 export const UserTagBaseSchema = TagBaseSchema.extend({});
 
 export const UserTagSchema = TagSchema.extend({
-    isApproved: z.boolean().default(false),
-    user: z
-        .object({
-            id: z.string().uuid(),
-            name: z.string(),
-        })
-        .optional(),  // TODO: not optional once authentication etc has been implemented
+    isApproved: z.boolean(),
+    user: z.string().nullable(), // TODO: should be the actual user object
 });
 
 export const TagsArraySchema = z.array(TagSchema);
+export const UserTagsArraySchema = z.array(UserTagSchema);
 
 // Type definitions derived from the schemas
 export type TagBase = z.infer<typeof TagBaseSchema>;
