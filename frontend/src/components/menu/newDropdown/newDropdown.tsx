@@ -12,6 +12,7 @@ import { DocumentBase } from "@/types/document.type";
 import { Button } from "@/components/ui/button";
 import { getFileHasher } from "@/utils/fileHashWorker";
 import { TagsArray } from "@/types/tag.type";
+import DropDownBox from "./newDropDownBox/newDropDownBox";
 import { InputHeader, InputBlock, FInput, FileInfo, PopupTitle } from "../../ui/Popup";
 
 type UploadStatus =  "idle" | "uploading" | "success" | "error" | "checking";

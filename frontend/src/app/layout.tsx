@@ -21,9 +21,9 @@ export default async function RootLayout({
     TagsArraySchema,
     "http://backend:8080/Tag/all-tags",
   );
-if(!result.success) {
-    throw new Error("Data validation failed");
-  }
+  if(!result.success) {
+      throw new Error("Data validation failed");
+    }
 
   return (
     <html>
