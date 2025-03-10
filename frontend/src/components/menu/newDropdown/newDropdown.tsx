@@ -53,6 +53,7 @@ export default function NewButton() {
   useEffect(() => {
     if (state.success) {
       toast.success(state.message);
+      closeUploadPopup();
     } else if (state.message) {
       toast.error(state.message);
     }
@@ -129,9 +130,14 @@ export default function NewButton() {
     try {
       startTransition(async () => {
         await action(formData);
+        const response = await state;
+        if (!response.success) {
+          setStatus("error");
+          console.log("Upload error: ", response.message);
+          return;
+        }
+        setStatus("success");
       });
-      setStatus("success");
-      closeUploadPopup();
     }catch (error) {
       console.error("Upload error: ", error);
       setStatus("error");
@@ -230,14 +236,14 @@ export default function NewButton() {
               <div className="pr-9">
                 <Button 
                   type='submit' 
-                  className="float-right  w-50 h-10 text-lg font-bold rounded-xl" 
+                  className="float-right  w-50 h-10 text-lg font-bold rounded-xl cursor-pointer" 
                   disabled={status === "checking" || 
                     isPending || 
                     isDuplicate ||
                     !newFile ||
                     !author ||
                     !description}>
-                    <div className='pb-0.5 cursor-pointer'>{isPending ? "Uploading..." : "Upload"}</div>
+                    <div className='pb-0.5'>{isPending ? "Uploading..." : "Upload"}</div>
                 </Button>
               </div>
             </div>
