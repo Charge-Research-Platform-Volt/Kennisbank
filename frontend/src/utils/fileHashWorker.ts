@@ -1,4 +1,4 @@
-import { StorageResponse, ExistsResponse, ExistsResponseSchema, isExistsResponse, StorageResponseSchema } from "@/types/storage.type";
+import { ExistsResponseSchema } from "@/types/storage.type";
 
 const BACKEND_API_URL = "http://localhost:8080/";
 const BACKEND_API_EXIST_ROUTE = "storage/exists/"

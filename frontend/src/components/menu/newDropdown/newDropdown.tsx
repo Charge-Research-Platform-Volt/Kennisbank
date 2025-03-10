@@ -126,13 +126,6 @@ export default function NewButton({tags}: {tags: TagsArray}) {
     try {
       startTransition(async () => {
         await action(formData);
-        const response = await state;
-        if (!response.success) {
-          setStatus("error");
-          console.log("Upload error: ", response.message);
-          return;
-        }
-        setStatus("success");
       });
     }catch (error) {
       console.error("Upload error: ", error);
@@ -193,7 +186,7 @@ export default function NewButton({tags}: {tags: TagsArray}) {
           {/* Name entry */}
           <InputBlock>
             <InputHeader>Document Title: </InputHeader>
-            <FInput className="w-9/10" type="string" name="title" onChange={(e) => setTitle(e.target.value.trim())}/>
+            <FInput className="w-9/10" type="string" name="name" onChange={(e) => setTitle(e.target.value.trim())}/>
           </InputBlock>
 
           {/* Information on uploaded file */}
