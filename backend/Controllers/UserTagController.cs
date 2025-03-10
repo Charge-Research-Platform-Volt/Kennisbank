@@ -79,6 +79,7 @@ public class UserTagController : ControllerBase
             Id = Guid.NewGuid(), 
             Name = tagName,
             User = "TestUser1", // TODO: User should be the actual User
+            IsApproved = false, // By default the tag is not approved
         };
 
         // Add the user tag
@@ -151,7 +152,7 @@ public class UserTagController : ControllerBase
             return NotFound(new { message = "Tag not found." });
         }
 
-        // Make sure the user has created this tag 
+        // Make sure the user has created this tag or it's the admin deleting it
         if (userTag.User != "TestUser1") // TODO: Shouldn't compare strings but actual users
         {
             Log.Error("Another user has created this tag.");

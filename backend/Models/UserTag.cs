@@ -15,7 +15,7 @@ public class UserTag
     public required string Name { get; set; }
 
     [Column("is_approved")]
-    public bool IsApproved { get; set; } = false;
+    public bool IsApproved { get; set; }
 
     // TODO: Should be the actual User object or userId, not just a string.
     [Column("user")]
