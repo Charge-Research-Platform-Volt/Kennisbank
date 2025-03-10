@@ -270,7 +270,7 @@ public class UserTagController : ControllerBase
     /// <returns>
     /// Returns a 200 OK response containing the created tag.
     // </returns>
-    [HttpPatch("approve-user-tag/{id}")]
+    [HttpPatch("approve-usertag/{id}")]
     [SwaggerOperation(
         Summary = "Approve a user tag.", 
         Description = "Marks a user-created tag as approved and adds it to the tags table."
