@@ -1,4 +1,4 @@
-import DropDownBox from "@/components/menu/newDropDownBox/newDropDownBox"
+import DropDownBox from "@/components/menu/newDropdown/newDropDownBox/newDropDownBox"
 import { TagsArraySchema } from "@/types/tag.type";
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
 
