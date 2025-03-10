@@ -7,6 +7,7 @@ import { Log } from "../../Pino";
 
 export const AddDocument = async (
     defaultName: string,
+    hash: string,
     prevState: FormResponse<DocumentBase>,
     formData: FormData,
 ): Promise<FormResponse<DocumentBase>> => {
@@ -35,6 +36,8 @@ export const AddDocument = async (
         if(rawData.name == defaultName){
             formData.set("name", defaultName);
         }
+
+        formData.set("hash", hash);
 
         // Send the data to the backend.
         const response = await fetch("http://backend:8080/storage/upload", {

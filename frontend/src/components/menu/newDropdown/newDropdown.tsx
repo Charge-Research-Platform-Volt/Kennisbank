@@ -42,7 +42,7 @@ export default function NewButton() {
     const [state, action] = useActionState(
       (prevState: FormResponse<DocumentBase>, formData: FormData) => {
         const fileName = newFile?.name.split(".")[0] || "";
-        return AddDocument(fileName, prevState, formData)
+        return AddDocument(fileName, fileHash, prevState, formData)
       }, initialState);
         
     const isPending = isPendingTransition;
