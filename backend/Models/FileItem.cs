@@ -36,6 +36,7 @@ public class StorageUploadDto //Data Transfer Object (DTO)
     public required IFormFile File { get; set; }
     public string? Hash { get; set; } = null;
     public bool Overwrite { get; set; } = false;
+    public string[] Tags { get; set; } = Array.Empty<string>();
 }
 
 public class StorageRenameDto

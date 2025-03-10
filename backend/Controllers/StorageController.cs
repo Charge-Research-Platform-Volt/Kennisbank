@@ -80,6 +80,18 @@ namespace backend.Controllers
                         };
 
                         await database.Files.AddAsync(drive);
+
+                        foreach(string tag in dto.Tags)
+                        {
+                            FileTagLink tagEntry = new()
+                            {
+                                DocId = id,
+                                TagId = Guid.Parse(tag),
+                            };
+                            
+                            await database.FileTagLinks.AddAsync(tagEntry);
+                        }
+
                         await database.SaveChangesAsync();
 
                         return Ok(new FileUploadResult(id.ToString(), fileType, dto.File.Length));

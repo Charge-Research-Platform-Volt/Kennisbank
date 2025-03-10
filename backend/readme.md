@@ -1,7 +1,13 @@
 Install the EF Core CLI tools:
 dotnet tool install --global dotnet-ef
 
-dotnet ef migrations add InitialCreate
+INSTRUCTIONS FOR CHANGING DATABASE:
+1. add changes in c#
+2. run this: dotnet ef migrations add [INSERT NAME HERE]
+3. Restart backend container
+4. DO NOT DO ANY MANUAL CHANGES TO THE DATABASE!!!!!!
+
+
 dotnet ef migrations remove
 dotnet ef database update
 
