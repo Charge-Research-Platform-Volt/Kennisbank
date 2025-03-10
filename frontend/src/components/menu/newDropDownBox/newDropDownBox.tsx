@@ -17,8 +17,15 @@ export default function DropDownBox({tags}:{tags:TagsArray}) {
         const button = event.currentTarget;
         const tagName = button.textContent; // Get the tag name from the button text.
 
+        if(addedTags.some(elem => elem.name == tagName)){
+            setInputValue(""); // Clear input after trying to add already added tag.
+            setFilteredTags([]); // clear filtered tags array.
+            return
+        }
+
         // Find the corresponding Tag object from filteredTags.
         const selectedTag = filteredTags.find(tag => tag.name === tagName);
+
 
         if (selectedTag) {
             updateTags(prevTags => [...prevTags, selectedTag]);
@@ -27,7 +34,19 @@ export default function DropDownBox({tags}:{tags:TagsArray}) {
         }
       };
 
-    const displayAddedTags = addedTags.map(tag => tag.name).join()
+    const deleteTags = (event: React.MouseEvent<HTMLButtonElement>) => {
+        const button = event.currentTarget;
+        const tagName = button.textContent; // Get the tag name from the button text.
+
+        // Find the corresponding Tag object from filteredTags.
+        const selectedTag = addedTags.find(tag => tag.name === tagName);
+        console.log(selectedTag);
+
+        if (selectedTag) {
+            updateTags(prevTags => prevTags.filter(tag => tag.name !== selectedTag.name));
+        } 
+        console.log(addedTags);
+    }
 
     function filterTags() {
         const fetchedTags = Object.values(tags);
@@ -76,7 +95,16 @@ export default function DropDownBox({tags}:{tags:TagsArray}) {
                     ))}
                 </div>
             </div>
-            <p>{displayAddedTags}</p>
+            <div>
+                {addedTags.map(tag => (
+                <button
+                    key={tag.name}
+                    className="block w-full text-left p-2 hover:bg-blue-100 transition-colors duration-200"
+                    onClick={deleteTags}>
+                        {tag.name}
+                </button>
+                ))}
+            </div>
         </div>
     );
 }
