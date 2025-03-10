@@ -105,10 +105,7 @@ export const SaveUserTag = async (
         name: formData.get("name") as string,
         id: formData.get("id") as string,
         isApproved: false,
-        user: {
-            id: formData.get("userId") as string, // TODO: should come from auth later
-            name: formData.get("username") as string,
-        },
+        user: formData.get("user") as string,
     };
 
     // Validate the raw data, if it fails, return an error
@@ -124,11 +121,10 @@ export const SaveUserTag = async (
 
     // Send the data to the backend
     const response = await fetch(
-        `http://backend:8080/UserTag/change-usertag-name/${encodeURIComponent(rawData.id)}`,
+        `http://backend:8080/UserTag/change-usertag-name/${encodeURIComponent(rawData.id)}/${encodeURIComponent(rawData.name)}`,
         {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(rawData),
         },
     );
     const data = await response.json();
