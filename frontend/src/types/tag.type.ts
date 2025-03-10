@@ -16,3 +16,4 @@ export const TagsArraySchema = z.array(TagSchema);
 // Type definitions derived from the schemas
 export type TagBase = z.infer<typeof TagBaseSchema>;
 export type Tag = z.infer<typeof TagSchema>;
+export type TagsArray = z.infer<typeof TagsArraySchema>;

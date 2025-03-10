@@ -17,7 +17,6 @@ import { FormResponse } from "@/types/return.type";
 import { DocumentBase } from "@/types/document.type";
 import { Button } from "@/components/ui/button";
 import ListStandarizedTags from "@/app/standardizedtags/components/list-standardized-tags";
-import DropDownBox from "../newDropDownBox/newDropDownBox";
 
 type UploadStatus =  "idle" | "uploading" | "succes" | "error";
 
@@ -148,7 +147,6 @@ export default function NewButton() {
                   <input type="string" name="name" placeholder={newFile?.name} className="bg-slate-200 w-8/10 h-10 pl-2" /> {/* onChange={evt => updateDocName(evt)}/> */}
                   <h2 className="pt-2">Author name: </h2>
                   <input type="string" className="bg-slate-200 w-8/10 h-10 pl-2"/>
-                  <DropDownBox></DropDownBox>
             </div>
               
               </div>

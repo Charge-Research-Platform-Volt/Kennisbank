@@ -1,65 +1,58 @@
 "use client"
 
 import React, { useState, useEffect } from "react";
-import { z } from "zod";
-import { FetchWithValidation } from "@/lib/fetchWithValidation";
-import { TagsArraySchema } from "@/types/tag.type";
+import { TagsArray, Tag } from "@/types/tag.type";
 
 {/* Tag selection dropdown */}
-type Tag = z.infer<typeof TagsArraySchema>[number];
-
-export default function DropDownBox() {
+export default function DropDownBox({tags}:{tags:TagsArray}) {
     const [filteredTags, setFilteredTags] = useState<Tag[]>([]);
     const [inputValue, setInputValue] = useState<string>("");
-
-    const fetchAndFilterTags = async () => {
-        try {
-            const result = await FetchWithValidation(
-                TagsArraySchema,
-                "http://localhost:8080/Tag/all-tags"
-            );
-
-            if (!result.success) {
-                console.error("Data validation failed:", result.error);
-                return;
-            }
-
-            const uppercaseInput = inputValue.toUpperCase();
-
-            const filtered = result.data.filter((tag) =>
-                tag.name.toUpperCase().startsWith(uppercaseInput)
-            );
-
-            setFilteredTags(filtered);
-        } catch (error) {
-            console.error("Error processing tags:", error);
-        }
-    };
-
+    const [addedTags, updateTags] = useState<Tag[]>([]);
     
-    function update() { 
-      if (inputValue == ""){
-        setFilteredTags([]);
-        return;
-      }
-      const fetch = [{name: "test"}, {name: "ape"}, {name: "what"}]; //test code
-
-      const uppercaseInput = inputValue.toUpperCase();
-
-      const filtered = fetch.filter((tag) =>
-          tag.name.toUpperCase().startsWith(uppercaseInput)
-      );
-      
-      setFilteredTags(filtered); 
-    }
-
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       setInputValue(event.target.value);
     };
 
+    const addTags = (event: React.MouseEvent<HTMLButtonElement>) => {
+        const button = event.currentTarget;
+        const tagName = button.textContent; // Get the tag name from the button text.
+
+        // Find the corresponding Tag object from filteredTags.
+        const selectedTag = filteredTags.find(tag => tag.name === tagName);
+
+        if (selectedTag) {
+            updateTags(prevTags => [...prevTags, selectedTag]);
+            setInputValue(""); // Clear input after adding the tag.
+            setFilteredTags([]); // clear filtered tags after adding tags.
+        }
+      };
+
+    const displayAddedTags = addedTags.map(tag => tag.name).join()
+
+    function filterTags() {
+        const fetchedTags = Object.values(tags);
+
+        if (inputValue == ""){
+            setFilteredTags([]);
+            return;
+          }
+        
+        const uppercaseInput = inputValue.toUpperCase();
+        
+        console.log(fetchedTags);
+
+        const filtered = fetchedTags.filter(tag =>
+            tag.name.toUpperCase().startsWith(uppercaseInput)
+        );
+
+        setFilteredTags(filtered);
+    }
+
     useEffect(() => {
-        fetchAndFilterTags();
+        filterTags();
     }, [inputValue]); // Run update when inputValue changes
+
+
 
     return (
         <div>
@@ -70,13 +63,20 @@ export default function DropDownBox() {
                     id="input"
                     value={inputValue}
                     onChange={handleInputChange}
+                    className="border rounded p-2 w-full focus:outline-none focus:ring focus:border-blue-300"
                 />
-                <div className="absolute bg-white border rounded shadow-md mt-1 w-full">
+                <div className="absolute bg-white border rounded shadow-md mt-1 w-full flex flex-col">
                     {filteredTags.map((tag) => (
-                        <button key={tag.name}>{tag.name}</button>
+                        <button 
+                            key={tag.name} 
+                            onClick={addTags}
+                            className="block w-full text-left p-2 hover:bg-blue-100 transition-colors duration-200">
+                                {tag.name}
+                        </button>
                     ))}
                 </div>
             </div>
+            <p>{displayAddedTags}</p>
         </div>
     );
 }
