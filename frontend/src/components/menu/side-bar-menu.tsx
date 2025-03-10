@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Input } from "../ui/input";
 import MenuPart from "./menu-part";
 import NewButton from "@/components/menu/newDropdown/newDropdown";
+import { TagsArray } from "@/types/tag.type";
 
 const menuItems = [
   { name: "Home", path: "/", icon: "/img/home-icon.svg" },
@@ -19,7 +20,7 @@ const projects: Array<{id: string; path: string; icon: string; name: string}> = 
   name: "Placeholder project"
 }];
 
-const SideBarMenu: React.FC<{ className?: string }> = ({ className = "" }) => {
+const SideBarMenu: React.FC<{ className?: string, tags: TagsArray}> = ({ className = "", tags }) => {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
@@ -85,7 +86,7 @@ const SideBarMenu: React.FC<{ className?: string }> = ({ className = "" }) => {
                       New
                   </Link>
               </li> */}
-              <NewButton />
+              <NewButton tags={tags}/>
 
               {/* Search bar */}
               <Input

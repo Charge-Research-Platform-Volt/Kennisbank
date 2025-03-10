@@ -17,6 +17,7 @@ import { FormResponse } from "@/types/return.type";
 import { DocumentBase } from "@/types/document.type";
 import { Button } from "@/components/ui/button";
 import { getFileHasher } from "@/utils/fileHashWorker";
+import { TagsArray } from "@/types/tag.type";
 
 type UploadStatus =  "idle" | "uploading" | "success" | "error" | "checking";
 
@@ -25,7 +26,7 @@ const initialState: FormResponse<DocumentBase> = {
   message: "",
 };
 
-export default function NewButton() {
+export default function NewButton({tags}: {tags: TagsArray}) {
 
     const popupRef = useRef<HTMLDivElement | null>(null);       //Ref used to check if user clicks outside of popup
     const [status, setStatus] = useState<UploadStatus>("idle"); //upload status
@@ -215,8 +216,8 @@ export default function NewButton() {
                 
                 {/* Name and Author entries */}
                 <div className="row-[3] text-xl font-semibold ml-5">
-                  <h2>File name: </h2>
-                  <input type="string" name="name" placeholder={newFile?.name.substring(0, newFile?.name.lastIndexOf(".")) || ""} className="bg-slate-200 w-8/10 h-10 pl-2" /> {/* onChange={evt => updateDocName(evt)}/> */}
+                  <h2>Document Title: </h2>
+                  <input type="string" name="name" className="bg-slate-200 w-8/10 h-10 pl-2" /> {/* onChange={evt => updateDocName(evt)}/> */}
                   <h2 className="pt-2">Author name: </h2>
                   <input type="string" name="author" className="bg-slate-200 w-8/10 h-10 pl-2" onChange={(e) => setAuthor(e.target.value.trim())}/>
                   <input type="hidden" name="hash" value={fileHash} />
