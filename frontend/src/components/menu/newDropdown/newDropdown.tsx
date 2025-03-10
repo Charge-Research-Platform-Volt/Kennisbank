@@ -214,6 +214,9 @@ export default function NewButton({tags}: {tags: TagsArray}) {
               <FInput  className="w-8/10 ml-3" type="string" name="author" onChange={(e) => setAuthor(e.target.value.trim())} />
             </InputBlock>
 
+            {/* Add Tags dropdown box*/}
+            <DropDownBox tags={tags}></DropDownBox>
+
             <input type="hidden" name="hash" value={fileHash} />
 
             <div className="col-[2] row-[2]">
