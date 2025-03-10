@@ -221,7 +221,7 @@ export default function NewButton({tags}: {tags: TagsArray}) {
                   <h2 className="pt-2">Author name: </h2>
                   <input type="string" name="author" className="bg-slate-200 w-8/10 h-10 pl-2" onChange={(e) => setAuthor(e.target.value.trim())}/>
                   <input type="hidden" name="hash" value={fileHash} />
-                </div>
+            </div>
               
               </div>
             </div>
