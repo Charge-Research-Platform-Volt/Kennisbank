@@ -6,14 +6,16 @@ import { revalidatePath } from "next/cache";
 import { Log } from "../../Pino";
 
 export const AddDocument = async (
+    defaultName: string,
     prevState: FormResponse<DocumentBase>,
     formData: FormData,
 ): Promise<FormResponse<DocumentBase>> => {
     try {
-        console.log("Üploading...?");
+        console.log("Uploading...");
+
         // Raw data from the form.
         const rawData: DocumentBase = {
-            name: formData.get("name") as string,
+            name: (formData.get("name") as string)?.trim() || defaultName,
             description: formData.get("description") as string,
             file: formData.get("file") as File,
             hash: formData.get("hash") as string,
@@ -30,7 +32,9 @@ export const AddDocument = async (
             };
         }
 
-            
+        if(rawData.name == defaultName){
+            formData.set("name", defaultName);
+        }
 
         // Send the data to the backend.
         const response = await fetch("http://backend:8080/storage/upload", {

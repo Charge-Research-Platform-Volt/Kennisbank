@@ -36,7 +36,7 @@ export default function NewButton() {
     const [dupeId, setDupeId] = useState<string>("");           // The ID of the file if it already exists in archive
 
     const [isPendingTransition, startTransition] = useTransition();
-    const [state, action] = useActionState(AddDocument, initialState);
+    const [state, action] = useActionState((prevState: FormResponse<DocumentBase>, formData: FormData) => AddDocument(newFile?.name || "", prevState, formData), initialState);
     const isPending = isPendingTransition;
 
 
