@@ -15,7 +15,8 @@ const initialState: FormResponse<DocumentBase> = {
 };
 
 export default function CreateDocument() {
-    const [state, action, isPending] = useActionState(
+    /*
+        const [state, action, isPending] = useActionState(
         AddDocument,
         initialState,
     );
@@ -27,8 +28,9 @@ export default function CreateDocument() {
             toast.error(state.message);
         }
     }, [state]);
-
+    */ //NOT COMPATIBLE WITH NEW CODE
     return (
+        {/* 
         <form className="mb-4 flex max-w-xl space-x-2" action={action}>
             <Input
                 type="text"
@@ -52,6 +54,6 @@ export default function CreateDocument() {
             >
                 {isPending ? "Creating..." : "Create"}
             </Button>
-        </form>
+        </form>*/} //NOT COMPATIBLE WITH NEW CODE
     );
 }
