@@ -1,5 +1,4 @@
 import React from "react";
-import CreateDocument from "./create-document";
 import { DocumentPageResponseSchema } from "@/types/document.type";
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
 import { CloudAlert } from "lucide-react";
@@ -12,10 +11,8 @@ export default async function ListDocuments() {
          //ANYMORE AND WAS CAUSING CONTINUOUS RECOMPILATION OF FRONTEND
 
     return (
-        <div className="p-2">
-            Create a document:
-            <CreateDocument />
-            <h1>Documents (from the database):</h1>
+        <div>
+            <h1>Documents</h1>
             {result.data &&
                 result.data.files.map((document) => (
                     <div key={document.id} className="flex flex-row gap-4">

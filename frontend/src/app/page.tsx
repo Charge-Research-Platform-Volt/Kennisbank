@@ -18,18 +18,6 @@ export default async function Home() {
     return (
         <div className="flex">
             <div className="flex-1 p6 p-4">
-                <div>
-                    <h1></h1>
-
-                    {/* {result.data &&
-                    result.data.map((member) => (
-                        <div key={member.name}>     //DUE TO BACKEND CODE CHANGES THIS CODE ISNT COMPATIBLE
-                            <h2>{member.name}</h2>  //ANYMORE AND WAS CAUSING CONTINUOUS RECOMPILATION OF FRONTEND
-                        </div>
-                    ))} */}
-                </div>
-                <br />
-                <hr />
                 <ListDocuments />
             </div>
         </div>
