@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { TagsArray, Tag } from "@/types/tag.type";
 
 {/* Tag selection dropdown */}
-export default function DropDownBox({tags, onTagsChange}:{tags:TagsArray; onTagsChange: (tags: Tag[]) => void }) {
+export default function DropDownBox({tags}:{tags:TagsArray}) {
     const MAX_TAGS: number = 10
 
     // States containing the inputvalue, tags returned by the input value, and the tags to be added to the document
@@ -40,7 +40,6 @@ export default function DropDownBox({tags, onTagsChange}:{tags:TagsArray; onTags
         if (selectedTag) {
             const newTags = [...addedTags, selectedTag];
             updateTags(newTags);
-            onTagsChange(newTags);
             setInputValue("");
             setFilteredTags([]);
         }
