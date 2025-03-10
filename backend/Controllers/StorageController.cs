@@ -77,7 +77,6 @@ namespace backend.Controllers
                             Description = dto.Description,
                             Hash = dto.Hash,
                             FileType = fileType,
-                            Tags = "",
                         };
 
                         await database.Files.AddAsync(drive);

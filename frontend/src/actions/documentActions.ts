@@ -19,7 +19,6 @@ export const AddDocument = async (
             name: (formData.get("name") as string)?.trim() || defaultName,
             description: formData.get("description") as string,
             file: formData.get("file") as File,
-            tags: formData.get("tags") as string,
             hash: formData.get("hash") as string,
         };
 
