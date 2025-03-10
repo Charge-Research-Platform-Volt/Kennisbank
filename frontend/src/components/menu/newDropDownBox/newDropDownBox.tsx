@@ -1,16 +1,18 @@
+"use client"
+
 import React, { useState, useEffect } from "react";
 import { z } from "zod";
-//import { FetchWithValidation } from "@/lib/fetchWithValidation";
+import { FetchWithValidation } from "@/lib/fetchWithValidation";
+import { TagsArraySchema } from "@/types/tag.type";
 
 {/* Tag selection dropdown */}
-const TagsArraySchema = z.array(z.object({ name: z.string() }));
 type Tag = z.infer<typeof TagsArraySchema>[number];
 
 export default function DropDownBox() {
     const [filteredTags, setFilteredTags] = useState<Tag[]>([]);
     const [inputValue, setInputValue] = useState<string>("");
 
-    /*const fetchAndFilterTags = async () => {
+    const fetchAndFilterTags = async () => {
         try {
             const result = await FetchWithValidation(
                 TagsArraySchema,
@@ -32,7 +34,7 @@ export default function DropDownBox() {
         } catch (error) {
             console.error("Error processing tags:", error);
         }
-    };*/
+    };
 
     
     function update() { 
@@ -56,7 +58,7 @@ export default function DropDownBox() {
     };
 
     useEffect(() => {
-        update();
+        fetchAndFilterTags();
     }, [inputValue]); // Run update when inputValue changes
 
     return (

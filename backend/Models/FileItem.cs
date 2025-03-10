@@ -23,6 +23,11 @@ public class FileItem
     [Required]
     [MaxLength(50)]
     public required string FileType { get; set; }
+
+    [Column("tags")]
+    [Required]
+    [MaxLength(255)]
+    public required string Tags {get; set;}
 }
 
 public class StorageUploadDto //Data Transfer Object (DTO)

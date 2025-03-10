@@ -15,7 +15,8 @@ export const AddDocument = async (
         const rawData: DocumentBase = {
             name: formData.get("name") as string,
             description: formData.get("description") as string,
-            file: formData.get("file") as File
+            file: formData.get("file") as File,
+            tags: formData.get("tags") as string
         };
 
         // Validate the raw data, if it fails, return an error.
@@ -64,22 +65,3 @@ export const AddDocument = async (
         };
     }
 };
-
-export const AddTagsToDocument = async (
-    prevState: FormResponse<DocumentBase>,
-    formData: FormData,
-): Promise<FormResponse<DocumentBase>> =>{
-    try{
-        
-
-    }
-    catch(error){
-        Log.error(`An unexpected error has occurred: ${error}`);
-
-        return {
-            success: false,
-            message: "An unexpected error has occurred"
-        };
-    }
-
-}
