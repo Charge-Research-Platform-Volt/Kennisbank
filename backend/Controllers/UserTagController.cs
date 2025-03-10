@@ -74,6 +74,24 @@ public class UserTagController : ControllerBase
             return BadRequest(new { message = "Name is required" });
         }
 
+        // Check if the tag already exists in the Tags table
+        bool tagExists = await _context.Tags.AnyAsync(t => t.Name == tagName);
+
+        if (tagExists)
+        {
+            Log.Error("Tag already exists in Tags table.");
+            return Conflict(new { message = "Tag already exists in the standardized tags list." });
+        }
+
+        // Check if the tag already exists in the UserTags table
+        bool userTagExists = await _context.UserTags.AnyAsync(ut => ut.Name == tagName);
+
+        if (userTagExists)
+        {
+            Log.Error("Tag already exists in UserTags table.");
+            return Conflict(new { message = "Tag already exists in the user-specific tags list." });
+        }
+
         UserTag userTag = new()
         {
             Id = Guid.NewGuid(), 
@@ -87,12 +105,6 @@ public class UserTagController : ControllerBase
         {
             await _context.UserTags.AddAsync(userTag);
             await _context.SaveChangesAsync();
-        }
-        catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
-        {
-            // The tag already exists
-            Log.Error(e, "Tag already exists.");
-            return Conflict(new { message = "Tag already exists." });
         }
         catch (Exception e)
         {
