@@ -4,6 +4,7 @@ import { DocumentBaseSchema, type DocumentBase } from "@/types/document.type";
 import type { FormResponse } from "@/types/return.type";
 import { revalidatePath } from "next/cache";
 import { Log } from "../../Pino";
+import { fromTheme } from "tailwind-merge";
 
 export const AddDocument = async (
     defaultName: string,
@@ -12,8 +13,6 @@ export const AddDocument = async (
     formData: FormData,
 ): Promise<FormResponse<DocumentBase>> => {
     try {
-        console.log("Uploading...");
-
         // Raw data from the form.
         const rawData: DocumentBase = {
             name: (formData.get("name") as string)?.trim() || defaultName,
@@ -39,13 +38,26 @@ export const AddDocument = async (
 
         formData.set("hash", hash);
 
+        const tagIDs: string[] = [];
+        
+        for (const [key, value] of formData.entries()) {
+            if (key.startsWith('tags[') && key.endsWith(']')) {
+                tagIDs.push(value as string);
+            }
+        }
+
+        if (tagIDs.length > 0) {
+            tagIDs.forEach(tagID => {
+                formData.append('tags', tagID);
+            });
+        }
+
         // Send the data to the backend.
         const response = await fetch("http://backend:8080/storage/upload", {
             method: "PUT",
             body: formData,
         });
         const data = await response.json();
-        console.log(data);
 
         // Check if the request was successful, if not, return an error.
         if (!response.ok) {

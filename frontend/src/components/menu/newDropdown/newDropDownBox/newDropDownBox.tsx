@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { TagsArray, Tag } from "@/types/tag.type";
 
 {/* Tag selection dropdown */}
-export default function DropDownBox({tags}:{tags:TagsArray}) {
+export default function DropDownBox({tags, onTagsChange}:{tags:TagsArray; onTagsChange: (tags: Tag[]) => void }) {
     const MAX_TAGS: number = 10
 
     // States containing the inputvalue, tags returned by the input value, and the tags to be added to the document
@@ -38,7 +38,9 @@ export default function DropDownBox({tags}:{tags:TagsArray}) {
 
         // As long as the selectedTag exists (it should), add to the Tag array and clear input/filtered tags.
         if (selectedTag) {
-            updateTags(prevTags => [...prevTags, selectedTag]);
+            const newTags = [...addedTags, selectedTag];
+            updateTags(newTags);
+            onTagsChange(newTags);
             setInputValue("");
             setFilteredTags([]);
         }
@@ -116,6 +118,16 @@ export default function DropDownBox({tags}:{tags:TagsArray}) {
                 </button>
                 ))}
             </div>
+
+            {/* Hidden inputs to send the selected tags to the server */}
+            {addedTags.map((tag, index) => (
+                <input 
+                    key={index}
+                    type="hidden" 
+                    name={`tags[${index}]`} 
+                    value={tag.id} 
+                />
+            ))}
         </div>
     );
 }

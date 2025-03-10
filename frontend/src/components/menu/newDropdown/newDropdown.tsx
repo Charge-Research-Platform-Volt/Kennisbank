@@ -11,7 +11,7 @@ import { FormResponse } from "@/types/return.type";
 import { DocumentBase } from "@/types/document.type";
 import { Button } from "@/components/ui/button";
 import { getFileHasher } from "@/utils/fileHashWorker";
-import { TagsArray } from "@/types/tag.type";
+import { TagsArray, Tag } from "@/types/tag.type";
 import DropDownBox from "./newDropDownBox/newDropDownBox";
 import { InputHeader, InputBlock, FInput, FileInfo, PopupTitle } from "../../ui/Popup";
 
@@ -35,6 +35,7 @@ export default function NewButton({tags}: {tags: TagsArray}) {
     const [author, setAuthor] = useState<string>("");
     const [description, setDescription] = useState<string>("");
     const [title, setTitle] = useState<string>("");
+    const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
 
     const [isPendingTransition, startTransition] = useTransition();
     const [state, action] = useActionState(
@@ -45,6 +46,10 @@ export default function NewButton({tags}: {tags: TagsArray}) {
         
     const isPending = isPendingTransition;
 
+  // Handle tag changes
+  const handleTagsChange = (tags: Tag[]) => {
+    setSelectedTags(tags);
+  }
 
   //error messaging //
 
@@ -215,7 +220,7 @@ export default function NewButton({tags}: {tags: TagsArray}) {
             </InputBlock>
 
             {/* Add Tags dropdown box*/}
-            <DropDownBox tags={tags}></DropDownBox>
+            <DropDownBox tags={tags} onTagsChange={handleTagsChange}></DropDownBox>
 
             <input type="hidden" name="hash" value={fileHash} />
 
