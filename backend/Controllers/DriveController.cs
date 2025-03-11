@@ -2,6 +2,7 @@ using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace KnowledgeBank.Controllers;
 
@@ -26,6 +27,12 @@ public class DriveController : ControllerBase
     /// </returns>
     [HttpGet]
     [Route("all-documents")]
+    [SwaggerOperation(
+            Summary = "Retrieves all documents from the drive.",
+            Description = "Returns a list of all documents in the database."
+    )]
+    [SwaggerResponse(200, "List of all documents.")]
+    [SwaggerResponse(500, "An error occurred while retrieving documents.")]
     public IActionResult Get()
     {
         try
@@ -42,6 +49,12 @@ public class DriveController : ControllerBase
 
     [HttpPost]
     [Route("add-document")]
+    [SwaggerOperation(
+            Summary = "Add a document to the drive.",
+            Description = "Creates a new document in the database."
+    )]
+    [SwaggerResponse(200, "Document created.")]
+    [SwaggerResponse(400, "Name and Description are required.")]
     public async Task<IActionResult> Post([FromBody] DriveCreateDto driveDto)
     {
         // Make sure we have the required fields from body
