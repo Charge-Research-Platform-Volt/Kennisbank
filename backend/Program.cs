@@ -57,9 +57,7 @@ namespace KnowledgeBank
 
             app.UseRouting();
             app.MapControllers();
-            app.UseAuthentication();
             app.MapIdentityApi<User>();
-
 
             app.Run();
         }
