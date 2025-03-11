@@ -23,6 +23,8 @@ namespace KnowledgeBank
             builder.Services.AddControllers();
             builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
             builder.Services.AddAuthorization();
+            //
+            // Add this line after the code below to enable authentication with JWT tokens: .AddBearerToken(IdentityConstants.BearerScheme);
             builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
             builder.Services.AddIdentityCore<User>().AddEntityFrameworkStores<DatabaseContext>().AddApiEndpoints();
 
@@ -45,7 +47,6 @@ namespace KnowledgeBank
             if (app.Environment.IsDevelopment())
             {
                 // Run only in development environment:
-
                 app.MapOpenApi();
                 app.UseSwagger();
                 app.UseSwaggerUI(ConfigureSwaggerUI);
@@ -56,6 +57,7 @@ namespace KnowledgeBank
 
             app.UseRouting();
             app.MapControllers();
+            app.UseAuthentication();
             app.MapIdentityApi<User>();
 
 
