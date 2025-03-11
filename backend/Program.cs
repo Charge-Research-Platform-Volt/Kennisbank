@@ -1,6 +1,7 @@
 using backend.Data;
 using KnowledgeBank.Data;
 using KnowledgeBank.Extensions;
+using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -23,7 +24,7 @@ namespace KnowledgeBank
             builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
             builder.Services.AddAuthorization();
             builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
-            // builder.Services.AddIdentityCore
+            builder.Services.AddIdentityCore<User>().AddEntityFrameworkStores<DatabaseContext>().AddApiEndpoints();
 
 
             builder.Services.AddOpenApi();
@@ -55,6 +56,9 @@ namespace KnowledgeBank
 
             app.UseRouting();
             app.MapControllers();
+            app.MapIdentityApi<User>();
+
+
             app.Run();
         }
 

@@ -5,8 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Models;
 
-[Table("users")]
 public class User : IdentityUser
 {
-
+    // Add more fields here if needed
 }
