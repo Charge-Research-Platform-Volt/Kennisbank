@@ -170,7 +170,7 @@ export default function NewButton({tags}: {tags: TagsArray}) {
 
       {uploadPopup && (
       <div className="popupContainer">
-        <div ref={popupRef} className="popup p-5">
+        <div ref={popupRef} className="popup p-5 h-full min-h-130 min-w-105">
           <form
             className="max-h-[100%] h-full"
             onSubmit={(e) => {
@@ -179,67 +179,69 @@ export default function NewButton({tags}: {tags: TagsArray}) {
             handleSubmit(formData);
           }}>
 
-          <div className="flex">
-            <PopupTitle>Upload Document</PopupTitle>
-            <div className="w-2/10 h-10 ml-5 flex">
-            {/* Label is what you see however you click the input */}
-              <label htmlFor="file-Picker" className="labelCSS font-bold bg-[#E5E5E5] hover:bg-[#c9c2c2] rounded-xl flex items-center justify-center w-full h-full cursor-pointer" >{status === "checking" ? "Checking file..." : "Upload New File"}</label>
-              <input id="file-Picker" name="file" style={{visibility:"hidden", position:"absolute"}}
-                        type='file' onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" disabled={status === "checking" || status === "uploading"} />
-            </div>
-          </div>
 
-
-          {/* Document title entry */}
-          <InputBlock>
-            <InputHeader>Document Title: </InputHeader>
-            <FInput className="w-9/10" type="string" placeholder="Enter document title" name="name" onChange={(e) => setTitle(e.target.value.trim())}/>
-          </InputBlock>
-
-          {/* Information on uploaded file */}
-          <div className="h-6">
-            {newFile && (
-            <div className="flex">
-              <FileInfo>Type: {newFile.type}</FileInfo>
-              <FileInfo>Size: {(newFile.size / 1024).toFixed(2)} KB</FileInfo>
-              {isDuplicate && ( <p className="text-red-500 font-bold">Duplicate file detected!</p>  )}
-              {fileHash &&    ( <FileInfo>Hash: {fileHash.substring(0,10)}...</FileInfo>              )}
-            </div>
-            )}
-          </div>
-
-          <div className="flex w-full h-[100%]">
-            {/* Description entry */}
-            <div className="flex-1">
-              <InputBlock>
-                <InputHeader>Description: </InputHeader>
-                <textarea draggable='false' name="description" placeholder="Enter description" maxLength={512} className="bg-slate-200 w-9/10 h-40 pl-2 resize-none" onChange={(e) => setDescription(e.target.value.trim())}/>
-              </InputBlock>
-
-              {/* Add Tags dropdown box*/}
-              <TagSelectionDropdown className="w-9/10" tags={tags}></TagSelectionDropdown>
-            </div>
-
-            <div className="flex-1 flex flex-col justify-between">
-              {/* Author entry */}
-              <InputBlock>
-                <InputHeader className="ml-3">Author Name: </InputHeader>
-                <FInput  className="w-8/10 ml-3" type="string" name="author" placeholder="Enter author name" onChange={(e) => setAuthor(e.target.value.trim())} />
-              </InputBlock>
-              <div className="flex justify-end mt-auto">
-                {/* Upload button */}
-                <Button 
-                  type='submit'
-                  className="float-right mr-23 w-50 h-10 text-lg font-bold rounded-xl cursor-pointer" 
-                  disabled={status === "checking" || 
-                      isPending || 
-                    isDuplicate ||
-                    !newFile ||
-                    (author == "") ||
-                    (title == "")}>
-                    <div className='pb-0.5'>{isPending ? "Uploading..." : "Upload"}</div>
-                </Button>
+          <div className="w-full h-full flex flex-col justify-between">
+            <div className="flex-1 justify-start">
+              <div className="flex justify-start">
+                <PopupTitle>Upload Document</PopupTitle>
+                <div className="w-2/10 h-10 ml-5 flex">
+                {/* Label is what you see however you click the input */}
+                  <label htmlFor="file-Picker" className="labelCSS font-bold bg-[#E5E5E5] hover:bg-[#c9c2c2] rounded-xl flex items-center justify-center w-full h-full cursor-pointer min-w-40" >{status === "checking" ? "Checking file..." : "Upload New File"}</label>
+                  <input id="file-Picker" name="file" style={{visibility:"hidden", position:"absolute"}}
+                            type='file' onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" disabled={status === "checking" || status === "uploading"} />
+                </div>
               </div>
+
+              {/* Document title entry */}
+              <InputBlock className="justify-start">
+                <InputHeader>Document Title: </InputHeader>
+                <FInput className="w-full" type="string" placeholder="Enter document title" name="name" onChange={(e) => setTitle(e.target.value.trim())}/>
+              </InputBlock>
+              {/* Information on uploaded file */}
+                <div>
+                  <div className="flex">
+                    <FileInfo>Type: {newFile && (newFile.type)} {!newFile && ('-')}</FileInfo>
+                    <FileInfo>Size: {newFile && ((newFile.size / 1024).toFixed(2))} {!newFile && ('-')} KB</FileInfo>
+                    {isDuplicate && ( <p className="text-red-500 font-bold">Duplicate file detected!</p>  )}
+                    {fileHash &&    ( <FileInfo>Hash: {fileHash.substring(0,10)}...</FileInfo>              )}
+                  </div>
+                </div>
+              <div className="flex gap-3">
+                {/* Description entry */}
+                <div className="flex-1">
+                  <InputBlock>
+                    <InputHeader>Description: </InputHeader>
+                    <textarea draggable='false' name="description" placeholder="Enter description" maxLength={512} className="bg-slate-200 w-full h-40 pl-2 resize-none" onChange={(e) => setDescription(e.target.value.trim())}/>
+                  </InputBlock>
+                  
+                  {/* Author entry */}
+                  <InputBlock>
+                    <InputHeader className="">Author Name: </InputHeader>
+                    <FInput className="w-full" type="string" name="author" placeholder="Enter author name" onChange={(e) => setAuthor(e.target.value.trim())} />
+                  </InputBlock>
+                </div>
+
+                <div className="flex-1 flex flex-col">
+                    {/* Add Tags dropdown box*/}
+                    <TagSelectionDropdown className="w-full h-full" tags={tags}></TagSelectionDropdown>
+                </div>
+              </div>
+            </div>
+            <div>
+                <div className="flex justify-end float-right">
+                  {/* Upload button */}
+                  <Button 
+                    type='submit'
+                    className="float-right w-50 h-10 text-lg font-bold rounded-xl cursor-pointer" 
+                    disabled={status === "checking" || 
+                        isPending || 
+                      isDuplicate ||
+                      !newFile ||
+                      (author == "") ||
+                      (title == "")}>
+                      <div className='pb-0.5'>{isPending ? "Uploading..." : "Upload"}</div>
+                  </Button>
+                </div>
             </div>
            
 

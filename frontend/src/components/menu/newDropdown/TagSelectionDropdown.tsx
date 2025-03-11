@@ -100,7 +100,7 @@ export default function TagSelectionDropdown({tags, className}:{tags:TagsArray; 
                     <InputHeader className="">Tags: </InputHeader>
                     <FInput  className="w-full" type="string" name="author" placeholder={tagPlaceholder} onChange={handleInputChange} />
                 </InputBlock>
-                <div className={`absolute left-0 right-0 max-w-full bg-white shadow-lg z-10 ${filteredTags.length > 0 ? "border rounded" : ""}`}>
+                <div className={`absolute overflow-y-auto max-h-50 left-0 right-0 max-w-full bg-white shadow-lg z-10 ${filteredTags.length > 0 ? "border rounded" : ""}`}>
                     {filteredTags.map((tag) => (
                         <button 
                             key={tag.name} 
@@ -111,7 +111,7 @@ export default function TagSelectionDropdown({tags, className}:{tags:TagsArray; 
                     ))}
                 </div>
             </div>
-            <div className="max-h-auto overflow-y-auto p-2">
+            <div className="max-h-50 h-[100%] border mt-1 overflow-y-auto">
                 {addedTags.map(tag => (
                 <div key={tag.name} className="flex w-full text-left p-2 transition-colors duration-200">
                     <p >{tag.name}</p>
