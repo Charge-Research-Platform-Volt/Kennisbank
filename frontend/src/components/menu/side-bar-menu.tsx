@@ -30,10 +30,10 @@ const SideBarMenu: React.FC<{ className?: string, tags: TagsArray}> = ({ classNa
       {!isOpen && (
           <div className="flex items-center justify-between mb-4 mt-4">
               <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="p-2 text-white rounded transition cursor-pointer bg-gray-100 rounded-r-lg rounded-l-none hover:bg-gray-200"
-              style={{cursor: 'pointer'}}
-              >
+                onClick={() => setIsOpen(!isOpen)}
+                className="p-2 text-white rounded transition cursor-pointer bg-gray-100 rounded-r-lg rounded-l-none hover:bg-gray-200"
+                style={{cursor: 'pointer'}}
+                >
                   <Image 
                       src="/img/show-menu-icon.svg"
                       alt="Hide menu" 

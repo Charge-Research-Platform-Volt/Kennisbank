@@ -7,8 +7,7 @@ export default async function ListDocuments() {
     const result = await FetchWithValidation(
        DocumentPageResponseSchema,
        "http://backend:8080/Storage/list-all",
-    ); //DUE TO BACKEND CODE CHANGES THIS CODE ISNT COMPATIBLE
-         //ANYMORE AND WAS CAUSING CONTINUOUS RECOMPILATION OF FRONTEND
+    );
 
     return (
         <div>

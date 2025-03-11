@@ -30,10 +30,10 @@ export default function NewButton({tags}: {tags: TagsArray}) {
     const [newFile, setNewFile] = useState<File | null>(null);  //File for file upload
     const [fileHash, setFileHash] = useState<string>("");       // Hash of the file
     const [isDuplicate, setIsDuplicate] = useState<boolean>(false); // If file already exists in storage
-    const [dupeId, setDupeId] = useState<string>("");           // The ID of the file if it already exists in archive
+    const setDupeId = useState<string>("")[1];           // The ID of the file if it already exists in archive
 
     const [author, setAuthor] = useState<string>("");
-    const [description, setDescription] = useState<string>("");
+    const setDescription = useState<string>("")[1];
     const [title, setTitle] = useState<string>("");
 
     const [isPendingTransition, startTransition] = useTransition();
