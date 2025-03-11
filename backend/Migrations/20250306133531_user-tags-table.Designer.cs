@@ -3,6 +3,7 @@ using System;
 using KnowledgeBank.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace backend.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20250306133531_user-tags-table")]
+    partial class usertagstable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,7 +25,7 @@ namespace backend.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("KnowledgeBank.Models.FileItem", b =>
+            modelBuilder.Entity("KnowledgeBank.Models.Drive", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -35,12 +38,6 @@ namespace backend.Migrations
                         .HasColumnType("character varying(255)")
                         .HasColumnName("description");
 
-                    b.Property<string>("FileType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("filetype");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -48,7 +45,7 @@ namespace backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("files");
+                    b.ToTable("drive");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.Tag", b =>
@@ -71,33 +68,41 @@ namespace backend.Migrations
                     b.ToTable("tags");
                 });
 
-            modelBuilder.Entity("KnowledgeBank.Models.User.User", b =>
+            modelBuilder.Entity("KnowledgeBank.Models.UserTag", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("email");
+                    b.Property<DateTime?>("ApprovedOn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("approved_on");
 
-                    b.Property<string>("HashedPassword")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("password");
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_on");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_approved");
 
                     b.Property<string>("Name")
+                        .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("username");
+                        .HasColumnName("name");
+
+                    b.Property<string>("User")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Email")
+                    b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("users");
+                    b.ToTable("user_tags");
                 });
 #pragma warning restore 612, 618
         }

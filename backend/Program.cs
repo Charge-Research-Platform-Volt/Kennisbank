@@ -30,7 +30,6 @@ namespace KnowledgeBank
                 options => options.UseNpgsql(builder.Configuration.GetValue<string>("CONNECTION_STRING")
             ));
 
-
             // # Application
             WebApplication app = builder.Build();
 
