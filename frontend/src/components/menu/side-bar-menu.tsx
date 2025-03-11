@@ -46,7 +46,7 @@ const SideBarMenu: React.FC<{ className?: string, tags: TagsArray}> = ({ classNa
 
       {/* Show menu if it is opened */}
       {isOpen && (
-        <aside className={`h-screen p-4 transition-all duration-300 flex flex-col ${isOpen ? "w-64 bg-gray-100" : "w-16 bg-transparent"} ${className}`}>
+        <aside className={`h-screen transition-all duration-300 flex flex-col ${isOpen ? "w-64 bg-gray-100" : "w-16 bg-transparent"} ${className}`}>
           <div className="flex items-center justify-between mb-4">
             {/* KnowledgeBase title */}
             <div className="flex items-center space-x-2">

@@ -26,12 +26,13 @@ export default async function RootLayout({
 
   return (
     <html>
-    <body className="h-screen w-screen flex">
-      <SideBarMenu className="w-64 h-screen bg-gray-100 p-4" tags={result.data}/>
-      
-      {children}
-      <Toaster />
-    </body>
+      <body className="h-screen w-screen flex overflow-hidden">
+        <SideBarMenu className="w-64 h-screen bg-gray-100 p-4 sticky top-0" tags={result.data}/>
+        <div className="flex-1 overflow-y-auto">
+          {children}
+        </div>
+        <Toaster />
+      </body>
     </html>
   );
 }

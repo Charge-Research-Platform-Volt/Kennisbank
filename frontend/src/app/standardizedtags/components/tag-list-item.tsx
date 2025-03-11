@@ -45,7 +45,7 @@ export default function TagListItem({tag}: {tag: Tag}) {
               value={tag.id}
         />
         <Button
-          className="w-24"
+          className="w-24 cursor-pointer"
           variant="default"
           type="submit"
           disabled={isPending}
