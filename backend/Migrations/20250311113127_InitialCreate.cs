@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
@@ -8,11 +9,25 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace backend.Migrations
 {
     /// <inheritdoc />
-    public partial class AddRolesAndPermissions : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "files",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    name = table.Column<string>(type: "text", nullable: false),
+                    description = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    filetype = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_files", x => x.id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "permissions",
                 columns: table => new
@@ -42,11 +57,42 @@ namespace backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "tags",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    name = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_tags", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "user_tags",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    name = table.Column<string>(type: "text", nullable: false),
+                    is_approved = table.Column<bool>(type: "boolean", nullable: false),
+                    user = table.Column<string>(type: "text", nullable: false),
+                    created_on = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    approved_on = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_user_tags", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "users",
                 columns: table => new
                 {
-                    id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn)
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    email = table.Column<string>(type: "text", nullable: false),
+                    first_name = table.Column<string>(type: "text", nullable: false),
+                    last_name = table.Column<string>(type: "text", nullable: false),
+                    password = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -82,7 +128,8 @@ namespace backend.Migrations
                 columns: table => new
                 {
                     userid = table.Column<int>(name: "user-id", type: "integer", nullable: false),
-                    roleid = table.Column<int>(name: "role-id", type: "integer", nullable: false)
+                    roleid = table.Column<int>(name: "role-id", type: "integer", nullable: false),
+                    UserId1 = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -94,8 +141,8 @@ namespace backend.Migrations
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_user-role_users_user-id",
-                        column: x => x.userid,
+                        name: "FK_user-role_users_UserId1",
+                        column: x => x.UserId1,
                         principalTable: "users",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
@@ -152,16 +199,42 @@ namespace backend.Migrations
                 column: "permission-id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_tags_name",
+                table: "tags",
+                column: "name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_user_tags_name",
+                table: "user_tags",
+                column: "name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_user-role_role-id",
                 table: "user-role",
                 column: "role-id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_user-role_UserId1",
+                table: "user-role",
+                column: "UserId1");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "files");
+
+            migrationBuilder.DropTable(
                 name: "role-permission");
+
+            migrationBuilder.DropTable(
+                name: "tags");
+
+            migrationBuilder.DropTable(
+                name: "user_tags");
 
             migrationBuilder.DropTable(
                 name: "user-role");

@@ -2,19 +2,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 namespace KnowledgeBank.Models;
 
-[Table("users")]
-public class User
-{
-    // This is a temp class until it is implemented
-    [Column("id")]
-    [Key]
-    public required int Id { get; set; }
-
-    // Navigation properties for authorization
-    public ICollection<UserRole> UserRoles { get; set; }
-}
-
-
 [Table("roles")]
 public class Role
 {

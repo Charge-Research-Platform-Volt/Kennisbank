@@ -1,10 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
-namespace KnowledgeBank.Models.User;
+
+namespace KnowledgeBank.Models;
 
 [Table("users")]
-[Index("Email", IsUnique = true)]
 public class User
 {
     [Column("id")]
@@ -15,8 +15,11 @@ public class User
     [Required]
     public required string Email { get; set; }
 
-    [Column("username")]
-    public string? Name { get; set; }
+    [Column("first_name")]
+    public required string FirstName { get; set; }
+
+    [Column("last_name")]
+    public required string LastName { get; set; }
 
     [Column("password")]
     [Required]

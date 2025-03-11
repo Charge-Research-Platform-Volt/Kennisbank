@@ -1,6 +1,5 @@
 using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
-using KnowledgeBank.Models.User;
 
 namespace KnowledgeBank.Data
 {
@@ -26,10 +25,10 @@ namespace KnowledgeBank.Data
             modelBuilder.Entity<RolePermission>().HasKey(rp => new { rp.RoleId, rp.PermissionId });
 
             // Configure relationships
-            modelBuilder.Entity<UserRole>()
-                        .HasOne(ur => ur.User)
-                        .WithMany(u => u.UserRoles)
-                        .HasForeignKey(ur => ur.UserId);
+            // modelBuilder.Entity<UserRole>()
+            //             .HasOne(ur => ur.User)
+            //             .WithMany(u => u.UserRoles)
+            //             .HasForeignKey(ur => ur.UserId);
 
             modelBuilder.Entity<UserRole>()
                         .HasOne(ur => ur.Role)

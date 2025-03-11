@@ -1,10 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using KnowledgeBank.Data;
 using Swashbuckle.AspNetCore.Annotations;
-using Microsoft.EntityFrameworkCore;
-using KnowledgeBank.Models.User;
-using Requests = KnowledgeBank.Models.User.Requests;
-using System.Data.SqlTypes;
+using KnowledgeBank.Models;
 using backend.Responses;
 
 namespace KnowledgeBank.Controllers;
@@ -25,18 +22,20 @@ public class UserController : ControllerBase
         Summary = "Create a new user in the database.",
         Description = "Creates a new user in the database."
     )]
-    public async Task<IActionResult> Add([FromBody] Requests.Add request)
+    public async Task<IActionResult> Add([FromBody] AddUser request)
     {
         // Check if our request body was valid
-        if (!ModelState.IsValid) {
+        if (!ModelState.IsValid)
+        {
             return BadRequest(new { ModelState });
-        }  
+        }
 
         User user = new()
         {
-            Id = Guid.NewGuid(), 
+            Id = Guid.NewGuid(),
             Email = request.Email,
-            Name = request.Name,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
             HashedPassword = request.Password
         };
 
