@@ -184,16 +184,16 @@ export default function NewButton({tags}: {tags: TagsArray}) {
             <div className="w-2/10 h-10 ml-5 flex">
             {/* Label is what you see however you click the input */}
               <label htmlFor="file-Picker" className="labelCSS font-bold bg-[#E5E5E5] hover:bg-[#c9c2c2] rounded-xl flex items-center justify-center w-full h-full cursor-pointer" >{status === "checking" ? "Checking file..." : "Upload New File"}</label>
-              <input id="file-Picker" name="file" style={{visibility:"hidden", position:"absolute"}} 
+              <input id="file-Picker" name="file" style={{visibility:"hidden", position:"absolute"}}
                         type='file' onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" disabled={status === "checking" || status === "uploading"} />
             </div>
           </div>
 
 
-          {/* Name entry */}
+          {/* Document title entry */}
           <InputBlock>
             <InputHeader>Document Title: </InputHeader>
-            <FInput className="w-9/10" type="string" name="name" onChange={(e) => setTitle(e.target.value.trim())}/>
+            <FInput className="w-9/10" type="string" placeholder="Enter document title" name="name" onChange={(e) => setTitle(e.target.value.trim())}/>
           </InputBlock>
 
           {/* Information on uploaded file */}
@@ -213,7 +213,7 @@ export default function NewButton({tags}: {tags: TagsArray}) {
             <div className="flex-1">
               <InputBlock>
                 <InputHeader>Description: </InputHeader>
-                <textarea draggable='false' name="description" maxLength={512} className="bg-slate-200 w-9/10 h-40 pl-2 resize-none" onChange={(e) => setDescription(e.target.value.trim())}/>
+                <textarea draggable='false' name="description" placeholder="Enter description" maxLength={512} className="bg-slate-200 w-9/10 h-40 pl-2 resize-none" onChange={(e) => setDescription(e.target.value.trim())}/>
               </InputBlock>
 
               {/* Add Tags dropdown box*/}
@@ -224,7 +224,7 @@ export default function NewButton({tags}: {tags: TagsArray}) {
               {/* Author entry */}
               <InputBlock>
                 <InputHeader className="ml-3">Author Name: </InputHeader>
-                <FInput  className="w-8/10 ml-3" type="string" name="author" onChange={(e) => setAuthor(e.target.value.trim())} />
+                <FInput  className="w-8/10 ml-3" type="string" name="author" placeholder="Enter author name" onChange={(e) => setAuthor(e.target.value.trim())} />
               </InputBlock>
               <div className="flex justify-end mt-auto">
                 {/* Upload button */}

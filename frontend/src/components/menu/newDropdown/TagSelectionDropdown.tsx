@@ -5,7 +5,13 @@ import { TagsArray, Tag } from "@/types/tag.type";
 import { FInput, InputBlock, InputHeader } from "@/components/ui/Popup";
 import { Button } from "@/components/ui/button";
 
-{/* Tag selection dropdown */}
+/**
+ * 
+ * @param tags - Tags fetched from root
+ * @param className - Styling fetched from parent
+ * 
+ * @returns The dropdown box where the user can type and select tags to be added to the document
+ */
 export default function TagSelectionDropdown({tags, className}:{tags:TagsArray; className?: string}) {
     const MAX_TAGS: number = 10
 
@@ -13,6 +19,9 @@ export default function TagSelectionDropdown({tags, className}:{tags:TagsArray; 
     const [filteredTags, setFilteredTags] = useState<Tag[]>([]);
     const [inputValue, setInputValue] = useState<string>("");
     const [addedTags, updateTags] = useState<Tag[]>([]);
+
+    // Defines placeholder for the tags, user gets a warning when the maximum amount of tags is added
+    const tagPlaceholder: string = addedTags.length < 10 ? "Search for tags" : "Maximum amount of tags added!"
     
     // Update the input value when the user types a character
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,7 +57,7 @@ export default function TagSelectionDropdown({tags, className}:{tags:TagsArray; 
     const deleteTags = (event: React.MouseEvent<HTMLButtonElement>) => {
         // Same as above, but here we filter out the tag with the same name
         const button = event.currentTarget;
-        const tagId = button.name;
+        const tagId: string = button.name;
 
         const selectedTag = addedTags.find(tag => tag.id === tagId);
 
@@ -68,7 +77,7 @@ export default function TagSelectionDropdown({tags, className}:{tags:TagsArray; 
           }
         
         // Then we filter the tags on uppercase input/tag.name
-        const uppercaseInput = inputValue.toUpperCase();
+        const uppercaseInput: string = inputValue.toUpperCase();
         
         const filtered = fetchedTags.filter(tag =>
             tag.name.toUpperCase().startsWith(uppercaseInput)
@@ -89,7 +98,7 @@ export default function TagSelectionDropdown({tags, className}:{tags:TagsArray; 
             <div className="relative w-full">
                 <InputBlock className="block w-full">
                     <InputHeader className="">Tags: </InputHeader>
-                    <FInput  className="w-full" type="string" name="author" onChange={handleInputChange} />
+                    <FInput  className="w-full" type="string" name="author" placeholder={tagPlaceholder} onChange={handleInputChange} />
                 </InputBlock>
                 <div className={`absolute left-0 right-0 max-w-full bg-white shadow-lg z-10 ${filteredTags.length > 0 ? "border rounded" : ""}`}>
                     {filteredTags.map((tag) => (
