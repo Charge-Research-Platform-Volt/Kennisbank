@@ -11,6 +11,7 @@ import { TagsArray } from "@/types/tag.type";
 const menuItems = [
   { name: "Home", path: "/", icon: "/img/home-icon.svg" },
   { name: "Standardized Tags", path: "/standardizedtags", icon: "/img/tags-icon.svg" },
+  { name: "Archive", path: "/archive", icon: "/img/archive-icon.svg" },
 ];
 
 const projects: Array<{id: string; path: string; icon: string; name: string}> = [{

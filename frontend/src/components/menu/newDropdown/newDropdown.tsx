@@ -4,7 +4,6 @@ import { useRef, useEffect, useState, ChangeEvent, useActionState, useTransition
 import '../../ui/Popup.css';
 import '@/app/globals.css';
 import { AddDocument } from "@/actions/documentActions";
-import { Icon } from '@iconify/react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { FormResponse } from "@/types/return.type";
@@ -12,8 +11,9 @@ import { DocumentBase } from "@/types/document.type";
 import { Button } from "@/components/ui/button";
 import { getFileHasher } from "@/utils/fileHashWorker";
 import { TagsArray } from "@/types/tag.type";
-import DropDownBox from "./newDropDownBox/newDropDownBox";
+import TagSelectionDropdown from "./TagSelectionDropdown";
 import { InputHeader, InputBlock, FInput, FileInfo, PopupTitle } from "../../ui/Popup";
+import Image from "next/image";
 
 type UploadStatus =  "idle" | "uploading" | "success" | "error" | "checking";
 
@@ -138,7 +138,13 @@ export default function NewButton({tags}: {tags: TagsArray}) {
             {/* Purple New button */}
             <DropdownMenuTrigger className="font-face h-9 w-full bg-purple text-white text-md rounded-md text-left pl-3 
                            hover:bg-[#6f2aaf] active:bg-purple flex items-center gap-1 cursor-pointer">
-                <Icon icon="mdi:plus-box" width="16" height="16"/>
+                <Image 
+                      src="img/new-icon.svg"
+                      alt="Upload New Document"
+                      width={20} 
+                      height={20}
+                      className="mr-0.5"
+                  />
                 <div className='pb-0.5'>New</div>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
@@ -165,7 +171,9 @@ export default function NewButton({tags}: {tags: TagsArray}) {
       {uploadPopup && (
       <div className="popupContainer">
         <div ref={popupRef} className="popup p-5">
-          <form onSubmit={(e) => {
+          <form
+            className="max-h-[100%] h-full"
+            onSubmit={(e) => {
             e.preventDefault();
             const formData = new FormData(e.currentTarget);
             handleSubmit(formData);
@@ -200,38 +208,43 @@ export default function NewButton({tags}: {tags: TagsArray}) {
             )}
           </div>
 
-          <div className="grid rows-2 columns-2">
+          <div className="flex w-full h-[100%]">
             {/* Description entry */}
-            <InputBlock className="col-[1] row-span-2">
-              <InputHeader>Description: </InputHeader>
-              <textarea draggable='false' name="description" maxLength={512} className="bg-slate-200 w-9/10 h-40 pl-2 resize-none" onChange={(e) => setDescription(e.target.value.trim())}/>
-            </InputBlock>
+            <div className="flex-1">
+              <InputBlock>
+                <InputHeader>Description: </InputHeader>
+                <textarea draggable='false' name="description" maxLength={512} className="bg-slate-200 w-9/10 h-40 pl-2 resize-none" onChange={(e) => setDescription(e.target.value.trim())}/>
+              </InputBlock>
 
-            {/* Author entry */}
-            <InputBlock className="col-[2] row-[1]">
-              <InputHeader className="ml-3">Author Name: </InputHeader>
-              <FInput  className="w-8/10 ml-3" type="string" name="author" onChange={(e) => setAuthor(e.target.value.trim())} />
-            </InputBlock>
+              {/* Add Tags dropdown box*/}
+              <TagSelectionDropdown className="w-9/10" tags={tags}></TagSelectionDropdown>
+            </div>
 
-            {/* Add Tags dropdown box*/}
-            <DropDownBox tags={tags}></DropDownBox>
+            <div className="flex-1 flex flex-col justify-between">
+              {/* Author entry */}
+              <InputBlock>
+                <InputHeader className="ml-3">Author Name: </InputHeader>
+                <FInput  className="w-8/10 ml-3" type="string" name="author" onChange={(e) => setAuthor(e.target.value.trim())} />
+              </InputBlock>
+              <div className="flex justify-end mt-auto">
+                {/* Upload button */}
+                <Button 
+                  type='submit'
+                  className="float-right mr-23 w-50 h-10 text-lg font-bold rounded-xl cursor-pointer" 
+                  disabled={status === "checking" || 
+                      isPending || 
+                    isDuplicate ||
+                    !newFile ||
+                    (author == "") ||
+                    (title == "")}>
+                    <div className='pb-0.5'>{isPending ? "Uploading..." : "Upload"}</div>
+                </Button>
+              </div>
+            </div>
+           
+
 
             <input type="hidden" name="hash" value={fileHash} />
-
-            <div className="col-[2] row-[2]">
-              {/* Upload button */}
-              <Button 
-                type='submit'
-                className="float-right mr-23 w-50 h-10 text-lg font-bold rounded-xl cursor-pointer" 
-                disabled={status === "checking" || 
-                    isPending || 
-                  isDuplicate ||
-                  !newFile ||
-                  (author == "") ||
-                  (title == "")}>
-                  <div className='pb-0.5'>{isPending ? "Uploading..." : "Upload"}</div>
-              </Button>
-            </div>
 
           </div>
 

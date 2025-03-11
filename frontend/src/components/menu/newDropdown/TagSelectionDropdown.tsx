@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { TagsArray, Tag } from "@/types/tag.type";
+import { FInput, InputBlock, InputHeader } from "@/components/ui/Popup";
+import { Button } from "@/components/ui/button";
 
 {/* Tag selection dropdown */}
-export default function DropDownBox({tags}:{tags:TagsArray}) {
+export default function TagSelectionDropdown({tags, className}:{tags:TagsArray; className?: string}) {
     const MAX_TAGS: number = 10
 
     // States containing the inputvalue, tags returned by the input value, and the tags to be added to the document
@@ -12,9 +14,6 @@ export default function DropDownBox({tags}:{tags:TagsArray}) {
     const [inputValue, setInputValue] = useState<string>("");
     const [addedTags, updateTags] = useState<Tag[]>([]);
     
-    // Display other placeholder text when there the limit of tags is reached
-    const inputPlaceholder = (addedTags.length < MAX_TAGS) ? "Type or select tags here" : "No more tags can be added"
-
     // Update the input value when the user types a character
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       setInputValue(event.target.value);
@@ -49,9 +48,9 @@ export default function DropDownBox({tags}:{tags:TagsArray}) {
     const deleteTags = (event: React.MouseEvent<HTMLButtonElement>) => {
         // Same as above, but here we filter out the tag with the same name
         const button = event.currentTarget;
-        const tagName = button.textContent;
+        const tagId = button.name;
 
-        const selectedTag = addedTags.find(tag => tag.name === tagName);
+        const selectedTag = addedTags.find(tag => tag.id === tagId);
 
         if (selectedTag) {
             updateTags(prevTags => prevTags.filter(tag => tag.name !== selectedTag.name));
@@ -76,7 +75,7 @@ export default function DropDownBox({tags}:{tags:TagsArray}) {
         );
 
         // And we update our state
-        setFilteredTags(filtered);
+        setFilteredTags(filtered.filter(tag => !addedTags.includes(tag)));
     }
 
     useEffect(() => {
@@ -86,35 +85,29 @@ export default function DropDownBox({tags}:{tags:TagsArray}) {
 
 
     return (
-        <div>
-            <h2 className="pt-2">Add tags:</h2>
-            <div className="relative inline-block ">
-                <input
-                    placeholder={inputPlaceholder}
-                    id="input"
-                    value={inputValue}
-                    onChange={handleInputChange}
-                    className="border rounded p-2 w-full focus:outline-none focus:ring focus:border-blue-300"
-                />
-                <div className="absolute bg-white border rounded shadow-md mt-1 w-full flex flex-col">
+        <div className={className}>
+            <div className="relative w-full">
+                <InputBlock className="block w-full">
+                    <InputHeader className="">Tags: </InputHeader>
+                    <FInput  className="w-full" type="string" name="author" onChange={handleInputChange} />
+                </InputBlock>
+                <div className={`absolute left-0 right-0 max-w-full bg-white shadow-lg z-10 ${filteredTags.length > 0 ? "border rounded" : ""}`}>
                     {filteredTags.map((tag) => (
                         <button 
                             key={tag.name} 
                             onClick={addTags}
-                            className="block w-full text-left p-2 hover:bg-blue-100 transition-colors duration-200">
+                            className="block w-full text-left p-2 hover:bg-blue-100 transition-colors duration-200 cursor-pointer">
                                 {tag.name}
                         </button>
                     ))}
                 </div>
             </div>
-            <div>
+            <div className="max-h-auto overflow-y-auto p-2">
                 {addedTags.map(tag => (
-                <button
-                    key={tag.name}
-                    className="block w-full text-left p-2 hover:bg-blue-100 transition-colors duration-200"
-                    onClick={deleteTags}>
-                        {tag.name}
-                </button>
+                <div key={tag.name} className="flex w-full text-left p-2 transition-colors duration-200">
+                    <p >{tag.name}</p>
+                    <Button onClick={deleteTags} name={tag.id} className="cursor-pointer ml-auto" type="button">Delete</Button>
+                </div>
                 ))}
             </div>
 
