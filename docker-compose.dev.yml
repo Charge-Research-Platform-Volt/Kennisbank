@@ -37,6 +37,7 @@ services:
     depends_on:
       - backend
       - database
+      - storage
     networks:
       - my_network
 
