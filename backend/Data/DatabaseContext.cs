@@ -15,6 +15,7 @@ namespace KnowledgeBank.Data
         public DbSet<Permission> Permissions { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
+        public DbSet<User> Users { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -45,18 +46,16 @@ namespace KnowledgeBank.Data
                         .WithMany(p => p.RolePermissions)
                         .HasForeignKey(rp => rp.PermissionId);
 
-        public DbSet<User> Users { get; set; }
-
-
             SeedInitialData(modelBuilder);
         }
+
 
         private void SeedInitialData(ModelBuilder modelBuilder)
         {
             // Seed roles
             modelBuilder.Entity<Role>().HasData(
                 new Role { Id = 1, Name = "Admin", Description = "Administrator with full priviledges." },
-                new Role { Id = 2, Name = "User",  Description = "Regular user."}
+                new Role { Id = 2, Name = "User", Description = "Regular user." }
             );
 
             // Seed permissions
@@ -72,7 +71,7 @@ namespace KnowledgeBank.Data
                 new Permission { Id = 6, Name = "Permissions.Users.View", Description = "Can view users." },
                 new Permission { Id = 7, Name = "Permissions.Users.Create", Description = "Can add new users." },
                 new Permission { Id = 8, Name = "Permissions.Users.Delete", Description = "Can delete users." },
-                new Permission { Id = 9, Name = "Permissions.Users.Edit", Description = "Can edit users."}
+                new Permission { Id = 9, Name = "Permissions.Users.Edit", Description = "Can edit users." }
             );
 
             modelBuilder.Entity<RolePermission>().HasData(
