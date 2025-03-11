@@ -33,7 +33,7 @@ public class SearchController : ControllerBase
         Summary = "Search database by name.",
         Description = "Searches for files in database based on a given name, with pagination."
     )]
-    public async Task<IActionResult> SearchPagedByKeyword(
+    public async Task<IActionResult> SearchByName(
         [FromQuery] string query,
         [FromQuery] int pageIndex = 1,
         [FromQuery] int pageSize = 10)
