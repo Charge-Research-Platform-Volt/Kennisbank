@@ -8,12 +8,13 @@ using Microsoft.OpenApi.Models;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
+using System.Threading.Tasks;
 
 namespace KnowledgeBank
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             // # Builder
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -22,11 +23,20 @@ namespace KnowledgeBank
             // # Services
             builder.Services.AddControllers();
             builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
-            builder.Services.AddAuthorization();
+            builder.Services.AddAuthorization(options =>
+            {
+                foreach (string roleName in RoleInitializer.roleNames)
+                {
+                    options.AddPolicy($"Require{ char.ToUpper(roleName[0]) + roleName.Substring(1) }Role", policy => policy.RequireRole(roleName));
+                }
+            });
             //
             // Add this line after the code below to enable authentication with JWT tokens: .AddBearerToken(IdentityConstants.BearerScheme);
             builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
-            builder.Services.AddIdentityCore<User>().AddEntityFrameworkStores<DatabaseContext>().AddApiEndpoints();
+            builder.Services.AddIdentityCore<User>()
+                            .AddRoles<IdentityRole>()
+                            .AddEntityFrameworkStores<DatabaseContext>()
+                            .AddApiEndpoints();
 
 
             builder.Services.AddOpenApi();
@@ -55,8 +65,15 @@ namespace KnowledgeBank
                 app.ApplyMigrations();
             }
 
+            // Initialize roles
+            using (IServiceScope scope = app.Services.CreateScope())
+            {
+                await RoleInitializer.InitializeAsync(app.Services);
+            }
+
             app.UseRouting();
             app.MapControllers();
+            app.UseAuthorization();
             app.UseAuthentication();
             app.MapIdentityApi<User>();
 
