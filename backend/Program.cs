@@ -1,6 +1,7 @@
 using backend.Data;
 using KnowledgeBank.Data;
 using KnowledgeBank.Extensions;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -19,9 +20,14 @@ namespace KnowledgeBank
 
             // # Services
             builder.Services.AddControllers();
+            builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
+            builder.Services.AddAuthorization();
+            builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
+            // builder.Services.AddIdentityCore
+
+
             builder.Services.AddOpenApi();
             builder.Services.AddSwaggerGen(ConfigureSwagger);
-            builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
 
 
             // # Database context
