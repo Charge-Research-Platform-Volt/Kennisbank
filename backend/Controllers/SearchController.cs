@@ -51,16 +51,18 @@ public class SearchController : ControllerBase
         {
             int skip = (pageIndex - 1) * pageSize;
 
-            FileItem[]? items = await database.Files.Where(f => f.Name.Contains(query)).ToArrayAsync();
+            // Filter on query, then skip and take 
+            FileItem[]? items = await database.Files.Where(f => f.Name.Contains(query.ToLower()))
+                .Skip(skip).Take(pageSize).ToArrayAsync();
 
             if (items == null)
-                return Ok(new PageResponse("No files found.", 0, 0, Array.Empty<FileItem>()));
+                return Ok(new PageResponse("No files found.", pageIndex, pageSize, Array.Empty<FileItem>()));
 
-            return Ok(new PageResponse($"{items.Length} files found.", 0, 0, items));
+            return Ok(new PageResponse($"{items.Length} files found.", pageIndex, pageSize, items));
         }
         catch (Exception e)
         {
-                logger.Error(e, $"Error listing files on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
+                logger.Error(e, "Error listing files on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
                 return StatusCode(500, new StorageResponse("Error listing files."));
         }
     }
