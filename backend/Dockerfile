@@ -1,17 +1,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
-COPY ["backend/backend.csproj", "backend/"]
+COPY ["*.csproj", "./"]
+RUN dotnet restore
 COPY . .
-RUN dotnet restore "backend/backend.csproj"
-WORKDIR /app
 RUN dotnet publish -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS development
-WORKDIR /src
-COPY ["backendtests/backendtests.csproj", "backendtests/"]
-COPY . .
-RUN dotnet restore "backendtests/backendtests.csproj"
-RUN dotnet test "backendtests/backendtests.csproj"
 WORKDIR /app
 ENV DOTNET_WATCH_RESTART_ON_RUDE_EDIT=true
 ENTRYPOINT ["dotnet", "watch", "--project", "backend.csproj", "run", "--urls", "http://+:8080"]
@@ -21,4 +15,4 @@ WORKDIR /app
 COPY --from=build /app/publish .
 EXPOSE 8080
 EXPOSE 8081
-ENTRYPOINT ["dotnet", "backend.dll"]   
+ENTRYPOINT ["dotnet", "backend.dll"] 

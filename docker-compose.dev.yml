@@ -4,6 +4,7 @@ services:
       context: ./website
       dockerfile: Dockerfile
       target: development
+      no_cache: true
     ports:
       - "3001:3001"
     environment:
@@ -23,6 +24,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       target: development
+      no_cache: true
     ports:
       - "3000:3000"
     environment:
@@ -35,13 +37,14 @@ services:
     depends_on:
       - backend
       - database
+      - storage
     networks:
       - my_network
 
   backend:
     build:
-      context: .
-      dockerfile: /backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
       target: development
     ports:
       - "8080:8080"
@@ -49,12 +52,14 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - CONNECTION_STRING=Host=database;Port=5432;Username=postgres;Password=postgres;Database=postgres;Include Error Detail=true
+      - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://storage:10000/devstoreaccount1;
     volumes:
       - ./backend:/app
       - /app/bin
       - /app/obj
     depends_on:
       - database
+      - storage
     networks:
       - my_network
 
@@ -72,16 +77,16 @@ services:
     networks:
       - my_network
 
+  storage:
+    image: mcr.microsoft.com/azure-storage/azurite
+    ports:
+      - "10000:10000"
+    volumes:
+      - ./storage:/data
+    networks:
+      - my_network
+
 networks:
   my_network:
     name: my_network
     driver: bridge
-#
-# volumes:
-#   database_data:
-#     name: database_data
-#     driver: local
-#     driver_opts:
-#       type: none
-#       o: bind
-#       device: ./database

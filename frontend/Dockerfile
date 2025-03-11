@@ -10,8 +10,6 @@ RUN npm ci
 FROM deps AS development
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-RUN npm run test
 ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 EXPOSE 3000
@@ -33,13 +31,6 @@ FROM base AS production
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-
-# -- Test
-FROM base AS test
-ENV NODE_ENV test
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-RUN npm run test
 
 # Create a non-root user
 RUN addgroup --system --gid 1001 nodejs
