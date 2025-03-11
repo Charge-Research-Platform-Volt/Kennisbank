@@ -51,8 +51,9 @@ public class SearchController : ControllerBase
         {
             int skip = (pageIndex - 1) * pageSize;
 
-            // Filter on query, then skip and take 
-            FileItem[]? items = await database.Files.Where(f => f.Name.ToLower().Contains(query.ToLower()))
+            FileItem[]? items = await database.Files
+                .Where(f => EF.Functions.Like(f.Name, $"%{query}%")) 
+                .OrderBy(f => f.Id)
                 .Skip(skip).Take(pageSize).ToArrayAsync();
 
             if (items == null)
