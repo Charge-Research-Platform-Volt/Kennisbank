@@ -4,7 +4,6 @@ import { DocumentBaseSchema, type DocumentBase } from "@/types/document.type";
 import type { FormResponse } from "@/types/return.type";
 import { revalidatePath } from "next/cache";
 import { Log } from "../../Pino";
-import { fromTheme } from "tailwind-merge";
 
 export const AddDocument = async (
     defaultName: string,

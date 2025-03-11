@@ -50,6 +50,7 @@ export default function NewButton({tags}: {tags: TagsArray}) {
   useEffect(() => {
     if (state.success) {
       toast.success(state.message);
+      
       closeUploadPopup();
     } else if (state.message) {
       toast.error(state.message);
@@ -68,7 +69,15 @@ export default function NewButton({tags}: {tags: TagsArray}) {
   };
   
   const closeUploadPopup = () => { //When the popup closes values are reset
-      setUploadPopup(false);
+    setUploadPopup(false);
+    setNewFile(null);
+    setFileHash("");
+    setIsDuplicate(false);
+    setDupeId("");
+    setAuthor("");
+    setDescription("");
+    setTitle("");
+    setStatus("idle");
   } 
 
 
@@ -170,7 +179,7 @@ export default function NewButton({tags}: {tags: TagsArray}) {
 
       {uploadPopup && (
       <div className="popupContainer">
-        <div ref={popupRef} className="popup p-5 h-full min-h-130 min-w-105">
+        <div ref={popupRef} className="popup p-5 h-full min-h-155 min-w-130">
           <form
             className="max-h-[100%] h-full"
             onSubmit={(e) => {
@@ -182,14 +191,25 @@ export default function NewButton({tags}: {tags: TagsArray}) {
 
           <div className="w-full h-full flex flex-col justify-between">
             <div className="flex-1 justify-start">
-              <div className="flex justify-start">
+              <div className="flex-1 justify-start">
                 <PopupTitle>Upload Document</PopupTitle>
-                <div className="w-2/10 h-10 ml-5 flex">
-                {/* Label is what you see however you click the input */}
+                <div className="w-40 h-10 mt-5 mb-2 flex">
+                  {/* Label is what you see however you click the input */}
                   <label htmlFor="file-Picker" className="labelCSS font-bold bg-[#E5E5E5] hover:bg-[#c9c2c2] rounded-xl flex items-center justify-center w-full h-full cursor-pointer min-w-40" >{status === "checking" ? "Checking file..." : "Upload New File"}</label>
                   <input id="file-Picker" name="file" style={{visibility:"hidden", position:"absolute"}}
                             type='file' onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" disabled={status === "checking" || status === "uploading"} />
                 </div>
+              </div>
+
+              {/* Information on uploaded file */}
+              <div>
+                      <div className="flex">
+                        <FileInfo>Type: {newFile && (newFile.type)} {!newFile && ('-')}</FileInfo>
+                        <FileInfo>Size: {newFile && ((newFile.size / 1024).toFixed(2))} {!newFile && ('-')} KB</FileInfo>
+                        {fileHash &&    ( <FileInfo>Hash: {fileHash.substring(0,10)}...</FileInfo>              )}
+                        <FileInfo>Hash: {fileHash && (`${fileHash.substring(0,10)}...`)} {!fileHash && ('-')}</FileInfo>
+                        {isDuplicate && ( <p className="text-red-500 font-bold">Duplicate file detected!</p>  )}
+                        </div>
               </div>
 
               {/* Document title entry */}
@@ -197,15 +217,7 @@ export default function NewButton({tags}: {tags: TagsArray}) {
                 <InputHeader>Document Title: </InputHeader>
                 <FInput className="w-full" type="string" placeholder="Enter document title" name="name" onChange={(e) => setTitle(e.target.value.trim())}/>
               </InputBlock>
-              {/* Information on uploaded file */}
-                <div>
-                  <div className="flex">
-                    <FileInfo>Type: {newFile && (newFile.type)} {!newFile && ('-')}</FileInfo>
-                    <FileInfo>Size: {newFile && ((newFile.size / 1024).toFixed(2))} {!newFile && ('-')} KB</FileInfo>
-                    {isDuplicate && ( <p className="text-red-500 font-bold">Duplicate file detected!</p>  )}
-                    {fileHash &&    ( <FileInfo>Hash: {fileHash.substring(0,10)}...</FileInfo>              )}
-                  </div>
-                </div>
+              
               <div className="flex gap-3">
                 {/* Description entry */}
                 <div className="flex-1">
