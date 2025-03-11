@@ -52,7 +52,7 @@ public class SearchController : ControllerBase
             int skip = (pageIndex - 1) * pageSize;
 
             // Filter on query, then skip and take 
-            FileItem[]? items = await database.Files.Where(f => f.Name.Contains(query.ToLower()))
+            FileItem[]? items = await database.Files.Where(f => f.Name.ToLower().Contains(query.ToLower()))
                 .Skip(skip).Take(pageSize).ToArrayAsync();
 
             if (items == null)
