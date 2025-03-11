@@ -28,10 +28,10 @@ public class SearchController : ControllerBase
         this.database = databaseContext;
     }
 
-    [HttpGet("search-paged")]
+    [HttpGet("search-name")]
     [SwaggerOperation(
-        Summary = "Search database by keyword.",
-        Description = "Searches for files in database based on a given keyword, with pagination."
+        Summary = "Search database by name.",
+        Description = "Searches for files in database based on a given name, with pagination."
     )]
     public async Task<IActionResult> SearchPagedByKeyword(
         [FromQuery] string query,
