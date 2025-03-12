@@ -80,10 +80,12 @@ namespace backend.Responses
     public class ExistsResponse : StorageResponse
     {
         public bool Exists { get; }
+        public string Id { get; }
 
-        public ExistsResponse(string message, bool exists) : base(message, STORAGE_RESPONSE_TYPE.EXISTS)
+        public ExistsResponse(string message, bool exists, string id) : base(message, STORAGE_RESPONSE_TYPE.EXISTS)
         {
             this.Exists = exists;
+            this.Id = id;
         }
     }
 

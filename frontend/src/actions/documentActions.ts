@@ -6,14 +6,18 @@ import { revalidatePath } from "next/cache";
 import { Log } from "../../Pino";
 
 export const AddDocument = async (
+    defaultName: string,
+    hash: string,
     prevState: FormResponse<DocumentBase>,
     formData: FormData,
 ): Promise<FormResponse<DocumentBase>> => {
     try {
         // Raw data from the form.
         const rawData: DocumentBase = {
-            name: formData.get("name") as string,
+            name: (formData.get("name") as string)?.trim() || defaultName,
             description: formData.get("description") as string,
+            file: formData.get("file") as File,
+            hash: formData.get("hash") as string,
         };
 
         // Validate the raw data, if it fails, return an error.
@@ -27,14 +31,30 @@ export const AddDocument = async (
             };
         }
 
+        if(rawData.name == defaultName){
+            formData.set("name", defaultName);
+        }
+
+        formData.set("hash", hash);
+
+        const tagIDs: string[] = [];
+        
+        for (const [key, value] of formData.entries()) {
+            if (key.startsWith('tags[') && key.endsWith(']')) {
+                tagIDs.push(value as string);
+            }
+        }
+
+        if (tagIDs.length > 0) {
+            tagIDs.forEach(tagID => {
+                formData.append('tags', tagID);
+            });
+        }
+
         // Send the data to the backend.
-        const response = await fetch("http://backend:8080/Drive/add-document", {
-            method: "POST",
-            body: JSON.stringify({
-                name: rawData.name,
-                description: rawData.description,
-            }),
-            headers: { "Content-Type": "application/json" },
+        const response = await fetch("http://backend:8080/storage/upload", {
+            method: "PUT",
+            body: formData,
         });
         const data = await response.json();
 
