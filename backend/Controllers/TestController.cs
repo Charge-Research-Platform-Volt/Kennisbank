@@ -43,13 +43,15 @@ public class TestController : ControllerBase
         try
         {
             var faker = new Faker();
+            var lorem = new Bogus.DataSets.Lorem(locale: "en");
             var containerName = "text"; 
 
             for (int i = 0; i < numberOfFiles; i++)
             {
-                string fileName = faker.Lorem.Word(); 
-                string description = faker.Lorem.Sentence(); 
-                var fileContent = faker.Lorem.Paragraph();
+                string fileName = faker.System.FileName();
+                fileName = Path.GetFileNameWithoutExtension(fileName);
+                string description = faker.Random.Words(10); 
+                var fileContent = lorem.Paragraph();
                 string extension = ".txt";
 
                 // Convert the content to a MemoryStream
