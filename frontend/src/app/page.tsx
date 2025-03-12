@@ -58,7 +58,7 @@ export default async function Home() {
                 <span className="flex items-center gap-4 text-lg">
                   📄 {file.name}
                 </span>
-                  <Link href={`file/${file.id}`}><Button className="px-6 py-2 text-lg">Open</Button></Link>
+                  <Link href={`file/${file.id}`}><Button>Open</Button></Link>
               </div>
             ))}
           </div>
