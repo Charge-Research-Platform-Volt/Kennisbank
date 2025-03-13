@@ -7,9 +7,11 @@ export default function LoginPage() {
             {/* Form */}
             <div className="flex justify-center items-center h-full w-full">
                 <div className="w-3/4 mx-auto p-4">
-                    <h1 className="font-bold text-3xl mb-1">Sign in</h1>
-                    <p>Welcome back, please enter your details to sign in.</p>
-                    <form className="flex flex-col gap-10 mt-10">
+                    <form className="flex flex-col gap-6">
+                        <div>
+                            <h1 className="font-bold text-3xl mb-1">Sign in</h1>
+                            <p>Welcome back, please enter your details to sign in.</p>
+                        </div>
                         <div>
                             <label htmlFor="email" className="font-bold">EMAIL</label>
                             <Input type="text" placeholder="Email" name="emal" />
