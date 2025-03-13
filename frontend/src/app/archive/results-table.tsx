@@ -21,7 +21,6 @@ export function ResultsTable<TData, TValue> ({
     return (
         <div className="rounded-md border-[#c9c9c9] border-[2px] mt-4">
             <Table >
-                <TableCaption>Search results</TableCaption> {/* Searching... | Search Results (based on user action)*/}
                 <TableHeader>
                     {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow key={headerGroup.id}>

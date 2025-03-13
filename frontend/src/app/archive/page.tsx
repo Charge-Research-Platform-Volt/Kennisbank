@@ -1,12 +1,16 @@
 import { Input } from "@/components/ui/input";
 import { ResultsTable } from "./results-table";
 import React from "react";
-import { columns, Result } from "./knowledgebank_components";
+import { columns, Result } from "./archive_componenents";
+import { FetchWithValidation } from "@/lib/fetchWithValidation";
+import { DocumentArraySchema } from "@/types/document.type";
 
 
 
-export default async function Knowledgebank() {
-    const results: any[] = []; {/* get results */};
+export default async function Archive() {
+    var page: number = 1;
+    var size: number = 10;
+    const results: any[] = [];
 
     async function query(q: string) {
 
