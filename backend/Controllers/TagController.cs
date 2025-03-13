@@ -4,12 +4,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
+using Microsoft.AspNetCore.Authorization;
 
 namespace KnowledgeBank.Controllers;
 
 [ApiController]
 [Route("[controller]")]
 [Produces("application/json")]
+[Authorize]
 public class TagController : ControllerBase
 {
     // Database context
@@ -55,6 +57,7 @@ public class TagController : ControllerBase
     /// Returns a 200 OK response containing the added tag.
     // </returns>
     [HttpPost("add-tag/{tagName}")]
+    [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
             Summary = "Adds new standard tag.",
             Description = "Lets an admin add a new tag to the list of standardized tags."
@@ -112,6 +115,7 @@ public class TagController : ControllerBase
     /// Returns a 200 OK response containing the deleted tag.
     // </returns>
     [HttpDelete("delete-tag/{id}")]
+    [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
             Summary = "Delete standard tag.",
             Description = "Lets and admin delete a tag from the list of standardized tags."
@@ -156,6 +160,7 @@ public class TagController : ControllerBase
     /// Returns a 200 OK response containing the deleted tag.
     // </returns>
     [HttpPatch("change-tag-name/{id}/{newName}")]
+    [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
             Summary = "Change tag name.",
             Description = "Lets and admin change the name of a standardized tag."

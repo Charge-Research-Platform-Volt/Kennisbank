@@ -1,7 +1,9 @@
 using backend.Data;
+using backend.Security;
 using KnowledgeBank.Data;
 using KnowledgeBank.Extensions;
 using KnowledgeBank.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -23,16 +25,23 @@ namespace KnowledgeBank
             // # Services
             builder.Services.AddControllers();
             builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
+            builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, CustomAuthorizationMiddlewareResultHandler>();
             builder.Services.AddAuthorization(options =>
             {
                 foreach (string roleName in RoleInitializer.roleNames)
                 {
                     options.AddPolicy($"Require{ char.ToUpper(roleName[0]) + roleName.Substring(1) }Role", policy => policy.RequireRole(roleName));
                 }
+
+                // This line terminates the handler on first failure, when more information is required, set this to true.
+                // This gives an increase in performance, but omits some information which might be required for complex
+                // authorization scenarios. This setting only affects the authorization middleware, not the controllers.
+                options.InvokeHandlersAfterFailure = false;
             });
             //
             // Add this line after the code below to enable authentication with JWT tokens: .AddBearerToken(IdentityConstants.BearerScheme);
             builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
+            
             builder.Services.AddIdentityCore<User>()
                             .AddRoles<IdentityRole>()
                             .AddEntityFrameworkStores<DatabaseContext>()
@@ -72,8 +81,9 @@ namespace KnowledgeBank
             }
 
             app.UseRouting();
-            app.MapControllers();
+            app.UseAuthentication();
             app.UseAuthorization();
+            app.MapControllers();
             app.MapIdentityApi<User>();
 
             app.Run();
