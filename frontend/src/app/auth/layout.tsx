@@ -5,6 +5,15 @@ export default function LoginLayout({ children }: { children: React.ReactNode })
         <div className="flex w-full h-screen">
         {/* Login/signup part (left part) */}
         <div className="w-7/18 flex flex-col justify-center items-center p-4">
+            {/* Logo */}
+            <Image
+                src="/img/Charge-logo-NL-purple.png"
+                width={142}
+                height={56.49}
+                alt="logo"
+                className="absolute top-4 left-4"
+            />
+
             {children}
         </div>
 

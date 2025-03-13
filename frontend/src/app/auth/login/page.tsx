@@ -1,19 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import Image from "next/image";
 
 export default function LoginPage() {
     return (
         <div className="flex w-full h-full">
-            {/* Logo */}
-            <Image
-                src="/img/Charge-logo-NL-purple.png"
-                width={142}
-                height={56.49}
-                alt="logo"
-                className="absolute top-4 left-4"
-            />
-
             {/* Form */}
             <div className="flex justify-center items-center h-full w-full">
                 <div className="w-3/4 mx-auto p-4">
