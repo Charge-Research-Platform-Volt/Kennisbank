@@ -15,4 +15,4 @@ WORKDIR /app
 COPY --from=build /app/publish .
 EXPOSE 8080
 EXPOSE 8081
-ENTRYPOINT ["dotnet", "backend.dll"]   
+ENTRYPOINT ["dotnet", "backend.dll"] 
