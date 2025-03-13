@@ -16,7 +16,6 @@ public class FileItem
 
     [Column("description")]
     [Required]
-    [MaxLength(255)]
     public required string Description { get; set; }
 
     [Column("filetype")]
