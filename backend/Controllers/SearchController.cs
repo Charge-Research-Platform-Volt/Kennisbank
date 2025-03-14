@@ -156,15 +156,16 @@ public class SearchController : ControllerBase
             //  Keep in mind these examples do not take stemming into consideration, the words 
             //  in the query and database are stemmed to improve search results.  
 
-            //return BadRequest(FormatSearchQuery(query));
 
+            // Converts the user query to a tsvector and compares this to the file vector
             FileItem[]? items = await database.Files
                 .FromSqlRaw(@"
                     SELECT 
-                        *,
-                        ts_rank(search_vector, websearch_to_tsquery('english', {0})) AS rank 
-                    FROM files
-                    WHERE search_vector @@ websearch_to_tsquery('english', {0}) 
+                        f.*, 
+                        ts_rank(fv.vector, websearch_to_tsquery('english', {0})) AS rank 
+                    FROM files f
+                    JOIN file_vectors fv ON fv.file_id = f.id
+                    WHERE fv.vector @@ websearch_to_tsquery('english', {0})
                     ORDER BY rank DESC", query)
                 .Skip(skip).Take(pageSize)
                 .ToArrayAsync();
