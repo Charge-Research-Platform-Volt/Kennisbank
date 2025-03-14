@@ -78,7 +78,7 @@ namespace backend.Controllers
                         };
 
                         await database.Files.AddAsync(drive);
-                        await database.SaveChangesAsync();
+                        await database.SaveFileChangesAsync();
 
                         return Ok(new FileUploadResult(id.ToString(), fileType, dto.File.Length));
 
@@ -175,7 +175,7 @@ namespace backend.Controllers
                     case BLOB_STATUSCODE.OK:
 
                         database.Files.Remove(item);
-                        await database.SaveChangesAsync();
+                        await database.SaveFileChangesAsync();
 
                         return Ok(new FileResponse("File deleted successfully", id, item.FileType));
 
@@ -219,7 +219,7 @@ namespace backend.Controllers
 
                 item.Name = dto.Name;
 
-                await database.SaveChangesAsync();
+                await database.SaveFileChangesAsync();
 
                 return Ok(new StorageResponse("File renamed succesfully."));
             }

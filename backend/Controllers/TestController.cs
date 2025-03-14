@@ -88,7 +88,7 @@ public class TestController : ControllerBase
                         };
 
                         await database.Files.AddAsync(drive);
-                        await database.SaveChangesAsync();
+                        await database.SaveFileChangesAsync();
 
                         break;
 

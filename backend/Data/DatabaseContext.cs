@@ -1,5 +1,7 @@
+using System.Data;
 using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace KnowledgeBank.Data
 {
@@ -13,6 +15,101 @@ namespace KnowledgeBank.Data
 
         public DbSet<UserTag> UserTags { get; set; }
 
+        public DbSet<FileVector> Vectors { get; set; }
+
+
+        // Override OnModelCreating to make sure file vectors are deleted on file deletion.
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<FileItem>()
+                .HasOne(f => f.Vector)
+                .WithOne(v => v.File)
+                .HasForeignKey<FileVector>(v => v.FileId)
+                .OnDelete(DeleteBehavior.Cascade);    // Automatically deletes vector on file delete
+        }
+
+        // Might be better style to create a new Async for files specifically?
+        // SaveChangesAsync is used in pretty much any Controller, so overriding it
+        // to update the file vectors couples it with file updates rather than
+        // it being a generic async for persisting changes to the database.
+
+        /// <summary>
+        /// Saves database changes and ensures that any file updates related to FileItem entities 
+        /// are processed within the same transaction. This guarantees consistency between the database 
+        /// and the file system and between FileItem entities and their search vectors.        
+        /// </summary>
+        /// <param name="cancellationToken">A token used to observe operation cancellation.</param>
+        /// <returns>The number of state entries written to the database.</returns>
+        public async Task<int> SaveFileChangesAsync(CancellationToken cancellationToken = default)
+        {
+            // Begin database transaction to ensure consistency
+            using IDbContextTransaction transaction = await Database.BeginTransactionAsync(cancellationToken);
+
+            try
+            {
+                // Get files that were added or modified
+                var updatedFiles = ChangeTracker.Entries<FileItem>()
+                    .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+                    .Select(e => e.Entity)
+                    .ToList();  
+
+                // First save the changes to the database
+                var result = await base.SaveChangesAsync(cancellationToken);
+
+                // If there are any updated files, update their search vectors
+                if (updatedFiles.Any()) await UpdateFileVectorAsync(updatedFiles);
+
+                // Commit the transaction
+                await transaction.CommitAsync(cancellationToken);
+                return result;
+            }
+            catch
+            {
+                // If anything goes wrong, roll back transaction to ensure consistency
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        }
+
+        // // Override the SaveChangesAsync Task to make sure it creates or updates the file vector.
+        // public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        // {
+        //     // Get files that are being added or modified
+        //     var updatedFiles = ChangeTracker.Entries<FileItem>()
+        //         .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+        //         .Select(e => e.Entity)
+        //         .ToList();
+
+        //     // First save the changes (upload, rename, etc.)
+        //     var result = await base.SaveChangesAsync(cancellationToken);
+
+        //     // Then save the vector
+        //     if (updatedFiles.Any()) await UpdateFileVectorAsync(updatedFiles);
+
+        //     // Then return the result of the base SaveChangesAsync call
+        //     return result;
+        // }
+
+        /// <summary>
+        /// Updates or inserts full-text search vectors for the given list of updated FileItem entities. 
+        /// If a vector already exists for a file, it is updated. Otherwise, a new vector is inserted.
+        /// </summary>
+        /// <param name="updatedFiles">A list of files that were added or modified.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
+        private async Task UpdateFileVectorAsync(List<FileItem> updatedFiles)
+        {
+            // Generates an Enumerable<Task> of SQL queries that inserts the
+            // vector, if there's a conflict, replace existing vector instead
+            var updateTasks = updatedFiles.Select(file => 
+                Database.ExecuteSqlInterpolatedAsync($@"
+                    INSERT INTO file_vectors (id, file_id, vector)
+                    VALUES (gen_random_uuid(), {file.Id}, to_tsvector('english', {file.Name} || ' ' || {file.Description}))
+                    ON CONFLICT (file_id) 
+                    DO UPDATE SET vector = EXCLUDED.vector;"));
+
+            // Task that will complete when all subtasks have completed
+            await Task.WhenAll(updateTasks);
+        }
 
         // protected override void OnModelCreating(ModelBuilder modelBuilder)
         // {
