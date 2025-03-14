@@ -23,6 +23,9 @@ public class FileItem
     [Required]
     [MaxLength(50)]
     public required string FileType { get; set; }
+
+    // Navigation property (one to one)
+    public FileVector? Vector { get; set; }
 }
 
 public class StorageUploadDto //Data Transfer Object (DTO)
