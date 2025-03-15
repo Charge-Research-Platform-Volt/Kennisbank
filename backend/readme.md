@@ -22,3 +22,5 @@ dotnet ef migrations script -o ./script.sql -i
 
 https://learn.microsoft.com/en-us/ef/core/cli/dotnet
 https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/?tabs=dotnet-core-cli
+
+
