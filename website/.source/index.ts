@@ -1,0 +1,22 @@
+// @ts-nocheck -- skip type checking
+import * as docs_14 from "../content/docs/(api)/drive/all-documents/get.mdx?collection=docs&hash=1741688102656"
+import * as docs_13 from "../content/docs/(api)/drive/add-document/post.mdx?collection=docs&hash=1741688102656"
+import * as docs_12 from "../content/docs/(api)/storage/rename/get.mdx?collection=docs&hash=1741688102656"
+import * as docs_11 from "../content/docs/(api)/storage/upload/post.mdx?collection=docs&hash=1741688102656"
+import * as docs_10 from "../content/docs/(api)/storage/page/get.mdx?collection=docs&hash=1741688102656"
+import * as docs_9 from "../content/docs/(api)/storage/move/get.mdx?collection=docs&hash=1741688102656"
+import * as docs_8 from "../content/docs/(api)/storage/download/get.mdx?collection=docs&hash=1741688102656"
+import * as docs_7 from "../content/docs/(api)/storage/exists/get.mdx?collection=docs&hash=1741688102656"
+import * as docs_6 from "../content/docs/(api)/storage/delete-container/get.mdx?collection=docs&hash=1741688102656"
+import * as docs_5 from "../content/docs/(api)/knowledge-bank/members/get.mdx?collection=docs&hash=1741688102656"
+import * as docs_4 from "../content/docs/(api)/storage/delete/get.mdx?collection=docs&hash=1741688102656"
+import * as docs_3 from "../content/docs/(api)/storage/create-container/get.mdx?collection=docs&hash=1741688102656"
+import * as docs_2 from "../content/docs/(api)/storage/copy/get.mdx?collection=docs&hash=1741688102656"
+import * as docs_1 from "../content/docs/index.mdx?collection=docs&hash=1741688102656"
+import * as docs_0 from "../content/docs/docker.mdx?collection=docs&hash=1741688102656"
+import * as guide_1 from "../content/guide/upload-document.mdx?collection=guide&hash=1741688102656"
+import * as guide_0 from "../content/guide/index.mdx?collection=guide&hash=1741688102656"
+import { _runtime } from "fumadocs-mdx"
+import * as _source from "../source.config"
+export const docs = _runtime.docs<typeof _source.docs>([{ info: {"path":"docker.mdx","absolutePath":"/app/content/docs/docker.mdx"}, data: docs_0 }, { info: {"path":"index.mdx","absolutePath":"/app/content/docs/index.mdx"}, data: docs_1 }, { info: {"path":"(api)/storage/copy/get.mdx","absolutePath":"/app/content/docs/(api)/storage/copy/get.mdx"}, data: docs_2 }, { info: {"path":"(api)/storage/create-container/get.mdx","absolutePath":"/app/content/docs/(api)/storage/create-container/get.mdx"}, data: docs_3 }, { info: {"path":"(api)/storage/delete/get.mdx","absolutePath":"/app/content/docs/(api)/storage/delete/get.mdx"}, data: docs_4 }, { info: {"path":"(api)/knowledge-bank/members/get.mdx","absolutePath":"/app/content/docs/(api)/knowledge-bank/members/get.mdx"}, data: docs_5 }, { info: {"path":"(api)/storage/delete-container/get.mdx","absolutePath":"/app/content/docs/(api)/storage/delete-container/get.mdx"}, data: docs_6 }, { info: {"path":"(api)/storage/exists/get.mdx","absolutePath":"/app/content/docs/(api)/storage/exists/get.mdx"}, data: docs_7 }, { info: {"path":"(api)/storage/download/get.mdx","absolutePath":"/app/content/docs/(api)/storage/download/get.mdx"}, data: docs_8 }, { info: {"path":"(api)/storage/move/get.mdx","absolutePath":"/app/content/docs/(api)/storage/move/get.mdx"}, data: docs_9 }, { info: {"path":"(api)/storage/page/get.mdx","absolutePath":"/app/content/docs/(api)/storage/page/get.mdx"}, data: docs_10 }, { info: {"path":"(api)/storage/upload/post.mdx","absolutePath":"/app/content/docs/(api)/storage/upload/post.mdx"}, data: docs_11 }, { info: {"path":"(api)/storage/rename/get.mdx","absolutePath":"/app/content/docs/(api)/storage/rename/get.mdx"}, data: docs_12 }, { info: {"path":"(api)/drive/add-document/post.mdx","absolutePath":"/app/content/docs/(api)/drive/add-document/post.mdx"}, data: docs_13 }, { info: {"path":"(api)/drive/all-documents/get.mdx","absolutePath":"/app/content/docs/(api)/drive/all-documents/get.mdx"}, data: docs_14 }], [])
+export const guide = _runtime.docs<typeof _source.guide>([{ info: {"path":"index.mdx","absolutePath":"/app/content/guide/index.mdx"}, data: guide_0 }, { info: {"path":"upload-document.mdx","absolutePath":"/app/content/guide/upload-document.mdx"}, data: guide_1 }], [])
