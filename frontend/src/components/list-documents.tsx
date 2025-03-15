@@ -1,13 +1,8 @@
 import React from "react";
-import { DocumentPageResponseSchema } from "@/types/document.type";
-import { FetchWithValidation } from "@/lib/fetchWithValidation";
-import { CloudAlert } from "lucide-react";
 
 export default async function ListDocuments() {
   return (
     <div className="p-2">
-      Create a document:
-      <CreateDocument />
       {/*<h1>Documents (from the database):</h1>
             {result.data &&
                 result.data.files.map((document) => (
