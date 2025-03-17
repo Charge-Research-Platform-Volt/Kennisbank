@@ -16,7 +16,7 @@ export default function DeleteTagButton({tag} : {tag: Tag}) {
   
     return (
         <Button
-          className="w-24"
+          className="w-24 cursor-pointer"
           variant="default"
           type="submit"
           onClick={handleDelete}

@@ -58,6 +58,18 @@ namespace KnowledgeBank
                 options => options.UseNpgsql(builder.Configuration.GetValue<string>("CONNECTION_STRING")
             ));
 
+            // CORS to allow Cross Origin Resource Sharing
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowFrontend", policy =>
+                {
+                    policy.WithOrigins("http://localhost:3000")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials();
+                });
+            });
+
             // # Application
             WebApplication app = builder.Build();
 
@@ -81,6 +93,7 @@ namespace KnowledgeBank
             }
 
             app.UseRouting();
+            app.UseCors("AllowFrontend");
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();

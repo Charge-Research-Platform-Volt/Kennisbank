@@ -35,7 +35,7 @@ export default function CreateStandardizedTag() {
         disabled={isPending}
       />
       <Button
-        className="w-24"
+        className="w-24 cursor-pointer"
         variant="default"
         type="submit"
         disabled={isPending}

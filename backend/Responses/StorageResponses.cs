@@ -76,15 +76,17 @@ public class ContainerResponse : StorageResponse
     }
 }
 
-public class ExistsResponse : StorageResponse
-{
-    public bool Exists { get; }
-
-    public ExistsResponse(string message, bool exists) : base(message, STORAGE_RESPONSE_TYPE.EXISTS)
+    public class ExistsResponse : StorageResponse
     {
-        this.Exists = exists;
+        public bool Exists { get; }
+        public string Id { get; }
+
+        public ExistsResponse(string message, bool exists, string id) : base(message, STORAGE_RESPONSE_TYPE.EXISTS)
+        {
+            this.Exists = exists;
+            this.Id = id;
+        }
     }
-}
 
 public class FileInfoResponse : StorageResponse
 {
