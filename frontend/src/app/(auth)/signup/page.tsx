@@ -6,7 +6,7 @@ import { useState, useActionState, useEffect } from "react";
 import { toast } from "sonner";
 import { FormResponse } from "@/types/return.type";
 import { RegisterRequest } from "@/types/registerRequest.type";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 
 const initialState: FormResponse<RegisterRequest> = {
   success: false,
