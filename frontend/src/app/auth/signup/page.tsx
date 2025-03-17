@@ -1,7 +1,14 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { Register } from "@/actions/authActions";
+import { useState, useActionState, useEffect } from "react";
+import { toast } from "sonner";
+
+const initialState: FormResponse<TagBase> = {
+  success: false,
+  message: "",
+};
 
 export default function SignUpPage() {
     const [firstName, setFirstName] = useState<string>("");
@@ -9,13 +16,27 @@ export default function SignUpPage() {
     const [email, setEmail] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [retypePassword, setRetypePassword] = useState<string>("");
-    const [termsBox, setTermsBox] = useState<Boolean>(false);
+    const [termsBox, setTermsBox] = useState<boolean>(false);
+  
+    const [state, action, isPending] = useActionState(Register, initialState);
+
+    console.log("Register state:");
+    console.log(state.message);
+  
+    useEffect(() => {
+      if (state.success) {
+        toast.success(state.message);
+      } else if (state.message) {
+        toast.error(state.message);
+      }
+    }, [state]);
+
     return (
         <div className="flex w-full h-full">
             {/* Form */}
             <div className="flex justify-center items-center h-full w-full">
                 <div className="w-3/4 mx-auto p-4">
-                    <form className="flex flex-col gap-6">
+                    <form className="flex flex-col gap-6" action={action}>
                         <div>
                             <h1 className="font-bold text-3xl mb-1">Sign up</h1>
                             <p>Enter your personal data to create your account.</p>
@@ -32,7 +53,7 @@ export default function SignUpPage() {
                         </div>
                         <div>
                             <label htmlFor="email" className="font-bold">EMAIL</label>
-                            <Input type="email" placeholder="Email" name="emal" onChange={(e) => setEmail(e.target.value.trim())} required/>
+                            <Input type="email" placeholder="Email" name="email" onChange={(e) => setEmail(e.target.value.trim())} required/>
                         </div>
                         <div>
                             <label htmlFor="password" className="font-bold">PASSWORD</label>
@@ -46,7 +67,7 @@ export default function SignUpPage() {
                                 <label htmlFor="terms" className="text-sm">I agree to the <a href="termsandconditions" className="text-blue-600 underline hover:text-blue-800">terms and conditions</a>.</label>
                             </div>
                         </div>
-                        <Button type="submit" className="w-full" disabled={firstName == "" || lastName == "" || email == "" || password == "" || retypePassword == "" || !termsBox}>Sign up</Button>
+                        <Button type="submit" className="w-full" disabled={firstName == "" || lastName == "" || email == "" || password == "" || retypePassword == "" || !termsBox || isPending}>{isPending ? "Signing up..." : "Sign up"}</Button>
                     </form>
                 </div>
             </div>
