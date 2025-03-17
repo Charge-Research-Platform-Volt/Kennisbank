@@ -22,12 +22,14 @@ namespace KnowledgeBank
             // # Services
             builder.Services.AddControllers();
             builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
-            builder.Services.AddAuthorization();
-            //
-            // Add this line after the code below to enable authentication with JWT tokens: .AddBearerToken(IdentityConstants.BearerScheme);
-            builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
-            builder.Services.AddIdentityCore<User>().AddEntityFrameworkStores<DatabaseContext>().AddApiEndpoints();
 
+            // # Authentication
+            builder.Services.AddAuthorization();
+            builder.Services.AddAuthorizationBuilder();
+
+            builder.Services.AddIdentityApiEndpoints<user>().AddEntityFrameworkStores<DatabaseContext>();
+            // builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
+            // builder.Services.AddIdentityCore<User>().AddEntityFrameworkStores<DatabaseContext>().AddApiEndpoints();
 
             builder.Services.AddOpenApi();
             builder.Services.AddSwaggerGen(ConfigureSwagger);
@@ -38,6 +40,7 @@ namespace KnowledgeBank
                 // CONNECTION_STRING is set in docker-compose.dev.yml file
                 options => options.UseNpgsql(builder.Configuration.GetValue<string>("CONNECTION_STRING")
             ));
+
 
             // # Application
             WebApplication app = builder.Build();
@@ -52,12 +55,18 @@ namespace KnowledgeBank
                 app.UseSwaggerUI(ConfigureSwaggerUI);
                 app.UseDeveloperExceptionPage();
 
+                // Apply database migrations
                 app.ApplyMigrations();
             }
 
+            app.UseHttpsRedirection();
             app.UseRouting();
             app.MapControllers();
-            app.MapIdentityApi<User>();
+
+            // # Authentication
+            app.UseAuthentication();
+            app.UseAuthorization();
+            app.MapGroup("Auth").MapIdentityApi<User>().WithTags("Auth").WithOpenApi(ConfigureIdentityApiOptions);
 
             app.Run();
         }
@@ -112,6 +121,21 @@ namespace KnowledgeBank
             Log.Logger = new LoggerConfiguration()
                                 .ReadFrom.Configuration(configuration)
                                 .CreateLogger();
+        }
+
+
+        /// <summary>
+        /// Configures the OpenAPI operation metadata for identity API endpoints.
+        /// </summary>
+        /// <param name="operation">The OpenAPI operation to configure.</param>
+        /// <returns>The configured OpenAPI operation with updated summary information.</returns>
+        /// <remarks>
+        /// This method sets the summary description for identity-related API endpoints that handle user management operations.
+        /// </remarks>
+        private static OpenApiOperation ConfigureIdentityApiOptions(OpenApiOperation operation)
+        {
+            operation.Summary = "Identity endpoints for user management";
+            return operation;
         }
     }
 }
