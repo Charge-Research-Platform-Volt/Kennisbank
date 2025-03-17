@@ -3,6 +3,7 @@ using System;
 using KnowledgeBank.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace backend.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20250311145921_RemoveCustomRolesPermissions")]
+    partial class RemoveCustomRolesPermissions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -31,7 +34,8 @@ namespace backend.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("description");
 
                     b.Property<string>("FileType")
@@ -39,11 +43,6 @@ namespace backend.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("filetype");
-
-                    b.Property<string>("Hash")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("hash");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -53,227 +52,6 @@ namespace backend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("files");
-                });
-
-            modelBuilder.Entity("KnowledgeBank.Models.FileTagLink", b =>
-                {
-                    b.Property<Guid>("DocId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("doc-id");
-
-                    b.Property<Guid>("TagId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("tag-id");
-
-                    b.HasKey("DocId", "TagId");
-
-                    b.ToTable("doc-tag");
-                });
-
-            modelBuilder.Entity("KnowledgeBank.Models.Permission", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("description");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("name");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("permissions");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Description = "Can upload files.",
-                            Name = "Permissions.Files.Upload"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Description = "Can download files.",
-                            Name = "Permissions.Files.Download"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Description = "Can edit files.",
-                            Name = "Permissions.Files.Edit"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Description = "Can delete files.",
-                            Name = "Permissions.Files.Delete"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Description = "Can view files.",
-                            Name = "Permissions.Files.View"
-                        },
-                        new
-                        {
-                            Id = 6,
-                            Description = "Can view users.",
-                            Name = "Permissions.Users.View"
-                        },
-                        new
-                        {
-                            Id = 7,
-                            Description = "Can add new users.",
-                            Name = "Permissions.Users.Create"
-                        },
-                        new
-                        {
-                            Id = 8,
-                            Description = "Can delete users.",
-                            Name = "Permissions.Users.Delete"
-                        },
-                        new
-                        {
-                            Id = 9,
-                            Description = "Can edit users.",
-                            Name = "Permissions.Users.Edit"
-                        });
-                });
-
-            modelBuilder.Entity("KnowledgeBank.Models.Role", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("description");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("name");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("roles");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Description = "Administrator with full priviledges.",
-                            Name = "Admin"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Description = "Regular user.",
-                            Name = "User"
-                        });
-                });
-
-            modelBuilder.Entity("KnowledgeBank.Models.RolePermission", b =>
-                {
-                    b.Property<int>("RoleId")
-                        .HasColumnType("integer")
-                        .HasColumnName("role-id");
-
-                    b.Property<int>("PermissionId")
-                        .HasColumnType("integer")
-                        .HasColumnName("permission-id");
-
-                    b.HasKey("RoleId", "PermissionId");
-
-                    b.HasIndex("PermissionId");
-
-                    b.ToTable("role-permission");
-
-                    b.HasData(
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 1
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 2
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 3
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 4
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 5
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 6
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 7
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 8
-                        },
-                        new
-                        {
-                            RoleId = 1,
-                            PermissionId = 9
-                        },
-                        new
-                        {
-                            RoleId = 2,
-                            PermissionId = 1
-                        },
-                        new
-                        {
-                            RoleId = 2,
-                            PermissionId = 2
-                        },
-                        new
-                        {
-                            RoleId = 2,
-                            PermissionId = 5
-                        },
-                        new
-                        {
-                            RoleId = 2,
-                            PermissionId = 6
-                        });
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.Tag", b =>

@@ -8,6 +8,7 @@ using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 
 namespace backend.Controllers
@@ -15,6 +16,7 @@ namespace backend.Controllers
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
+    //[Authorize] -- Activate when possible to log in
     public class StorageController : ControllerBase
     {
         private readonly IAzureBlobService blobService;
@@ -162,6 +164,7 @@ namespace backend.Controllers
         }
 
         [HttpDelete("delete/{id}")]
+        [Authorize(Policy = "RequireAdminRole")]
         [SwaggerOperation(
             Summary = "Delete a file from storage.",
             Description = "Deletes the given file from the given container in the Azure Blob Storage."
