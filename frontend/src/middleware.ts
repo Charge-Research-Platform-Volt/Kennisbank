@@ -3,12 +3,11 @@ import type { NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
     try {
-        // Fetch met headers van de request
         const response = await fetch("http://backend:8080/api/auth/status", {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
-                Cookie: request.headers.get("cookie") || "", // Cookies meesturen!
+                Cookie: request.headers.get("cookie") || "", 
             },
         });
 
@@ -23,7 +22,6 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL("/login", request.url));
         }
 
-        // ✅ Gebruiker is ingelogd, request doorlaten
         return NextResponse.next();
     } catch (error) {
         console.error("Error checking auth:", error);

@@ -21,12 +21,13 @@ export async function FetchWithValidation<T>(
 ): Promise<z.SafeParseReturnType<T, T>> {
     try {
         // Fetch the data from the backend
+        const cookieHeader = await cookies()
         const response = await fetch(url, {
             method: "GET",
-            credentials: "include", // 🔥 Hiermee stuurt de browser sessie-cookies mee!
+            credentials: "include",
             headers: {
                 "Content-Type": "application/json",
-                Cookie: await cookies().toString(),
+                Cookie: cookieHeader.toString() || "",
             },
         });
 

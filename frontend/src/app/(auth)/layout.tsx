@@ -3,11 +3,13 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
 export default async function LoginLayout({ children }: { children: React.ReactNode }) {
+    const cookieHeader = await cookies();
+    
     const response = await fetch("http://backend:8080/api/auth/status", {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
-            Cookie: (await cookies()).toString() || "", // Cookies meesturen!
+            Cookie: cookieHeader.toString() || "",
         },
       });
     
