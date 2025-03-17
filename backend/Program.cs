@@ -17,6 +17,7 @@ namespace KnowledgeBank
     public class Program
     {
         public static async Task Main(string[] args)
+        public static async Task Main(string[] args)
         {
             // # Builder
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -90,6 +91,7 @@ namespace KnowledgeBank
             using (IServiceScope scope = app.Services.CreateScope())
             {
                 await RoleInitializer.InitializeAsync(app.Services);
+                await TestDataSeeder.Seed(app.Services);
             }
 
             app.UseRouting();
