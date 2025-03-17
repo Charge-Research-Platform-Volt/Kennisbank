@@ -1,4 +1,6 @@
+import { FormResponse } from "@/types/return.type";
 import {RegisterRequestScheme, RegisterRequest} from "../types/registerRequest.type";
+import { LoginRequest, LoginRequestScheme } from "@/types/loginRequest.type";
 
 export const Register = async (
     prevState: FormResponse<RegisterRequest>,
@@ -40,7 +42,7 @@ export const Register = async (
         }
 
         // Send the data to the backend.
-        const response = await fetch("http://backend:8080/register", {
+        const response = await fetch("http://localhost:8080/register", {
             method: "POST",
             body: JSON.stringify({
                 email: rawData.email,
@@ -48,26 +50,92 @@ export const Register = async (
             }),
             headers: { "Content-Type": "application/json" },
         });
-        const data = await response.json();
 
         // Check if the request was successful, if not, return an error.
         if (!response.ok) {
+            const data = await response.json();
+
             return {
                 success: false,
-                message: data.message,
+                message: Object.values(data.errors).flat().join(" "),
                 inputs: rawData,
             };
         }
 
-        // Revalidate the cache for the home page.
-        revalidatePath("/auth/signup");
+        return {
+            success: true,
+            message: "Account created successfully.",
+        };
+    } catch (error) {
+        console.error(`An error occurred: ${error}`);
+
+        return {
+            success: false,
+            message: "An error occurred.",
+        };
+    }
+};
+
+export const Login = async (
+    prevState: FormResponse<LoginRequest>,
+    formData: FormData,
+): Promise<FormResponse<LoginRequest>> => {
+    try {
+        console.log("Logging in...");
+
+        // Raw data from the form.
+        const rawData: LoginRequest = {
+            email: (formData.get("email") as string)?.trim(),
+            password: (formData.get("password") as string)?.trim(),
+        };
+
+        // Validate the raw data, if it fails, return an error.
+        const validatedData = LoginRequestScheme.safeParse(rawData);
+        
+        if (!validatedData.success) {
+            return {
+                success: false,
+                message: validatedData.error.errors[0].message,
+                inputs: rawData,
+            };
+        }
+
+        // Send the data to the backend.
+        const response = await fetch("http://localhost:8080/login?useCookies=true&useSessionCookies=true", {
+            method: "POST",
+            body: JSON.stringify({
+                email: rawData.email,
+                password: rawData.password,
+            }),
+            headers: { "Content-Type": "application/json" },
+        });
+
+        // Check if the request was successful, if not, return an error.
+        if (!response.ok) {
+
+            if(response.status === 401) {
+                return {
+                    success: false,
+                    message: "Invalid email or password",
+                    inputs: rawData,
+                };
+            }
+
+            const data = await response.json();
+
+            return {
+                success: false,
+                message: Object.values(data.errors).flat().join(" "),
+                inputs: rawData,
+            };
+        }
 
         return {
             success: true,
-            message: data.message,
+            message: "Log in successful.",
         };
     } catch (error) {
-        Log.error(`An error occurred: ${error}`);
+        console.error(`An error occurred: ${error}`);
 
         return {
             success: false,
