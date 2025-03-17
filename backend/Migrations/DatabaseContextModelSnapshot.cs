@@ -71,6 +71,30 @@ namespace backend.Migrations
                     b.ToTable("doc-tag");
                 });
 
+            modelBuilder.Entity("KnowledgeBank.Models.FileVector", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("FileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("file_id");
+
+                    b.Property<string>("Vector")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("vector");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FileId")
+                        .IsUnique();
+
+                    b.ToTable("file_vectors");
+                });
+
             modelBuilder.Entity("KnowledgeBank.Models.Permission", b =>
                 {
                     b.Property<int>("Id")
@@ -277,30 +301,6 @@ namespace backend.Migrations
                         });
                 });
 
-            modelBuilder.Entity("KnowledgeBank.Models.FileVector", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("FileId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("file_id");
-
-                    b.Property<string>("Vector")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("vector");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FileId")
-                        .IsUnique();
-
-                    b.ToTable("file_vectors");
-                });
-
             modelBuilder.Entity("KnowledgeBank.Models.Tag", b =>
                 {
                     b.Property<Guid>("Id")
@@ -330,12 +330,10 @@ namespace backend.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
                         .HasColumnType("text");
 
                     b.Property<string>("Email")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("text");
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("boolean");
@@ -347,12 +345,10 @@ namespace backend.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("NormalizedEmail")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("text");
 
                     b.Property<string>("NormalizedUserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("text");
 
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");
@@ -370,19 +366,11 @@ namespace backend.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<string>("UserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("NormalizedEmail")
-                        .HasDatabaseName("EmailIndex");
-
-                    b.HasIndex("NormalizedUserName")
-                        .IsUnique()
-                        .HasDatabaseName("UserNameIndex");
-
-                    b.ToTable("AspNetUsers", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.UserRole", b =>
@@ -442,6 +430,70 @@ namespace backend.Migrations
                         .IsUnique();
 
                     b.ToTable("user_tags");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.FileVector", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.FileItem", "File")
+                        .WithOne("Vector")
+                        .HasForeignKey("KnowledgeBank.Models.FileVector", "FileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("File");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.RolePermission", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Permission", "Permission")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KnowledgeBank.Models.Role", "Role")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.UserRole", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Role", "Role")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KnowledgeBank.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId1");
+
+                    b.Navigation("Role");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.FileItem", b =>
+                {
+                    b.Navigation("Vector");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.Permission", b =>
+                {
+                    b.Navigation("RolePermissions");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.Role", b =>
+                {
+                    b.Navigation("RolePermissions");
+
+                    b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
         }
