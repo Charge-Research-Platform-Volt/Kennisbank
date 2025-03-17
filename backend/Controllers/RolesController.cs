@@ -6,6 +6,7 @@ using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
 using backend.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace backend.Controllers
 {
@@ -23,6 +24,44 @@ namespace backend.Controllers
             this.roleManager = roleManager;
             this.userManager = userManager;
             this.logger = Log.ForContext<RolesController>();
+        }
+
+        [HttpGet("current")]
+        [AllowAnonymous]
+        [SwaggerOperation(
+            Summary = "Get current user's role.",
+            Description = "Returns the current user's role or an empty string if not authenticated"
+        )]
+        [SwaggerResponse(200, "The current user's role.")]
+        [SwaggerResponse(500, "Internal server error")]
+        public async Task<IActionResult> GetCurrentUserRole()
+        {
+            try
+            {
+                // Check if user is authenticated
+                if (User.Identity == null || !User.Identity.IsAuthenticated)
+                    return Ok(new { role = "", isAuthenticated = false });
+
+                string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                if (string.IsNullOrEmpty(userId))
+                    return Ok(new { role = "", isAuthenticated = true });
+
+                User? user = await userManager.FindByIdAsync(userId);
+
+                if (user == null)
+                    return Ok(new { role = "", isAuthenticated = true });
+
+                IList<string> roles = await userManager.GetRolesAsync(user);
+                string role = roles.Count > 0 ? roles[0] : "";
+
+                return Ok(new { role, isAuthenticated = true });
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error retrieving current user's role");
+                return StatusCode(500, "Internal server error.");
+            }
         }
 
         [HttpGet]
