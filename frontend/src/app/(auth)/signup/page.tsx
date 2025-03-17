@@ -4,9 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Register } from "@/actions/authActions";
 import { useState, useActionState, useEffect } from "react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 import { FormResponse } from "@/types/return.type";
 import { RegisterRequest } from "@/types/registerRequest.type";
+import { useRouter } from "next/router";
 
 const initialState: FormResponse<RegisterRequest> = {
   success: false,

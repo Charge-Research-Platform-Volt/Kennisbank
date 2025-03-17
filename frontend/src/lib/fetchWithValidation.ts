@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import { Log } from "../../Pino";
+import { cookies } from "next/headers";
 
 /**
  * Fetches data from a specified URL and validates it against a provided Zod schema.
@@ -20,7 +21,15 @@ export async function FetchWithValidation<T>(
 ): Promise<z.SafeParseReturnType<T, T>> {
     try {
         // Fetch the data from the backend
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            method: "GET",
+            credentials: "include", // 🔥 Hiermee stuurt de browser sessie-cookies mee!
+            headers: {
+                "Content-Type": "application/json",
+                Cookie: cookies().toString(),
+            },
+        });
+
 
         // Parse the response as JSON
         const data = await response.json();

@@ -3,7 +3,7 @@ import { z } from "zod";
 /**
  * Register request schema
  */
-export const RegisterRequestScheme = z.object({
+export const RegisterRequestSchema = z.object({
     // firstname: z.string().min(1 , { message: "First name is required" }),
     // lastname: z.string().min(1 , { message: "Last name is required" }),
     email: z.string().min(1 , { message: "Email is required" }),
@@ -11,4 +11,4 @@ export const RegisterRequestScheme = z.object({
 });
 
 // Type definitions derived from the schemas
-export type RegisterRequest = z.infer<typeof RegisterRequestScheme>;
+export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;

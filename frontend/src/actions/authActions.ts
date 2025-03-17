@@ -1,6 +1,6 @@
 import { FormResponse } from "@/types/return.type";
-import {RegisterRequestScheme, RegisterRequest} from "../types/registerRequest.type";
-import { LoginRequest, LoginRequestScheme } from "@/types/loginRequest.type";
+import {RegisterRequestSchema, RegisterRequest} from "../types/registerRequest.type";
+import { LoginRequest, LoginRequestSchema } from "@/types/loginRequest.type";
 
 export const Register = async (
     prevState: FormResponse<RegisterRequest>,
@@ -31,7 +31,7 @@ export const Register = async (
         };
 
         // Validate the raw data, if it fails, return an error.
-        const validatedData = RegisterRequestScheme.safeParse(rawData);
+        const validatedData = RegisterRequestSchema.safeParse(rawData);
         
         if (!validatedData.success) {
             return {
@@ -90,7 +90,7 @@ export const Login = async (
         };
 
         // Validate the raw data, if it fails, return an error.
-        const validatedData = LoginRequestScheme.safeParse(rawData);
+        const validatedData = LoginRequestSchema.safeParse(rawData);
         
         if (!validatedData.success) {
             return {
@@ -103,6 +103,7 @@ export const Login = async (
         // Send the data to the backend.
         const response = await fetch("http://localhost:8080/login?useCookies=true&useSessionCookies=true", {
             method: "POST",
+            credentials: "include",
             body: JSON.stringify({
                 email: rawData.email,
                 password: rawData.password,
