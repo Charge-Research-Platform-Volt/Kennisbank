@@ -57,7 +57,7 @@ namespace KnowledgeBank.Data
                 var result = await base.SaveChangesAsync(cancellationToken);
 
                 // If there are any updated files, update their search vectors
-                if (updatedFiles.Any()) await UpdateFileVectorAsync(updatedFiles);
+                if (updatedFiles.Count != 0) await UpdateFileVectorAsync(updatedFiles);
 
                 // Commit the transaction
                 await transaction.CommitAsync(cancellationToken);

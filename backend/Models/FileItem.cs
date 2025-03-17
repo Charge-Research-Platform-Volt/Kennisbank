@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 namespace KnowledgeBank.Models;
 
 
@@ -24,7 +25,8 @@ public class FileItem
     [MaxLength(50)]
     public required string FileType { get; set; }
 
-    // Navigation property (one to one)
+    // Navigation property (one to one). JsonIgnore excludes it from response bodies.
+    [JsonIgnore] 
     public FileVector? Vector { get; set; }
 }
 

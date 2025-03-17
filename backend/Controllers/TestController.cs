@@ -10,6 +10,10 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Bogus;
 
+/// <summary>
+/// Controller for all sorts of functionality that 
+/// might be of use during the Development stage.
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class TestController : ControllerBase
