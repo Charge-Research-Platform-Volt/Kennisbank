@@ -1,4 +1,4 @@
-import { ContentRoleGuard } from '@/components/server/RoleGuard';
+import { ContentRoleGuard } from '@/components/auth/RoleGuard';
 
 export default async function Home() {
   // const result = await FetchWithValidation(UsersArraySchema, "http://backend:8080/KnowledgeBank/members");
