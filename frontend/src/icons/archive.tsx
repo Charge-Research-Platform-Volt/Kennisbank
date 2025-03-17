@@ -2,7 +2,7 @@ import * as React from "react";
 
 export default function Archive(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg {...props} width={14} height={14} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg {...props} fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14 14">
       <g clipPath="url(#a)">
         <path
           fillRule="evenodd"
