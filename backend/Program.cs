@@ -1,6 +1,8 @@
 using backend.Data;
 using KnowledgeBank.Data;
 using KnowledgeBank.Extensions;
+using KnowledgeBank.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -19,9 +21,16 @@ namespace KnowledgeBank
 
             // # Services
             builder.Services.AddControllers();
+            builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
+            builder.Services.AddAuthorization();
+            //
+            // Add this line after the code below to enable authentication with JWT tokens: .AddBearerToken(IdentityConstants.BearerScheme);
+            builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
+            builder.Services.AddIdentityCore<User>().AddEntityFrameworkStores<DatabaseContext>().AddApiEndpoints();
+
+
             builder.Services.AddOpenApi();
             builder.Services.AddSwaggerGen(ConfigureSwagger);
-            builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
 
 
             // # Database context
@@ -50,7 +59,6 @@ namespace KnowledgeBank
             if (app.Environment.IsDevelopment())
             {
                 // Run only in development environment:
-
                 app.MapOpenApi();
                 app.UseSwagger();
                 app.UseSwaggerUI(ConfigureSwaggerUI);
@@ -62,6 +70,8 @@ namespace KnowledgeBank
             app.UseRouting();
             app.UseCors("AllowFrontend");
             app.MapControllers();
+            app.MapIdentityApi<User>();
+
             app.Run();
         }
 
