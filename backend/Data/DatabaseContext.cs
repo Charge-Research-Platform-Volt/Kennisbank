@@ -11,7 +11,7 @@ namespace KnowledgeBank.Data
 
         public DbSet<FileItem> Files { get; set; }
         public DbSet<Tag> Tags { get; set; }
-                public DbSet<FileTagLink> FileTagLinks { get; set; }
+        public DbSet<FileTagLink> FileTagLinks { get; set; }
 
         public DbSet<UserTag> UserTags { get; set; }
         public DbSet<Role> Roles { get; set; }
@@ -22,6 +22,9 @@ namespace KnowledgeBank.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<FileTagLink>()
+                .HasKey(ft => new { ft.DocId, ft.TagId }); // Define composite primary key
+                
             base.OnModelCreating(modelBuilder);
 
             // Configure composite keys for join tables
