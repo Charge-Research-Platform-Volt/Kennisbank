@@ -10,19 +10,18 @@ namespace KnowledgeBank.Data
         public DbSet<FileItem> Files { get; set; }
 
         public DbSet<Tag> Tags { get; set; }
+        
+        public DbSet<FileTagLink> FileTagLinks { get; set; }
 
         public DbSet<UserTag> UserTags { get; set; }
 
 
-        // protected override void OnModelCreating(ModelBuilder modelBuilder)
-        // {
-        //     base.OnModelCreating(modelBuilder);
+         protected override void OnModelCreating(ModelBuilder modelBuilder)
+         {
+            modelBuilder.Entity<FileTagLink>()
+            .HasKey(ft => new { ft.DocId, ft.TagId }); // Define composite primary key
 
-        //     // Drive
-        //     modelBuilder.Entity<Drive>().HasKey(d => d.Id);
-        //     modelBuilder.Entity<Drive>().Property(d => d.Name).IsRequired();
-        //     modelBuilder.Entity<Drive>().Property(d => d.Description).IsRequired();
-        //     modelBuilder.Entity<Drive>().Property(d => d.ImageUrl).IsRequired();
-        // }
+            base.OnModelCreating(modelBuilder);
+         }
     }
 }

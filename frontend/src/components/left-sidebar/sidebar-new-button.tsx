@@ -1,0 +1,268 @@
+"use client";
+
+import { useRef, useEffect, useState, ChangeEvent, useActionState, useTransition } from "react";
+import "@/components/ui/Popup.css";
+import "@/app/globals.css";
+import { AddDocument } from "@/actions/documentActions";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import { FormResponse } from "@/types/return.type";
+import { DocumentBase } from "@/types/document.type";
+import { Button } from "@/components/ui/button";
+import { getFileHasher } from "@/utils/fileHashWorker";
+import { TagsArray } from "@/types/tag.type";
+import TagSelectionDropdown from "../TagSelectionDropdown";
+import { InputHeader, InputBlock, FInput, FileInfo, PopupTitle } from "../ui/Popup";
+import New from "@/icons/new";
+
+type UploadStatus = "idle" | "uploading" | "success" | "error" | "checking";
+
+const initialState: FormResponse<DocumentBase> = {
+  success: false,
+  message: "",
+};
+
+export default function NewButton({ tags }: { tags: TagsArray }) {
+  const popupRef = useRef<HTMLDivElement | null>(null); //Ref used to check if user clicks outside of popup
+  const [status, setStatus] = useState<UploadStatus>("idle"); //upload status
+  const [uploadPopup, setUploadPopup] = useState(false); //bool which determines whether you can see the new popup
+  const [newFile, setNewFile] = useState<File | null>(null); //File for file upload
+  const [fileHash, setFileHash] = useState<string>(""); // Hash of the file
+  const [isDuplicate, setIsDuplicate] = useState<boolean>(false); // If file already exists in storage
+  const setDupeId = useState<string>("")[1]; // The ID of the file if it already exists in archive
+
+  const [author, setAuthor] = useState<string>("");
+  const setDescription = useState<string>("")[1];
+  const [title, setTitle] = useState<string>("");
+
+  const [isPendingTransition, startTransition] = useTransition();
+  const [state, action] = useActionState((prevState: FormResponse<DocumentBase>, formData: FormData) => {
+    const fileName = newFile?.name.substring(0, newFile?.name.lastIndexOf(".")) || "";
+    return AddDocument(fileName, fileHash, prevState, formData);
+  }, initialState);
+
+  const isPending = isPendingTransition;
+
+  //error messaging //
+
+  useEffect(() => {
+    if (state.success) {
+      toast.success(state.message);
+
+      closeUploadPopup();
+    } else if (state.message) {
+      toast.error(state.message);
+    }
+  }, [state]);
+
+  //upload new file popup //
+  const closePopup = (e: MouseEvent) => {
+    if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+      closeUploadPopup(); // When the mouse is clicked outside of the popup, the popup closes
+    }
+  };
+
+  const clickNew = () => {
+    setUploadPopup(true); //opens popup for file upload
+  };
+
+  const closeUploadPopup = () => {
+    //When the popup closes values are reset
+    setUploadPopup(false);
+    setNewFile(null);
+    setFileHash("");
+    setIsDuplicate(false);
+    setDupeId("");
+    setAuthor("");
+    setDescription("");
+    setTitle("");
+    setStatus("idle");
+  };
+
+  useEffect(() => {
+    //event listener on mouse used to close popup whenever a mouseclick occurs outside the popup
+    if (uploadPopup) {
+      document.addEventListener("mousedown", closePopup);
+    }
+    return () => {
+      document.removeEventListener("mousedown", closePopup);
+    };
+  }, [uploadPopup]);
+
+  async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    //is called when a file is selected from explorer
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setNewFile(file);
+      setStatus("checking");
+
+      // Hash the file and check if it already exists in the database
+      try {
+        const fileHasher = getFileHasher();
+        const result = await fileHasher.checkDuplicate(file);
+
+        setFileHash(result.hash);
+        setIsDuplicate(result.isDuplicate);
+
+        if (result.isDuplicate) {
+          toast.warning("This file might already exists in the archive.");
+          setDupeId(result.id);
+        }
+        setStatus("idle");
+      } catch (error) {
+        console.error("Error checking file: ", error);
+        toast.error("Error checking file. Please try again.");
+        setStatus("error");
+      }
+    }
+  }
+
+  const handleSubmit = async (formData: FormData) => {
+    if (isDuplicate) {
+      toast.error("Cannot upload duplicate file!");
+      return;
+    }
+
+    if (!newFile) {
+      toast.error("Please select a file.");
+      return;
+    }
+
+    setStatus("uploading");
+
+    try {
+      startTransition(async () => {
+        await action(formData);
+      });
+    } catch (error) {
+      console.error("Upload error: ", error);
+      setStatus("error");
+    }
+  };
+
+  return (
+    <div>
+      <DropdownMenu>
+        {/* Purple New button */}
+        <DropdownMenuTrigger className="font-face bg-purple text-md active:bg-purple flex h-9 w-full cursor-pointer items-center gap-1 rounded-md pl-3 text-left text-white hover:bg-[#6f2aaf]">
+          <New className="h-5 w-5" />
+          <div className="pb-0.5">New</div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          {/* Upload item in popup */}
+          <DropdownMenuItem className="w-auto" onClick={clickNew}>
+            <label className="inline-block cursor-pointer">Upload New Document</label>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {/* New project item in popup */}
+          <DropdownMenuItem>
+            <label className="inline-block cursor-pointer">Create New Project</label>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {uploadPopup && (
+        <div className="popupContainer">
+          <div ref={popupRef} className="popup h-full min-h-155 min-w-130 p-5">
+            <form
+              className="h-full max-h-[100%]"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                handleSubmit(formData);
+              }}
+            >
+              <div className="flex h-full w-full flex-col justify-between">
+                <div className="flex-1 justify-start">
+                  <div className="flex-1 justify-start">
+                    <PopupTitle>Upload Document</PopupTitle>
+                    <div className="mt-5 mb-2 flex h-10 w-40">
+                      {/* Label is what you see however you click the input */}
+                      <label htmlFor="file-Picker" className="labelCSS flex h-full w-full min-w-40 cursor-pointer items-center justify-center rounded-xl bg-[#E5E5E5] font-bold hover:bg-[#c9c2c2]">
+                        {status === "checking" ? "Checking file..." : "Upload New File"}
+                      </label>
+                      <input
+                        id="file-Picker"
+                        name="file"
+                        style={{ visibility: "hidden", position: "absolute" }}
+                        type="file"
+                        onChange={handleFileChange}
+                        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                        disabled={status === "checking" || status === "uploading"}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Information on uploaded file */}
+                  <div>
+                    <div className="flex">
+                      <FileInfo>
+                        Type: {newFile && newFile.type} {!newFile && "-"}
+                      </FileInfo>
+                      <FileInfo>
+                        Size: {newFile && (newFile.size / 1024).toFixed(2)} {!newFile && "-"} KB
+                      </FileInfo>
+                      {fileHash && <FileInfo>Hash: {fileHash.substring(0, 10)}...</FileInfo>}
+                      <FileInfo>
+                        Hash: {fileHash && `${fileHash.substring(0, 10)}...`} {!fileHash && "-"}
+                      </FileInfo>
+                      {isDuplicate && <p className="font-bold text-red-500">Duplicate file detected!</p>}
+                    </div>
+                  </div>
+
+                  {/* Document title entry */}
+                  <InputBlock className="justify-start">
+                    <InputHeader>Document Title: </InputHeader>
+                    <FInput className="w-full" type="string" placeholder="Enter document title" name="name" onChange={(e) => setTitle(e.target.value.trim())} />
+                  </InputBlock>
+
+                  <div className="flex gap-3">
+                    {/* Description entry */}
+                    <div className="flex-1">
+                      <InputBlock>
+                        <InputHeader>Description: </InputHeader>
+                        <textarea
+                          draggable="false"
+                          name="description"
+                          placeholder="Enter description"
+                          maxLength={512}
+                          className="h-40 w-full resize-none bg-slate-200 pl-2"
+                          onChange={(e) => setDescription(e.target.value.trim())}
+                        />
+                      </InputBlock>
+
+                      {/* Author entry */}
+                      <InputBlock>
+                        <InputHeader className="">Author Name: </InputHeader>
+                        <FInput className="w-full" type="string" name="author" placeholder="Enter author name" onChange={(e) => setAuthor(e.target.value.trim())} />
+                      </InputBlock>
+                    </div>
+
+                    <div className="flex flex-1 flex-col">
+                      {/* Add Tags dropdown box*/}
+                      <TagSelectionDropdown className="h-full w-full" tags={tags}></TagSelectionDropdown>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div className="float-right flex justify-end">
+                    {/* Upload button */}
+                    <Button
+                      type="submit"
+                      className="float-right h-10 w-50 cursor-pointer rounded-xl text-lg font-bold"
+                      disabled={status === "checking" || isPending || isDuplicate || !newFile || author == "" || title == ""}
+                    >
+                      <div className="pb-0.5">{isPending ? "Uploading..." : "Upload"}</div>
+                    </Button>
+                  </div>
+                </div>
+
+                <input type="hidden" name="hash" value={fileHash} />
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
