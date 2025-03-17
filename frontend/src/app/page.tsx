@@ -14,11 +14,11 @@ export default async function Home() {
         "http://backend:8080/KnowledgeBank/members",
     );
 
-    return (
-        <div>
-            Hello World!
-            <div>
-                <h1>Team (from the backend):</h1>
+  return (
+    <div>
+      <h1>Hello World!</h1>
+      <div>
+        <h1>Team (from the backend):</h1>
 
                 {result.data &&
                     result.data.map((member) => (
