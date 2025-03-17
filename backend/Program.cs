@@ -17,7 +17,6 @@ namespace KnowledgeBank
     public class Program
     {
         public static async Task Main(string[] args)
-        public static async Task Main(string[] args)
         {
             // # Builder
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
