@@ -1,17 +1,22 @@
 using backend.Data;
+using backend.Security;
 using KnowledgeBank.Data;
 using KnowledgeBank.Extensions;
+using KnowledgeBank.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
+using System.Threading.Tasks;
 
 namespace KnowledgeBank
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             // # Builder
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -19,9 +24,32 @@ namespace KnowledgeBank
 
             // # Services
             builder.Services.AddControllers();
+            builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
+            builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, CustomAuthorizationMiddlewareResultHandler>();
+            builder.Services.AddAuthorization(options =>
+            {
+                foreach (string roleName in RoleInitializer.roleNames)
+                {
+                    options.AddPolicy($"Require{ char.ToUpper(roleName[0]) + roleName.Substring(1) }Role", policy => policy.RequireRole(roleName));
+                }
+
+                // This line terminates the handler on first failure, when more information is required, set this to true.
+                // This gives an increase in performance, but omits some information which might be required for complex
+                // authorization scenarios. This setting only affects the authorization middleware, not the controllers.
+                options.InvokeHandlersAfterFailure = false;
+            });
+            //
+            // Add this line after the code below to enable authentication with JWT tokens: .AddBearerToken(IdentityConstants.BearerScheme);
+            builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
+            
+            builder.Services.AddIdentityCore<User>()
+                            .AddRoles<IdentityRole>()
+                            .AddEntityFrameworkStores<DatabaseContext>()
+                            .AddApiEndpoints();
+
+
             builder.Services.AddOpenApi();
             builder.Services.AddSwaggerGen(ConfigureSwagger);
-            builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
 
 
             // # Database context
@@ -30,6 +58,17 @@ namespace KnowledgeBank
                 options => options.UseNpgsql(builder.Configuration.GetValue<string>("CONNECTION_STRING")
             ));
 
+            // CORS to allow Cross Origin Resource Sharing
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowFrontend", policy =>
+                {
+                    policy.WithOrigins("http://localhost:3000")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials();
+                });
+            });
 
             // # Application
             WebApplication app = builder.Build();
@@ -39,7 +78,6 @@ namespace KnowledgeBank
             if (app.Environment.IsDevelopment())
             {
                 // Run only in development environment:
-
                 app.MapOpenApi();
                 app.UseSwagger();
                 app.UseSwaggerUI(ConfigureSwaggerUI);
@@ -48,8 +86,20 @@ namespace KnowledgeBank
                 app.ApplyMigrations();
             }
 
+            // Initialize roles
+            using (IServiceScope scope = app.Services.CreateScope())
+            {
+                await RoleInitializer.InitializeAsync(app.Services);
+                await TestDataSeeder.Seed(app.Services);
+            }
+
             app.UseRouting();
+            app.UseCors("AllowFrontend");
+            app.UseAuthentication();
+            app.UseAuthorization();
             app.MapControllers();
+            app.MapIdentityApi<User>();
+
             app.Run();
         }
 

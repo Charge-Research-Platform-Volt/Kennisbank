@@ -8,12 +8,15 @@ using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 
 namespace backend.Controllers
 {
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
+    //[Authorize] -- Activate when possible to log in
     public class StorageController : ControllerBase
     {
         private readonly IAzureBlobService blobService;
@@ -74,10 +77,23 @@ namespace backend.Controllers
                             Id = id,
                             Name = dto.Name,
                             Description = dto.Description,
+                            Hash = dto.Hash,
                             FileType = fileType,
                         };
 
                         await database.Files.AddAsync(drive);
+
+                        foreach(string tag in dto.Tags)
+                        {
+                            FileTagLink tagEntry = new()
+                            {
+                                DocId = id,
+                                TagId = Guid.Parse(tag),
+                            };
+                            
+                            await database.FileTagLinks.AddAsync(tagEntry);
+                        }
+
                         await database.SaveChangesAsync();
 
                         return Ok(new FileUploadResult(id.ToString(), fileType, dto.File.Length));
@@ -148,6 +164,7 @@ namespace backend.Controllers
         }
 
         [HttpDelete("delete/{id}")]
+        [Authorize(Policy = "RequireAdminRole")]
         [SwaggerOperation(
             Summary = "Delete a file from storage.",
             Description = "Deletes the given file from the given container in the Azure Blob Storage."
@@ -230,31 +247,32 @@ namespace backend.Controllers
             }
         }
 
-        [HttpGet("exists/{id}")]
+        [EnableCors("AllowFrontend")]
+        [HttpGet("exists/{hash}")]
         [SwaggerOperation(
             Summary = "Check if a file exists.",
-            Description = "Checks if the given file exists in the given container."
+            Description = "Checks if the given file exists based on its hash."
         )]
-        [SwaggerResponse(200, "Response with boolean indicating if file exists.", typeof(bool))]
+        [SwaggerResponse(200, "Response with boolean indicating if file exists.", typeof(StorageResponse))]
         [SwaggerResponse(400, "Invalid filename", typeof(StorageResponse))]
         [SwaggerResponse(500, "Server error", typeof(StorageResponse))]
-        public async Task<IActionResult> Exists(string id)
+        public async Task<IActionResult> Exists(string hash)
         {
-            if (string.IsNullOrEmpty(id))
-                return BadRequest(new StorageResponse("Invalid ID."));
+            if (string.IsNullOrEmpty(hash))
+                return BadRequest(new StorageResponse("Invalid hash."));
 
             try
             {
-                FileItem? item = await database.Files.FindAsync(Guid.Parse(id));
+                FileItem? item = await database.Files.Where(f => f.Hash == hash).FirstOrDefaultAsync();
 
                 if (item == null)
-                    return Ok(false);
+                    return Ok(new ExistsResponse("File does not exist.", false, ""));
 
-                return Ok(true);
+                return Ok(new ExistsResponse("File already exists", true, item.Id.ToString()));
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error checking if file with ID {Id} exists.", id);
+                logger.Error(e, "Error checking if file with hash {Hash} exists.", hash);
                 return StatusCode(500, new StorageResponse("Error while checking if file exists."));
             }
         }

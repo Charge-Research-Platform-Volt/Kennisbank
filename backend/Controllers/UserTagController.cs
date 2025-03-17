@@ -1,5 +1,6 @@
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -10,6 +11,7 @@ namespace KnowledgeBank.Controllers;
 [ApiController]
 [Route("[controller]")]
 [Produces("application/json")]
+[Authorize]
 public class UserTagController : ControllerBase 
 {
     // Database context
@@ -284,6 +286,7 @@ public class UserTagController : ControllerBase
     /// Returns a 200 OK response containing the created tag.
     // </returns>
     [HttpPatch("approve-usertag/{id}")]
+    [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
         Summary = "Approve a user tag.", 
         Description = "Marks a user-created tag as approved and adds it to the tags table."

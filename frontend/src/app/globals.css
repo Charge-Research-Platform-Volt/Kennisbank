@@ -1,12 +1,11 @@
 @import "tailwindcss";
 
-@plugin "tailwindcss-animate";
-
 @custom-variant dark (&:is(.dark *));
 
 :root {
   --purple: #502379;
   --purple-foreground: #c6b2d9;
+  --lgray: #E5E5E5;
 
   /* Remove after design theme implementation */
   --background: oklch(1 0 0);
