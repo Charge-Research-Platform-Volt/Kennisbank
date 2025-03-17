@@ -13,7 +13,7 @@ namespace KnowledgeBank
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             // # Builder
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -65,6 +65,11 @@ namespace KnowledgeBank
                 app.UseDeveloperExceptionPage();
 
                 app.ApplyMigrations();
+            }
+
+            using (IServiceScope scope = app.Services.CreateScope())
+            {
+                await TestDataSeeder.Seed(app.Services);
             }
 
             app.UseRouting();
