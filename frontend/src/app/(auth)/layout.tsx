@@ -1,7 +1,22 @@
 import Image from "next/image";
+import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 
+export default async function LoginLayout({ children }: { children: React.ReactNode }) {
+    const response = await fetch("http://backend:8080/api/auth/status", {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            Cookie: (await cookies()).toString() || "", // Cookies meesturen!
+        },
+      });
+    
+    const data = await response.json();
 
-export default function LoginLayout({ children }: { children: React.ReactNode }) {
+    if (data.isAuthenticated) {
+    redirect("/");
+    }
+    
     return (
         <div className="flex w-full h-screen">
             {/* Login/signup part (left part) */}

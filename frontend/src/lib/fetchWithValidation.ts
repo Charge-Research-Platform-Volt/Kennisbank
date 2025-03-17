@@ -26,7 +26,7 @@ export async function FetchWithValidation<T>(
             credentials: "include", // 🔥 Hiermee stuurt de browser sessie-cookies mee!
             headers: {
                 "Content-Type": "application/json",
-                Cookie: cookies().toString(),
+                Cookie: await cookies().toString(),
             },
         });
 
