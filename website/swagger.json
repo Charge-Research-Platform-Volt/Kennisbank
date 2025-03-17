@@ -1,0 +1,797 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "KnowledgeBank",
+    "version": "v1"
+  },
+  "paths": {
+    "/Drive/all-documents": {
+      "get": {
+        "tags": [
+          "Drive"
+        ],
+        "summary": "Retrieves all documents from the drive.",
+        "description": "Returns a list of all documents in the database.",
+        "responses": {
+          "200": {
+            "description": "List of all documents."
+          },
+          "500": {
+            "description": "An error occurred while retrieving documents."
+          }
+        }
+      }
+    },
+    "/Drive/add-document": {
+      "post": {
+        "tags": [
+          "Drive"
+        ],
+        "summary": "Add a document to the drive.",
+        "description": "Creates a new document in the database.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DriveCreateDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DriveCreateDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DriveCreateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Document created."
+          },
+          "400": {
+            "description": "Name and Description are required."
+          }
+        }
+      }
+    },
+    "/KnowledgeBank/members": {
+      "get": {
+        "tags": [
+          "KnowledgeBank"
+        ],
+        "summary": "Get all team members",
+        "description": "Returns a list of all team members",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/Storage/upload": {
+      "post": {
+        "tags": [
+          "Storage"
+        ],
+        "summary": "Upload a file to storage.",
+        "description": "Uploads a file to Azure Blob Storage and returns metadata.",
+        "parameters": [
+          {
+            "name": "containerName",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "archive"
+            }
+          },
+          {
+            "name": "overwrite",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              },
+              "encoding": {
+                "file": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "File was uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid file"
+          },
+          "404": {
+            "description": "Container does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "File already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/Storage/download/{fileName}": {
+      "get": {
+        "tags": [
+          "Storage"
+        ],
+        "summary": "Download a file from storage.",
+        "description": "Downloads a given blob from the given container in the Azure Blob Storage.",
+        "parameters": [
+          {
+            "name": "fileName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "containerName",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "archive"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File found and returned"
+          },
+          "404": {
+            "description": "Invalid file or container name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/Storage/delete/{fileName}": {
+      "get": {
+        "tags": [
+          "Storage"
+        ],
+        "summary": "Delete a file from storage.",
+        "description": "Deletes the given file from the given container in the Azure Blob Storage.",
+        "parameters": [
+          {
+            "name": "fileName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "containerName",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "archive"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid filename",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/Storage/copy": {
+      "get": {
+        "tags": [
+          "Storage"
+        ],
+        "summary": "Copies a file in storage.",
+        "description": "Copies the given file to the new location in the Azure Blob Storage. The destination file name will be made unique by this function.",
+        "parameters": [
+          {
+            "name": "currentFileName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "destinationFileName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "currentContainerName",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "archive"
+            }
+          },
+          {
+            "name": "destinationContainerName",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "archive"
+            }
+          },
+          {
+            "name": "overwrite",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File copied successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid file/container names",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "File already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/Storage/move": {
+      "get": {
+        "tags": [
+          "Storage"
+        ],
+        "summary": "Moves a file in storage.",
+        "description": "Moves the given file to the new location in the Azure Blob Storage. The destination file name will be made unique by this function.",
+        "parameters": [
+          {
+            "name": "currentFileName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "destinationFileName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "currentContainerName",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "archive"
+            }
+          },
+          {
+            "name": "destinationContainerName",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "archive"
+            }
+          },
+          {
+            "name": "overwrite",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File moved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid file/container names",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "File already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/Storage/rename": {
+      "get": {
+        "tags": [
+          "Storage"
+        ],
+        "summary": "Renames a file in storage.",
+        "description": "Rename the given file to the new location in the Azure Blob Storage. The destination file name will be made unique by this function.",
+        "parameters": [
+          {
+            "name": "currentFileName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "newFileName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "containerName",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "archive"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File renamed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid file/container names",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "File already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/Storage/create-container/{containerName}": {
+      "get": {
+        "tags": [
+          "Storage"
+        ],
+        "summary": "Create a container in storage.",
+        "description": "Creates a container in the Azure Blob Storage.",
+        "parameters": [
+          {
+            "name": "containerName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Container was created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid container name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/Storage/delete-container/{containerName}": {
+      "get": {
+        "tags": [
+          "Storage"
+        ],
+        "summary": "Delete a container in storage.",
+        "description": "Deletes a container in the Azure Blob Storage.",
+        "parameters": [
+          {
+            "name": "containerName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Container was deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid container name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/Storage/exists": {
+      "get": {
+        "tags": [
+          "Storage"
+        ],
+        "summary": "Check if a file exists.",
+        "description": "Checks if the given file exists in the given container.",
+        "parameters": [
+          {
+            "name": "fileName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "containerName",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "archive"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response with boolean indicating if file exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid filename",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/Storage/page": {
+      "get": {
+        "tags": [
+          "Storage"
+        ],
+        "summary": "Lists a page of files",
+        "description": "Lists a page of files in a given container.",
+        "parameters": [
+          {
+            "name": "containerName",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "archive"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "continuationToken",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "prefix",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": ""
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of files",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Container does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DriveCreateDto": {
+        "required": [
+          "description",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "STORAGE_RESPONSE_TYPE": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
+      "StorageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "responseType": {
+            "$ref": "#/components/schemas/STORAGE_RESPONSE_TYPE"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}
