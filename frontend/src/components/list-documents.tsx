@@ -1,17 +1,9 @@
 import React from "react";
-import { DocumentPageResponseSchema } from "@/types/document.type";
-import { FetchWithValidation } from "@/lib/fetchWithValidation";
-import { CloudAlert } from "lucide-react";
 
 export default async function ListDocuments() {
-    const result = await FetchWithValidation(
-       DocumentPageResponseSchema,
-       "http://backend:8080/Storage/list-all",
-    );
-
-    return (
-        <div>
-            <h1>Documents</h1>
+  return (
+    <div className="p-2">
+      {/*<h1>Documents (from the database):</h1>
             {result.data &&
                 result.data.files.map((document) => (
                     <div key={document.id} className="flex flex-row gap-4">
@@ -25,6 +17,7 @@ export default async function ListDocuments() {
                     <p>{result.error.message}</p>
                 </div>
             )}
-        </div>
-    );
+            */}
+    </div>
+  );
 }

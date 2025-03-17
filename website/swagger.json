@@ -5,59 +5,6 @@
     "version": "v1"
   },
   "paths": {
-    "/Drive/all-documents": {
-      "get": {
-        "tags": [
-          "Drive"
-        ],
-        "summary": "Retrieves all documents from the drive.",
-        "description": "Returns a list of all documents in the database.",
-        "responses": {
-          "200": {
-            "description": "List of all documents."
-          },
-          "500": {
-            "description": "An error occurred while retrieving documents."
-          }
-        }
-      }
-    },
-    "/Drive/add-document": {
-      "post": {
-        "tags": [
-          "Drive"
-        ],
-        "summary": "Add a document to the drive.",
-        "description": "Creates a new document in the database.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DriveCreateDto"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DriveCreateDto"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/DriveCreateDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Document created."
-          },
-          "400": {
-            "description": "Name and Description are required."
-          }
-        }
-      }
-    },
     "/KnowledgeBank/members": {
       "get": {
         "tags": [
@@ -73,44 +20,64 @@
       }
     },
     "/Storage/upload": {
-      "post": {
+      "put": {
         "tags": [
           "Storage"
         ],
         "summary": "Upload a file to storage.",
         "description": "Uploads a file to Azure Blob Storage and returns metadata.",
-        "parameters": [
-          {
-            "name": "containerName",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "default": "archive"
-            }
-          },
-          {
-            "name": "overwrite",
-            "in": "query",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
+                "required": [
+                  "Description",
+                  "File",
+                  "Name"
+                ],
                 "type": "object",
                 "properties": {
-                  "file": {
+                  "Name": {
+                    "type": "string"
+                  },
+                  "Description": {
+                    "type": "string"
+                  },
+                  "File": {
                     "type": "string",
                     "format": "binary"
+                  },
+                  "Hash": {
+                    "type": "string"
+                  },
+                  "Overwrite": {
+                    "type": "boolean"
+                  },
+                  "Tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
                   }
                 }
               },
               "encoding": {
-                "file": {
+                "Name": {
+                  "style": "form"
+                },
+                "Description": {
+                  "style": "form"
+                },
+                "File": {
+                  "style": "form"
+                },
+                "Hash": {
+                  "style": "form"
+                },
+                "Overwrite": {
+                  "style": "form"
+                },
+                "Tags": {
                   "style": "form"
                 }
               }
@@ -129,7 +96,14 @@
             }
           },
           "400": {
-            "description": "Invalid file"
+            "description": "Invalid file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
           },
           "404": {
             "description": "Container does not exist",
@@ -152,12 +126,19 @@
             }
           },
           "500": {
-            "description": "Server error"
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/Storage/download/{fileName}": {
+    "/Storage/download/{id}": {
       "get": {
         "tags": [
           "Storage"
@@ -166,19 +147,11 @@
         "description": "Downloads a given blob from the given container in the Azure Blob Storage.",
         "parameters": [
           {
-            "name": "fileName",
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "name": "containerName",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "default": "archive"
             }
           }
         ],
@@ -186,8 +159,18 @@
           "200": {
             "description": "File found and returned"
           },
+          "400": {
+            "description": "Invalid location.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
           "404": {
-            "description": "Invalid file or container name",
+            "description": "File not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -197,13 +180,20 @@
             }
           },
           "500": {
-            "description": "Server error"
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/Storage/delete/{fileName}": {
-      "get": {
+    "/Storage/delete/{id}": {
+      "delete": {
         "tags": [
           "Storage"
         ],
@@ -211,19 +201,11 @@
         "description": "Deletes the given file from the given container in the Azure Blob Storage.",
         "parameters": [
           {
-            "name": "fileName",
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "name": "containerName",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "default": "archive"
             }
           }
         ],
@@ -259,61 +241,7 @@
             }
           },
           "500": {
-            "description": "Server error"
-          }
-        }
-      }
-    },
-    "/Storage/copy": {
-      "get": {
-        "tags": [
-          "Storage"
-        ],
-        "summary": "Copies a file in storage.",
-        "description": "Copies the given file to the new location in the Azure Blob Storage. The destination file name will be made unique by this function.",
-        "parameters": [
-          {
-            "name": "currentFileName",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "destinationFileName",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "currentContainerName",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "default": "archive"
-            }
-          },
-          {
-            "name": "destinationContainerName",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "default": "archive"
-            }
-          },
-          {
-            "name": "overwrite",
-            "in": "query",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "File copied successfully",
+            "description": "Server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -321,168 +249,36 @@
                 }
               }
             }
-          },
-          "400": {
-            "description": "Invalid file/container names",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StorageResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "File not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StorageResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "File already exists",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StorageResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server error"
-          }
-        }
-      }
-    },
-    "/Storage/move": {
-      "get": {
-        "tags": [
-          "Storage"
-        ],
-        "summary": "Moves a file in storage.",
-        "description": "Moves the given file to the new location in the Azure Blob Storage. The destination file name will be made unique by this function.",
-        "parameters": [
-          {
-            "name": "currentFileName",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "destinationFileName",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "currentContainerName",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "default": "archive"
-            }
-          },
-          {
-            "name": "destinationContainerName",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "default": "archive"
-            }
-          },
-          {
-            "name": "overwrite",
-            "in": "query",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "File moved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StorageResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid file/container names",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StorageResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "File not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StorageResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "File already exists",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StorageResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server error"
           }
         }
       }
     },
     "/Storage/rename": {
-      "get": {
+      "patch": {
         "tags": [
           "Storage"
         ],
         "summary": "Renames a file in storage.",
         "description": "Rename the given file to the new location in the Azure Blob Storage. The destination file name will be made unique by this function.",
-        "parameters": [
-          {
-            "name": "currentFileName",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "newFileName",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "containerName",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "default": "archive"
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorageRenameDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorageRenameDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorageRenameDto"
+              }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
             "description": "File renamed successfully",
@@ -495,7 +291,7 @@
             }
           },
           "400": {
-            "description": "Invalid file/container names",
+            "description": "Invalid name or ID",
             "content": {
               "application/json": {
                 "schema": {
@@ -514,8 +310,8 @@
               }
             }
           },
-          "409": {
-            "description": "File already exists",
+          "500": {
+            "description": "Server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -523,122 +319,24 @@
                 }
               }
             }
-          },
-          "500": {
-            "description": "Server error"
           }
         }
       }
     },
-    "/Storage/create-container/{containerName}": {
-      "get": {
-        "tags": [
-          "Storage"
-        ],
-        "summary": "Create a container in storage.",
-        "description": "Creates a container in the Azure Blob Storage.",
-        "parameters": [
-          {
-            "name": "containerName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Container was created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StorageResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid container name",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StorageResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server error"
-          }
-        }
-      }
-    },
-    "/Storage/delete-container/{containerName}": {
-      "get": {
-        "tags": [
-          "Storage"
-        ],
-        "summary": "Delete a container in storage.",
-        "description": "Deletes a container in the Azure Blob Storage.",
-        "parameters": [
-          {
-            "name": "containerName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Container was deleted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StorageResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid container name",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StorageResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server error"
-          }
-        }
-      }
-    },
-    "/Storage/exists": {
+    "/Storage/exists/{hash}": {
       "get": {
         "tags": [
           "Storage"
         ],
         "summary": "Check if a file exists.",
-        "description": "Checks if the given file exists in the given container.",
+        "description": "Checks if the given file exists based on its hash.",
         "parameters": [
           {
-            "name": "fileName",
-            "in": "query",
+            "name": "hash",
+            "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "name": "containerName",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "default": "archive"
             }
           }
         ],
@@ -648,7 +346,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "boolean"
+                  "$ref": "#/components/schemas/StorageResponse"
                 }
               }
             }
@@ -664,55 +362,38 @@
             }
           },
           "500": {
-            "description": "Server error"
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/Storage/page": {
+    "/Storage/file/{id}": {
       "get": {
         "tags": [
           "Storage"
         ],
-        "summary": "Lists a page of files",
-        "description": "Lists a page of files in a given container.",
+        "summary": "Get information of file.",
+        "description": "Retrieve the database information of the given file.",
         "parameters": [
           {
-            "name": "containerName",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "default": "archive"
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 1
-            }
-          },
-          {
-            "name": "continuationToken",
-            "in": "query",
+            "name": "id",
+            "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "name": "prefix",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "default": ""
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "List of files",
+            "description": "File information.",
             "content": {
               "application/json": {
                 "schema": {
@@ -722,7 +403,7 @@
             }
           },
           "400": {
-            "description": "Invalid input",
+            "description": "Invalid ID.",
             "content": {
               "application/json": {
                 "schema": {
@@ -732,7 +413,7 @@
             }
           },
           "404": {
-            "description": "Container does not exist",
+            "description": "File not found.",
             "content": {
               "application/json": {
                 "schema": {
@@ -742,7 +423,471 @@
             }
           },
           "500": {
-            "description": "Server error"
+            "description": "Server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/Storage/list-all": {
+      "get": {
+        "tags": [
+          "Storage"
+        ],
+        "summary": "List all files in storage.",
+        "description": "Lists all files in the storage.",
+        "responses": {
+          "200": {
+            "description": "A list of all files in the storage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/Storage/list-paged": {
+      "get": {
+        "tags": [
+          "Storage"
+        ],
+        "summary": "Lists files paged.",
+        "description": "Lists files on a certain page of certain size.",
+        "parameters": [
+          {
+            "name": "pageIndex",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A specified page of files of a specified size.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid page index or page size",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/Tag/all-tags": {
+      "get": {
+        "tags": [
+          "Tag"
+        ],
+        "summary": "List all tags.",
+        "description": "List all standardized tags created by admins.",
+        "responses": {
+          "200": {
+            "description": "List of tags",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Tag"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/Tag/add-tag/{tagName}": {
+      "post": {
+        "tags": [
+          "Tag"
+        ],
+        "summary": "Adds new standard tag.",
+        "description": "Lets an admin add a new tag to the list of standardized tags.",
+        "parameters": [
+          {
+            "name": "tagName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "New tag added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tag"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "409": {
+            "description": "Tag already exists"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/Tag/delete-tag/{id}": {
+      "delete": {
+        "tags": [
+          "Tag"
+        ],
+        "summary": "Delete standard tag.",
+        "description": "Lets and admin delete a tag from the list of standardized tags.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tag deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tag"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "404": {
+            "description": "Tag not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/Tag/change-tag-name/{id}/{newName}": {
+      "patch": {
+        "tags": [
+          "Tag"
+        ],
+        "summary": "Change tag name.",
+        "description": "Lets and admin change the name of a standardized tag.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "newName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tag name changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tag"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "404": {
+            "description": "Tag not found"
+          },
+          "409": {
+            "description": "Tag already exists"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/UserTag/all-tags": {
+      "get": {
+        "tags": [
+          "UserTag"
+        ],
+        "summary": "List all user tags.",
+        "description": "List all standardized tags created by users.",
+        "responses": {
+          "200": {
+            "description": "List of tags",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserTag"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/UserTag/add-usertag/{tagName}": {
+      "post": {
+        "tags": [
+          "UserTag"
+        ],
+        "summary": "Adds new user tag.",
+        "description": "Lets a user add a new tag to the list of user tags.",
+        "parameters": [
+          {
+            "name": "tagName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "New tag added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserTag"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "409": {
+            "description": "Tag already exists"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/UserTag/delete-usertag/{id}": {
+      "delete": {
+        "tags": [
+          "UserTag"
+        ],
+        "summary": "Delete user tag.",
+        "description": "Lets a user delete a tag from the list of user tags.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tag deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserTag"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Tag not found"
+          },
+          "409": {
+            "description": "Tag has been approved and can no longer be deleted"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/UserTag/change-usertag-name/{id}/{newName}": {
+      "patch": {
+        "tags": [
+          "UserTag"
+        ],
+        "summary": "Change user tag name.",
+        "description": "Lets a user change the name of a user tag.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "newName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tag name changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserTag"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Tag not found"
+          },
+          "409": {
+            "description": "New tag name already exists or tag has been approved and can no longer be edited"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/UserTag/approve-usertag/{id}": {
+      "patch": {
+        "tags": [
+          "UserTag"
+        ],
+        "summary": "Approve a user tag.",
+        "description": "Marks a user-created tag as approved and adds it to the tags table.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tag approved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tag"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "404": {
+            "description": "Tag not found"
+          },
+          "409": {
+            "description": "Tag name already exists"
           }
         }
       }
@@ -750,34 +895,23 @@
   },
   "components": {
     "schemas": {
-      "DriveCreateDto": {
+      "StorageRenameDto": {
         "required": [
-          "description",
+          "id",
           "name"
         ],
         "type": "object",
         "properties": {
-          "name": {
+          "id": {
             "type": "string",
             "nullable": true
           },
-          "description": {
+          "name": {
             "type": "string",
             "nullable": true
           }
         },
         "additionalProperties": false
-      },
-      "STORAGE_RESPONSE_TYPE": {
-        "enum": [
-          0,
-          1,
-          2,
-          3,
-          4
-        ],
-        "type": "integer",
-        "format": "int32"
       },
       "StorageResponse": {
         "type": "object",
@@ -787,7 +921,61 @@
             "nullable": true
           },
           "responseType": {
-            "$ref": "#/components/schemas/STORAGE_RESPONSE_TYPE"
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Tag": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UserTag": {
+        "required": [
+          "id",
+          "name",
+          "user"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "isApproved": {
+            "type": "boolean"
+          },
+          "user": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "approvedOn": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "additionalProperties": false
