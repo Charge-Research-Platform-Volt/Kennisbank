@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -23,6 +24,7 @@ namespace KnowledgeBank.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         [Route("logout")]
         [SwaggerOperation(Summary = "Logs out the current user", Description = "Logs out the current user")]
         [SwaggerResponse(200, "The user has been logged out")]
@@ -36,6 +38,18 @@ namespace KnowledgeBank.Controllers
             }
 
             return Unauthorized();
+        }
+
+        [HttpGet]
+        [Authorize]
+        [Route("ping")]
+        [SwaggerOperation(Summary = "Gets the current user's email", Description = "Returns the email of the currently authenticated user")]
+        [SwaggerResponse(200, "The user's email was returned", typeof(object))]
+        [SwaggerResponse(401, "The user is not authenticated")]
+        public IActionResult Ping()
+        {
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            return Ok(new { Email = email });
         }
     }
 }

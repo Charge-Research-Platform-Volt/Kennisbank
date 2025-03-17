@@ -27,9 +27,11 @@ namespace KnowledgeBank
             builder.Services.AddAuthorization();
             builder.Services.AddAuthorizationBuilder();
 
-            builder.Services.AddIdentityApiEndpoints<user>().AddEntityFrameworkStores<DatabaseContext>();
-            // builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
-            // builder.Services.AddIdentityCore<User>().AddEntityFrameworkStores<DatabaseContext>().AddApiEndpoints();
+
+            // Add this line after the code below to enable authentication with JWT tokens: .AddBearerToken(IdentityConstants.BearerScheme);
+            builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme).AddBearerToken(IdentityConstants.BearerScheme);
+            builder.Services.AddIdentityCore<User>().AddEntityFrameworkStores<DatabaseContext>().AddApiEndpoints();
+            // builder.Services.AddIdentityApiEndpoints<User>().AddEntityFrameworkStores<DatabaseContext>();
 
             builder.Services.AddOpenApi();
             builder.Services.AddSwaggerGen(ConfigureSwagger);
