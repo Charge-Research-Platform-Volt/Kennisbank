@@ -11,6 +11,8 @@ namespace KnowledgeBank.Data
 
         public DbSet<FileItem> Files { get; set; }
         public DbSet<Tag> Tags { get; set; }
+                public DbSet<FileTagLink> FileTagLinks { get; set; }
+
         public DbSet<UserTag> UserTags { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<Permission> Permissions { get; set; }

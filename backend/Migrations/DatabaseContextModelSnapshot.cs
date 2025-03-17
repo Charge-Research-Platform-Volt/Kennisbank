@@ -41,6 +41,11 @@ namespace backend.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("filetype");
 
+                    b.Property<string>("Hash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("hash");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -49,6 +54,21 @@ namespace backend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("files");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.FileTagLink", b =>
+                {
+                    b.Property<Guid>("DocId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("doc-id");
+
+                    b.Property<Guid>("TagId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tag-id");
+
+                    b.HasKey("DocId", "TagId");
+
+                    b.ToTable("doc-tag");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.Permission", b =>
