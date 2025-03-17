@@ -41,6 +41,11 @@ namespace backend.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("filetype");
 
+                    b.Property<string>("Hash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("hash");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -49,6 +54,227 @@ namespace backend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("files");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.FileTagLink", b =>
+                {
+                    b.Property<Guid>("DocId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("doc-id");
+
+                    b.Property<Guid>("TagId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tag-id");
+
+                    b.HasKey("DocId", "TagId");
+
+                    b.ToTable("doc-tag");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.Permission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("permissions");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Description = "Can upload files.",
+                            Name = "Permissions.Files.Upload"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Description = "Can download files.",
+                            Name = "Permissions.Files.Download"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Description = "Can edit files.",
+                            Name = "Permissions.Files.Edit"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Description = "Can delete files.",
+                            Name = "Permissions.Files.Delete"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Description = "Can view files.",
+                            Name = "Permissions.Files.View"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Description = "Can view users.",
+                            Name = "Permissions.Users.View"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Description = "Can add new users.",
+                            Name = "Permissions.Users.Create"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Description = "Can delete users.",
+                            Name = "Permissions.Users.Delete"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Description = "Can edit users.",
+                            Name = "Permissions.Users.Edit"
+                        });
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.Role", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("roles");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Description = "Administrator with full priviledges.",
+                            Name = "Admin"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Description = "Regular user.",
+                            Name = "User"
+                        });
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.RolePermission", b =>
+                {
+                    b.Property<int>("RoleId")
+                        .HasColumnType("integer")
+                        .HasColumnName("role-id");
+
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("integer")
+                        .HasColumnName("permission-id");
+
+                    b.HasKey("RoleId", "PermissionId");
+
+                    b.HasIndex("PermissionId");
+
+                    b.ToTable("role-permission");
+
+                    b.HasData(
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 1
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 2
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 3
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 4
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 5
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 6
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 7
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 8
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 9
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 1
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 2
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 5
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 6
+                        });
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.FileVector", b =>
@@ -95,6 +321,92 @@ namespace backend.Migrations
                     b.ToTable("tags");
                 });
 
+            modelBuilder.Entity("KnowledgeBank.Models.User", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<int>("AccessFailedCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("LockoutEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("LockoutEnd")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NormalizedEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("NormalizedUserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("PhoneNumberConfirmed")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SecurityStamp")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedEmail")
+                        .HasDatabaseName("EmailIndex");
+
+                    b.HasIndex("NormalizedUserName")
+                        .IsUnique()
+                        .HasDatabaseName("UserNameIndex");
+
+                    b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.UserRole", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user-id");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("integer")
+                        .HasColumnName("role-id");
+
+                    b.Property<string>("UserId1")
+                        .HasColumnType("text");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex("UserId1");
+
+                    b.ToTable("user-role");
+                });
+
             modelBuilder.Entity("KnowledgeBank.Models.UserTag", b =>
                 {
                     b.Property<Guid>("Id")
@@ -130,22 +442,6 @@ namespace backend.Migrations
                         .IsUnique();
 
                     b.ToTable("user_tags");
-                });
-
-            modelBuilder.Entity("KnowledgeBank.Models.FileVector", b =>
-                {
-                    b.HasOne("KnowledgeBank.Models.FileItem", "File")
-                        .WithOne("Vector")
-                        .HasForeignKey("KnowledgeBank.Models.FileVector", "FileId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("File");
-                });
-
-            modelBuilder.Entity("KnowledgeBank.Models.FileItem", b =>
-                {
-                    b.Navigation("Vector");
                 });
 #pragma warning restore 612, 618
         }

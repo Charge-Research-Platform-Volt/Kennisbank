@@ -6,7 +6,7 @@ Here is a simple tutorial to get you started with the project, this project is
 ## Docker
 docker compose -f docker-compose.dev.yml up --build
 
-
+docker-compose -f docker-compose.dev.yml down --rmi all --volumes
 
 docker compose -f docker-compose.prod.yml up --build
 docker build -t website .
