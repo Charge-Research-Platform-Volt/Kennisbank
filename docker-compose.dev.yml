@@ -1,46 +1,39 @@
+networks:
+  my_network:
+    name: my_network
+    driver: bridge
+
 services:
-  website:
-    build:
-      context: ./website
-      dockerfile: Dockerfile
-      target: development
-      no_cache: true
+  # Start database
+  database:
+    image: postgres:latest
     ports:
-      - "3001:3001"
+      - "5432:5432"
     environment:
-      - NODE_ENV=development
-      - WATCHPACK_POLLING=true
-    volumes:
-      - ./website:/app
-      - /app/node_modules
-      - /app/.next
-    depends_on:
-      - backend
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    tmpfs:
+      - /var/lib/postgresql/data
+    networks:
+      - my_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Start storage
+  storage:
+    image: mcr.microsoft.com/azure-storage/azurite
+    ports:
+      - "10000:10000"
+    tmpfs:
+      - /data
     networks:
       - my_network
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: development
-      no_cache: true
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - WATCHPACK_POLLING=true
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
-    depends_on:
-      - backend
-      - database
-      - storage
-    networks:
-      - my_network
-
+  # Start backend after database and storage
   backend:
     build:
       context: ./backend
@@ -59,35 +52,59 @@ services:
       - /app/obj
       - ./testdata:/app/testdata
     depends_on:
-      - database
-      - storage
+      database:
+        condition: service_healthy
+      storage:
+        condition: service_started
     networks:
       - my_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/status"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 150s
 
-  database:
-    image: postgres:latest
+  # Start frontend after backend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+      no_cache: true
     ports:
-      - "5432:5432"
+      - "3000:3000"
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=postgres
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
     volumes:
-      - ./database:/var/lib/postgresql/data
-      # - database_data:/var/lib/postgresql/data
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      backend:
+        condition: service_healthy
     networks:
       - my_network
-
-  storage:
-    image: mcr.microsoft.com/azure-storage/azurite
+  
+  # Start website after backend
+  website:
+    build:
+      context: ./website
+      dockerfile: Dockerfile
+      target: development
+      no_cache: true
     ports:
-      - "10000:10000"
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
     volumes:
-      - ./storage:/data
+      - ./website:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      backend:
+        condition: service_healthy
     networks:
       - my_network
-
-networks:
-  my_network:
-    name: my_network
-    driver: bridge

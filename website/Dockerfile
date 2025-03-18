@@ -1,3 +1,4 @@
+# Base image with Node.js LTS on Alpine Linux
 FROM node:lts-alpine AS base
 
 # -- Install dependencies
@@ -14,7 +15,8 @@ ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
 EXPOSE 3001
 ENV PORT=3001
-CMD ["npm", "run", "dev"]
+# Create custom entrypoint script to run npm install as well to update everything
+ENTRYPOINT npm install && npm run dev
 
 
 # -- Build the app
