@@ -144,3 +144,42 @@ export const Login = async (
         };
     }
 };
+
+export async function Logout(): Promise<{success: boolean; message: string }>
+{
+    try
+    {
+        console.log("Logging out...");
+
+        const response = await fetch(`http://localhost:8080/auth/logout`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({}),
+        });
+
+        if (!response.ok)
+        {
+            const data = await response.json();
+
+            return {
+                success: false,
+                message: data.message || "Failed to log out",
+            };
+        }
+
+        return {
+            success: true,
+            message: "Logged out successfully",
+        }
+    }
+    catch (error)
+    {
+        console.error(`An error occurred during logout: ${error}`);
+    
+        return {
+            success: false,
+            message: "An error occurred during logout",
+        };
+    }
+}

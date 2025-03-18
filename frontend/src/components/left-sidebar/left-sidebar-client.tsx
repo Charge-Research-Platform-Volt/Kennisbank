@@ -18,6 +18,7 @@ import Help from "@/icons/help";
 import HideMenu from "@/icons/menu/hide-menu";
 import ShowMenu from "@/icons/menu/show-menu";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Logout } from "@/actions/authActions";
 
 // Menu items
 const menuItems: SidebarItem[] = [
@@ -41,6 +42,14 @@ export default function LeftSidebarClient({ tags }: { tags: TagsArray }) {
   const [profileButtonWidth, setProfileButtonWidth] = useState(0);
   const profileButtonRef = React.useRef<HTMLButtonElement>(null);
   
+  const handleLogout = async () => {
+    const result = await Logout();
+
+    if (result.success)
+      window.location.reload();
+    else
+      console.error(result.message);
+  };
 
   useEffect(() => {
     if(profileButtonRef.current){
@@ -126,7 +135,7 @@ export default function LeftSidebarClient({ tags }: { tags: TagsArray }) {
                       <label className="inline-block cursor-pointer">Profile</label>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => console.log("Logging out...")} className="cursor-pointer">
+                    <DropdownMenuItem onClick={ handleLogout } className="cursor-pointer">
                       <label className="inline-block cursor-pointer">Log out</label>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
