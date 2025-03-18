@@ -9,7 +9,8 @@ using KnowledgeBank.Data;
 using Microsoft.EntityFrameworkCore.Storage;
 namespace backend.Tests;
 
-
+[TestFixture]
+[Category("IntegrationTest")]
 public class SearchControllerIntegrationTests
 {
     private DbContextOptions<DatabaseContext> _options;

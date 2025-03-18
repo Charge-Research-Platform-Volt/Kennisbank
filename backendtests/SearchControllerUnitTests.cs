@@ -9,6 +9,7 @@ namespace backend.Tests;
 
 
 [TestFixture]
+[Category("UnitTest")]
 public class SearchControllerUnitTests
 {
     private Mock<IAzureBlobService> _mockBlobService;
