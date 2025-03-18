@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Input } from "../ui/input";
@@ -17,6 +17,7 @@ import Divider from "../divider";
 import Help from "@/icons/help";
 import HideMenu from "@/icons/menu/hide-menu";
 import ShowMenu from "@/icons/menu/show-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 // Menu items
 const menuItems: SidebarItem[] = [
@@ -37,6 +38,15 @@ const projects: SidebarItem[] = [
 
 export default function LeftSidebarClient({ tags }: { tags: TagsArray }) {
   const [isOpen, setIsOpen] = useState(true);
+  const [profileButtonWidth, setProfileButtonWidth] = useState(0);
+  const profileButtonRef = React.useRef<HTMLButtonElement>(null);
+  
+
+  useEffect(() => {
+    if(profileButtonRef.current){
+      setProfileButtonWidth(profileButtonRef.current.offsetWidth);
+    }
+  }, []);
 
   return (
     <div>
@@ -102,13 +112,25 @@ export default function LeftSidebarClient({ tags }: { tags: TagsArray }) {
               <Divider />
 
               <li>
-                <Link href="/settings/profile" className="flex rounded-xl p-2 hover:bg-gray-200">
-                  <Image src="/img/default-profile-picture.svg" alt="Help" width={24} height={24} className="mr-2" />
-                  <div>
-                    <p className="text-sm">Name</p>
-                    <p className="text-sm text-gray-500">example@gmail.com</p>
-                  </div>
-                </Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger ref={profileButtonRef} className="font-face data-[state=closed]:ring-0 outline-none text-md flex h-auto w-full cursor-pointer items-center gap-1 bg-transparent shadow-none rounded-xl p-2 text-black text-left hover:bg-gray-200">
+                      <Image src="/img/default-profile-picture.svg" alt="Help" width={24} height={24} className="mr-2" />
+                      <div>
+                        <p className="text-sm">Name</p>
+                        <p className="text-sm text-gray-500">example@gmail.com</p>
+                      </div>
+                  </DropdownMenuTrigger>
+                    
+                  <DropdownMenuContent side="top" style={{ width: profileButtonWidth }}>
+                    <DropdownMenuItem onClick={() => console.log("Profile clicked")} className="cursor-pointer">
+                      <label className="inline-block cursor-pointer">Profile</label>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => console.log("Logging out...")} className="cursor-pointer">
+                      <label className="inline-block cursor-pointer">Log out</label>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </li>
             </ul>
           </nav>

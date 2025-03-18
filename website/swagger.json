@@ -5,6 +5,18 @@
     "version": "v1"
   },
   "paths": {
+    "/api/auth/status": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/register": {
       "post": {
         "tags": [
