@@ -79,7 +79,7 @@ public class TagController : ControllerBase
 
         Tag tag = new()
         {
-            Id = Guid.NewGuid(), 
+            Id = Guid.NewGuid(),
             Name = tagName,
         };
 
@@ -181,7 +181,7 @@ public class TagController : ControllerBase
             return BadRequest(new { message = "Id is required" });
         }
 
-        if(string.IsNullOrEmpty(newName))
+        if (string.IsNullOrEmpty(newName))
         {
             Log.Error("New name is required");
             return BadRequest(new { message = "New name is required" });

@@ -2,7 +2,7 @@
 
 import { DeleteUserTag } from "@/actions/userTagActions";
 import { Button } from "@/components/ui/button";
-import { Tag, UserTag } from "@/types/tag.type";
+import { UserTag } from "@/types/tag.type";
 import { useTransition } from "react";
 
 export default function DeleteUserTagButton({tag} : {tag: UserTag}) {
