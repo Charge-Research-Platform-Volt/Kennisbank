@@ -32,11 +32,19 @@ export async function ContentRoleGuard({ children, requiredRole, requiredRoles, 
 {
     let hasAccess: boolean = false;
 
-    if (requiredRole)
-        hasAccess = await requireRole(requiredRole);
-
-    else if (requiredRoles && requiredRoles.length > 0)
-        hasAccess = await requireAnyRole(requiredRoles);
+    try
+    {
+        if (requiredRole)
+            hasAccess = await requireRole(requiredRole);
+    
+        else if (requiredRoles && requiredRoles.length > 0)
+            hasAccess = await requireAnyRole(requiredRoles);
+    }
+    catch (error)
+    {
+        console.error("Error checking role:", error);
+        return <>{fallback}</>
+    }
 
     if (!hasAccess)
         return <>{fallback}</>

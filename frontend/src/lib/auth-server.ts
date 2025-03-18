@@ -1,33 +1,21 @@
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { FetchWithValidation } from './fetchWithValidation';
+import { RoleResponse, RoleResponseSchema } from '@/types/authorization.type';
 
-const API_URL: string = "http://localhost:8080";
+const API_URL: string = "http://backend:8080";
 const UNAUTHORIZED_REDIRECT: string = "/unauthorized";
 const UNAUTHENTICATED_REDIRECT: string = "/login";
 
-interface RoleResponse 
-{
-    role: string;
-    isAuthenticated: boolean;
-}
-
 export async function getCurrentUserRole(): Promise<RoleResponse>
 {
-    const cookieStore = cookies();
-
     try
     {
-        const response = await fetch(`${API_URL}/roles/current`, {
-            headers: {
-                Cookie: (await cookieStore).toString(),
-            },
-            cache: 'no-store'
-        });
+        const result = await FetchWithValidation<RoleResponse>(RoleResponseSchema, `${API_URL}/roles/current`);
 
-        if (!response.ok)
+        if (!result.success)
             return { role: '', isAuthenticated: false };
 
-        return response.json();
+        return result.data;
     }
     catch (error)
     {

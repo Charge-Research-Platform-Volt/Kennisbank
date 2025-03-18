@@ -7,7 +7,7 @@ export default async function Home() {
     <div>
       <h1>Hello World!</h1>
       <ContentRoleGuard requiredRole="user">
-        <h2>Hello admin!</h2>
+        <h2>Hello user!</h2>
       </ContentRoleGuard>
       <ContentRoleGuard requiredRole="admin">
         <h2>Hello admin!</h2>

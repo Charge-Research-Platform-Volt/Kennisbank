@@ -12,13 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace backend.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-<<<<<<<< HEAD:backend/Migrations/20250317130606_Initial.Designer.cs
-    [Migration("20250317130606_Initial")]
-    partial class Initial
-========
-    [Migration("20250318104705_initialCreate")]
-    partial class initialCreate
->>>>>>>> feat/V25K-119-Sign-In-Page-frontend:backend/Migrations/20250318104705_initialCreate.Designer.cs
+    [Migration("20250318122446_initial")]
+    partial class initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
