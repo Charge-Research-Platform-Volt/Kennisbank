@@ -363,6 +363,125 @@
         }
       }
     },
+    "/Roles": {
+      "get": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Lists all roles available.",
+        "description": "Lists all roles that exist in the application.",
+        "responses": {
+          "200": {
+            "description": "A list of the roles"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/Roles/assign": {
+      "patch": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Assigns a role to a user.",
+        "description": "Assigns a role to the given user. Strips all other roles, since users only can have one role.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleAssignDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleAssignDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleAssignDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Role was assigned succesfully."
+          },
+          "400": {
+            "description": "Cannot assign role."
+          },
+          "404": {
+            "description": "User or role not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        }
+      }
+    },
+    "/Roles/user/{id}": {
+      "get": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Retrieve role of user",
+        "description": "Retrieves the role of the given user ID.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The role of the user"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/Roles/{roleName}": {
+      "get": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Retrieves users in the given role.",
+        "description": "Retrieves all users in the given role.",
+        "parameters": [
+          {
+            "name": "roleName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All users in the role."
+          },
+          "404": {
+            "description": "Role not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        }
+      }
+    },
     "/Storage/upload": {
       "put": {
         "tags": [
@@ -1439,6 +1558,24 @@
             "nullable": true
           },
           "newPassword": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoleAssignDto": {
+        "required": [
+          "roleName",
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "roleName": {
             "type": "string",
             "nullable": true
           }
