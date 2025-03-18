@@ -7,7 +7,9 @@ export default async function LeftSidebarServer() {
   const result = await FetchWithValidation(TagsArraySchema, "http://backend:8080/Tag/all-tags");
 
   if (!result.success) {
-    return <LeftSidebarClient tags="" />;
+    console.log("Failed to fetch tags");
+    console.log(result);
+    return "";
   }
 
   return <LeftSidebarClient tags={result.data} />;

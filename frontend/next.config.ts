@@ -11,6 +11,13 @@ const nextConfig: NextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },
+
+  // Increases the maximum body size limit for server actions
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "100mb", 
+    },
+  },
 };
 
 export default nextConfig;

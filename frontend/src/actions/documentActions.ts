@@ -4,6 +4,7 @@ import { DocumentBaseSchema, type DocumentBase } from "@/types/document.type";
 import type { FormResponse } from "@/types/return.type";
 import { revalidatePath } from "next/cache";
 import { Log } from "../../Pino";
+import { cookies } from "next/headers";
 
 export const AddDocument = async (
     defaultName: string,
@@ -52,9 +53,12 @@ export const AddDocument = async (
         }
 
         // Send the data to the backend.
+        const cookieHeader = cookies();
         const response = await fetch("http://backend:8080/storage/upload", {
             method: "PUT",
             body: formData,
+            credentials: "include",
+            headers: { Cookie: cookieHeader.toString() || "" },
         });
         const data = await response.json();
 
