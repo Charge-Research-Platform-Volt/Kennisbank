@@ -1,13 +1,14 @@
-Install the EF Core CLI tools:
-dotnet tool install --global dotnet-ef
-
 INSTRUCTIONS FOR CHANGING DATABASE:
 1. add changes in c#
-2. run this: dotnet ef migrations add [INSERT NAME HERE]
-3. Restart backend container
-4. DO NOT DO ANY MANUAL CHANGES TO THE DATABASE!!!!!!
+2. Restart backend container
+3. DO NOT DO ANY MANUAL CHANGES TO THE DATABASE!!!!!!
+4. In case of manual changes do not panic, but follow the following steps:
+    a. Convert your manual changes to C#
+    b. Shut down backend
+    c. Restart database
+    d. Start backend
 
-
+IGNORE THIS (CAN BE REMOVED???):
 dotnet ef migrations remove
 dotnet ef database update
 
