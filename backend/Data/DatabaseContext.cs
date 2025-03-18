@@ -117,33 +117,19 @@ namespace KnowledgeBank.Data
         /// <returns>The number of state entries written to the database.</returns>
         public async Task<int> SaveFileChangesAsync(CancellationToken cancellationToken = default)
         {
-            // Begin database transaction to ensure consistency
-            using IDbContextTransaction transaction = await Database.BeginTransactionAsync(cancellationToken);
+            // Get files that were added or modified
+            var updatedFiles = ChangeTracker.Entries<FileItem>()
+                .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+                .Select(e => e.Entity)
+                .ToList();  
 
-            try
-            {
-                // Get files that were added or modified
-                var updatedFiles = ChangeTracker.Entries<FileItem>()
-                    .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
-                    .Select(e => e.Entity)
-                    .ToList();  
+            // First save the changes to the database
+            var result = await base.SaveChangesAsync(cancellationToken);
 
-                // First save the changes to the database
-                var result = await base.SaveChangesAsync(cancellationToken);
+            // If there are any updated files, update their search vectors
+            if (updatedFiles.Count != 0) await UpdateFileVectorAsync(updatedFiles);
 
-                // If there are any updated files, update their search vectors
-                if (updatedFiles.Count != 0) await UpdateFileVectorAsync(updatedFiles);
-
-                // Commit the transaction
-                await transaction.CommitAsync(cancellationToken);
-                return result;
-            }
-            catch
-            {
-                // If anything goes wrong, roll back transaction to ensure consistency
-                await transaction.RollbackAsync(cancellationToken);
-                throw;
-            }
+            return result;
         }
 
         /// <summary>
