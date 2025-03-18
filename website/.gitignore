@@ -2,6 +2,9 @@
 
 /.source
 /content/docs/(api)/**
+swagger.json
+
+package-lock.json
 
 # dependencies
 /node_modules

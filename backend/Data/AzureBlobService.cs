@@ -19,10 +19,10 @@ namespace backend.Data
 
         public BlobPageResponse(BLOB_STATUSCODE status, string message, string? continuationToken, string[] blobs)
         {
-            this.Status             = status;
-            this.Message            = message;
-            this.ContinuationToken  = continuationToken;
-            this.Blobs              = blobs;
+            this.Status = status;
+            this.Message = message;
+            this.ContinuationToken = continuationToken;
+            this.Blobs = blobs;
         }
     }
 

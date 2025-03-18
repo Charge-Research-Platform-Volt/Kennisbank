@@ -1,17 +1,22 @@
 using backend.Data;
+using backend.Security;
 using KnowledgeBank.Data;
 using KnowledgeBank.Extensions;
+using KnowledgeBank.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
+using System.Threading.Tasks;
 
 namespace KnowledgeBank
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             // # Builder
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -19,9 +24,32 @@ namespace KnowledgeBank
 
             // # Services
             builder.Services.AddControllers();
+            builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
+            builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, CustomAuthorizationMiddlewareResultHandler>();
+            builder.Services.AddAuthorization(options =>
+            {
+                foreach (string roleName in RoleInitializer.roleNames)
+                {
+                    options.AddPolicy($"Require{ char.ToUpper(roleName[0]) + roleName.Substring(1) }Role", policy => policy.RequireRole(roleName));
+                }
+
+                // This line terminates the handler on first failure, when more information is required, set this to true.
+                // This gives an increase in performance, but omits some information which might be required for complex
+                // authorization scenarios. This setting only affects the authorization middleware, not the controllers.
+                options.InvokeHandlersAfterFailure = false;
+            });
+            //
+            // Add this line after the code below to enable authentication with JWT tokens: .AddBearerToken(IdentityConstants.BearerScheme);
+            builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
+            
+            builder.Services.AddIdentityCore<User>()
+                            .AddRoles<IdentityRole>()
+                            .AddEntityFrameworkStores<DatabaseContext>()
+                            .AddApiEndpoints();
+
+
             builder.Services.AddOpenApi();
             builder.Services.AddSwaggerGen(ConfigureSwagger);
-            builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
 
 
             // # Database context
@@ -50,18 +78,41 @@ namespace KnowledgeBank
             if (app.Environment.IsDevelopment())
             {
                 // Run only in development environment:
-
                 app.MapOpenApi();
                 app.UseSwagger();
                 app.UseSwaggerUI(ConfigureSwaggerUI);
                 app.UseDeveloperExceptionPage();
 
+                // Apply database migrations
                 app.ApplyMigrations();
             }
 
+            // Initialize roles
+            using (IServiceScope scope = app.Services.CreateScope())
+            {
+                await RoleInitializer.InitializeAsync(app.Services);
+                await TestDataSeeder.Seed(app.Services);
+            }
+
+            // Initialize roles
+            using (IServiceScope scope = app.Services.CreateScope())
+            {
+                await RoleInitializer.InitializeAsync(app.Services);
+                await TestDataSeeder.Seed(app.Services);
+            }
+
+            app.UseHttpsRedirection();
             app.UseRouting();
             app.UseCors("AllowFrontend");
+            app.UseAuthentication();
+            app.UseAuthorization();
             app.MapControllers();
+
+            // # Authentication
+            app.UseAuthentication();
+            app.UseAuthorization();
+            app.MapGroup("Auth").MapIdentityApi<User>().WithTags("Auth").WithOpenApi(ConfigureIdentityApiOptions);
+
             app.Run();
         }
 
@@ -115,6 +166,21 @@ namespace KnowledgeBank
             Log.Logger = new LoggerConfiguration()
                                 .ReadFrom.Configuration(configuration)
                                 .CreateLogger();
+        }
+
+
+        /// <summary>
+        /// Configures the OpenAPI operation metadata for identity API endpoints.
+        /// </summary>
+        /// <param name="operation">The OpenAPI operation to configure.</param>
+        /// <returns>The configured OpenAPI operation with updated summary information.</returns>
+        /// <remarks>
+        /// This method sets the summary description for identity-related API endpoints that handle user management operations.
+        /// </remarks>
+        private static OpenApiOperation ConfigureIdentityApiOptions(OpenApiOperation operation)
+        {
+            operation.Summary = "Identity endpoints for user management";
+            return operation;
         }
     }
 }

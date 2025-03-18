@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState, ChangeEvent, useActionState, useTransition } from "react";
+import React, { useRef, useEffect, useState, ChangeEvent, useActionState, useTransition } from "react";
 import "@/components/ui/Popup.css";
 import "@/app/globals.css";
 import { AddDocument } from "@/actions/documentActions";
@@ -34,6 +34,14 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
   const [author, setAuthor] = useState<string>("");
   const setDescription = useState<string>("")[1];
   const [title, setTitle] = useState<string>("");
+
+  const [newButtonWidth, setNewButtonWidth] = useState(0);
+  const newButtonRef = React.useRef<HTMLButtonElement>(null);
+  useEffect(() => {  
+  if(newButtonRef.current){
+        setNewButtonWidth(newButtonRef.current.offsetWidth);
+      }
+  }, []);
 
   const [isPendingTransition, startTransition] = useTransition();
   const [state, action] = useActionState((prevState: FormResponse<DocumentBase>, formData: FormData) => {
@@ -144,18 +152,18 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
     <div>
       <DropdownMenu>
         {/* Purple New button */}
-        <DropdownMenuTrigger className="font-face bg-purple text-md active:bg-purple flex h-9 w-full cursor-pointer items-center gap-1 rounded-md pl-3 text-left text-white hover:bg-[#6f2aaf]">
+        <DropdownMenuTrigger ref={newButtonRef} className="font-face bg-purple text-md active:bg-purple flex h-9 w-full cursor-pointer items-center gap-1 rounded-md pl-3 text-left text-white hover:bg-[#6f2aaf]">
           <New className="h-5 w-5" />
           <div className="pb-0.5">New</div>
         </DropdownMenuTrigger>
-        <DropdownMenuContent>
+        <DropdownMenuContent style={{ width: newButtonWidth }}>
           {/* Upload item in popup */}
-          <DropdownMenuItem className="w-auto" onClick={clickNew}>
+          <DropdownMenuItem className="cursor-pointer" onClick={clickNew}>
             <label className="inline-block cursor-pointer">Upload New Document</label>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {/* New project item in popup */}
-          <DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer">
             <label className="inline-block cursor-pointer">Create New Project</label>
           </DropdownMenuItem>
         </DropdownMenuContent>
