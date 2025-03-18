@@ -83,6 +83,7 @@ namespace KnowledgeBank
                 app.UseSwaggerUI(ConfigureSwaggerUI);
                 app.UseDeveloperExceptionPage();
 
+                // Apply database migrations
                 app.ApplyMigrations();
             }
 
@@ -93,12 +94,24 @@ namespace KnowledgeBank
                 await TestDataSeeder.Seed(app.Services);
             }
 
+            // Initialize roles
+            using (IServiceScope scope = app.Services.CreateScope())
+            {
+                await RoleInitializer.InitializeAsync(app.Services);
+                await TestDataSeeder.Seed(app.Services);
+            }
+
+            app.UseHttpsRedirection();
             app.UseRouting();
             app.UseCors("AllowFrontend");
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
-            app.MapIdentityApi<User>();
+
+            // # Authentication
+            app.UseAuthentication();
+            app.UseAuthorization();
+            app.MapGroup("Auth").MapIdentityApi<User>().WithTags("Auth").WithOpenApi(ConfigureIdentityApiOptions);
 
             app.Run();
         }
@@ -153,6 +166,21 @@ namespace KnowledgeBank
             Log.Logger = new LoggerConfiguration()
                                 .ReadFrom.Configuration(configuration)
                                 .CreateLogger();
+        }
+
+
+        /// <summary>
+        /// Configures the OpenAPI operation metadata for identity API endpoints.
+        /// </summary>
+        /// <param name="operation">The OpenAPI operation to configure.</param>
+        /// <returns>The configured OpenAPI operation with updated summary information.</returns>
+        /// <remarks>
+        /// This method sets the summary description for identity-related API endpoints that handle user management operations.
+        /// </remarks>
+        private static OpenApiOperation ConfigureIdentityApiOptions(OpenApiOperation operation)
+        {
+            operation.Summary = "Identity endpoints for user management";
+            return operation;
         }
     }
 }
