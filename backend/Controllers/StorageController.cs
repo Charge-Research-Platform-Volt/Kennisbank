@@ -107,7 +107,6 @@ namespace backend.Controllers
                     default:
                         return StatusCode(500, new StorageResponse("Error uploading file."));
                 }
-                    
             }
             catch (Exception e)
             {

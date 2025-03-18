@@ -9,7 +9,7 @@ export default async function LeftSidebarServer() {
   if (!result.success) {
     console.log("Failed to fetch tags");
     console.log(result);
-    return "";
+    return <h1>ERROR</h1>;
   }
 
   return <LeftSidebarClient tags={result.data} />;

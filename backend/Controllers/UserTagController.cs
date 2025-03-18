@@ -65,7 +65,7 @@ public class UserTagController : ControllerBase
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(409, "Tag already exists")]
     [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> AddTag(string tagName) 
+    public async Task<IActionResult> AddTag(string tagName)
     {
         Log.Information("Adding new user tag to user tag list.");
 
@@ -96,7 +96,7 @@ public class UserTagController : ControllerBase
 
         UserTag userTag = new()
         {
-            Id = Guid.NewGuid(), 
+            Id = Guid.NewGuid(),
             Name = tagName,
             User = "TestUser1", // TODO: User should be the actual User
             IsApproved = false, // By default the tag is not approved
@@ -121,10 +121,9 @@ public class UserTagController : ControllerBase
     }
 
 
-    // TODO: Not sure users should be able to delete tags? 
+    // TODO: Not sure users should be able to delete tags?
     // Maybe only tags they specifically made and have not
-    // yet been approved by an admin? 
-    
+    // yet been approved by an admin?
     /// <summary>
     /// Deletes a tag from the tag list.
     /// </summary>
@@ -170,14 +169,14 @@ public class UserTagController : ControllerBase
         if (userTag.User != "TestUser1") // TODO: Shouldn't compare strings but actual users
         {
             Log.Error("Another user has created this tag.");
-            return StatusCode(403, new { message = "Another user has created this tag."});
+            return StatusCode(403, new { message = "Another user has created this tag." });
         }
 
         // Make sure the tag has not been approved yet
         if (userTag.IsApproved)
         {
             Log.Error("Tag has been approved and can no longer be deleted.");
-            return Conflict(new { message = "Tag has been approved and can no longer be deleted."});
+            return Conflict(new { message = "Tag has been approved and can no longer be deleted." });
         }
 
         // remove tag from database
@@ -218,7 +217,7 @@ public class UserTagController : ControllerBase
             return BadRequest(new { message = "Id is required" });
         }
 
-        if(string.IsNullOrEmpty(newName))
+        if (string.IsNullOrEmpty(newName))
         {
             Log.Error("New name is required");
             return BadRequest(new { message = "New name is required" });
@@ -250,16 +249,15 @@ public class UserTagController : ControllerBase
         if (userTag.User != "TestUser1") // TODO: Shouldn't compare strings but actual users
         {
             Log.Error("Another user has created this tag.");
-            return StatusCode(403, new { message = "Another user has created this tag."});
+            return StatusCode(403, new { message = "Another user has created this tag." });
         }
 
         // Make sure the tag has not been approved yet
         if (userTag.IsApproved)
         {
             Log.Error("Tag has been approved and can no longer be edited.");
-            return Conflict(new { message = "Tag has been approved and can no longer be edited."});
+            return Conflict(new { message = "Tag has been approved and can no longer be edited." });
         }
-        
         // Change tag name
         try
         {
@@ -288,7 +286,7 @@ public class UserTagController : ControllerBase
     [HttpPatch("approve-usertag/{id}")]
     [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
-        Summary = "Approve a user tag.", 
+        Summary = "Approve a user tag.",
         Description = "Marks a user-created tag as approved and adds it to the tags table."
         )]
     [SwaggerResponse(200, "Tag approved", typeof(Tag))]
