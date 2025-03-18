@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace backend.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    [Migration("20250311145921_RemoveCustomRolesPermissions")]
-    partial class RemoveCustomRolesPermissions
+    [Migration("20250318122446_initial")]
+    partial class initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -34,8 +34,7 @@ namespace backend.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
+                        .HasColumnType("text")
                         .HasColumnName("description");
 
                     b.Property<string>("FileType")
@@ -43,6 +42,11 @@ namespace backend.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("filetype");
+
+                    b.Property<string>("Hash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("hash");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -52,6 +56,21 @@ namespace backend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("files");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.FileTagLink", b =>
+                {
+                    b.Property<Guid>("DocId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("doc-id");
+
+                    b.Property<Guid>("TagId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tag-id");
+
+                    b.HasKey("DocId", "TagId");
+
+                    b.ToTable("doc-tag");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.Tag", b =>

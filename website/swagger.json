@@ -5,11 +5,12 @@
     "version": "v1"
   },
   "paths": {
-    "/register": {
+    "/Auth/register": {
       "post": {
         "tags": [
-          "backend"
+          "Auth"
         ],
+        "summary": "Identity endpoints for user management",
         "requestBody": {
           "content": {
             "application/json": {
@@ -17,8 +18,7 @@
                 "$ref": "#/components/schemas/RegisterRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -37,11 +37,12 @@
         }
       }
     },
-    "/login": {
+    "/Auth/login": {
       "post": {
         "tags": [
-          "backend"
+          "Auth"
         ],
+        "summary": "Identity endpoints for user management",
         "parameters": [
           {
             "name": "useCookies",
@@ -65,8 +66,7 @@
                 "$ref": "#/components/schemas/LoginRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -82,11 +82,12 @@
         }
       }
     },
-    "/refresh": {
+    "/Auth/refresh": {
       "post": {
         "tags": [
-          "backend"
+          "Auth"
         ],
+        "summary": "Identity endpoints for user management",
         "requestBody": {
           "content": {
             "application/json": {
@@ -94,8 +95,7 @@
                 "$ref": "#/components/schemas/RefreshRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -111,17 +111,17 @@
         }
       }
     },
-    "/confirmEmail": {
+    "/Auth/confirmEmail": {
       "get": {
         "tags": [
-          "backend"
+          "Auth"
         ],
-        "operationId": "MapIdentityApi-/confirmEmail",
+        "summary": "Identity endpoints for user management",
+        "operationId": "MapIdentityApi-Auth/confirmEmail",
         "parameters": [
           {
             "name": "userId",
             "in": "query",
-            "required": true,
             "schema": {
               "type": "string"
             }
@@ -129,7 +129,6 @@
           {
             "name": "code",
             "in": "query",
-            "required": true,
             "schema": {
               "type": "string"
             }
@@ -144,16 +143,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Void"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/resendConfirmationEmail": {
+    "/Auth/resendConfirmationEmail": {
       "post": {
         "tags": [
-          "backend"
+          "Auth"
         ],
+        "summary": "Identity endpoints for user management",
         "requestBody": {
           "content": {
             "application/json": {
@@ -161,8 +168,7 @@
                 "$ref": "#/components/schemas/ResendConfirmationEmailRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -171,11 +177,12 @@
         }
       }
     },
-    "/forgotPassword": {
+    "/Auth/forgotPassword": {
       "post": {
         "tags": [
-          "backend"
+          "Auth"
         ],
+        "summary": "Identity endpoints for user management",
         "requestBody": {
           "content": {
             "application/json": {
@@ -183,8 +190,7 @@
                 "$ref": "#/components/schemas/ForgotPasswordRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -203,11 +209,12 @@
         }
       }
     },
-    "/resetPassword": {
+    "/Auth/resetPassword": {
       "post": {
         "tags": [
-          "backend"
+          "Auth"
         ],
+        "summary": "Identity endpoints for user management",
         "requestBody": {
           "content": {
             "application/json": {
@@ -215,8 +222,7 @@
                 "$ref": "#/components/schemas/ResetPasswordRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -235,11 +241,12 @@
         }
       }
     },
-    "/manage/2fa": {
+    "/Auth/manage/2fa": {
       "post": {
         "tags": [
-          "backend"
+          "Auth"
         ],
+        "summary": "Identity endpoints for user management",
         "requestBody": {
           "content": {
             "application/json": {
@@ -247,8 +254,7 @@
                 "$ref": "#/components/schemas/TwoFactorRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -277,11 +283,12 @@
         }
       }
     },
-    "/manage/info": {
+    "/Auth/manage/info": {
       "get": {
         "tags": [
-          "backend"
+          "Auth"
         ],
+        "summary": "Identity endpoints for user management",
         "responses": {
           "200": {
             "description": "OK",
@@ -310,8 +317,9 @@
       },
       "post": {
         "tags": [
-          "backend"
+          "Auth"
         ],
+        "summary": "Identity endpoints for user management",
         "requestBody": {
           "content": {
             "application/json": {
@@ -319,8 +327,7 @@
                 "$ref": "#/components/schemas/InfoRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -349,6 +356,58 @@
         }
       }
     },
+    "/Auth/logout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Logs out the current user",
+        "description": "Logs out the current user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            },
+            "text/json": {
+              "schema": {}
+            },
+            "application/*+json": {
+              "schema": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The user has been logged out"
+          },
+          "401": {
+            "description": "The user is not authenticated"
+          }
+        }
+      }
+    },
+    "/Auth/ping": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Gets the current user's email",
+        "description": "Returns the email of the currently authenticated user",
+        "responses": {
+          "200": {
+            "description": "The user's email was returned",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "The user is not authenticated"
+          }
+        }
+      }
+    },
     "/KnowledgeBank/members": {
       "get": {
         "tags": [
@@ -359,6 +418,125 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/Roles": {
+      "get": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Lists all roles available.",
+        "description": "Lists all roles that exist in the application.",
+        "responses": {
+          "200": {
+            "description": "A list of the roles"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/Roles/assign": {
+      "patch": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Assigns a role to a user.",
+        "description": "Assigns a role to the given user. Strips all other roles, since users only can have one role.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleAssignDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleAssignDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleAssignDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Role was assigned succesfully."
+          },
+          "400": {
+            "description": "Cannot assign role."
+          },
+          "404": {
+            "description": "User or role not found."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        }
+      }
+    },
+    "/Roles/user/{id}": {
+      "get": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Retrieve role of user",
+        "description": "Retrieves the role of the given user ID.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The role of the user"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/Roles/{roleName}": {
+      "get": {
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Retrieves users in the given role.",
+        "description": "Retrieves all users in the given role.",
+        "parameters": [
+          {
+            "name": "roleName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All users in the role."
+          },
+          "404": {
+            "description": "Role not found."
+          },
+          "500": {
+            "description": "Internal server error."
           }
         }
       }
@@ -1445,6 +1623,24 @@
         },
         "additionalProperties": false
       },
+      "RoleAssignDto": {
+        "required": [
+          "roleName",
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "roleName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "StorageRenameDto": {
         "required": [
           "id",
@@ -1584,6 +1780,10 @@
             "nullable": true
           }
         },
+        "additionalProperties": false
+      },
+      "Void": {
+        "type": "object",
         "additionalProperties": false
       }
     }
