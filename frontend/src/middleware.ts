@@ -6,7 +6,7 @@ export async function middleware(request: NextRequest) {
         
         
         // Fetch met headers van de request
-        const response = await fetch("http://backend:8080/api/auth/status", {
+        const response = await fetch("http://backend:8080/Auth/ping", {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -22,24 +22,12 @@ export async function middleware(request: NextRequest) {
                 console.warn("Auth check failed:", response.status);
                 return NextResponse.next();
             }
-    
-            const data = await response.json();
-    
-            if (data.isAuthenticated) {
-                return NextResponse.redirect(new URL("/", request.url));
-            }
-            
-            return NextResponse.next();
+                    
+            return NextResponse.redirect(new URL("/", request.url));
         }
 
         if (!response.ok) {
             console.warn("Auth check failed:", response.status);
-            return NextResponse.redirect(new URL("/login", request.url));
-        }
-
-        const data = await response.json();
-
-        if (!data.isAuthenticated) {
             return NextResponse.redirect(new URL("/login", request.url));
         }
 

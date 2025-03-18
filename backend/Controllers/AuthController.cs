@@ -1,41 +1,55 @@
+using System.Security.Claims;
+using KnowledgeBank.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using KnowledgeBank.Models;
+using Serilog;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace KnowledgeBank.Controllers
 {
-    [Route("api/auth")]
     [ApiController]
+    [Authorize]
+    [Route("[controller]")]
+    [Produces("application/json")]
     public class AuthController : ControllerBase
     {
-        private readonly UserManager<User> _userManager;
+        private readonly Serilog.ILogger _logger;
         private readonly SignInManager<User> _signInManager;
 
-        public AuthController(UserManager<User> userManager, SignInManager<User> signInManager)
+        public AuthController(SignInManager<User> signInManager)
         {
-            _userManager = userManager;
             _signInManager = signInManager;
+            _logger = Log.ForContext<AuthController>();
         }
 
-        [HttpGet("status")]
-        public async Task<IActionResult> GetAuthStatus()
+        [HttpPost]
+        [Authorize]
+        [Route("logout")]
+        [SwaggerOperation(Summary = "Logs out the current user", Description = "Logs out the current user")]
+        [SwaggerResponse(200, "The user has been logged out")]
+        [SwaggerResponse(401, "The user is not authenticated")]
+        public async Task<IActionResult> Logout([FromBody] object empty)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
+            if (empty != null)
             {
-                return Unauthorized(new { isAuthenticated = false });
+                await _signInManager.SignOutAsync();
+                return Ok();
             }
 
-            return Ok(new
-            {
-                isAuthenticated = true,
-                user = new
-                {
-                    id = user.Id,
-                    email = user.Email,
-                    roles = await _userManager.GetRolesAsync(user)
-                }
-            });
+            return Unauthorized();
+        }
+
+        [HttpGet]
+        [Authorize]
+        [Route("ping")]
+        [SwaggerOperation(Summary = "Gets the current user's email", Description = "Returns the email of the currently authenticated user")]
+        [SwaggerResponse(200, "The user's email was returned", typeof(object))]
+        [SwaggerResponse(401, "The user is not authenticated")]
+        public IActionResult Ping()
+        {
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            return Ok(new { Email = email });
         }
     }
 }

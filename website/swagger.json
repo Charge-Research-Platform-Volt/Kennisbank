@@ -5,23 +5,12 @@
     "version": "v1"
   },
   "paths": {
-    "/api/auth/status": {
-      "get": {
+    "/Auth/register": {
+      "post": {
         "tags": [
           "Auth"
         ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/register": {
-      "post": {
-        "tags": [
-          "backend"
-        ],
+        "summary": "Identity endpoints for user management",
         "requestBody": {
           "content": {
             "application/json": {
@@ -29,8 +18,7 @@
                 "$ref": "#/components/schemas/RegisterRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -49,11 +37,12 @@
         }
       }
     },
-    "/login": {
+    "/Auth/login": {
       "post": {
         "tags": [
-          "backend"
+          "Auth"
         ],
+        "summary": "Identity endpoints for user management",
         "parameters": [
           {
             "name": "useCookies",
@@ -77,8 +66,7 @@
                 "$ref": "#/components/schemas/LoginRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -94,11 +82,12 @@
         }
       }
     },
-    "/refresh": {
+    "/Auth/refresh": {
       "post": {
         "tags": [
-          "backend"
+          "Auth"
         ],
+        "summary": "Identity endpoints for user management",
         "requestBody": {
           "content": {
             "application/json": {
@@ -106,8 +95,7 @@
                 "$ref": "#/components/schemas/RefreshRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -123,17 +111,17 @@
         }
       }
     },
-    "/confirmEmail": {
+    "/Auth/confirmEmail": {
       "get": {
         "tags": [
-          "backend"
+          "Auth"
         ],
-        "operationId": "MapIdentityApi-/confirmEmail",
+        "summary": "Identity endpoints for user management",
+        "operationId": "MapIdentityApi-Auth/confirmEmail",
         "parameters": [
           {
             "name": "userId",
             "in": "query",
-            "required": true,
             "schema": {
               "type": "string"
             }
@@ -141,7 +129,6 @@
           {
             "name": "code",
             "in": "query",
-            "required": true,
             "schema": {
               "type": "string"
             }
@@ -156,16 +143,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Void"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/resendConfirmationEmail": {
+    "/Auth/resendConfirmationEmail": {
       "post": {
         "tags": [
-          "backend"
+          "Auth"
         ],
+        "summary": "Identity endpoints for user management",
         "requestBody": {
           "content": {
             "application/json": {
@@ -173,8 +168,7 @@
                 "$ref": "#/components/schemas/ResendConfirmationEmailRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -183,11 +177,12 @@
         }
       }
     },
-    "/forgotPassword": {
+    "/Auth/forgotPassword": {
       "post": {
         "tags": [
-          "backend"
+          "Auth"
         ],
+        "summary": "Identity endpoints for user management",
         "requestBody": {
           "content": {
             "application/json": {
@@ -195,8 +190,7 @@
                 "$ref": "#/components/schemas/ForgotPasswordRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -215,11 +209,12 @@
         }
       }
     },
-    "/resetPassword": {
+    "/Auth/resetPassword": {
       "post": {
         "tags": [
-          "backend"
+          "Auth"
         ],
+        "summary": "Identity endpoints for user management",
         "requestBody": {
           "content": {
             "application/json": {
@@ -227,8 +222,7 @@
                 "$ref": "#/components/schemas/ResetPasswordRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -247,11 +241,12 @@
         }
       }
     },
-    "/manage/2fa": {
+    "/Auth/manage/2fa": {
       "post": {
         "tags": [
-          "backend"
+          "Auth"
         ],
+        "summary": "Identity endpoints for user management",
         "requestBody": {
           "content": {
             "application/json": {
@@ -259,8 +254,7 @@
                 "$ref": "#/components/schemas/TwoFactorRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -289,11 +283,12 @@
         }
       }
     },
-    "/manage/info": {
+    "/Auth/manage/info": {
       "get": {
         "tags": [
-          "backend"
+          "Auth"
         ],
+        "summary": "Identity endpoints for user management",
         "responses": {
           "200": {
             "description": "OK",
@@ -322,8 +317,9 @@
       },
       "post": {
         "tags": [
-          "backend"
+          "Auth"
         ],
+        "summary": "Identity endpoints for user management",
         "requestBody": {
           "content": {
             "application/json": {
@@ -331,8 +327,7 @@
                 "$ref": "#/components/schemas/InfoRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -357,6 +352,58 @@
           },
           "404": {
             "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/Auth/logout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Logs out the current user",
+        "description": "Logs out the current user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            },
+            "text/json": {
+              "schema": {}
+            },
+            "application/*+json": {
+              "schema": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The user has been logged out"
+          },
+          "401": {
+            "description": "The user is not authenticated"
+          }
+        }
+      }
+    },
+    "/Auth/ping": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Gets the current user's email",
+        "description": "Returns the email of the currently authenticated user",
+        "responses": {
+          "200": {
+            "description": "The user's email was returned",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "The user is not authenticated"
           }
         }
       }
@@ -1733,6 +1780,10 @@
             "nullable": true
           }
         },
+        "additionalProperties": false
+      },
+      "Void": {
+        "type": "object",
         "additionalProperties": false
       }
     }

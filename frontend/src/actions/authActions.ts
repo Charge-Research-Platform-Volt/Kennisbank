@@ -42,7 +42,7 @@ export const Register = async (
         }
 
         // Send the data to the backend.
-        const response = await fetch("http://localhost:8080/register", {
+        const response = await fetch("http://localhost:8080/Auth/register", {
             method: "POST",
             body: JSON.stringify({
                 email: rawData.email,
@@ -101,7 +101,7 @@ export const Login = async (
         }
 
         // Send the data to the backend.
-        const response = await fetch("http://localhost:8080/login?useCookies=true&useSessionCookies=true", {
+        const response = await fetch("http://localhost:8080/Auth/login?useCookies=true&useSessionCookies=true", {
             method: "POST",
             credentials: "include",
             body: JSON.stringify({
