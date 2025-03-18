@@ -31,8 +31,7 @@ namespace backend.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
+                        .HasColumnType("text")
                         .HasColumnName("description");
 
                     b.Property<string>("FileType")
@@ -373,28 +372,6 @@ namespace backend.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("KnowledgeBank.Models.UserRole", b =>
-                {
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer")
-                        .HasColumnName("user-id");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("integer")
-                        .HasColumnName("role-id");
-
-                    b.Property<string>("UserId1")
-                        .HasColumnType("text");
-
-                    b.HasKey("UserId", "RoleId");
-
-                    b.HasIndex("RoleId");
-
-                    b.HasIndex("UserId1");
-
-                    b.ToTable("user-role");
-                });
-
             modelBuilder.Entity("KnowledgeBank.Models.UserTag", b =>
                 {
                     b.Property<Guid>("Id")
@@ -443,57 +420,9 @@ namespace backend.Migrations
                     b.Navigation("File");
                 });
 
-            modelBuilder.Entity("KnowledgeBank.Models.RolePermission", b =>
-                {
-                    b.HasOne("KnowledgeBank.Models.Permission", "Permission")
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("PermissionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("KnowledgeBank.Models.Role", "Role")
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Permission");
-
-                    b.Navigation("Role");
-                });
-
-            modelBuilder.Entity("KnowledgeBank.Models.UserRole", b =>
-                {
-                    b.HasOne("KnowledgeBank.Models.Role", "Role")
-                        .WithMany("UserRoles")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("KnowledgeBank.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId1");
-
-                    b.Navigation("Role");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("KnowledgeBank.Models.FileItem", b =>
                 {
                     b.Navigation("Vector");
-                });
-
-            modelBuilder.Entity("KnowledgeBank.Models.Permission", b =>
-                {
-                    b.Navigation("RolePermissions");
-                });
-
-            modelBuilder.Entity("KnowledgeBank.Models.Role", b =>
-                {
-                    b.Navigation("RolePermissions");
-
-                    b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
         }

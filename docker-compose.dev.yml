@@ -57,6 +57,7 @@ services:
       - ./backend:/app
       - /app/bin
       - /app/obj
+      - ./testdata:/app/testdata
     depends_on:
       - database
       - storage
