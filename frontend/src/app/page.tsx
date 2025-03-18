@@ -27,7 +27,7 @@ export default async function Home() {
         <div className="flex gap-10 mb-10 justify-center">
           {[
             { icon: "/img/search-icon-homepage.svg", text: "Search", path: "" },
-            { icon: "/img/projects-icon-homepage.svg", text: "Projects", path: "" },
+            { icon: "/img/projects-icon-homepage.svg", text: "Projects", path: "/projects"},
             { icon: "/img/archive-icon-homepage.svg", text: "Archive", path: "/archive" },
           ].map((btn, index) => (
             <Link key={index} href={btn.path}>
