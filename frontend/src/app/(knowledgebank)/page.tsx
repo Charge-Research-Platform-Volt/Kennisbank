@@ -3,7 +3,7 @@ import { FetchWithValidation } from "@/lib/fetchWithValidation";
 import { DocumentPageResponseSchema } from "@/types/document.type";
 import Image from "next/image";
 import Link from "next/link";
-import Greeting from "./components/greating-text";
+import Greeting from "../components/greating-text";
 
 export default async function Home() {
   const result = await FetchWithValidation(
