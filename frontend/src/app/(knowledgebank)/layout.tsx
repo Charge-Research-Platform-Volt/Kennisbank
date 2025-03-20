@@ -4,7 +4,7 @@ export default async function KnowledgeBankLayout({ children }: Readonly<{ child
   return (
     <div className="flex h-screen w-full">
       <LeftSidebarServer />
-      <main className="w-full overflow-y-auto p-4">{children}</main>
+      <main className="w-full overflow-y-auto p-2.5">{children}</main>
     </div>
   );
 }

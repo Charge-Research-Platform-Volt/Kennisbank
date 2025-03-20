@@ -6,12 +6,12 @@ import Image from "next/image";
 import { Input } from "../ui/input";
 import SidebarPart from "./sidebar-part";
 import NewButton from "@/components/left-sidebar/sidebar-new-button";
-import { TagsArray } from "@/types/tag.type";
+import type { TagsArray } from "@/types/tag.type";
 import Settings from "@/icons/settings";
 import Archive from "@/icons/archive";
 import Tags from "@/icons/tags-icon";
 import Home from "@/icons/home";
-import { SidebarItem } from "@/types/sidebar";
+import type { SidebarItem } from "@/types/sidebar";
 import ProjectIcon1 from "@/icons/project-icons/icon-1";
 import Divider from "../divider";
 import Help from "@/icons/help";
@@ -41,18 +41,16 @@ export default function LeftSidebarClient({ tags }: { tags: TagsArray }) {
   const [isOpen, setIsOpen] = useState(true);
   const [profileButtonWidth, setProfileButtonWidth] = useState(0);
   const profileButtonRef = React.useRef<HTMLButtonElement>(null);
-  
+
   const handleLogout = async () => {
     const result = await Logout();
 
-    if (result.success)
-      window.location.reload();
-    else
-      console.error(result.message);
+    if (result.success) window.location.reload();
+    else console.error(result.message);
   };
 
   useEffect(() => {
-    if(profileButtonRef.current){
+    if (profileButtonRef.current) {
       setProfileButtonWidth(profileButtonRef.current.offsetWidth);
     }
   }, []);
@@ -63,6 +61,7 @@ export default function LeftSidebarClient({ tags }: { tags: TagsArray }) {
       {!isOpen && (
         <div className="mt-4 mb-4 flex items-center justify-between">
           <button
+            type="button"
             onClick={() => setIsOpen(!isOpen)}
             className="cursor-pointer rounded rounded-l-none rounded-r-lg bg-gray-100 p-2 text-white transition hover:bg-gray-200"
             style={{ cursor: "pointer" }}
@@ -82,7 +81,7 @@ export default function LeftSidebarClient({ tags }: { tags: TagsArray }) {
             </h2>
 
             {/* Hide menu button */}
-            <button onClick={() => setIsOpen(!isOpen)} className="rounde rounded-lg p-2 text-white transition hover:bg-gray-200" style={{ cursor: "pointer" }}>
+            <button type="button" onClick={() => setIsOpen(!isOpen)} className="rounde rounded-lg p-2 text-white transition hover:bg-gray-200" style={{ cursor: "pointer" }}>
               <HideMenu className="h-6 w-6" />
             </button>
           </div>
@@ -122,21 +121,24 @@ export default function LeftSidebarClient({ tags }: { tags: TagsArray }) {
 
               <li>
                 <DropdownMenu>
-                  <DropdownMenuTrigger ref={profileButtonRef} className="font-face data-[state=closed]:ring-0 outline-none text-md flex h-auto w-full cursor-pointer items-center gap-1 bg-transparent shadow-none rounded-xl p-2 text-black text-left hover:bg-gray-200">
-                      <Image src="/img/default-profile-picture.svg" alt="Help" width={24} height={24} className="mr-2" />
-                      <div>
-                        <p className="text-sm">Name</p>
-                        <p className="text-sm text-gray-500">example@gmail.com</p>
-                      </div>
+                  <DropdownMenuTrigger
+                    ref={profileButtonRef}
+                    className="font-face text-md flex h-auto w-full cursor-pointer items-center gap-1 rounded-xl bg-transparent p-2 text-left text-black shadow-none outline-none hover:bg-gray-200 data-[state=closed]:ring-0"
+                  >
+                    <Image src="/img/default-profile-picture.svg" alt="Help" width={24} height={24} className="mr-2" />
+                    <div>
+                      <p className="text-sm">Name</p>
+                      <p className="text-sm text-gray-500">example@gmail.com</p>
+                    </div>
                   </DropdownMenuTrigger>
-                    
+
                   <DropdownMenuContent side="top" style={{ width: profileButtonWidth }}>
                     <DropdownMenuItem onClick={() => console.log("Profile clicked")} className="cursor-pointer">
-                      <label className="inline-block cursor-pointer">Profile</label>
+                      Profile
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={ handleLogout } className="cursor-pointer">
-                      <label className="inline-block cursor-pointer">Log out</label>
+                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                      Log out
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

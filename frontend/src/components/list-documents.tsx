@@ -16,8 +16,6 @@ import { format, parseISO } from "date-fns";
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 export default function ListDocuments({ data }: { data: DocumentPageResponse }) {
-  const [rowData, setRowData] = useState<any[]>([]);
-
   // Column definitions
   const [columnDefs, setColumnDefs] = useState<ColDef[]>([
     { field: "name", width: 500, filter: true, cellRenderer: Render },
@@ -41,7 +39,7 @@ export default function ListDocuments({ data }: { data: DocumentPageResponse }) 
   }, []);
 
   return (
-    <div className="h-[calc(100vh-2rem)] w-full">
+    <div className="h-[calc(100vh-1.25rem)] w-full">
       <AgGridReact rowData={data.files} columnDefs={columnDefs} theme={tableTheme} rowSelection={rowSelection as RowSelectionOptions} />
     </div>
   );
