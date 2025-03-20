@@ -87,7 +87,7 @@ export function createFileHasher() {
         
         // Ask backend if the file already exists
         const urlSafeHash = encodeURIComponent(hash);
-        const response = await fetch(BACKEND_API_URL + BACKEND_API_EXIST_ROUTE + urlSafeHash);
+        const response = await fetch(BACKEND_API_URL + BACKEND_API_EXIST_ROUTE + urlSafeHash, { credentials: "include" });
         
         // Parse response data and return
         if (response.ok) {

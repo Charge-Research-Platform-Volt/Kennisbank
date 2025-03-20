@@ -3,6 +3,7 @@
 import type { FormResponse } from "@/types/return.type";
 import { Tag, TagBase, TagBaseSchema, TagSchema } from "@/types/tag.type";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 
 export const AddStandardizedTag = async (prevState: FormResponse<TagBase>, formData: FormData): Promise<FormResponse<TagBase>> => {
   const rawData: TagBase = {
@@ -21,9 +22,11 @@ export const AddStandardizedTag = async (prevState: FormResponse<TagBase>, formD
   }
 
   // Send the data to the backend
+  const cookieHeader = cookies();
   const response = await fetch(`http://backend:8080/Tag/add-tag/${encodeURIComponent(rawData.name)}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+    credentials: "include",	
   });
   const data = await response.json();
 
@@ -63,9 +66,11 @@ export const DeleteStandardizedTag = async (tag: Tag): Promise<FormResponse<Tag>
   }
 
   // Send the data to the backend
+  const cookieHeader = cookies();
   const response = await fetch(`http://backend:8080/Tag/delete-tag/${encodeURIComponent(tag.id)}`, {
     method: "DELETE",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+    credentials: "include",
   });
   const data = await response.json();
 
@@ -103,9 +108,11 @@ export const SaveStandardizedTag = async (prevState: FormResponse<Tag>, formData
   }
 
   // Send the data to the backend
+  const cookieHeader = cookies();
   const response = await fetch(`http://backend:8080/Tag/change-tag-name/${encodeURIComponent(rawData.id)}/${encodeURIComponent(rawData.name)}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+    credentials: "include",
   });
   const data = await response.json();
 

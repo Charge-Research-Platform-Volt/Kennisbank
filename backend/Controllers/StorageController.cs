@@ -16,7 +16,7 @@ namespace backend.Controllers
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
-    //[Authorize] -- Activate when possible to log in
+    [Authorize]
     public class StorageController : ControllerBase
     {
         private readonly IAzureBlobService blobService;
@@ -96,7 +96,7 @@ namespace backend.Controllers
                             await database.FileTagLinks.AddAsync(tagEntry);
                         }
 
-                        await database.SaveChangesAsync();
+                        await database.SaveFileChangesAsync();
 
                         return Ok(new FileUploadResult(id.ToString(), fileType, dto.File.Length));
 
@@ -109,7 +109,6 @@ namespace backend.Controllers
                     default:
                         return StatusCode(500, new StorageResponse("Error uploading file."));
                 }
-
             }
             catch (Exception e)
             {
@@ -194,7 +193,7 @@ namespace backend.Controllers
                     case BLOB_STATUSCODE.OK:
 
                         database.Files.Remove(item);
-                        await database.SaveChangesAsync();
+                        await database.SaveFileChangesAsync();
 
                         return Ok(new FileResponse("File deleted successfully", id, item.FileType));
 
@@ -238,7 +237,7 @@ namespace backend.Controllers
 
                 item.Name = dto.Name;
 
-                await database.SaveChangesAsync();
+                await database.SaveFileChangesAsync();
 
                 return Ok(new StorageResponse("File renamed succesfully."));
             }

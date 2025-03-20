@@ -3,7 +3,6 @@ import "./globals.css";
 
 import { Toaster } from "@/components/ui/sonner";
 import { TabletSmartphone } from "lucide-react";
-import LeftSidebarServer from "@/components/left-sidebar/left-sidebar-server";
 import { Inter } from "next/font/google";
 
 // Metadata
@@ -23,8 +22,10 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     <html className={inter.className}>
       <body className="flex h-screen w-screen overflow-hidden">
         {/* -------------------------- */}
+
         <LeftSidebarServer />
         <main className="w-full overflow-y-auto p-4">{children}</main>
+
         {/* -------------------------- */}
 
         <Toaster />

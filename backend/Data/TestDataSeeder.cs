@@ -67,7 +67,7 @@ namespace backend.Data
                     };
 
                     await database.Files.AddAsync(drive);
-                    await database.SaveChangesAsync();
+                    await database.SaveFileChangesAsync();
                 }
             }
             catch (Exception e)

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 namespace KnowledgeBank.Models;
 
 
@@ -32,6 +33,10 @@ public class FileItem
 
     [Column("updated_at")]
     public required DateTime UpdatedAt { get; set; }
+
+    // Navigation property (one to one). JsonIgnore excludes it from response bodies.
+    [JsonIgnore]
+    public FileVector? Vector { get; set; }
 }
 
 public class StorageUploadDto //Data Transfer Object (DTO)
