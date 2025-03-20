@@ -16,7 +16,7 @@ namespace backend.Controllers
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
-    //[Authorize] -- Activate when possible to log in
+    [Authorize]
     public class StorageController : ControllerBase
     {
         private readonly IAzureBlobService blobService;

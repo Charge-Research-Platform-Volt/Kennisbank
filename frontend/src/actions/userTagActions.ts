@@ -3,6 +3,7 @@
 import type { FormResponse } from "@/types/return.type";
 import { UserTag, UserTagBase, UserTagBaseSchema, UserTagSchema } from "@/types/tag.type";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 
 // Add a new User Tag
 export const AddUserTag = async (
@@ -24,11 +25,14 @@ export const AddUserTag = async (
     }
 
     // Send the data to the backend
+    const cookieHeader = await cookies();
+    console.log("Cookie header: ", cookieHeader);
     const response = await fetch(
         `http://backend:8080/UserTag/add-usertag/${encodeURIComponent(rawData.name)}`,
         {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+            credentials: "include",
         },
     );
     const data = await response.json();
@@ -72,11 +76,13 @@ export const DeleteUserTag = async (tag: UserTag): Promise<FormResponse<UserTag>
     }
 
     // Send the data to the backend
+    const cookieHeader = await cookies();
     const response = await fetch(
         `http://backend:8080/UserTag/delete-usertag/${encodeURIComponent(tag.id)}`,
         {
             method: "DELETE",
-            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
         },
     );
     const data = await response.json();
@@ -120,11 +126,13 @@ export const SaveUserTag = async (
     }
 
     // Send the data to the backend
+    const cookieHeader = await cookies();
     const response = await fetch(
         `http://backend:8080/UserTag/change-usertag-name/${encodeURIComponent(rawData.id)}/${encodeURIComponent(rawData.name)}`,
         {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+            credentials: "include",
         },
     );
     const data = await response.json();
@@ -149,11 +157,13 @@ export const SaveUserTag = async (
 export const ApproveUserTag = async (tagId: string): Promise<FormResponse<{ id: string }>> => {
     console.log("Approving user tag: ", tagId);
 
+    const cookieHeader = await cookies();
     const response = await fetch(
         `http://backend:8080/UserTag/approve-usertag/${encodeURIComponent(tagId)}`,
         {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+            credentials: "include",
         },
     );
     const data = await response.json();

@@ -2,6 +2,7 @@
 
 /.source
 /content/docs/(api)/**
+swagger.json
 
 # dependencies
 /node_modules
