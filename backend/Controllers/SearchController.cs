@@ -42,7 +42,7 @@ public class SearchController : ControllerBase
         [FromQuery] int pageSize = 20)
     {
         if (pageIndex < 1)
-                return BadRequest(new StorageResponse("Page index cannot be lower than 1."));
+            return BadRequest(new StorageResponse("Page index cannot be lower than 1."));
 
         if (pageSize < 1)
             return BadRequest(new StorageResponse("Page size cannot be lower than 1."));
@@ -69,8 +69,8 @@ public class SearchController : ControllerBase
         }
         catch (Exception e)
         {
-                logger.Error(e, "Error listing files on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
-                return StatusCode(500, new StorageResponse("Error listing files."));
+            logger.Error(e, "Error listing files on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
+            return StatusCode(500, new StorageResponse("Error listing files."));
         }
     }
 
@@ -88,7 +88,7 @@ public class SearchController : ControllerBase
         [FromQuery] int pageSize = 20)
     {
         if (pageIndex < 1)
-                return BadRequest(new StorageResponse("Page index cannot be lower than 1."));
+            return BadRequest(new StorageResponse("Page index cannot be lower than 1."));
 
         if (pageSize < 1)
             return BadRequest(new StorageResponse("Page size cannot be lower than 1."));
@@ -114,8 +114,8 @@ public class SearchController : ControllerBase
         }
         catch (Exception e)
         {
-                logger.Error(e, "Error listing files on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
-                return StatusCode(500, new StorageResponse("Error listing files."));
+            logger.Error(e, "Error listing files on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
+            return StatusCode(500, new StorageResponse("Error listing files."));
         }
     }
 
@@ -133,7 +133,7 @@ public class SearchController : ControllerBase
         [FromQuery] int pageSize = 20)
     {
         if (pageIndex < 1)
-                return BadRequest(new StorageResponse("Page index cannot be lower than 1."));
+            return BadRequest(new StorageResponse("Page index cannot be lower than 1."));
 
         if (pageSize < 1)
             return BadRequest(new StorageResponse("Page size cannot be lower than 1."));
@@ -160,13 +160,19 @@ public class SearchController : ControllerBase
             // Converts the user query to a tsvector and compares this to the file vector
             FileItem[]? items = await database.Files
                 .FromSqlRaw(@"
-                    SELECT 
+                    SELECT DISTINCT ON (f.id)
                         f.*, 
-                        ts_rank(fv.vector, websearch_to_tsquery('english', {0})) AS rank 
+                        GREATEST(
+                            ts_rank(fv.vector, websearch_to_tsquery('english', {0})),
+                            similarity(f.name, {0}),
+                            similarity(f.description, {0})
+                        ) AS rank 
                     FROM files f
                     JOIN file_vectors fv ON fv.file_id = f.id
                     WHERE fv.vector @@ websearch_to_tsquery('english', {0})
-                    ORDER BY rank DESC", query)
+                        OR similarity(f.name, {0}) > 0.3
+                        OR similarity(f.description, {0}) > 0.3
+                    ORDER BY f.id, rank DESC", query)
                 .Skip(skip).Take(pageSize)
                 .ToArrayAsync();
 
@@ -177,8 +183,8 @@ public class SearchController : ControllerBase
         }
         catch (Exception e)
         {
-                logger.Error(e, "Error listing files on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
-                return StatusCode(500, new StorageResponse("Error listing files."));
+            logger.Error(e, "Error listing files on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
+            return StatusCode(500, new StorageResponse("Error listing files."));
         }
     }
 }
