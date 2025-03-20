@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { TabletSmartphone } from "lucide-react";
 import { Inter } from "next/font/google";
+import LeftSidebarServer from "@/components/left-sidebar/left-sidebar-server";
 
 // Metadata
 export const metadata: Metadata = {
@@ -19,15 +20,9 @@ const inter = Inter({
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html className={inter.className}>
+    <html className={inter.className} lang="en">
       <body className="flex h-screen w-screen overflow-hidden">
-        {/* -------------------------- */}
-
-        <LeftSidebarServer />
-        <main className="w-full overflow-y-auto p-4">{children}</main>
-
-        {/* -------------------------- */}
-
+        {children}
         <Toaster />
 
         {/* Mobile device warning */}

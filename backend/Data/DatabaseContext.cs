@@ -15,9 +15,9 @@ namespace KnowledgeBank.Data
         public DbSet<Tag> Tags { get; set; }
         public DbSet<FileTagLink> FileTagLinks { get; set; }
         public DbSet<UserTag> UserTags { get; set; }
-        public DbSet<User> Users { get; set; }
+        public DbSet<User> AppUsers { get; set; } // Renamed to avoid conflict with IdentityDbContext.Users
         public DbSet<FileVector> Vectors { get; set; }
-        
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<FileItem>()
@@ -28,7 +28,7 @@ namespace KnowledgeBank.Data
 
             modelBuilder.Entity<FileTagLink>()
                 .HasKey(ft => new { ft.DocId, ft.TagId }); // Define composite primary key
-                
+
             base.OnModelCreating(modelBuilder);
         }
 
@@ -45,7 +45,7 @@ namespace KnowledgeBank.Data
             var updatedFiles = ChangeTracker.Entries<FileItem>()
                 .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
                 .Select(e => e.Entity)
-                .ToList();  
+                .ToList();
 
             // First save the changes to the database
             var result = await base.SaveChangesAsync(cancellationToken);
@@ -66,7 +66,7 @@ namespace KnowledgeBank.Data
         {
             // Generates an Enumerable<Task> of SQL queries that inserts the
             // vector, if there's a conflict, replace existing vector instead
-            var updateTasks = updatedFiles.Select(file => 
+            var updateTasks = updatedFiles.Select(file =>
                 Database.ExecuteSqlInterpolatedAsync($@"
                     INSERT INTO file_vectors (id, file_id, vector)
                     VALUES (gen_random_uuid(), {file.Id}, to_tsvector('english', {file.Name} || ' ' || {file.Description}))
