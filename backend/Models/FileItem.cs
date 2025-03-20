@@ -26,6 +26,12 @@ public class FileItem
     [Column("hash")]
     [MaxLength(64)]
     public string? Hash { get; set; }
+
+    [Column("created_at")]
+    public required DateTime CreatedAt { get; set; }
+
+    [Column("updated_at")]
+    public required DateTime UpdatedAt { get; set; }
 }
 
 public class StorageUploadDto //Data Transfer Object (DTO)

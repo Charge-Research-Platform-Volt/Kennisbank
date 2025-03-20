@@ -71,7 +71,9 @@ namespace backend.Migrations
                     name = table.Column<string>(type: "text", nullable: false),
                     description = table.Column<string>(type: "text", nullable: false),
                     filetype = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    hash = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true)
+                    hash = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {

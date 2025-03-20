@@ -20,9 +20,9 @@ import ShowMenu from "@/icons/menu/show-menu";
 
 // Menu items
 const menuItems: SidebarItem[] = [
-  { id: 1, name: "Home", path: "/", icon: <Home className="w-4 h-4" /> },
-  { id: 2, name: "Tags", path: "/standardizedtags", icon: <Tags className="w-4 h-4" /> },
-  { id: 3, name: "Archive", path: "/archive", icon: <Archive className="w-4 h-4" /> },
+  { id: 1, name: "Home", path: "/", icon: <Home className="h-4 w-4" /> },
+  { id: 2, name: "Archive", path: "/archive", icon: <Archive className="h-4 w-4" /> },
+  { id: 3, name: "Tags", path: "/standardizedtags", icon: <Tags className="h-4 w-4" /> },
 ];
 
 // Projects
@@ -30,7 +30,7 @@ const projects: SidebarItem[] = [
   {
     id: 1,
     path: "/projects",
-    icon: <ProjectIcon1 className="w-4 h-4" />,
+    icon: <ProjectIcon1 className="h-4 w-4" />,
     name: "Project 1",
   },
 ];
@@ -55,7 +55,7 @@ export default function LeftSidebarClient({ tags }: { tags: TagsArray }) {
 
       {/* Show menu if it is opened */}
       {isOpen && (
-        <aside className={`sticky top-0 flex h-screen flex-col bg-gray-100 p-2.5 transition-all duration-300 ${isOpen ? "w-64 bg-gray-100" : "w-16 bg-transparent"}`}>
+        <aside className={`flex h-screen flex-col bg-gray-100 p-2.5 transition-all duration-300 ${isOpen ? "w-64 bg-gray-100" : "w-16 bg-transparent"}`}>
           <div className="mb-4 flex items-center justify-between">
             {/* KnowledgeBase title */}
             <h2 className="text-xl font-semibold">
@@ -87,14 +87,14 @@ export default function LeftSidebarClient({ tags }: { tags: TagsArray }) {
             <ul>
               <li>
                 <Link href="/settings" className="flex items-center gap-x-2 rounded-md p-2 hover:bg-gray-200">
-                  <Settings className="w-4 h-4" />
+                  <Settings className="h-4 w-4" />
                   Settings
                 </Link>
               </li>
 
               <li>
                 <Link href="http://localhost:3001/guide" className="flex items-center gap-x-2 rounded-xl p-2 hover:bg-gray-200">
-                  <Help className="w-4 h-4" />
+                  <Help className="h-4 w-4" />
                   Help
                 </Link>
               </li>

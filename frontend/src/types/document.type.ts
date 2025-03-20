@@ -1,4 +1,4 @@
-import { array, z } from "zod";
+import { z } from "zod";
 
 /**
  * Base document schema without ID
@@ -26,6 +26,8 @@ export const DocumentResponseSchema = z.object({
   description: z.string().min(0, { message: "Description is required" }),
   fileType: z.string().min(1, { message: "File type is required" }),
   hash: z.string().min(1, { message: "Hash is required" }).nullable(),
+  createdAt: z.string().min(1, { message: "Created at is required" }),
+  updatedAt: z.string().min(1, { message: "Updated at is required" }),
 });
 
 export const DocumentResponseArraySchema = z.array(DocumentResponseSchema);

@@ -10,6 +10,7 @@ import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 import { DocumentPageResponse } from "@/types/document.type";
 import { tableTheme } from "@/lib/tableConfig";
 import GetFileIcon from "./getFileIcon";
+import { format, parseISO } from "date-fns";
 
 // Register all modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -21,7 +22,9 @@ export default function ListDocuments({ data }: { data: DocumentPageResponse }) 
   const [columnDefs, setColumnDefs] = useState<ColDef[]>([
     { field: "name", width: 500, filter: true, cellRenderer: Render },
     { field: "description", width: 300 },
-    { field: "fileType", width: 200, resizable: false },
+    { field: "fileType", width: 70, headerName: "Type" },
+    { field: "createdAt", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
+    { field: "updatedAt", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
   ]);
 
   const [defaultColDef, setDefaultColDef] = useState({
@@ -29,12 +32,6 @@ export default function ListDocuments({ data }: { data: DocumentPageResponse }) 
     sortable: true,
     filter: false,
   });
-
-  useEffect(() => {
-    fetch("https://www.ag-grid.com/example-assets/olympic-winners.json")
-      .then((result) => result.json())
-      .then((rowData) => setRowData(rowData));
-  }, []);
 
   // Row selection
   const rowSelection = useMemo(() => {
@@ -44,7 +41,7 @@ export default function ListDocuments({ data }: { data: DocumentPageResponse }) 
   }, []);
 
   return (
-    <div style={{ width: "100%", height: "calc(100vh - 2rem)" }}>
+    <div className="h-[calc(100vh-2rem)] w-full">
       <AgGridReact rowData={data.files} columnDefs={columnDefs} theme={tableTheme} rowSelection={rowSelection as RowSelectionOptions} />
     </div>
   );
