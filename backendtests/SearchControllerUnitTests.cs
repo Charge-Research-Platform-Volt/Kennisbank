@@ -1,0 +1,77 @@
+﻿using Moq;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using backend.Controllers;
+using backend.Data;
+using KnowledgeBank.Data;
+using System.Net;
+namespace backend.Tests;
+
+
+[TestFixture]
+[Category("UnitTest")]
+public class SearchControllerUnitTests
+{
+    private Mock<IAzureBlobService> _mockBlobService;
+    private Mock<DatabaseContext> _mockDbContext;
+    private SearchController _controller;
+
+    [SetUp]
+    public void SetUp()
+    {
+        _mockBlobService = new Mock<IAzureBlobService>();
+        _mockDbContext = new Mock<DatabaseContext>(new DbContextOptions<DatabaseContext>());
+        _controller = new SearchController(_mockBlobService.Object, _mockDbContext.Object);
+    }
+
+    [Test]
+    public async Task FullTextSearch_ReturnsBadRequest_WhenPageIndexIsLessThan1()
+    {
+        // Arrange
+        var query = "test";
+        var pageIndex = 0;  // Invalid page index
+        var pageSize = 20;
+
+        // Act
+        var result = await _controller.FullTextSearch(query, pageIndex, pageSize);
+
+        // Assert
+        var badRequestResult = result as BadRequestObjectResult;
+        Assert.That(badRequestResult, Is.Not.Null);
+        Assert.That(badRequestResult?.StatusCode, Is.EqualTo((int)HttpStatusCode.BadRequest));
+    }
+
+    [Test]
+    public async Task FullTextSearch_ReturnsBadRequest_WhenPageSizeIsLessThan1()
+    {
+        // Arrange
+        var query = "test";
+        var pageIndex = 1;
+        var pageSize = 0;  // Invalid page size
+
+        // Act
+        var result = await _controller.FullTextSearch(query, pageIndex, pageSize);
+
+        // Assert
+        var badRequestResult = result as BadRequestObjectResult;
+        Assert.That(badRequestResult, Is.Not.Null);
+        Assert.That(badRequestResult?.StatusCode, Is.EqualTo((int)HttpStatusCode.BadRequest));
+    }
+
+    [Test]
+    public async Task FullTextSearch_ReturnsBadRequest_WhenQueryIsEmpty()
+    {
+        // Arrange
+        var query = "";  // Invalid query
+        var pageIndex = 1;
+        var pageSize = 20;
+
+        // Act
+        var result = await _controller.FullTextSearch(query, pageIndex, pageSize);
+
+        // Assert
+        var badRequestResult = result as BadRequestObjectResult;
+        Assert.That(badRequestResult, Is.Not.Null);
+        Assert.That(badRequestResult?.StatusCode, Is.EqualTo((int)HttpStatusCode.BadRequest));
+    }
+}
