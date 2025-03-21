@@ -5,7 +5,7 @@ import { z } from "zod";
  */
 export const DocumentBaseSchema = z.object({
 	name: z.string().min(1 , { message: "Name is required" }),
-	description: z.string().min(1 , { message: "Description is required" }),
+	description: z.string(),
 	file: z.instanceof(File, {message: "File is required"}),
 	//tags: z.string().min(1, {message: "At least 1 tag is required"}),
 	hash: z.string({ message: "Hash should be a string" }),
@@ -24,7 +24,7 @@ export const DocumentArraySchema = z.array(DocumentSchema);
 export const DocumentResponseSchema = z.object({
 	id: z.string().uuid(),
 	name: z.string().min(1, { message: "Name is required" }),
-	description: z.string().min(1, { message: "Description is required" }),
+	description: z.string(),
 	fileType: z.string().min(1, { message: "File type is required" }),
 	hash: z.string().min(1, { message: "Hash is required" }),
 });
