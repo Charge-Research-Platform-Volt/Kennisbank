@@ -8,7 +8,7 @@ import Greeting from "../components/greating-text";
 export default async function Home() {
   const result = await FetchWithValidation(
       DocumentPageResponseSchema,
-      "http://backend:8080/Storage/list-all",
+      "http://backend:8080/Storage/list-paged?pageIndex=1&pageSize=4",
   );
 
   let files = result.data?.files ?? [];
