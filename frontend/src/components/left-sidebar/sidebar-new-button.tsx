@@ -210,7 +210,6 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
                       <FileInfo>
                         Size: {newFile && (newFile.size / 1024).toFixed(2)} {!newFile && "-"} KB
                       </FileInfo>
-                      {fileHash && <FileInfo>Hash: {fileHash.substring(0, 10)}...</FileInfo>}
                       <FileInfo>
                         Hash: {fileHash && `${fileHash.substring(0, 10)}...`} {!fileHash && "-"}
                       </FileInfo>
