@@ -50,7 +50,7 @@ export default function LoginPage() {
                             <label htmlFor="password" className="font-bold">PASSWORD</label>
                             <Input value={password} type="password" placeholder="Password" name="password" onChange={(e) => setPassword(e.target.value.trim())} required/>
                         </div>
-                        <Button type="submit" className="w-full" disabled={password == "" || email == "" || state.success}>{isPending || state.success ? "Signing in..." : "Sign in"}</Button>
+                        <Button type="submit" className="w-full" disabled={password == "" || email == "" || state.success || isPending}>{isPending || state.success ? "Signing in..." : "Sign in"}</Button>
                     </form>
                 </div>
             </div>
