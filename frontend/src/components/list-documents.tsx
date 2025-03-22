@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 // Table imports
 import { AgGridReact } from "ag-grid-react";
@@ -17,19 +17,19 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 
 export default function ListDocuments({ data }: { data: DocumentPageResponse }) {
   // Column definitions
-  const [columnDefs, setColumnDefs] = useState<ColDef[]>([
+  const columnDefs = useState<ColDef[]>([
     { field: "name", width: 500, filter: true, cellRenderer: Render },
     { field: "description", width: 300 },
     { field: "fileType", width: 70, headerName: "Type" },
     { field: "createdAt", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
     { field: "updatedAt", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
-  ]);
+  ])[0];
 
-  const [defaultColDef, setDefaultColDef] = useState({
-    resizable: true,
-    sortable: true,
-    filter: false,
-  });
+  // const [defaultColDef, setDefaultColDef] = useState({
+  //   resizable: true,
+  //   sortable: true,
+  //   filter: false,
+  // });
 
   // Row selection
   const rowSelection = useMemo(() => {

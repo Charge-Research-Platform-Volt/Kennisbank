@@ -58,7 +58,10 @@ public class SearchControllerIntegrationTests
             Id = new Guid(),
             Name = "Integration Test File",
             Description = "This is a test file about AI Ohmega",
-            FileType = "text"
+            FileType = "text",
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
+            
         };
 
         // Add the file to the database.
@@ -90,7 +93,9 @@ public class SearchControllerIntegrationTests
             Id = new Guid(),
             Name = "Integration Test File",
             Description = "This is a test file about AI Ohmega",
-            FileType = "text"
+            FileType = "text",
+            CreatedAt = DateTime.Now,
+            UpdatedAt = DateTime.Now
         };
 
         // Add the file to the database.

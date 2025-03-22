@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { TabletSmartphone } from "lucide-react";
 import { Inter } from "next/font/google";
-import LeftSidebarServer from "@/components/left-sidebar/left-sidebar-server";
+//import LeftSidebarServer from "@/components/left-sidebar/left-sidebar-server";
 
 // Metadata
 export const metadata: Metadata = {
