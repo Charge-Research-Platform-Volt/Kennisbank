@@ -62,8 +62,10 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(401, "The user is not authenticated")]
         public async Task<IActionResult> Invite(string email)
         {
+            // generate a token
             Guid token = Guid.NewGuid();
             
+            // save the invitation
             _context.Invitations.Add(new Invitation
             {
                 Id = Guid.NewGuid(),
@@ -73,7 +75,16 @@ namespace KnowledgeBank.Controllers
             });
             await _context.SaveChangesAsync();
 
-            MailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: https://localhost:3000/signup?token={token}");
+            // send the email
+            try
+            {
+                MailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: https://localhost:3000/signup?token={token}");
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, "Failed to send email");
+                return BadRequest(new {message = "Failed to send email"});
+            }
             
             return Ok();
         }
@@ -82,7 +93,6 @@ namespace KnowledgeBank.Controllers
         [SwaggerOperation(Summary = "Register a new user", Description = "Register a new user")]
         [SwaggerResponse(200, "The user has been registered")]
         [SwaggerResponse(400, "Bad request")]
-        [SwaggerResponse(401, "The invitation is invalid")]
         public async Task<IActionResult> Register([FromBody] SignUpDto signUpDto)
         {
             // check if there is a recent invitation for the email and token
