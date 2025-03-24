@@ -6,6 +6,7 @@ import Greeting from "../components/greating-text";
 import Archive from "@/icons/archive";
 import Projects from "@/icons/projects-icon";
 import Search from "@/icons/search-icon";
+import GetFileIcon from "@/components/getFileIcon";
 
 export default async function Home() {
   const result = await FetchWithValidation(
@@ -57,9 +58,9 @@ export default async function Home() {
                   ${index !== 0 && index !== files.length - 1 ? "border-t-0" : ""}
                 `}
               >
-                <span className="flex items-center gap-4 text-lg w-full overflow-hidden">
-                  📄 
-                  <span className="truncate w-[250px] md:w-[350px] lg:w-[450px] block text-left">
+                <span className="flex items-center gap-2 text-lg w-full overflow-hidden">
+                  {GetFileIcon(file.fileType)}
+                  <span className="truncate w-[250px] md:w-[350px] lg:w-[450px] block text-left text-sm">
                     {file.name}
                   </span>
                 </span>
