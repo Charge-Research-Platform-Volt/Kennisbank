@@ -4,11 +4,11 @@ import { z } from "zod";
  * Base document schema without ID
  */
 export const DocumentBaseSchema = z.object({
-  name: z.string().min(1, { message: "Name is required" }),
-  description: z.string().min(1, { message: "Description is required" }),
-  file: z.instanceof(File, { message: "File is required" }),
-  //tags: z.string().min(1, {message: "At least 1 tag is required"}),
-  hash: z.string({ message: "Hash should be a string" }),
+	name: z.string().min(1 , { message: "Name is required" }),
+	description: z.string(),
+	file: z.instanceof(File, {message: "File is required"}),
+	//tags: z.string().min(1, {message: "At least 1 tag is required"}),
+	hash: z.string({ message: "Hash should be a string" }),
 });
 
 /**
