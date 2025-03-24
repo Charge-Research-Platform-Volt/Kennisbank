@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
 import { DocumentPageResponseSchema } from "@/types/document.type";
-import Image from "next/image";
 import Link from "next/link";
 import Greeting from "../components/greating-text";
+import Archive from "@/icons/archive";
+import Projects from "@/icons/projects-icon";
+import Search from "@/icons/search-icon";
 
 export default async function Home() {
   const result = await FetchWithValidation(
@@ -26,16 +28,16 @@ export default async function Home() {
         {/* Main buttons */}
         <div className="flex gap-10 mb-10 justify-center">
           {[
-            { icon: "/img/search-icon-homepage.svg", text: "Search", path: "" },
-            { icon: "/img/projects-icon-homepage.svg", text: "Projects", path: "/projects"},
-            { icon: "/img/archive-icon-homepage.svg", text: "Archive", path: "/archive" },
+            { icon: <Search className="w-50 h-50" fill="#4b5563" />, text: "Search", path: "" },
+            { icon: <Projects className="w-50 h-50" fill="#4b5563" />, text: "Projects", path: "/projects"},
+            { icon: <Archive className="w-50 h-50" fill="#4b5563" />, text: "Archive", path: "/archive" },
           ].map((btn, index) => (
             <Link key={index} href={btn.path}>
               <div
                 key={index}
                 className="flex flex-col items-center bg-gray-100 p-6 rounded-xl border border-gray-300 hover:bg-gray-200 transition cursor-pointer w-32 h-32 shadow-md"
               >
-                <Image src={btn.icon} alt={btn.text} width={50} height={50} />
+                {btn.icon}
                 <p className="text-gray-600 font-medium text-lg mt-2">{btn.text}</p>
               </div>
             </Link>
@@ -55,10 +57,13 @@ export default async function Home() {
                   ${index !== 0 && index !== files.length - 1 ? "border-t-0" : ""}
                 `}
               >
-                <span className="flex items-center gap-4 text-lg">
-                  📄 {file.name}
+                <span className="flex items-center gap-4 text-lg w-full overflow-hidden">
+                  📄 
+                  <span className="truncate w-[250px] md:w-[350px] lg:w-[450px] block text-left">
+                    {file.name}
+                  </span>
                 </span>
-                  <Link href={`file/${file.id}`}><Button>Open</Button></Link>
+                <Link href={`file/${file.id}`}><Button>Open</Button></Link>
               </div>
             ))}
           </div>

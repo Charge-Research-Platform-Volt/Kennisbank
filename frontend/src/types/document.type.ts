@@ -26,7 +26,7 @@ export const DocumentResponseSchema = z.object({
 	name: z.string().min(1, { message: "Name is required" }),
 	description: z.string(),
 	fileType: z.string().min(1, { message: "File type is required" }),
-	hash: z.string().min(1, { message: "Hash is required" }),
+	hash: z.string().nullable(),
 });
 
 export const DocumentResponseArraySchema = z.array(DocumentResponseSchema);

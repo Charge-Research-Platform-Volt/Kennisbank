@@ -25,6 +25,7 @@ public class FileItem
     public required string FileType { get; set; }
 
     [Column("hash")]
+    [Required]
     [MaxLength(64)]
     public string? Hash { get; set; }
 
