@@ -9,6 +9,8 @@ export default function Greeting() {
     greeting = "Good afternoon";
   } else if (currentHour >= 18) {
     greeting = "Good evening";
+  } else if (currentHour < 4){
+    greeting = "Good night";
   }
   else {
     greeting = "Good morning";
@@ -22,6 +24,8 @@ export default function Greeting() {
       setGreeting("Good afternoon");
     } else if (currentHour >= 18) {
       setGreeting("Good evening");
+    } else if (currentHour < 4){
+      setGreeting("Good night");
     }
     else {
       setGreeting("Good morning");
