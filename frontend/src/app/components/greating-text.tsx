@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 
+// displays a different greeting dependent on what time of day it is
 export default function Greeting() {
   let greeting = "";
   const currentHour = new Date().getHours();

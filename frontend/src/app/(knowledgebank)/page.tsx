@@ -9,6 +9,7 @@ import Search from "@/icons/search-icon";
 import GetFileIcon from "@/components/getFileIcon";
 
 export default async function Home() {
+  // fetches all documents
   const result = await FetchWithValidation(
       DocumentPageResponseSchema,
       "http://backend:8080/Storage/list-paged?pageIndex=1&pageSize=4",
@@ -16,6 +17,7 @@ export default async function Home() {
 
   let files = result.data?.files ?? [];
 
+  // only display first 4 files, needs to be updated to display recently opened files
   if(files.length > 4){
     files = files.slice(0, 4);
   }
