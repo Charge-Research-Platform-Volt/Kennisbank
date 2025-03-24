@@ -28,8 +28,14 @@ public class FileItem
     [MaxLength(64)]
     public string? Hash { get; set; }
 
+    [Column("created_at")]
+    public required DateTime CreatedAt { get; set; }
+
+    [Column("updated_at")]
+    public required DateTime UpdatedAt { get; set; }
+
     // Navigation property (one to one). JsonIgnore excludes it from response bodies.
-    [JsonIgnore] 
+    [JsonIgnore]
     public FileVector? Vector { get; set; }
 }
 

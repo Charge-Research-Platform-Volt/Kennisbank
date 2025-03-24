@@ -17,7 +17,7 @@ namespace backend.Data
             using IServiceScope scope = serviceProvider.CreateScope();
             blobService = scope.ServiceProvider.GetRequiredService<IAzureBlobService>();
             database = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-            
+
             // await ShamelessCopyOfUpload("path", "title", "");
             await ShamelessCopyOfUpload("WRRRaport - Opgave AI.pdf", "Opgave AI. De nieuwe systeemtechnologie", "WRR reageert op de regeringsaanvraag over de impact van AI op publieke waarden. AI wordt gezien als een systeemtechnologie met langdurige, grootschalige en onvoorspelbare effecten, daarom pleit de WRR voor een integrale aanpak met sterke overheidsbetrokkenheid");
             await ShamelessCopyOfUpload("WP+50v2_+AI+van+repliek+gediend_DEF_DT.pdf", "AI van repliek gediend? Een verkenning van tegenmacht vanuit maatschappelijke organisaties", "");
@@ -62,6 +62,8 @@ namespace backend.Data
                         Name = title,
                         Description = description,
                         FileType = fileType,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
                     };
 
                     await database.Files.AddAsync(drive);

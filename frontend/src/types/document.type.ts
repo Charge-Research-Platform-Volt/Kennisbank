@@ -15,28 +15,29 @@ export const DocumentBaseSchema = z.object({
  * Complete document schema with ID that extends the base document
  */
 export const DocumentSchema = DocumentBaseSchema.extend({
-	id: z.string().uuid(), // UUID validation
+  id: z.string().uuid(), // UUID validation
 });
 
 export const DocumentArraySchema = z.array(DocumentSchema);
 
-
 export const DocumentResponseSchema = z.object({
-	id: z.string().uuid(),
-	name: z.string().min(1, { message: "Name is required" }),
-	description: z.string(),
-	fileType: z.string().min(1, { message: "File type is required" }),
-	hash: z.string().nullable(),
+  id: z.string().uuid(),
+  name: z.string().min(1, { message: "Name is required" }),
+  description: z.string().min(0, { message: "Description is required" }),
+  fileType: z.string().min(1, { message: "File type is required" }),
+  hash: z.string().min(1, { message: "Hash is required" }).nullable(),
+  createdAt: z.string().min(1, { message: "Created at is required" }),
+  updatedAt: z.string().min(1, { message: "Updated at is required" }),
 });
 
 export const DocumentResponseArraySchema = z.array(DocumentResponseSchema);
 
 export const DocumentPageResponseSchema = z.object({
-	pageIndex: z.number().min(0, { message: "Page index should be a positive integer" }),
-	pageSize: z.number().min(0, { message: "Page size should be a positive integer" }),
-	files: DocumentResponseArraySchema,
-	message: z.string(),
-	responseType: z.string().min(1, { message: "Response type is required" }),
+  pageIndex: z.number().min(0, { message: "Page index should be a positive integer" }),
+  pageSize: z.number().min(0, { message: "Page size should be a positive integer" }),
+  files: DocumentResponseArraySchema,
+  message: z.string(),
+  responseType: z.string().min(1, { message: "Response type is required" }),
 });
 
 // Type definitions derived from the schemas
