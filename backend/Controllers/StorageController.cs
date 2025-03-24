@@ -79,18 +79,20 @@ namespace backend.Controllers
                             Description = dto.Description,
                             Hash = dto.Hash,
                             FileType = fileType,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow,
                         };
 
                         await database.Files.AddAsync(drive);
 
-                        foreach(string tag in dto.Tags)
+                        foreach (string tag in dto.Tags)
                         {
                             FileTagLink tagEntry = new()
                             {
                                 DocId = id,
                                 TagId = Guid.Parse(tag),
                             };
-                            
+
                             await database.FileTagLinks.AddAsync(tagEntry);
                         }
 
@@ -309,7 +311,7 @@ namespace backend.Controllers
         [HttpGet("list-all")]
         [SwaggerOperation(
             Summary = "List all files in storage.",
-            Description = "Lists all files in the storage."
+            Description = "Lists all files in the storage, sorted by creation date (newest first)."
         )]
         [SwaggerResponse(200, "A list of all files in the storage", typeof(StorageResponse))]
         [SwaggerResponse(500, "Server error", typeof(StorageResponse))]
@@ -317,7 +319,7 @@ namespace backend.Controllers
         {
             try
             {
-                FileItem[]? items = await database.Files.ToArrayAsync();
+                FileItem[]? items = await database.Files.OrderByDescending(f => f.CreatedAt).ToArrayAsync();
 
                 if (items == null)
                     return Ok(new PageResponse("No files in database.", 0, 0, Array.Empty<FileItem>()));

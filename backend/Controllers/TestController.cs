@@ -48,13 +48,13 @@ public class TestController : ControllerBase
         {
             var faker = new Faker();
             var lorem = new Bogus.DataSets.Lorem(locale: "en");
-            var containerName = "text"; 
+            var containerName = "text";
 
             for (int i = 0; i < numberOfFiles; i++)
             {
                 string fileName = faker.System.FileName();
                 fileName = Path.GetFileNameWithoutExtension(fileName);
-                string description = faker.Random.Words(10); 
+                string description = faker.Random.Words(10);
                 var fileContent = lorem.Paragraph();
                 string extension = ".txt";
 
@@ -89,6 +89,8 @@ public class TestController : ControllerBase
                             Name = fileName,
                             Description = description,
                             FileType = fileType,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
                         };
 
                         await database.Files.AddAsync(drive);
