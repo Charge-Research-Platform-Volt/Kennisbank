@@ -1,0 +1,55 @@
+import { FormResponse } from "@/types/return.type";
+import { InviteRequestSchema, InviteRequest } from "@/types/inviteRequest.type";
+
+export const Invite = async (
+    prevState: FormResponse<InviteRequest>,
+    formData: FormData,
+): Promise<FormResponse<InviteRequest>> => {
+    try {
+        console.log("Inviting user...");
+        const rawData: InviteRequest = {
+            email: (formData.get("email") as string)?.trim(),
+        };
+
+        // Validate the raw data
+        const validatedData = InviteRequestSchema.safeParse(rawData);
+
+        if (!validatedData.success) {
+            return {
+                success: false,
+                message: validatedData.error.errors[0].message,
+                inputs: rawData,
+            };
+        }
+
+        // Send the data to the backend
+        const response = await fetch(`http://localhost:8080/Auth/invite?email=${encodeURIComponent(rawData.email)}`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+        });
+
+        // Check if the request was successful
+        if (!response.ok) {
+            const data = await response.json();
+
+            return {
+                success: false,
+                message: data.message || "Failed to send invitation",
+                inputs: rawData,
+            };
+        }
+
+        return {
+            success: true,
+            message: "Invitation sent successfully.",
+        };
+    } catch (error) {
+        console.error(`An error occurred while sending invitation: ${error}`);
+
+        return {
+            success: false,
+            message: "An error occurred while sending the invitation.",
+        };
+    }
+};
