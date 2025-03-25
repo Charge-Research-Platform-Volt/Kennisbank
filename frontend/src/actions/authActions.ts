@@ -22,12 +22,22 @@ export const Register = async (
             };
         }
 
+        const token = new URLSearchParams(window.location.search).get("token");
+
+        if (!token) {
+            return {
+                success: false,
+                message: "Invalid or missing token.",
+            }
+        }
+
         // Raw data from the form.
         const rawData: RegisterRequest = {
             // firstname: (formData.get("firstname") as string)?.trim(),
             // lastname: (formData.get("lastname") as string)?.trim(),
             email: (formData.get("email") as string)?.trim(),
             password: (formData.get("password") as string)?.trim(),
+            token: (token as string)?.trim(),
         };
 
         // Validate the raw data, if it fails, return an error.
@@ -42,11 +52,12 @@ export const Register = async (
         }
 
         // Send the data to the backend.
-        const response = await fetch("http://localhost:8080/Auth/register", {
+        const response = await fetch("http://localhost:8080/Auth/signup", {
             method: "POST",
             body: JSON.stringify({
                 email: rawData.email,
                 password: rawData.password,
+                token: rawData.token,
             }),
             headers: { "Content-Type": "application/json" },
         });
