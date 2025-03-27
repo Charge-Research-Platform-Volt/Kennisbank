@@ -6,8 +6,10 @@ namespace KnowledgeBank.Models;
 public class PersonOrganisationLink
 {
     [Column("person-id")]
+    [ForeignKey("Person")]
     public required Guid PersonId { get; set; }
 
     [Column("organisation-id")]
+    [ForeignKey("Organisation")]
     public required Guid OrganisationId { get; set; }
 }

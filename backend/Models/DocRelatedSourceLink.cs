@@ -3,9 +3,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace KnowledgeBank.Models;
 
 [Table("doc-related_source")]
-public class DocRelateSourceLink
+public class DocRelatedSourceLink
 {
     [Column("doc-id")]
+    [ForeignKey("Document")]
     public required Guid DocId { get; set; }
 
     [Column("source")]

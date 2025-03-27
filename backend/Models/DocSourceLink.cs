@@ -6,6 +6,7 @@ namespace KnowledgeBank.Models;
 public class DocSourceLink
 {
     [Column("doc-id")]
+    [ForeignKey("Document")]
     public required Guid DocId { get; set; }
 
     [Column("source")]

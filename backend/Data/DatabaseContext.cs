@@ -19,7 +19,8 @@ namespace KnowledgeBank.Data
         public DbSet<FileVector> Vectors { get; set; }
         public DbSet<Document> Documents { get; set; }
         public DbSet<Person> Persons { get; set; }
-        public DbSet<Organisation> Organisation {get; set; }
+        public DbSet<Organisation> Organisations {get; set; }
+        public DbSet<Region> Regions { get; set; }
         public DbSet<DocAuthorLink> DocAuthors { get; set; }
         public DbSet<DocRelatedPersonLink> DocRelatedPersons { get; set; }
         public DbSet<DocOrganisationLink> DocOrganisations { get; set; }
@@ -41,6 +42,36 @@ namespace KnowledgeBank.Data
 
             modelBuilder.Entity<FileTagLink>()
                 .HasKey(ft => new { ft.DocId, ft.TagId }); // Define composite primary key
+
+            modelBuilder.Entity<DocAuthorLink>()
+                .HasKey(ft => new { ft.DocId, ft.PersonId});
+                
+            modelBuilder.Entity<DocRelatedPersonLink>()
+               .HasKey(ft => new { ft.DocId, ft.PersonId});
+                
+            modelBuilder.Entity<DocOrganisationLink>()
+                .HasKey(ft => new { ft.DocId, ft.OrganisationId});
+
+            modelBuilder.Entity<DocRelatedOrganisationLink>()
+                .HasKey(ft => new { ft.DocId, ft.OrganisationId});
+                
+            modelBuilder.Entity<PersonOrganisationLink>()
+                .HasKey(ft => new { ft.PersonId, ft.OrganisationId});
+
+            modelBuilder.Entity<PersonPersonLink>()
+                .HasKey(ft => new { ft.PersonId, ft.PersonId2});
+                
+            modelBuilder.Entity<OrganisationOrganisationLink>()
+                .HasKey(ft => new { ft.OrganisationId, ft.OrganisationId2});
+                
+            modelBuilder.Entity<DocRegionLink>()
+                .HasKey(ft => new { ft.DocId, ft.RegionId});
+                
+            modelBuilder.Entity<DocSourceLink>()
+                .HasKey(ft => new { ft.DocId, ft.Source});
+                
+            modelBuilder.Entity<DocRelatedSourceLink>()
+                .HasKey(ft => new { ft.DocId, ft.Source});
 
             base.OnModelCreating(modelBuilder);
         }

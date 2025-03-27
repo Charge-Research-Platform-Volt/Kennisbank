@@ -6,8 +6,10 @@ namespace KnowledgeBank.Models;
 public class DocRegionLink
 {
     [Column("doc-id")]
+    [ForeignKey("Document")]
     public required Guid DocId { get; set; }
 
-    [Column("region")]
-    public required string Region { get; set; }
+    [Column("region-id")]
+    [ForeignKey("Region")]
+    public required Guid RegionId { get; set; }
 }
