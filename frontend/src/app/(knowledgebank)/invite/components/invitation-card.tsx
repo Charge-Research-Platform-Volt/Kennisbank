@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ const initialState: FormResponse<LoginRequest> = {
 
 export default function InvitationCard() {
   const [state, formAction] = useActionState(Invite, initialState); 
+  const [isPendingTransition, startTransition] = useTransition();
 
   useEffect(() => {
     if (state.success) {
@@ -25,6 +26,15 @@ export default function InvitationCard() {
       toast.error(state.message);
     }
   }, [state]);
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    startTransition(async () => {
+      const formData = new FormData(event.currentTarget);
+      await formAction(formData);
+    });
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-full px-6">
@@ -38,7 +48,7 @@ export default function InvitationCard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={formAction}>
+          <form onSubmit={handleSubmit}>
             <div className="space-y-4">
               <Input 
                 type="email"
@@ -50,8 +60,9 @@ export default function InvitationCard() {
               <Button 
                 type="submit" 
                 className="w-full"
+                disabled={isPendingTransition}
               >
-                Send Invitation
+                {isPendingTransition ? "Sending Invitation..." : "Send Invitation"}
               </Button>
             </div>
           </form>

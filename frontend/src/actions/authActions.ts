@@ -68,7 +68,7 @@ export const Register = async (
 
             return {
                 success: false,
-                message: Object.values(data.errors).flat().join(" "),
+                message: data.message || "An error occurred.",
                 inputs: rawData,
             };
         }

@@ -60,7 +60,7 @@ namespace KnowledgeBank.Controllers
         [SwaggerOperation(Summary = "Invite a new user", Description = "Invite a new user to the system")]
         [SwaggerResponse(200, "The user has been invited")]
         [SwaggerResponse(401, "The user is not authenticated")]
-        public async Task<IActionResult> Invite(string email)
+        public async Task<IActionResult> Invite([FromBody] string email)
         {
             // generate a token
             Guid token = Guid.NewGuid();
@@ -78,7 +78,7 @@ namespace KnowledgeBank.Controllers
             // send the email
             try
             {
-                MailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: https://localhost:3000/signup?token={token}");
+                MailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: http://localhost:3000/signup?token={token}");
             }
             catch (Exception e)
             {
@@ -122,7 +122,7 @@ namespace KnowledgeBank.Controllers
                 return Ok();
             }
 
-            return BadRequest(new {message = result.Errors});
+            return BadRequest(new {message = string.Join(" ", result.Errors.Select(e => e.Description))});
         }
 
     }
