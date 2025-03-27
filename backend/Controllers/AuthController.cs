@@ -119,6 +119,7 @@ namespace KnowledgeBank.Controllers
             var result = await _signInManager.UserManager.CreateAsync(user, signUpDto.Password);
             if (result.Succeeded)
             {
+                await _context.SaveChangesAsync();
                 return Ok();
             }
 

@@ -59,8 +59,8 @@ public class SearchControllerIntegrationTests
             Name = "Integration Test File",
             Description = "This is a test file about AI Ohmega",
             FileType = "text",
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
             
         };
 
@@ -94,8 +94,8 @@ public class SearchControllerIntegrationTests
             Name = "Integration Test File",
             Description = "This is a test file about AI Ohmega",
             FileType = "text",
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
         // Add the file to the database.
