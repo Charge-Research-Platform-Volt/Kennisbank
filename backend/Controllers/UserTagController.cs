@@ -120,18 +120,18 @@ public class UserTagController : ControllerBase
         return Ok(new { message = "Tag added." });
     }
 
+    
 
-    // TODO: Not sure users should be able to delete tags?
-    // Maybe only tags they specifically made and have not
-    // yet been approved by an admin?
+
     /// <summary>
-    /// Deletes a tag from the tag list.
+    /// Deletes a user tag from the user tag list.
     /// </summary>
-    /// <param name="tagName">The name of the tag to delete.</param>
+    /// <param name="id">The id of the user tag to delete.</param>
     /// <returns>
-    /// Returns a 200 OK response containing the deleted tag.
+    /// Returns a 200 OK response.
     // </returns>
     [HttpDelete("delete-usertag/{id}")]
+    [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
             Summary = "Delete user tag.",
             Description = "Lets a user delete a tag from the list of user tags."
@@ -144,7 +144,7 @@ public class UserTagController : ControllerBase
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> DeleteTag(string id)
     {
-        Log.Information("Removing tag from tag list.");
+        Log.Information("Removing user tag from user tag list.");
 
         // Make sure we have the required fields
         if (id == null)
@@ -161,39 +161,34 @@ public class UserTagController : ControllerBase
         //check if tag is found
         if (userTag == null)
         {
-            Log.Error("Tag not found.");
-            return NotFound(new { message = "Tag not found." });
+            Log.Error("User tag not found.");
+            return NotFound(new { message = "User tag not found." });
         }
 
-        // Make sure the user has created this tag or it's the admin deleting it
-        if (userTag.User != "TestUser1") // TODO: Shouldn't compare strings but actual users
+
+        try
         {
-            Log.Error("Another user has created this tag.");
-            return StatusCode(403, new { message = "Another user has created this tag." });
-        }
+            // remove tag from database and save changes
+            _context.UserTags.Remove(userTag);
+            await _context.SaveChangesAsync();
 
-        // Make sure the tag has not been approved yet
-        if (userTag.IsApproved)
+            return Ok(new { message = "User tag deleted." });
+        }
+        catch (Exception e)
         {
-            Log.Error("Tag has been approved and can no longer be deleted.");
-            return Conflict(new { message = "Tag has been approved and can no longer be deleted." });
+            Log.Error(e, "Error while deleting user tag.");
+            return StatusCode(500, new { message = "Internal server error" });
         }
-
-        // remove tag from database
-        _context.UserTags.Remove(userTag);
-        await _context.SaveChangesAsync();
-
-        return Ok(new { message = "Tag deleted." });
     }
 
-    // TODO: Not sure users should be able to change tag names?
-    // Maybe only tags they specifically made and have not
-    // yet been approved by an admin?
 
+    /// <summary>
+    /// Changes the name of a user tag.
     /// </summary>
-    /// <param name="tagName">The name of the tag to delete.</param>
+    /// <param name="id">The id of the user tag.</param>
+    /// <param name="newName">The new name of the user tag.</param>
     /// <returns>
-    /// Returns a 200 OK response containing the deleted tag.
+    /// Returns a 200 OK response.
     // </returns>
     [HttpPatch("change-usertag-name/{id}/{newName}")]
     [Authorize(Policy = "RequireAdminRole")]
@@ -257,6 +252,8 @@ public class UserTagController : ControllerBase
         {
             userTag.Name = newName;
             await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Tag name changed." });
         }
         catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
         {
@@ -265,7 +262,6 @@ public class UserTagController : ControllerBase
             return Conflict(new { message = "New tag name already exists." });
         }
 
-        return Ok(new { message = "Tag name changed." });
     }
 
     /// <summary>
@@ -273,7 +269,7 @@ public class UserTagController : ControllerBase
     /// </summary>
     /// <param name="id">The id of the user tag</param>
     /// <returns>
-    /// Returns a 200 OK response.
+    /// Returns a 200 OK response containing the name of the tag.
     // </returns>
     [HttpPatch("approve-usertag/{id}")]
     [Authorize(Policy = "RequireAdminRole")]
