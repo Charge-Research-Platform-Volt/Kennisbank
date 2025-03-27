@@ -196,9 +196,10 @@ public class UserTagController : ControllerBase
     /// Returns a 200 OK response containing the deleted tag.
     // </returns>
     [HttpPatch("change-usertag-name/{id}/{newName}")]
+    [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
             Summary = "Change user tag name.",
-            Description = "Lets a user change the name of a user tag."
+            Description = "Lets an admin change the name of a user tag."
         )]
     [SwaggerResponse(200, "Tag name changed", typeof(UserTag))]
     [SwaggerResponse(400, "Bad request")]
@@ -223,7 +224,7 @@ public class UserTagController : ControllerBase
             return BadRequest(new { message = "New name is required" });
         }
 
-        //parse id
+        // parse id
         Guid guid;
         try
         {
@@ -235,21 +236,14 @@ public class UserTagController : ControllerBase
             return BadRequest(new { message = "Invalid id format." });
         }
 
-        //find tag in database
-        UserTag? userTag = await _context.UserTags.FirstOrDefaultAsync(t => t.Id == guid); //if not found: set tag to null
+        // find tag in database
+        UserTag? userTag = await _context.UserTags.FirstOrDefaultAsync(t => t.Id == guid); // if not found: set tag to null
 
-        //check if tag is found
+        // check if tag is found
         if (userTag == null)
         {
             Log.Error("Tag not found.");
             return NotFound(new { message = "Tag not found." });
-        }
-
-        // Make sure the user has created this tag 
-        if (userTag.User != "TestUser1") // TODO: Shouldn't compare strings but actual users
-        {
-            Log.Error("Another user has created this tag.");
-            return StatusCode(403, new { message = "Another user has created this tag." });
         }
 
         // Make sure the tag has not been approved yet
@@ -274,25 +268,22 @@ public class UserTagController : ControllerBase
         return Ok(new { message = "Tag name changed." });
     }
 
-    // TODO: Once we implement authorization, this should be moved to AdminController.cs
-
     /// <summary>
-    /// Approve a user tag by adding it to the admin-defined tag list
+    /// Approve a user tag.
     /// </summary>
     /// <param name="id">The id of the user tag</param>
     /// <returns>
-    /// Returns a 200 OK response containing the created tag.
+    /// Returns a 200 OK response.
     // </returns>
     [HttpPatch("approve-usertag/{id}")]
     [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
         Summary = "Approve a user tag.",
-        Description = "Marks a user-created tag as approved and adds it to the tags table."
+        Description = "Marks a user-created tag as approved."
         )]
     [SwaggerResponse(200, "Tag approved", typeof(Tag))]
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(404, "Tag not found")]
-    [SwaggerResponse(409, "Tag name already exists")]
     public async Task<IActionResult> ApproveUserTag(string id)
     {
         Log.Information($"Approving user tag with ID: {id}");
@@ -323,6 +314,65 @@ public class UserTagController : ControllerBase
             return Conflict(new { message = "Tag is already approved." });
         }
 
+        try
+        {
+            // Approve the user tag
+            userTag.IsApproved = true;
+            // Update and commit
+            _context.UserTags.Update(userTag);
+            await _context.SaveChangesAsync();
+
+            Log.Information($"User tag '{userTag.Name}' has been approved.");
+            return Ok(new { message = "Tag approved." });
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Error while approving user tag.");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    /// <summary>
+    /// Approve a user tag by adding it to the standardized tag list
+    /// </summary>
+    /// <param name="id">The id of the user tag</param>
+    /// <returns>
+    /// Returns a 200 OK response containing the created tag.
+    // </returns>
+    [HttpPatch("convert-to-tag/{id}")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerOperation(
+        Summary = "Convert a user tag to a standardized tag.",
+        Description = "Converts a user tag by adding it to the standardized tags table."
+        )]
+    [SwaggerResponse(200, "Tag approved", typeof(Tag))]
+    [SwaggerResponse(400, "Bad request")]
+    [SwaggerResponse(404, "Tag not found")]
+    [SwaggerResponse(409, "Tag name already exists")]
+    public async Task<IActionResult> ConvertUserTagToStandardizedTag(string id)
+    {
+        Log.Information($"Converting user tag with ID: {id}");
+
+        if (string.IsNullOrEmpty(id))
+        {
+            Log.Error("Id is required");
+            return BadRequest(new { message = "Id is required" });
+        }
+
+        if (!Guid.TryParse(id, out Guid guid))
+        {
+            Log.Error("Invalid id format.");
+            return BadRequest(new { message = "Invalid id format." });
+        }
+
+        var userTag = await _context.UserTags.FirstOrDefaultAsync(t => t.Id == guid);
+
+        if (userTag == null)
+        {
+            Log.Error("Tag not found.");
+            return NotFound(new { message = "Tag not found." });
+        }
+
         // Check if tag name already exists in the Tags table
         bool tagExists = await _context.Tags.AnyAsync(t => t.Name == userTag.Name);
         if (tagExists)
@@ -331,10 +381,6 @@ public class UserTagController : ControllerBase
             return Conflict(new { message = "A tag with this name already exists." });
         }
 
-        // Approve the user tag
-        userTag.IsApproved = true;
-        _context.UserTags.Update(userTag);
-
         // Create new Tag
         Tag newTag = new()
         {
@@ -342,11 +388,18 @@ public class UserTagController : ControllerBase
             Name = userTag.Name,
         };
 
-        // Add the tag
+        // Add the tag and remove the user tag
         try
         {
+            // Add the Tag
             await _context.Tags.AddAsync(newTag);
+            // Remove the User Tag
+            _context.UserTags.Remove(userTag);
+            // Save both changes to ensure atomicity
             await _context.SaveChangesAsync();
+
+            Log.Information($"User tag '{userTag.Name}' approved and added to Tags.");
+            return Ok(new { message = "Tag approved and added to Tags.", tag = newTag });
         }
         catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
         {
@@ -357,11 +410,8 @@ public class UserTagController : ControllerBase
         catch (Exception e)
         {
             // Something else went wrong
-            Log.Error(e, "Failed to add tag.");
+            Log.Error(e, "Failed to convert the user tag to tag.");
             return StatusCode(500, new { message = "Internal server error" });
         }
-
-        Log.Information($"User tag '{userTag.Name}' approved and added to Tags.");
-        return Ok(new { message = "Tag approved and added to Tags.", tag = newTag });
     }
 }
