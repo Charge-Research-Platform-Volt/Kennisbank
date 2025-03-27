@@ -28,3 +28,4 @@ export type Tag = z.infer<typeof TagSchema>;
 export type TagsArray = z.infer<typeof TagsArraySchema>;
 export type UserTagBase = z.infer<typeof UserTagBaseSchema>;
 export type UserTag = z.infer<typeof UserTagSchema>;
+export type UserTagsArray = z.infer<typeof UserTagsArraySchema>;
