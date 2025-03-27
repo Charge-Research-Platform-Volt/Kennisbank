@@ -1,75 +1,120 @@
-# This file is a template, and might need editing before it works on your project.
-# This is a sample GitLab CI/CD configuration file that should run without any modifications.
-# It demonstrates a basic 3 stage CI/CD pipeline. Instead of real tests or scripts,
-# it uses echo commands to simulate the pipeline execution.
-#
-# A pipeline is composed of independent jobs that run scripts, grouped into stages.
-# Stages run in sequential order, but jobs within stages run in parallel.
-#
-# For more information, see: https://docs.gitlab.com/ee/ci/yaml/index.html#stages
-#
-# You can copy and paste this template into a new `.gitlab-ci.yml` file.
-# You should not add this template to an existing `.gitlab-ci.yml` file by using the `include:` keyword.
-#
-# To contribute improvements to CI/CD templates, please follow the Development guide at:
-# https://docs.gitlab.com/ee/development/cicd/templates.html
-# This specific template is located at:
-# https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
-
-
-stages:          # List of stages for jobs, and their order of execution
+stages:
   - build
   - test
-  - deploy
+  - cleanup
 
-build-frontend-job:       # This job runs in the build stage, which runs first.
+variables:
+  COMPOSE_PROJECT_NAME: ${CI_PROJECT_NAME}-${CI_PIPELINE_ID}
+  COMPOSE_FILE: docker-compose.ci.yml
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+
+# Define default image and service
+default:
+  image: docker:latest
+  services:
+    - docker:dind
+
+# Define reusable templates
+.setup_environment: &setup_environment
+  - docker info
+  - apk add --no-cache docker-compose py3-pip
+  - docker-compose version
+  - docker system prune -f || true
+
+.cleanup_environment: &cleanup_environment
+  - docker-compose down -v --remove-orphans || true
+
+.release_ports: &release_ports
+  - docker ps | grep 5432 && docker stop $(docker ps | grep 5432 | awk '{print $1}') || true
+  - docker ps | grep 10000 && docker stop $(docker ps | grep 10000 | awk '{print $1}') || true
+  - docker ps | grep 8080 && docker stop $(docker ps | grep 8080 | awk '{print $1}') || true
+  - docker ps | grep 8081 && docker stop $(docker ps | grep 8081 | awk '{print $1}') || true
+  - docker ps | grep 3000 && docker stop $(docker ps | grep 3000 | awk '{print $1}') || true
+  - docker ps | grep 3001 && docker stop $(docker ps | grep 3001 | awk '{print $1}') || true
+
+.wait_for_database: &wait_for_database
+  - |
+    for i in $(seq 1 30); do
+      if docker-compose exec -T database pg_isready -U postgres; then
+        echo "Database is ready!"
+        break
+      fi
+      echo "Waiting for database... $i/30"
+      sleep 2
+      if [ $i -eq 30 ]; then
+        echo "Database timeout after 60 seconds"
+        exit 1
+      fi
+    done
+
+.wait_for_backend: &wait_for_backend
+  - |
+    for i in $(seq 1 30); do
+      if docker-compose exec -T backend curl -sf http://localhost:8080/status > /dev/null 2>&1; then
+        echo "Backend is ready!"
+        break
+      fi
+      echo "Waiting for backend... $i/30"
+      sleep 5
+      if [ $i -eq 30 ]; then
+        echo "Backend timeout after 150 seconds"
+        exit 1
+      fi
+    done
+
+.start_backend: &start_backend
+  - docker-compose up -d database storage
+  - *wait_for_database
+  - docker-compose up -d backend
+  - *wait_for_backend
+
+.cleanup: &cleanup
+  - docker-compose down -v || true
+  
+# Build all services in the Docker Compose stack
+build:
   stage: build
-  image: node:latest # or a specific node version like node:18
+  before_script:
+    - *setup_environment
+    - *cleanup_environment
   script:
-    - cd frontend
-    - npm install
-    - npm run build
+    - docker-compose build --no-cache
+  artifacts:
+    expire_in: 1 hour
 
-build-backend-job:
-  stage: build
-  image: mcr.microsoft.com/dotnet/sdk:latest 
-  script:
-    - cd backend
-    - dotnet build
-
-unit-test-frontend-job:   # This job runs in the test stage.
-  stage: test    # It only starts when the job in the build stage completes successfully.
-  image: node:latest # or a specific node version like node:18
-  script:
-    - cd frontend
-    - npm install
-    - npm run test
-
-unit-test-backend-job:
+# Test backend using NUnit
+test-backend:
   stage: test
-  image: mcr.microsoft.com/dotnet/sdk:latest 
+  needs: ["build"]
+  before_script:
+    - *setup_environment
   script:
-    - cd backendtests
-    - dotnet test --filter TestCategory=UnitTest
+    - docker-compose up -d database storage
+    - *wait_for_database
+    - docker-compose run --rm backend sh -c "dotnet build && dotnet test --filter Category=Unit"
+  after_script:
+    - *cleanup
 
-lint-test-frontend-job:   # This job also runs in the test stage.
-  stage: test    # It can run at the same time as unit-test-job (in parallel).
-  image: node:latest # or a specific node version like node:18
+# Test frontend using VTest
+test-frontend:
+  stage: test
+  needs: ["build"]
+  before_script:
+    - *setup_environment
   script:
-    - cd frontend
-    - npm install
-    - npm run lint
+    # Start the backend service as frontend tests might need it
+    - *start_backend
+    # Run frontend tests
+    - docker-compose run --rm frontend sh -c "npm install && npm test -- --run"
+  after_script:
+    - *cleanup
 
-lint-test-backend-job:   # This job also runs in the test stage.
-  stage: test    # It can run at the same time as unit-test-job (in parallel).
-  image: mcr.microsoft.com/dotnet/sdk:latest 
+# Final cleanup job
+final-cleanup:
+  stage: cleanup
+  when: always
   script:
-    - cd backend
-    - dotnet format backend.sln
-
-deploy-job:      # This job runs in the deploy stage.
-  stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.
-  environment: production
-  script:
-    - echo "Deploying application..."
-    - echo "Application successfully deployed."
+    - docker-compose down -v || true
+    - docker system prune -a -f || true
+    - echo "Cleaned up all resources"
