@@ -19,6 +19,7 @@ import HideMenu from "@/icons/menu/hide-menu";
 import ShowMenu from "@/icons/menu/show-menu";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Logout } from "@/actions/authActions";
+import QuickSearch from "../quick-search";
 
 // Menu items
 const menuItems: SidebarItem[] = [
@@ -92,7 +93,7 @@ export default function LeftSidebarClient({ tags }: { tags: TagsArray }) {
               <NewButton tags={tags} />
 
               {/* Search bar */}
-              <Input type="text" name="search" placeholder="&#x1F50E;&#xFE0E; Search" />
+              <QuickSearch />
             </div>
 
             {/* Menu and project parts */}
