@@ -17,6 +17,19 @@ namespace KnowledgeBank.Data
         public DbSet<UserTag> UserTags { get; set; }
         public DbSet<User> AppUsers { get; set; } // Renamed to avoid conflict with IdentityDbContext.Users
         public DbSet<FileVector> Vectors { get; set; }
+        public DbSet<Document> Documents { get; set; }
+        public DbSet<Person> Persons { get; set; }
+        public DbSet<Organisation> Organisation {get; set; }
+        public DbSet<DocAuthorLink> DocAuthors { get; set; }
+        public DbSet<DocRelatedPersonLink> DocRelatedPersons { get; set; }
+        public DbSet<DocOrganisationLink> DocOrganisations { get; set; }
+        public DbSet<DocRelatedOrganisationLink> DocRelatedOrganisations { get; set; }
+        public DbSet<PersonOrganisationLink> PersonOrganisations { get; set;}
+        public DbSet<PersonPersonLink> PersonPersons { get; set; }
+        public DbSet<OrganisationOrganisationLink> OrganisationOrganisations { get; set; }
+        public DbSet<DocRegionLink> DocRegions { get; set; }
+        public DbSet<DocSourceLink> DocSources { get; set; }
+        public DbSet<DocRelatedSourceLink> DocRelatedSources { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
