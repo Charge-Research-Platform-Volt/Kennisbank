@@ -92,7 +92,7 @@ test-backend:
   script:
     - docker-compose up -d database storage
     - *wait_for_database
-    - docker-compose run --rm backend sh -c "dotnet build && dotnet test --filter Category=Unit"
+    - docker-compose run --rm backend sh -c "dotnet build && dotnet test"
   after_script:
     - *cleanup
 
