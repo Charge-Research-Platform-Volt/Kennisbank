@@ -30,7 +30,7 @@ export default function TagListItem({tag}: {tag: Tag}) {
   }, [state]);
   
   return (
-    <div className="mb-4 flex w-full items-center justify-between gap-2">
+    <div className="flex w-full items-center justify-between gap-2">
       <form className="flex flex-grow items-center gap-2" action={action}>
         <Input
               type="text"
@@ -45,7 +45,7 @@ export default function TagListItem({tag}: {tag: Tag}) {
               value={tag.id}
         />
         <Button
-          className="w-24 cursor-pointer"
+          className="w-24 cursor-pointer ml-auto"
           variant="default"
           type="submit"
           disabled={isPending}
