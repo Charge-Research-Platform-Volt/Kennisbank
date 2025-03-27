@@ -47,14 +47,14 @@ public class AuthControllerIntegrationTests
         var userStore = new UserStore<User>(_context);
         _userManager = new UserManager<User>(
            userStore,
-            null, // IOptions<IdentityOptions>
+            null,
             new PasswordHasher<User>(),
-            new[] { new UserValidator<User>() }, // UserValidators
-            new[] { new PasswordValidator<User>() }, // PasswordValidators
+            new[] { new UserValidator<User>() },
+            new[] { new PasswordValidator<User>() }, 
             new UpperInvariantLookupNormalizer(),
-            new IdentityErrorDescriber(), // IdentityErrorDescriber
-            null, // ILookupNormalizer
-            null  // IServiceProvider (voor afhankelijkheden zoals TokenProviders)
+            new IdentityErrorDescriber(),
+            null, 
+            null 
         );
         _signInManager = new SignInManager<User>(
             _userManager,
@@ -212,6 +212,40 @@ public class AuthControllerIntegrationTests
         Assert.That(user1, Is.Null, "The user must not be created in the database.");
         var user2 = _context.Users.FirstOrDefault(u => u.Email == email2);
         Assert.That(user2, Is.Null, "The user must not be created in the database.");
+    }
+
+    [Test]
+    public async Task SignWithOutdatedInvite()
+    {
+        // Arrange
+        string email = "test@test.nl";
+        string hashedEmail = ShaUtils.Sha256(email);
+        string token = Guid.NewGuid().ToString();
+        string hashedToken = ShaUtils.Sha256(token);
+
+        await _context.Invitations.AddAsync(new Invitation()
+        {
+            Id = Guid.NewGuid(),
+            Email = hashedEmail,
+            Token = hashedToken,
+            CreatedAt = DateTime.UtcNow.AddDays(-8),
+        });
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _controller.Register(new SignUpDto(){
+            Email = email,
+            Password = "Test123!",
+            Token = token,
+        });
+
+        // Assert
+        var badRequestResult = result as BadRequestObjectResult;
+        Assert.That(badRequestResult, Is.Not.Null, "The result must be a BadRequestObjectResult.");
+        Assert.That(badRequestResult.StatusCode, Is.EqualTo(400), "The statuscode must be 400.");
+
+        var user = _context.Users.FirstOrDefault(u => u.Email == email);
+        Assert.That(user, Is.Null, "The user must not be created in the database.");
     }
 
     [Test]
