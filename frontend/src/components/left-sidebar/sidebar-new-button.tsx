@@ -35,7 +35,7 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
   const [newFile, setNewFile] = useState<File | null>(null); //File for file upload
   const [newWebsite, setNewWebsite] = useState<string | null>(null); // Website for website upload
   const [fileHash, setFileHash] = useState<string>(""); // Hash of the file
-  const [uploadType, setUploadType] = useState<uploadType>("file") // Sets upload type of popup
+  const [uploadType, setUploadType] = useState<uploadType>("File") // Sets upload type of popup
   const [isDuplicate, setIsDuplicate] = useState<boolean>(false); // If file already exists in storage
   const setDupeId = useState<string>("")[1]; // The ID of the file if it already exists in archive
 
@@ -51,7 +51,7 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
       }
   }, []);
 
-  type uploadType = "file" | "website";
+  type uploadType = "File" | "Website";
 
   const [isPendingTransition, startTransition] = useTransition();
   const [fileState, fileAction] = useActionState((prevState: FormResponse<DocumentBase>, formData: FormData) => {
@@ -100,6 +100,9 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
   };
 
   const changeTab = (newTab: uploadType) => {
+    if(newTab === uploadType){
+      return;
+    }
     setUploadPopup(true);
     setNewFile(null);
     setFileHash("");
@@ -164,17 +167,17 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
   }
 
   const handleSubmit = async (formData: FormData) => {
-    if (uploadType === "file" && isDuplicate) {
+    if (uploadType === "File" && isDuplicate) {
       toast.error("Cannot upload duplicate file!");
       return;
     }
 
-    if (uploadType === "file" && !newFile) {
+    if (uploadType === "File" && !newFile) {
       toast.error("Please select a file.");
       return;
     }
 
-    if(uploadType === "website" && newWebsite == null){
+    if(uploadType === "Website" && newWebsite == null){
       toast.error("Please input a URL!");
     }
 
@@ -182,10 +185,10 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
 
     try {
       startTransition(async () => {
-        if(uploadType === "file"){
+        if(uploadType === "File"){
           await fileAction(formData);
         }
-        if(uploadType === "website"){
+        if(uploadType === "Website"){
           await websiteAction(formData)
         }
       });
@@ -231,12 +234,12 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
               <div className="flex h-full w-full flex-col justify-between">
                 <div className="flex-1 justify-start">
                   <div className="flex-1 justify-start">
-                  <Button onClick={() => changeTab("website")}>website</Button>
-                  <Button onClick={() => changeTab("file")}>file</Button>
+                  <Button onClick={() => changeTab("Website")} data-testid = "changeToWebsiteUpload">website</Button>
+                  <Button onClick={() => changeTab("File")} data-testid = "changeToFileUpload">file</Button>
                     <PopupTitle data-testid="popup_text">Upload {uploadType}</PopupTitle>
                     <div className="mt-5 mb-2 flex w-40">
                       {/* Label is what you see however you click the input, only applicable if the user uploads a file */}
-                      {uploadType === "file" && (
+                      {uploadType === "File" && (
                         <div>
                           <label htmlFor="file-Picker" className="labelCSS flex h-full w-full min-w-40 cursor-pointer items-center justify-center rounded-xl bg-[#E5E5E5] font-bold hover:bg-[#c9c2c2]">
                           {status === "checking" ? "Checking file..." : "Upload New File"}
@@ -251,7 +254,7 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
                             disabled={status === "checking" || status === "uploading"}
                           />
                         </div>)}
-                      {uploadType === "website" && (
+                      {uploadType === "Website" && (
                       <div>
                         <InputBlock className="justify-start">
                           <InputHeader>Website URL: </InputHeader>
@@ -263,7 +266,7 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
                   </div>
 
                   {/* Information on uploaded file, only applicable if the user uploads a file */}
-                  {uploadType == "file" && (
+                  {uploadType == "File" && (
                   <div>
                     <div className="flex">
                       <FileInfo>
