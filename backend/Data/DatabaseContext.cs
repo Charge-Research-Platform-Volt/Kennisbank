@@ -11,8 +11,7 @@ namespace KnowledgeBank.Data
         public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options) { }
 
         public DbSet<FileItem> Files { get; set; }
-
-        public DbSet<Tag> Tags { get; set; }
+        public virtual DbSet<Tag> Tags { get; set; }
         public DbSet<FileTagLink> FileTagLinks { get; set; }
         public DbSet<UserTag> UserTags { get; set; }
         public DbSet<User> AppUsers { get; set; } // Renamed to avoid conflict with IdentityDbContext.Users
