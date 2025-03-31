@@ -24,7 +24,7 @@ import { Logout } from "@/actions/authActions";
 const menuItems: SidebarItem[] = [
   { id: 1, name: "Home", path: "/", icon: <Home className="h-4 w-4" /> },
   { id: 2, name: "Archive", path: "/archive", icon: <Archive className="h-4 w-4" /> },
-  { id: 3, name: "Tags", path: "/standardizedtags", icon: <Tags className="h-4 w-4" /> },
+  { id: 3, name: "Tags", path: "/tags", icon: <Tags className="h-4 w-4" /> },
 ];
 
 // Projects
