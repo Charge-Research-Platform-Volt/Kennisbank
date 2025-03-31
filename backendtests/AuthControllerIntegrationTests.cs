@@ -28,8 +28,13 @@ public class AuthControllerIntegrationTests
     [SetUp]
     public void SetUp()
     {
+        // Determine the host based on runtime environment
+        string dbHost = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true" 
+            ? "database"   // To run test in CI/CD
+            : "localhost"; // To run test locally
+        
         _options = new DbContextOptionsBuilder<DatabaseContext>()
-            .UseNpgsql("Host=localhost;Database=postgres;Username=postgres;Password=postgres")
+            .UseNpgsql($"Host={dbHost};Database=postgres;Username=postgres;Password=postgres")
             .Options;
 
         _context = new DatabaseContext(_options);
