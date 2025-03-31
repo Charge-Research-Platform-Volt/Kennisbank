@@ -40,7 +40,7 @@ public class UserTagController : ControllerBase
     {
         try
         {
-            return Ok(_context.UserTags.ToList().OrderBy(t => t.Name));
+            return Ok(_context.UserTags.OrderBy(t => t.Name).ToList());
         }
         catch (Exception e)
         {
