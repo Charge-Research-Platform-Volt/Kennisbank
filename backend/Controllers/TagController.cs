@@ -83,6 +83,15 @@ public class TagController : ControllerBase
             Name = tagName,
         };
 
+        // Check if the tag already exists in the UserTags table
+        bool userTagExists = await _context.UserTags.AnyAsync(ut => ut.Name == tagName);
+
+        if (userTagExists)
+        {
+            Log.Error("Tag already exists in UserTags table.");
+            return Conflict(new { message = "Tag already exists in the user tags list, try converting it instead." });
+        }
+
         // Add the tag
         try
         {
