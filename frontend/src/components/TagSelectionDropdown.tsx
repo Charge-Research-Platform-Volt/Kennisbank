@@ -6,6 +6,7 @@ import { FInput, InputBlock, InputHeader } from "@/components/ui/Popup";
 import { Button } from "@/components/ui/button";
 import AdminTag from "@/icons/tag-icons/admin-tag";
 import ApprovedTag from "@/icons/tag-icons/aproved-tag";
+import { AddUserTag } from "@/actions/userTagActions";
 
 /**
  *
@@ -23,6 +24,9 @@ export default function TagSelectionDropdown({ userTags, standardizedTags, class
   const [addedTags, updateTags] = useState<Tag[]>([]);
   const [filteredUserTags, setFilteredUserTags] = useState<UserTag[]>([]);
   const [addedUserTags, updateUserTags] = useState<UserTag[]>([]);
+  const [showCreateTagField, setShowCreateTagField] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+  const [isCreatingTag, setIsCreatingTag] = useState(false);
 
   // Defines placeholder for the tags, user gets a warning when the maximum amount of tags is added
   const tagPlaceholder: string = addedTags.length + addedUserTags.length < 10 ? "Search for tags" : "Maximum amount of tags added!";
@@ -30,6 +34,23 @@ export default function TagSelectionDropdown({ userTags, standardizedTags, class
   // Update the input value when the user types a character
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value);
+  };
+
+  const handleCreateTag = async () => {
+    if (!newTagName.trim()) return;
+    setIsCreatingTag(true);
+    
+    // Create a FormData object to send to the server action
+    const formData = new FormData();
+    formData.append("name", newTagName);
+    
+    // Call the server action
+    await AddUserTag({success: false, message: "", inputs: {name: ""}}, formData);
+
+    // Reset UI state
+    setNewTagName("");
+    setShowCreateTagField(false);
+    setIsCreatingTag(false);
   };
 
   // Adds new tags to the array
@@ -152,6 +173,7 @@ export default function TagSelectionDropdown({ userTags, standardizedTags, class
     // And we update our state
     setFilteredUserTags(filtered.filter((tag) => !addedUserTags.includes(tag)));
   }
+  
 
   useEffect(() => {
     filterTags();
@@ -165,8 +187,41 @@ export default function TagSelectionDropdown({ userTags, standardizedTags, class
     <div className={className}>
       <div className="relative w-full">
         <InputBlock className="block w-full">
-          <InputHeader className="">Tags: </InputHeader>
-          <FInput className="w-full" type="string" name="author" placeholder={tagPlaceholder} value={inputValue} onChange={handleInputChange} />
+          <div className="flex items-center mt-1">
+            <InputHeader className="">Tags: </InputHeader>
+            <Button onClick={() => setShowCreateTagField(!showCreateTagField)} className="ml-auto cursor-pointer text-sm" type="button">
+              {showCreateTagField ? 'Cancel' : 'Create'}
+            </Button>
+          </div>
+
+          {showCreateTagField && (
+            <div className="mt-1 flex">
+              <FInput 
+                className="flex-grow"
+                type="text"
+                placeholder="Enter new tag name"
+                value={newTagName}
+                onChange={(e) => setNewTagName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleCreateTag();
+                  } else if (e.key === 'Escape') {
+                    setShowCreateTagField(false);
+                    setNewTagName("");
+                  }
+                }}
+              />
+              <Button 
+                type="button"
+                onClick={handleCreateTag}
+                disabled={!newTagName.trim() || isCreatingTag}
+                className="ml-2 text-sm"
+              >
+                {isCreatingTag ? 'Adding...' : 'Add'}
+              </Button>
+            </div>
+          )}
+          <FInput className="mt-1 w-full" type="string" name="author" placeholder={tagPlaceholder} value={inputValue} onChange={handleInputChange} />
         </InputBlock>
         <div className={`absolute right-0 left-0 z-10 max-h-50 max-w-full overflow-y-auto bg-white shadow-lg ${filteredTags.length > 0 ? "rounded border" : ""}`}>
           {filteredTags.map((tag) => (
