@@ -64,7 +64,7 @@ describe('popup', () =>
         // ADD TAG
         fireEvent.click(displayedTags[0])
         let deleteTags = await screen.getAllByTestId("delete_tag"); // there is only 1
-        expect(deleteTags).toHaveLength(testTags.length + testUserTags.length);
+        expect(deleteTags).toHaveLength(1);
         fireEvent.click(deleteTags[0]);
         deleteTags = await screen.queryAllByTestId("delete_tag");
         displayedTags = await screen.queryAllByTestId("select_tag");

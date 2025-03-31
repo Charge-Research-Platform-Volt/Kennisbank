@@ -237,7 +237,7 @@ export default function TagSelectionDropdown({ userTags, standardizedTags, class
               </button>
             ))}
             {filteredUserTags.map((tag) => (
-              <button key={tag.name} onClick={addUserTags} type="button" className="flex gap-2 w-full cursor-pointer p-2 text-left transition-colors duration-200 hover:bg-blue-100">
+              <button data-testid="select_tag" key={tag.name} onClick={addUserTags} type="button" className="flex gap-2 w-full cursor-pointer p-2 text-left transition-colors duration-200 hover:bg-blue-100">
                 {tag.name}{tag.isApproved ? <ApprovedTag className="h-4 w-4 self-center" /> : ""}
               </button>
             ))}
