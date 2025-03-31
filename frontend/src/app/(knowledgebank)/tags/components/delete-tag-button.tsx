@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import DeleteIcon from "@/icons/delete-icon";
 import { Tag, UserTag } from "@/types/tag.type";
 import { useTransition } from "react";
+import { toast } from "sonner";
 
 export default function DeleteTagButton({tag = undefined, userTag = undefined} : {tag?: Tag, userTag?: UserTag}) {
     const [isPending, startTransition] = useTransition();
@@ -13,13 +14,31 @@ export default function DeleteTagButton({tag = undefined, userTag = undefined} :
     function handleDelete() {
       if (userTag) {
         console.log("Deleting user tag:", userTag.name);
-        startTransition(() => {
-          DeleteUserTag(userTag);
+        startTransition(async () => {
+          const result = await DeleteUserTag(userTag);
+          if(result && result.success){
+            toast.success("Tag deleted");
+          }
+          else if(result && result.message) {
+            toast.error(result.message);
+          }
+          else{
+            toast.error("Error deleting tag");
+          }
         });
       }
       else if(tag){
-        startTransition(() => {
-          DeleteStandardizedTag(tag);
+        startTransition(async () => {
+          const result = await DeleteStandardizedTag(tag);
+          if(result && result.success){
+            toast.success("Tag deleted");
+          }
+          else if(result && result.message) {
+            toast.error(result.message);
+          }
+          else{
+            toast.error("Error deleting tag");
+          }
         });
       }
        
