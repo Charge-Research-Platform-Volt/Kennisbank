@@ -62,6 +62,7 @@ export default function LeftSidebarClient({ tags }: { tags: TagsArray }) {
         <div className="mt-4 mb-4 flex items-center justify-between">
           <button
             type="button"
+            data-testid = "sidebar_hide"
             onClick={() => setIsOpen(!isOpen)}
             className="cursor-pointer rounded rounded-l-none rounded-r-lg bg-gray-100 p-2 text-white transition hover:bg-gray-200"
             style={{ cursor: "pointer" }}
@@ -81,7 +82,7 @@ export default function LeftSidebarClient({ tags }: { tags: TagsArray }) {
             </h2>
 
             {/* Hide menu button */}
-            <button type="button" onClick={() => setIsOpen(!isOpen)} className="rounde rounded-lg p-2 text-white transition hover:bg-gray-200" style={{ cursor: "pointer" }}>
+            <button type="button" data-testid = "sidebar_hide" onClick={() => setIsOpen(!isOpen)} className="rounde rounded-lg p-2 text-white transition hover:bg-gray-200" style={{ cursor: "pointer" }}>
               <HideMenu className="h-6 w-6" />
             </button>
           </div>
@@ -101,17 +102,17 @@ export default function LeftSidebarClient({ tags }: { tags: TagsArray }) {
           </nav>
 
           {/* Bottom items of the menu */}
-          <nav className="mt-auto">
+          <nav className="mt-auto" >
             <ul>
               <li>
-                <Link href="/settings" className="flex items-center gap-x-2 rounded-md p-2 hover:bg-gray-200">
+                <Link data-testid = "sidebar" href="/settings" className="flex items-center gap-x-2 rounded-md p-2 hover:bg-gray-200">
                   <Settings className="h-4 w-4" />
                   Settings
                 </Link>
               </li>
 
               <li>
-                <Link href="http://localhost:3001/guide" className="flex items-center gap-x-2 rounded-xl p-2 hover:bg-gray-200">
+                <Link data-testid = "sidebar" href="http://localhost:3001/guide" className="flex items-center gap-x-2 rounded-xl p-2 hover:bg-gray-200">
                   <Help className="h-4 w-4" />
                   Help
                 </Link>
