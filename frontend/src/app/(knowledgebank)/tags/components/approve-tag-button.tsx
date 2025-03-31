@@ -33,6 +33,7 @@ export default function ApproveTagButton({tag} : {tag: UserTag}) {
           type="button"
           onClick={handleApprove}
           disabled={isPending}
+          title="Approve tag"
         >
           <ApproveTagIcon className="h-5 w-5" fill="#737373" />
         </Button>

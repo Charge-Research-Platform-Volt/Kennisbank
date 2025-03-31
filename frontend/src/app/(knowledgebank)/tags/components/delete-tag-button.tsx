@@ -51,6 +51,7 @@ export default function DeleteTagButton({tag = undefined, userTag = undefined} :
           type="button"
           onClick={handleDelete}
           disabled={isPending}
+          title="Delete tag"
         >
           <DeleteIcon className="h-5 w-5" fill="#737373" />
         </Button>

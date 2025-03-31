@@ -74,6 +74,7 @@ export default function TagListItemAdmin({tag = undefined, userTag = undefined}:
                 className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
                 variant="default"
                 type="submit"
+                title="Save tag"
                 disabled={savingUserTagIsPending || savingStandardizedTagIsPending}
               >
                 <SaveIcon className="h-5 w-5" fill="#737373"/>
@@ -99,6 +100,7 @@ export default function TagListItemAdmin({tag = undefined, userTag = undefined}:
                   className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
                   variant="default"
                   type="submit"
+                  title="Edit tag"
                   onClick={(e) => {
                     e.preventDefault();
                     setEditting(true);
