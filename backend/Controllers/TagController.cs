@@ -40,7 +40,7 @@ public class TagController : ControllerBase
     {
         try
         {
-            return Ok(_context.Tags.ToList().OrderBy(t => t.Name));
+            return Ok(_context.Tags.OrderBy(t => t.Name).ToList());
         }
         catch (Exception e)
         {
@@ -163,7 +163,7 @@ public class TagController : ControllerBase
     [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
             Summary = "Change tag name.",
-            Description = "Lets and admin change the name of a standardized tag."
+            Description = "Lets an admin change the name of a standardized tag."
         )]
     [SwaggerResponse(200, "Tag name changed", typeof(Tag))]
     [SwaggerResponse(400, "Bad request")]
