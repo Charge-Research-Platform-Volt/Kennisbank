@@ -14,6 +14,7 @@ import ApprovedTag from "@/icons/tag-icons/aproved-tag";
 import AdminIcon from "@/icons/tag-icons/admin-tag";
 import { SaveUserTag } from "@/actions/userTagActions";
 import ApproveTagButton from "./approve-tag-button";
+import ConvertTagButton from "./convert-tag-button";
 
 const initialStateStandardizedTag: FormResponse<Tag> = {
   success: false,
@@ -90,25 +91,36 @@ export default function TagListItemAdmin({tag = undefined, userTag = undefined}:
           <form className="relative w-full shadow rounded-md px-3 py-1" action={userTag ? saveUserTagAction : saveStandardizedTagAction}>
             <div className="flex">
               <p>{tagName}</p>
-              {userTag && userTag.isApproved ? (<ApprovedTag className="h-5 w-5 ml-2" />) : userTag ? "" : (<AdminIcon className="h-5 w-5 ml-2" />)}
+              {userTag && userTag.isApproved ? (
+                <ApprovedTag className="h-5 w-5 ml-2" />
+              ) : userTag ? (
+                ""
+              ) : (
+                <AdminIcon className="h-5 w-5 ml-2" />
+              )}
             </div>
             <div className="absolute inset-y-0 right-2 flex items-center justify-center">
               {userTag && !userTag.isApproved ? (
-              <div>
-                <ApproveTagButton tag={userTag} />
-                <Button
-                  className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
-                  variant="default"
-                  type="submit"
-                  title="Edit tag"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setEditting(true);
-                  }}
-                >
-                  <EditIcon className="h-5 w-5" fill="#737373"/>
-                </Button>
-              </div>) : ""}
+                <div>
+                  <ApproveTagButton tag={userTag} />
+                  <Button
+                    className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
+                    variant="default"
+                    type="submit"
+                    title="Edit tag"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setEditting(true);
+                    }}
+                  >
+                    <EditIcon className="h-5 w-5" fill="#737373" />
+                  </Button>
+                </div>
+              ) : userTag && userTag.isApproved ? (
+                <ConvertTagButton tag={userTag} />
+              ) : (
+                ""
+              )}
               <DeleteTagButton tag={tag} userTag={userTag} />
             </div>
             <Input
@@ -116,7 +128,7 @@ export default function TagListItemAdmin({tag = undefined, userTag = undefined}:
               name="id"
               value={userTag ? userTag.id : tag?.id}
             />
-        </form>
+          </form>
         )}
     </div>
   );
