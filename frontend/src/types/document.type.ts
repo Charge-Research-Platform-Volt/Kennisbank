@@ -12,6 +12,16 @@ export const DocumentBaseSchema = z.object({
 });
 
 /**
+ * Website URL upload schema
+ */
+export const WebsiteBaseSchema = z.object({
+	name: z.string().min(1 , { message: "Name is required" }),
+	description: z.string(),
+	URL: z.string().min(8 , { message: "Name is required" }),
+  hash: z.string({ message: "Hash should be a string" }),
+})
+
+/**
  * Complete document schema with ID that extends the base document
  */
 export const DocumentSchema = DocumentBaseSchema.extend({
@@ -42,5 +52,6 @@ export const DocumentPageResponseSchema = z.object({
 
 // Type definitions derived from the schemas
 export type DocumentBase = z.infer<typeof DocumentBaseSchema>;
+export type WebsiteBase = z.infer<typeof WebsiteBaseSchema>
 export type Document = z.infer<typeof DocumentSchema>;
 export type DocumentPageResponse = z.infer<typeof DocumentPageResponseSchema>;

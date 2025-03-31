@@ -4,20 +4,26 @@ import React, { useRef, useEffect, useState, ChangeEvent, useActionState, useTra
 import "@/components/ui/Popup.css";
 import "@/app/globals.css";
 import { AddDocument } from "@/actions/documentActions";
+import { AddWebsite } from "@/actions/websiteActions";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { FormResponse } from "@/types/return.type";
-import { DocumentBase } from "@/types/document.type";
+import { DocumentBase, WebsiteBase } from "@/types/document.type";
 import { Button } from "@/components/ui/button";
 import { getFileHasher } from "@/utils/fileHashWorker";
 import { TagsArray } from "@/types/tag.type";
 import TagSelectionDropdown from "../TagSelectionDropdown";
 import { InputHeader, InputBlock, FInput, FileInfo, PopupTitle } from "../ui/Popup";
 import New from "@/icons/new";
+import { set } from "zod";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error" | "checking";
 
-const initialState: FormResponse<DocumentBase> = {
+const initialFileState: FormResponse<DocumentBase> = {
+  success: false,
+  message: "",
+};
+const initialWebsiteState: FormResponse<WebsiteBase> = {
   success: false,
   message: "",
 };
@@ -27,41 +33,60 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
   const [status, setStatus] = useState<UploadStatus>("idle"); //upload status
   const [uploadPopup, setUploadPopup] = useState(false); //bool which determines whether you can see the new popup
   const [newFile, setNewFile] = useState<File | null>(null); //File for file upload
+  const [newWebsite, setNewWebsite] = useState<string | null>(null); // Website for website upload
   const [fileHash, setFileHash] = useState<string>(""); // Hash of the file
+  const [uploadType, setUploadType] = useState<uploadType>("file") // Sets upload type of popup
   const [isDuplicate, setIsDuplicate] = useState<boolean>(false); // If file already exists in storage
   const setDupeId = useState<string>("")[1]; // The ID of the file if it already exists in archive
 
   const [author, setAuthor] = useState<string>("");
-  const setDescription = useState<string>("")[1];
+  const [description, setDescription] = useState<string>("");
   const [title, setTitle] = useState<string>("");
 
   const [newButtonWidth, setNewButtonWidth] = useState(0);
   const newButtonRef = React.useRef<HTMLButtonElement>(null);
-  useEffect(() => {  
+  useEffect(() => {
   if(newButtonRef.current){
         setNewButtonWidth(newButtonRef.current.offsetWidth);
       }
   }, []);
 
+  type uploadType = "file" | "website";
+
   const [isPendingTransition, startTransition] = useTransition();
-  const [state, action] = useActionState((prevState: FormResponse<DocumentBase>, formData: FormData) => {
+  const [fileState, fileAction] = useActionState((prevState: FormResponse<DocumentBase>, formData: FormData) => {
     const fileName = newFile?.name.substring(0, newFile?.name.lastIndexOf(".")) || "";
     return AddDocument(fileName, fileHash, prevState, formData);
-  }, initialState);
+  }, initialFileState);
+
+  const [websiteState, websiteAction] = useActionState((prevState: FormResponse<WebsiteBase>, formData: FormData) => {
+    const fileName = newFile?.name.substring(0, newFile?.name.lastIndexOf(".")) || "";
+    return AddWebsite(fileName, fileHash, prevState, formData);
+  }, initialWebsiteState);
 
   const isPending = isPendingTransition;
 
   //error messaging //
 
   useEffect(() => {
-    if (state.success) {
-      toast.success(state.message);
+    if (fileState.success) {
+      toast.success(fileState.message);
 
       closeUploadPopup();
-    } else if (state.message) {
-      toast.error(state.message);
+    } else if (fileState.message) {
+      toast.error(fileState.message);
     }
-  }, [state]);
+  }, [fileState]);
+
+  useEffect(() => {
+    if (websiteState.success) {
+      toast.success(websiteState.message);
+
+      closeUploadPopup();
+    } else if (websiteState.message) {
+      toast.error(websiteState.message);
+    }
+  }, [websiteState]);
 
   //upload new file popup //
   const closePopup = (e: MouseEvent) => {
@@ -73,6 +98,19 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
   const clickNew = () => {
     setUploadPopup(true); //opens popup for file upload
   };
+
+  const changeTab = (newTab: uploadType) => {
+    setUploadPopup(true);
+    setNewFile(null);
+    setFileHash("");
+    setIsDuplicate(false);
+    setDupeId("");
+    setAuthor("");
+    setDescription("");
+    setTitle("");
+    setStatus("idle");
+    setUploadType(newTab);  // Changes upload tab
+  }
 
   const closeUploadPopup = () => {
     //When the popup closes values are reset
@@ -126,21 +164,30 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
   }
 
   const handleSubmit = async (formData: FormData) => {
-    if (isDuplicate) {
+    if (uploadType === "file" && isDuplicate) {
       toast.error("Cannot upload duplicate file!");
       return;
     }
 
-    if (!newFile) {
+    if (uploadType === "file" && !newFile) {
       toast.error("Please select a file.");
       return;
+    }
+
+    if(uploadType === "website" && newWebsite == null){
+      toast.error("Please input a URL!");
     }
 
     setStatus("uploading");
 
     try {
       startTransition(async () => {
-        await action(formData);
+        if(uploadType === "file"){
+          await fileAction(formData);
+        }
+        if(uploadType === "website"){
+          await websiteAction(formData)
+        }
       });
     } catch (error) {
       console.error("Upload error: ", error);
@@ -171,6 +218,7 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
 
       {uploadPopup && (
         <div className="popupContainer">
+
           <div ref={popupRef} className="popup h-full min-h-155 min-w-130 p-5">
             <form
               className="h-full max-h-[100%]"
@@ -183,25 +231,39 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
               <div className="flex h-full w-full flex-col justify-between">
                 <div className="flex-1 justify-start">
                   <div className="flex-1 justify-start">
-                    <PopupTitle>Upload Document</PopupTitle>
-                    <div className="mt-5 mb-2 flex h-10 w-40">
-                      {/* Label is what you see however you click the input */}
-                      <label htmlFor="file-Picker" className="labelCSS flex h-full w-full min-w-40 cursor-pointer items-center justify-center rounded-xl bg-[#E5E5E5] font-bold hover:bg-[#c9c2c2]">
-                        {status === "checking" ? "Checking file..." : "Upload New File"}
-                      </label>
-                      <input
-                        id="file-Picker"
-                        name="file"
-                        style={{ visibility: "hidden", position: "absolute" }}
-                        type="file"
-                        onChange={handleFileChange}
-                        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                        disabled={status === "checking" || status === "uploading"}
-                      />
+                  <Button onClick={() => changeTab("website")}>website</Button>
+                  <Button onClick={() => changeTab("file")}>file</Button>
+                    <PopupTitle>Upload {uploadType}</PopupTitle>
+                    <div className="mt-5 mb-2 flex w-40">
+                      {/* Label is what you see however you click the input, only applicable if the user uploads a file */}
+                      {uploadType === "file" && (
+                        <div>
+                          <label htmlFor="file-Picker" className="labelCSS flex h-full w-full min-w-40 cursor-pointer items-center justify-center rounded-xl bg-[#E5E5E5] font-bold hover:bg-[#c9c2c2]">
+                          {status === "checking" ? "Checking file..." : "Upload New File"}
+                            </label>
+                          <input
+                            id="file-Picker"
+                            name="file"
+                            style={{ visibility: "hidden", position: "absolute" }}
+                            type="file"
+                            onChange={handleFileChange}
+                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                            disabled={status === "checking" || status === "uploading"}
+                          />
+                        </div>)}
+                      {uploadType === "website" && (
+                      <div>
+                        <InputBlock className="justify-start">
+                          <InputHeader>Website URL: </InputHeader>
+                          <FInput className="w-full" type="string" placeholder="Enter URL" name="name" onChange={(e) => setNewWebsite(e.target.value.trim())} />
+                        </InputBlock>
+                      </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Information on uploaded file */}
+                  {/* Information on uploaded file, only applicable if the user uploads a file */}
+                  {uploadType == "file" && (
                   <div>
                     <div className="flex">
                       <FileInfo>
@@ -215,12 +277,13 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
                       </FileInfo>
                       {isDuplicate && <p className="font-bold text-red-500">Duplicate file detected!</p>}
                     </div>
-                  </div>
+                  </div>)}
+
 
                   {/* Document title entry */}
                   <InputBlock className="justify-start">
                     <InputHeader>Document Title: </InputHeader>
-                    <FInput className="w-full" type="string" placeholder="Enter document title" name="name" onChange={(e) => setTitle(e.target.value.trim())} />
+                    <FInput className="w-full" type="string" placeholder="Enter document title" name="name" value={title} onChange={(e) => setTitle(e.target.value.trim())} />
                   </InputBlock>
 
                   <div className="flex gap-3">
@@ -234,6 +297,7 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
                           placeholder="Enter description"
                           maxLength={512}
                           className="h-40 w-full resize-none bg-slate-200 pl-2"
+                          value = {description}
                           onChange={(e) => setDescription(e.target.value.trim())}
                         />
                       </InputBlock>
@@ -241,7 +305,7 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
                       {/* Author entry */}
                       <InputBlock>
                         <InputHeader className="">Author Name: </InputHeader>
-                        <FInput className="w-full" type="string" name="author" placeholder="Enter author name" onChange={(e) => setAuthor(e.target.value.trim())} />
+                        <FInput className="w-full" type="string" name="author" placeholder="Enter author name" value={author} onChange={(e) => setAuthor(e.target.value.trim())} />
                       </InputBlock>
                     </div>
 
