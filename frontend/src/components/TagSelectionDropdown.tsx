@@ -193,7 +193,7 @@ export default function TagSelectionDropdown({ userTags, standardizedTags, class
   return (
     <div className={className}>
       <div className="relative w-full">
-        <InputBlock className="block w-full">
+        <InputBlock data-testid="popup_text" className="block w-full">
           <div className="flex items-center mt-1">
             <InputHeader className="">Tags: </InputHeader>
             <Button onClick={() => setShowCreateTagField(!showCreateTagField)} className="ml-auto cursor-pointer text-sm" type="button">
@@ -228,26 +228,26 @@ export default function TagSelectionDropdown({ userTags, standardizedTags, class
               </Button>
             </div>
           )}
-          <FInput className="mt-1 w-full" type="string" name="author" placeholder={tagPlaceholder} value={inputValue} onChange={handleInputChange} />
+          <FInput data-testid="input_tags" className="mt-1 w-full" type="string" name="author" placeholder={tagPlaceholder} value={inputValue} onChange={handleInputChange} />
         </InputBlock>
         <div className={`absolute right-0 left-0 z-10 max-h-50 max-w-full overflow-y-auto bg-white shadow-lg ${filteredTags.length > 0 ? "rounded border" : ""}`}>
           {filteredTags.map((tag) => (
-            <button key={tag.name} onClick={addTags} type="button" className="flex gap-2 w-full cursor-pointer p-2 text-left transition-colors duration-200 hover:bg-blue-100">
-              {tag.name}<AdminTag className="h-4 w-4 self-center" />
-            </button>
-          ))}
-          {filteredUserTags.map((tag) => (
-            <button key={tag.name} onClick={addUserTags} type="button" className="flex gap-2 w-full cursor-pointer p-2 text-left transition-colors duration-200 hover:bg-blue-100">
-              {tag.name}{tag.isApproved ? <ApprovedTag className="h-4 w-4 self-center" /> : ""}
-            </button>
-          ))}
+              <button data-testid="select_tag" key={tag.name} onClick={addTags} type="button" className="flex gap-2 w-full cursor-pointer p-2 text-left transition-colors duration-200 hover:bg-blue-100">
+                {tag.name}<AdminTag className="h-4 w-4 self-center" />
+              </button>
+            ))}
+            {filteredUserTags.map((tag) => (
+              <button key={tag.name} onClick={addUserTags} type="button" className="flex gap-2 w-full cursor-pointer p-2 text-left transition-colors duration-200 hover:bg-blue-100">
+                {tag.name}{tag.isApproved ? <ApprovedTag className="h-4 w-4 self-center" /> : ""}
+              </button>
+            ))}
         </div>
       </div>
       <div className="mt-1 h-[100%] max-h-50 overflow-y-auto border">
         {addedTags.map((tag) => (
           <div key={tag.name} className="flex w-full p-2 text-left transition-colors duration-200">
             <p>{tag.name}</p>
-            <Button onClick={deleteTags} name={tag.id} className="ml-auto cursor-pointer" type="button">
+            <Button data-testid="delete_tag" onClick={deleteTags} name={tag.id} className="ml-auto cursor-pointer" type="button">
               Delete
             </Button>
           </div>
