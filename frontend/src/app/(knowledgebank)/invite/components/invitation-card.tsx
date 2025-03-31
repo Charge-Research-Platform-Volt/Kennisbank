@@ -39,6 +39,7 @@ export default function InvitationCard() {
   return (
     <div className="flex flex-col items-center justify-center min-h-full px-6">
       <Card className="w-full max-w-md">
+        {/* Card header with title and icon */}
         <CardHeader>
           <CardTitle className="text-center">
             <div className="flex items-center justify-center mb-4">
@@ -47,9 +48,12 @@ export default function InvitationCard() {
             </div>
           </CardTitle>
         </CardHeader>
+
+        {/* Card content with form */}
         <CardContent>
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
+              {/* Input field for email address */}
               <Input 
                 type="email"
                 name="email"
@@ -57,6 +61,7 @@ export default function InvitationCard() {
                 defaultValue={state.inputs?.email || ''}
                 className="w-full"
               />
+              {/* Submit button */}
               <Button 
                 type="submit" 
                 className="w-full"
@@ -66,6 +71,7 @@ export default function InvitationCard() {
               </Button>
             </div>
           </form>
+          {/* Message at bottom of card */}
           <p className="text-xs text-gray-500 mt-4 text-center">
             An email with an invitation code will be sent to the provided email address.
           </p>
