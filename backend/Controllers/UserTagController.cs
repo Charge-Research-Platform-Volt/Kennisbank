@@ -91,7 +91,7 @@ public class UserTagController : ControllerBase
         if (userTagExists)
         {
             Log.Error("Tag already exists in UserTags table.");
-            return Conflict(new { message = "Tag already exists in the user-specific tags list." });
+            return Conflict(new { message = "Tag already exists in the user tags list." });
         }
 
         UserTag userTag = new()

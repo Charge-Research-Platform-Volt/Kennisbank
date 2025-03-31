@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import AdminTag from "@/icons/tag-icons/admin-tag";
 import ApprovedTag from "@/icons/tag-icons/aproved-tag";
 import { AddUserTag } from "@/actions/userTagActions";
+import { toast } from "sonner";
 
 /**
  *
@@ -45,7 +46,13 @@ export default function TagSelectionDropdown({ userTags, standardizedTags, class
     formData.append("name", newTagName);
     
     // Call the server action
-    await AddUserTag({success: false, message: "", inputs: {name: ""}}, formData);
+    const result = await AddUserTag({success: false, message: "", inputs: {name: ""}}, formData);
+    if(result.success){
+      toast.success(result.message);
+    }
+    else{
+      toast.error(result.message);
+    }
 
     // Reset UI state
     setNewTagName("");
