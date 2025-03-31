@@ -2,7 +2,12 @@
 
 # Check if we're running a custom command (like tests in CI)
 if [ $# -gt 0 ]; then
-    # Execute the passed command instead of the default behavior
+    # Start the application in the background
+    echo "Starting backend application in background..."
+    # Needs '&' to run in background, otherwise it holds terminal until you stop running the project
+    dotnet run --project backend.csproj &
+
+    # Execute the passed command (tests)
     exec "$@"
 else
     # Normal development behavior
