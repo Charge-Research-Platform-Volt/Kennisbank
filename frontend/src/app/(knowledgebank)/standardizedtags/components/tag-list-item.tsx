@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { useActionState, useEffect, useState } from "react";
 import { FormResponse } from "@/types/return.type";
 import { SaveStandardizedTag } from "@/actions/standardizedTagActions";
+import EditIcon from "@/icons/edit-icon";
+import SaveIcon from "@/icons/save-icon";
 
 const initialState: FormResponse<Tag> = {
   success: false,
@@ -18,12 +20,16 @@ export default function TagListItem({tag}: {tag: Tag}) {
   const [state, action, isPending] = useActionState(SaveStandardizedTag, initialState);
   const [tagName, setTagName] = useState(tag.name);
 
+  const [editting, setEditting] = useState(false);
+  
+
   console.log("CreateStandardizedTag state:");
   console.log(state.message);
 
   useEffect(() => {
     if (state.success) {
       toast.success(state.message);
+      setEditting(false);
     } else if (state.message) {
       toast.error(state.message);
     }
@@ -31,29 +37,56 @@ export default function TagListItem({tag}: {tag: Tag}) {
   
   return (
     <div className="flex w-full items-center justify-between gap-2">
-      <form className="flex flex-grow items-center gap-2" action={action}>
-        <Input
-              type="text"
-              name="name"
-              placeholder="Tag name"
-              value={tagName}
-              onChange={(e) => setTagName(e.target.value)}
-        />
-        <Input
+      { editting ? 
+        (
+          <form className="relative w-full" action={action}>
+            <Input
+                  type="text"
+                  name="name"
+                  placeholder="Tag name"
+                  value={tagName}
+                  onChange={(e) => setTagName(e.target.value)}
+            />
+            <div className="absolute inset-y-0 right-2 flex items-center justify-center">
+              <Button
+                className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
+                variant="default"
+                type="submit"
+                disabled={isPending}
+              >
+                <SaveIcon className="h-5 w-5" fill="#737373"/>
+              </Button>
+            </div>
+            <Input
               type="hidden"
               name="id"
               value={tag.id}
-        />
-        <Button
-          className="w-24 cursor-pointer ml-auto"
-          variant="default"
-          type="submit"
-          disabled={isPending}
-        >
-          {isPending ? "Saving..." : "Save"}
-        </Button>
-      </form>
-      <DeleteTagButton tag={tag} />
+            />
+          </form>
+        ) : (
+          <form className="relative w-full shadow rounded-md px-3 py-1" action={action}>
+            <p>{tagName}</p>
+            <div className="absolute inset-y-0 right-2 flex items-center justify-center">
+              <Button
+                className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
+                variant="default"
+                type="submit"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setEditting(true);
+                }}
+              >
+                <EditIcon className="h-5 w-5" fill="#737373"/>
+              </Button>
+              <DeleteTagButton tag={tag} />
+            </div>
+            <Input
+              type="hidden"
+              name="id"
+              value={tag.id}
+            />
+        </form>
+        )}
     </div>
   );
   }
