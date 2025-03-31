@@ -3,7 +3,7 @@
 import { DocumentBaseSchema, type DocumentBase } from "@/types/document.type";
 import type { FormResponse } from "@/types/return.type";
 import { revalidatePath } from "next/cache";
-import { Log } from "../../Pino";
+//import { Log } from "../../Pino";
 import { cookies } from "next/headers";
 
 export const AddDocument = async (
@@ -79,8 +79,8 @@ export const AddDocument = async (
             message: data.message,
         };
     } catch (error) {
-        Log.error(`An error occurred: ${error}`);
-
+        //Log.error(`An error occurred: ${error}`);
+        console.log(error);
         return {
             success: false,
             message: "An error occurred.",

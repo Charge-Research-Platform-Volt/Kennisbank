@@ -201,16 +201,16 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
         {/* Purple New button */}
         <DropdownMenuTrigger ref={newButtonRef} className="font-face bg-purple text-md active:bg-purple flex h-9 w-full cursor-pointer items-center gap-1 rounded-md pl-3 text-left text-white hover:bg-[#6f2aaf]">
           <New className="h-5 w-5" />
-          <div className="pb-0.5">New</div>
+          <div data-testid="button_text" className="pb-0.5">New</div>
         </DropdownMenuTrigger>
         <DropdownMenuContent style={{ width: newButtonWidth }}>
           {/* Upload item in popup */}
-          <DropdownMenuItem className="cursor-pointer" onClick={clickNew}>
+          <DropdownMenuItem data-testid="button_in" className="cursor-pointer" onClick={clickNew}>
             <label className="inline-block cursor-pointer">Upload New Document</label>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {/* New project item in popup */}
-          <DropdownMenuItem className="cursor-pointer">
+          <DropdownMenuItem data-testid="button_in" className="cursor-pointer">
             <label className="inline-block cursor-pointer">Create New Project</label>
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -233,7 +233,7 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
                   <div className="flex-1 justify-start">
                   <Button onClick={() => changeTab("website")}>website</Button>
                   <Button onClick={() => changeTab("file")}>file</Button>
-                    <PopupTitle>Upload {uploadType}</PopupTitle>
+                    <PopupTitle data-testid="popup_text">Upload {uploadType}</PopupTitle>
                     <div className="mt-5 mb-2 flex w-40">
                       {/* Label is what you see however you click the input, only applicable if the user uploads a file */}
                       {uploadType === "file" && (
@@ -281,7 +281,7 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
 
 
                   {/* Document title entry */}
-                  <InputBlock className="justify-start">
+                  <InputBlock data-testid="popup_text" className="justify-start">
                     <InputHeader>Document Title: </InputHeader>
                     <FInput className="w-full" type="string" placeholder="Enter document title" name="name" value={title} onChange={(e) => setTitle(e.target.value.trim())} />
                   </InputBlock>
@@ -289,7 +289,7 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
                   <div className="flex gap-3">
                     {/* Description entry */}
                     <div className="flex-1">
-                      <InputBlock>
+                      <InputBlock data-testid="popup_text">
                         <InputHeader>Description: </InputHeader>
                         <textarea
                           draggable="false"
@@ -303,7 +303,7 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
                       </InputBlock>
 
                       {/* Author entry */}
-                      <InputBlock>
+                      <InputBlock data-testid="popup_text">
                         <InputHeader className="">Author Name: </InputHeader>
                         <FInput className="w-full" type="string" name="author" placeholder="Enter author name" value={author} onChange={(e) => setAuthor(e.target.value.trim())} />
                       </InputBlock>
@@ -319,6 +319,7 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
                   <div className="float-right flex justify-end">
                     {/* Upload button */}
                     <Button
+                      data-testid="popup_text"
                       type="submit"
                       className="float-right h-10 w-50 cursor-pointer rounded-xl text-lg font-bold"
                       disabled={status === "checking" || isPending || isDuplicate || !newFile || author == "" || title == ""}

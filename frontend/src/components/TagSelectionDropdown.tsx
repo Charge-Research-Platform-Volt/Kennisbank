@@ -92,13 +92,13 @@ export default function TagSelectionDropdown({ tags, className }: { tags: TagsAr
   return (
     <div className={className}>
       <div className="relative w-full">
-        <InputBlock className="block w-full">
+        <InputBlock data-testid="popup_text" className="block w-full">
           <InputHeader className="">Tags: </InputHeader>
-          <FInput className="w-full" type="string" name="author" placeholder={tagPlaceholder} onChange={handleInputChange} />
+          <FInput data-testid="input_tags" className="w-full" type="string" name="author" placeholder={tagPlaceholder} onChange={handleInputChange} />
         </InputBlock>
         <div className={`absolute right-0 left-0 z-10 max-h-50 max-w-full overflow-y-auto bg-white shadow-lg ${filteredTags.length > 0 ? "rounded border" : ""}`}>
           {filteredTags.map((tag) => (
-            <button key={tag.name} onClick={addTags} className="block w-full cursor-pointer p-2 text-left transition-colors duration-200 hover:bg-blue-100">
+            <button data-testid="select_tag" key={tag.name} onClick={addTags} className="block w-full cursor-pointer p-2 text-left transition-colors duration-200 hover:bg-blue-100">
               {tag.name}
             </button>
           ))}
@@ -108,7 +108,7 @@ export default function TagSelectionDropdown({ tags, className }: { tags: TagsAr
         {addedTags.map((tag) => (
           <div key={tag.name} className="flex w-full p-2 text-left transition-colors duration-200">
             <p>{tag.name}</p>
-            <Button onClick={deleteTags} name={tag.id} className="ml-auto cursor-pointer" type="button">
+            <Button data-testid="delete_tag" onClick={deleteTags} name={tag.id} className="ml-auto cursor-pointer" type="button">
               Delete
             </Button>
           </div>
