@@ -53,7 +53,7 @@ export default async function ListTags() {
                         return a.isApproved ? -1 : 1;
                     }).map((tag) => (
                         <div key={tag.id} className="mb-2 flex justify-between items-center w-full">
-                            {isAdmin ? (<TagListItemAdmin tag={tag} userTag={true} aprovedTag={tag.isApproved} />) : (<TagListItem tag={tag} userTag={true} aprovedTag={tag.isApproved} />)}
+                            {isAdmin ? (<TagListItemAdmin userTag={tag} />) : (<TagListItem userTag={tag} />)}
                         </div>
                     ))}
                 </>

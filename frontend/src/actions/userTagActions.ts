@@ -113,6 +113,7 @@ export const SaveUserTag = async (
         isApproved: false,
         user: formData.get("user") as string,
     };
+    console.log(rawData);
 
     // Validate the raw data, if it fails, return an error
     const validatedData = UserTagSchema.safeParse(rawData);

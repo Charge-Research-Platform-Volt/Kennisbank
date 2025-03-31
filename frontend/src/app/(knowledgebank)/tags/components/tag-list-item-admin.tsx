@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tag } from "@/types/tag.type";
+import { Tag, UserTag } from "@/types/tag.type";
 import DeleteTagButton from "./delete-tag-button";
 import { toast } from "sonner";
 import { useActionState, useEffect, useState } from "react";
@@ -12,36 +12,55 @@ import EditIcon from "@/icons/edit-icon";
 import SaveIcon from "@/icons/save-icon";
 import ApprovedTag from "@/icons/tag-icons/aproved-tag";
 import AdminIcon from "@/icons/tag-icons/admin-tag";
+import { SaveUserTag } from "@/actions/userTagActions";
 
-const initialState: FormResponse<Tag> = {
+const initialStateStandardizedTag: FormResponse<Tag> = {
   success: false,
   message: "",
 };
 
-export default function TagListItemAdmin({tag, userTag = false, aprovedTag = false}: {tag: Tag, userTag?: boolean , aprovedTag?: boolean}) {
-  const [state, action, isPending] = useActionState(SaveStandardizedTag, initialState);
-  const [tagName, setTagName] = useState(tag.name);
+const initialStateUserTag: FormResponse<UserTag> = {
+  success: false,
+  message: "",
+};
+
+export default function TagListItemAdmin({tag = undefined, userTag = undefined}: {tag?: Tag, userTag?: UserTag}) {
+  const [saveStandardizedTagState, saveStandardizedTagAction, savingStandardizedTagIsPending] = useActionState(SaveStandardizedTag, initialStateStandardizedTag);
+  const [saveUserTagState, saveUserTagAction, savingUserTagIsPending]  = useActionState(SaveUserTag, initialStateUserTag);
+
+  const [tagName, setTagName] = useState(userTag ? userTag.name : tag?.name);
 
   const [editting, setEditting] = useState(false);
   
 
-  console.log("CreateStandardizedTag state:");
-  console.log(state.message);
+  console.log("SaveStandardizedTag state:");
+  console.log(saveStandardizedTagState.message);
+  console.log("SaveUserTag state:");
+  console.log(saveUserTagState.message);
 
   useEffect(() => {
-    if (state.success) {
-      toast.success(state.message);
+    if (saveStandardizedTagState.success) {
+      toast.success(saveStandardizedTagState.message);
       setEditting(false);
-    } else if (state.message) {
-      toast.error(state.message);
+    } else if (saveStandardizedTagState.message) {
+      toast.error(saveStandardizedTagState.message);
     }
-  }, [state]);
+  }, [saveStandardizedTagState]);
+
+  useEffect(() => {
+    if (saveUserTagState.success) {
+      toast.success(saveUserTagState.message);
+      setEditting(false);
+    } else if (saveUserTagState.message) {
+      toast.error(saveUserTagState.message);
+    }
+  }, [saveUserTagState]);
   
   return (
     <div className="flex w-full items-center justify-between gap-2">
       { editting ? 
         (
-          <form className="relative w-full" action={action}>
+          <form className="relative w-full" action={userTag ? saveUserTagAction : saveStandardizedTagAction}>
             <Input
                   type="text"
                   name="name"
@@ -54,7 +73,7 @@ export default function TagListItemAdmin({tag, userTag = false, aprovedTag = fal
                 className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
                 variant="default"
                 type="submit"
-                disabled={isPending}
+                disabled={savingUserTagIsPending || savingStandardizedTagIsPending}
               >
                 <SaveIcon className="h-5 w-5" fill="#737373"/>
               </Button>
@@ -62,14 +81,14 @@ export default function TagListItemAdmin({tag, userTag = false, aprovedTag = fal
             <Input
               type="hidden"
               name="id"
-              value={tag.id}
+              value={userTag ? userTag.id : tag?.id}
             />
           </form>
         ) : (
-          <form className="relative w-full shadow rounded-md px-3 py-1" action={action}>
+          <form className="relative w-full shadow rounded-md px-3 py-1" action={userTag ? saveUserTagAction : saveStandardizedTagAction}>
             <div className="flex">
               <p>{tagName}</p>
-              {aprovedTag ? (<ApprovedTag className="h-5 w-5 ml-2" />) : userTag ? "" : (<AdminIcon className="h-5 w-5 ml-2" />)}
+              {userTag && userTag.isApproved ? (<ApprovedTag className="h-5 w-5 ml-2" />) : userTag ? "" : (<AdminIcon className="h-5 w-5 ml-2" />)}
             </div>
             <div className="absolute inset-y-0 right-2 flex items-center justify-center">
               <Button
@@ -83,12 +102,12 @@ export default function TagListItemAdmin({tag, userTag = false, aprovedTag = fal
               >
                 <EditIcon className="h-5 w-5" fill="#737373"/>
               </Button>
-              <DeleteTagButton tag={tag} />
+              <DeleteTagButton tag={tag} userTag={userTag} />
             </div>
             <Input
               type="hidden"
               name="id"
-              value={tag.id}
+              value={userTag ? userTag.id : tag?.id}
             />
         </form>
         )}
