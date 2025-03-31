@@ -8,7 +8,6 @@ import { cookies } from "next/headers";
 
 export const AddWebsite = async (
     defaultName: string,
-    hash: string,
     prevState: FormResponse<WebsiteBase>,
     formData: FormData,
 ): Promise<FormResponse<WebsiteBase>> => {
@@ -18,8 +17,6 @@ export const AddWebsite = async (
             URL: formData.get("URL") as string,
             name: (formData.get("name") as string)?.trim() || defaultName,
             description: formData.get("description") as string,
-            hash: formData.get("hash") as string,
-
         };
 
         // Validate the raw data, if it fails, return an error.
@@ -36,8 +33,6 @@ export const AddWebsite = async (
         if(rawData.name == defaultName){
             formData.set("name", defaultName);
         }
-
-        formData.set("hash", hash);
 
         const tagIDs: string[] = [];
         

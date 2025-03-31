@@ -61,7 +61,7 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
 
   const [websiteState, websiteAction] = useActionState((prevState: FormResponse<WebsiteBase>, formData: FormData) => {
     const fileName = newFile?.name.substring(0, newFile?.name.lastIndexOf(".")) || "";
-    return AddWebsite(fileName, fileHash, prevState, formData);
+    return AddWebsite(fileName, prevState, formData);
   }, initialWebsiteState);
 
   const isPending = isPendingTransition;

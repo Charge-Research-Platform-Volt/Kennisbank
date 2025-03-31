@@ -18,7 +18,6 @@ export const WebsiteBaseSchema = z.object({
 	name: z.string().min(1 , { message: "Name is required" }),
 	description: z.string(),
 	URL: z.string().min(8 , { message: "Name is required" }),
-  hash: z.string({ message: "Hash should be a string" }),
 })
 
 /**
