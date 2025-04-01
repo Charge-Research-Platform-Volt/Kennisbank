@@ -1,7 +1,7 @@
 "use server";
 
 import { ResourceBaseSchema, type ResourceBase } from "@/types/resource.type";
-import { FormResponse, StorageResponse, StorageResponseSchema } from "@/types/return.type";
+import { FormResponse } from "@/types/return.type";
 import { revalidatePath } from "next/cache";
 import { Log } from "../../Pino";
 import { cookies } from "next/headers";
@@ -23,11 +23,9 @@ export const AddDocument = async (
             hash: formData.get("hash") as string,
             publicationDate: new Date("1995-12-17T03:24:00"),
         };
-        console.log(rawData);
 
         // Validate the raw data, if it fails, return an error.
         const validatedData = ResourceBaseSchema.safeParse(rawData);
-        console.log(validatedData.success);
 
         if (!validatedData.success) {
             return {
@@ -41,7 +39,7 @@ export const AddDocument = async (
             formData.set("title", defaultName);
         }
         
-        formData.set("type", rawData.typeId);
+        formData.set("typeId", rawData.typeId);
         formData.set("languageCode", rawData.languageCode);
         formData.set("publicationDate", rawData.publicationDate.toISOString());
         

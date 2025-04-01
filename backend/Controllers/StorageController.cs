@@ -65,6 +65,7 @@ namespace backend.Controllers
 
             try
             {
+                logger.Information("Adding file '{FileName}' to blob storage...", dto.File.FileName);
                 Dictionary<string, string> metadata = new Dictionary<string, string> { { "extension", extension } };
                 BLOB_STATUSCODE result = await blobService.UploadBlobAsync(fileType, id.ToString(), metadata, dto.File.OpenReadStream(), dto.Overwrite);
 
@@ -72,6 +73,7 @@ namespace backend.Controllers
                 {
                     case BLOB_STATUSCODE.OK:
 
+                        logger.Information("Adding file '{FileName}' to database...", dto.File.FileName);
                         Resource drive = new()
                         {
                             Id = id,
@@ -100,6 +102,7 @@ namespace backend.Controllers
 
                         await database.SaveResourceChangesAsync();
 
+                        logger.Information("File '{FileName}' added successfully", dto.File.FileName);
                         return Ok(new FileUploadResult(id.ToString(), fileType, dto.File.Length));
 
                     case BLOB_STATUSCODE.NOTFOUND:
