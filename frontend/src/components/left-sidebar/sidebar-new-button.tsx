@@ -220,7 +220,7 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
                   {/* Document title entry */}
                   <InputBlock className="justify-start">
                     <InputHeader>Document Title: </InputHeader>
-                    <FInput className="w-full" type="string" placeholder="Enter document title" name="name" onChange={(e) => setTitle(e.target.value.trim())} />
+                    <FInput className="w-full" type="string" placeholder="Enter document title" name="title" onChange={(e) => setTitle(e.target.value.trim())} />
                   </InputBlock>
 
                   <div className="flex gap-3">

@@ -76,12 +76,12 @@ namespace backend.Controllers
                         {
                             Id = id,
                             Title = dto.Title,
-                            Type = "Unknown",
+                            Type = dto.Type,
                             Description = dto.Description,
-                            LanguageCode = "??",
+                            LanguageCode = dto.LanguageCode,
                             Hash = dto.Hash,
                             FileType = fileType,
-                            PublicationDate = DateTime.UtcNow,
+                            PublicationDate = dto.PublicationDate,
                             CreationDate = DateTime.UtcNow,
                         };
 

@@ -15,14 +15,19 @@ export const AddDocument = async (
     try {
         // Raw data from the form.
         const rawData: ResourceBase = {
-            name: (formData.get("name") as string)?.trim() || defaultName,
+            title: (formData.get("title") as string)?.trim() || defaultName,
+            type: "unknown",
+            languageCode: "AA",
             description: formData.get("description") as string,
             file: formData.get("file") as File,
             hash: formData.get("hash") as string,
+            publicationDate: new Date("1995-12-17T03:24:00"),
         };
+        console.log(rawData);
 
         // Validate the raw data, if it fails, return an error.
         const validatedData = ResourceBaseSchema.safeParse(rawData);
+        console.log(validatedData.success);
 
         if (!validatedData.success) {
             return {
@@ -32,10 +37,11 @@ export const AddDocument = async (
             };
         }
 
-        if(rawData.name == defaultName){
-            formData.set("name", defaultName);
+        if(rawData.title == defaultName){
+            formData.set("title", defaultName);
         }
-
+        console.log(rawData);
+        
         formData.set("hash", hash);
 
         const tagIDs: string[] = [];
@@ -53,7 +59,7 @@ export const AddDocument = async (
         }
 
         // Send the data to the backend.
-        const cookieHeader = cookies();
+        const cookieHeader = await cookies();
         const response = await fetch("http://backend:8080/storage/upload", {
             method: "PUT",
             body: formData,
@@ -61,6 +67,7 @@ export const AddDocument = async (
             headers: { Cookie: cookieHeader.toString() || "" },
         });
         const data = await response.json();
+        console.log(data);
 
         // Check if the request was successful, if not, return an error.
         if (!response.ok) {
