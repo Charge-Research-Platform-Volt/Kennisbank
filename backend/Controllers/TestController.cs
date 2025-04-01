@@ -88,7 +88,7 @@ public class TestController : ControllerBase
                             Id = id,
                             Title = fileName,
                             Description = description,
-                            Type = "Unknown",
+                            TypeId = new Guid(),
                             LanguageCode = "??",
                             FileType = fileType,
                             PublicationDate = DateTime.UtcNow,

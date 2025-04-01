@@ -63,7 +63,7 @@ namespace backend.Data
                         Id = id,
                         Title = title,
                         Description = description,
-                        Type = "Unknown",
+                        TypeId = new Guid(),
                         LanguageCode = "??",
                         FileType = fileType,
                         CreationDate = DateTime.UtcNow,

@@ -80,7 +80,7 @@ public class Resource
 
     #endregion
 }
-public class ResourceUploadDto //Data Transfer Object (DTO)
+public class ResourceUploadDto // Data Transfer Object (DTO)
 {
     public required string Title { get; set; }
     public string? Description { get; set; }
