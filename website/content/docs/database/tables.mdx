@@ -1,0 +1,48 @@
+---
+title: Database Tables
+description: Describes all the tables found in the database and their function in the system
+---
+
+
+We use a PostgreSQL database
+
+## Tables
+**objects**\
+`id`: UUID, Primary Key, Not NULL\
+`title`: text, Not NULL\
+`type`: text, Not NULL\
+`publication_id`: text\
+`description`: text\
+`language`: text, Not NULL\
+`note`: text\
+`licence`: text\
+`created_on`: timestamp with timezone, Not NULL\
+`hash`: text
+
+**persons**\
+`id`: uuid, Primary Key, Not NULL\
+`name`: text, Not NULL\
+`occupation`: text, Not NULL\
+`description`: text, Not NULL\
+`email_address`: text, Not NULL\
+`linkedin`: text, Not NULL
+
+**organisations**\
+`id`: UUID, Primary Key, Not NULL\
+`name`: text, Not NULL\
+`description`: text, Not NULL\
+`url`: text, Not NULL\
+`email_address`: text, Not NULL
+
+**tags**\
+`id`: UUID, Primary Key, Not NULL\
+`name`: text, Not NULL\
+
+
+**user_tags**\
+`id`: UUID, Primary Key, Not NULL\
+`name`: text, Not NULL\
+`is_approved`: boolean, Not NULL\
+`user`: text, Not NULL\
+`created_on`: timestamp with time zone, Not NULL\
+`approved_on`: timestamp with time zone
