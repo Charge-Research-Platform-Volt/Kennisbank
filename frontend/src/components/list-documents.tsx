@@ -7,7 +7,7 @@ import { useState } from "react";
 import { AgGridReact } from "ag-grid-react";
 import type { ColDef, RowSelectionOptions } from "ag-grid-community";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
-import { DocumentPageResponse } from "@/types/document.type";
+import { ResourcePageResponse } from "@/types/resource.type";
 import { tableTheme } from "@/lib/tableConfig";
 import GetFileIcon from "./getFileIcon";
 import { format, parseISO } from "date-fns";
@@ -15,14 +15,14 @@ import { format, parseISO } from "date-fns";
 // Register all modules
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-export default function ListDocuments({ data }: { data: DocumentPageResponse }) {
+export default function ListResources({ data }: { data: ResourcePageResponse }) {
   // Column definitions
   const columnDefs = useState<ColDef[]>([
-    { field: "name", width: 500, filter: true, cellRenderer: Render },
+    { field: "title", width: 500, filter: true, cellRenderer: Render },
     { field: "description", width: 300 },
     { field: "fileType", width: 70, headerName: "Type" },
-    { field: "createdAt", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
-    { field: "updatedAt", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
+    { field: "creationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
+    { field: "publicationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
   ])[0];
 
   // const [defaultColDef, setDefaultColDef] = useState({
@@ -40,7 +40,7 @@ export default function ListDocuments({ data }: { data: DocumentPageResponse }) 
 
   return (
     <div className="h-[calc(100vh-1.25rem)] w-full">
-      <AgGridReact rowData={data.files} columnDefs={columnDefs} theme={tableTheme} rowSelection={rowSelection as RowSelectionOptions} />
+      <AgGridReact rowData={data.resources} columnDefs={columnDefs} theme={tableTheme} rowSelection={rowSelection as RowSelectionOptions} />
     </div>
   );
 }

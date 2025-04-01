@@ -1,6 +1,6 @@
 "use server";
 
-import { DocumentBaseSchema, type DocumentBase } from "@/types/document.type";
+import { ResourceBaseSchema, type ResourceBase } from "@/types/resource.type";
 import type { FormResponse } from "@/types/return.type";
 import { revalidatePath } from "next/cache";
 import { Log } from "../../Pino";
@@ -9,12 +9,12 @@ import { cookies } from "next/headers";
 export const AddDocument = async (
     defaultName: string,
     hash: string,
-    prevState: FormResponse<DocumentBase>,
+    prevState: FormResponse<ResourceBase>,
     formData: FormData,
-): Promise<FormResponse<DocumentBase>> => {
+): Promise<FormResponse<ResourceBase>> => {
     try {
         // Raw data from the form.
-        const rawData: DocumentBase = {
+        const rawData: ResourceBase = {
             name: (formData.get("name") as string)?.trim() || defaultName,
             description: formData.get("description") as string,
             file: formData.get("file") as File,
@@ -22,7 +22,7 @@ export const AddDocument = async (
         };
 
         // Validate the raw data, if it fails, return an error.
-        const validatedData = DocumentBaseSchema.safeParse(rawData);
+        const validatedData = ResourceBaseSchema.safeParse(rawData);
 
         if (!validatedData.success) {
             return {

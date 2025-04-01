@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
-import { DocumentPageResponseSchema } from "@/types/document.type";
+import { ResourcePageResponseSchema } from "@/types/resource.type";
 import Link from "next/link";
 import Greeting from "../components/greating-text";
 import Archive from "@/icons/archive";
@@ -11,7 +11,7 @@ import GetFileIcon from "@/components/getFileIcon";
 export default async function Home() {
   // fetches all documents
   const result = await FetchWithValidation(
-      DocumentPageResponseSchema,
+      ResourcePageResponseSchema,
       "http://backend:8080/Storage/list-paged?pageIndex=1&pageSize=4",
   );
 

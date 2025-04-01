@@ -7,7 +7,7 @@ import { AddDocument } from "@/actions/documentActions";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { FormResponse } from "@/types/return.type";
-import { DocumentBase } from "@/types/document.type";
+import { ResourceBase } from "@/types/resource.type";
 import { Button } from "@/components/ui/button";
 import { getFileHasher } from "@/utils/fileHashWorker";
 import { TagsArray } from "@/types/tag.type";
@@ -17,7 +17,7 @@ import New from "@/icons/new";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error" | "checking";
 
-const initialState: FormResponse<DocumentBase> = {
+const initialState: FormResponse<ResourceBase> = {
   success: false,
   message: "",
 };
@@ -44,7 +44,7 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
   }, []);
 
   const [isPendingTransition, startTransition] = useTransition();
-  const [state, action] = useActionState((prevState: FormResponse<DocumentBase>, formData: FormData) => {
+  const [state, action] = useActionState((prevState: FormResponse<ResourceBase>, formData: FormData) => {
     const fileName = newFile?.name.substring(0, newFile?.name.lastIndexOf(".")) || "";
     return AddDocument(fileName, fileHash, prevState, formData);
   }, initialState);
