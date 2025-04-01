@@ -19,8 +19,8 @@ public class Organisation
     [Column("description")]
     public string? Decription { get; set; }
     
-    [Column("url")]
-    public string? URL { get; set; }
+    [Column("website")]
+    public string? Website { get; set; }
     
     [Column("email-address")]
     public string? EmailAddress { get; set; }

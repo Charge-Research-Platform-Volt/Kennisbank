@@ -76,7 +76,7 @@ namespace backend.Controllers
                         {
                             Id = id,
                             Title = dto.Title,
-                            Type = dto.Type,
+                            TypeId = new Guid(),
                             Description = dto.Description,
                             LanguageCode = dto.LanguageCode,
                             Hash = dto.Hash,

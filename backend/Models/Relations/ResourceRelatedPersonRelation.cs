@@ -15,6 +15,10 @@ public class ResourceRelatedPersonRelation
     [ForeignKey("Person")]
     public required Guid PersonId { get; set; }
 
+    [Column("role")]
+    // This is the role the person has in the resource (like editor)
+    public string? Role { get; set; }
+
     // Navigation properties
     [JsonIgnore] public Resource? Resource { get; set; }
     [JsonIgnore] public Person? RelatedPerson { get; set; }

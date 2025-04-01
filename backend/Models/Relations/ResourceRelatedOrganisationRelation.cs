@@ -15,6 +15,10 @@ public class ResourceRelatedOrganisationRelation
     [ForeignKey("Organisation")]
     public required Guid OrganisationId { get; set; }
 
+    [Column("role")]
+    // This is the indirect role of the organisation on the resource (like referenced)
+    public string? Role { get; set; }
+
     // Navigation properties
     [JsonIgnore] public Resource? Resource { get; set; }
     [JsonIgnore] public Organisation? RelatedOrganisation { get; set; }

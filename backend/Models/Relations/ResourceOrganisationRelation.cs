@@ -15,6 +15,10 @@ public class ResourceOrganisationRelation
     [ForeignKey("Organisation")]
     public required Guid OrganisationId { get; set; }
 
+    [Column("role")]
+    // the direct role of the organisation on the resource (like publisher)
+    public string? Role { get; set; }
+
     // Navigation property to Resource (1:1)
     [JsonIgnore] public Resource? Resource { get; set; }
 

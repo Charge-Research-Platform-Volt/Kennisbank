@@ -17,8 +17,9 @@ public class Resource
     [Column("description")]
     public string? Description { get; set; }
 
-    [Column("type")]
-    public required string Type { get; set; }
+    [Column("type-id")]
+    [ForeignKey("ResourceType")]
+    public required Guid TypeId { get; set; }
 
     [Column("language-code")]
     [MaxLength(2)]
@@ -62,6 +63,9 @@ public class Resource
 
     // Navigation property for Video metadata (1:1)
     [JsonIgnore] public VideoResource? VideoMetadata { get; set; }
+
+    // Navigation property for Resource Type (1:1)
+    [JsonIgnore] public ResourceType? Type { get; set; }
     #endregion
 
     #region Relation navigation properties
