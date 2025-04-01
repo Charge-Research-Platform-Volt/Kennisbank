@@ -36,3 +36,12 @@ public class Person
     [JsonIgnore][InverseProperty("TargetPerson")] public ICollection<PersonRelationship>? SourceRelationships { get; set; }
 
 }
+
+public class PersonCreateDto
+{
+    public required string Name { get; set; }
+    public required string Occupation { get; set; }
+    public string? Description { get; set; }
+    public string? EmailAddress { get; set; }
+    public string? Linkedin { get; set; }
+}

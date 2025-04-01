@@ -1,4 +1,5 @@
-﻿using KnowledgeBank.Data;
+﻿using Azure.Core;
+using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualBasic.FileIO;
@@ -50,18 +51,7 @@ namespace backend.Data
             await database.Resources.AddAsync(resource);
 
             // Add tag relations to database
-            List<ResourceTagRelation> tagRelations = new List<ResourceTagRelation>();
-
-            foreach (string tagId in dto.Tags)
-            {
-                tagRelations.Add( new()
-                {
-                    ResourceId = resourceId,
-                    TagId = Guid.Parse(tagId)
-                });
-            }
-
-            await database.ResourceTagRelations.AddRangeAsync(tagRelations.ToArray());
+            await AddResourceTagRelationRangeAsync(resourceId, dto.Tags);
 
             return resourceId;
         }
@@ -148,10 +138,75 @@ namespace backend.Data
 
             return resourceId;
         }
+
+        public async Task<Guid> CreatePersonAsync(PersonCreateDto dto)
+        {
+            // Generate new ID for the person
+            Guid personId = Guid.NewGuid();
+
+            // Create a person instance using the DTO
+            Person person = new()
+            {
+                Id = personId,
+                Name = dto.Name,
+                Occupation = dto.Occupation,
+                Description = dto.Description,
+                EmailAddress = dto.EmailAddress,
+                Linkedin = dto.Linkedin,
+            };
+
+            // Add person to database
+            await database.Persons.AddAsync(person);
+
+            return personId;
+        }
         #endregion
 
         #region Relations
-        
+        public async Task AddResourceTagRelationRangeAsync(Guid resourceId, Guid[] tagIds)
+        {
+            List<ResourceTagRelation> tagRelations = new List<ResourceTagRelation>();
+
+            foreach (Guid tagId in tagIds)
+            {
+                tagRelations.Add(new()
+                {
+                    ResourceId = resourceId,
+                    TagId = tagId
+                });
+            }
+
+            await database.ResourceTagRelations.AddRangeAsync(tagRelations.ToArray());
+        }
+
+        public async Task AddResourceTagRelationRangeAsync(Guid resourceId, string[] tagIds)
+        { await AddResourceTagRelationRangeAsync(resourceId, StringToGuidArray(tagIds)); }
+
+        public async Task AddResourceTagRelationRangeAsync(string resourceId, Guid[] tagIds)
+        { await AddResourceTagRelationRangeAsync(Guid.Parse(resourceId), tagIds); }
+
+        public async Task AddResourceTagRelationRangeAsync(string resourceId, string[] tagIds)
+        { await AddResourceTagRelationRangeAsync(Guid.Parse(resourceId), StringToGuidArray(tagIds)); }
+
+        public async Task AddResourceTagRelationAsync(Guid resourceId, Guid tagId)
+        {
+            ResourceTagRelation tagEntry = new()
+            {
+                ResourceId = resourceId,
+                TagId = tagId
+            };
+
+            await database.ResourceTagRelations.AddAsync(tagEntry);
+        }
+
+        public async Task AddResourceTagRelationAsync(string resourceId, Guid tagId)
+        { await AddResourceTagRelationAsync(Guid.Parse(resourceId), tagId); }
+
+        public async Task AddResourceTagRelationAsync(Guid resourceId, string tagId)
+        { await AddResourceTagRelationAsync(resourceId, Guid.Parse(tagId)); }
+
+        public async Task AddResourceTagRelationAsync(string resourceId, string tagId)
+        { await AddResourceTagRelationAsync(Guid.Parse(resourceId), Guid.Parse(tagId)); }
         #endregion
 
         #region Changes
@@ -262,5 +317,19 @@ namespace backend.Data
                 }
             }
         }
+
+        #region Private functions
+        private Guid[] StringToGuidArray(string[] strings)
+        {
+            Guid[] guids = new Guid[strings.Length];
+
+            for (int i = 0; i < strings.Length; i++)
+            {
+                guids[i] = Guid.Parse(strings[i]);
+            }
+
+            return guids;
+        }
+        #endregion
     }
 }
