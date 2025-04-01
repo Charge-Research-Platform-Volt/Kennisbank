@@ -105,7 +105,7 @@ export default function LeftSidebarClient({ tags }: { tags: TagsArray }) {
           <nav className="mt-auto" >
             <ul>
               <li>
-                <Link data-testid = "sidebar" href="/settings" className="flex items-center gap-x-2 rounded-md p-2 hover:bg-gray-200">
+                <Link data-testid = "sidebar" href="/users" className="flex items-center gap-x-2 rounded-md p-2 hover:bg-gray-200">
                   <Settings className="h-4 w-4" />
                   Settings
                 </Link>
