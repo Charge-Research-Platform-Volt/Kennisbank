@@ -32,7 +32,7 @@ public class UserTagController : ControllerBase
     [HttpGet("all-tags")]
     [SwaggerOperation(
             Summary = "List all user tags.",
-            Description = "List all standardized tags created by users."
+            Description = "List all tags created by users."
         )]
     [SwaggerResponse(200, "List of tags", typeof(List<UserTag>))]
     [SwaggerResponse(500, "Internal server error")]
@@ -91,7 +91,7 @@ public class UserTagController : ControllerBase
         if (userTagExists)
         {
             Log.Error("Tag already exists in UserTags table.");
-            return Conflict(new { message = "Tag already exists in the user tags list." });
+            return Conflict(new { message = "Tag name already exists in the user tags list." });
         }
 
         UserTag userTag = new()
@@ -116,7 +116,7 @@ public class UserTagController : ControllerBase
 
         // Adding the tag was successful
         Log.Information("New tag added to tag list.");
-        return Ok(new { message = "Tag added." });
+        return Ok(new { message = "User tag added." });
     }
 
     
@@ -133,13 +133,12 @@ public class UserTagController : ControllerBase
     [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
             Summary = "Delete user tag.",
-            Description = "Lets a user delete a tag from the list of user tags."
+            Description = "Lets an admin delete a tag from the list of user tags."
         )]
     [SwaggerResponse(200, "Tag deleted", typeof(UserTag))]
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(403, "Forbidden")]
     [SwaggerResponse(404, "Tag not found")]
-    [SwaggerResponse(409, "Tag has been approved and can no longer be deleted")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> DeleteTag(string id)
     {
@@ -163,7 +162,6 @@ public class UserTagController : ControllerBase
             Log.Error("User tag not found.");
             return NotFound(new { message = "User tag not found." });
         }
-
 
         try
         {
@@ -199,7 +197,7 @@ public class UserTagController : ControllerBase
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(403, "Forbidden")]
     [SwaggerResponse(404, "Tag not found")]
-    [SwaggerResponse(409, "New tag name already exists or tag has been approved and can no longer be edited")]
+    [SwaggerResponse(409, "New tag name already exists")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> ChangeTagName(string id, string newName)
     {
@@ -240,12 +238,15 @@ public class UserTagController : ControllerBase
             return NotFound(new { message = "Tag not found." });
         }
 
-        // Make sure the tag has not been approved yet
-        if (userTag.IsApproved)
+        // Check if the tag already exists in the Tags table
+        bool userTagExists = await _context.Tags.AnyAsync(t => t.Name == newName);
+
+        if (userTagExists)
         {
-            Log.Error("Tag has been approved and can no longer be edited.");
-            return Conflict(new { message = "Tag has been approved and can no longer be edited." });
+            Log.Error("Tag already exists in UserTags table.");
+            return Conflict(new { message = "Tag already exists in the user tags list, try converting the user tag instead." });
         }
+
         // Change tag name
         try
         {
@@ -279,6 +280,7 @@ public class UserTagController : ControllerBase
     [SwaggerResponse(200, "Tag approved", typeof(Tag))]
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(404, "Tag not found")]
+    [SwaggerResponse(409, "Tag already approved")]
     public async Task<IActionResult> ApproveUserTag(string id)
     {
         Log.Information($"Approving user tag with ID: {id}");
@@ -328,7 +330,7 @@ public class UserTagController : ControllerBase
     }
 
     /// <summary>
-    /// Approve a user tag by adding it to the standardized tag list
+    /// Convert a user tag by adding it to the standardized tag list
     /// </summary>
     /// <param name="id">The id of the user tag</param>
     /// <returns>
@@ -370,6 +372,7 @@ public class UserTagController : ControllerBase
 
         // Check if tag name already exists in the Tags table
         bool tagExists = await _context.Tags.AnyAsync(t => t.Name == userTag.Name);
+
         if (tagExists)
         {
             Log.Error("A tag with this name already exists in Tags.");
@@ -395,12 +398,6 @@ public class UserTagController : ControllerBase
 
             Log.Information($"User tag '{userTag.Name}' approved and added to Tags.");
             return Ok(new { message = "Tag approved and added to Tags.", tag = newTag });
-        }
-        catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
-        {
-            // The tag already exists
-            Log.Error(e, "Tag already exists.");
-            return Conflict(new { message = "Tag already exists." });
         }
         catch (Exception e)
         {

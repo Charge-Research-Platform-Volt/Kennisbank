@@ -183,7 +183,7 @@ export const ApproveUserTag = async (tagId: string): Promise<FormResponse<{ id: 
     };
 };
 
-// Approve a User Tag (only admins can do this)
+// Convert a User Tag (only admins can do this)
 export const ConvertUserTag = async (tagId: string): Promise<FormResponse<{ id: string }>> => {
     console.log("Converting user tag: ", tagId);
 

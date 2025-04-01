@@ -30,7 +30,7 @@ export default function TagSelectionDropdown({ userTags, standardizedTags, class
   const [isCreatingTag, setIsCreatingTag] = useState(false);
 
   // Defines placeholder for the tags, user gets a warning when the maximum amount of tags is added
-  const tagPlaceholder: string = addedTags.length + addedUserTags.length < 10 ? "Search for tags" : "Maximum amount of tags added!";
+  const tagPlaceholder: string = addedTags.length + addedUserTags.length < MAX_TAGS ? "Search for tags" : "Maximum amount of tags added!";
 
   // Update the input value when the user types a character
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
