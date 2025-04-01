@@ -40,7 +40,7 @@ namespace backend.Controllers
         [SwaggerResponse(409, "File already exists", typeof(StorageResponse))]
         [SwaggerResponse(400, "Invalid file", typeof(StorageResponse))]
         [SwaggerResponse(500, "Server error", typeof(StorageResponse))]
-        public async Task<IActionResult> UploadFile([FromForm] StorageUploadDto dto)
+        public async Task<IActionResult> UploadFile([FromForm] ResourceUploadDto dto)
         {
             if (dto.File == null)
                 return BadRequest(new StorageResponse("No file was uploaded."));
@@ -48,7 +48,7 @@ namespace backend.Controllers
             if (dto.File.Length == 0)
                 return BadRequest(new StorageResponse("The uploaded file was empty."));
 
-            if (string.IsNullOrEmpty(dto.Name))
+            if (string.IsNullOrEmpty(dto.Title))
                 return BadRequest(new StorageResponse("No name was provided."));
 
             if (string.IsNullOrEmpty(dto.Description))
@@ -72,31 +72,33 @@ namespace backend.Controllers
                 {
                     case BLOB_STATUSCODE.OK:
 
-                        FileItem drive = new()
+                        Resource drive = new()
                         {
                             Id = id,
-                            Name = dto.Name,
+                            Title = dto.Title,
+                            Type = "Unknown",
                             Description = dto.Description,
+                            LanguageCode = "??",
                             Hash = dto.Hash,
                             FileType = fileType,
-                            CreatedAt = DateTime.UtcNow,
-                            UpdatedAt = DateTime.UtcNow,
+                            PublicationDate = DateTime.UtcNow,
+                            CreationDate = DateTime.UtcNow,
                         };
 
-                        await database.Files.AddAsync(drive);
+                        await database.Resources.AddAsync(drive);
 
                         foreach (string tag in dto.Tags)
                         {
-                            FileTagLink tagEntry = new()
+                            ResourceTagRelation tagEntry = new()
                             {
-                                DocId = id,
+                                ResourceId = id,
                                 TagId = Guid.Parse(tag),
                             };
 
-                            await database.FileTagLinks.AddAsync(tagEntry);
+                            await database.ResourceTagRelations.AddAsync(tagEntry);
                         }
 
-                        await database.SaveFileChangesAsync();
+                        await database.SaveResourceChangesAsync();
 
                         return Ok(new FileUploadResult(id.ToString(), fileType, dto.File.Length));
 
@@ -133,7 +135,7 @@ namespace backend.Controllers
 
             try
             {
-                FileItem? item = await database.Files.FindAsync(Guid.Parse(id));
+                Resource? item = await database.Resources.FindAsync(Guid.Parse(id));
 
                 if (item == null)
                     return NotFound(new StorageResponse("ID not found in the database."));
@@ -146,7 +148,7 @@ namespace backend.Controllers
                 BlobDownloadResponse response = (BlobDownloadResponse)maybeResponse;
 
                 string contentType = "application/octet-stream";
-                string fileName = sanitizeFileName(item.Name) + response.Metadata["extension"];
+                string fileName = sanitizeFileName(item.Title) + response.Metadata["extension"];
 
                 if (Path.HasExtension(fileName))
                 {
@@ -181,7 +183,7 @@ namespace backend.Controllers
 
             try
             {
-                FileItem? item = await database.Files.FindAsync(Guid.Parse(id));
+                Resource? item = await database.Resources.FindAsync(Guid.Parse(id));
 
                 if (item == null)
                     return NotFound(new StorageResponse("ID was not found in database. File was deleted succesfully."));
@@ -192,8 +194,8 @@ namespace backend.Controllers
                 {
                     case BLOB_STATUSCODE.OK:
 
-                        database.Files.Remove(item);
-                        await database.SaveFileChangesAsync();
+                        database.Resources.Remove(item);
+                        await database.SaveResourceChangesAsync();
 
                         return Ok(new FileResponse("File deleted successfully", id, item.FileType));
 
@@ -220,24 +222,24 @@ namespace backend.Controllers
         [SwaggerResponse(404, "File not found", typeof(StorageResponse))]
         [SwaggerResponse(400, "Invalid name or ID", typeof(StorageResponse))]
         [SwaggerResponse(500, "Server error", typeof(StorageResponse))]
-        public async Task<IActionResult> Rename([FromBody] StorageRenameDto dto)
+        public async Task<IActionResult> Rename([FromBody] ResourceRenameDto dto)
         {
             if (string.IsNullOrEmpty(dto.Id))
                 return BadRequest(new StorageResponse("Invalid ID."));
 
-            if (string.IsNullOrEmpty(dto.Name))
+            if (string.IsNullOrEmpty(dto.Title))
                 return BadRequest(new StorageResponse("Invalid name."));
 
             try
             {
-                FileItem? item = await database.Files.FindAsync(Guid.Parse(dto.Id));
+                Resource? item = await database.Resources.FindAsync(Guid.Parse(dto.Id));
 
                 if (item == null)
                     return NotFound(new StorageResponse("ID was not found in database."));
 
-                item.Name = dto.Name;
+                item.Title = dto.Title;
 
-                await database.SaveFileChangesAsync();
+                await database.SaveResourceChangesAsync();
 
                 return Ok(new StorageResponse("File renamed succesfully."));
             }
@@ -264,7 +266,7 @@ namespace backend.Controllers
 
             try
             {
-                FileItem? item = await database.Files.Where(f => f.Hash == hash).FirstOrDefaultAsync();
+                Resource? item = await database.Resources.Where(f => f.Hash == hash).FirstOrDefaultAsync();
 
                 if (item == null)
                     return Ok(new ExistsResponse("File does not exist.", false, ""));
@@ -294,12 +296,12 @@ namespace backend.Controllers
 
             try
             {
-                FileItem? item = await database.Files.FindAsync(Guid.Parse(id));
+                Resource? item = await database.Resources.FindAsync(Guid.Parse(id));
 
                 if (item == null)
                     return NotFound(new StorageResponse("File not found."));
 
-                return Ok(new FileInfoResponse("File found.", item));
+                return Ok(new ResourceInfoResponse("File found.", item));
             }
             catch (Exception e)
             {
@@ -319,10 +321,10 @@ namespace backend.Controllers
         {
             try
             {
-                FileItem[]? items = await database.Files.OrderByDescending(f => f.CreatedAt).ToArrayAsync();
+                Resource[]? items = await database.Resources.OrderByDescending(f => f.CreationDate).ToArrayAsync();
 
                 if (items == null)
-                    return Ok(new PageResponse("No files in database.", 0, 0, Array.Empty<FileItem>()));
+                    return Ok(new PageResponse("No files in database.", 0, 0, Array.Empty<Resource>()));
 
                 return Ok(new PageResponse($"{items.Length} files found.", 0, 0, items));
             }
@@ -354,10 +356,10 @@ namespace backend.Controllers
                 // Calculate how many records we need to skip
                 int skip = (pageIndex - 1) * pageSize;
 
-                FileItem[]? items = await database.Files.Skip(skip).Take(pageSize).ToArrayAsync();
+                Resource[]? items = await database.Resources.Skip(skip).Take(pageSize).ToArrayAsync();
 
                 if (items == null)
-                    return Ok(new PageResponse("No files on this page.", pageIndex, pageSize, Array.Empty<FileItem>()));
+                    return Ok(new PageResponse("No files on this page.", pageIndex, pageSize, Array.Empty<Resource>()));
 
                 return Ok(new PageResponse($"{items.Length} files found.", pageIndex, pageSize, items));
             }

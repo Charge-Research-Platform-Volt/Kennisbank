@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Serialization;
+
 namespace KnowledgeBank.Models;
 
 [Table("regions")]
@@ -12,7 +14,8 @@ public class Region
     public required Guid RegionId { get; set; }
 
     [Column("name")]
-    [Required]
     public required string Name { get; set; }
 
+    // Navigation property
+    [JsonIgnore] public ICollection<ResourceRegionRelation>? Resources { get; set; }
 }

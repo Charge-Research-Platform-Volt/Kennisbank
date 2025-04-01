@@ -10,68 +10,88 @@ namespace KnowledgeBank.Data
     {
         public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options) { }
 
-        public DbSet<FileItem> Files { get; set; }
+        public DbSet<Resource> Resources { get; set; }
 
         public DbSet<Tag> Tags { get; set; }
-        public DbSet<FileTagLink> FileTagLinks { get; set; }
+        public DbSet<ResourceTagRelation> ResourceTagRelations { get; set; }
         public DbSet<UserTag> UserTags { get; set; }
         public DbSet<User> AppUsers { get; set; } // Renamed to avoid conflict with IdentityDbContext.Users
-        public DbSet<FileVector> Vectors { get; set; }
-        public DbSet<Document> Documents { get; set; }
+        public DbSet<ResourceVector> Vectors { get; set; }
+        public DbSet<DocumentResource> Documents { get; set; }
         public DbSet<Person> Persons { get; set; }
         public DbSet<Organisation> Organisations {get; set; }
         public DbSet<Region> Regions { get; set; }
-        public DbSet<DocAuthorLink> DocAuthors { get; set; }
-        public DbSet<DocRelatedPersonLink> DocRelatedPersons { get; set; }
-        public DbSet<DocOrganisationLink> DocOrganisations { get; set; }
-        public DbSet<DocRelatedOrganisationLink> DocRelatedOrganisations { get; set; }
-        public DbSet<PersonOrganisationLink> PersonOrganisations { get; set;}
-        public DbSet<PersonPersonLink> PersonPersons { get; set; }
-        public DbSet<OrganisationOrganisationLink> OrganisationOrganisations { get; set; }
-        public DbSet<DocRegionLink> DocRegions { get; set; }
-        public DbSet<DocSourceLink> DocSources { get; set; }
-        public DbSet<DocRelatedSourceLink> DocRelatedSources { get; set; }
+        public DbSet<ResourceAuthorRelation> ResourceAuthorRelations { get; set; }
+        public DbSet<ResourceRelatedPersonRelation> ResourceRelatedPersonRelations { get; set; }
+        public DbSet<ResourceOrganisationRelation> ResourceOrganisationRelations { get; set; }
+        public DbSet<ResourceRelatedOrganisationRelation> ResourceRelatedOrganisationRelations { get; set; }
+        public DbSet<PersonOrganisationRelation> PersonOrganisationRelations { get; set;}
+        public DbSet<PersonRelationship> PersonRelationships { get; set; }
+        public DbSet<OrganisationRelationship> OrganisationRelationships { get; set; }
+        public DbSet<ResourceRegionRelation> ResourceRegionRelations { get; set; }
+        public DbSet<ResourceSourceRelation> ResourceSourceRelations { get; set; }
+        public DbSet<ResourceRelatedSourceRelation> ResourceRelatedSourceRelations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<FileItem>()
+            modelBuilder.Entity<Resource>()
                 .HasOne(f => f.Vector)
-                .WithOne(v => v.File)
-                .HasForeignKey<FileVector>(v => v.FileId)
+                .WithOne(v => v.Resource)
+                .HasForeignKey<ResourceVector>(v => v.ResourceId)
                 .OnDelete(DeleteBehavior.Cascade);    // Automatically deletes vector on file delete
 
-            modelBuilder.Entity<FileTagLink>()
-                .HasKey(ft => new { ft.DocId, ft.TagId }); // Define composite primary key
+            modelBuilder.Entity<ResourceTagRelation>()
+                .HasKey(ft => new { ft.ResourceId, ft.TagId }); // Define composite primary key
 
-            modelBuilder.Entity<DocAuthorLink>()
-                .HasKey(ft => new { ft.DocId, ft.PersonId});
+            modelBuilder.Entity<ResourceAuthorRelation>()
+                .HasKey(ft => new { ft.ResourceId, ft.PersonId});
                 
-            modelBuilder.Entity<DocRelatedPersonLink>()
-               .HasKey(ft => new { ft.DocId, ft.PersonId});
+            modelBuilder.Entity<ResourceRelatedPersonRelation>()
+               .HasKey(ft => new { ft.ResourceId, ft.PersonId});
                 
-            modelBuilder.Entity<DocOrganisationLink>()
-                .HasKey(ft => new { ft.DocId, ft.OrganisationId});
+            modelBuilder.Entity<ResourceOrganisationRelation>()
+                .HasKey(ft => new { ft.ResourceId, ft.OrganisationId});
 
-            modelBuilder.Entity<DocRelatedOrganisationLink>()
-                .HasKey(ft => new { ft.DocId, ft.OrganisationId});
+            modelBuilder.Entity<ResourceRelatedOrganisationRelation>()
+                .HasKey(ft => new { ft.ResourceId, ft.OrganisationId});
                 
-            modelBuilder.Entity<PersonOrganisationLink>()
+            modelBuilder.Entity<PersonOrganisationRelation>()
                 .HasKey(ft => new { ft.PersonId, ft.OrganisationId});
 
-            modelBuilder.Entity<PersonPersonLink>()
-                .HasKey(ft => new { ft.PersonId, ft.PersonId2});
+            modelBuilder.Entity<PersonRelationship>()
+                .HasKey(ft => new { ft.SourcePersonId, ft.TargetPersonId});
                 
-            modelBuilder.Entity<OrganisationOrganisationLink>()
-                .HasKey(ft => new { ft.OrganisationId, ft.OrganisationId2});
+            modelBuilder.Entity<OrganisationRelationship>()
+                .HasKey(ft => new { ft.SourceOrganisationId, ft.TargetOrganisationId});
                 
-            modelBuilder.Entity<DocRegionLink>()
-                .HasKey(ft => new { ft.DocId, ft.RegionId});
+            modelBuilder.Entity<ResourceRegionRelation>()
+                .HasKey(ft => new { ft.ResourceId, ft.RegionId});
                 
-            modelBuilder.Entity<DocSourceLink>()
-                .HasKey(ft => new { ft.DocId, ft.Source});
+            modelBuilder.Entity<ResourceSourceRelation>()
+                .HasKey(ft => new { ft.ResourceId, ft.Source});
                 
-            modelBuilder.Entity<DocRelatedSourceLink>()
-                .HasKey(ft => new { ft.DocId, ft.Source});
+            modelBuilder.Entity<ResourceRelatedSourceRelation>()
+                .HasKey(ft => new { ft.ResourceId, ft.Source});
+
+            modelBuilder.Entity<OrganisationRelationship>()
+                .HasOne(or => or.SourceOrganisation)
+                .WithMany(o => o.TargetRelationships)
+                .HasForeignKey(or => or.SourceOrganisationId);
+
+            modelBuilder.Entity<OrganisationRelationship>()
+                .HasOne(or => or.TargetOrganisation)
+                .WithMany(o => o.SourceRelationships)
+                .HasForeignKey(or => or.TargetOrganisationId);
+
+            modelBuilder.Entity<PersonRelationship>()
+                .HasOne(or => or.SourcePerson)
+                .WithMany(o => o.TargetRelationships)
+                .HasForeignKey(or => or.SourcePersonId);
+
+            modelBuilder.Entity<PersonRelationship>()
+                .HasOne(or => or.TargetPerson)
+                .WithMany(o => o.SourceRelationships)
+                .HasForeignKey(or => or.TargetPersonId);
 
             base.OnModelCreating(modelBuilder);
         }
@@ -83,10 +103,10 @@ namespace KnowledgeBank.Data
         /// </summary>
         /// <param name="cancellationToken">A token used to observe operation cancellation.</param>
         /// <returns>The number of state entries written to the database.</returns>
-        public async Task<int> SaveFileChangesAsync(CancellationToken cancellationToken = default)
+        public async Task<int> SaveResourceChangesAsync(CancellationToken cancellationToken = default)
         {
             // Get files that were added or modified
-            var updatedFiles = ChangeTracker.Entries<FileItem>()
+            var updatedResources = ChangeTracker.Entries<Resource>()
                 .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
                 .Select(e => e.Entity)
                 .ToList();
@@ -95,7 +115,7 @@ namespace KnowledgeBank.Data
             var result = await base.SaveChangesAsync(cancellationToken);
 
             // If there are any updated files, update their search vectors
-            if (updatedFiles.Count != 0) await UpdateFileVectorAsync(updatedFiles);
+            if (updatedResources.Count != 0) await UpdateResourceVectorAsync(updatedResources);
 
             return result;
         }
@@ -104,32 +124,21 @@ namespace KnowledgeBank.Data
         /// Updates or inserts full-text search vectors for the given list of updated FileItem entities. 
         /// If a vector already exists for a file, it is updated. Otherwise, a new vector is inserted.
         /// </summary>
-        /// <param name="updatedFiles">A list of files that were added or modified.</param>
+        /// <param name="updatedResources">A list of files that were added or modified.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        private async Task UpdateFileVectorAsync(List<FileItem> updatedFiles)
+        private async Task UpdateResourceVectorAsync(List<Resource> updatedResources)
         {
             // Generates an Enumerable<Task> of SQL queries that inserts the
             // vector, if there's a conflict, replace existing vector instead
-            var updateTasks = updatedFiles.Select(file =>
+            var updateTasks = updatedResources.Select(resource =>
                 Database.ExecuteSqlInterpolatedAsync($@"
-                    INSERT INTO file_vectors (id, file_id, vector)
-                    VALUES (gen_random_uuid(), {file.Id}, to_tsvector('english', {file.Name} || ' ' || {file.Description}))
-                    ON CONFLICT (file_id) 
+                    INSERT INTO ""resource-vectors"" (id, ""resource-id"", vector)
+                    VALUES (gen_random_uuid(), {resource.Id}, to_tsvector('english', {resource.Title} || ' ' || {resource.Description}))
+                    ON CONFLICT (""resource-id"") 
                     DO UPDATE SET vector = EXCLUDED.vector;"));
 
             // Task that will complete when all subtasks have completed
             await Task.WhenAll(updateTasks);
         }
-
-        // protected override void OnModelCreating(ModelBuilder modelBuilder)
-        // {
-        //     base.OnModelCreating(modelBuilder);
-
-        //     // Drive
-        //     modelBuilder.Entity<Drive>().HasKey(d => d.Id);
-        //     modelBuilder.Entity<Drive>().Property(d => d.Name).IsRequired();
-        //     modelBuilder.Entity<Drive>().Property(d => d.Description).IsRequired();
-        //     modelBuilder.Entity<Drive>().Property(d => d.ImageUrl).IsRequired();
-        // }
     }
 }

@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 namespace KnowledgeBank.Models;
 
-[Table("user_tags")]
+[Table("user-tags")]
 [Index(nameof(Name), IsUnique = true)]
 public class UserTag
 {
@@ -14,16 +14,16 @@ public class UserTag
     [Column("name")]
     public required string Name { get; set; }
 
-    [Column("is_approved")]
+    [Column("is-approved")]
     public bool IsApproved { get; set; }
 
     // TODO: Should be the actual User object or userId, not just a string.
     [Column("user")]
     public required string User { get; set; }
 
-    [Column("created_on")]
+    [Column("created-on")]
     public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
 
-    [Column("approved_on")]
+    [Column("approved-on")]
     public DateTime? ApprovedOn { get; set; }
 }

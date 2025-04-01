@@ -33,7 +33,7 @@ public class SearchController : ControllerBase
         Summary = "Search database by name.",
         Description = "Searches for files in database based on a given name, with pagination."
     )]
-    [SwaggerResponse(200, "List of search results", typeof(List<FileItem>))]
+    [SwaggerResponse(200, "List of search results", typeof(List<Resource>))]
     [SwaggerResponse(400, "Invalid search query")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> SearchByName(
@@ -54,16 +54,16 @@ public class SearchController : ControllerBase
         {
             int skip = (pageIndex - 1) * pageSize;
 
-            FileItem[]? items = await database.Files
+            Resource[]? items = await database.Resources
                 .FromSqlRaw(@"
-                    SELECT * FROM files 
+                    SELECT * FROM resources 
                     ORDER BY similarity(name, {0}) DESC", query)
                 .Skip(skip).Take(pageSize)
                 .ToArrayAsync();
 
 
             if (items == null)
-                return Ok(new PageResponse("No files found.", pageIndex, pageSize, Array.Empty<FileItem>()));
+                return Ok(new PageResponse("No files found.", pageIndex, pageSize, Array.Empty<Resource>()));
 
             return Ok(new PageResponse($"{items.Length} files found.", pageIndex, pageSize, items));
         }
@@ -79,7 +79,7 @@ public class SearchController : ControllerBase
         Summary = "Search database by description.",
         Description = "Searches for files in database based on a given description, with pagination."
     )]
-    [SwaggerResponse(200, "List of search results", typeof(List<FileItem>))]
+    [SwaggerResponse(200, "List of search results", typeof(List<Resource>))]
     [SwaggerResponse(400, "Invalid search query")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> SearchByDescription(
@@ -100,15 +100,15 @@ public class SearchController : ControllerBase
         {
             int skip = (pageIndex - 1) * pageSize;
 
-            FileItem[]? items = await database.Files
+            Resource[]? items = await database.Resources
                 .FromSqlRaw(@"
-                    SELECT * FROM files 
+                    SELECT * FROM resources 
                     ORDER BY similarity(description, {0}) DESC", query)
                 .Skip(skip).Take(pageSize)
                 .ToArrayAsync();
 
             if (items == null)
-                return Ok(new PageResponse("No files found.", pageIndex, pageSize, Array.Empty<FileItem>()));
+                return Ok(new PageResponse("No files found.", pageIndex, pageSize, Array.Empty<Resource>()));
 
             return Ok(new PageResponse($"{items.Length} files found.", pageIndex, pageSize, items));
         }
@@ -124,7 +124,7 @@ public class SearchController : ControllerBase
         Summary = "FTS the database by name and description.",
         Description = "FTS for files in database based by name and description, with pagination."
     )]
-    [SwaggerResponse(200, "List of search results", typeof(List<FileItem>))]
+    [SwaggerResponse(200, "List of search results", typeof(List<Resource>))]
     [SwaggerResponse(400, "Invalid search query")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> FullTextSearch(
@@ -158,7 +158,7 @@ public class SearchController : ControllerBase
 
 
             // Converts the user query to a tsvector and compares this to the file vector
-            FileItem[]? items = await database.Files
+            Resource[]? items = await database.Resources
                 .FromSqlRaw(@"
                     SELECT DISTINCT ON (f.id)
                         f.*, 
@@ -167,8 +167,8 @@ public class SearchController : ControllerBase
                             similarity(f.name, {0}),
                             similarity(f.description, {0})
                         ) AS rank 
-                    FROM files f
-                    JOIN file_vectors fv ON fv.file_id = f.id
+                    FROM resources f
+                    JOIN resource-vectors fv ON fv.resource-id = f.id
                     WHERE fv.vector @@ websearch_to_tsquery('english', {0})
                         OR similarity(f.name, {0}) > 0.3
                         OR similarity(f.description, {0}) > 0.3
@@ -177,7 +177,7 @@ public class SearchController : ControllerBase
                 .ToArrayAsync();
 
             if (items == null)
-                return Ok(new PageResponse("No files found.", pageIndex, pageSize, Array.Empty<FileItem>()));
+                return Ok(new PageResponse("No files found.", pageIndex, pageSize, Array.Empty<Resource>()));
 
             return Ok(new PageResponse($"{items.Length} files found.", pageIndex, pageSize, items));
         }

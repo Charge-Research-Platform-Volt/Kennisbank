@@ -32,6 +32,7 @@ namespace KnowledgeBank.Data
 
             if (result.Succeeded)
                 await userManager.AddToRoleAsync(user, "admin");
+
         }
     }
 }

@@ -8,8 +8,10 @@ namespace backend.Data
 {
     public static class TestDataSeeder
     {
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         private static IAzureBlobService blobService;
         private static DatabaseContext database;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         private static string testDataPath = Path.Combine("/app", "testdata") + "/";
 
         public static async Task Seed(IServiceProvider serviceProvider)
@@ -39,7 +41,7 @@ namespace backend.Data
         {
             path = testDataPath + path;
 
-            FileItem? item = await database.Files.Where(f => f.Name == title).FirstOrDefaultAsync();
+            Resource? item = await database.Resources.Where(f => f.Title == title).FirstOrDefaultAsync();
 
             if (item != null) return;
 
@@ -56,18 +58,20 @@ namespace backend.Data
 
                 if (result == BLOB_STATUSCODE.OK)
                 {
-                    FileItem drive = new()
+                    Resource drive = new()
                     {
                         Id = id,
-                        Name = title,
+                        Title = title,
                         Description = description,
+                        Type = "Unknown",
+                        LanguageCode = "??",
                         FileType = fileType,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow,
+                        CreationDate = DateTime.UtcNow,
+                        PublicationDate = DateTime.UtcNow,
                     };
 
-                    await database.Files.AddAsync(drive);
-                    await database.SaveFileChangesAsync();
+                    await database.Resources.AddAsync(drive);
+                    await database.SaveResourceChangesAsync();
                 }
             }
             catch (Exception e)

@@ -83,18 +83,20 @@ public class TestController : ControllerBase
                 {
                     case BLOB_STATUSCODE.OK:
 
-                        FileItem drive = new()
+                        Resource drive = new()
                         {
                             Id = id,
-                            Name = fileName,
+                            Title = fileName,
                             Description = description,
+                            Type = "Unknown",
+                            LanguageCode = "??",
                             FileType = fileType,
-                            CreatedAt = DateTime.UtcNow,
-                            UpdatedAt = DateTime.UtcNow
+                            PublicationDate = DateTime.UtcNow,
+                            CreationDate = DateTime.UtcNow
                         };
 
-                        await database.Files.AddAsync(drive);
-                        await database.SaveFileChangesAsync();
+                        await database.Resources.AddAsync(drive);
+                        await database.SaveResourceChangesAsync();
 
                         break;
 

@@ -66,7 +66,7 @@ public class SearchControllerIntegrationTests
 
         // Add the file to the database.
         await _context.Files.AddAsync(testFile);
-        await _context.SaveFileChangesAsync();
+        await _context.SaveResourceChangesAsync();
 
 
         // Perform a full-text search on the file name
@@ -100,7 +100,7 @@ public class SearchControllerIntegrationTests
 
         // Add the file to the database.
         await _context.Files.AddAsync(testFile);
-        await _context.SaveFileChangesAsync();
+        await _context.SaveResourceChangesAsync();
 
 
         // Perform a full-text search on the file name with a query that 
