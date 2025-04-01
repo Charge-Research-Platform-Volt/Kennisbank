@@ -32,6 +32,14 @@ namespace KnowledgeBank.Data
 
             if (result.Succeeded)
                 await userManager.AddToRoleAsync(user, "admin");
+
+            for(int i = 0; i < 100; i ++){
+                User user1 = new User { Email = $"admin{i}@admin.nl", UserName = $"admin{i}@admin.nl" };
+                IdentityResult result1 = await userManager.CreateAsync(user1, "Admin123!");
+
+                if (result.Succeeded)
+                    await userManager.AddToRoleAsync(user1, "admin");
+            }
         }
     }
 }

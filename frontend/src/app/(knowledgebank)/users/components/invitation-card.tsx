@@ -37,7 +37,6 @@ export default function InvitationCard() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-full px-6">
       <Card className="w-full max-w-md">
         {/* Card header with title and icon */}
         <CardHeader>
@@ -77,6 +76,5 @@ export default function InvitationCard() {
           </p>
         </CardContent>
       </Card>
-    </div>
   );
 }
