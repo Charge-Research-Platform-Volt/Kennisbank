@@ -58,6 +58,8 @@ namespace KnowledgeBank
                 options => options.UseNpgsql(builder.Configuration.GetValue<string>("CONNECTION_STRING")
             ));
 
+            builder.Services.AddScoped<ResourceManager>();
+
             // CORS to allow Cross Origin Resource Sharing
             builder.Services.AddCors(options =>
             {

@@ -53,16 +53,16 @@ public class Resource
     [JsonIgnore] public ResourceVector? Vector { get; set; }
 
     // Navigation property for Document metadata (1:1)
-    [JsonIgnore] public DocumentResource? DocumentMetadata { get; set; }
+    [JsonIgnore] public DocumentMetadata? DocumentMetadata { get; set; }
 
     // Navigation property for Website metadata (1:1)
-    [JsonIgnore] public WebsiteResource? WebsiteMetadata { get; set; }
+    [JsonIgnore] public WebsiteMetadata? WebsiteMetadata { get; set; }
 
     // Navigation property for Audio metadata (1:1)
-    [JsonIgnore] public AudioResource? AudioMetadata { get; set; }
+    [JsonIgnore] public AudioMetadata? AudioMetadata { get; set; }
 
     // Navigation property for Video metadata (1:1)
-    [JsonIgnore] public VideoResource? VideoMetadata { get; set; }
+    [JsonIgnore] public VideoMetadata? VideoMetadata { get; set; }
 
     // Navigation property for Resource Type (1:1)
     [JsonIgnore] public ResourceType? Type { get; set; }
@@ -80,7 +80,7 @@ public class Resource
 
     #endregion
 }
-public class ResourceUploadDto // Data Transfer Object (DTO)
+public class ResourceCreateDto // Data Transfer Object (DTO)
 {
     public required string Title { get; set; }
     public string? Description { get; set; }
@@ -90,10 +90,13 @@ public class ResourceUploadDto // Data Transfer Object (DTO)
     public required DateTime PublicationDate { get; set; }
     public string? License { get; set; }
     public string? Note { get; set; }
+    public string[] Tags { get; set; } = Array.Empty<string>();
+}
+
+public class FileResourceCreateDto : ResourceCreateDto
+{
     public required IFormFile File { get; set; }
     public string? Hash { get; set; } = null;
-    public bool Overwrite { get; set; } = false;
-    public string[] Tags { get; set; } = Array.Empty<string>();
 }
 
 public class ResourceRenameDto

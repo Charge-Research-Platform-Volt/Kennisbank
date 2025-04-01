@@ -40,7 +40,7 @@ namespace backend.Controllers
         [SwaggerResponse(409, "File already exists", typeof(StorageResponse))]
         [SwaggerResponse(400, "Invalid file", typeof(StorageResponse))]
         [SwaggerResponse(500, "Server error", typeof(StorageResponse))]
-        public async Task<IActionResult> UploadFile([FromForm] ResourceUploadDto dto)
+        public async Task<IActionResult> UploadFile([FromForm] FileResourceCreateDto dto)
         {
             if (dto.File == null)
                 return BadRequest(new StorageResponse("No file was uploaded."));
@@ -67,7 +67,7 @@ namespace backend.Controllers
             {
                 logger.Information("Adding file '{FileName}' to blob storage...", dto.File.FileName);
                 Dictionary<string, string> metadata = new Dictionary<string, string> { { "extension", extension } };
-                BLOB_STATUSCODE result = await blobService.UploadBlobAsync(fileType, id.ToString(), metadata, dto.File.OpenReadStream(), dto.Overwrite);
+                BLOB_STATUSCODE result = await blobService.UploadBlobAsync(fileType, id.ToString(), metadata, dto.File.OpenReadStream());
 
                 switch (result)
                 {

@@ -5,8 +5,8 @@ using System.Text.Json.Serialization;
 namespace KnowledgeBank.Models;
 
 
-[Table("video-metadata")]
-public class VideoResource
+[Table("audio-metadata")]
+public class AudioMetadata
 {
     [Column("resource-id")]
     [Key]
@@ -19,4 +19,9 @@ public class VideoResource
 
     // Navigation property to parent (1:1)
     [JsonIgnore] public Resource? Resource { get; set; }
+}
+
+public class AudioCreateDto : FileResourceCreateDto
+{
+    public ulong? Length { get; set; }
 }

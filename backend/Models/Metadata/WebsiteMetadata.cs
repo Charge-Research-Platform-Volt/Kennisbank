@@ -6,13 +6,18 @@ namespace KnowledgeBank.Models;
 
 
 [Table("website-metadata")]
-public class WebsiteResource
+public class WebsiteMetadata
 {
-    [Column("object-id")]
+    [Column("resource-id")]
     [Key]
-    [ForeignKey("ObjectItem")]
-    public required Guid ObjectId { get; set; }
+    [ForeignKey("Resource")]
+    public required Guid ResourceId { get; set; }
 
     // Navigation property to parent (1:1)
-    [JsonIgnore] public Resource? ObjectItem { get; set; }
+    [JsonIgnore] public Resource? Resource { get; set; }
+}
+
+public class WebsiteCreateDto : ResourceCreateDto
+{
+
 }
