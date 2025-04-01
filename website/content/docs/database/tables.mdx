@@ -7,7 +7,7 @@ description: Describes all the tables found in the database and their function i
 We use a PostgreSQL database
 
 ## Tables
-**objects**\
+**resource**\
 `id`: UUID, Primary Key, Not NULL\
 `title`: text, Not NULL\
 `type`: text, Not NULL\
@@ -34,10 +34,63 @@ We use a PostgreSQL database
 `url`: text, Not NULL\
 `email_address`: text, Not NULL
 
+**resource-author**\
+`id`: UUID, Primary Key, Not NULL\
+`resource-id`: UUID, Foreign Key, Not NULL\
+`person-id`: UUID, Foreign Key, Not NULL
+
+**resource-related_person**\
+`id`: UUID, Primary Key, Not NULL\
+`resource-id`: UUID, Foreign Key, Not NULL\
+`person-id`: UUID, Foreign Key, Not NULL
+
+**resource-organisation**\
+`id`: UUID, Primary Key, Not NULL\
+`resource-id`: UUID, Foreign Key, Not NULL\
+`organisation-id`: UUID, Foreign Key, Not NULL
+
+**resource-organisation**\
+`id`: UUID, Primary Key, Not NULL\
+`resource-id`: UUID, Foreign Key, Not NULL\
+`organisation-id`: UUID, Foreign Key, Not NULL
+
+**resource-source**\
+`id`: UUID, Primary Key, Not NULL\
+`resource-id`: UUID, Foreign Key, Not NULL\
+`source`: text, Not NULL
+
+**resource-related_source**\
+`id`: UUID, Primary Key, Not NULL\
+`resource-id`: UUID, Foreign Key, Not NULL\
+`source`: text, Not NULL
+
+**regions**\
+`id`: UUID, Primary Key, Not NULL\
+`region`: text, Not NULL
+
+**resource-region**\
+`id`: UUID, Primary Key, Not NULL\
+`resource-id`: UUID, Foreign Key, Not NULL\
+`region-id`: UUID, Foreign Key, Not NULL
+
+**person-person**\
+`id`: UUID, Primary Key, Not NULL\
+`person-id`: UUID, Foreign Key, Not NULL\
+`person-id2`: UUID, Foreign Key, Not NULL
+
+**organisation-organisation**\
+`id`: UUID, Primary Key, Not NULL\
+`organisation-id`: UUID, Foreign Key, Not NULL\
+`organisation-id2`: UUID, Foreign Key, Not NULL
+
+**person-organisation**\
+`id`: UUID, Primary Key, Not NULL\
+`person-id`: UUID, Foreign Key, Not NULL\
+`organisation-id`: UUID, Foreign Key, Not NULL
+
 **tags**\
 `id`: UUID, Primary Key, Not NULL\
-`name`: text, Not NULL\
-
+`name`: text, Not NULL
 
 **user_tags**\
 `id`: UUID, Primary Key, Not NULL\
