@@ -1,7 +1,7 @@
 "use server";
 
 import { ResourceBaseSchema, type ResourceBase } from "@/types/resource.type";
-import type { FormResponse } from "@/types/return.type";
+import { FormResponse, StorageResponse, StorageResponseSchema } from "@/types/return.type";
 import { revalidatePath } from "next/cache";
 import { Log } from "../../Pino";
 import { cookies } from "next/headers";
@@ -16,7 +16,7 @@ export const AddDocument = async (
         // Raw data from the form.
         const rawData: ResourceBase = {
             title: (formData.get("title") as string)?.trim() || defaultName,
-            type: "unknown",
+            typeId: "0cc285a8-0f07-11f0-a0a6-5600051f1387", // This is the GUID of the unknown type
             languageCode: "AA",
             description: formData.get("description") as string,
             file: formData.get("file") as File,
@@ -40,7 +40,10 @@ export const AddDocument = async (
         if(rawData.title == defaultName){
             formData.set("title", defaultName);
         }
-        console.log(rawData);
+        
+        formData.set("type", rawData.typeId);
+        formData.set("languageCode", rawData.languageCode);
+        formData.set("publicationDate", rawData.publicationDate.toISOString());
         
         formData.set("hash", hash);
 
@@ -67,7 +70,6 @@ export const AddDocument = async (
             headers: { Cookie: cookieHeader.toString() || "" },
         });
         const data = await response.json();
-        console.log(data);
 
         // Check if the request was successful, if not, return an error.
         if (!response.ok) {

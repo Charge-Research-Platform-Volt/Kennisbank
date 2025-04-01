@@ -6,7 +6,7 @@ import { z } from "zod";
 export const ResourceBaseSchema = z.object({
 	title: z.string().min(1 , { message: "Title is required" }),
 	description: z.string(),
-  type: z.string().min(1, {message: "Type is required"}),
+  typeId: z.string().min(1, {message: "Type is required"}),
   languageCode: z.string().min(1, {message: "languageCode is required"}).max(2, {message: "Cant be longer than 2 characters"}),
   publicationDate: z.date(),
 	file: z.instanceof(File, {message: "File is required"}),
@@ -27,7 +27,7 @@ export const ResourceResponseSchema = z.object({
   id: z.string().uuid(),
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().min(0, { message: "Description is required" }),
-  type: z.string().min(1, { message: "Type is required" }),
+  typeId: z.string().min(1, { message: "Type is required" }),
   languageCode: z.string().min(1, { message: "Language code is required" }).length(2, { message: "Language code should be two characters long" }),
   publicationCode: z.string().nullable(),
   license: z.string().nullable(),

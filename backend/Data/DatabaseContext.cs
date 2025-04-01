@@ -21,6 +21,9 @@ namespace KnowledgeBank.Data
         public DbSet<Person> Persons { get; set; }
         public DbSet<Organisation> Organisations {get; set; }
         public DbSet<Region> Regions { get; set; }
+        public DbSet<ResourceType> ResourceTypes { get; set; }
+
+
         public DbSet<ResourceAuthorRelation> ResourceAuthorRelations { get; set; }
         public DbSet<ResourceRelatedPersonRelation> ResourceRelatedPersonRelations { get; set; }
         public DbSet<ResourceOrganisationRelation> ResourceOrganisationRelations { get; set; }
@@ -42,6 +45,9 @@ namespace KnowledgeBank.Data
 
             modelBuilder.Entity<ResourceTagRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.TagId }); // Define composite primary key
+
+            modelBuilder.Entity<ResourceType>()
+                .HasKey(rt => new { rt.Id, rt.Name });
 
             modelBuilder.Entity<ResourceAuthorRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.PersonId});

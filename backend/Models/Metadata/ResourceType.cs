@@ -8,12 +8,11 @@ namespace KnowledgeBank.Models;
 public class ResourceType
 {
     [Column("id")]
-    [Key]
     public required Guid Id { get; set; }
 
-    [Column("type")]
-    public required string Type { get; set; }
+    [Column("name")]
+    public required string Name { get; set; }
 
     // Navigation properties
-    [JsonIgnore] public Resource? Resource { get; set; }
+    [JsonIgnore] public ICollection<Resource>? Resources { get; set; }
 }

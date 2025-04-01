@@ -91,13 +91,7 @@ namespace KnowledgeBank
             using (IServiceScope scope = app.Services.CreateScope())
             {
                 await RoleInitializer.InitializeAsync(app.Services);
-                await TestDataSeeder.Seed(app.Services);
-            }
-
-            // Initialize roles
-            using (IServiceScope scope = app.Services.CreateScope())
-            {
-                await RoleInitializer.InitializeAsync(app.Services);
+                await DatabaseSeeder.Seed(app.Services);
                 await TestDataSeeder.Seed(app.Services);
             }
 

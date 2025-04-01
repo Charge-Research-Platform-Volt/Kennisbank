@@ -84,7 +84,7 @@ public class ResourceUploadDto // Data Transfer Object (DTO)
 {
     public required string Title { get; set; }
     public string? Description { get; set; }
-    public required string Type { get; set; }
+    public required string TypeId { get; set; }
     public required string LanguageCode { get; set; }
     public string? PublicationCode { get; set; }
     public required DateTime PublicationDate { get; set; }
