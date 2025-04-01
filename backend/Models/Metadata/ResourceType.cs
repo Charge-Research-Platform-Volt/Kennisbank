@@ -8,6 +8,7 @@ namespace KnowledgeBank.Models;
 public class ResourceType
 {
     [Column("id")]
+    [Key]
     public required Guid Id { get; set; }
 
     [Column("name")]
