@@ -7,20 +7,21 @@ import { Log } from "../../Pino";
 import { cookies } from "next/headers";
 
 export const AddWebsite = async (
-    defaultName: string,
     prevState: FormResponse<WebsiteBase>,
     formData: FormData,
 ): Promise<FormResponse<WebsiteBase>> => {
     try {
         // Raw data from the form.
         const rawData: WebsiteBase = {
-            URL: formData.get("URL") as string,
-            name: (formData.get("name") as string)?.trim() || defaultName,
+            url: formData.get("url") as string,
+            name: (formData.get("name") as string)?.trim(),
             description: formData.get("description") as string,
         };
 
+
         // Validate the raw data, if it fails, return an error.
         const validatedData = WebsiteBaseSchema.safeParse(rawData);
+
 
         if (!validatedData.success) {
             return {
@@ -30,34 +31,32 @@ export const AddWebsite = async (
             };
         }
 
-        if(rawData.name == defaultName){
-            formData.set("name", defaultName);
-        }
-
-        const tagIDs: string[] = [];
+        // const tagIDs: string[] = [];
         
-        for (const [key, value] of formData.entries()) {
-            if (key.startsWith('tags[') && key.endsWith(']')) {
-                tagIDs.push(value as string);
-            }
-        }
+        // for (const [key, value] of formData.entries()) {
+        //     if (key.startsWith('tags[') && key.endsWith(']')) {
+        //         tagIDs.push(value as string);
+        //     }
+        // }
 
-        if (tagIDs.length > 0) {
-            tagIDs.forEach(tagID => {
-                formData.append('tags', tagID);
-            });
-        }
+        // if (tagIDs.length > 0) {
+        //     tagIDs.forEach(tagID => {
+        //         formData.append('tags', tagID);
+        //     });
+        // }
 
         // Send the data to the backend.
-        const cookieHeader = cookies();
-        // TODO change to actual backend
-        const response = await fetch("http://backend:8080/storage/upload", {
+        const cookieHeader = await cookies();
+        console.log(validatedData);
+
+        const response = await fetch("http://backend:8080/WebsiteUpload/add-website", {
             method: "PUT",
             body: formData,
             credentials: "include",
             headers: { Cookie: cookieHeader.toString() || "" },
         });
         const data = await response.json();
+
 
         // Check if the request was successful, if not, return an error.
         if (!response.ok) {

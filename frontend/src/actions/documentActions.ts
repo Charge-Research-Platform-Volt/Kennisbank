@@ -60,6 +60,7 @@ export const AddDocument = async (
             credentials: "include",
             headers: { Cookie: cookieHeader.toString() || "" },
         });
+        
         const data = await response.json();
 
         // Check if the request was successful, if not, return an error.

@@ -15,9 +15,9 @@ export const DocumentBaseSchema = z.object({
  * Website URL upload schema
  */
 export const WebsiteBaseSchema = z.object({
-	name: z.string().min(1 , { message: "Name is required" }),
+	name: z.string().min(1 , { message: "Title is required" }),
 	description: z.string(),
-	URL: z.string().min(8 , { message: "Name is required" }),
+	url: z.string().min(4 , { message: "URL is required" }),
 })
 
 /**

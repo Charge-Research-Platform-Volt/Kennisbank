@@ -16,6 +16,7 @@ namespace KnowledgeBank.Data
         public DbSet<UserTag> UserTags { get; set; }
         public DbSet<User> AppUsers { get; set; } // Renamed to avoid conflict with IdentityDbContext.Users
         public DbSet<FileVector> Vectors { get; set; }
+        public DbSet<Website> Websites { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
