@@ -11,20 +11,22 @@ We use a PostgreSQL database
 `id`: UUID, Primary Key, Not NULL\
 `title`: text, Not NULL\
 `type`: text, Not NULL\
-`publication_id`: text\
+`publication-id`: text\
+`publication-date`: datetime with timestamp\
 `description`: text\
 `language`: text, Not NULL\
 `note`: text\
 `licence`: text\
-`created_on`: timestamp with timezone, Not NULL\
-`hash`: text
+`creation-date`: timestamp with timezone, Not NULL\
+`hash`: character vary, length 64\
+`filetype`: character vary, length 50, Not NULL\
 
 **persons**\
 `id`: uuid, Primary Key, Not NULL\
 `name`: text, Not NULL\
 `occupation`: text, Not NULL\
 `description`: text, Not NULL\
-`email_address`: text, Not NULL\
+`email-address`: text, Not NULL\
 `linkedin`: text, Not NULL
 
 **organisations**\
@@ -32,7 +34,7 @@ We use a PostgreSQL database
 `name`: text, Not NULL\
 `description`: text, Not NULL\
 `url`: text, Not NULL\
-`email_address`: text, Not NULL
+`email-address`: text, Not NULL
 
 **resource-author**\
 `id`: UUID, Primary Key, Not NULL\
@@ -49,8 +51,9 @@ We use a PostgreSQL database
 `resource-id`: UUID, Foreign Key, Not NULL\
 `organisation-id`: UUID, Foreign Key, Not NULL
 
-**resource-organisation**\
+**resource-organisation-relation**\
 `id`: UUID, Primary Key, Not NULL\
+`function`: text, Not NULL\
 `resource-id`: UUID, Foreign Key, Not NULL\
 `organisation-id`: UUID, Foreign Key, Not NULL
 
@@ -73,15 +76,15 @@ We use a PostgreSQL database
 `resource-id`: UUID, Foreign Key, Not NULL\
 `region-id`: UUID, Foreign Key, Not NULL
 
-**person-person**\
+**person-relationship**\
 `id`: UUID, Primary Key, Not NULL\
-`person-id`: UUID, Foreign Key, Not NULL\
-`person-id2`: UUID, Foreign Key, Not NULL
+`source-person-id`: UUID, Foreign Key, Not NULL\
+`target-person-id2`: UUID, Foreign Key, Not NULL
 
-**organisation-organisation**\
+**organisation-relationship**\
 `id`: UUID, Primary Key, Not NULL\
-`organisation-id`: UUID, Foreign Key, Not NULL\
-`organisation-id2`: UUID, Foreign Key, Not NULL
+`source-organisation-id`: UUID, Foreign Key, Not NULL\
+`target-organisation-id2`: UUID, Foreign Key, Not NULL
 
 **person-organisation**\
 `id`: UUID, Primary Key, Not NULL\
@@ -95,7 +98,7 @@ We use a PostgreSQL database
 **user_tags**\
 `id`: UUID, Primary Key, Not NULL\
 `name`: text, Not NULL\
-`is_approved`: boolean, Not NULL\
+`is-approved`: boolean, Not NULL\
 `user`: text, Not NULL\
 `created_on`: timestamp with time zone, Not NULL\
 `approved_on`: timestamp with time zone
