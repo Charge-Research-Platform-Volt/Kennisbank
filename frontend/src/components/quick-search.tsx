@@ -9,8 +9,7 @@ import { Input } from "./ui/input";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
-import { set } from "date-fns";
-import { AtSignIcon, OctagonAlert } from "lucide-react";
+import { OctagonAlert } from "lucide-react";
 import GetFileIcon from "./getFileIcon";
 import Link from "next/link";
 
@@ -22,14 +21,6 @@ interface File {
   fileType: string;
   createdAt: string;
   updatedAt: string;
-}
-
-interface DocumentPageResponse {
-  message: string;
-  pageIndex: number;
-  pageSize: number;
-  files: File[];
-  responseType: string;
 }
 
 export default function QuickSearch() {
@@ -53,11 +44,12 @@ export default function QuickSearch() {
 
       if (!response.ok) {
         toast.error("An error occurred while fetching search results.");
+        return;
       }
 
       const data = await response.json();
       setSearchResults(data.files);
-    } catch (error) {
+    } catch {
       toast.error("An error occurred.");
     }
   };

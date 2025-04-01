@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Input } from "../ui/input";
 import SidebarPart from "./sidebar-part";
 import NewButton from "@/components/left-sidebar/sidebar-new-button";
 import type { TagsArray } from "@/types/tag.type";

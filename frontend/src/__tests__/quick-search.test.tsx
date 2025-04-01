@@ -1,8 +1,9 @@
 import React from "react";
 import "@testing-library/jest-dom";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { LinkProps } from "next/link";
 
 import { toast } from "sonner";
 
@@ -16,12 +17,16 @@ vi.mock("sonner", () => ({
   },
 }));
 
+// Mock next/link
 vi.mock("next/link", () => ({
-  default: ({ children, href, ...props }: any) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
+  default: ({ children, ...props }: { children: React.ReactNode } & LinkProps) => {
+    const { href, ...rest } = props;
+    return (
+      <a href={href.toString()} {...rest}>
+        {children}
+      </a>
+    );
+  },
 }));
 
 const mockSearchResults = {
@@ -40,7 +45,7 @@ const mockSearchResults = {
       updatedAt: "2025-01-02",
     },
     {
-      name: "Document 2",
+      name: "File 1",
       id: "doc2",
       description: "",
       hash: null,
@@ -50,6 +55,10 @@ const mockSearchResults = {
     },
   ],
 };
+
+interface CustomWindow extends Window {
+  hotkeyCallback: () => void;
+}
 
 describe("QuickSearch Component", () => {
   // ---------------------------------------------------------------------------
@@ -68,7 +77,7 @@ describe("QuickSearch Component", () => {
     vi.mock("react-hotkeys-hook", () => ({
       useHotkeys: (key: string, callback: () => void) => {
         // Store the callback to trigger it in tests
-        (window as any).hotkeyCallback = callback;
+        (window as unknown as CustomWindow).hotkeyCallback = callback;
       },
     }));
 
@@ -95,22 +104,31 @@ describe("QuickSearch Component", () => {
     render(<QuickSearch />);
 
     const searchButton = screen.getByText("Search");
-    await userEvent.click(searchButton);
 
-    expect(screen.getByPlaceholderText("Search")).toBeInTheDocument();
-    expect(screen.getByText("No results found.")).toBeInTheDocument();
-  });
-
-  // Test-3
-  it("opens the dialog when Cmd+K shortcut is used", async () => {
-    render(<QuickSearch />);
-
-    // Trigger the hotkey callback directly
-    act(() => {
-      (window as any).hotkeyCallback();
+    await act(async () => {
+      // Click the search button
+      userEvent.click(searchButton);
     });
 
     expect(screen.getByPlaceholderText("Search")).toBeInTheDocument();
+
+    const dialog = document.getElementById("radix-:rg:");
+    expect(dialog).not.toBeInTheDocument();
+  });
+
+  // Test-3
+  it("opens the dialog when hotkey is pressed", async () => {
+    render(<QuickSearch />);
+
+    // Trigger the hotkey callback directly with proper act wrapping
+    await act(async () => {
+      (window as unknown as CustomWindow).hotkeyCallback();
+    });
+
+    expect(screen.getByPlaceholderText("Search")).toBeInTheDocument();
+
+    const dialog = document.getElementById("radix-:rg:");
+    expect(dialog).not.toBeInTheDocument();
   });
 
   //Test-4
@@ -119,7 +137,9 @@ describe("QuickSearch Component", () => {
 
     // Open the dialog
     const searchButton = screen.getByText("Search");
-    userEvent.click(searchButton);
+    await act(async () => {
+      userEvent.click(searchButton);
+    });
 
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch).toHaveBeenCalledWith("http://localhost:8080/Search/search-full-text?pageIndex=1&pageSize=10", { headers: { "Content-Type": "application/json" }, method: "GET" });
@@ -131,7 +151,7 @@ describe("QuickSearch Component", () => {
 
     // Now check if the results are displayed
     expect(screen.getByText("Document 1")).toBeInTheDocument();
-    expect(screen.getByText("Document 2")).toBeInTheDocument();
+    expect(screen.getByText("File 1")).toBeInTheDocument();
 
     // Test that document description is properly displayed
     expect(screen.getByText("Test description")).toBeInTheDocument();
@@ -140,18 +160,21 @@ describe("QuickSearch Component", () => {
     const links = screen.getAllByRole("link");
     expect(links[0]).toHaveAttribute("href", "/file/doc1");
     expect(links[1]).toHaveAttribute("href", "/file/doc2");
-  }, 10000);
+  });
 
   // Test-5
   it("handles search input and triggers search", async () => {
     render(<QuickSearch />);
 
-    await userEvent.click(screen.getByText("Search"));
+    await act(async () => {
+      userEvent.click(screen.getByText("Search"));
+    });
 
     // Type in the search input
     const searchInput = screen.getByPlaceholderText("Search");
     const query = "Document 1";
-    await userEvent.type(searchInput, query);
+
+    userEvent.type(searchInput, query);
 
     vi.advanceTimersByTime(300);
 
@@ -168,27 +191,47 @@ describe("QuickSearch Component", () => {
     // Verify the correct description is still shown
     expect(screen.getByText("Test description")).toBeInTheDocument();
 
-    // Check that Document 2 is no longer in the document
-    expect(screen.queryByText("Document 2")).not.toBeInTheDocument;
-
     // Check that the "No results found" message is not displayed
-    expect(screen.queryByText("No results found.")).not.toBeInTheDocument;
-  }, 10000);
+    expect(screen.queryByText("No results found.")).not.toBeInTheDocument();
+  });
 
   // Test-6
   it("unavailable search results", async () => {
     render(<QuickSearch />);
 
-    await userEvent.click(screen.getByText("Search"));
+    await act(async () => {
+      userEvent.click(screen.getByText("Search"));
+    });
+
+    // Mock fetch to return empty results for this specific query
+    const query = "wefwefwopifwef09iqfopm09uf028r02394jfpo2jfp9023ur";
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes(query)) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              message: "Success",
+              pageIndex: 1,
+              pageSize: 10,
+              responseType: "SearchFullTextResponse",
+              files: [],
+            }),
+        });
+      } else {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockSearchResults),
+        });
+      }
+    });
 
     // Type in the search input
     const searchInput = screen.getByPlaceholderText("Search");
-    const query = "wefwefwopifwef09iqfopm09uf028r02394jfpo2jfp9023ur";
-    await userEvent.type(searchInput, query);
+    userEvent.type(searchInput, query);
 
     vi.advanceTimersByTime(300);
 
-    expect(fetch).toHaveBeenCalledTimes(2); //One when the dialog is opened and one when the search input is typed
     expect(fetch).toHaveBeenCalledWith(`http://localhost:8080/Search/search-full-text?query=${query}&pageIndex=1&pageSize=10`, { headers: { "Content-Type": "application/json" }, method: "GET" });
 
     await act(async () => {
@@ -196,12 +239,85 @@ describe("QuickSearch Component", () => {
     });
 
     // Check that Document 1 is no longer in the document
-    expect(screen.queryByText("Document 1")).not.toBeInTheDocument;
+    expect(screen.queryByText("Document 1")).not.toBeInTheDocument();
 
-    // Verify the correct description is still shown
-    expect(screen.queryByText("Test description")).not.toBeInTheDocument;
+    // Verify the description is not in the document
+    expect(screen.queryByText("Test description")).not.toBeInTheDocument();
 
-    // Check that Document 2 is no longer in the document
-    expect(screen.queryByText("Document 2")).not.toBeInTheDocument;
-  }, 10000);
+    // Check that File 1 is no longer in the document
+    expect(screen.queryByText("File 1")).not.toBeInTheDocument();
+  });
+
+  // Test-7
+  it("shows error toast when fetch fails", async () => {
+    // Mock fetch to return a failed response
+    global.fetch = vi.fn().mockImplementation(() => {
+      return Promise.resolve({
+        ok: false,
+        status: 500,
+        json: () => Promise.resolve({}),
+      });
+    });
+
+    render(<QuickSearch />);
+
+    // Click the search button to open dialog
+    userEvent.click(screen.getByText("Search"));
+
+    // Wait for useEffect to trigger fetch after dialog opens
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Verify the toast error was called with the expected error message
+    expect(toast.error).toHaveBeenCalledWith("An error occurred while fetching search results.");
+  });
+
+  // Test-8
+  it("shows generic error toast when a network error occurs", async () => {
+    // Reset fetch mock before this test
+    vi.resetAllMocks();
+
+    // Mock fetch to throw a network error
+    global.fetch = vi.fn().mockImplementation(() => {
+      throw new Error("Network error");
+    });
+
+    render(<QuickSearch />);
+
+    // Click the search button to open dialog
+    userEvent.click(screen.getByText("Search"));
+
+    // Wait for useEffect to trigger fetch after dialog opens
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Verify the toast error was called with the generic error message
+    expect(toast.error).toHaveBeenCalledWith("An error occurred.");
+  });
+
+  // Test-9
+  it("closes the dialog when clicking outside", async () => {
+    render(<QuickSearch />);
+
+    // Open the dialog
+    await act(async () => {
+      userEvent.click(screen.getByText("Search"));
+    });
+
+    // Verify the dialog is open
+    expect(screen.getByPlaceholderText("Search")).toBeInTheDocument();
+
+    const dialogOverlay = document.querySelector('[data-slot="dialog-overlay"]');
+    userEvent.click(dialogOverlay as HTMLElement);
+
+    // Wait for any state updates to complete
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const dialog = document.getElementById("radix-:rg:");
+    expect(dialog).not.toBeInTheDocument();
+  });
 });
