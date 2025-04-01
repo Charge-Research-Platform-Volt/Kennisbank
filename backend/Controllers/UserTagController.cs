@@ -98,7 +98,6 @@ public class UserTagController : ControllerBase
         {
             Id = Guid.NewGuid(),
             Name = tagName,
-            User = "TestUser1", // TODO: User should be the actual User
             IsApproved = false, // By default the tag is not approved
         };
 
