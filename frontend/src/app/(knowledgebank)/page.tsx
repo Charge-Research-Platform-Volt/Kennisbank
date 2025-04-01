@@ -14,8 +14,7 @@ export default async function Home() {
       ResourcePageResponseSchema,
       "http://backend:8080/Storage/list-paged?pageIndex=1&pageSize=4",
   );
-
-  let files = result.data?.files ?? [];
+  let files = result.data?.resources ?? [];
 
   // only display first 4 files, needs to be updated to display recently opened files
   if(files.length > 4){
@@ -63,7 +62,7 @@ export default async function Home() {
                 <span className="flex items-center gap-2 text-lg w-full overflow-hidden">
                   {GetFileIcon(file.fileType)}
                   <span className="truncate w-[250px] md:w-[350px] lg:w-[450px] block text-left text-sm">
-                    {file.name}
+                    {file.title}
                   </span>
                 </span>
                 <Link href={`file/${file.id}`}><Button>Open</Button></Link>
