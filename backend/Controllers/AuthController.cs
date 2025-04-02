@@ -62,22 +62,22 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(401, "The user is not authenticated")]
         public async Task<IActionResult> Invite([FromBody] string email)
         {
-            // generate a token
-            Guid token = Guid.NewGuid();
-            
-            // save the invitation
-            _context.Invitations.Add(new Invitation
-            {
-                Id = Guid.NewGuid(),
-                Email = ShaUtils.Sha256(email),
-                Token = ShaUtils.Sha256(token.ToString()),
-                CreatedAt = DateTime.UtcNow
-            });
-            await _context.SaveChangesAsync();
-
-            // send the email
             try
             {
+                // generate a token
+                Guid token = Guid.NewGuid();
+                
+                // save the invitation
+                _context.Invitations.Add(new Invitation
+                {
+                    Id = Guid.NewGuid(),
+                    Email = ShaUtils.Sha256(email),
+                    Token = ShaUtils.Sha256(token.ToString()),
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+                
+                // send the email
                 MailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: http://localhost:3000/signup?token={token}");
             }
             catch (Exception e)
