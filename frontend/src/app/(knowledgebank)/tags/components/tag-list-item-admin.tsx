@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tag, UserTag } from "@/types/tag.type";
-import DeleteTagButton from "./delete-tag-button";
 import { toast } from "sonner";
 import { useActionState, useEffect, useState } from "react";
 import { FormResponse } from "@/types/return.type";
@@ -13,8 +12,8 @@ import SaveIcon from "@/icons/save-icon";
 import ApprovedTag from "@/icons/tag-icons/aproved-tag";
 import AdminIcon from "@/icons/tag-icons/admin-tag";
 import { SaveUserTag } from "@/actions/userTagActions";
-import ApproveTagButton from "./approve-tag-button";
-import ConvertTagButton from "./convert-tag-button";
+import { ApproveTagButton, DeleteTagButton, ConvertTagButton } from "./tag-list-buttons";
+
 
 const initialStateStandardizedTag: FormResponse<Tag> = {
   success: false,
