@@ -15,7 +15,6 @@ export const UserTagBaseSchema = TagBaseSchema.extend({});
 
 export const UserTagSchema = TagSchema.extend({
   isApproved: z.boolean(),
-  user: z.string().nullable(), // TODO: should be the actual user object
 });
 
 export const TagsArraySchema = z.array(TagSchema);
