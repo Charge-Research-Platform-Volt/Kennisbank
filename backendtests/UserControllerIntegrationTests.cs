@@ -41,10 +41,6 @@ public class UserControllerIntegrationTests
 
         _context = new DatabaseContext(_options);
 
-        // file_vectors table needs this extension
-        _context.Database.ExecuteSqlRaw("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
-        _context.Database.ExecuteSqlRaw("ALTER TABLE file_vectors ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
-
         // Start a transaction for rollback after each test
         _transaction = _context.Database.BeginTransaction();
 
