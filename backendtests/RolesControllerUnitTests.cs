@@ -108,6 +108,68 @@ public class RolesControllerUnitTests
     }
 
     [Test]
+    public async Task AssignRole_UserFound_ReturnsOk()
+    {
+        // Arrange
+        var dto = new RoleAssignDto { UserId = "user123", RoleName = "user" };
+        var user = new User { Id = dto.UserId, UserName = "user123" }; 
+        var role = new IdentityRole { Name = "admin" };
+
+        _mockUserManager.Setup(m => m.FindByIdAsync(dto.UserId))
+            .ReturnsAsync(user);
+
+        _mockUserManager.Setup(m => m.IsInRoleAsync(user, dto.RoleName))
+            .ReturnsAsync(false);
+
+        _mockUserManager.Setup(m => m.RemoveFromRolesAsync(It.IsAny<User>(), It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(IdentityResult.Success);
+
+        _mockUserManager.Setup(m => m.AddToRoleAsync(It.IsAny<User>(), It.IsAny<string>()))
+            .ReturnsAsync(IdentityResult.Success);
+
+        _mockRoleManager.Setup(m => m.FindByNameAsync(dto.RoleName))
+            .ReturnsAsync(role);
+
+        _mockRoleManager.Setup(m => m.RoleExistsAsync(dto.RoleName))
+            .ReturnsAsync(true);
+
+        // Act
+        var result = await _controller.AssignRole(dto);
+
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.That(okResult, Is.Not.Null);
+        Assert.That(okResult.StatusCode, Is.EqualTo(200));
+        Assert.That(okResult.Value, Is.EqualTo($"User '{user.UserName}' added to role '{dto.RoleName}' successfully."));
+    }
+
+    [Test]
+    public async Task AssignRole_RoleNotFound_ReturnsNotFound()
+    {
+        // Arrange
+        var dto = new RoleAssignDto { UserId = "user123", RoleName = "nonExistentRole" };
+        var user = new User { Id = dto.UserId, UserName = "user123" }; 
+
+        _mockUserManager.Setup(m => m.FindByIdAsync(dto.UserId))
+            .ReturnsAsync(user); 
+
+        _mockRoleManager.Setup(m => m.FindByNameAsync(dto.RoleName))
+            .ReturnsAsync((IdentityRole)null); 
+
+        _mockRoleManager.Setup(m => m.RoleExistsAsync(dto.RoleName))
+            .ReturnsAsync(false); 
+
+        // Act
+        var result = await _controller.AssignRole(dto);
+
+        // Assert
+        var notFoundResult = result as NotFoundObjectResult;
+        Assert.That(notFoundResult, Is.Not.Null);
+        Assert.That(notFoundResult.StatusCode, Is.EqualTo(404));
+        Assert.That(notFoundResult.Value, Is.EqualTo("Invalid role name."));
+    }
+
+    [Test]
     public async Task RetrieveUserRole_UserNotFound_ReturnsNotFound()
     {
         // Arrange
@@ -123,6 +185,30 @@ public class RolesControllerUnitTests
         Assert.That(notFoundResult, Is.Not.Null);
         Assert.That(notFoundResult.StatusCode, Is.EqualTo(404));
         Assert.That(notFoundResult.Value, Is.EqualTo("User not found."));
+    }
+
+    [Test]
+    public async Task RetrieveUserRole_UserFound_ReturnsOkWithRole()
+    {
+        // Arrange
+        string userId = "user123";
+        var user = new User { Id = userId, UserName = "user123" };
+        var roles = new List<string> { "admin" }; 
+
+        _mockUserManager.Setup(m => m.FindByIdAsync(userId))
+            .ReturnsAsync(user); 
+
+        _mockUserManager.Setup(m => m.GetRolesAsync(user))
+            .ReturnsAsync(roles); 
+
+        // Act
+        var result = await _controller.RetrieveUserRole(userId);
+
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.That(okResult, Is.Not.Null);
+        Assert.That(okResult.StatusCode, Is.EqualTo(200));
+        Assert.That(okResult.Value, Is.EqualTo("admin")); 
     }
 
     [Test]
@@ -167,37 +253,5 @@ public class RolesControllerUnitTests
         Assert.That(okResult, Is.Not.Null);
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
         Assert.That(okResult.Value, Is.EqualTo(users));
-    }
-}
-
-public static class ObjectComparer
-{
-    public static bool AreObjectsEqual(object obj1, object obj2)
-    {
-        if (obj1 == null && obj2 == null)
-            return true;
-
-        if (obj1 == null || obj2 == null)
-            return false;
-
-        // Get properties of both objects
-        PropertyInfo[] properties1 = obj1.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
-        PropertyInfo[] properties2 = obj2.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
-
-        if (properties1.Length != properties2.Length)
-        {
-            return false;
-        }
-
-        for (int i = 0; i < properties1.Length - 1; i++)
-        {
-            if (properties1[i].GetValue(obj1) != properties2[i].GetValue(obj2))
-            {
-                return false;
-            }
-        }
-
-        // All properties are equal
-        return true;
     }
 }
