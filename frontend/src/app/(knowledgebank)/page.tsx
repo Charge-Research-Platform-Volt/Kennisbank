@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
 import { DocumentPageResponseSchema } from "@/types/document.type";
 import Link from "next/link";
@@ -7,7 +6,7 @@ import Archive from "@/icons/archive";
 import Projects from "@/icons/projects-icon";
 import Search from "@/icons/search-icon";
 import GetFileIcon from "@/components/getFileIcon";
-import OpenFileButton from "../components/open-file-button";
+import OpenFileButton from "@/components/open-file-button";
 
 export default async function Home() {
   // fetches all documents

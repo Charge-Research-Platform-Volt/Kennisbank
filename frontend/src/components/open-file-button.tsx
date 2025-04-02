@@ -1,9 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import DownloadIcon from "@/icons/download-icon";
 import { DocumentResponse } from "@/types/document.type";
 
-export default function OpenFileButton({file}: {file: DocumentResponse}) {
+export default function OpenFileButton({file, asIcon = false}: {file: DocumentResponse, asIcon?: boolean}) {
     const openFileInNewTab = async () => {
             const url = `http://localhost:8080/Storage/download/${file.id}`;
 
@@ -30,7 +31,20 @@ export default function OpenFileButton({file}: {file: DocumentResponse}) {
                 window.open(url, '_blank');
             }
         };
-    return (
+    return asIcon ? 
+    (
+        <Button
+          className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
+          variant="default"
+          type="button"
+          onClick={openFileInNewTab}
+          title="Delete tag"
+        >
+          <DownloadIcon className="h-5 w-5" fill="#737373" />
+        </Button>
+
+    ) : 
+    (
         <Button onClick={openFileInNewTab} className="w-[99.08px]">{file.fileType === "pdf" ? 'Open' : 'Download' }</Button>
-    )
+    );
 }
