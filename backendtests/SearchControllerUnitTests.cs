@@ -58,20 +58,22 @@ public class SearchControllerUnitTests
         Assert.That(badRequestResult?.StatusCode, Is.EqualTo((int)HttpStatusCode.BadRequest));
     }
 
-    [Test]
-    public async Task FullTextSearch_ReturnsBadRequest_WhenQueryIsEmpty()
-    {
-        // Arrange
-        var query = "";  // Invalid query
-        var pageIndex = 1;
-        var pageSize = 20;
 
-        // Act
-        var result = await _controller.FullTextSearch(query, pageIndex, pageSize);
+    // Todo: test that all the files are returned when the query is empty
+    // [Test]
+    // public async Task FullTextSearch_ReturnsBadRequest_WhenQueryIsEmpty()
+    // {
+    //     // Arrange
+    //     var query = "";  // Invalid query
+    //     var pageIndex = 1;
+    //     var pageSize = 20;
 
-        // Assert
-        var badRequestResult = result as BadRequestObjectResult;
-        Assert.That(badRequestResult, Is.Not.Null);
-        Assert.That(badRequestResult?.StatusCode, Is.EqualTo((int)HttpStatusCode.BadRequest));
-    }
+    //     // Act
+    //     var result = await _controller.FullTextSearch(query, pageIndex, pageSize);
+
+    //     // Assert
+    //     var badRequestResult = result as BadRequestObjectResult;
+    //     Assert.That(badRequestResult, Is.Not.Null);
+    //     Assert.That(badRequestResult?.StatusCode, Is.EqualTo((int)HttpStatusCode.BadRequest));
+    // }
 }
