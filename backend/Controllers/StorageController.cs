@@ -51,9 +51,6 @@ namespace backend.Controllers
             if (string.IsNullOrEmpty(dto.Name))
                 return BadRequest(new StorageResponse("No name was provided."));
 
-            if (string.IsNullOrEmpty(dto.Description))
-                return BadRequest(new StorageResponse("No description was provided."));
-
             string extension = Path.GetExtension(dto.File.FileName);
 
             if (!Filetype.Supported(extension))

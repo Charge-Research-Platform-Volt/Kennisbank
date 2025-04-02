@@ -16,8 +16,7 @@ public class FileItem
     public required string Name { get; set; }
 
     [Column("description")]
-    [Required]
-    public required string Description { get; set; }
+    public string? Description { get; set; }
 
     [Column("filetype")]
     [Required]
@@ -42,7 +41,7 @@ public class FileItem
 public class StorageUploadDto //Data Transfer Object (DTO)
 {
     public required string Name { get; set; }
-    public required string Description { get; set; }
+    public string? Description { get; set; }
     public required IFormFile File { get; set; }
     public string? Hash { get; set; } = null;
     public bool Overwrite { get; set; } = false;

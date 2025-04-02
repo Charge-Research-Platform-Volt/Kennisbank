@@ -11,8 +11,7 @@ namespace KnowledgeBank.Data
         public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options) { }
 
         public DbSet<FileItem> Files { get; set; }
-
-        public DbSet<Tag> Tags { get; set; }
+        public virtual DbSet<Tag> Tags { get; set; }
         public DbSet<FileTagLink> FileTagLinks { get; set; }
         public DbSet<UserTag> UserTags { get; set; }
         public DbSet<User> AppUsers { get; set; } // Renamed to avoid conflict with IdentityDbContext.Users
@@ -69,7 +68,7 @@ namespace KnowledgeBank.Data
             var updateTasks = updatedFiles.Select(file =>
                 Database.ExecuteSqlInterpolatedAsync($@"
                     INSERT INTO file_vectors (id, file_id, vector)
-                    VALUES (gen_random_uuid(), {file.Id}, to_tsvector('english', {file.Name} || ' ' || {file.Description}))
+                    VALUES (gen_random_uuid(), {file.Id}, to_tsvector('english', {file.Name} || ' ' || {file.Description ?? ""}))
                     ON CONFLICT (file_id) 
                     DO UPDATE SET vector = EXCLUDED.vector;"));
 

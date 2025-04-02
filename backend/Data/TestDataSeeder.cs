@@ -18,7 +18,6 @@ namespace backend.Data
             blobService = scope.ServiceProvider.GetRequiredService<IAzureBlobService>();
             database = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
 
-            // await ShamelessCopyOfUpload("path", "title", "");
             await ShamelessCopyOfUpload("WRRRaport - Opgave AI.pdf", "Opgave AI. De nieuwe systeemtechnologie", "WRR reageert op de regeringsaanvraag over de impact van AI op publieke waarden. AI wordt gezien als een systeemtechnologie met langdurige, grootschalige en onvoorspelbare effecten, daarom pleit de WRR voor een integrale aanpak met sterke overheidsbetrokkenheid");
             await ShamelessCopyOfUpload("WP+50v2_+AI+van+repliek+gediend_DEF_DT.pdf", "AI van repliek gediend? Een verkenning van tegenmacht vanuit maatschappelijke organisaties", "");
             await ShamelessCopyOfUpload("Aandacht+voor+media.+Naar+nieuwe+waarborgen+voor+hun+democratische++functies.pdf", "Aandacht voor media. Naar nieuwe waarborgen voor hun democratische functies", "In dit rapport onderzoekt de WRR de kenmerken en werking van het nieuwe mediasysteem en wat de impact ervan is op de democratie. We concluderen dat de drie democratische functies van media onder druk staan en dat nieuw beleid noodzakelijk is");
