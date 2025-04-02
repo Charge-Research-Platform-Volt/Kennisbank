@@ -67,12 +67,12 @@ export default function QuickSearch() {
     <>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" className="flex w-full items-center justify-between p-2">
+          <Button variant="outline" className="m-0 flex w-full items-center justify-between p-2">
             <div className="flex items-center gap-2">
               <Search className="h-4 w-4" />
               Search
             </div>
-            <kbd className="text-xs">Cmd + K</kbd>
+            <kbd className="text-[10px]">Cmd + K</kbd>
           </Button>
         </DialogTrigger>
         <DialogOverlay />

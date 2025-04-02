@@ -1,9 +1,9 @@
-import React from "react";
+import type React from "react";
 import "@testing-library/jest-dom";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { LinkProps } from "next/link";
+import type { LinkProps } from "next/link";
 
 import { toast } from "sonner";
 
