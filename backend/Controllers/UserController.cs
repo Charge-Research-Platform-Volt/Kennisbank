@@ -37,20 +37,28 @@ public class UserController : ControllerBase
     [SwaggerResponse(500, "Server error")]
     public async Task<IActionResult> GetAllUsers()
     {
-        User[]? users = await database.AppUsers.OrderBy(u => u.Email).ToArrayAsync();
-
-        if (users == null)
-            return Ok(Array.Empty<UserResponse>());
-
-        UserResponse[]? userResponses = new UserResponse[users.Length];
-        for (int i = 0; i < users.Length; i++)
+        try
         {
-            User user = users[i];
-            IList<string> roles = await userManager.GetRolesAsync(user);
-            userResponses[i] = new UserResponse(new Guid(user.Id), user.UserName, user.Email, user.EmailConfirmed, roles[0].ToString());
-        }
+            User[]? users = await database.AppUsers.OrderBy(u => u.Email).ToArrayAsync();
 
-        return Ok(userResponses);
+            if (users == null)
+                return Ok(Array.Empty<UserResponse>());
+
+            UserResponse[]? userResponses = new UserResponse[users.Length];
+            for (int i = 0; i < users.Length; i++)
+            {
+                User user = users[i];
+                IList<string> roles = await userManager.GetRolesAsync(user);
+                userResponses[i] = new UserResponse(new Guid(user.Id), user.UserName, user.Email, user.EmailConfirmed, roles.FirstOrDefault() ?? "No Role");
+            }
+
+            return Ok(userResponses);
+        }
+        catch (Exception e)
+        {
+            logger.Error(e, "Error listing all users.");
+            return StatusCode(500, new StorageResponse("Error listing all users."));
+        }
     }
 
     [HttpGet("list-paged")]
