@@ -39,8 +39,6 @@ public class AuthControllerIntegrationTests
 
         _context = new DatabaseContext(_options);
 
-        _context.Database.ExecuteSqlRaw("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
-
         // Start a transaction for rollback after each test
         _transaction = _context.Database.BeginTransaction();
 
