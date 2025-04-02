@@ -77,7 +77,7 @@ public class UserTagController : ControllerBase
         }
 
         // Check if the tag already exists in the Tags table
-        bool tagExists = await _context.Tags.AnyAsync(t => t.Name == tagName);
+        bool tagExists = await _context.Tags.AnyAsync(t => t.Name.ToLower() == tagName.ToLower());
 
         if (tagExists)
         {
@@ -86,7 +86,7 @@ public class UserTagController : ControllerBase
         }
 
         // Check if the tag already exists in the UserTags table
-        bool userTagExists = await _context.UserTags.AnyAsync(ut => ut.Name == tagName);
+        bool userTagExists = await _context.UserTags.AnyAsync(ut => ut.Name.ToLower() == tagName.ToLower());
 
         if (userTagExists)
         {
@@ -239,12 +239,12 @@ public class UserTagController : ControllerBase
         }
 
         // Check if the tag already exists in the Tags table
-        bool userTagExists = await _context.Tags.AnyAsync(t => t.Name == newName);
+        bool tagExists = await _context.Tags.AnyAsync(t => t.Name.ToLower() == newName.ToLower());
 
-        if (userTagExists)
+        if (tagExists)
         {
-            Log.Error("Tag already exists in UserTags table.");
-            return Conflict(new { message = "Tag already exists in the user tags list, try converting the user tag instead." });
+            Log.Error("Tag already exists in Tags table.");
+            return Conflict(new { message = "Tag already exists in the standardized tags list." });
         }
 
         // Change tag name
@@ -370,8 +370,8 @@ public class UserTagController : ControllerBase
             return NotFound(new { message = "Tag not found." });
         }
 
-        // Check if tag name already exists in the Tags table
-        bool tagExists = await _context.Tags.AnyAsync(t => t.Name == userTag.Name);
+        // Check if the tag already exists in the Tags table
+        bool tagExists = await _context.Tags.AnyAsync(t => t.Name.ToLower() == userTag.Name.ToLower());
 
         if (tagExists)
         {

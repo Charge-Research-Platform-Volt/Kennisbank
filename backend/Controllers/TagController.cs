@@ -27,7 +27,7 @@ public class TagController : ControllerBase
     /// Retrieves all tags from the drive.
     /// </summary>
     /// <returns>
-    /// Returns a 200 OK response containing a list of all Drive entities.
+    /// Returns a 200 OK response containing a list of all tags.
     /// </returns>
     [HttpGet("all-tags")]
     [SwaggerOperation(
@@ -84,7 +84,7 @@ public class TagController : ControllerBase
         };
 
         // Check if the tag already exists in the UserTags table
-        bool userTagExists = await _context.UserTags.AnyAsync(ut => ut.Name == tagName);
+        bool userTagExists = await _context.UserTags.AnyAsync(ut => ut.Name.ToLower() == tagName.ToLower());
 
         if (userTagExists)
         {
@@ -222,7 +222,7 @@ public class TagController : ControllerBase
         }
 
         // Check if the tag already exists in the UserTags table
-        bool userTagExists = await _context.UserTags.AnyAsync(ut => ut.Name == newName);
+        bool userTagExists = await _context.UserTags.AnyAsync(ut => ut.Name.ToLower() == newName.ToLower());
 
         if (userTagExists)
         {
