@@ -19,7 +19,6 @@ public class UserController : ControllerBase
 {
     private readonly Serilog.ILogger logger;
     private readonly DatabaseContext database;
-
     private readonly UserManager<User> userManager;
 
     public UserController(DatabaseContext databaseContext, UserManager<User> userManager)
@@ -93,8 +92,8 @@ public class UserController : ControllerBase
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error listing files on page {PageIndex} of size {PageSize}.", pageIndex, pageSize);
-            return StatusCode(500, new StorageResponse("Error listing files."));
+            logger.Error(e, "Error listing users on page {PageIndex} of size {PageSize}.", pageIndex, pageSize);
+            return StatusCode(500, new StorageResponse("Error listing users."));
         }
     }    
     

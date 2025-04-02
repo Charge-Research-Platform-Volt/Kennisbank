@@ -95,35 +95,50 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(400, "Bad request")]
         public async Task<IActionResult> Register([FromBody] SignUpDto signUpDto)
         {
-            // check if there is a recent invitation for the email and token
-            var invitation = _context.Invitations.FirstOrDefault(i => i.Email == ShaUtils.Sha256(signUpDto.Email) 
-                                                                    && i.Token == ShaUtils.Sha256(signUpDto.Token) 
-                                                                    && i.CreatedAt > DateTime.UtcNow.AddHours(-168));
-            if (invitation == null)
+            using (var transaction = await _context.Database.BeginTransactionAsync())
             {
-                return BadRequest(new {message = "Invalid invitation"});
+                try
+                {
+                    // check if there is a recent invitation for the email and token
+                    var invitation = _context.Invitations.FirstOrDefault(i => i.Email == ShaUtils.Sha256(signUpDto.Email) 
+                                                                            && i.Token == ShaUtils.Sha256(signUpDto.Token) 
+                                                                            && i.CreatedAt > DateTime.UtcNow.AddHours(-168));
+                    if (invitation == null)
+                    {
+                        return BadRequest(new {message = "Invalid invitation"});
+                    }
+
+                    // Remove user
+                    _context.Remove(invitation);
+                    await _context.SaveChangesAsync();
+
+                    // create the user
+                    var user = new User
+                    {
+                        Email = signUpDto.Email,
+                        UserName = signUpDto.Email
+                    };
+
+                    // save the user
+                    IdentityResult result = await _signInManager.UserManager.CreateAsync(user, signUpDto.Password);
+                    if (!result.Succeeded)
+                        return BadRequest(new {message = string.Join(" ", result.Errors.Select(e => e.Description))});
+
+                    IdentityResult roleResult = await _signInManager.UserManager.AddToRoleAsync(user, "user");
+
+                    if (!result.Succeeded)
+                        return BadRequest(new {message = string.Join(" ", roleResult.Errors.Select(e => e.Description))});
+                    
+                    await transaction.CommitAsync();
+                    return Ok(new { message = $"User '{user.UserName}' created succesfully." });
+                }
+                catch (Exception e)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.Error(e, "Error creating user");
+                    return BadRequest(new { message = "Error creating user" });
+                }
             }
-
-            // Remove user
-            _context.Remove(invitation);
-            await _context.SaveChangesAsync();
-
-            // create the user
-            var user = new User
-            {
-                Email = signUpDto.Email,
-                UserName = signUpDto.Email
-            };
-
-            // save the user
-            var result = await _signInManager.UserManager.CreateAsync(user, signUpDto.Password);
-            if (result.Succeeded)
-            {
-                await _context.SaveChangesAsync();
-                return Ok();
-            }
-
-            return BadRequest(new {message = string.Join(" ", result.Errors.Select(e => e.Description))});
         }
 
     }
