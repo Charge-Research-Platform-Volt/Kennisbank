@@ -44,3 +44,4 @@ export const DocumentPageResponseSchema = z.object({
 export type DocumentBase = z.infer<typeof DocumentBaseSchema>;
 export type Document = z.infer<typeof DocumentSchema>;
 export type DocumentPageResponse = z.infer<typeof DocumentPageResponseSchema>;
+export type DocumentResponse = z.infer<typeof DocumentResponseSchema>;

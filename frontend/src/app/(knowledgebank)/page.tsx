@@ -7,6 +7,7 @@ import Archive from "@/icons/archive";
 import Projects from "@/icons/projects-icon";
 import Search from "@/icons/search-icon";
 import GetFileIcon from "@/components/getFileIcon";
+import OpenFileButton from "../components/open-file-button";
 
 export default async function Home() {
   // fetches all documents
@@ -54,7 +55,7 @@ export default async function Home() {
             {files.map((file, index) => (
               <div
                 key={file.id}
-                className={`flex items-center justify-between p-2 bg-white border hover:bg-gray-200
+                className={`flex items-center justify-between gap-2 p-2 bg-white border hover:bg-gray-200
                   ${index === 0 ? "rounded-t-lg" : ""} 
                   ${index === files.length - 1 ? "rounded-b-lg" : ""}
                   ${index !== 0 && index !== files.length - 1 ? "border-t-0" : ""}
@@ -66,7 +67,7 @@ export default async function Home() {
                     {file.name}
                   </span>
                 </span>
-                <Link href={`file/${file.id}`}><Button>Open</Button></Link>
+                <OpenFileButton file={file} />
               </div>
             ))}
           </div>
