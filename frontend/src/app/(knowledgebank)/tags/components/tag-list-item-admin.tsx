@@ -7,13 +7,11 @@ import { toast } from "sonner";
 import { useActionState, useEffect, useState } from "react";
 import { FormResponse } from "@/types/return.type";
 import { SaveStandardizedTag } from "@/actions/standardizedTagActions";
-import EditIcon from "@/icons/edit-icon";
 import SaveIcon from "@/icons/save-icon";
 import ApprovedTag from "@/icons/tag-icons/aproved-tag";
 import AdminIcon from "@/icons/tag-icons/admin-tag";
 import { SaveUserTag } from "@/actions/userTagActions";
-import { ApproveTagButton, DeleteTagButton, ConvertTagButton } from "./tag-list-buttons";
-
+import { TagActionButtons } from "./tag-action-buttons";
 
 const initialStateStandardizedTag: FormResponse<Tag> = {
   success: false,
@@ -25,20 +23,27 @@ const initialStateUserTag: FormResponse<UserTag> = {
   message: "",
 };
 
+/**
+ * TagListItemAdmin - Component for displaying and managing tags in the admin interface
+ * 
+ * This component handles both standardized tags and user tags, providing:
+ * - Tag display with appropriate icons
+ * - Inline editing functionality
+ * - Action buttons based on tag type and state
+ * 
+ * @param {Object} props - Component props
+ * @param {Tag} [props.tag] - Standardized tag object (optional)
+ * @param {UserTag} [props.userTag] - User tag object (optional)
+ * @returns {ReactElement} The rendered tag list item
+ */
 export default function TagListItemAdmin({tag = undefined, userTag = undefined}: {tag?: Tag, userTag?: UserTag}) {
   const [saveStandardizedTagState, saveStandardizedTagAction, savingStandardizedTagIsPending] = useActionState(SaveStandardizedTag, initialStateStandardizedTag);
   const [saveUserTagState, saveUserTagAction, savingUserTagIsPending]  = useActionState(SaveUserTag, initialStateUserTag);
 
   const [tagName, setTagName] = useState(userTag ? userTag.name : tag?.name);
-
   const [editting, setEditting] = useState(false);
   
-
-  console.log("SaveStandardizedTag state:");
-  console.log(saveStandardizedTagState.message);
-  console.log("SaveUserTag state:");
-  console.log(saveUserTagState.message);
-
+  // Handle form action responses
   useEffect(() => {
     if (saveStandardizedTagState.success) {
       toast.success(saveStandardizedTagState.message);
@@ -56,80 +61,72 @@ export default function TagListItemAdmin({tag = undefined, userTag = undefined}:
       toast.error(saveUserTagState.message);
     }
   }, [saveUserTagState]);
+
+  // Handle edit button click
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setEditting(true);
+  };
+  
+  // Determine which form action to use
+  const formAction = userTag ? saveUserTagAction : saveStandardizedTagAction;
+  const isSaving = savingUserTagIsPending || savingStandardizedTagIsPending;
+  const tagId = userTag ? userTag.id : tag?.id;
   
   return (
     <div className="flex w-full items-center justify-between gap-2">
-      { editting ? 
-        (
-          <form className="relative w-full" action={userTag ? saveUserTagAction : saveStandardizedTagAction}>
-            <Input
-                  type="text"
-                  name="name"
-                  placeholder="Tag name"
-                  value={tagName}
-                  onChange={(e) => setTagName(e.target.value)}
+      {editting ? (
+        <form className="relative w-full" action={formAction}>
+          <Input
+            type="text"
+            name="name"
+            placeholder="Tag name"
+            value={tagName}
+            onChange={(e) => setTagName(e.target.value)}
+          />
+          <div className="absolute inset-y-0 right-2 flex items-center justify-center">
+            <Button
+              className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
+              variant="default"
+              type="submit"
+              title="Save tag"
+              disabled={isSaving}
+            >
+              <SaveIcon className="h-5 w-5" fill="#737373"/>
+            </Button>
+          </div>
+          <Input
+            type="hidden"
+            name="id"
+            value={tagId}
+          />
+        </form>
+      ) : (
+        <form className="relative w-full shadow rounded-md px-3 py-1" action={formAction}>
+          <div className="flex">
+            <p>{tagName}</p>
+            {userTag && userTag.isApproved ? (
+              <ApprovedTag className="h-5 w-5 ml-2" />
+            ) : userTag ? (
+              ""
+            ) : (
+              <AdminIcon className="h-5 w-5 ml-2" />
+            )}
+          </div>
+          <div className="absolute inset-y-0 right-2 flex items-center justify-center">
+            <TagActionButtons 
+              tag={tag} 
+              userTag={userTag} 
+              onEditClick={handleEditClick} 
             />
-            <div className="absolute inset-y-0 right-2 flex items-center justify-center">
-              <Button
-                className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
-                variant="default"
-                type="submit"
-                title="Save tag"
-                disabled={savingUserTagIsPending || savingStandardizedTagIsPending}
-              >
-                <SaveIcon className="h-5 w-5" fill="#737373"/>
-              </Button>
-            </div>
-            <Input
-              type="hidden"
-              name="id"
-              value={userTag ? userTag.id : tag?.id}
-            />
-          </form>
-        ) : (
-          <form className="relative w-full shadow rounded-md px-3 py-1" action={userTag ? saveUserTagAction : saveStandardizedTagAction}>
-            <div className="flex">
-              <p>{tagName}</p>
-              {userTag && userTag.isApproved ? (
-                <ApprovedTag className="h-5 w-5 ml-2" />
-              ) : userTag ? (
-                ""
-              ) : (
-                <AdminIcon className="h-5 w-5 ml-2" />
-              )}
-            </div>
-            <div className="absolute inset-y-0 right-2 flex items-center justify-center">
-              {userTag && !userTag.isApproved ? (
-                <div>
-                  <ApproveTagButton tag={userTag} />
-                  <Button
-                    className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
-                    variant="default"
-                    type="submit"
-                    title="Edit tag"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setEditting(true);
-                    }}
-                  >
-                    <EditIcon className="h-5 w-5" fill="#737373" />
-                  </Button>
-                </div>
-              ) : userTag && userTag.isApproved ? (
-                <ConvertTagButton tag={userTag} />
-              ) : (
-                ""
-              )}
-              <DeleteTagButton tag={tag} userTag={userTag} />
-            </div>
-            <Input
-              type="hidden"
-              name="id"
-              value={userTag ? userTag.id : tag?.id}
-            />
-          </form>
-        )}
+          </div>
+          <Input
+            type="hidden"
+            name="id"
+            value={tagId}
+          />
+        </form>
+      )}
     </div>
   );
-  }
-  
+}
