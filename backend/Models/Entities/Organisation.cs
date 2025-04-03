@@ -33,3 +33,11 @@ public class Organisation
     [JsonIgnore][InverseProperty("SourceOrganisation")] public ICollection<OrganisationRelationship>? TargetRelationships { get; set; }
     [JsonIgnore][InverseProperty("TargetOrganisation")] public ICollection<OrganisationRelationship>? SourceRelationships { get; set; }
 }
+
+public class OrganisationCreateDto
+{
+    public required string Name { get; set; }
+    public string? Description { get; set; }
+    public string? Website { get; set; }
+    public string? EmailAddress { get; set; }
+}
