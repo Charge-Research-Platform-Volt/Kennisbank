@@ -44,4 +44,8 @@ public class PersonCreateDto
     public string? Description { get; set; }
     public string? EmailAddress { get; set; }
     public string? Linkedin { get; set; }
+    // Tuple: (OrganisationId, Role?)
+    public (string, string?)[] OrganisationRelations { get; set; } = Array.Empty<(string, string?)>();
+    // Tuple: (PersonId, Relation?)
+    public (string, string?)[] PersonRelations { get; set; } = Array.Empty<(string, string?)>();
 }

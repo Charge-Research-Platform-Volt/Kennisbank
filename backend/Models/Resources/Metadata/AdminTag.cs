@@ -4,9 +4,9 @@ using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 namespace KnowledgeBank.Models;
 
-[Table("tags")]
+[Table("admin-tags")]
 [Index(nameof(Name), IsUnique = true)]
-public class Tag
+public class AdminTag
 {
     [Column("id")]
     [Key]
@@ -16,5 +16,10 @@ public class Tag
     public required string Name { get; set; }
 
     // Navigation properties
-    [JsonIgnore] public ICollection<ResourceTagRelation>? Resources { get; set; }
+    [JsonIgnore] public ICollection<ResourceAdminTagRelation>? Resources { get; set; }
+}
+
+public class AdminTagCreateDto
+{
+    public required string Name { get; set; }
 }

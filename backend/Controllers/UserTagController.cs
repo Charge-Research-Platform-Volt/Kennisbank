@@ -77,7 +77,7 @@ public class UserTagController : ControllerBase
         }
 
         // Check if the tag already exists in the Tags table
-        bool tagExists = await _context.Tags.AnyAsync(t => t.Name == tagName);
+        bool tagExists = await _context.AdminTags.AnyAsync(t => t.Name == tagName);
 
         if (tagExists)
         {
@@ -289,7 +289,7 @@ public class UserTagController : ControllerBase
         Summary = "Approve a user tag.",
         Description = "Marks a user-created tag as approved and adds it to the tags table."
         )]
-    [SwaggerResponse(200, "Tag approved", typeof(Tag))]
+    [SwaggerResponse(200, "Tag approved", typeof(AdminTag))]
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(404, "Tag not found")]
     [SwaggerResponse(409, "Tag name already exists")]
@@ -324,7 +324,7 @@ public class UserTagController : ControllerBase
         }
 
         // Check if tag name already exists in the Tags table
-        bool tagExists = await _context.Tags.AnyAsync(t => t.Name == userTag.Name);
+        bool tagExists = await _context.AdminTags.AnyAsync(t => t.Name == userTag.Name);
         if (tagExists)
         {
             Log.Error("A tag with this name already exists in Tags.");
@@ -336,7 +336,7 @@ public class UserTagController : ControllerBase
         _context.UserTags.Update(userTag);
 
         // Create new Tag
-        Tag newTag = new()
+        AdminTag newTag = new()
         {
             Id = userTag.Id,
             Name = userTag.Name,
@@ -345,7 +345,7 @@ public class UserTagController : ControllerBase
         // Add the tag
         try
         {
-            await _context.Tags.AddAsync(newTag);
+            await _context.AdminTags.AddAsync(newTag);
             await _context.SaveChangesAsync();
         }
         catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")

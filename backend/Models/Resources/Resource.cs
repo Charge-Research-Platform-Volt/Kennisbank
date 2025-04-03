@@ -76,7 +76,8 @@ public class Resource
     [JsonIgnore] public ICollection<ResourceRelatedOrganisationRelation>? RelatedOrganisations { get; set; }
     [JsonIgnore] public ICollection<ResourceRelatedSourceRelation>? RelatedSources { get; set; }
     [JsonIgnore] public ICollection<ResourceSourceRelation>? Sources { get; set; }
-    [JsonIgnore] public ICollection<ResourceTagRelation>? Tags { get; set; }
+    [JsonIgnore] public ICollection<ResourceAdminTagRelation>? AdminTags { get; set; }
+    [JsonIgnore] public ICollection<ResourceUserTagRelation>? UserTags { get; set; }
 
     #endregion
 }
@@ -90,8 +91,17 @@ public class ResourceCreateDto // Data Transfer Object (DTO)
     public required DateTime PublicationDate { get; set; }
     public string? License { get; set; }
     public string? Note { get; set; }
-    public string[] Tags { get; set; } = Array.Empty<string>();
+    public string[] AdminTags { get; set; } = Array.Empty<string>();
+    public string[] UserTags { get; set; } = Array.Empty<string>();
     public string[] Authors { get; set; } = Array.Empty<string>();
+    // Tuple: (OrganisationId, role?)
+    public (string, string?)[] Organisations { get; set; } = Array.Empty<(string, string?)>();
+    public string[] Regions { get; set; } = Array.Empty<string>();
+    // Tuple: (OrganisationId, role?)
+    public (string, string?)[] RelatedOrganisations { get; set; } = Array.Empty<(string, string?)>();
+    // Tuple: (PersonId, role?)
+    public (string, string?)[] RelatedPersons { get; set; } = Array.Empty<(string, string?)>();
+    public string[] RelatedSources { get; set; } = Array.Empty<string>();
 }
 
 public class FileResourceCreateDto : ResourceCreateDto

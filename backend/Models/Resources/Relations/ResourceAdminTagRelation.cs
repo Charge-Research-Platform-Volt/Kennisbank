@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 namespace KnowledgeBank.Models;
 
-[Table("resource-tag")]
-public class ResourceTagRelation
+[Table("resource-admin_tag")]
+public class ResourceAdminTagRelation
 {
     [Column("resource-id")]
     public required Guid ResourceId { get; set; }
@@ -14,5 +14,5 @@ public class ResourceTagRelation
 
     // Navigation properties
     [JsonIgnore] public Resource? Resource { get; set; }
-    [JsonIgnore] public Tag? Tag { get; set; }
+    [JsonIgnore] public AdminTag? AdminTag { get; set; }
 }

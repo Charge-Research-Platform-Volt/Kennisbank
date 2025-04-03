@@ -17,3 +17,8 @@ public class ResourceType
     // Navigation properties
     [JsonIgnore] public ICollection<Resource>? Resources { get; set; }
 }
+
+public class ResourceTypeCreateDto
+{
+    public required string Name { get; set; }
+}

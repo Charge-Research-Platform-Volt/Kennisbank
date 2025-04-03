@@ -89,9 +89,9 @@ namespace backend.Controllers
 
                         await database.Resources.AddAsync(drive);
 
-                        foreach (string tag in dto.Tags)
+                        foreach (string tag in dto.AdminTags)
                         {
-                            ResourceTagRelation tagEntry = new()
+                            ResourceAdminTagRelation tagEntry = new()
                             {
                                 ResourceId = id,
                                 TagId = Guid.Parse(tag),
