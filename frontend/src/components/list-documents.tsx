@@ -61,7 +61,7 @@ export default function ListDocuments({ data }: { data: DocumentPageResponse }) 
 export function Render(params: { data: { fileType: string }; value: string;  }) {
   return (
     <div className="flex items-center">
-      <div className="flex-shrink-0">{GetFileIcon(params.data.fileType)}</div>
+      <GetFileIcon fileType={params.data.fileType} />
       <span className="ml-2 overflow-hidden text-ellipsis whitespace-nowrap">{params.value}</span>
     </div>
   );

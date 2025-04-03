@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Input } from "../ui/input";
 import SidebarPart from "./sidebar-part";
 import NewButton from "@/components/left-sidebar/sidebar-new-button";
 import type { TagsArray, UserTagsArray } from "@/types/tag.type";
@@ -19,6 +18,7 @@ import HideMenu from "@/icons/menu/hide-menu";
 import ShowMenu from "@/icons/menu/show-menu";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Logout } from "@/actions/authActions";
+import QuickSearch from "../quick-search";
 
 // Menu items
 const menuItems: SidebarItem[] = [
@@ -93,7 +93,7 @@ export default function LeftSidebarClient({ userTags, standardizedTags }: { user
               <NewButton userTags={userTags} standardizedTags={standardizedTags} />
 
               {/* Search bar */}
-              <Input type="text" name="search" placeholder="&#x1F50E;&#xFE0E; Search" />
+              <QuickSearch />
             </div>
 
             {/* Menu and project parts */}
