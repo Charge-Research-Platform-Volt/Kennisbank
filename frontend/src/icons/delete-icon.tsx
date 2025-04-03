@@ -20,4 +20,3 @@ export default function DeleteIcon({ fill = "#000", ...props }: React.SVGProps<S
     </svg>
   );
 }
-
