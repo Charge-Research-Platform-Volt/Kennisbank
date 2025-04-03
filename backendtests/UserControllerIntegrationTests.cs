@@ -1,125 +1,130 @@
-using KnowledgeBank.Data;
-using Microsoft.EntityFrameworkCore;
-using KnowledgeBank.Models;
+using Moq;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using backend.Controllers;
+using backend.Data;
+using backend.Responses;
+using KnowledgeBank.Models;
+using KnowledgeBank.Data;
 using Microsoft.EntityFrameworkCore.Storage;
-using KnowledgeBank.Controllers;
-
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
 namespace backend.Tests;
 
 [TestFixture]
 [Category("IntegrationTest")]
-public class UserTagControllerIntegrationTests
+public class UserControllerIntegrationTests
 {
     private DbContextOptions<DatabaseContext> _options;
     private DatabaseContext _context;
-    private UserTagController _controller;
+    private UserController _controller;
     private IDbContextTransaction _transaction;
+    private Mock<UserManager<User>> _userManagerMock;
 
     [SetUp]
-    public void Setup()
+    public void SetUp()
     {
         // Determine the host based on runtime environment
-        string dbHost = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true"
+        string dbHost = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true" 
             ? "database"   // To run test in CI/CD
             : "localhost"; // To run test locally
-
+        
         _options = new DbContextOptionsBuilder<DatabaseContext>()
             .UseNpgsql($"Host={dbHost};Database=postgres;Username=postgres;Password=postgres")
             .Options;
+        
+        // mock the UserManager<User> dependency
+         _userManagerMock = new Mock<UserManager<User>>(
+            Mock.Of<IUserStore<User>>(), 
+            null, null, null, null, null, null, null, null
+        );
 
         _context = new DatabaseContext(_options);
 
+        // Start a transaction for rollback after each test
         _transaction = _context.Database.BeginTransaction();
 
         _context.Database.UseTransaction(_transaction.GetDbTransaction());
 
-        _controller = new UserTagController(_context);        
+        _controller = new UserController(_context, _userManagerMock.Object);
     }
 
     [TearDown]
     public void TearDown()
     {
+        // Rollback the transaction so DB state remains unchanged
         _transaction.Rollback();
         _transaction.Dispose();
         _context.Dispose();
     }
 
-    [TestCase("test")]
-    [TestCase("bla")]
-    [Description("Simple test for adding tags")]
-    public async Task AddTagTest(string input)
+    [Test]
+    public async Task GetAllUsers_ReturnsResults_WhenDataExists()
     {
-        // Clear all UserTags so we can assert on Count later
-        _context.UserTags.RemoveRange(_context.UserTags);
+        // Arrange
+        var testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
+        _context.AppUsers.Add(testUser);
         await _context.SaveChangesAsync();
+        _userManagerMock.Setup(m => m.GetRolesAsync(It.IsAny<User>())).ReturnsAsync((User user) => {
+            return user.Email == "admin@admin.nl" ? new List<string> { "admin" } : new List<string> { "user" };
+        });
 
-        // Add tag
-        OkObjectResult addResponse = (await _controller.AddTag(input)) as OkObjectResult;
+        // Act
+        var result = await _controller.GetAllUsers();
 
-        // Check that statuscode is correct, count of tags is 1 and the name is correct
-        Assert.That(addResponse.StatusCode, Is.EqualTo(200));
-        Assert.That(_context.UserTags.Count(), Is.EqualTo(1));
-        Assert.That(_context.UserTags.First().Name, Is.EqualTo(input));
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.That(okResult, Is.Not.Null);
+        Assert.That(okResult.StatusCode, Is.EqualTo(200));
 
-        // Check that adding multiple tags works
-        await _controller.AddTag("test123");
-        Assert.That(_context.UserTags.Count(), Is.EqualTo(2));
+        var response = okResult.Value as UserResponse[];
+        Assert.That(response.Length, Is.GreaterThan(0));
     }
 
-    [TestCase("test")]
-    [Description("Simple test for deleting tags")]
-    public async Task DeleteTagTest(string input)
+    [Test]
+    public async Task GetUsersPaged_ReturnsResults_WhenDataExists()
     {
-        // Clear all UserTags so we can assert on Count later
-        _context.UserTags.RemoveRange(_context.UserTags);
+        // Arrange
+        var testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
+        _context.AppUsers.Add(testUser);
         await _context.SaveChangesAsync();
+        _userManagerMock.Setup(m => m.GetRolesAsync(It.IsAny<User>())).ReturnsAsync((User user) => {
+            return user.Email == "admin@admin.nl" ? new List<string> { "admin" } : new List<string> { "user" };
+        });
 
-        // add tag as before
-        await _controller.AddTag(input);
-        string addedTagGUID = _context.UserTags.First().Id.ToString();
+        // Act
+        var result = await _controller.GetUsersPaged(1, 10);
 
-        // Now we delete and test if the database is empty again
-        OkObjectResult delResponse = (await _controller.DeleteTag(addedTagGUID)) as OkObjectResult;
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.That(okResult, Is.Not.Null);
+        Assert.That(okResult.StatusCode, Is.EqualTo(200));
 
-        Assert.That(delResponse.StatusCode, Is.EqualTo(200));
-        Assert.That(_context.UserTags.Count(), Is.EqualTo(0));
-    }
-
-    [TestCase("cd34f056-c81a-4906-9f38-315233e83126")]
-    [Description("Tests if deleting a tag fails if the tag is not in the database")]
-    public async Task FailDeleteTagTest(string input)
-    {
-        // Try to delete tag in an empty database => should fail
-        NotFoundObjectResult failedDelResponse = (await _controller.DeleteTag(input)) as NotFoundObjectResult;
-
-        // Assert that error code is 404 (tag not found)
-        Assert.That(failedDelResponse.StatusCode, Is.EqualTo(404));
-    }
-
-    [TestCase("original", "new")]
-    [TestCase("1", "2")]
-    [Description("Tests if you can successfully change the name of a tag")]
-    public async Task ChangeTagTest(string orgName, string newName)
-    {
-        // Clear all Tags so we can assert on Count later
-        _context.UserTags.RemoveRange(_context.UserTags);
-        await _context.SaveChangesAsync();
+        if(okResult.Value is UserPageResponse response)
+        {
+            Assert.That(response.Users.Length, Is.GreaterThan(0));
+            Assert.That(response.PageCount, Is.EqualTo(1));
+            return;
+        }
         
-        // Add tag as before and get the GUID
-        await _controller.AddTag(orgName);
-        string addedTagGUID = _context.UserTags.First().Id.ToString();
+        Assert.Fail("Expected UserPageResponse, but got a different type.");
+    }
 
-        // Change tag name to new name and check if the database contains 1 element
-        OkObjectResult changeResponse = (await _controller.ChangeTagName(addedTagGUID, newName)) as OkObjectResult;
-        Assert.That(changeResponse.StatusCode, Is.EqualTo(200));
-        Assert.That(_context.UserTags.Count(), Is.EqualTo(1));
+    [Test]
+    public async Task Delete_RemovesUser_WhenSuccessful()
+    {
+        // Arrange
+        var testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
+        _userManagerMock.Setup(m => m.FindByIdAsync(testUser.Id)).ReturnsAsync(testUser);
+        _userManagerMock.Setup(m => m.DeleteAsync(testUser)).ReturnsAsync(IdentityResult.Success);
+        await _context.SaveChangesAsync();
 
-        // Fetch changed tag and double check if the tag is correctly changed
-        OkObjectResult allTags = _controller.Get() as OkObjectResult;
-        List<UserTag> tagList = allTags.Value as List<UserTag>;
+        // Act
+        var result = await _controller.Delete(testUser.Id);
 
-        Assert.That(tagList.Count, Is.EqualTo(1));
-        Assert.That(tagList[0].Name, Is.EqualTo(newName));
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.That(okResult, Is.Not.Null);
+        Assert.That(okResult.StatusCode, Is.EqualTo(200));
     }
 }

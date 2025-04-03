@@ -128,7 +128,7 @@ public class SearchController : ControllerBase
     [SwaggerResponse(400, "Invalid search query")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> FullTextSearch(
-        [FromQuery] string query,
+        [FromQuery] string? query,
         [FromQuery] int pageIndex = 1,
         [FromQuery] int pageSize = 20)
     {
@@ -138,43 +138,54 @@ public class SearchController : ControllerBase
         if (pageSize < 1)
             return BadRequest(new StorageResponse("Page size cannot be lower than 1."));
 
-        if (string.IsNullOrEmpty(query))
-            return BadRequest(new StorageResponse("Query is required."));
-
+        // If the query is empty, return all files
         try
         {
             int skip = (pageIndex - 1) * pageSize;
+            FileItem[]? items;
 
-            //  Queries for websearch_to_tsquery are interpreted as following:
-            //
-            //  integration europe 1995             =>  integration AND europe AND 1995
-            //  "integration europe" 1995           =>  integration europe AND 1995
-            //  integration europe -1995            =>  integration AND europe NOT 1995
-            //  "integration europe" 1995           =>  integration europe NOT 1995
-            //  integration europe or asia 1995     =>  (integration AND europe) OR (asia AND 1995)
-            //
-            //  Keep in mind these examples do not take stemming into consideration, the words 
-            //  in the query and database are stemmed to improve search results.  
+            if (string.IsNullOrEmpty(query))
+            {
+                // No query provided: return all files with default ordering
+                items = await database.Files
+                    .FromSqlRaw("SELECT * FROM files ORDER BY id")
+                    .Skip(skip).Take(pageSize)
+                    .ToArrayAsync();
+            }
+            else
+            {
+                //  Queries for websearch_to_tsquery are interpreted as following:
+                //
+                //  integration europe 1995             =>  integration AND europe AND 1995
+                //  "integration europe" 1995           =>  integration europe AND 1995
+                //  integration europe -1995            =>  integration AND europe NOT 1995
+                //  "integration europe" 1995           =>  integration europe NOT 1995
+                //  integration europe or asia 1995     =>  (integration AND europe) OR (asia AND 1995)
+                //
+                //  Keep in mind these examples do not take stemming into consideration, the words 
+                //  in the query and database are stemmed to improve search results.  
 
+                // Converts the user query to a tsvector and compares this to the file vector
+                var tsQuery = string.Join(" & ", query.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(term => term + ":*"));
 
-            // Converts the user query to a tsvector and compares this to the file vector
-            FileItem[]? items = await database.Files
-                .FromSqlRaw(@"
-                    SELECT DISTINCT ON (f.id)
-                        f.*, 
-                        GREATEST(
-                            ts_rank(fv.vector, websearch_to_tsquery('english', {0})),
-                            similarity(f.name, {0}),
-                            similarity(f.description, {0})
-                        ) AS rank 
-                    FROM files f
-                    JOIN file_vectors fv ON fv.file_id = f.id
-                    WHERE fv.vector @@ websearch_to_tsquery('english', {0})
-                        OR similarity(f.name, {0}) > 0.3
-                        OR similarity(f.description, {0}) > 0.3
-                    ORDER BY f.id, rank DESC", query)
-                .Skip(skip).Take(pageSize)
-                .ToArrayAsync();
+                items = await database.Files
+                    .FromSqlRaw(@"
+                        SELECT DISTINCT ON (f.id)
+                            f.*,
+                            GREATEST(
+                                ts_rank(fv.vector, to_tsquery('english', {0})),
+                                similarity(f.name, {1}),
+                                similarity(f.description, {1})
+                            ) AS rank 
+                        FROM files f
+                        JOIN file_vectors fv ON fv.file_id = f.id
+                        WHERE fv.vector @@ to_tsquery('english', {0})
+                            OR similarity(f.name, {1}) > 0.3
+                            OR similarity(f.description, {1}) > 0.3
+                        ORDER BY f.id, rank DESC", tsQuery, query)
+                    .Skip(skip).Take(pageSize)
+                    .ToArrayAsync();
+            }
 
             if (items == null)
                 return Ok(new PageResponse("No files found.", pageIndex, pageSize, Array.Empty<FileItem>()));
