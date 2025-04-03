@@ -17,7 +17,7 @@ public class Organisation
     public required string Name { get; set; }
     
     [Column("description")]
-    public string? Decription { get; set; }
+    public string? Description { get; set; }
     
     [Column("website")]
     public string? Website { get; set; }

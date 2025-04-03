@@ -19,5 +19,5 @@ public class WebsiteMetadata
 
 public class WebsiteCreateDto : ResourceCreateDto
 {
-
+    public required string Url { get; set; }
 }

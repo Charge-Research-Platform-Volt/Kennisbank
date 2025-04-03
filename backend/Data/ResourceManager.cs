@@ -51,7 +51,9 @@ namespace backend.Data
             await database.Resources.AddAsync(resource);
 
             // Add tag relations to database
-            await AddResourceTagRelationRangeAsync(resourceId, dto.Tags);
+            await TagResourceRangeAsync(resourceId, dto.Tags);
+
+            await database.SaveResourceChangesAsync();
 
             return resourceId;
         }
@@ -73,6 +75,8 @@ namespace backend.Data
                 await database.DocumentMetadata.AddAsync(doc);
             }
 
+            await database.SaveChangesAsync();
+
             return resourceId;
         }
 
@@ -93,6 +97,8 @@ namespace backend.Data
                 await database.AudioMetadata.AddAsync(audio);
             }
 
+            await database.SaveChangesAsync();
+
             return resourceId;
         }
 
@@ -112,6 +118,8 @@ namespace backend.Data
 
                 await database.VideoMetadata.AddAsync(video);
             }
+
+            await database.SaveChangesAsync();
 
             return resourceId;
         }
@@ -136,6 +144,11 @@ namespace backend.Data
                 await database.WebsiteMetadata.AddAsync(website);
             }
 
+            // Add source relation to database (this is the url of the website)
+            
+
+            await database.SaveChangesAsync();
+
             return resourceId;
         }
 
@@ -158,12 +171,57 @@ namespace backend.Data
             // Add person to database
             await database.Persons.AddAsync(person);
 
+            await database.SaveChangesAsync();
+
             return personId;
+        }
+
+        public async Task<Guid> CreateOrganisationAsync(OrganisationCreateDto dto)
+        {
+            // Generate new ID for the organisation
+            Guid organisationId = Guid.NewGuid();
+
+            // Create a organisation instance using the DTO
+            Organisation organisation = new()
+            {
+                Id = organisationId,
+                Name = dto.Name,
+                Description = dto.Description,
+                Website = dto.Website,
+                EmailAddress = dto.EmailAddress,
+            };
+
+            // Add organisation to database
+            await database.Organisations.AddAsync(organisation);
+
+            await database.SaveChangesAsync();
+
+            return organisationId;
+        }
+
+        public async Task<Guid> CreateRegionAsync(RegionCreateDto dto)
+        {
+            // Generate new ID for the region
+            Guid regionId = Guid.NewGuid();
+
+            // Create a region instance using the DTO
+            Region region = new()
+            {
+                Id = regionId,
+                Name = dto.Name,
+            };
+
+            // Add region to database
+            await database.Regions.AddAsync(region);
+
+            await database.SaveChangesAsync();
+
+            return regionId;
         }
         #endregion
 
         #region Relations
-        public async Task AddResourceTagRelationRangeAsync(Guid resourceId, Guid[] tagIds)
+        public async Task TagResourceRangeAsync(Guid resourceId, Guid[] tagIds)
         {
             List<ResourceTagRelation> tagRelations = new List<ResourceTagRelation>();
 
@@ -177,18 +235,20 @@ namespace backend.Data
             }
 
             await database.ResourceTagRelations.AddRangeAsync(tagRelations.ToArray());
+
+            await database.SaveChangesAsync();
         }
 
-        public async Task AddResourceTagRelationRangeAsync(Guid resourceId, string[] tagIds)
-        { await AddResourceTagRelationRangeAsync(resourceId, StringToGuidArray(tagIds)); }
+        public async Task TagResourceRangeAsync(Guid resourceId, string[] tagIds)
+        { await TagResourceRangeAsync(resourceId, StringToGuidArray(tagIds)); }
 
-        public async Task AddResourceTagRelationRangeAsync(string resourceId, Guid[] tagIds)
-        { await AddResourceTagRelationRangeAsync(Guid.Parse(resourceId), tagIds); }
+        public async Task TagResourceRangeAsync(string resourceId, Guid[] tagIds)
+        { await TagResourceRangeAsync(Guid.Parse(resourceId), tagIds); }
 
-        public async Task AddResourceTagRelationRangeAsync(string resourceId, string[] tagIds)
-        { await AddResourceTagRelationRangeAsync(Guid.Parse(resourceId), StringToGuidArray(tagIds)); }
+        public async Task TagResourceRangeAsync(string resourceId, string[] tagIds)
+        { await TagResourceRangeAsync(Guid.Parse(resourceId), StringToGuidArray(tagIds)); }
 
-        public async Task AddResourceTagRelationAsync(Guid resourceId, Guid tagId)
+        public async Task TagResourceAsync(Guid resourceId, Guid tagId)
         {
             ResourceTagRelation tagEntry = new()
             {
@@ -197,26 +257,46 @@ namespace backend.Data
             };
 
             await database.ResourceTagRelations.AddAsync(tagEntry);
+
+            await database.SaveChangesAsync();
         }
 
-        public async Task AddResourceTagRelationAsync(string resourceId, Guid tagId)
-        { await AddResourceTagRelationAsync(Guid.Parse(resourceId), tagId); }
+        public async Task TagResourceAsync(string resourceId, Guid tagId)
+        { await TagResourceAsync(Guid.Parse(resourceId), tagId); }
 
-        public async Task AddResourceTagRelationAsync(Guid resourceId, string tagId)
-        { await AddResourceTagRelationAsync(resourceId, Guid.Parse(tagId)); }
+        public async Task TagResourceAsync(Guid resourceId, string tagId)
+        { await TagResourceAsync(resourceId, Guid.Parse(tagId)); }
 
-        public async Task AddResourceTagRelationAsync(string resourceId, string tagId)
-        { await AddResourceTagRelationAsync(Guid.Parse(resourceId), Guid.Parse(tagId)); }
+        public async Task TagResourceAsync(string resourceId, string tagId)
+        { await TagResourceAsync(Guid.Parse(resourceId), Guid.Parse(tagId)); }
+
+        public async Task AddSourceToResource(Guid resourceId, string sourceUrl)
+        {
+            ResourceSourceRelation sourceEntry = new()
+            {
+                ResourceId = resourceId,
+                Url = sourceUrl,
+            };
+
+            await database.ResourceSourceRelations.AddAsync(sourceEntry);
+
+            await database.SaveChangesAsync();
+        }
+
+        public async Task AddSourceToResource(string resourceId, string sourceUrl)
+        { await AddSourceToResource(Guid.Parse(resourceId), sourceUrl); }
         #endregion
 
         #region Changes
         public async Task<bool> RenameResourceAsync(ResourceRenameDto dto)
         {
-            Resource? resource = await database.Resources.FindAsync(Guid.Parse(dto.Id));
+            Resource? resource = await GetResourceByIdAsync(dto.Id);
 
             if (resource == null) return false;
 
             resource.Title = dto.Title;
+
+            await database.SaveResourceChangesAsync();
 
             return true;
         }
@@ -225,24 +305,49 @@ namespace backend.Data
         {
             Resource? resource = await GetResourceByIdAsync(id);
 
-            return deleteResourceByIdAsync(resource);
-        }
-
-        public async Task<bool> DeleteResourceByIdAsync(string id)
-        {
-            Resource? resource = await GetResourceByIdAsync(id);
-
-            return deleteResourceByIdAsync(resource);
-        }
-
-        private bool deleteResourceByIdAsync(Resource? resource)
-        {
             if (resource == null) return false;
 
             database.Resources.Remove(resource);
 
+            await database.SaveResourceChangesAsync();
+
             return true;
         }
+
+        public async Task<bool> DeleteResourceByIdAsync(string id)
+        { return await DeleteResourceByIdAsync(Guid.Parse(id)); }
+
+        public async Task<bool> DeletePersonByIdAsync(Guid id)
+        {
+            Person? person = await GetPersonByIdAsync(id);
+
+            if (person == null) return false;
+
+            database.Persons.Remove(person);
+
+            await database.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<bool> DeletePersonByIdAsync(string id)
+        { return await DeletePersonByIdAsync(Guid.Parse(id)); }
+
+        public async Task<bool> DeleteOrganisationByIdAsync(Guid id)
+        {
+            Organisation? organisation = await GetOrganisationByIdAsync(id);
+
+            if (organisation == null) return false;
+
+            database.Organisations.Remove(organisation);
+
+            await database.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<bool> DeleteOrganisationByIdAsync(string id)
+        { return await DeleteOrganisationByIdAsync(Guid.Parse(id)); }
         #endregion
 
         #region Information
@@ -258,64 +363,84 @@ namespace backend.Data
 
         #region Retrieval
         public async Task<Resource?> GetResourceByIdAsync(Guid id)
-        {
-            return await database.Resources.FindAsync(id);
-        }
+        { return await database.Resources.FindAsync(id); }
 
         public async Task<Resource?> GetResourceByIdAsync(string id)
-        {
-            return await GetResourceByIdAsync(Guid.Parse(id));
-        }
+        { return await GetResourceByIdAsync(Guid.Parse(id)); }
 
-        public async Task<Resource[]?> GetAllResourcesAsync()
-        {
-            return await database.Resources.OrderByDescending(r => r.CreationDate).ToArrayAsync();
-        }
+        public async Task<Resource[]> GetAllResourcesAsync()
+        { return await database.Resources.OrderByDescending(r => r.CreationDate).ToArrayAsync(); }
 
-        public async Task<Resource[]?> GetResourcePageAsync(int pageIndex = 1, int pageSize = 100)
+        public async Task<Resource[]> GetResourcePageAsync(int pageIndex = 1, int pageSize = 100)
         {
-            if (pageIndex < 1 || pageSize < 1) return null;
+            // Return empty for invalid input
+            if (pageIndex < 1 || pageSize < 1) return Array.Empty<Resource>();
 
             // Calculate how many records we need to skip
             int skip = (pageIndex - 1) * pageSize;
 
             return await database.Resources.Skip(skip).Take(pageSize).ToArrayAsync();
         }
+
+        public async Task<Person?> GetPersonByIdAsync(Guid id)
+        { return await database.Persons.FindAsync(id); }
+
+        public async Task<Person?> GetPersonByIdAsync(string id)
+        { return await GetPersonByIdAsync(Guid.Parse(id)); }
+
+        public async Task<Person[]> GetAllPersonsAsync()
+        { return await database.Persons.OrderBy(p => p.Name).ToArrayAsync(); }
+
+        public async Task<Person[]> GetPersonPageAsync(int pageIndex = 1, int pageSize = 100)
+        {
+            // Return empty for invalid input
+            if (pageIndex < 1 || pageSize < 1) return Array.Empty<Person>();
+
+            // Calculate how many records we need to skip
+            int skip = (pageIndex - 1) * pageSize;
+
+            return await database.Persons.Skip(skip).Take(pageSize).ToArrayAsync();
+        }
+
+        public async Task<Organisation?> GetOrganisationByIdAsync(Guid id)
+        { return await database.Organisations.FindAsync(id); }
+
+        public async Task<Organisation?> GetOrganisationByIdAsync(string id)
+        { return await GetOrganisationByIdAsync(Guid.Parse(id)); }
+
+        public async Task<Organisation[]> GetAllOrganisationsAsync()
+        { return await database.Organisations.OrderBy(p => p.Name).ToArrayAsync(); }
+
+        public async Task<Organisation[]> GetOrganisationPageAsync(int pageIndex = 1, int pageSize = 100)
+        {
+            // Return empty for invalid input
+            if (pageIndex < 1 || pageSize < 1) return Array.Empty<Organisation>();
+
+            // Calculate how many records we need to skip
+            int skip = (pageIndex - 1) * pageSize;
+
+            return await database.Organisations.Skip(skip).Take(pageSize).ToArrayAsync();
+        }
         #endregion
+
+        public async Task BeginTransaction()
+        {
+            // Begin a transaction that can be committed or rolled back later
+            await database.Database.BeginTransactionAsync();
+        }
 
         public async Task Commit()
         {
-            // Save changes to database
-            await database.SaveResourceChangesAsync();
+            // Commit changes from transaction to database
+            if (database.Database.CurrentTransaction != null)
+                await database.Database.CurrentTransaction.CommitAsync();
         }
 
-        public void Discard()
+        public async Task Rollback()
         {
-            // Get all entities being tracked by the context
-            var changedEntries = database.ChangeTracker.Entries()
-                .Where(e => e.State != EntityState.Unchanged);
-
-            foreach (var entry in changedEntries)
-            {
-                switch (entry.State)
-                {
-                    case EntityState.Added:
-                        // For newly added entities, remove them from being tracked
-                        entry.State = EntityState.Detached;
-                        break;
-
-                    case EntityState.Modified:
-                        // For modified entities, revert changes
-                        entry.State = EntityState.Unchanged;
-                        entry.CurrentValues.SetValues(entry.OriginalValues);
-                        break;
-
-                    case EntityState.Deleted:
-                        // For deleted entities, re-attach them
-                        entry.State = EntityState.Unchanged;
-                        break;
-                }
-            }
+            // Roll back the transaction if one exists
+            if (database.Database.CurrentTransaction != null)
+                await database.Database.CurrentTransaction.RollbackAsync();
         }
 
         #region Private functions

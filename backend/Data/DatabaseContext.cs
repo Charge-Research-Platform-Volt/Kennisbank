@@ -73,10 +73,10 @@ namespace KnowledgeBank.Data
                 .HasKey(ft => new { ft.ResourceId, ft.RegionId});
                 
             modelBuilder.Entity<ResourceSourceRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.Source});
+                .HasKey(ft => new { ft.ResourceId, ft.Url });
                 
             modelBuilder.Entity<ResourceRelatedSourceRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.Source});
+                .HasKey(ft => new { ft.ResourceId, ft.Url });
 
             modelBuilder.Entity<OrganisationRelationship>()
                 .HasOne(or => or.SourceOrganisation)

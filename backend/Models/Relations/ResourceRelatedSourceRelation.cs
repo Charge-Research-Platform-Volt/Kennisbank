@@ -11,8 +11,8 @@ public class ResourceRelatedSourceRelation
     [ForeignKey("Resource")]
     public required Guid ResourceId { get; set; }
 
-    [Column("source")]
-    public required string Source { get; set; }
+    [Column("url")]
+    public required string Url { get; set; }
 
     // Navigation properties
     [JsonIgnore] public Resource? Resource { get; set; }

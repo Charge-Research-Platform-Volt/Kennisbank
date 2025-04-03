@@ -11,11 +11,16 @@ public class Region
 {
     [Column("id")]
     [Key]
-    public required Guid RegionId { get; set; }
+    public required Guid Id { get; set; }
 
     [Column("name")]
     public required string Name { get; set; }
 
     // Navigation property
     [JsonIgnore] public ICollection<ResourceRegionRelation>? Resources { get; set; }
+}
+
+public class RegionCreateDto
+{
+    public required string Name { get; set; }
 }
