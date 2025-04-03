@@ -12,11 +12,11 @@ export default function OpenFileButton({file, asIcon = false}: {file: DocumentRe
                 try {
                     const response = await fetch(url, {
                         method: 'GET',
-                        credentials: 'include', // Zorgt ervoor dat cookies worden meegestuurd
+                        credentials: 'include', // Makes sure cookies are included
                     });
                   
                     if (!response.ok) {
-                    throw new Error(`Fout bij ophalen van bestand: ${response.statusText}`);
+                    throw new Error(`Error getting file: ${response.statusText}`);
                     }
     
                     const blob = await response.blob();
@@ -24,7 +24,7 @@ export default function OpenFileButton({file, asIcon = false}: {file: DocumentRe
                     
                     window.open(blobUrl, '_blank');
                 } catch (error) {
-                    console.error("Fout bij ophalen van bestand:", error);
+                    console.error("Error getting file:", error);
                 }
             }
             else{
@@ -38,7 +38,7 @@ export default function OpenFileButton({file, asIcon = false}: {file: DocumentRe
           variant="default"
           type="button"
           onClick={openFileInNewTab}
-          title="Delete tag"
+          title="Download file"
         >
           <DownloadIcon className="h-5 w-5" fill="#737373" />
         </Button>
