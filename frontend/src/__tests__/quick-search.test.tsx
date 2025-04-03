@@ -240,12 +240,12 @@ describe("QuickSearch Component test", () => {
               files: [],
             }),
         });
-      } else {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockSearchResults),
-        });
       }
+
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockSearchResults),
+      });
     });
 
     // Type in the search input
