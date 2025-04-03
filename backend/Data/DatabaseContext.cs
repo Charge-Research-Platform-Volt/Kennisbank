@@ -65,15 +65,14 @@ namespace KnowledgeBank.Data
         {
             // Generates an Enumerable<Task> of SQL queries that inserts the
             // vector, if there's a conflict, replace existing vector instead
-            var updateTasks = updatedFiles.Select(file =>
-                Database.ExecuteSqlInterpolatedAsync($@"
+            foreach (var file in updatedFiles)
+            {
+                await Database.ExecuteSqlInterpolatedAsync($@"
                     INSERT INTO file_vectors (id, file_id, vector)
                     VALUES (gen_random_uuid(), {file.Id}, to_tsvector('english', {file.Name} || ' ' || {file.Description ?? ""}))
                     ON CONFLICT (file_id) 
-                    DO UPDATE SET vector = EXCLUDED.vector;"));
-
-            // Task that will complete when all subtasks have completed
-            await Task.WhenAll(updateTasks);
+                    DO UPDATE SET vector = EXCLUDED.vector;");
+            }
         }
 
         // protected override void OnModelCreating(ModelBuilder modelBuilder)
