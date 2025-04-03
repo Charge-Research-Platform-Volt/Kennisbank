@@ -2,7 +2,7 @@ using KnowledgeBank.Models;
 
 namespace backend.Responses;
 
-public class UserResponse
+public struct UserResponse
 {
     public Guid Id { get; }
     public string? Username { get; }
@@ -21,7 +21,7 @@ public class UserResponse
 }
 
 
-public class UserPageResponse
+public struct UserPageResponse
 {
     public string Message { get; }
     public int PageIndex { get; }
