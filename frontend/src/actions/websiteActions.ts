@@ -31,19 +31,19 @@ export const AddWebsite = async (
             };
         }
 
-        // const tagIDs: string[] = [];
+        const tagIDs: string[] = [];
         
-        // for (const [key, value] of formData.entries()) {
-        //     if (key.startsWith('tags[') && key.endsWith(']')) {
-        //         tagIDs.push(value as string);
-        //     }
-        // }
+        for (const [key, value] of formData.entries()) {
+            if (key.startsWith('tags[') && key.endsWith(']')) {
+                tagIDs.push(value as string);
+            }
+        }
 
-        // if (tagIDs.length > 0) {
-        //     tagIDs.forEach(tagID => {
-        //         formData.append('tags', tagID);
-        //     });
-        // }
+        if (tagIDs.length > 0) {
+            tagIDs.forEach(tagID => {
+                formData.append('tags', tagID);
+            });
+        }
 
         // Send the data to the backend.
         const cookieHeader = await cookies();

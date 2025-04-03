@@ -86,11 +86,13 @@ namespace backend.Controllers
                 return BadRequest("Description is not provided");
             }
 
+            Guid id = new Guid();
+
             try
             {
                 Website website = new()
                 {
-                    Id = new Guid(),
+                    Id = id,
                     URL = dto.URL,
                     Name = dto.Name,
                     Description = dto.Description,
@@ -98,6 +100,16 @@ namespace backend.Controllers
                     UpdatedAt = DateTime.UtcNow
                 };
                 await _context.Websites.AddAsync(website);
+                foreach (string tag in dto.Tags)
+                {
+                    FileTagLink tagEntry = new()
+                    {
+                        DocId = id,
+                        TagId = Guid.Parse(tag),
+                    };
+
+                    await _context.FileTagLinks.AddAsync(tagEntry);
+                }
                 await _context.SaveChangesAsync();
             }
             catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
