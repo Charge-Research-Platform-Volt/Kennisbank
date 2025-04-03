@@ -100,6 +100,19 @@ namespace backend.Controllers
                             await database.ResourceTagRelations.AddAsync(tagEntry);
                         }
 
+                        foreach (string author in dto.Authors)
+                        {
+                            ResourceAuthorRelation authorEntry = new()
+                            {
+                                ResourceId = id,
+                                PersonId = Guid.Parse(author),
+                            };
+
+                            await database.ResourceAuthorRelations.AddAsync(authorEntry);
+                        }
+
+
+
                         await database.SaveResourceChangesAsync();
 
                         logger.Information("File '{FileName}' added successfully", dto.File.FileName);

@@ -91,6 +91,7 @@ public class ResourceCreateDto // Data Transfer Object (DTO)
     public string? License { get; set; }
     public string? Note { get; set; }
     public string[] Tags { get; set; } = Array.Empty<string>();
+    public string[] Authors { get; set; } = Array.Empty<string>();
 }
 
 public class FileResourceCreateDto : ResourceCreateDto

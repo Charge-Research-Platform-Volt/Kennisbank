@@ -1,8 +1,10 @@
 ﻿using backend.Responses;
+using Docker.DotNet.Models;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Scaffolding.Metadata;
+using System.IO;
 
 namespace backend.Data
 {
@@ -21,6 +23,11 @@ namespace backend.Data
             database = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
 
             // await ShamelessCopyOfUpload("path", "title", "");
+            await AddTestAuthor("William Shakespeare", "Librarian", "Lived a long time ago", "william.shakespeare@gmail.com", "@WilliamShakespear");
+            await AddTestAuthor("Donal Trump", "Entertainer", "Hates everyone", "americanumberone@trump.com", "@Idiot");
+            await AddTestAuthor("Ozzy Osbourne", "Rockstar", "Loves drugs", "Ozz.Bourne@gmail.com", "@OzzyOsbourne");
+            await AddTestAuthor("Jan Adriaanszoon Leeghwater", "Windmills", "Insanely good at creating land from oceans", "leeghwater@gmail.com", "@LeeghwaterJan");
+            await AddTestAuthor("Mark Rutte", "NATO BAAS", "Committed treason against the Dutch people", "Markie.Rutte@gmail.com", "@MarkRutte");
             await ShamelessCopyOfUpload("WRRRaport - Opgave AI.pdf", "Opgave AI. De nieuwe systeemtechnologie", "WRR reageert op de regeringsaanvraag over de impact van AI op publieke waarden. AI wordt gezien als een systeemtechnologie met langdurige, grootschalige en onvoorspelbare effecten, daarom pleit de WRR voor een integrale aanpak met sterke overheidsbetrokkenheid");
             await ShamelessCopyOfUpload("WP+50v2_+AI+van+repliek+gediend_DEF_DT.pdf", "AI van repliek gediend? Een verkenning van tegenmacht vanuit maatschappelijke organisaties", "");
             await ShamelessCopyOfUpload("Aandacht+voor+media.+Naar+nieuwe+waarborgen+voor+hun+democratische++functies.pdf", "Aandacht voor media. Naar nieuwe waarborgen voor hun democratische functies", "In dit rapport onderzoekt de WRR de kenmerken en werking van het nieuwe mediasysteem en wat de impact ervan is op de democratie. We concluderen dat de drie democratische functies van media onder druk staan en dat nieuw beleid noodzakelijk is");
@@ -35,6 +42,35 @@ namespace backend.Data
             await ShamelessCopyOfUpload("Essay+Burgers+gelijkwaardig+aan+ontwerptafel+van+beleid.pdf", "Burgers gelijkwaardig aan de ontwerptafel", "");
             await ShamelessCopyOfUpload("kennedy-et-al-2020-demographics-and-(equal-)-voice-assessing-participation-in-online-deliberative-sessions.pdf", "Demographics and (Equal?) Voice: Assessing Participation in Online Deliberative Sessions", "");
             await ShamelessCopyOfUpload("1887_3731030-Full Text.pdf", "Stimulering en facilitering van burgerinitiatieven door de overheid: over de invulling van de ‘dienende overheid’ bij derde generatie burgerparticipatie", "");
+        }
+
+        private static async Task AddTestAuthor(string name, string occupation, string description, string emailaddress, string linkedin)
+        {
+            Guid id = Guid.NewGuid();
+
+            Person? personItem = await database.Persons.Where(f => f.Name == name).FirstOrDefaultAsync();
+
+            if (personItem != null) return;
+            try
+            {
+                Person person = new()
+                {
+                    Id = id,
+                    Name = name,
+                    Occupation = occupation,
+                    Description = description,
+                    EmailAddress = emailaddress,
+                    Linkedin = linkedin
+                };
+
+
+                await database.Persons.AddAsync(person);
+                await database.SaveResourceChangesAsync();
+            }
+            catch (Exception e)
+            {
+                Serilog.Log.Logger.Error(e, "Error adding person to document: {name}.");
+            }
         }
 
         private static async Task ShamelessCopyOfUpload(string path, string title, string description)
