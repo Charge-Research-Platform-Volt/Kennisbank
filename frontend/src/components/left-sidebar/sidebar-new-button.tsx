@@ -56,10 +56,14 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
   useEffect(() => {
     if (state.success) {
       toast.success(state.message);
-
       closeUploadPopup();
     } else if (state.message) {
       toast.error(state.message);
+      setStatus("error")
+    }
+    else {
+      toast.error("unknown error")
+      setStatus("error")
     }
   }, [state]);
 
@@ -136,7 +140,7 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
       return;
     }
 
-    setStatus("uploading");
+    setStatus("uploading"); 
 
     try {
       startTransition(async () => {

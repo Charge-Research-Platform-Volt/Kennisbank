@@ -69,7 +69,7 @@ namespace KnowledgeBank.Data
             var updateTasks = updatedFiles.Select(file =>
                 Database.ExecuteSqlInterpolatedAsync($@"
                     INSERT INTO file_vectors (id, file_id, vector)
-                    VALUES (gen_random_uuid(), {file.Id}, to_tsvector('english', {file.Name} || ' ' || {file.Description}))
+                    VALUES (gen_random_uuid(), {file.Id}, to_tsvector('english', {file.Name} || ' ' || {file.Description ?? ""}))
                     ON CONFLICT (file_id) 
                     DO UPDATE SET vector = EXCLUDED.vector;"));
 

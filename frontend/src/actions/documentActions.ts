@@ -53,7 +53,7 @@ export const AddDocument = async (
         }
 
         // Send the data to the backend.
-        const cookieHeader = cookies();
+        const cookieHeader = await cookies();
         const response = await fetch("http://backend:8080/storage/upload", {
             method: "PUT",
             body: formData,
