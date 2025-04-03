@@ -26,9 +26,10 @@ interface File {
 export default function QuickSearch() {
   const [isOpen, setIsOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<File[]>([]);
+  
 
   // Keyboard shortcut
-  useHotkeys("meta+k", () => setIsOpen(true), { preventDefault: true });
+  useHotkeys("mod+k", () => setIsOpen(true), { preventDefault: true });
 
   // Fetch search results
   const fetchSearchResults = async (query?: string) => {
