@@ -142,29 +142,29 @@ public class UserTagController : ControllerBase
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> DeleteTag(string id)
     {
-        Log.Information("Removing user tag from user tag list.");
-
-        // Make sure we have the required fields
-        if (id == null)
-        {
-            Log.Error("Id is required");
-            return BadRequest(new { message = "Id is required" });
-        }
-
-        Guid guid = Guid.Parse(id);
-
-        //find tag in database
-        UserTag? userTag = await _context.UserTags.FirstOrDefaultAsync(t => t.Id == guid); //if not found: set tag to null
-
-        //check if tag is found
-        if (userTag == null)
-        {
-            Log.Error("User tag not found.");
-            return NotFound(new { message = "User tag not found." });
-        }
-
         try
         {
+            Log.Information("Removing user tag from user tag list.");
+
+            // Make sure we have the required fields
+            if (id == null)
+            {
+                Log.Error("Id is required");
+                return BadRequest(new { message = "Id is required" });
+            }
+
+            Guid guid = Guid.Parse(id);
+
+            //find tag in database
+            UserTag? userTag = await _context.UserTags.FirstOrDefaultAsync(t => t.Id == guid); //if not found: set tag to null
+
+            //check if tag is found
+            if (userTag == null)
+            {
+                Log.Error("User tag not found.");
+                return NotFound(new { message = "User tag not found." });
+            }
+            
             // remove tag from database and save changes
             _context.UserTags.Remove(userTag);
             await _context.SaveChangesAsync();
