@@ -246,7 +246,10 @@ export default function TagSelectionDropdown({ userTags, standardizedTags, class
       <div className="mt-1 h-[100%] max-h-50 overflow-y-auto border">
         {addedTags.map((tag) => (
           <div key={tag.name} className="flex w-full p-2 text-left transition-colors duration-200">
-            <p>{tag.name}</p>
+            <div className="flex items-center gap-2">
+              <p>{tag.name}</p>
+              <AdminTag className="h-4 w-4"/>
+            </div>
             <Button data-testid="delete_tag" onClick={deleteTags} name={tag.id} className="ml-auto cursor-pointer" type="button">
               Delete
             </Button>
@@ -254,7 +257,10 @@ export default function TagSelectionDropdown({ userTags, standardizedTags, class
         ))}
         {addedUserTags.map((tag) => (
           <div key={tag.name} className="flex w-full p-2 text-left transition-colors duration-200">
-            <p>{tag.name}</p>
+            <div className="flex items-center gap-2">
+              <p>{tag.name}</p>
+              {tag.isApproved && <ApprovedTag className="h-4 w-4" />}
+            </div>
             <Button onClick={deleteUserTags} name={tag.id} className="ml-auto cursor-pointer" type="button">
               Delete
             </Button>
