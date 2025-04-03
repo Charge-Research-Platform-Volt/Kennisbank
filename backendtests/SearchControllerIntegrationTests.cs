@@ -85,7 +85,6 @@ public class SearchControllerIntegrationTests
         Assert.That(result, Is.Not.Null, "The search result is null");
 
         var testResult = result as ObjectResult;
-        TestContext.Out.WriteLine($"Returned status code: {testResult?.StatusCode}");
 
         // Check the result status code
         var okResult = result as OkObjectResult;
