@@ -26,7 +26,6 @@ interface File {
 export default function QuickSearch() {
   const [isOpen, setIsOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<File[]>([]);
-  
 
   // Keyboard shortcut
   useHotkeys("mod+k", () => setIsOpen(true), { preventDefault: true });
@@ -73,7 +72,7 @@ export default function QuickSearch() {
               <Search className="h-4 w-4" />
               Search
             </div>
-            <kbd className="text-[10px]">Cmd + K</kbd>
+            <kbd className="text-[10px]">{navigator.userAgent.includes("Mac") ? "Cmd" : "Ctrl"} + K</kbd>
           </Button>
         </DialogTrigger>
         <DialogOverlay />
