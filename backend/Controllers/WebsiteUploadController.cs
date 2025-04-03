@@ -86,7 +86,8 @@ namespace backend.Controllers
                 return BadRequest("Description is not provided");
             }
 
-            Guid id = new Guid();
+            Guid id = Guid.NewGuid();
+            //Log(id);
 
             try
             {
@@ -100,6 +101,7 @@ namespace backend.Controllers
                     UpdatedAt = DateTime.UtcNow
                 };
                 await _context.Websites.AddAsync(website);
+
                 foreach (string tag in dto.Tags)
                 {
                     FileTagLink tagEntry = new()
