@@ -100,9 +100,14 @@ public class UserControllerIntegrationTests
         Assert.That(okResult, Is.Not.Null);
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
 
-        var response = okResult.Value as UserPageResponse;
-        Assert.That(response.Users.Length, Is.GreaterThan(0));
-        Assert.That(response.PageCount, Is.EqualTo(1));
+        if(okResult.Value is UserPageResponse response)
+        {
+            Assert.That(response.Users.Length, Is.GreaterThan(0));
+            Assert.That(response.PageCount, Is.EqualTo(1));
+            return;
+        }
+        
+        Assert.Fail("Expected UserPageResponse, but got a different type.");
     }
 
     [Test]
