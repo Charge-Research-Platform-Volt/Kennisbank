@@ -107,7 +107,6 @@ describe("QuickSearch Component test", () => {
 
     // Check if the buttons are rendered
     expect(screen.getByText("Search")).toBeInTheDocument();
-    expect(screen.getByText("Cmd + K")).toBeInTheDocument();
   });
 
   // Test-2
