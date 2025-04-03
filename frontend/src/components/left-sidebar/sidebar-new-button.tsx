@@ -15,7 +15,6 @@ import { TagsArray } from "@/types/tag.type";
 import TagSelectionDropdown from "../TagSelectionDropdown";
 import { InputHeader, InputBlock, FInput, FileInfo, PopupTitle } from "../ui/Popup";
 import New from "@/icons/new";
-import { set } from "zod";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error" | "checking";
 
@@ -233,8 +232,8 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
               <div className="flex h-full w-full flex-col justify-between">
                 <div className="flex-1 justify-start">
                   <div className="flex-1 justify-start">
-                  <Button onClick={() => changeTab("Website")} data-testid = "changeToWebsiteUpload">website</Button>
-                  <Button onClick={() => changeTab("File")} data-testid = "changeToFileUpload">file</Button>
+                  <Button onClick={() => changeTab("Website")} data-testid = "changeToWebsiteUpload" type="button">website</Button>
+                  <Button onClick={() => changeTab("File")} data-testid = "changeToFileUpload" type="button">file</Button>
                     <PopupTitle data-testid="popup_text">Upload {newUploadType}</PopupTitle>
                     <div className="mt-5 mb-2 flex w-40">
                       {/* Label is what you see however you click the input, only applicable if the user uploads a file */}
