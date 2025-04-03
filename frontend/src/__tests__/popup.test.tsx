@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import NewButton from '@/components/left-sidebar/sidebar-new-button'
-import { TagsArraySchema } from '@/types/tag.type'
+import { TagsArraySchema, UserTagsArraySchema } from '@/types/tag.type'
 import TagSelectionDropdown from '@/components/TagSelectionDropdown'
 
 const testTags = TagsArraySchema.parse([
@@ -10,13 +10,21 @@ const testTags = TagsArraySchema.parse([
         id: "3b542bc8-9b38-4c40-926d-dcd46c576fdf"
     }
 ]);
+const testUserTags = UserTagsArraySchema.parse([
+    {
+        name: "bla2",
+        id: "4b542bc8-9b38-4c40-926d-dcd46c576fdf",
+        isApproved: false,
+        user: null
+    }
+])
 
 const expectedComponents : string[] = ['Upload New Document', 'Create New Project'];
 const popUpText : string[] = ['Tags:', 'Upload Document', 'Document Title:', 'Description:', 'Author Name:', 'Upload'];
 
 describe('popup', () =>
     test('There are buttons that work correctly and render components with correct names', async() =>{
-        render(<NewButton tags={testTags}/>);
+        render(<NewButton userTags={testUserTags} standardizedTags={testTags}/>);
         const buttonName = await screen.queryAllByTestId("button_text").map(elem => elem.textContent ?? '');
         expect(buttonName).toEqual(["New"]); // 1 button
 
@@ -43,7 +51,7 @@ describe('popup', () =>
     }),
 
     test('The tag selection dropdown works as expected', async() => {
-        render(<TagSelectionDropdown tags={testTags} classname="test"></TagSelectionDropdown>);
+        render(<TagSelectionDropdown userTags={testUserTags} standardizedTags={testTags} className="test"></TagSelectionDropdown>);
         const inputTags = await screen.getByTestId("input_tags");
 
         // SIMULATE INPUT
@@ -51,12 +59,12 @@ describe('popup', () =>
 
         // GET NEW BUTTONS
         let displayedTags = await screen.getAllByTestId("select_tag"); // there is only 1
-        expect(displayedTags).toHaveLength(testTags.length);
+        expect(displayedTags).toHaveLength(testTags.length + testUserTags.length);
 
         // ADD TAG
         fireEvent.click(displayedTags[0])
         let deleteTags = await screen.getAllByTestId("delete_tag"); // there is only 1
-        expect(deleteTags).toHaveLength(testTags.length);
+        expect(deleteTags).toHaveLength(1);
         fireEvent.click(deleteTags[0]);
         deleteTags = await screen.queryAllByTestId("delete_tag");
         displayedTags = await screen.queryAllByTestId("select_tag");

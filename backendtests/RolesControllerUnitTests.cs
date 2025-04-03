@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using Newtonsoft.Json;
 using System.Reflection;
 using System.Security.Claims;
 
@@ -104,7 +105,7 @@ public class RolesControllerUnitTests
         var notFoundResult = result as NotFoundObjectResult;
         Assert.That(notFoundResult, Is.Not.Null);
         Assert.That(notFoundResult.StatusCode, Is.EqualTo(404));
-        Assert.That(notFoundResult.Value, Is.EqualTo("Invalid user ID."));
+        Assert.That(JsonConvert.SerializeObject(notFoundResult.Value), Is.EqualTo("{\"message\":\"Invalid user ID.\"}"));
     }
 
     [Test]
@@ -140,7 +141,8 @@ public class RolesControllerUnitTests
         var okResult = result as OkObjectResult;
         Assert.That(okResult, Is.Not.Null);
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
-        Assert.That(okResult.Value, Is.EqualTo($"User '{user.UserName}' added to role '{dto.RoleName}' successfully."));
+        var expectedJson = JsonConvert.SerializeObject(new { message = $"User '{user.UserName}' added to role '{dto.RoleName}' successfully." });
+        Assert.That(JsonConvert.SerializeObject(okResult.Value), Is.EqualTo(expectedJson));
     }
 
     [Test]
@@ -166,7 +168,7 @@ public class RolesControllerUnitTests
         var notFoundResult = result as NotFoundObjectResult;
         Assert.That(notFoundResult, Is.Not.Null);
         Assert.That(notFoundResult.StatusCode, Is.EqualTo(404));
-        Assert.That(notFoundResult.Value, Is.EqualTo("Invalid role name."));
+        Assert.That(JsonConvert.SerializeObject(notFoundResult.Value), Is.EqualTo("{\"message\":\"Invalid role name.\"}"));
     }
 
     [Test]

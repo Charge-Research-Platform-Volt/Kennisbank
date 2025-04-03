@@ -101,6 +101,32 @@ namespace backend.Migrations
                     b.ToTable("file_vectors");
                 });
 
+            modelBuilder.Entity("KnowledgeBank.Models.Invitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("email");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("token");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("invitations");
+                });
+
             modelBuilder.Entity("KnowledgeBank.Models.Tag", b =>
                 {
                     b.Property<Guid>("Id")

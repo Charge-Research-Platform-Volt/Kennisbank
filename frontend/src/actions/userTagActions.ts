@@ -113,6 +113,7 @@ export const SaveUserTag = async (
         isApproved: false,
         user: formData.get("user") as string,
     };
+    console.log(rawData);
 
     // Validate the raw data, if it fails, return an error
     const validatedData = UserTagSchema.safeParse(rawData);
@@ -160,6 +161,35 @@ export const ApproveUserTag = async (tagId: string): Promise<FormResponse<{ id: 
     const cookieHeader = await cookies();
     const response = await fetch(
         `http://backend:8080/UserTag/approve-usertag/${encodeURIComponent(tagId)}`,
+        {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+            credentials: "include",
+        },
+    );
+    const data = await response.json();
+
+    if (!response.ok) {
+        return {
+            success: false,
+            message: data.message,
+        };
+    }
+
+    revalidatePath("/usertags");
+    return {
+        success: true,
+        message: data.message,
+    };
+};
+
+// Convert a User Tag (only admins can do this)
+export const ConvertUserTag = async (tagId: string): Promise<FormResponse<{ id: string }>> => {
+    console.log("Converting user tag: ", tagId);
+
+    const cookieHeader = await cookies();
+    const response = await fetch(
+        `http://backend:8080/UserTag/convert-to-tag/${encodeURIComponent(tagId)}`,
         {
             method: "PATCH",
             headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },

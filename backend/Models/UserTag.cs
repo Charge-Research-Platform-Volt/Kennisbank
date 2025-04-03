@@ -16,14 +16,4 @@ public class UserTag
 
     [Column("is_approved")]
     public bool IsApproved { get; set; }
-
-    // TODO: Should be the actual User object or userId, not just a string.
-    [Column("user")]
-    public required string User { get; set; }
-
-    [Column("created_on")]
-    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
-
-    [Column("approved_on")]
-    public DateTime? ApprovedOn { get; set; }
 }
