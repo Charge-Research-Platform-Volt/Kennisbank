@@ -78,27 +78,27 @@ public class AuthControllerIntegrationTests
         _userManager.Dispose();
     }
 
-    // [Test]
-    // public async Task SendInvitation()
-    // {
-    //     // Arrange
-    //     string email = "test@test.nl";
-    //     string hashedEmail = ShaUtils.Sha256(email);
-    //     DateTime startTime = DateTime.UtcNow;
+    [Test]
+    public async Task SendInvitation()
+    {
+        // Arrange
+        string email = "test@test.nl";
+        string hashedEmail = ShaUtils.Sha256(email);
+        DateTime startTime = DateTime.UtcNow;
 
-    //     // Act
-    //     var result = await _controller.Invite(email);
+        // Act
+        var result = await _controller.Invite(email);
 
-    //     // Assert
-    //     Assert.That(result, Is.TypeOf<OkResult>(), "The result must be an OkResult.");
+        // Assert
+        Assert.That(result, Is.TypeOf<OkResult>(), "The result must be an OkResult.");
         
-    //     Assert.That(_context.Invitations.Count(), Is.EqualTo(1), "The number of invitations in the database must be 1.");
-    //     var invitation = _context.Invitations.FirstOrDefault(i => i.Email == hashedEmail);
-    //     Assert.That(invitation, Is.Not.Null, "There must be an invitation with the hashed email in the database.");
-    //     Assert.That(invitation.Email, Is.EqualTo(hashedEmail), "The email must be the hashed email of the user.");
-    //     Assert.That(invitation.CreatedAt, Is.LessThanOrEqualTo(DateTime.UtcNow), "The creation date of the invitation must be set correctly.");
-    //     Assert.That(invitation.CreatedAt, Is.GreaterThanOrEqualTo(startTime), "The creation date of the invitation must be set correctly.");
-    // }
+        Assert.That(_context.Invitations.Count(), Is.EqualTo(1), "The number of invitations in the database must be 1.");
+        var invitation = _context.Invitations.FirstOrDefault(i => i.Email == hashedEmail);
+        Assert.That(invitation, Is.Not.Null, "There must be an invitation with the hashed email in the database.");
+        Assert.That(invitation.Email, Is.EqualTo(hashedEmail), "The email must be the hashed email of the user.");
+        Assert.That(invitation.CreatedAt, Is.LessThanOrEqualTo(DateTime.UtcNow), "The creation date of the invitation must be set correctly.");
+        Assert.That(invitation.CreatedAt, Is.GreaterThanOrEqualTo(startTime), "The creation date of the invitation must be set correctly.");
+    }
 
     // [Test]
     // public async Task SignUpWithWrongEmail()
