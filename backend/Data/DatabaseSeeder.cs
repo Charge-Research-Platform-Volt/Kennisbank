@@ -8,6 +8,8 @@ namespace backend.Data
 {
     public static class DatabaseSeeder
     {
+        public const string UnknownResourceTypeId = "0cc285a8-0f07-11f0-a0a6-5600051f1387";
+
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         private static DatabaseContext database;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
@@ -19,7 +21,7 @@ namespace backend.Data
             database = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
 
             // Seed data
-            await database.ResourceTypes.AddAsync(new() { Id = new Guid("0cc285a8-0f07-11f0-a0a6-5600051f1387"), Name = "Unknown"});
+            await database.ResourceTypes.AddAsync(new() { Id = new Guid(UnknownResourceTypeId), Name = "Unknown"});
 
             // Save changes
             await database.SaveChangesAsync();

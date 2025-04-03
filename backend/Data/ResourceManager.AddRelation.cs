@@ -722,5 +722,29 @@ namespace backend.Data
         { await AddUserTagToResourceAsync(Guid.Parse(resourceId), Guid.Parse(tagId)); }
 
         #endregion
+
+        #region Resource-ResourceType
+
+        public async Task AddResourceTypeToResourceAsync(Guid resourceId, Guid resourceTypeId)
+        {
+            Resource? resource = await GetResourceAsync(resourceId);
+
+            if (resource == null) return;
+
+            resource.TypeId = resourceTypeId;
+
+            await database.SaveChangesAsync();
+        }
+
+        public async Task AddResourceTypeToResourceAsync(Guid resourceId, string resourceTypeId)
+        { await AddResourceTypeToResourceAsync(resourceId, Guid.Parse(resourceTypeId)); }
+
+        public async Task AddResourceTypeToResourceAsync(string resourceId, Guid resourceTypeId)
+        { await AddResourceTypeToResourceAsync(Guid.Parse(resourceId), resourceTypeId); }
+
+        public async Task AddResourceTypeToResourceAsync(string resourceId, string resourceTypeId)
+        { await AddResourceTypeToResourceAsync(Guid.Parse(resourceId), Guid.Parse(resourceTypeId)); }
+
+        #endregion
     }
 }

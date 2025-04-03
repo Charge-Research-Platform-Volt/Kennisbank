@@ -16,6 +16,33 @@ namespace backend.Data
 
             await database.SaveResourceChangesAsync();
 
+            // Remove all resource author relations containing this resource
+            await RemoveAllResourceAuthorRelationsWithResourceIdAsync(id);
+
+            // Remove all resource-organisation relations containing this resource
+            await RemoveAllResourceOrganisationRelationsWithResourceIdAsync(id);
+
+            // Remove all resource-region relations containing this resource
+            await RemoveAllResourceRegionRelationsWithResourceIdAsync(id);
+
+            // Remove all resource-source relations containing this resource
+            await RemoveAllResourceSourceRelationsWithResourceIdAsync(id);
+
+            // Remove all resource-related_organisation relations containing this resource
+            await RemoveAllResourceRelatedOrganisationRelationsWithResourceIdAsync(id);
+
+            // Remove all resource-related_persons relations containing this resource
+            await RemoveAllResourceRelatedPersonRelationsWithResourceIdAsync(id);
+
+            // Remove all resource-related_sources relations containing this resource
+            await RemoveAllResourceRelatedSourceRelationsWithResourceIdAsync(id);
+
+            // Remove all resource-admintag relations containing this resource
+            await RemoveAllResourceUserTagRelationsWithResourceIdAsync(id);
+
+            // Remove all resource-admintag relations containing this resource
+            await RemoveAllResourceUserTagRelationsWithResourceIdAsync(id);
+
             return true;
         }
 
@@ -33,6 +60,18 @@ namespace backend.Data
             database.Persons.Remove(person);
 
             await database.SaveChangesAsync();
+
+            // Delete person from all organisations
+            await RemovePersonFromAllOrganisationsAsync(id);
+
+            // Delete all person relationships with this person
+            await RemoveAllPersonRelationshipsContainingIdAsync(id);
+
+            // Delete person from all author relations
+            await RemoveAuthorFromAllResourcesAsync(id);
+
+            // Delete all resource-related_person relations containing this person
+            await RemoveRelatedPersonFromAllResourcesAsync(id);
 
             return true;
         }
@@ -52,6 +91,18 @@ namespace backend.Data
 
             await database.SaveChangesAsync();
 
+            // Delete all organisation relationships with this organisation
+            await RemoveAllOrganisationRelationshipsContainingIdAsync(id);
+
+            // Delete organisation from all direct resource relations
+            await RemoveOrganisationFromAllResourcesAsync(id);
+
+            // Delete all person-organisation relations containing this organisation
+            await RemoveAllPersonOrganisationRelationsWithOrganisationIdAsync(id);
+
+            // Delete all resource-organisation relations containing this organisation
+            await RemoveRelatedOrganisationFromAllResourcesAsync(id);
+
             return true;
         }
 
@@ -69,6 +120,9 @@ namespace backend.Data
             database.Regions.Remove(region);
 
             await database.SaveChangesAsync();
+
+            // Delete region from all resources
+            await RemoveRegionFromAllResourcesAsync(id);
 
             return true;
         }
@@ -142,6 +196,9 @@ namespace backend.Data
 
             await database.SaveChangesAsync();
 
+            // Remove all resource-usertag relations containing this tag
+            await RemoveUserTagFromAllResourcesAsync(id);
+
             return true;
         }
         
@@ -160,6 +217,9 @@ namespace backend.Data
 
             await database.SaveChangesAsync();
 
+            // Remove all resource-admintag relations containing this tag
+            await RemoveAdminTagFromAllResourcesAsync(id);
+
             return true;
         }
         
@@ -175,6 +235,14 @@ namespace backend.Data
             if (type == null) return false;
 
             database.ResourceTypes.Remove(type);
+
+            Guid unkownTypeId = Guid.Parse(DatabaseSeeder.UnknownResourceTypeId);
+
+            // Set the type of all resources with this type to unknown
+            foreach (Resource resource in await GetAllWhereAsync(database.Resources, i => i.TypeId == id))
+            {
+                resource.TypeId = unkownTypeId;
+            }
 
             await database.SaveChangesAsync();
 

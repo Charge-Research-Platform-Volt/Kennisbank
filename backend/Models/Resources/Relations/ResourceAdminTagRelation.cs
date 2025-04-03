@@ -7,9 +7,11 @@ namespace KnowledgeBank.Models;
 public class ResourceAdminTagRelation
 {
     [Column("resource-id")]
+    [ForeignKey("Resource")]
     public required Guid ResourceId { get; set; }
 
     [Column("tag-id")]
+    [ForeignKey("AdminTag")]
     public required Guid TagId { get; set; }
 
     // Navigation properties
