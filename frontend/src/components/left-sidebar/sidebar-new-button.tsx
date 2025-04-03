@@ -232,9 +232,12 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
               <div className="flex h-full w-full flex-col justify-between">
                 <div className="flex-1 justify-start">
                   <div className="flex-1 justify-start">
-                  <Button onClick={() => changeTab("Website")} data-testid = "changeToWebsiteUpload" type="button">website</Button>
-                  <Button onClick={() => changeTab("File")} data-testid = "changeToFileUpload" type="button">file</Button>
+                  <div className="mb-2">
                     <PopupTitle data-testid="popup_text">Upload {newUploadType}</PopupTitle>
+                    <InputHeader>Information type: </InputHeader>
+                    <Button onClick={() => changeTab("Website")} className="mr-2" data-testid = "changeToWebsiteUpload" type="button">Website</Button>
+                    <Button onClick={() => changeTab("File")} data-testid = "changeToFileUpload" type="button">File</Button>
+                    </div>
                     <div className="mt-5 mb-2 flex w-40">
                       {/* Label is what you see however you click the input, only applicable if the user uploads a file */}
                       {newUploadType === "File" && (
