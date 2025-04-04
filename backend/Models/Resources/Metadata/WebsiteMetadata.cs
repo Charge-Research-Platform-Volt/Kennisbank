@@ -13,6 +13,9 @@ public class WebsiteMetadata
     [ForeignKey("Resource")]
     public required Guid ResourceId { get; set; }
 
+    [Column("accessed-on")]
+    public DateTime? AccessedOn { get; set; }
+
     // Navigation property to parent (1:1)
     [JsonIgnore] public Resource? Resource { get; set; }
 }
@@ -20,4 +23,5 @@ public class WebsiteMetadata
 public class WebsiteCreateDto : ResourceCreateDto
 {
     public required string Url { get; set; }
+    public DateTime? AccessedOn { get; set; }
 }

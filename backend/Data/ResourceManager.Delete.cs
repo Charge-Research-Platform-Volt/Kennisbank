@@ -184,6 +184,22 @@ namespace backend.Data
         public async Task<bool> DeleteWebsiteMetadataAsync(string id)
         { return await DeleteWebsiteMetadataAsync(Guid.Parse(id)); }
 
+        // --- Document Metadata
+
+        public async Task<bool> DeleteDocumentMetadataAsync(Guid id)
+        {
+            DocumentMetadata? metadata = await GetDocumentMetadataAsync(id);
+
+            if (metadata == null) return false;
+
+            await database.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<bool> DeleteDocumentMetadataAsync(string id)
+        { return await DeleteDocumentMetadataAsync(Guid.Parse(id)); }
+
         // --- User Tag
 
         public async Task<bool> DeleteUserTagAsync(Guid id)

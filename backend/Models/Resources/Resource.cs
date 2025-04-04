@@ -91,17 +91,17 @@ public class ResourceCreateDto // Data Transfer Object (DTO)
     public required DateTime PublicationDate { get; set; }
     public string? License { get; set; }
     public string? Note { get; set; }
-    public string[] AdminTags { get; set; } = Array.Empty<string>();
-    public string[] UserTags { get; set; } = Array.Empty<string>();
-    public string[] Authors { get; set; } = Array.Empty<string>();
+    public string[] AdminTags { get; set; } = [];
+    public string[] UserTags { get; set; } = [];
+    public string[] Authors { get; set; } = [];
     // Tuple: (OrganisationId, role?)
-    public (string, string?)[] Organisations { get; set; } = Array.Empty<(string, string?)>();
-    public string[] Regions { get; set; } = Array.Empty<string>();
+    public (string, string?)[] Organisations { get; set; } = [];
+    public string[] Regions { get; set; } = [];
     // Tuple: (OrganisationId, role?)
-    public (string, string?)[] RelatedOrganisations { get; set; } = Array.Empty<(string, string?)>();
+    public (string, string?)[] RelatedOrganisations { get; set; } = [];
     // Tuple: (PersonId, role?)
-    public (string, string?)[] RelatedPersons { get; set; } = Array.Empty<(string, string?)>();
-    public string[] RelatedSources { get; set; } = Array.Empty<string>();
+    public (string, string?)[] RelatedPersons { get; set; } = [];
+    public string[] RelatedSources { get; set; } = [];
 }
 
 public class FileResourceCreateDto : ResourceCreateDto

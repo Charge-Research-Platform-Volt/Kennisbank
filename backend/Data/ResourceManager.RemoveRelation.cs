@@ -1,10 +1,43 @@
 ﻿using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace backend.Data
 {
     public partial class ResourceManager
     {
+        public async Task<bool> RemoveWithCompositeKeyAsync<TSet, TKey1, TKey2>(DbSet<TSet> dbSet, TKey1 key1, TKey2 key2) where TSet : class
+        {
+            TSet? entry = await dbSet.FindAsync(key1, key2);
+
+            if (entry == null) return false;
+
+            dbSet.Remove(entry);
+
+            await database.SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<bool> RemoveAllWhereAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate) where T : class
+        {
+            T[] entries = await dbSet.Where(predicate).ToArrayAsync();
+
+            if (entries.Length == 0) return false;
+
+            dbSet.RemoveRange(entries);
+
+            await database.SaveChangesAsync();
+
+            return true;
+        }
+
+
+
+        // --------------------------------
+
+
+
         #region Organisation Relationships
 
         // Remove single

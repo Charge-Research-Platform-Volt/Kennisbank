@@ -25,3 +25,8 @@ public class AudioCreateDto : FileResourceCreateDto
 {
     public ulong? Length { get; set; }
 }
+
+public class AudioAddDto
+{
+    public ulong? Length { get; set; }
+}

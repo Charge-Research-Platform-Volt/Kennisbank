@@ -18,15 +18,18 @@ public class UserTag
     [Column("is-approved")]
     public bool IsApproved { get; set; } = false;
 
+    [Column("approved-on")]
+    public DateTime? ApprovedOn { get; set; }
+
+    [Column("approvedBy")]
+    public Guid? ApprovedBy { get; set; }
+
     // TODO: Should be the actual User object or userId, not just a string.
-    [Column("user")]
+    [Column("created-by")]
     public required string User { get; set; }
 
     [Column("created-on")]
     public required DateTime CreatedOn { get; set; } = DateTime.UtcNow;
-
-    [Column("approved-on")]
-    public DateTime? ApprovedOn { get; set; }
 
     // Navigation properties
     [JsonIgnore] public ICollection<ResourceUserTagRelation>? Resources { get; set; }
@@ -38,5 +41,4 @@ public class UserTagCreateDto
     public bool IsApproved { get; set; } = false;
     // TODO: Should be User ID, see TODO above.
     public required string User { get; set; }
-    public DateTime? ApprovedOn { get; set; }
 }

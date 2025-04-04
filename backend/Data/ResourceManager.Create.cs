@@ -149,22 +149,19 @@ namespace backend.Data
             Guid resourceId = await CreateResourceAsync(dto);
 
             // Add metadata if present
-            if (false)
+            if (dto.AccessedOn != null)
             {
-                // Since we do not have any metadata, we make the if statement inpossible
-                // Set the if statement and remove the warning disable when we do have metadata
-#pragma warning disable CS0162 // Unreachable code detected
                 WebsiteMetadata website = new()
                 {
                     ResourceId = resourceId,
+                    AccessedOn = dto.AccessedOn,
                 };
-#pragma warning restore CS0162 // Unreachable code detected
 
                 await database.WebsiteMetadata.AddAsync(website);
             }
 
             // Add source relation to database (this is the url of the website)
-
+            await AddSourceToResourceAsync(resourceId, dto.Url);
 
             await database.SaveChangesAsync();
 
@@ -289,7 +286,6 @@ namespace backend.Data
                 Name = dto.Name,
                 User = dto.User,
                 CreatedOn = DateTime.UtcNow,
-                ApprovedOn = dto.ApprovedOn,
             };
 
             // Add user tag to database

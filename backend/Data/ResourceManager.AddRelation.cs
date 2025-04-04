@@ -746,5 +746,81 @@ namespace backend.Data
         { await AddResourceTypeToResourceAsync(Guid.Parse(resourceId), Guid.Parse(resourceTypeId)); }
 
         #endregion
+
+        #region Resource-AudioMetadata
+
+        public async Task AddAudioMetadataToResourceAsync(Guid resourceId)
+        {
+            if (await GetAudioMetadataAsync(resourceId) != null) return;
+
+            await database.AudioMetadata.AddAsync(new()
+            {
+                ResourceId = resourceId
+            });
+
+            await database.SaveChangesAsync();
+        }
+
+        public async Task AddAudioMetadataToResourceAsync(string resourceId)
+        { await AddAudioMetadataToResourceAsync(Guid.Parse(resourceId)); }
+
+        #endregion
+
+        #region Resource-VideoMetadata
+
+        public async Task AddVideoMetadataToResourceAsync(Guid resourceId)
+        {
+            if (await GetVideoMetadataAsync(resourceId) != null) return;
+
+            await database.VideoMetadata.AddAsync(new()
+            {
+                ResourceId = resourceId
+            });
+
+            await database.SaveChangesAsync();
+        }
+
+        public async Task AddVideoMetadataToResourceAsync(string resourceId)
+        { await AddVideoMetadataToResourceAsync(Guid.Parse(resourceId)); }
+
+        #endregion
+
+        #region Resource-DocumentMetadata
+
+        public async Task AddDocumentMetadataToResourceAsync(Guid resourceId)
+        {
+            if (await GetDocumentMetadataAsync(resourceId) != null) return;
+
+            await database.DocumentMetadata.AddAsync(new()
+            {
+                ResourceId = resourceId
+            });
+
+            await database.SaveChangesAsync();
+        }
+
+        public async Task AddDocumentMetadataToResourceAsync(string resourceId)
+        { await AddDocumentMetadataToResourceAsync(Guid.Parse(resourceId)); }
+
+        #endregion
+
+        #region Resource-WebsiteMetadata
+
+        public async Task AddWebsiteMetadataToResourceAsync(Guid resourceId)
+        {
+            if (await GetWebsiteMetadataAsync(resourceId) != null) return;
+
+            await database.WebsiteMetadata.AddAsync(new()
+            {
+                ResourceId = resourceId
+            });
+
+            await database.SaveChangesAsync();
+        }
+
+        public async Task AddWebsiteMetadataToResourceAsync(string resourceId)
+        { await AddWebsiteMetadataToResourceAsync(Guid.Parse(resourceId)); }
+
+        #endregion
     }
 }

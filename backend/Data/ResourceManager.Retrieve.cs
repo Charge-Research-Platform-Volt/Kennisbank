@@ -1,10 +1,46 @@
 ﻿using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace backend.Data
 {
     public partial class ResourceManager
     {
+        public async Task<T?> GetAsync<T>(Guid id, DbSet<T> dbSet) where T : class
+        { return await dbSet.FindAsync(id); }
+
+        public async Task<T?> GetAsync<T>(string id, DbSet<T> dbSet) where T : class
+        { return await GetAsync(Guid.Parse(id), dbSet); }
+
+        public async Task<T[]> GetAllAsync<T, TKey>(DbSet<T> dbSet, Expression<Func<T, TKey>> orderBy) where T : class
+        { return await dbSet.OrderBy(orderBy).ToArrayAsync(); }
+
+        public async Task<T[]> GetAllAsync<T>(DbSet<T> dbSet) where T : class
+        { return await dbSet.ToArrayAsync(); }
+
+        public async Task<T[]> GetPageAsync<T>(DbSet<T> dbSet, int pageIndex = 1, int pageSize = 100) where T : class
+        {
+            // Return empty for invalid input
+            if (pageIndex < 1 || pageSize < 1) return Array.Empty<T>();
+
+            // Calculate how many records we need to skip
+            int skip = (pageIndex - 1) * pageSize;
+
+            return await dbSet.Skip(skip).Take(pageSize).ToArrayAsync();
+        }
+
+        public async Task<T?> GetFirstWhereAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate) where T : class
+        { return await dbSet.Where(predicate).FirstOrDefaultAsync(); }
+
+        public async Task<T[]> GetAllWhereAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate) where T : class
+        { return await dbSet.Where(predicate).ToArrayAsync(); }
+
+
+
+        // --------------------------------
+
+
+
         #region Resource
 
         public async Task<Resource?> GetResourceAsync(Guid id)
@@ -114,6 +150,22 @@ namespace backend.Data
 
         public async Task<WebsiteMetadata[]> GetWebsiteMetadataPageAsync(int pageIndex = 1, int pageSize = 100)
         { return await GetPageAsync(database.WebsiteMetadata, pageIndex, pageSize); }
+
+        #endregion
+
+        #region Document
+
+        public async Task<DocumentMetadata?> GetDocumentMetadataAsync(Guid id)
+        { return await GetAsync(id, database.DocumentMetadata); }
+
+        public async Task<DocumentMetadata?> GetDocumentMetadataAsync(string id)
+        { return await GetDocumentMetadataAsync(Guid.Parse(id)); }
+
+        public async Task<DocumentMetadata[]> GetAllDocumentMetadataAsync()
+        { return await GetAllAsync(database.DocumentMetadata); }
+
+        public async Task<DocumentMetadata[]> GetDocumentMetadataPageAsync(int pageIndex = 1, int pageSize = 100)
+        { return await GetPageAsync(database.DocumentMetadata, pageIndex, pageSize); }
 
         #endregion
 
