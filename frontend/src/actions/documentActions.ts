@@ -55,7 +55,7 @@ export const AddDocument = async (
 
         if (tagIDs.length > 0) {
             tagIDs.forEach(tagID => {
-                formData.append('tags', tagID);
+                formData.append('adminTags', tagID);
             });
         }
 
