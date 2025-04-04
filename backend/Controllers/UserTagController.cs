@@ -100,6 +100,7 @@ public class UserTagController : ControllerBase
             Name = tagName,
             User = "TestUser1", // TODO: User should be the actual User
             IsApproved = false, // By default the tag is not approved
+            CreatedOn = DateTime.UtcNow,
         };
 
         // Add the user tag
