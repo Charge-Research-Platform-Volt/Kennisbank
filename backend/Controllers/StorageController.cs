@@ -51,8 +51,14 @@ namespace backend.Controllers
             if (string.IsNullOrEmpty(dto.Title))
                 return BadRequest(new StorageResponse("No name was provided."));
 
-            if (string.IsNullOrEmpty(dto.Description))
-                return BadRequest(new StorageResponse("No description was provided."));
+            if (string.IsNullOrEmpty(dto.TypeId))
+                return BadRequest(new StorageResponse("No type ID was provided."));
+
+            if (string.IsNullOrEmpty(dto.LanguageCode))
+                return BadRequest(new StorageResponse("No language code was provided"));
+
+            if (dto.PublicationDate == DateTime.MinValue)
+                return BadRequest(new StorageResponse("No publication date was provided"));
 
             string extension = Path.GetExtension(dto.File.FileName);
 
@@ -84,14 +90,17 @@ namespace backend.Controllers
                         return Ok(new FileUploadResult(id.ToString(), fileType, dto.File.Length));
 
                     case BLOB_STATUSCODE.NOTFOUND:
+                        // Roll back changes to database since file upload failed
                         await resourceManager.Rollback();
                         return NotFound(new ContainerResponse("Container could not be found", fileType));
 
                     case BLOB_STATUSCODE.ALREADYEXISTS:
+                        // Roll back changes to database since file upload failed
                         await resourceManager.Rollback();
                         return Conflict(new FileResponse("File already exists and overwrite is disabled.", id.ToString(), fileType));
 
                     default:
+                        // Roll back changes to database since file upload failed
                         await resourceManager.Rollback();
                         return StatusCode(500, new StorageResponse("Error uploading file."));
                 }
@@ -119,20 +128,20 @@ namespace backend.Controllers
 
             try
             {
-                Resource? item = await resourceManager.GetResourceAsync(id);
-
-                if (item == null)
+                if (await resourceManager.ResourceExistsAsync(id))
                     return NotFound(new StorageResponse("ID not found in the database."));
 
-                BlobDownloadResponse? maybeResponse = await blobService.DownloadBlobAsync(item.FileType, id);
+                string filetype = await resourceManager.GetResourceFileTypeAsync(id);
+
+                BlobDownloadResponse? maybeResponse = await blobService.DownloadBlobAsync(filetype, id);
 
                 if (maybeResponse == null)
-                    return NotFound(new FileResponse("File could not be found but exists in database.", id, item.FileType));
+                    return NotFound(new FileResponse("File could not be found but exists in database.", id, filetype));
 
                 BlobDownloadResponse response = (BlobDownloadResponse)maybeResponse;
 
                 string contentType = "application/octet-stream";
-                string fileName = sanitizeFileName(item.Title) + response.Metadata["extension"];
+                string fileName = sanitizeFileName(await resourceManager.GetResourceTitleAsync(id)) + response.Metadata["extension"];
 
                 if (Path.HasExtension(fileName))
                 {
@@ -215,10 +224,8 @@ namespace backend.Controllers
 
             try
             {
-                if (await resourceManager.ResourceExistsAsync(dto.Id))
+                if (!await resourceManager.UpdateResourceTitleAsync(dto.Id, dto.Title))
                     return NotFound(new StorageResponse("ID was not found in database."));
-
-                await resourceManager.UpdateResourceTitleAsync(dto.Id, dto.Title);
 
                 return Ok(new StorageResponse("File renamed succesfully."));
             }
@@ -303,7 +310,7 @@ namespace backend.Controllers
                 Resource[]? items = await resourceManager.GetAllResourcesAsync();
 
                 if (items == null)
-                    return Ok(new PageResponse("No files in database.", 0, 0, Array.Empty<Resource>()));
+                    return Ok(new PageResponse("No files in database.", 0, 0, []));
 
                 return Ok(new PageResponse($"{items.Length} files found.", 0, 0, items));
             }
@@ -335,7 +342,7 @@ namespace backend.Controllers
                 Resource[]? items = await resourceManager.GetResourcePageAsync(pageIndex, pageSize);
 
                 if (items == null)
-                    return Ok(new PageResponse("No files on this page.", pageIndex, pageSize, Array.Empty<Resource>()));
+                    return Ok(new PageResponse("No files on this page.", pageIndex, pageSize, []));
 
                 return Ok(new PageResponse($"{items.Length} files found.", pageIndex, pageSize, items));
             }

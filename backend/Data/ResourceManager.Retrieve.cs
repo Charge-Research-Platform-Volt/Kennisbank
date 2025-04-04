@@ -51,6 +51,8 @@ namespace backend.Data
 
         #region Resource
 
+        // Resource itself
+
         public async Task<Resource?> GetResourceAsync(Guid id)
         { return await GetAsync(id, database.Resources); }
 
@@ -63,11 +65,21 @@ namespace backend.Data
         public async Task<Resource[]> GetResourcePageAsync(int pageIndex = 1, int pageSize = 100)
         { return await GetPageAsync(database.Resources, pageIndex, pageSize); }
 
+        // Filetype
+
         public async Task<string> GetResourceFileTypeAsync(Guid resourceId)
         { return await GetPropertyAsync(database.Resources, resource => resource.Id == resourceId, resource => resource.FileType); }
 
         public async Task<string> GetResourceFileTypeAsync(string resourceId)
         { return await GetResourceFileTypeAsync(Guid.Parse(resourceId)); }
+
+        // Title
+
+        public async Task<string> GetResourceTitleAsync(Guid resourceId)
+        { return await GetPropertyAsync(database.Resources, resource => resource.Id == resourceId, resource => resource.Title); }
+
+        public async Task<string> GetResourceTitleAsync(string resourceId)
+        { return await GetResourceTitleAsync(Guid.Parse(resourceId)); }
 
         #endregion
 
