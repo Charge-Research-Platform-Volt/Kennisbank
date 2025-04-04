@@ -2,6 +2,7 @@
 
 namespace backend.Data
 {
+    // This part is for creating resources
     public partial class ResourceManager
     {
         // --- Resource

@@ -1,39 +1,21 @@
 ﻿using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 using System.Net.Sockets;
 
 namespace backend.Data
 {
+    // This part is for updating properties
     public partial class ResourceManager
     {
-        public async Task<bool> UpdatePropertyAsync<T>(DbSet<T> dbSet, Guid id, Action<T> updateFunction) where T : class
+        #region Generic functions
+
+        protected async Task<int> UpdatePropertyAsync<T, TProperty>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate, Func<T, TProperty> propertySelector, TProperty newValue) where T : class
         {
-            T? entry = await GetAsync(id, dbSet);
-
-            if (entry == null) return false;
-
-            updateFunction(entry);
-
-            if (entry is Resource)
-                await database.SaveResourceChangesAsync();
-            else
-                await database.SaveChangesAsync();
-
-            return true;
+            return await dbSet.Where(predicate).ExecuteUpdateAsync(s => s.SetProperty(propertySelector, _ => newValue));
         }
 
-        public async Task<bool> UpdatePropertyWithCompositeKeyAsync<TSet, TKey1, TKey2>(DbSet<TSet> dbSet, TKey1 key1, TKey2 key2, Action<TSet> updateFunction) where TSet : class
-        {
-            TSet? entry = await dbSet.FindAsync(key1, key2);
-
-            if (entry == null) return false;
-
-            updateFunction(entry);
-
-            await database.SaveChangesAsync();
-
-            return true;
-        }
+        #endregion
 
 
 
@@ -46,7 +28,7 @@ namespace backend.Data
         // Title
 
         public async Task<bool> UpdateResourceTitleAsync(Guid resourceId, string newTitle)
-        { return await UpdatePropertyAsync(database.Resources, resourceId, resource => resource.Title = newTitle); }
+        { return await UpdatePropertyAsync(database.Resources, resource => resource.Id == resourceId, resource => resource.Title, newTitle) > 0; }
 
         public async Task<bool> UpdateResourceTitleAsync(string resourceId, string newTitle)
         { return await UpdateResourceTitleAsync(Guid.Parse(resourceId), newTitle); }
@@ -54,7 +36,7 @@ namespace backend.Data
         // Description
 
         public async Task<bool> UpdateResourceDescriptionAsync(Guid resourceId, string? newDescription)
-        { return await UpdatePropertyAsync(database.Resources, resourceId, resource => resource.Description = newDescription); }
+        { return await UpdatePropertyAsync(database.Resources, resource => resource.Id == resourceId, resource => resource.Description, newDescription) > 0; }
 
         public async Task<bool> UpdateResourceDescriptionAsync(string resourceId, string? newDescription)
         { return await UpdateResourceDescriptionAsync(Guid.Parse(resourceId), newDescription); }
@@ -62,7 +44,7 @@ namespace backend.Data
         // TypeId
         
         public async Task<bool> UpdateResourceTypeAsync(Guid resourceId, Guid newResourceTypeId)
-        { return await UpdatePropertyAsync(database.Resources, resourceId, resource => resource.TypeId = newResourceTypeId); }
+        { return await UpdatePropertyAsync(database.Resources, resource => resource.Id == resourceId, resource => resource.TypeId, newResourceTypeId) > 0; }
 
         public async Task<bool> UpdateResourceTypeAsync(Guid resourceId, string newResourceTypeId)
         { return await UpdateResourceTypeAsync(resourceId, Guid.Parse(newResourceTypeId)); }
@@ -76,7 +58,7 @@ namespace backend.Data
         // LanguageCode
 
         public async Task<bool> UpdateResourceLanguageCodeAsync(Guid resourceId, string newLanguageCode)
-        { return await UpdatePropertyAsync(database.Resources, resourceId, resource => resource.LanguageCode = newLanguageCode); }
+        { return await UpdatePropertyAsync(database.Resources, resource => resource.Id == resourceId, resource => resource.LanguageCode, newLanguageCode) > 0; }
 
         public async Task<bool> UpdateResourceLanguageCodeAsync(string resourceId, string newLanguageCode)
         { return await UpdateResourceLanguageCodeAsync(Guid.Parse(resourceId), newLanguageCode); }
@@ -84,7 +66,7 @@ namespace backend.Data
         // Publication Code
 
         public async Task<bool> UpdateResourcePublicationCodeAsync(Guid resourceId, string? newPublicationCode)
-        { return await UpdatePropertyAsync(database.Resources, resourceId, resource => resource.PublicationCode = newPublicationCode); }
+        { return await UpdatePropertyAsync(database.Resources, resource => resource.Id == resourceId, resource => resource.PublicationCode, newPublicationCode) > 0; }
 
         public async Task<bool> UpdateResourcePublicationCodeAsync(string resourceId, string? newPublicationCode)
         { return await UpdateResourcePublicationCodeAsync(Guid.Parse(resourceId), newPublicationCode); }
@@ -92,7 +74,7 @@ namespace backend.Data
         // Publication Date
 
         public async Task<bool> UpdateResourcePublicationDateAsync(Guid resourceId, DateTime newPublicationDate)
-        { return await UpdatePropertyAsync(database.Resources, resourceId, resource => resource.PublicationDate = newPublicationDate); }
+        { return await UpdatePropertyAsync(database.Resources, resource => resource.Id == resourceId, resource => resource.PublicationDate, newPublicationDate) > 0; }
 
         public async Task<bool> UpdateResourcePublicationDateAsync(string resourceId, DateTime newPublicationDate)
         { return await UpdateResourcePublicationDateAsync(Guid.Parse(resourceId), newPublicationDate); }
@@ -100,7 +82,7 @@ namespace backend.Data
         // License
 
         public async Task<bool> UpdateResourceLicenseAsync(Guid resourceId, string? newLicense)
-        { return await UpdatePropertyAsync(database.Resources, resourceId, resource => resource.License = newLicense); }
+        { return await UpdatePropertyAsync(database.Resources, resource => resource.Id == resourceId, resource => resource.License, newLicense) > 0; }
 
         public async Task<bool> UpdateResourceLicenseAsync(string resourceId, string? newLicense)
         { return await UpdateResourceLicenseAsync(Guid.Parse(resourceId), newLicense); }
@@ -108,7 +90,7 @@ namespace backend.Data
         // Note
 
         public async Task<bool> UpdateResourceNoteAsync(Guid resourceId, string? newNote)
-        { return await UpdatePropertyAsync(database.Resources, resourceId, resource => resource.Note = newNote); }
+        { return    await UpdatePropertyAsync(database.Resources, resource => resource.Id == resourceId, resource => resource.Note, newNote) > 0; }
 
         public async Task<bool> UpdateResourceNoteAsync(string resourceId, string? newNote)
         { return await UpdateResourceNoteAsync(Guid.Parse(resourceId), newNote); }
@@ -116,7 +98,7 @@ namespace backend.Data
         // Hash
 
         public async Task<bool> UpdateResourceHashAsync(Guid resourceId, string? newHash)
-        { return await UpdatePropertyAsync(database.Resources, resourceId, resource => resource.Hash = newHash); }
+        { return await UpdatePropertyAsync(database.Resources, resource => resource.Id == resourceId, resource => resource.Hash, newHash) > 0; }
 
         public async Task<bool> UpdateResourceHashAsync(string resourceId, string? newHash)
         { return await UpdateResourceHashAsync(Guid.Parse(resourceId), newHash); }
@@ -128,7 +110,7 @@ namespace backend.Data
         // Name
 
         public async Task<bool> UpdateOrganisationNameAsync(Guid organisationId, string newName)
-        { return await UpdatePropertyAsync(database.Organisations, organisationId, organisation => organisation.Name = newName); }
+        { return await UpdatePropertyAsync(database.Organisations, organisation => organisation.Id == organisationId, organisation => organisation.Name, newName) > 0; }
 
         public async Task<bool> UpdateOrganisationNameAsync(string organisationId, string newName)
         { return await UpdateOrganisationNameAsync(Guid.Parse(organisationId), newName); }
@@ -136,7 +118,7 @@ namespace backend.Data
         // Description
 
         public async Task<bool> UpdateOrganisationDescriptionAsync(Guid organisationId, string? newDescription)
-        { return await UpdatePropertyAsync(database.Organisations, organisationId, organisation => organisation.Description = newDescription); }
+        { return await UpdatePropertyAsync(database.Organisations, organisation => organisation.Id == organisationId, organisation => organisation.Description, newDescription) > 0; }
 
         public async Task<bool> UpdateOrganisationDescriptionAsync(string organisationId, string? newDescription)
         { return await UpdateOrganisationDescriptionAsync(Guid.Parse(organisationId), newDescription); }
@@ -144,7 +126,7 @@ namespace backend.Data
         // Website
 
         public async Task<bool> UpdateOrganisationWebsiteAsync(Guid organisationId, string? newWebsite)
-        { return await UpdatePropertyAsync(database.Organisations, organisationId, organisation => organisation.Website = newWebsite); }
+        { return await UpdatePropertyAsync(database.Organisations, organisation => organisation.Id == organisationId, organisation => organisation.Website, newWebsite) > 0; }
 
         public async Task<bool> UpdateOrganisationWebsiteAsync(string organisationId, string? newWebsite)
         { return await UpdateOrganisationWebsiteAsync(Guid.Parse(organisationId), newWebsite); }
@@ -152,7 +134,7 @@ namespace backend.Data
         // Email Address
 
         public async Task<bool> UpdateOrganisationEmailAsync(Guid organisationId, string? newEmail)
-        { return await UpdatePropertyAsync(database.Organisations, organisationId, organisation => organisation.EmailAddress = newEmail); }
+        { return await UpdatePropertyAsync(database.Organisations, organisation => organisation.Id == organisationId, organisation => organisation.EmailAddress, newEmail) > 0; }
 
         public async Task<bool> UpdateOrganisationEmailAsync(string organisationId, string? newEmail)
         { return await UpdateOrganisationEmailAsync(Guid.Parse(organisationId), newEmail); }
@@ -164,7 +146,7 @@ namespace backend.Data
         // Name
 
         public async Task<bool> UpdatePersonNameAsync(Guid personId, string newName)
-        { return await UpdatePropertyAsync(database.Persons, personId, person => person.Name = newName); }
+        { return await UpdatePropertyAsync(database.Persons, person => person.Id == personId, person => person.Name, newName) > 0; }
 
         public async Task<bool> UpdatePersonNameAsync(string personId, string newName)
         { return await UpdatePersonNameAsync(Guid.Parse(personId), newName); }
@@ -172,7 +154,7 @@ namespace backend.Data
         // Occupation
 
         public async Task<bool> UpdatePersonOccupationAsync(Guid personId, string newOccupation)
-        { return await UpdatePropertyAsync(database.Persons, personId, person => person.Occupation = newOccupation); }
+        { return await UpdatePropertyAsync(database.Persons, person => person.Id == personId, person => person.Occupation, newOccupation) > 0; }
 
         public async Task<bool> UpdatePersonOccupationAsync(string personId, string newOccupation)
         { return await UpdatePersonOccupationAsync(Guid.Parse(personId), newOccupation); }
@@ -180,7 +162,7 @@ namespace backend.Data
         // Description
 
         public async Task<bool> UpdatePersonDescriptionAsync(Guid personId, string? newDescription)
-        { return await UpdatePropertyAsync(database.Persons, personId, person => person.Description = newDescription); }
+        { return await UpdatePropertyAsync(database.Persons, person => person.Id == personId, person => person.Description, newDescription) > 0; }
 
         public async Task<bool> UpdatePersonDescriptionAsync(string personId, string? newDescription)
         { return await UpdatePersonDescriptionAsync(Guid.Parse(personId), newDescription); }
@@ -188,7 +170,7 @@ namespace backend.Data
         // Email Address
 
         public async Task<bool> UpdatePersonEmailAsync(Guid personId, string? newEmail)
-        { return await UpdatePropertyAsync(database.Persons, personId, person => person.EmailAddress = newEmail); }
+        { return await UpdatePropertyAsync(database.Persons, person => person.Id == personId, person => person.EmailAddress, newEmail) > 0; }
 
         public async Task<bool> UpdatePersonEmailAsync(string personId, string? newEmail)
         { return await UpdatePersonEmailAsync(Guid.Parse(personId), newEmail); }
@@ -196,7 +178,7 @@ namespace backend.Data
         // Linkedin
 
         public async Task<bool> UpdatePersonLinkedinAsync(Guid personId, string? newLinkedin)
-        { return await UpdatePropertyAsync(database.Persons, personId, person => person.Linkedin = newLinkedin); }
+        { return await UpdatePropertyAsync(database.Persons, person => person.Id == personId, person => person.Linkedin, newLinkedin) > 0; }
 
         public async Task<bool> UpdatePersonLinkedinAsync(string personId, string? newLinkedin)
         { return await UpdatePersonLinkedinAsync(Guid.Parse(personId), newLinkedin); }
@@ -208,7 +190,7 @@ namespace backend.Data
         // Name
 
         public async Task<bool> UpdateRegionNameAsync(Guid regionId, string newName)
-        { return await UpdatePropertyAsync(database.Regions, regionId, region => region.Name = newName); }
+        { return await UpdatePropertyAsync(database.Regions, region => region.Id == regionId, region => region.Name, newName) > 0; }
 
         public async Task<bool> UpdateRegionNameAsync(string regionId, string newName)
         { return await UpdateRegionNameAsync(Guid.Parse(regionId), newName); }
@@ -220,7 +202,7 @@ namespace backend.Data
         // Length
 
         public async Task<bool> UpdateAudioLengthAsync(Guid resourceId, ulong? newLength)
-        { return await UpdatePropertyAsync(database.AudioMetadata, resourceId, metadata => metadata.Length = newLength); }
+        { return await UpdatePropertyAsync(database.AudioMetadata, metadata => metadata.ResourceId == resourceId, metadata => metadata.Length, newLength) > 0; }
 
         public async Task<bool> UpdateAudioLengthAsync(string resourceId, ulong? newLength)
         { return await UpdateAudioLengthAsync(Guid.Parse(resourceId), newLength); }
@@ -232,7 +214,7 @@ namespace backend.Data
         // Length
 
         public async Task<bool> UpdateVideoLengthAsync(Guid resourceId, ulong? newLength)
-        { return await UpdatePropertyAsync(database.VideoMetadata, resourceId, metadata => metadata.Length = newLength); }
+        { return await UpdatePropertyAsync(database.VideoMetadata, metadata => metadata.ResourceId == resourceId, metadata => metadata.Length, newLength) > 0; }
 
         public async Task<bool> UpdateVideoLengthAsync(string resourceId, ulong? newLength)
         { return await UpdateVideoLengthAsync(Guid.Parse(resourceId), newLength); }
@@ -244,7 +226,7 @@ namespace backend.Data
         // Abstract
 
         public async Task<bool> UpdateDocumentAbstractAsync(Guid resourceId, string? newAbstract)
-        { return await UpdatePropertyAsync(database.DocumentMetadata, resourceId, metadata => metadata.Abstract = newAbstract); }
+        { return await UpdatePropertyAsync(database.DocumentMetadata, metadata => metadata.ResourceId == resourceId, metadata => metadata.Abstract, newAbstract) > 0; }
 
         public async Task<bool> UpdateDocumentAbstractAsync(string resourceId, string? newAbstract)
         { return await UpdateDocumentAbstractAsync(Guid.Parse(resourceId), newAbstract); }
@@ -256,7 +238,7 @@ namespace backend.Data
         // Accessed On
 
         public async Task<bool> UpdateWebsiteAccessDateAsync(Guid resourceId, DateTime? newAccessDate)
-        { return await UpdatePropertyAsync(database.WebsiteMetadata, resourceId, metadata => metadata.AccessedOn = newAccessDate); }
+        { return await UpdatePropertyAsync(database.WebsiteMetadata, metadata => metadata.ResourceId == resourceId, metadata => metadata.AccessedOn, newAccessDate) > 0; }
 
         public async Task<bool> UpdateWebsiteAccessDateAsync(string resourceId, DateTime? newAccessDate)
         { return await UpdateWebsiteAccessDateAsync(Guid.Parse(resourceId), newAccessDate); }
@@ -268,7 +250,7 @@ namespace backend.Data
         // Name
 
         public async Task<bool> UpdateUserTagNameAsync(Guid tagId, string newName)
-        { return await UpdatePropertyAsync(database.UserTags, tagId, tag => tag.Name = newName); }
+        { return await UpdatePropertyAsync(database.UserTags, tag => tag.Id == tagId, tag => tag.Name, newName) > 0; }
 
         public async Task<bool> UpdateUserTagNameAsync(string tagId, string newName)
         { return await UpdateUserTagNameAsync(Guid.Parse(tagId), newName); }
@@ -277,9 +259,9 @@ namespace backend.Data
 
         public async Task<bool> ApproveUserTagAsync(Guid tagId, Guid adminId)
         {
-                    await UpdatePropertyAsync(database.UserTags, tagId, tag => tag.IsApproved = true);
-                    await UpdatePropertyAsync(database.UserTags, tagId, tag => tag.ApprovedBy = adminId);
-            return  await UpdatePropertyAsync(database.UserTags, tagId, tag => tag.ApprovedOn = DateTime.UtcNow);
+                    await UpdatePropertyAsync(database.UserTags, tag => tag.Id == tagId, tag => tag.IsApproved, true);
+                    await UpdatePropertyAsync(database.UserTags, tag => tag.Id == tagId, tag => tag.ApprovedBy, adminId);
+            return  await UpdatePropertyAsync(database.UserTags, tag => tag.Id == tagId, tag => tag.ApprovedOn, DateTime.UtcNow) > 0;
         }
 
         public async Task<bool> ApproveUserTagAsync(Guid tagId, string adminId)
@@ -295,9 +277,9 @@ namespace backend.Data
 
         public async Task<bool> UnapproveUserTagAsync(Guid tagId)
         {
-                    await UpdatePropertyAsync(database.UserTags, tagId, tag => tag.IsApproved = false);
-                    await UpdatePropertyAsync(database.UserTags, tagId, tag => tag.ApprovedBy = null);
-            return  await UpdatePropertyAsync(database.UserTags, tagId, tag => tag.ApprovedOn = null);
+                    await UpdatePropertyAsync(database.UserTags, tag => tag.Id == tagId, tag => tag.IsApproved, false);
+                    await UpdatePropertyAsync(database.UserTags, tag => tag.Id == tagId, tag => tag.ApprovedBy, null);
+            return  await UpdatePropertyAsync(database.UserTags, tag => tag.Id == tagId, tag => tag.ApprovedOn, null) > 0;
         }
 
         public async Task<bool> UnapproveUserTagAsync(string tagId)
@@ -310,7 +292,7 @@ namespace backend.Data
         // Name
 
         public async Task<bool> UpdateAdminTagNameAsync(Guid tagId, string newName)
-        { return await UpdatePropertyAsync(database.AdminTags, tagId, tag => tag.Name = newName); }
+        { return await UpdatePropertyAsync(database.AdminTags, tag => tag.Id == tagId, tag => tag.Name, newName) > 0; }
 
         public async Task<bool> UpdateAdminTagNameAsync(string tagId, string newName)
         { return await UpdateAdminTagNameAsync(Guid.Parse(tagId), newName); }
@@ -322,7 +304,7 @@ namespace backend.Data
         // Name
 
         public async Task<bool> UpdateResourceTypeNameAsync(Guid resourceTypeId, string newName)
-        { return await UpdatePropertyAsync(database.ResourceTypes, resourceTypeId, type => type.Name = newName); }
+        { return await UpdatePropertyAsync(database.ResourceTypes, type => type.Id == resourceTypeId, type => type.Name, newName) > 0; }
 
         public async Task<bool> UpdateResourceTypeNameAsync(string resourceTypeId, string newName)
         { return await UpdateResourceTypeNameAsync(Guid.Parse(resourceTypeId), newName); }
@@ -334,7 +316,7 @@ namespace backend.Data
         // Relation
 
         public async Task<bool> UpdateRelationInOrganisationRelationshipAsync(Guid sourceOrganisationId, string newRelation, Guid targetOrganisationId)
-        { return await UpdatePropertyWithCompositeKeyAsync(database.OrganisationRelationships, sourceOrganisationId, targetOrganisationId, relationship => relationship.Relation = newRelation); }
+        { return await UpdatePropertyAsync(database.OrganisationRelationships, relation => relation.SourceOrganisationId == sourceOrganisationId && relation.TargetOrganisationId == targetOrganisationId, relationship => relationship.Relation, newRelation) > 0; }
 
         public async Task<bool> UpdateRelationInOrganisationRelationshipAsync(Guid sourceOrganisationId, string newRelation, string targetOrganisationId)
         { return await UpdateRelationInOrganisationRelationshipAsync(sourceOrganisationId, newRelation, Guid.Parse(targetOrganisationId)); }
@@ -352,7 +334,7 @@ namespace backend.Data
         // Role
 
         public async Task<bool> UpdateRoleInPersonOrganisatinoRelationAsync(Guid personId, string newRole, Guid organisationId)
-        { return await UpdatePropertyWithCompositeKeyAsync(database.PersonOrganisationRelations, personId, organisationId, relation => relation.Role = newRole); }
+        { return await UpdatePropertyAsync(database.PersonOrganisationRelations, relation => relation.PersonId == personId && relation.OrganisationId == organisationId, relation => relation.Role, newRole) > 0; }
 
         public async Task<bool> UpdateRoleInPersonOrganisatinoRelationAsync(Guid personId, string newRole, string organisationId)
         { return await UpdateRoleInPersonOrganisatinoRelationAsync(personId, newRole, Guid.Parse(organisationId)); }
@@ -370,7 +352,7 @@ namespace backend.Data
         // Relation
 
         public async Task<bool> UpdateRelationInPersonRelationshipAsync(Guid sourcePersonId, string newRelation, Guid targetPersonId)
-        { return await UpdatePropertyWithCompositeKeyAsync(database.PersonRelationships, sourcePersonId, targetPersonId, relationship => relationship.Relation = newRelation); }
+        { return await UpdatePropertyAsync(database.PersonRelationships, relation => relation.SourcePersonId == sourcePersonId && relation.TargetPersonId == targetPersonId, relationship => relationship.Relation, newRelation) > 0; }
 
         public async Task<bool> UpdateRelationInPersonRelationshipAsync(Guid sourcePersonId, string newRelation, string targetPersonId)
         { return await UpdateRelationInPersonRelationshipAsync(sourcePersonId, newRelation, Guid.Parse(targetPersonId)); }
@@ -388,7 +370,7 @@ namespace backend.Data
         // Role
 
         public async Task<bool> UpdateRoleInResourceOrganisationRelationAsync(Guid resourceId, Guid organisationId, string newRole)
-        { return await UpdatePropertyWithCompositeKeyAsync(database.ResourceOrganisationRelations, resourceId, organisationId, relation => relation.Role = newRole); }
+        { return await UpdatePropertyAsync(database.ResourceOrganisationRelations, relation => relation.ResourceId == resourceId && relation.OrganisationId == organisationId, relation => relation.Role, newRole) > 0; }
 
         public async Task<bool> UpdateRoleInResourceOrganisationRelationAsync(Guid resourceId, string organisationId, string newRole)
         { return await UpdateRoleInResourceOrganisationRelationAsync(resourceId, Guid.Parse(organisationId), newRole); }
@@ -406,7 +388,7 @@ namespace backend.Data
         // Role
 
         public async Task<bool> UpdateRoleInResourceRelatedOrganisationRelationAsync(Guid resourceId, Guid organisationId, string newRole)
-        { return await UpdatePropertyWithCompositeKeyAsync(database.ResourceRelatedOrganisationRelations, resourceId, organisationId, relation => relation.Role = newRole); }
+        { return await UpdatePropertyAsync(database.ResourceRelatedOrganisationRelations, relation => relation.ResourceId == resourceId && relation.OrganisationId == organisationId, relation => relation.Role, newRole) > 0; }
 
         public async Task<bool> UpdateRoleInResourceRelatedOrganisationRelationAsync(Guid resourceId, string organisationId, string newRole)
         { return await UpdateRoleInResourceRelatedOrganisationRelationAsync(resourceId, Guid.Parse(organisationId), newRole); }
@@ -424,7 +406,7 @@ namespace backend.Data
         // Role
 
         public async Task<bool> UpdateRoleInResourceRelatedPersonRelationAsync(Guid resourceId, Guid personId, string newRole)
-        { return await UpdatePropertyWithCompositeKeyAsync(database.ResourceRelatedPersonRelations, resourceId, personId, relation => relation.Role = newRole); }
+        { return await UpdatePropertyAsync(database.ResourceRelatedPersonRelations, relation => relation.ResourceId == resourceId && relation.PersonId == personId, relation => relation.Role, newRole) > 0; }
 
         public async Task<bool> UpdateRoleInResourceRelatedPersonRelationAsync(Guid resourceId, string personId, string newRole)
         { return await UpdateRoleInResourceRelatedPersonRelationAsync(resourceId, Guid.Parse(personId), newRole); }
@@ -443,9 +425,9 @@ namespace backend.Data
 
         public async Task<bool> ApproveUserTagOnResourceAsync(Guid tagId, Guid resourceId, Guid adminId)
         {
-                    await UpdatePropertyWithCompositeKeyAsync(database.ResourceUserTagRelations, resourceId, tagId, tag => tag.IsApproved = true);
-                    await UpdatePropertyWithCompositeKeyAsync(database.ResourceUserTagRelations, resourceId, tagId, tag => tag.ApprovedBy = adminId);
-            return  await UpdatePropertyWithCompositeKeyAsync(database.ResourceUserTagRelations, resourceId, tagId, tag => tag.ApprovedOn = DateTime.UtcNow);
+                    await UpdatePropertyAsync(database.ResourceUserTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.IsApproved, true);
+                    await UpdatePropertyAsync(database.ResourceUserTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.ApprovedBy, adminId);
+            return  await UpdatePropertyAsync(database.ResourceUserTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.ApprovedOn, DateTime.UtcNow) > 0;
         }
 
         public async Task<bool> ApproveUserTagOnResourceAsync(Guid tagId, Guid resourceId, string adminId)
@@ -473,9 +455,9 @@ namespace backend.Data
 
         public async Task<bool> UnapproveUserTagOnResourceAsync(Guid tagId, Guid resourceId, Guid adminId)
         {
-            await UpdatePropertyWithCompositeKeyAsync(database.ResourceUserTagRelations, resourceId, tagId, tag => tag.IsApproved = false);
-            await UpdatePropertyWithCompositeKeyAsync(database.ResourceUserTagRelations, resourceId, tagId, tag => tag.ApprovedBy = null);
-            return await UpdatePropertyWithCompositeKeyAsync(database.ResourceUserTagRelations, resourceId, tagId, tag => tag.ApprovedOn = null);
+                    await UpdatePropertyAsync(database.ResourceUserTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.IsApproved, false);
+                    await UpdatePropertyAsync(database.ResourceUserTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.ApprovedBy, null);
+            return  await UpdatePropertyAsync(database.ResourceUserTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.ApprovedOn, null) > 0;
         }
 
         public async Task<bool> UnapproveUserTagOnResourceAsync(Guid tagId, Guid resourceId, string adminId)

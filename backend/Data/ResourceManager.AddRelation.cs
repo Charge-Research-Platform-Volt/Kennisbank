@@ -2,6 +2,7 @@
 
 namespace backend.Data
 {
+    // This part is for adding relations
     public partial class ResourceManager
     {
         #region Organisation-Organisation

@@ -50,6 +50,9 @@ namespace KnowledgeBank.Data
             modelBuilder.Entity<ResourceAdminTagRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.TagId }); // Define composite primary key
 
+            modelBuilder.Entity<ResourceUserTagRelation>()
+                .HasKey(ft => new { ft.ResourceId, ft.TagId });
+
             modelBuilder.Entity<ResourceAuthorRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.PersonId});
                 

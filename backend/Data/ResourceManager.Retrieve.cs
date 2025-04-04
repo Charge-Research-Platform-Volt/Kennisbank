@@ -4,21 +4,23 @@ using System.Linq.Expressions;
 
 namespace backend.Data
 {
+    // This part is for retrieving resources or their properties
     public partial class ResourceManager
     {
-        public async Task<T?> GetAsync<T>(Guid id, DbSet<T> dbSet) where T : class
+        // Generic functions:
+        protected async Task<T?> GetAsync<T>(Guid id, DbSet<T> dbSet) where T : class
         { return await dbSet.FindAsync(id); }
 
-        public async Task<T?> GetAsync<T>(string id, DbSet<T> dbSet) where T : class
+        protected async Task<T?> GetAsync<T>(string id, DbSet<T> dbSet) where T : class
         { return await GetAsync(Guid.Parse(id), dbSet); }
 
-        public async Task<T[]> GetAllAsync<T, TKey>(DbSet<T> dbSet, Expression<Func<T, TKey>> orderBy) where T : class
+        protected async Task<T[]> GetAllAsync<T, TKey>(DbSet<T> dbSet, Expression<Func<T, TKey>> orderBy) where T : class
         { return await dbSet.OrderBy(orderBy).ToArrayAsync(); }
 
-        public async Task<T[]> GetAllAsync<T>(DbSet<T> dbSet) where T : class
+        protected async Task<T[]> GetAllAsync<T>(DbSet<T> dbSet) where T : class
         { return await dbSet.ToArrayAsync(); }
 
-        public async Task<T[]> GetPageAsync<T>(DbSet<T> dbSet, int pageIndex = 1, int pageSize = 100) where T : class
+        protected async Task<T[]> GetPageAsync<T>(DbSet<T> dbSet, int pageIndex = 1, int pageSize = 100) where T : class
         {
             // Return empty for invalid input
             if (pageIndex < 1 || pageSize < 1) return Array.Empty<T>();
@@ -29,11 +31,17 @@ namespace backend.Data
             return await dbSet.Skip(skip).Take(pageSize).ToArrayAsync();
         }
 
-        public async Task<T?> GetFirstWhereAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate) where T : class
+        protected async Task<T?> GetFirstWhereAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate) where T : class
         { return await dbSet.Where(predicate).FirstOrDefaultAsync(); }
 
-        public async Task<T[]> GetAllWhereAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate) where T : class
+        protected async Task<T[]> GetAllWhereAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate) where T : class
         { return await dbSet.Where(predicate).ToArrayAsync(); }
+
+        protected async Task<TResult> GetPropertyAsync<TSet, TResult>(DbSet<TSet> dbSet, Expression<Func<TSet, bool>> predicate, Expression<Func<TSet, TResult>> selector) where TSet : class
+        { return await dbSet.Where(predicate).Select(selector).FirstAsync(); }
+
+        protected async Task<TResult?> GetPropertyOrDefaultAsync<TSet, TResult>(DbSet<TSet> dbSet, Expression<Func<TSet, bool>> predicate, Expression<Func<TSet, TResult>> selector) where TSet : class
+        { return await dbSet.Where(predicate).Select(selector).FirstOrDefaultAsync(); }
 
 
 
@@ -54,6 +62,12 @@ namespace backend.Data
 
         public async Task<Resource[]> GetResourcePageAsync(int pageIndex = 1, int pageSize = 100)
         { return await GetPageAsync(database.Resources, pageIndex, pageSize); }
+
+        public async Task<string> GetResourceFileTypeAsync(Guid resourceId)
+        { return await GetPropertyAsync(database.Resources, resource => resource.Id == resourceId, resource => resource.FileType); }
+
+        public async Task<string> GetResourceFileTypeAsync(string resourceId)
+        { return await GetResourceFileTypeAsync(Guid.Parse(resourceId)); }
 
         #endregion
 

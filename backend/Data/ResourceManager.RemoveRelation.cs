@@ -4,46 +4,15 @@ using System.Linq.Expressions;
 
 namespace backend.Data
 {
+    // This part is for removing relations
     public partial class ResourceManager
     {
-        public async Task<bool> RemoveWithCompositeKeyAsync<TSet, TKey1, TKey2>(DbSet<TSet> dbSet, TKey1 key1, TKey2 key2) where TSet : class
-        {
-            TSet? entry = await dbSet.FindAsync(key1, key2);
-
-            if (entry == null) return false;
-
-            dbSet.Remove(entry);
-
-            await database.SaveChangesAsync();
-
-            return true;
-        }
-
-        public async Task<bool> RemoveAllWhereAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate) where T : class
-        {
-            T[] entries = await dbSet.Where(predicate).ToArrayAsync();
-
-            if (entries.Length == 0) return false;
-
-            dbSet.RemoveRange(entries);
-
-            await database.SaveChangesAsync();
-
-            return true;
-        }
-
-
-
-        // --------------------------------
-
-
-
         #region Organisation Relationships
 
         // Remove single
 
         public async Task<bool> RemoveOrganisationRelationshipAsync(Guid sourceOrganisationId, Guid targetOrganisationId)
-        { return await RemoveWithCompositeKeyAsync(database.OrganisationRelationships, sourceOrganisationId, targetOrganisationId); }
+        { return await DeleteAsync(database.OrganisationRelationships, relationship => relationship.SourceOrganisationId == sourceOrganisationId && relationship.TargetOrganisationId == targetOrganisationId) > 0; }
 
         public async Task<bool> RemoveOrganisationRelationshipAsync(Guid sourceOrganisationId, string targetOrganisationId)
         { return await RemoveOrganisationRelationshipAsync(sourceOrganisationId, Guid.Parse(targetOrganisationId)); }
@@ -57,7 +26,7 @@ namespace backend.Data
         // Prune
 
         public async Task<bool> RemoveAllOrganisationRelationshipsWithSourceIdAsync(Guid sourceOrganisationId)
-        { return await RemoveAllWhereAsync(database.OrganisationRelationships, i => i.SourceOrganisationId == sourceOrganisationId); }
+        { return await DeleteAllWhereAsync(database.OrganisationRelationships, i => i.SourceOrganisationId == sourceOrganisationId) > 0; }
 
         public async Task<bool> RemoveAllOrganisationRelationshipsWithSourceIdAsync(string sourceOrganisationId)
         { return await RemoveAllOrganisationRelationshipsWithSourceIdAsync(Guid.Parse(sourceOrganisationId)); }
@@ -65,7 +34,7 @@ namespace backend.Data
 
 
         public async Task<bool> RemoveAllOrganisationRelationshipsWithTargetIdAsync(Guid targetOrganisationId)
-        { return await RemoveAllWhereAsync(database.OrganisationRelationships, i => i.TargetOrganisationId == targetOrganisationId); }
+        { return await DeleteAllWhereAsync(database.OrganisationRelationships, i => i.TargetOrganisationId == targetOrganisationId) > 0; }
 
         public async Task<bool> RemoveAllOrganisationRelationshipsWithTargetIdAsync(string targetOrganisationId)
         { return await RemoveAllOrganisationRelationshipsWithTargetIdAsync(Guid.Parse(targetOrganisationId)); }
@@ -73,12 +42,7 @@ namespace backend.Data
 
 
         public async Task<bool> RemoveAllOrganisationRelationshipsContainingIdAsync(Guid organisationId)
-        {
-            bool source = await RemoveAllOrganisationRelationshipsWithSourceIdAsync(organisationId);
-            bool target = await RemoveAllOrganisationRelationshipsWithTargetIdAsync(organisationId);
-
-            return source || target;
-        }
+        { return await DeleteAllWhereAsync(database.OrganisationRelationships, i => i.SourceOrganisationId == organisationId || i.TargetOrganisationId == organisationId) > 0; }
 
         public async Task<bool> RemoveAllOrganisationRelationshipsContainingIdAsync(string organisationId)
         { return await RemoveAllOrganisationRelationshipsContainingIdAsync(Guid.Parse(organisationId)); }
@@ -90,7 +54,7 @@ namespace backend.Data
         // Remove single
 
         public async Task<bool> RemovePersonFromOrganisationAsync(Guid personId, Guid organisationId)
-        { return await RemoveWithCompositeKeyAsync(database.PersonOrganisationRelations, personId, organisationId); }
+        { return await DeleteAsync(database.PersonOrganisationRelations, relation => relation.PersonId == personId && relation.OrganisationId == organisationId) > 0; }
 
         public async Task<bool> RemovePersonFromOrganisationAsync(Guid personId, string organisationId)
         { return await RemovePersonFromOrganisationAsync(personId, Guid.Parse(organisationId)); }
@@ -104,7 +68,7 @@ namespace backend.Data
         // Prune
 
         public async Task<bool> RemovePersonFromAllOrganisationsAsync(Guid personId)
-        { return await RemoveAllWhereAsync(database.PersonOrganisationRelations, i => i.PersonId == personId); }
+        { return await DeleteAllWhereAsync(database.PersonOrganisationRelations, i => i.PersonId == personId) > 0; }
 
         public async Task<bool> RemovePersonFromAllOrganisationsAsync(string personId)
         { return await RemovePersonFromAllOrganisationsAsync(Guid.Parse(personId)); }
@@ -112,7 +76,7 @@ namespace backend.Data
 
 
         public async Task<bool> RemoveAllPersonOrganisationRelationsWithOrganisationIdAsync(Guid organisationId)
-        { return await RemoveAllWhereAsync(database.PersonOrganisationRelations, i => i.OrganisationId == organisationId); }
+        { return await DeleteAllWhereAsync(database.PersonOrganisationRelations, i => i.OrganisationId == organisationId) > 0; }
 
         public async Task<bool> RemoveAllPersonOrganisationRealtionsWithOrganisationIdAsync(string organisationId)
         { return await RemoveAllPersonOrganisationRelationsWithOrganisationIdAsync(Guid.Parse(organisationId)); }
@@ -124,7 +88,7 @@ namespace backend.Data
         // Remove single
 
         public async Task<bool> RemovePersonRelationshipAsync(Guid sourcePersonId, Guid targetPersonId)
-        { return await RemoveWithCompositeKeyAsync(database.PersonRelationships, sourcePersonId, targetPersonId); }
+        { return await DeleteAsync(database.PersonRelationships, relation => relation.SourcePersonId == sourcePersonId && relation.TargetPersonId == targetPersonId) > 0; }
 
         public async Task<bool> RemovePersonRelationshipAsync(Guid sourcePersonId, string targetPersonId)
         { return await RemovePersonRelationshipAsync(sourcePersonId, Guid.Parse(targetPersonId)); }
@@ -138,7 +102,7 @@ namespace backend.Data
         // Prune
 
         public async Task<bool> RemoveAllPersonRelationshipsWithSourceIdAsync(Guid sourcePersonId)
-        { return await RemoveAllWhereAsync(database.PersonRelationships, i => i.SourcePersonId == sourcePersonId); }
+        { return await DeleteAllWhereAsync(database.PersonRelationships, i => i.SourcePersonId == sourcePersonId) > 0   ; }
 
         public async Task<bool> RemoveAllPersonRelationshipsWithSourceIdAsync(string sourcePersonId)
         { return await RemoveAllPersonRelationshipsWithSourceIdAsync(Guid.Parse(sourcePersonId)); }
@@ -146,7 +110,7 @@ namespace backend.Data
 
 
         public async Task<bool> RemoveAllPersonRelationshipsWithTargetIdAsync(Guid targetPersonId)
-        { return await RemoveAllWhereAsync(database.PersonRelationships, i => i.TargetPersonId == targetPersonId); }
+        { return await DeleteAllWhereAsync(database.PersonRelationships, i => i.TargetPersonId == targetPersonId) > 0; }
 
         public async Task<bool> RemoveAllPersonRelationshipsWithTargetIdAsync(string targetPersonId)
         { return await RemoveAllPersonRelationshipsWithTargetIdAsync(Guid.Parse(targetPersonId)); }
@@ -154,12 +118,7 @@ namespace backend.Data
 
 
         public async Task<bool> RemoveAllPersonRelationshipsContainingIdAsync(Guid personId)
-        {
-            bool source = await RemoveAllPersonRelationshipsWithSourceIdAsync(personId);
-            bool target = await RemoveAllPersonRelationshipsWithTargetIdAsync(personId);
-
-            return source || target;
-        }
+        { return await DeleteAllWhereAsync(database.PersonRelationships, i => i.SourcePersonId == personId || i.TargetPersonId == personId) > 0; }
 
         public async Task<bool> RemoveAllPersonRelationshipsContainingIdAsync(string personId)
         { return await RemoveAllPersonRelationshipsContainingIdAsync(Guid.Parse(personId)); }
@@ -171,7 +130,7 @@ namespace backend.Data
         // Remove single
 
         public async Task<bool> RemoveAuthorFromResourceAsync(Guid resourceId, Guid personId)
-        { return await RemoveWithCompositeKeyAsync(database.ResourceAuthorRelations, resourceId, personId); }
+        { return await DeleteAsync(database.ResourceAuthorRelations, relation => relation.ResourceId == resourceId && relation.PersonId == personId) > 0; }
 
         public async Task<bool> RemoveAuthorFromResourceAsync(string resourceId, Guid personId)
         { return await RemoveAuthorFromResourceAsync(Guid.Parse(resourceId), personId); }
@@ -185,7 +144,7 @@ namespace backend.Data
         // Prune
 
         public async Task<bool> RemoveAuthorFromAllResourcesAsync(Guid personId)
-        { return await RemoveAllWhereAsync(database.ResourceAuthorRelations, i => i.PersonId == personId); }
+        { return await DeleteAllWhereAsync(database.ResourceAuthorRelations, i => i.PersonId == personId) > 0; }
 
         public async Task<bool> RemoveAuthorFromAllResourcesAsync(string personId)
         { return await RemoveAuthorFromAllResourcesAsync(Guid.Parse(personId)); }
@@ -193,7 +152,7 @@ namespace backend.Data
 
 
         public async Task<bool> RemoveAllResourceAuthorRelationsWithResourceIdAsync(Guid resourceId)
-        { return await RemoveAllWhereAsync(database.ResourceAuthorRelations, i => i.ResourceId == resourceId); }
+        { return await DeleteAllWhereAsync(database.ResourceAuthorRelations, i => i.ResourceId == resourceId) > 0; }
 
         public async Task<bool> RemoveAllResourceAuthorRelationsWithResourceIdAsync(string resourceId)
         { return await RemoveAllResourceAuthorRelationsWithResourceIdAsync(Guid.Parse(resourceId)); }
@@ -205,7 +164,7 @@ namespace backend.Data
         // Remove single
 
         public async Task<bool> RemoveOrganisationFromResourceAsync(Guid resourceId, Guid organisationId)
-        { return await RemoveWithCompositeKeyAsync(database.ResourceOrganisationRelations, resourceId, organisationId); }
+        { return await DeleteAsync(database.ResourceOrganisationRelations, relation => relation.ResourceId == resourceId && relation.OrganisationId == organisationId) > 0; }
 
         public async Task<bool> RemoveOrganisationFromResourceAsync(string resourceId, Guid organisationId)
         { return await RemoveOrganisationFromResourceAsync(Guid.Parse(resourceId), organisationId); }
@@ -219,7 +178,7 @@ namespace backend.Data
         // Prune
 
         public async Task<bool> RemoveOrganisationFromAllResourcesAsync(Guid organisationId)
-        { return await RemoveAllWhereAsync(database.ResourceOrganisationRelations, i => i.OrganisationId == organisationId); }
+        { return await DeleteAllWhereAsync(database.ResourceOrganisationRelations, i => i.OrganisationId == organisationId) > 0; }
 
         public async Task<bool> RemoveOrganisationFromAllResourcesAsync(string organisationId)
         { return await RemoveOrganisationFromAllResourcesAsync(Guid.Parse(organisationId)); }
@@ -227,7 +186,7 @@ namespace backend.Data
 
 
         public async Task<bool> RemoveAllResourceOrganisationRelationsWithResourceIdAsync(Guid resourceId)
-        { return await RemoveAllWhereAsync(database.ResourceOrganisationRelations, i => i.ResourceId == resourceId); }
+        { return await DeleteAllWhereAsync(database.ResourceOrganisationRelations, i => i.ResourceId == resourceId) > 0; }
 
         public async Task<bool> RemoveAllResourceOrganisationRelationsWithResourceIdAsync(string resourceId)
         { return await RemoveAllResourceOrganisationRelationsWithResourceIdAsync(Guid.Parse(resourceId)); }
@@ -239,7 +198,7 @@ namespace backend.Data
         // Remove single
 
         public async Task<bool> RemoveRegionFromResourceAsync(Guid resourceId, Guid regionId)
-        { return await RemoveWithCompositeKeyAsync(database.ResourceRegionRelations, resourceId, regionId); }
+        { return await DeleteAsync(database.ResourceRegionRelations, relation => relation.ResourceId == resourceId && relation.RegionId == regionId) > 0; }
 
         public async Task<bool> RemoveRegionFromResourceAsync(string resourceId, Guid regionId)
         { return await RemoveRegionFromResourceAsync(Guid.Parse(resourceId), regionId); }
@@ -253,7 +212,7 @@ namespace backend.Data
         // Prune
 
         public async Task<bool> RemoveRegionFromAllResourcesAsync(Guid regionId)
-        { return await RemoveAllWhereAsync(database.ResourceRegionRelations, i => i.RegionId == regionId); }
+        { return await DeleteAllWhereAsync(database.ResourceRegionRelations, i => i.RegionId == regionId) > 0; }
 
         public async Task<bool> RemoveRegionFromAllResourcesAsync(string regionId)
         { return await RemoveRegionFromAllResourcesAsync(Guid.Parse(regionId)); }
@@ -261,7 +220,7 @@ namespace backend.Data
 
 
         public async Task<bool> RemoveAllResourceRegionRelationsWithResourceIdAsync(Guid resourceId)
-        { return await RemoveAllWhereAsync(database.ResourceRegionRelations, i => i.ResourceId == resourceId); }
+        { return await DeleteAllWhereAsync(database.ResourceRegionRelations, i => i.ResourceId == resourceId) > 0; }
 
         public async Task<bool> RemoveAllResourceRegionRelationsWithResourceIdAsync(string resourceId)
         { return await RemoveAllResourceRegionRelationsWithResourceIdAsync(Guid.Parse(resourceId)); }
@@ -271,7 +230,7 @@ namespace backend.Data
         #region Resource-Source
 
         public async Task<bool> RemoveSourceFromResourceAsync(Guid resourceId, string url)
-        { return await RemoveWithCompositeKeyAsync(database.ResourceSourceRelations, resourceId, url); }
+        { return await DeleteAsync(database.ResourceSourceRelations, relation => relation.ResourceId == resourceId && relation.Url == url) > 0; }
 
         public async Task<bool> RemoveSourceFromResourceAsync(string resourceId, string url)
         { return await RemoveSourceFromResourceAsync(Guid.Parse(resourceId), url); }
@@ -279,7 +238,7 @@ namespace backend.Data
 
 
         public async Task<bool> RemoveAllResourceSourceRelationsWithResourceIdAsync(Guid resourceId)
-        { return await RemoveAllWhereAsync(database.ResourceSourceRelations, i => i.ResourceId == resourceId); }
+        { return await DeleteAllWhereAsync(database.ResourceSourceRelations, i => i.ResourceId == resourceId) > 0; }
 
         public async Task<bool> RemoveAllResourceSourceRelationsWithResourceIdAsync(string resourceId)
         { return await RemoveAllResourceSourceRelationsWithResourceIdAsync(Guid.Parse(resourceId)); }
@@ -291,7 +250,7 @@ namespace backend.Data
         // Remove single
 
         public async Task<bool> RemoveRelatedOrganisationFromResourceAsync(Guid resourceId, Guid organisationId)
-        { return await RemoveWithCompositeKeyAsync(database.ResourceRelatedOrganisationRelations, resourceId, organisationId); }
+        { return await DeleteAsync(database.ResourceRelatedOrganisationRelations, relation => relation.ResourceId == resourceId && relation.OrganisationId == organisationId) > 0; }
 
         public async Task<bool> RemoveRelatedOrganisationFromResourceAsync(string resourceId, Guid organisationId)
         { return await RemoveRelatedOrganisationFromResourceAsync(Guid.Parse(resourceId), organisationId); }
@@ -305,7 +264,7 @@ namespace backend.Data
         // Prune
 
         public async Task<bool> RemoveRelatedOrganisationFromAllResourcesAsync(Guid organisationId)
-        { return await RemoveAllWhereAsync(database.ResourceRelatedOrganisationRelations, i => i.OrganisationId == organisationId); }
+        { return await DeleteAllWhereAsync(database.ResourceRelatedOrganisationRelations, i => i.OrganisationId == organisationId) > 0; }
 
         public async Task<bool> RemoveRelatedOrganisationFromAllResourcesAsync(string organisationId)
         { return await RemoveRelatedOrganisationFromAllResourcesAsync(Guid.Parse(organisationId)); }
@@ -313,7 +272,7 @@ namespace backend.Data
 
 
         public async Task<bool> RemoveAllResourceRelatedOrganisationRelationsWithResourceIdAsync(Guid resourceId)
-        { return await RemoveAllWhereAsync(database.ResourceRelatedOrganisationRelations, i => i.ResourceId == resourceId); }
+        { return await DeleteAllWhereAsync(database.ResourceRelatedOrganisationRelations, i => i.ResourceId == resourceId) > 0; }
 
         public async Task<bool> RemoveAllResourceRelatedOrganisationRelationsWithResourceIdAsync(string resourceId)
         { return await RemoveAllResourceRelatedOrganisationRelationsWithResourceIdAsync(Guid.Parse(resourceId)); }
@@ -325,7 +284,7 @@ namespace backend.Data
         // Remove single
 
         public async Task<bool> RemoveRelatedPersonFromResourceAsync(Guid resourceId, Guid personId)
-        { return await RemoveWithCompositeKeyAsync(database.ResourceRelatedPersonRelations, resourceId, personId); }
+        { return await DeleteAsync(database.ResourceRelatedPersonRelations, relation => relation.ResourceId == resourceId && relation.PersonId == personId) > 0; }
 
         public async Task<bool> RemoveRelatedPersonFromResourceAsync(string resourceId, Guid personId)
         { return await RemoveRelatedPersonFromResourceAsync(Guid.Parse(resourceId), personId); }
@@ -339,7 +298,7 @@ namespace backend.Data
         // Prune
 
         public async Task<bool> RemoveRelatedPersonFromAllResourcesAsync(Guid personId)
-        { return await RemoveAllWhereAsync(database.ResourceRelatedPersonRelations, i => i.PersonId == personId); }
+        { return await DeleteAllWhereAsync(database.ResourceRelatedPersonRelations, i => i.PersonId == personId) > 0; }
 
         public async Task<bool> RemoveRelatedPersonFromAllResourcesAsync(string personId)
         { return await RemoveRelatedPersonFromAllResourcesAsync(Guid.Parse(personId)); }
@@ -347,7 +306,7 @@ namespace backend.Data
 
 
         public async Task<bool> RemoveAllResourceRelatedPersonRelationsWithResourceIdAsync(Guid resourceId)
-        { return await RemoveAllWhereAsync(database.ResourceRelatedPersonRelations, i => i.ResourceId == resourceId); }
+        { return await DeleteAllWhereAsync(database.ResourceRelatedPersonRelations, i => i.ResourceId == resourceId) > 0; }
 
         public async Task<bool> RemoveAllResourceRelatedPersonRelationsWithResourceIdAsync(string resourceId)
         { return await RemoveAllResourceRelatedPersonRelationsWithResourceIdAsync(Guid.Parse(resourceId)); }
@@ -357,7 +316,7 @@ namespace backend.Data
         #region Resource-Related_source
 
         public async Task<bool> RemoveRelatedSourceFromResourceAsync(Guid resourceId, string url)
-        { return await RemoveWithCompositeKeyAsync(database.ResourceRelatedSourceRelations, resourceId, url); }
+        { return await DeleteAsync(database.ResourceRelatedSourceRelations, relation => relation.ResourceId == resourceId && relation.Url == url) > 0; }
 
         public async Task<bool> RemoveRelatedSourceFromResourceAsync(string resourceId, string url)
         { return await RemoveRelatedSourceFromResourceAsync(Guid.Parse(resourceId), url); }
@@ -365,7 +324,7 @@ namespace backend.Data
 
 
         public async Task<bool> RemoveAllResourceRelatedSourceRelationsWithResourceIdAsync(Guid resourceId)
-        { return await RemoveAllWhereAsync(database.ResourceRelatedSourceRelations, i => i.ResourceId == resourceId); }
+        { return await DeleteAllWhereAsync(database.ResourceRelatedSourceRelations, i => i.ResourceId == resourceId) > 0; }
 
         public async Task<bool> RemoveAllResourceRelatedSourceRelationsWithResourceIdAsync(string resourceId)
         { return await RemoveAllResourceRelatedSourceRelationsWithResourceIdAsync(Guid.Parse(resourceId)); }
@@ -377,7 +336,7 @@ namespace backend.Data
         // Remove single
 
         public async Task<bool> RemoveAdminTagFromResourceAsync(Guid resourceId, Guid tagId)
-        { return await RemoveWithCompositeKeyAsync(database.ResourceAdminTagRelations, resourceId, tagId); }
+        { return await DeleteAsync(database.ResourceAdminTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId) > 0; }
 
         public async Task<bool> RemoveAdminTagFromResourceAsync(string resourceId, Guid tagId)
         { return await RemoveAdminTagFromResourceAsync(Guid.Parse(resourceId), tagId); }
@@ -391,7 +350,7 @@ namespace backend.Data
         // Prune
 
         public async Task<bool> RemoveAdminTagFromAllResourcesAsync(Guid tagId)
-        { return await RemoveAllWhereAsync(database.ResourceAdminTagRelations, i => i.TagId == tagId); }
+        { return await DeleteAllWhereAsync(database.ResourceAdminTagRelations, i => i.TagId == tagId) > 0; }
 
         public async Task<bool> RemoveAdminTagFromAllResourcesAsync(string tagId)
         { return await RemoveAdminTagFromAllResourcesAsync(Guid.Parse(tagId)); }
@@ -399,7 +358,7 @@ namespace backend.Data
 
 
         public async Task<bool> RemoveAllResourceAdminTagRelationsWithResourceIdAsync(Guid resourceId)
-        { return await RemoveAllWhereAsync(database.ResourceAdminTagRelations, i => i.ResourceId == resourceId); }
+        { return await DeleteAllWhereAsync(database.ResourceAdminTagRelations, i => i.ResourceId == resourceId) > 0; }
 
         public async Task<bool> RemoveAllResourceAdminTagRelationsWithResourceIdAsync(string resourceId)
         { return await RemoveAllResourceAdminTagRelationsWithResourceIdAsync(Guid.Parse(resourceId)); }
@@ -411,7 +370,7 @@ namespace backend.Data
         // Remove single
 
         public async Task<bool> RemoveUserTagFromResourceAsync(Guid resourceId, Guid tagId)
-        { return await RemoveWithCompositeKeyAsync(database.ResourceUserTagRelations, resourceId, tagId); }
+        { return await DeleteAsync(database.ResourceUserTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId) > 0; }
 
         public async Task<bool> RemoveUserTagFromResourceAsync(string resourceId, Guid tagId)
         { return await RemoveUserTagFromResourceAsync(Guid.Parse(resourceId), tagId); }
@@ -425,7 +384,7 @@ namespace backend.Data
         // Prune
 
         public async Task<bool> RemoveUserTagFromAllResourcesAsync(Guid tagId)
-        { return await RemoveAllWhereAsync(database.ResourceUserTagRelations, i => i.TagId == tagId); }
+        { return await DeleteAllWhereAsync(database.ResourceUserTagRelations, i => i.TagId == tagId) > 0; }
 
         public async Task<bool> RemoveUserTagFromAllResourcesAsync(string tagId)
         { return await RemoveUserTagFromAllResourcesAsync(Guid.Parse(tagId)); }
@@ -433,7 +392,7 @@ namespace backend.Data
 
 
         public async Task<bool> RemoveAllResourceUserTagRelationsWithResourceIdAsync(Guid resourceId)
-        { return await RemoveAllWhereAsync(database.ResourceUserTagRelations, i => i.ResourceId == resourceId); }
+        { return await DeleteAllWhereAsync(database.ResourceUserTagRelations, i => i.ResourceId == resourceId) > 0; }
 
         public async Task<bool> RemoveAllResourceUserTagRelationsWithResourceIdAsync(string resourceId)
         { return await RemoveAllResourceUserTagRelationsWithResourceIdAsync(Guid.Parse(resourceId)); }

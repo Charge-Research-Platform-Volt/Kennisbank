@@ -21,13 +21,13 @@ namespace backend.Controllers
     {
         private readonly IAzureBlobService blobService;
         private readonly Serilog.ILogger logger;
-        private readonly DatabaseContext database;
+        private readonly ResourceManager resourceManager;
 
-        public StorageController(IAzureBlobService blobService, DatabaseContext databaseContext)
+        public StorageController(IAzureBlobService blobService, ResourceManager resourceManager)
         {
             this.blobService = blobService;
             this.logger = Log.ForContext<StorageController>();
-            this.database = databaseContext;
+            this.resourceManager = resourceManager;
         }
 
         [HttpPut("upload")]
@@ -61,7 +61,9 @@ namespace backend.Controllers
 
             string fileType = Filetype.ConvertExtensionToFiletype(extension);
 
-            Guid id = Guid.NewGuid();
+            await resourceManager.BeginTransaction();
+
+            Guid id = await resourceManager.CreateResourceAsync(dto);
 
             try
             {
@@ -74,57 +76,23 @@ namespace backend.Controllers
                     case BLOB_STATUSCODE.OK:
 
                         logger.Information("Adding file '{FileName}' to database...", dto.File.FileName);
-                        Resource drive = new()
-                        {
-                            Id = id,
-                            Title = dto.Title,
-                            TypeId = new Guid(dto.TypeId),
-                            Description = dto.Description,
-                            LanguageCode = dto.LanguageCode,
-                            Hash = dto.Hash,
-                            FileType = fileType,
-                            PublicationDate = dto.PublicationDate,
-                            CreationDate = DateTime.UtcNow,
-                        };
 
-                        await database.Resources.AddAsync(drive);
-
-                        foreach (string tag in dto.AdminTags)
-                        {
-                            ResourceAdminTagRelation tagEntry = new()
-                            {
-                                ResourceId = id,
-                                TagId = Guid.Parse(tag),
-                            };
-
-                            await database.ResourceTagRelations.AddAsync(tagEntry);
-                        }
-
-                        foreach (string author in dto.Authors)
-                        {
-                            ResourceAuthorRelation authorEntry = new()
-                            {
-                                ResourceId = id,
-                                PersonId = Guid.Parse(author),
-                            };
-
-                            await database.ResourceAuthorRelations.AddAsync(authorEntry);
-                        }
-
-
-
-                        await database.SaveResourceChangesAsync();
+                        // Save changes to database since file upload succeeded
+                        await resourceManager.Commit();
 
                         logger.Information("File '{FileName}' added successfully", dto.File.FileName);
                         return Ok(new FileUploadResult(id.ToString(), fileType, dto.File.Length));
 
                     case BLOB_STATUSCODE.NOTFOUND:
+                        await resourceManager.Rollback();
                         return NotFound(new ContainerResponse("Container could not be found", fileType));
 
                     case BLOB_STATUSCODE.ALREADYEXISTS:
+                        await resourceManager.Rollback();
                         return Conflict(new FileResponse("File already exists and overwrite is disabled.", id.ToString(), fileType));
 
                     default:
+                        await resourceManager.Rollback();
                         return StatusCode(500, new StorageResponse("Error uploading file."));
                 }
             }
@@ -151,7 +119,7 @@ namespace backend.Controllers
 
             try
             {
-                Resource? item = await database.Resources.FindAsync(Guid.Parse(id));
+                Resource? item = await resourceManager.GetResourceAsync(id);
 
                 if (item == null)
                     return NotFound(new StorageResponse("ID not found in the database."));
@@ -199,24 +167,23 @@ namespace backend.Controllers
 
             try
             {
-                Resource? item = await database.Resources.FindAsync(Guid.Parse(id));
-
-                if (item == null)
+                if (await resourceManager.ResourceExistsAsync(id))
                     return NotFound(new StorageResponse("ID was not found in database. File was deleted succesfully."));
 
-                BLOB_STATUSCODE result = await blobService.DeleteBlobAsync(item.FileType, id);
+                string filetype = await resourceManager.GetResourceFileTypeAsync(id);
+
+                BLOB_STATUSCODE result = await blobService.DeleteBlobAsync(filetype, id);
 
                 switch (result)
                 {
                     case BLOB_STATUSCODE.OK:
 
-                        database.Resources.Remove(item);
-                        await database.SaveResourceChangesAsync();
+                        await resourceManager.DeleteResourceAsync(id);
 
-                        return Ok(new FileResponse("File deleted successfully", id, item.FileType));
+                        return Ok(new FileResponse("File deleted successfully", id, filetype));
 
                     case BLOB_STATUSCODE.NOTFOUND:
-                        return NotFound(new FileResponse("File not found but exists in database.", id, item.FileType));
+                        return NotFound(new FileResponse("File not found but exists in database.", id, filetype));
 
                     default:
                         return StatusCode(500, new StorageResponse("Error while deleting file."));
@@ -248,14 +215,10 @@ namespace backend.Controllers
 
             try
             {
-                Resource? item = await database.Resources.FindAsync(Guid.Parse(dto.Id));
-
-                if (item == null)
+                if (await resourceManager.ResourceExistsAsync(dto.Id))
                     return NotFound(new StorageResponse("ID was not found in database."));
 
-                item.Title = dto.Title;
-
-                await database.SaveResourceChangesAsync();
+                await resourceManager.UpdateResourceTitleAsync(dto.Id, dto.Title);
 
                 return Ok(new StorageResponse("File renamed succesfully."));
             }
@@ -282,12 +245,12 @@ namespace backend.Controllers
 
             try
             {
-                Resource? item = await database.Resources.Where(f => f.Hash == hash).FirstOrDefaultAsync();
+                Guid? resourceId = await resourceManager.HashExistsAsync(hash);
 
-                if (item == null)
+                if (resourceId == null)
                     return Ok(new ExistsResponse("File does not exist.", false, ""));
 
-                return Ok(new ExistsResponse("File already exists", true, item.Id.ToString()));
+                return Ok(new ExistsResponse("File already exists", true, ((Guid)resourceId).ToString()));
             }
             catch (Exception e)
             {
@@ -312,7 +275,7 @@ namespace backend.Controllers
 
             try
             {
-                Resource? item = await database.Resources.FindAsync(Guid.Parse(id));
+                Resource? item = await resourceManager.GetResourceAsync(id);
 
                 if (item == null)
                     return NotFound(new StorageResponse("File not found."));
@@ -337,7 +300,7 @@ namespace backend.Controllers
         {
             try
             {
-                Resource[]? items = await database.Resources.OrderByDescending(f => f.CreationDate).ToArrayAsync();
+                Resource[]? items = await resourceManager.GetAllResourcesAsync();
 
                 if (items == null)
                     return Ok(new PageResponse("No files in database.", 0, 0, Array.Empty<Resource>()));
@@ -369,10 +332,7 @@ namespace backend.Controllers
 
             try
             {
-                // Calculate how many records we need to skip
-                int skip = (pageIndex - 1) * pageSize;
-
-                Resource[]? items = await database.Resources.Skip(skip).Take(pageSize).ToArrayAsync();
+                Resource[]? items = await resourceManager.GetResourcePageAsync(pageIndex, pageSize);
 
                 if (items == null)
                     return Ok(new PageResponse("No files on this page.", pageIndex, pageSize, Array.Empty<Resource>()));

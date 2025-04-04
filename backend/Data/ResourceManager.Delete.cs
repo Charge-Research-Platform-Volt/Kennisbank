@@ -1,18 +1,27 @@
 ﻿using KnowledgeBank.Models;
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace backend.Data
 {
+    // This part is for deleting resources
     public partial class ResourceManager
     {
+        // --- Generic functions
+
+        protected async Task<int> DeleteAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate) where T : class
+        { return await dbSet.Where(predicate).ExecuteDeleteAsync(); }
+
+        protected async Task<int> DeleteAllWhereAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate) where T : class
+        { return await dbSet.Where(predicate).ExecuteDeleteAsync(); }
+
+
         // --- Resource
 
         public async Task<bool> DeleteResourceAsync(Guid id)
         {
-            Resource? resource = await GetResourceAsync(id);
-
-            if (resource == null) return false;
-
-            database.Resources.Remove(resource);
+            // Delete the resource itself
+            int count = await DeleteAsync(database.Resources, resource => resource.Id == id);
 
             await database.SaveResourceChangesAsync();
 
@@ -43,7 +52,7 @@ namespace backend.Data
             // Remove all resource-admintag relations containing this resource
             await RemoveAllResourceUserTagRelationsWithResourceIdAsync(id);
 
-            return true;
+            return count > 0;
         }
 
         public async Task<bool> DeleteResourceAsync(string id)
@@ -53,13 +62,8 @@ namespace backend.Data
 
         public async Task<bool> DeletePersonAsync(Guid id)
         {
-            Person? person = await GetPersonAsync(id);
-
-            if (person == null) return false;
-
-            database.Persons.Remove(person);
-
-            await database.SaveChangesAsync();
+            // Delete the person itself
+            int count = await DeleteAsync(database.Persons, person => person.Id == id);
 
             // Delete person from all organisations
             await RemovePersonFromAllOrganisationsAsync(id);
@@ -73,7 +77,7 @@ namespace backend.Data
             // Delete all resource-related_person relations containing this person
             await RemoveRelatedPersonFromAllResourcesAsync(id);
 
-            return true;
+            return count > 0;
         }
 
         public async Task<bool> DeletePersonAsync(string id)
@@ -83,13 +87,8 @@ namespace backend.Data
 
         public async Task<bool> DeleteOrganisationAsync(Guid id)
         {
-            Organisation? organisation = await GetOrganisationAsync(id);
-
-            if (organisation == null) return false;
-
-            database.Organisations.Remove(organisation);
-
-            await database.SaveChangesAsync();
+            // Delete the organisation itself
+            int count = await DeleteAsync(database.Organisations, organisation => organisation.Id == id);
 
             // Delete all organisation relationships with this organisation
             await RemoveAllOrganisationRelationshipsContainingIdAsync(id);
@@ -103,7 +102,7 @@ namespace backend.Data
             // Delete all resource-organisation relations containing this organisation
             await RemoveRelatedOrganisationFromAllResourcesAsync(id);
 
-            return true;
+            return count > 0;
         }
 
         public async Task<bool> DeleteOrganisationAsync(string id)
@@ -113,18 +112,13 @@ namespace backend.Data
 
         public async Task<bool> DeleteRegionAsync(Guid id)
         {
-            Region? region = await GetRegionAsync(id);
-
-            if (region == null) return false;
-
-            database.Regions.Remove(region);
-
-            await database.SaveChangesAsync();
+            // Delete the region itself
+            int count = await DeleteAsync(database.Regions, region => region.Id == id);
 
             // Delete region from all resources
             await RemoveRegionFromAllResourcesAsync(id);
 
-            return true;
+            return count > 0;
         }
 
         public async Task<bool> DeleteRegionAsync(string id)
@@ -132,90 +126,63 @@ namespace backend.Data
 
         // --- Audio Metadata
 
-        public async Task<bool> DeleteAudioMetadataAsync(Guid id)
+        public async Task<bool> DeleteAudioMetadataAsync(Guid resourceId)
         {
-            AudioMetadata? metadata = await GetAudioMetadataAsync(id);
+            // Delete the metadata itself
+            int count = await DeleteAsync(database.AudioMetadata, metadata => metadata.ResourceId == resourceId);
 
-            if (metadata == null) return false;
-
-            database.AudioMetadata.Remove(metadata);
-
-            await database.SaveChangesAsync();
-
-            return true;
+            return count > 0;
         }
 
-        public async Task<bool> DeleteAudioMetadataAsync(string id)
-        { return await DeleteAudioMetadataAsync(Guid.Parse(id)); }
+        public async Task<bool> DeleteAudioMetadataAsync(string resourceId)
+        { return await DeleteAudioMetadataAsync(Guid.Parse(resourceId)); }
 
         // --- Video Metadata
 
-        public async Task<bool> DeleteVideoMetadataAsync(Guid id)
+        public async Task<bool> DeleteVideoMetadataAsync(Guid resourceId)
         {
-            VideoMetadata? metadata = await GetVideoMetadataAsync(id);
+            int count = await DeleteAsync(database.VideoMetadata, metadata => metadata.ResourceId == resourceId);
 
-            if (metadata == null) return false;
-
-            database.VideoMetadata.Remove(metadata);
-
-            await database.SaveChangesAsync();
-
-            return true;
+            return count > 0;
         }
 
-        public async Task<bool> DeleteVideoMetadataAsync(string id)
-        { return await DeleteVideoMetadataAsync(Guid.Parse(id)); }
+        public async Task<bool> DeleteVideoMetadataAsync(string resourceId)
+        { return await DeleteVideoMetadataAsync(Guid.Parse(resourceId)); }
 
         // --- Website Metadata
 
-        public async Task<bool> DeleteWebsiteMetadataAsync(Guid id)
+        public async Task<bool> DeleteWebsiteMetadataAsync(Guid resourceId)
         {
-            WebsiteMetadata? metadata = await GetWebsiteMetadataAsync(id);
+            int count = await DeleteAsync(database.WebsiteMetadata, metadata => metadata.ResourceId == resourceId);
 
-            if (metadata == null) return false;
-
-            database.WebsiteMetadata.Remove(metadata);
-
-            await database.SaveChangesAsync();
-
-            return true;
+            return count > 0;
         }
 
-        public async Task<bool> DeleteWebsiteMetadataAsync(string id)
-        { return await DeleteWebsiteMetadataAsync(Guid.Parse(id)); }
+        public async Task<bool> DeleteWebsiteMetadataAsync(string resourceId)
+        { return await DeleteWebsiteMetadataAsync(Guid.Parse(resourceId)); }
 
         // --- Document Metadata
 
-        public async Task<bool> DeleteDocumentMetadataAsync(Guid id)
+        public async Task<bool> DeleteDocumentMetadataAsync(Guid resourceId)
         {
-            DocumentMetadata? metadata = await GetDocumentMetadataAsync(id);
+            int count = await DeleteAsync(database.DocumentMetadata, metadata => metadata.ResourceId == resourceId);
 
-            if (metadata == null) return false;
-
-            await database.SaveChangesAsync();
-
-            return true;
+            return count > 0;
         }
 
-        public async Task<bool> DeleteDocumentMetadataAsync(string id)
-        { return await DeleteDocumentMetadataAsync(Guid.Parse(id)); }
+        public async Task<bool> DeleteDocumentMetadataAsync(string resourceId)
+        { return await DeleteDocumentMetadataAsync(Guid.Parse(resourceId)); }
 
         // --- User Tag
 
         public async Task<bool> DeleteUserTagAsync(Guid id)
         {
-            UserTag? tag = await GetUserTagAsync(id);
-
-            if (tag == null) return false;
-
-            database.UserTags.Remove(tag);
-
-            await database.SaveChangesAsync();
+            int count = await DeleteAsync(database.UserTags, tag => tag.Id == id);
 
             // Remove all resource-usertag relations containing this tag
             await RemoveUserTagFromAllResourcesAsync(id);
 
-            return true;
+            return count > 0;
         }
         
         public async Task<bool> DeleteUserTagAsync(string id)
@@ -225,18 +192,12 @@ namespace backend.Data
 
         public async Task<bool> DeleteAdminTagAsync(Guid id)
         {
-            AdminTag? tag = await GetAdminTagAsync(id);
-
-            if (tag == null) return false;
-
-            database.AdminTags.Remove(tag);
-
-            await database.SaveChangesAsync();
+            int count = await DeleteAsync(database.AdminTags, tag => tag.Id == id);
 
             // Remove all resource-admintag relations containing this tag
             await RemoveAdminTagFromAllResourcesAsync(id);
 
-            return true;
+            return count > 0;
         }
         
         public async Task<bool> DeleteAdminTagAsync(string id)
@@ -246,23 +207,12 @@ namespace backend.Data
 
         public async Task<bool> DeleteResourceTypeAsync(Guid id)
         {
-            ResourceType? type = await GetResourceTypeAsync(id);
-
-            if (type == null) return false;
-
-            database.ResourceTypes.Remove(type);
-
-            Guid unkownTypeId = Guid.Parse(DatabaseSeeder.UnknownResourceTypeId);
+            int count = await DeleteAsync(database.ResourceTypes, type => type.Id == id);
 
             // Set the type of all resources with this type to unknown
-            foreach (Resource resource in await GetAllWhereAsync(database.Resources, i => i.TypeId == id))
-            {
-                resource.TypeId = unkownTypeId;
-            }
+            count += await UpdatePropertyAsync(database.Resources, i => i.TypeId == id, i => i.TypeId, Guid.Parse(DatabaseSeeder.UnknownResourceTypeId));
 
-            await database.SaveChangesAsync();
-
-            return true;
+            return count > 0;
         }
 
         public async Task<bool> DeleteResourceTypeAsync(string id)
