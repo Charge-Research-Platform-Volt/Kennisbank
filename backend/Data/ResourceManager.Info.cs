@@ -10,7 +10,7 @@ namespace backend.Data
         #region Generic functions
 
         protected async Task<bool> ExistsAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate) where T : class
-        { return await dbSet.AnyAsync(predicate); }
+        { return await dbSet.AsNoTracking().AnyAsync(predicate); }
 
         #endregion
 
