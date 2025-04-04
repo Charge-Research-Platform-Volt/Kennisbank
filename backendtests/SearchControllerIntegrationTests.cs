@@ -53,19 +53,21 @@ public class SearchControllerIntegrationTests
     [Test]
     public async Task SearchByName_ReturnsResults_WhenDataExists()
     {
-        FileItem testFile = new()
+        Resource testFile = new()
         {
             Id = new Guid(),
-            Name = "Integration Test File",
+            Title = "Integration Test File",
             Description = "This is a test file about AI Ohmega",
             FileType = "text",
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            TypeId = Guid.Parse(DatabaseSeeder.UnknownResourceTypeId),
+            LanguageCode = "??",
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
             
         };
 
         // Add the file to the database.
-        await _context.Files.AddAsync(testFile);
+        await _context.Resources.AddAsync(testFile);
         await _context.SaveResourceChangesAsync();
 
 
@@ -81,25 +83,27 @@ public class SearchControllerIntegrationTests
         var pageResponse = okResult.Value as PageResponse;
         Assert.That(pageResponse, Is.Not.Null);
         // Should only be one result
-        Assert.That(pageResponse.Files.Count, Is.EqualTo(1));
-        Assert.That(pageResponse.Files.First().Name, Is.EqualTo("Integration Test File"));
+        Assert.That(pageResponse.Resources.Count, Is.EqualTo(1));
+        Assert.That(pageResponse.Resources.First().Title, Is.EqualTo("Integration Test File"));
     }
 
     [Test]
     public async Task SearchByName_ReturnsEmptyResult_WhenDataDoesNotExist()
     {
-        FileItem testFile = new()
+        Resource testFile = new()
         {
             Id = new Guid(),
-            Name = "Integration Test File",
+            Title = "Integration Test File",
             Description = "This is a test file about AI Ohmega",
             FileType = "text",
-            CreatedAt = DateTime.Now,
-            UpdatedAt = DateTime.Now
+            TypeId = Guid.Parse(DatabaseSeeder.UnknownResourceTypeId),
+            LanguageCode = "??",
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
 
         // Add the file to the database.
-        await _context.Files.AddAsync(testFile);
+        await _context.Resources.AddAsync(testFile);
         await _context.SaveResourceChangesAsync();
 
 
@@ -115,6 +119,6 @@ public class SearchControllerIntegrationTests
         var pageResponse = okResult.Value as PageResponse;
         Assert.That(pageResponse, Is.Not.Null);
         // Should be zero results
-        Assert.That(pageResponse.Files.Count, Is.EqualTo(0));
+        Assert.That(pageResponse.Resources.Count, Is.EqualTo(0));
     }
 }
