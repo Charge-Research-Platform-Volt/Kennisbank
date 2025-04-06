@@ -17,18 +17,11 @@ namespace backend.Controllers
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class StorageController : ControllerBase
+    public class StorageController(IAzureBlobService blobService, ResourceManager resourceManager) : ControllerBase
     {
-        private readonly IAzureBlobService blobService;
-        private readonly Serilog.ILogger logger;
-        private readonly ResourceManager resourceManager;
-
-        public StorageController(IAzureBlobService blobService, ResourceManager resourceManager)
-        {
-            this.blobService = blobService;
-            this.logger = Log.ForContext<StorageController>();
-            this.resourceManager = resourceManager;
-        }
+        private readonly IAzureBlobService blobService = blobService;
+        private readonly Serilog.ILogger logger = Log.ForContext<StorageController>();
+        private readonly ResourceManager resourceManager = resourceManager;
 
         [HttpPut("upload")]
         [SwaggerOperation(
@@ -74,7 +67,7 @@ namespace backend.Controllers
             try
             {
                 logger.Information("Adding file '{FileName}' to blob storage...", dto.File.FileName);
-                Dictionary<string, string> metadata = new Dictionary<string, string> { { "extension", extension } };
+                Dictionary<string, string> metadata = new() { { "extension", extension } };
                 BLOB_STATUSCODE result = await blobService.UploadBlobAsync(fileType, id.ToString(), metadata, dto.File.OpenReadStream());
 
                 switch (result)
@@ -131,7 +124,7 @@ namespace backend.Controllers
                 if (await resourceManager.ResourceExistsAsync(id))
                     return NotFound(new StorageResponse("ID not found in the database."));
 
-                string filetype = await resourceManager.GetResourceFileTypeAsync(id);
+                string filetype = await resourceManager.GetResourcePropertyAsync(id, resource => resource.FileType);
 
                 BlobDownloadResponse? maybeResponse = await blobService.DownloadBlobAsync(filetype, id);
 
@@ -141,11 +134,11 @@ namespace backend.Controllers
                 BlobDownloadResponse response = (BlobDownloadResponse)maybeResponse;
 
                 string contentType = "application/octet-stream";
-                string fileName = sanitizeFileName(await resourceManager.GetResourceTitleAsync(id)) + response.Metadata["extension"];
+                string fileName = SanitizeFileName(await resourceManager.GetResourcePropertyAsync(id, resource => resource.Title)) + response.Metadata["extension"];
 
                 if (Path.HasExtension(fileName))
                 {
-                    FileExtensionContentTypeProvider provider = new FileExtensionContentTypeProvider();
+                    FileExtensionContentTypeProvider provider = new();
                     if (provider.TryGetContentType(fileName, out string? type) && !string.IsNullOrEmpty(type))
                         contentType = type;
                 }
@@ -179,7 +172,7 @@ namespace backend.Controllers
                 if (await resourceManager.ResourceExistsAsync(id))
                     return NotFound(new StorageResponse("ID was not found in database. File was deleted succesfully."));
 
-                string filetype = await resourceManager.GetResourceFileTypeAsync(id);
+                string filetype = await resourceManager.GetResourcePropertyAsync(id, resource => resource.FileType);
 
                 BLOB_STATUSCODE result = await blobService.DeleteBlobAsync(filetype, id);
 
@@ -354,7 +347,7 @@ namespace backend.Controllers
         }
 
         // Makes a valid filename
-        private string sanitizeFileName(string fileName, bool preserveSpaces = true)
+        private static string SanitizeFileName(string fileName, bool preserveSpaces = true)
         {
             if (string.IsNullOrEmpty(fileName))
                 return "unnamed";
@@ -365,7 +358,7 @@ namespace backend.Controllers
 
             // Retrieve invalid chars
             char[] invalidChars = Path.GetInvalidFileNameChars();
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
 
             foreach (char c in fileName)
             {
@@ -400,7 +393,7 @@ namespace backend.Controllers
             // Limit length of name
             int maxLength = 255 - extension.Length;
             if (result.Length > maxLength)
-                result = result.Substring(0, maxLength);
+                result = result[..maxLength];
 
             // Return result + extension
             return result + extension;
