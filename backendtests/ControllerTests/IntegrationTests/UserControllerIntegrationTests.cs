@@ -9,53 +9,28 @@ using KnowledgeBank.Data;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Http;
-namespace backend.Tests;
+using backend.Tests.Infrastructure;
+
+namespace backend.Tests.Integration;
 
 [TestFixture]
 [Category("IntegrationTest")]
-public class UserControllerIntegrationTests
+public class UserControllerTests : TestBase
 {
-    private DbContextOptions<DatabaseContext> _options;
-    private DatabaseContext _context;
     private UserController _controller;
-    private IDbContextTransaction _transaction;
     private Mock<UserManager<User>> _userManagerMock;
 
     [SetUp]
-    public void SetUp()
+    public void SetupController()
     {
-        // Determine the host based on runtime environment
-        string dbHost = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true" 
-            ? "database"   // To run test in CI/CD
-            : "localhost"; // To run test locally
-        
-        _options = new DbContextOptionsBuilder<DatabaseContext>()
-            .UseNpgsql($"Host={dbHost};Database=postgres;Username=postgres;Password=postgres")
-            .Options;
-        
+              
         // mock the UserManager<User> dependency
          _userManagerMock = new Mock<UserManager<User>>(
             Mock.Of<IUserStore<User>>(), 
             null, null, null, null, null, null, null, null
         );
 
-        _context = new DatabaseContext(_options);
-
-        // Start a transaction for rollback after each test
-        _transaction = _context.Database.BeginTransaction();
-
-        _context.Database.UseTransaction(_transaction.GetDbTransaction());
-
-        _controller = new UserController(_context, _userManagerMock.Object);
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        // Rollback the transaction so DB state remains unchanged
-        _transaction.Rollback();
-        _transaction.Dispose();
-        _context.Dispose();
+        _controller = new UserController(Context, _userManagerMock.Object);
     }
 
     [Test]
@@ -63,8 +38,8 @@ public class UserControllerIntegrationTests
     {
         // Arrange
         var testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
-        _context.AppUsers.Add(testUser);
-        await _context.SaveChangesAsync();
+        Context.AppUsers.Add(testUser);
+        await Context.SaveChangesAsync();
         _userManagerMock.Setup(m => m.GetRolesAsync(It.IsAny<User>())).ReturnsAsync((User user) => {
             return user.Email == "admin@admin.nl" ? new List<string> { "admin" } : new List<string> { "user" };
         });
@@ -86,8 +61,8 @@ public class UserControllerIntegrationTests
     {
         // Arrange
         var testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
-        _context.AppUsers.Add(testUser);
-        await _context.SaveChangesAsync();
+        Context.AppUsers.Add(testUser);
+        await Context.SaveChangesAsync();
         _userManagerMock.Setup(m => m.GetRolesAsync(It.IsAny<User>())).ReturnsAsync((User user) => {
             return user.Email == "admin@admin.nl" ? new List<string> { "admin" } : new List<string> { "user" };
         });
@@ -117,7 +92,7 @@ public class UserControllerIntegrationTests
         var testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
         _userManagerMock.Setup(m => m.FindByIdAsync(testUser.Id)).ReturnsAsync(testUser);
         _userManagerMock.Setup(m => m.DeleteAsync(testUser)).ReturnsAsync(IdentityResult.Success);
-        await _context.SaveChangesAsync();
+        await Context.SaveChangesAsync();
 
         // Act
         var result = await _controller.Delete(testUser.Id);
