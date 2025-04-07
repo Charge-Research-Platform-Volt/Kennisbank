@@ -11,7 +11,7 @@ import { ResourceBase } from "@/types/resource.type";
 import { Button } from "@/components/ui/button";
 import { getFileHasher } from "@/utils/fileHashWorker";
 import { TagsArray, UserTagsArray } from "@/types/tag.type";
-import TagSelectionDropdown from "../TagSelectionDropdown";
+import TagSelectionDropdown from "..//uploadComponents/TagSelectionDropdown";
 import { InputHeader, InputBlock, FInput, FileInfo, PopupTitle } from "../ui/Popup";
 import New from "@/icons/new";
 

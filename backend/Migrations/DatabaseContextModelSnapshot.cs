@@ -22,83 +22,34 @@ namespace backend.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("KnowledgeBank.Models.FileItem", b =>
+            modelBuilder.Entity("KnowledgeBank.Models.AudioMetadata", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<Guid>("ResourceId")
                         .HasColumnType("uuid")
-                        .HasColumnName("id");
+                        .HasColumnName("resource-id");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                    b.Property<decimal?>("Length")
+                        .HasColumnType("numeric(20,0)")
+                        .HasColumnName("length");
 
-                    b.Property<string>("Description")
-                        .HasColumnType("text")
-                        .HasColumnName("description");
+                    b.HasKey("ResourceId");
 
-                    b.Property<string>("FileType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("filetype");
-
-                    b.Property<string>("Hash")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("hash");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("files");
+                    b.ToTable("audio-metadata");
                 });
 
-            modelBuilder.Entity("KnowledgeBank.Models.FileTagLink", b =>
+            modelBuilder.Entity("KnowledgeBank.Models.DocumentMetadata", b =>
                 {
-                    b.Property<Guid>("DocId")
+                    b.Property<Guid>("ResourceId")
                         .HasColumnType("uuid")
-                        .HasColumnName("doc-id");
+                        .HasColumnName("resource-id");
 
-                    b.Property<Guid>("TagId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("tag-id");
-
-                    b.HasKey("DocId", "TagId");
-
-                    b.ToTable("doc-tag");
-                });
-
-            modelBuilder.Entity("KnowledgeBank.Models.FileVector", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("FileId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("file_id");
-
-                    b.Property<string>("Vector")
-                        .IsRequired()
+                    b.Property<string>("Abstract")
                         .HasColumnType("text")
-                        .HasColumnName("vector");
+                        .HasColumnName("abstract");
 
-                    b.HasKey("Id");
+                    b.HasKey("ResourceId");
 
-                    b.HasIndex("FileId")
-                        .IsUnique();
-
-                    b.ToTable("file_vectors");
+                    b.ToTable("document-metadata");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.Invitation", b =>
@@ -127,12 +78,446 @@ namespace backend.Migrations
                     b.ToTable("invitations");
                 });
 
+            modelBuilder.Entity("KnowledgeBank.Models.Organisation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<string>("EmailAddress")
+                        .HasColumnType("text")
+                        .HasColumnName("email-address");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Website")
+                        .HasColumnType("text")
+                        .HasColumnName("website");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("organisations");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.OrganisationRelationship", b =>
+                {
+                    b.Property<Guid>("SourceOrganisationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source-organisation-id");
+
+                    b.Property<Guid>("TargetOrganisationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target-organisation-id");
+
+                    b.Property<string>("Relation")
+                        .HasColumnType("text")
+                        .HasColumnName("relation");
+
+                    b.HasKey("SourceOrganisationId", "TargetOrganisationId");
+
+                    b.HasIndex("TargetOrganisationId");
+
+                    b.ToTable("organisation-relationships");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.Person", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<string>("EmailAddress")
+                        .HasColumnType("text")
+                        .HasColumnName("email-address");
+
+                    b.Property<string>("Linkedin")
+                        .HasColumnType("text")
+                        .HasColumnName("linkedin");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Occupation")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("occupation");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("persons");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.PersonOrganisationRelation", b =>
+                {
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("person-id");
+
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organisation-id");
+
+                    b.Property<string>("Role")
+                        .HasColumnType("text")
+                        .HasColumnName("role");
+
+                    b.HasKey("PersonId", "OrganisationId");
+
+                    b.HasIndex("OrganisationId");
+
+                    b.ToTable("person-organisation");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.PersonRelationship", b =>
+                {
+                    b.Property<Guid>("SourcePersonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source-person-id");
+
+                    b.Property<Guid>("TargetPersonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target-person-id");
+
+                    b.Property<string>("Relation")
+                        .HasColumnType("text")
+                        .HasColumnName("relation");
+
+                    b.HasKey("SourcePersonId", "TargetPersonId");
+
+                    b.HasIndex("TargetPersonId");
+
+                    b.ToTable("person-person");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.Region", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("regions");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.Resource", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreationDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creation-date");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<string>("FileType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("filetype");
+
+                    b.Property<string>("Hash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("hash");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("language-code");
+
+                    b.Property<string>("License")
+                        .HasColumnType("text")
+                        .HasColumnName("license");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text")
+                        .HasColumnName("note");
+
+                    b.Property<string>("PublicationCode")
+                        .HasColumnType("text")
+                        .HasColumnName("publication-code");
+
+                    b.Property<DateTime>("PublicationDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("publication-date");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.Property<Guid>("TypeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("type-id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TypeId");
+
+                    b.ToTable("resources");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceAuthorRelation", b =>
+                {
+                    b.Property<Guid>("ResourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resource-id");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("person-id");
+
+                    b.HasKey("ResourceId", "PersonId");
+
+                    b.HasIndex("PersonId");
+
+                    b.ToTable("resource-author");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceOrganisationRelation", b =>
+                {
+                    b.Property<Guid>("ResourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resource-id");
+
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organisation-id");
+
+                    b.Property<string>("Role")
+                        .HasColumnType("text")
+                        .HasColumnName("role");
+
+                    b.HasKey("ResourceId", "OrganisationId");
+
+                    b.HasIndex("OrganisationId");
+
+                    b.ToTable("resource-organisation");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceRegionRelation", b =>
+                {
+                    b.Property<Guid>("ResourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resource-id");
+
+                    b.Property<Guid>("RegionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("region-id");
+
+                    b.HasKey("ResourceId", "RegionId");
+
+                    b.HasIndex("RegionId");
+
+                    b.ToTable("resource-region");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceRelatedOrganisationRelation", b =>
+                {
+                    b.Property<Guid>("ResourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resource-id");
+
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organisation-id");
+
+                    b.Property<string>("Role")
+                        .HasColumnType("text")
+                        .HasColumnName("role");
+
+                    b.HasKey("ResourceId", "OrganisationId");
+
+                    b.HasIndex("OrganisationId");
+
+                    b.ToTable("resource-related_organisation");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceRelatedPersonRelation", b =>
+                {
+                    b.Property<Guid>("ResourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resource-id");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("person-id");
+
+                    b.Property<string>("Role")
+                        .HasColumnType("text")
+                        .HasColumnName("role");
+
+                    b.HasKey("ResourceId", "PersonId");
+
+                    b.HasIndex("PersonId");
+
+                    b.ToTable("resource-related_person");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceRelatedSourceRelation", b =>
+                {
+                    b.Property<Guid>("ResourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resource-id");
+
+                    b.Property<string>("Url")
+                        .HasColumnType("text")
+                        .HasColumnName("url");
+
+                    b.HasKey("ResourceId", "Url");
+
+                    b.ToTable("resource-related_source");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceSourceRelation", b =>
+                {
+                    b.Property<Guid>("ResourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resource-id");
+
+                    b.Property<string>("Url")
+                        .HasColumnType("text")
+                        .HasColumnName("url");
+
+                    b.HasKey("ResourceId", "Url");
+
+                    b.ToTable("resource-source");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceTagRelation", b =>
+                {
+                    b.Property<Guid>("ResourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resource-id");
+
+                    b.Property<Guid>("TagId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tag-id");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("approved-by");
+
+                    b.Property<DateTime?>("ApprovedOn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("approved-on");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is-approved");
+
+                    b.HasKey("ResourceId", "TagId");
+
+                    b.HasIndex("TagId");
+
+                    b.ToTable("resource-tag");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("resource-types");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceVector", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ResourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resource-id");
+
+                    b.Property<string>("Vector")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("vector");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResourceId")
+                        .IsUnique();
+
+                    b.ToTable("resource-vectors");
+                });
+
             modelBuilder.Entity("KnowledgeBank.Models.Tag", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("approvedBy");
+
+                    b.Property<DateTime?>("ApprovedOn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("approved-on");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("created-by");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created-on");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is-approved");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -147,28 +532,34 @@ namespace backend.Migrations
                     b.ToTable("tags");
                 });
 
-            modelBuilder.Entity("KnowledgeBank.Models.UserTag", b =>
+            modelBuilder.Entity("KnowledgeBank.Models.VideoMetadata", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<Guid>("ResourceId")
                         .HasColumnType("uuid")
-                        .HasColumnName("id");
+                        .HasColumnName("resource-id");
 
-                    b.Property<bool>("IsApproved")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_approved");
+                    b.Property<decimal?>("Length")
+                        .HasColumnType("numeric(20,0)")
+                        .HasColumnName("length");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("name");
+                    b.HasKey("ResourceId");
 
-                    b.HasKey("Id");
+                    b.ToTable("video-metadata");
+                });
 
-                    b.HasIndex("Name")
-                        .IsUnique();
+            modelBuilder.Entity("KnowledgeBank.Models.WebsiteMetadata", b =>
+                {
+                    b.Property<Guid>("ResourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resource-id");
 
-                    b.ToTable("user_tags");
+                    b.Property<DateTime?>("AccessedOn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("accessed-on");
+
+                    b.HasKey("ResourceId");
+
+                    b.ToTable("website-metadata");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -376,6 +767,23 @@ namespace backend.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("backend.Models.ResourceResourceTypeRelation", b =>
+                {
+                    b.Property<Guid>("ResourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resource-id");
+
+                    b.Property<Guid>("ResourceTypeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resourcetype-id");
+
+                    b.HasKey("ResourceId", "ResourceTypeId");
+
+                    b.HasIndex("ResourceTypeId");
+
+                    b.ToTable("resource-resourcetype");
+                });
+
             modelBuilder.Entity("KnowledgeBank.Models.User", b =>
                 {
                     b.HasBaseType("Microsoft.AspNetCore.Identity.IdentityUser");
@@ -383,15 +791,263 @@ namespace backend.Migrations
                     b.HasDiscriminator().HasValue("User");
                 });
 
-            modelBuilder.Entity("KnowledgeBank.Models.FileVector", b =>
+            modelBuilder.Entity("KnowledgeBank.Models.AudioMetadata", b =>
                 {
-                    b.HasOne("KnowledgeBank.Models.FileItem", "File")
-                        .WithOne("Vector")
-                        .HasForeignKey("KnowledgeBank.Models.FileVector", "FileId")
+                    b.HasOne("KnowledgeBank.Models.Resource", "Resource")
+                        .WithOne("AudioMetadata")
+                        .HasForeignKey("KnowledgeBank.Models.AudioMetadata", "ResourceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("File");
+                    b.Navigation("Resource");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.DocumentMetadata", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Resource", "Resource")
+                        .WithOne("DocumentMetadata")
+                        .HasForeignKey("KnowledgeBank.Models.DocumentMetadata", "ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Resource");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.OrganisationRelationship", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Organisation", "SourceOrganisation")
+                        .WithMany("TargetRelationships")
+                        .HasForeignKey("SourceOrganisationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KnowledgeBank.Models.Organisation", "TargetOrganisation")
+                        .WithMany("SourceRelationships")
+                        .HasForeignKey("TargetOrganisationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SourceOrganisation");
+
+                    b.Navigation("TargetOrganisation");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.PersonOrganisationRelation", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Organisation", "Organisation")
+                        .WithMany("RelatedPersons")
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KnowledgeBank.Models.Person", "Person")
+                        .WithMany("RelatedOrganisations")
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Organisation");
+
+                    b.Navigation("Person");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.PersonRelationship", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Person", "SourcePerson")
+                        .WithMany("TargetRelationships")
+                        .HasForeignKey("SourcePersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KnowledgeBank.Models.Person", "TargetPerson")
+                        .WithMany("SourceRelationships")
+                        .HasForeignKey("TargetPersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SourcePerson");
+
+                    b.Navigation("TargetPerson");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.Resource", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.ResourceType", "Type")
+                        .WithMany("Resources")
+                        .HasForeignKey("TypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Type");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceAuthorRelation", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Person", "Person")
+                        .WithMany("AuthoredResources")
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KnowledgeBank.Models.Resource", "Resource")
+                        .WithMany("Authors")
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Person");
+
+                    b.Navigation("Resource");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceOrganisationRelation", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Organisation", "Organisation")
+                        .WithMany("OwnedResources")
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KnowledgeBank.Models.Resource", "Resource")
+                        .WithMany("Organisations")
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Organisation");
+
+                    b.Navigation("Resource");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceRegionRelation", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Region", "Region")
+                        .WithMany("Resources")
+                        .HasForeignKey("RegionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KnowledgeBank.Models.Resource", "Resource")
+                        .WithMany("Regions")
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Region");
+
+                    b.Navigation("Resource");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceRelatedOrganisationRelation", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Organisation", "RelatedOrganisation")
+                        .WithMany("RelatedResources")
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KnowledgeBank.Models.Resource", "Resource")
+                        .WithMany("RelatedOrganisations")
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RelatedOrganisation");
+
+                    b.Navigation("Resource");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceRelatedPersonRelation", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Person", "RelatedPerson")
+                        .WithMany()
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KnowledgeBank.Models.Resource", "Resource")
+                        .WithMany()
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RelatedPerson");
+
+                    b.Navigation("Resource");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceRelatedSourceRelation", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Resource", "Resource")
+                        .WithMany("RelatedSources")
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Resource");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceSourceRelation", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Resource", "Resource")
+                        .WithMany("Sources")
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Resource");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceTagRelation", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Resource", "Resource")
+                        .WithMany("Tags")
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KnowledgeBank.Models.Tag", "Tag")
+                        .WithMany("Resources")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Resource");
+
+                    b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceVector", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Resource", "Resource")
+                        .WithOne("Vector")
+                        .HasForeignKey("KnowledgeBank.Models.ResourceVector", "ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Resource");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.VideoMetadata", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Resource", "Resource")
+                        .WithOne("VideoMetadata")
+                        .HasForeignKey("KnowledgeBank.Models.VideoMetadata", "ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Resource");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.WebsiteMetadata", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Resource", "Resource")
+                        .WithOne("WebsiteMetadata")
+                        .HasForeignKey("KnowledgeBank.Models.WebsiteMetadata", "ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Resource");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -445,9 +1101,89 @@ namespace backend.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("KnowledgeBank.Models.FileItem", b =>
+            modelBuilder.Entity("backend.Models.ResourceResourceTypeRelation", b =>
                 {
+                    b.HasOne("KnowledgeBank.Models.Resource", "Resource")
+                        .WithMany()
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KnowledgeBank.Models.ResourceType", "ResourceType")
+                        .WithMany()
+                        .HasForeignKey("ResourceTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Resource");
+
+                    b.Navigation("ResourceType");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.Organisation", b =>
+                {
+                    b.Navigation("OwnedResources");
+
+                    b.Navigation("RelatedPersons");
+
+                    b.Navigation("RelatedResources");
+
+                    b.Navigation("SourceRelationships");
+
+                    b.Navigation("TargetRelationships");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.Person", b =>
+                {
+                    b.Navigation("AuthoredResources");
+
+                    b.Navigation("RelatedOrganisations");
+
+                    b.Navigation("SourceRelationships");
+
+                    b.Navigation("TargetRelationships");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.Region", b =>
+                {
+                    b.Navigation("Resources");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.Resource", b =>
+                {
+                    b.Navigation("AudioMetadata");
+
+                    b.Navigation("Authors");
+
+                    b.Navigation("DocumentMetadata");
+
+                    b.Navigation("Organisations");
+
+                    b.Navigation("Regions");
+
+                    b.Navigation("RelatedOrganisations");
+
+                    b.Navigation("RelatedSources");
+
+                    b.Navigation("Sources");
+
+                    b.Navigation("Tags");
+
                     b.Navigation("Vector");
+
+                    b.Navigation("VideoMetadata");
+
+                    b.Navigation("WebsiteMetadata");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceType", b =>
+                {
+                    b.Navigation("Resources");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.Tag", b =>
+                {
+                    b.Navigation("Resources");
                 });
 #pragma warning restore 612, 618
         }

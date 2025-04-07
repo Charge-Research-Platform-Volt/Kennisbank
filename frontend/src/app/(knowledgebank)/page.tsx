@@ -53,7 +53,7 @@ export default async function Home() {
                 className={`flex items-center justify-between gap-2 border bg-white p-2 hover:bg-gray-200 ${index === 0 ? "rounded-t-lg" : ""} ${index === files.length - 1 ? "rounded-b-lg" : ""} ${index !== 0 && index !== files.length - 1 ? "border-t-0" : ""} `}
               >
                 <span className="flex items-center gap-2 text-lg w-full overflow-hidden">
-                  {GetFileIcon(file.fileType)}
+                  {<GetFileIcon fileType={file.fileType} />}
                   <span className="truncate w-[250px] md:w-[350px] lg:w-[450px] block text-left text-sm">
                     {file.title}
                   </span>

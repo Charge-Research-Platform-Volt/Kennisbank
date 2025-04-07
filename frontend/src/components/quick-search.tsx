@@ -12,20 +12,11 @@ import { toast } from "sonner";
 import { OctagonAlert } from "lucide-react";
 import GetFileIcon from "./getFileIcon";
 import Link from "next/link";
-
-interface File {
-  name: string;
-  id: string;
-  description: string;
-  hash: string | null;
-  fileType: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { Resource } from "@/types/resource.type"
 
 export default function QuickSearch() {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchResults, setSearchResults] = useState<File[]>([]);
+  const [searchResults, setSearchResults] = useState<Resource[]>([]);
 
   // Keyboard shortcut
   useHotkeys("mod+k", () => setIsOpen(true), { preventDefault: true });
@@ -48,7 +39,7 @@ export default function QuickSearch() {
       }
 
       const data = await response.json();
-      setSearchResults(data.files);
+      setSearchResults(data.resources);
     } catch {
       toast.error("An error occurred.");
     }
@@ -121,7 +112,7 @@ export default function QuickSearch() {
                 >
                   <div className={`${file.description !== "" && "mb-2"} flex items-start gap-2`}>
                     <GetFileIcon fileType={file.fileType} className="mt-[3px]" />
-                    <h3>{file.name}</h3>
+                    <h3>{file.title}</h3>
                   </div>
 
                   {file.description !== "" && <p className="text-muted-foreground/80 text-sm">{file.description}</p>}

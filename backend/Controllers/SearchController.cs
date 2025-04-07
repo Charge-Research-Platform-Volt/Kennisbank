@@ -148,7 +148,7 @@ public class SearchController : ControllerBase
             {
                 // No query provided: return all files with default ordering
                 items = await database.Resources
-                    .FromSqlRaw("SELECT * FROM files ORDER BY id")
+                    .FromSqlRaw("SELECT * FROM resources ORDER BY id")
                     .Skip(skip).Take(pageSize)
                     .ToArrayAsync();
             }
@@ -176,7 +176,7 @@ public class SearchController : ControllerBase
                             similarity(f.description, {0})
                         ) AS rank 
                     FROM resources f
-                    JOIN resource_vectors fv ON fv.file_id = f.id
+                    JOIN ""resource-vectors"" fv ON fv.""resource-id"" = f.id
                     WHERE fv.vector @@ websearch_to_tsquery('english', {0})
                         OR similarity(f.title, {0}) > 0.3
                         OR similarity(f.description, {0}) > 0.3
