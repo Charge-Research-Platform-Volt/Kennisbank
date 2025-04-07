@@ -331,71 +331,37 @@ namespace backend.Data
 
         #endregion
 
-        #region Resource-AdminTag
+        #region Resource-Tag
 
         // Remove single
 
-        public async Task<bool> RemoveAdminTagFromResourceAsync(Guid resourceId, Guid tagId)
-        { return await DeleteAsync(database.ResourceAdminTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId) > 0; }
+        public async Task<bool> RemoveTagFromResourceAsync(Guid resourceId, Guid tagId)
+        { return await DeleteAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId) > 0; }
 
-        public async Task<bool> RemoveAdminTagFromResourceAsync(string resourceId, Guid tagId)
-        { return await RemoveAdminTagFromResourceAsync(Guid.Parse(resourceId), tagId); }
+        public async Task<bool> RemoveTagFromResourceAsync(string resourceId, Guid tagId)
+        { return await RemoveTagFromResourceAsync(Guid.Parse(resourceId), tagId); }
 
-        public async Task<bool> RemoveAdminTagFromResourceAsync(Guid resourceId, string tagId)
-        { return await RemoveAdminTagFromResourceAsync(resourceId, Guid.Parse(tagId)); }
+        public async Task<bool> RemoveTagFromResourceAsync(Guid resourceId, string tagId)
+        { return await RemoveTagFromResourceAsync(resourceId, Guid.Parse(tagId)); }
 
-        public async Task<bool> RemoveAdminTagFromResourceAsync(string resourceId, string tagId)
-        { return await RemoveAdminTagFromResourceAsync(Guid.Parse(resourceId), Guid.Parse(tagId)); }
-
-        // Prune
-
-        public async Task<bool> RemoveAdminTagFromAllResourcesAsync(Guid tagId)
-        { return await DeleteAllWhereAsync(database.ResourceAdminTagRelations, i => i.TagId == tagId) > 0; }
-
-        public async Task<bool> RemoveAdminTagFromAllResourcesAsync(string tagId)
-        { return await RemoveAdminTagFromAllResourcesAsync(Guid.Parse(tagId)); }
-
-
-
-        public async Task<bool> RemoveAllResourceAdminTagRelationsWithResourceIdAsync(Guid resourceId)
-        { return await DeleteAllWhereAsync(database.ResourceAdminTagRelations, i => i.ResourceId == resourceId) > 0; }
-
-        public async Task<bool> RemoveAllResourceAdminTagRelationsWithResourceIdAsync(string resourceId)
-        { return await RemoveAllResourceAdminTagRelationsWithResourceIdAsync(Guid.Parse(resourceId)); }
-
-        #endregion
-
-        #region Resource-UserTag
-
-        // Remove single
-
-        public async Task<bool> RemoveUserTagFromResourceAsync(Guid resourceId, Guid tagId)
-        { return await DeleteAsync(database.ResourceUserTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId) > 0; }
-
-        public async Task<bool> RemoveUserTagFromResourceAsync(string resourceId, Guid tagId)
-        { return await RemoveUserTagFromResourceAsync(Guid.Parse(resourceId), tagId); }
-
-        public async Task<bool> RemoveUserTagFromResourceAsync(Guid resourceId, string tagId)
-        { return await RemoveUserTagFromResourceAsync(resourceId, Guid.Parse(tagId)); }
-
-        public async Task<bool> RemoveUserTagFromResourceAsync(string resourceId, string tagId)
-        { return await RemoveUserTagFromResourceAsync(Guid.Parse(resourceId), Guid.Parse(tagId)); }
+        public async Task<bool> RemoveTagFromResourceAsync(string resourceId, string tagId)
+        { return await RemoveTagFromResourceAsync(Guid.Parse(resourceId), Guid.Parse(tagId)); }
 
         // Prune
 
-        public async Task<bool> RemoveUserTagFromAllResourcesAsync(Guid tagId)
-        { return await DeleteAllWhereAsync(database.ResourceUserTagRelations, i => i.TagId == tagId) > 0; }
+        public async Task<bool> RemoveTagFromAllResourcesAsync(Guid tagId)
+        { return await DeleteAllWhereAsync(database.ResourceTagRelations, i => i.TagId == tagId) > 0; }
 
-        public async Task<bool> RemoveUserTagFromAllResourcesAsync(string tagId)
-        { return await RemoveUserTagFromAllResourcesAsync(Guid.Parse(tagId)); }
+        public async Task<bool> RemoveTagFromAllResourcesAsync(string tagId)
+        { return await RemoveTagFromAllResourcesAsync(Guid.Parse(tagId)); }
 
 
 
-        public async Task<bool> RemoveAllResourceUserTagRelationsWithResourceIdAsync(Guid resourceId)
-        { return await DeleteAllWhereAsync(database.ResourceUserTagRelations, i => i.ResourceId == resourceId) > 0; }
+        public async Task<bool> RemoveAllResourceTagRelationsWithResourceIdAsync(Guid resourceId)
+        { return await DeleteAllWhereAsync(database.ResourceTagRelations, i => i.ResourceId == resourceId) > 0; }
 
-        public async Task<bool> RemoveAllResourceUserTagRelationsWithResourceIdAsync(string resourceId)
-        { return await RemoveAllResourceUserTagRelationsWithResourceIdAsync(Guid.Parse(resourceId)); }
+        public async Task<bool> RemoveAllResourceTagRelationsWithResourceIdAsync(string resourceId)
+        { return await RemoveAllResourceTagRelationsWithResourceIdAsync(Guid.Parse(resourceId)); }
 
         #endregion
 

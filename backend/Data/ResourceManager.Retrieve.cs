@@ -870,190 +870,94 @@ namespace backend.Data
 
 
 
-        #region User Tag
+        #region Tag
 
-        private readonly Expression<Func<UserTag, object>> userTagDefaultOrderBy = ut => ut.Name;
-        private const bool userTagDefaultOrderDescending = false;
+        private readonly Expression<Func<Tag, object>> tagDefaultOrderBy = ut => ut.Name;
+        private const bool tagDefaultOrderDescending = false;
 
 
         // Single
-        public async Task<UserTag?> GetUserTagAsync(Guid id)
-        { return await GetAsync(database.UserTags, ut => ut.Id == id); }
+        public async Task<Tag?> GetTagAsync(Guid id)
+        { return await GetAsync(database.Tags, ut => ut.Id == id); }
 
-        public async Task<UserTag?> GetUserTagAsync(string id)
-        { return await GetUserTagAsync(Guid.Parse(id)); }
+        public async Task<Tag?> GetTagAsync(string id)
+        { return await GetTagAsync(Guid.Parse(id)); }
 
-        public async Task<UserTag?> GetUserTagAsync(Expression<Func<UserTag, bool>> predicate, Expression<Func<UserTag, object>>? orderBy = null, bool orderDescending = userTagDefaultOrderDescending, params string[] includeProperties)
+        public async Task<Tag?> GetTagAsync(Expression<Func<Tag, bool>> predicate, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending, params string[] includeProperties)
         {
-            orderBy ??= userTagDefaultOrderBy;
-            return await GetAsync(database.UserTags, predicate, orderBy, orderDescending, includeProperties);
+            orderBy ??= tagDefaultOrderBy;
+            return await GetAsync(database.Tags, predicate, orderBy, orderDescending, includeProperties);
         }
 
-        public async Task<UserTag?> GetUserTagAsync(Guid id, Expression<Func<UserTag, object>>? orderBy = null, bool orderDescending = userTagDefaultOrderDescending, params string[] includeProperties)
-        { return await GetUserTagAsync(ut => ut.Id == id, orderBy, orderDescending, includeProperties); }
+        public async Task<Tag?> GetTagAsync(Guid id, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending, params string[] includeProperties)
+        { return await GetTagAsync(ut => ut.Id == id, orderBy, orderDescending, includeProperties); }
 
-        public async Task<UserTag?> GetUserTagAsync(string id, Expression<Func<UserTag, object>>? orderBy = null, bool orderDescending = userTagDefaultOrderDescending, params string[] includeProperties)
-        { return await GetUserTagAsync(Guid.Parse(id), orderBy, orderDescending, includeProperties); }
+        public async Task<Tag?> GetTagAsync(string id, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending, params string[] includeProperties)
+        { return await GetTagAsync(Guid.Parse(id), orderBy, orderDescending, includeProperties); }
 
 
 
-        public async Task<UserTag?> GetUserTagAsync(Expression<Func<UserTag, bool>> predicate, params string[] includeProperties)
-        { return await GetAsync(database.UserTags, predicate, userTagDefaultOrderBy, userTagDefaultOrderDescending, includeProperties); }
+        public async Task<Tag?> GetTagAsync(Expression<Func<Tag, bool>> predicate, params string[] includeProperties)
+        { return await GetAsync(database.Tags, predicate, tagDefaultOrderBy, tagDefaultOrderDescending, includeProperties); }
 
-        public async Task<UserTag?> GetUserTagAsync(Guid id, params string[] includeProperties)
-        { return await GetUserTagAsync(ut => ut.Id == id, userTagDefaultOrderBy, userTagDefaultOrderDescending, includeProperties); }
+        public async Task<Tag?> GetTagAsync(Guid id, params string[] includeProperties)
+        { return await GetTagAsync(ut => ut.Id == id, tagDefaultOrderBy, tagDefaultOrderDescending, includeProperties); }
 
-        public async Task<UserTag?> GetUserTagAsync(string id, params string[] includeProperties)
-        { return await GetUserTagAsync(Guid.Parse(id), userTagDefaultOrderBy, userTagDefaultOrderDescending, includeProperties); }
+        public async Task<Tag?> GetTagAsync(string id, params string[] includeProperties)
+        { return await GetTagAsync(Guid.Parse(id), tagDefaultOrderBy, tagDefaultOrderDescending, includeProperties); }
 
 
         // Multiple
-        public async Task<UserTag[]> GetAllUserTagsAsync(Expression<Func<UserTag, object>>? orderBy = null, bool orderDescending = userTagDefaultOrderDescending, Expression<Func<UserTag, bool>>? predicate = null)
+        public async Task<Tag[]> GetAllTagsAsync(Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending, Expression<Func<Tag, bool>>? predicate = null)
         {
-            orderBy ??= userTagDefaultOrderBy;
-            return await GetAllAsync(database.UserTags, orderBy, orderDescending, predicate);
+            orderBy ??= tagDefaultOrderBy;
+            return await GetAllAsync(database.Tags, orderBy, orderDescending, predicate);
         }
 
-        public async Task<UserTag[]> GetAllUserTagsAsync(Expression<Func<UserTag, bool>>? predicate = null, params string[] includeProperties)
-        { return await GetAllAsync(database.UserTags, null, false, predicate, includeProperties); }
+        public async Task<Tag[]> GetAllTagsAsync(Expression<Func<Tag, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetAllAsync(database.Tags, null, false, predicate, includeProperties); }
 
-        public async Task<UserTag[]> GetAllUserTagsAsync(Expression<Func<UserTag, object>>? orderBy = null, bool orderDescending = userTagDefaultOrderDescending, params string[] includeProperties)
-        { return await GetAllAsync(database.UserTags, orderBy, orderDescending, null, includeProperties); }
+        public async Task<Tag[]> GetAllTagsAsync(Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending, params string[] includeProperties)
+        { return await GetAllAsync(database.Tags, orderBy, orderDescending, null, includeProperties); }
 
-        public async Task<UserTag[]> GetAllUserTagsAsync(params string[] includeProperties)
-        { return await GetAllAsync(database.UserTags, userTagDefaultOrderBy, userTagDefaultOrderDescending, null, includeProperties); }
+        public async Task<Tag[]> GetAllTagsAsync(params string[] includeProperties)
+        { return await GetAllAsync(database.Tags, tagDefaultOrderBy, tagDefaultOrderDescending, null, includeProperties); }
 
-        public async Task<UserTag[]> GetUserTagPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<UserTag, object>>? orderBy = null, bool orderDescending = userTagDefaultOrderDescending, Expression<Func<UserTag, bool>>? predicate = null)
+        public async Task<Tag[]> GetTagPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending, Expression<Func<Tag, bool>>? predicate = null)
         {
-            orderBy ??= userTagDefaultOrderBy;
-            return await GetPageAsync(database.UserTags, pageIndex, pageSize, orderBy, orderDescending, predicate);
+            orderBy ??= tagDefaultOrderBy;
+            return await GetPageAsync(database.Tags, pageIndex, pageSize, orderBy, orderDescending, predicate);
         }
 
-        public async Task<UserTag[]> GetUserTagPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<UserTag, bool>>? predicate = null, params string[] includeProperties)
-        { return await GetPageAsync(database.UserTags, pageIndex, pageSize, userTagDefaultOrderBy, userTagDefaultOrderDescending, predicate, includeProperties); }
+        public async Task<Tag[]> GetTagPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<Tag, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetPageAsync(database.Tags, pageIndex, pageSize, tagDefaultOrderBy, tagDefaultOrderDescending, predicate, includeProperties); }
 
-        public async Task<UserTag[]> GetUserTagPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<UserTag, object>>? orderBy = null, bool orderDescending = userTagDefaultOrderDescending, params string[] includeProperties)
+        public async Task<Tag[]> GetTagPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending, params string[] includeProperties)
         {
-            orderBy ??= userTagDefaultOrderBy;
-            return await GetPageAsync(database.UserTags, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
+            orderBy ??= tagDefaultOrderBy;
+            return await GetPageAsync(database.Tags, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
         }
 
-        public async Task<UserTag[]> GetUserTagPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
-        { return await GetPageAsync(database.UserTags, pageIndex, pageSize, userTagDefaultOrderBy, userTagDefaultOrderDescending, null, includeProperties); }
+        public async Task<Tag[]> GetTagPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
+        { return await GetPageAsync(database.Tags, pageIndex, pageSize, tagDefaultOrderBy, tagDefaultOrderDescending, null, includeProperties); }
 
 
 
         // Property
 
-        public async Task<T> GetUserTagPropertyAsync<T>(Guid userTagId, Expression<Func<UserTag, T>> selector)
-        { return await GetPropertyAsync(database.UserTags, ut => ut.Id == userTagId, selector); }
+        public async Task<T> GetTagPropertyAsync<T>(Guid TagId, Expression<Func<Tag, T>> selector)
+        { return await GetPropertyAsync(database.Tags, ut => ut.Id == TagId, selector); }
 
-        public async Task<T> GetUserTagPropertyAsync<T>(string userTagId, Expression<Func<UserTag, T>> selector)
-        { return await GetUserTagPropertyAsync(Guid.Parse(userTagId), selector); }
-
-
-
-        public async Task<T?> GetUserTagPropertyOrDefaultAsync<T>(Guid userTagId, Expression<Func<UserTag, T>> selector)
-        { return await GetPropertyOrDefaultAsync(database.UserTags, ut => ut.Id == userTagId, selector); }
-
-        public async Task<T?> GetUserTagPropertyOrDefaultAsync<T>(string userTagId, Expression<Func<UserTag, T>> selector)
-        { return await GetUserTagPropertyOrDefaultAsync(Guid.Parse(userTagId), selector); }
-
-        #endregion
+        public async Task<T> GetTagPropertyAsync<T>(string TagId, Expression<Func<Tag, T>> selector)
+        { return await GetTagPropertyAsync(Guid.Parse(TagId), selector); }
 
 
 
+        public async Task<T?> GetTagPropertyOrDefaultAsync<T>(Guid TagId, Expression<Func<Tag, T>> selector)
+        { return await GetPropertyOrDefaultAsync(database.Tags, ut => ut.Id == TagId, selector); }
 
-        #region Admin Tag
-
-        private readonly Expression<Func<AdminTag, object>> adminTagDefaultOrderBy = at => at.Name;
-        private const bool adminTagDefaultOrderDescending = false;
-
-
-        // Single
-        public async Task<AdminTag?> GetAdminTagAsync(Guid id)
-        { return await GetAsync(database.AdminTags, at => at.Id == id); }
-
-        public async Task<AdminTag?> GetAdminTagAsync(string id)
-        { return await GetAdminTagAsync(Guid.Parse(id)); }
-
-        public async Task<AdminTag?> GetAdminTagAsync(Expression<Func<AdminTag, bool>> predicate, Expression<Func<AdminTag, object>>? orderBy = null, bool orderDescending = adminTagDefaultOrderDescending, params string[] includeProperties)
-        {
-            orderBy ??= adminTagDefaultOrderBy;
-            return await GetAsync(database.AdminTags, predicate, orderBy, orderDescending, includeProperties);
-        }
-
-        public async Task<AdminTag?> GetAdminTagAsync(Guid id, Expression<Func<AdminTag, object>>? orderBy = null, bool orderDescending = adminTagDefaultOrderDescending, params string[] includeProperties)
-        { return await GetAdminTagAsync(at => at.Id == id, orderBy, orderDescending, includeProperties); }
-
-        public async Task<AdminTag?> GetAdminTagAsync(string id, Expression<Func<AdminTag, object>>? orderBy = null, bool orderDescending = adminTagDefaultOrderDescending, params string[] includeProperties)
-        { return await GetAdminTagAsync(Guid.Parse(id), orderBy, orderDescending, includeProperties); }
-
-
-
-
-        public async Task<AdminTag?> GetAdminTagAsync(Expression<Func<AdminTag, bool>> predicate, params string[] includeProperties)
-        { return await GetAsync(database.AdminTags, predicate, adminTagDefaultOrderBy, adminTagDefaultOrderDescending, includeProperties); }
-
-        public async Task<AdminTag?> GetAdminTagAsync(Guid id, params string[] includeProperties)
-        { return await GetAdminTagAsync(at => at.Id == id, adminTagDefaultOrderBy, adminTagDefaultOrderDescending, includeProperties); }
-
-        public async Task<AdminTag?> GetAdminTagAsync(string id, params string[] includeProperties)
-        { return await GetAdminTagAsync(Guid.Parse(id), adminTagDefaultOrderBy, adminTagDefaultOrderDescending, includeProperties); }
-
-
-        // Multiple
-        public async Task<AdminTag[]> GetAllAdminTagsAsync(Expression<Func<AdminTag, object>>? orderBy = null, bool orderDescending = adminTagDefaultOrderDescending, Expression<Func<AdminTag, bool>>? predicate = null)
-        {
-            orderBy ??= adminTagDefaultOrderBy;
-            return await GetAllAsync(database.AdminTags, orderBy, orderDescending, predicate);
-        }
-
-        public async Task<AdminTag[]> GetAllAdminTagsAsync(Expression<Func<AdminTag, bool>>? predicate = null, params string[] includeProperties)
-        { return await GetAllAsync(database.AdminTags, null, false, predicate, includeProperties); }
-
-        public async Task<AdminTag[]> GetAllAdminTagsAsync(Expression<Func<AdminTag, object>>? orderBy = null, bool orderDescending = adminTagDefaultOrderDescending, params string[] includeProperties)
-        { return await GetAllAsync(database.AdminTags, orderBy, orderDescending, null, includeProperties); }
-
-        public async Task<AdminTag[]> GetAllAdminTagsAsync(params string[] includeProperties)
-        { return await GetAllAsync(database.AdminTags, adminTagDefaultOrderBy, adminTagDefaultOrderDescending, null, includeProperties); }
-
-        public async Task<AdminTag[]> GetAdminTagPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<AdminTag, object>>? orderBy = null, bool orderDescending = adminTagDefaultOrderDescending, Expression<Func<AdminTag, bool>>? predicate = null)
-        {
-            orderBy ??= adminTagDefaultOrderBy;
-            return await GetPageAsync(database.AdminTags, pageIndex, pageSize, orderBy, orderDescending, predicate);
-        }
-
-        public async Task<AdminTag[]> GetAdminTagPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<AdminTag, bool>>? predicate = null, params string[] includeProperties)
-        { return await GetPageAsync(database.AdminTags, pageIndex, pageSize, adminTagDefaultOrderBy, adminTagDefaultOrderDescending, predicate, includeProperties); }
-
-        public async Task<AdminTag[]> GetAdminTagPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<AdminTag, object>>? orderBy = null, bool orderDescending = adminTagDefaultOrderDescending, params string[] includeProperties)
-        {
-            orderBy ??= adminTagDefaultOrderBy;
-            return await GetPageAsync(database.AdminTags, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
-        }
-
-        public async Task<AdminTag[]> GetAdminTagPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
-        { return await GetPageAsync(database.AdminTags, pageIndex, pageSize, adminTagDefaultOrderBy, adminTagDefaultOrderDescending, null, includeProperties); }
-
-
-
-        // Property
-
-        public async Task<T> GetAdminTagPropertyAsync<T>(Guid adminTagId, Expression<Func<AdminTag, T>> selector)
-        { return await GetPropertyAsync(database.AdminTags, at => at.Id == adminTagId, selector); }
-
-        public async Task<T> GetAdminTagPropertyAsync<T>(string adminTagId, Expression<Func<AdminTag, T>> selector)
-        { return await GetAdminTagPropertyAsync(Guid.Parse(adminTagId), selector); }
-
-
-
-
-        public async Task<T?> GetAdminTagPropertyOrDefaultAsync<T>(Guid adminTagId, Expression<Func<AdminTag, T>> selector)
-        { return await GetPropertyOrDefaultAsync(database.AdminTags, at => at.Id == adminTagId, selector); }
-
-        public async Task<T?> GetAdminTagPropertyOrDefaultAsync<T>(string adminTagId, Expression<Func<AdminTag, T>> selector)
-        { return await GetAdminTagPropertyOrDefaultAsync(Guid.Parse(adminTagId), selector); }
+        public async Task<T?> GetTagPropertyOrDefaultAsync<T>(string TagId, Expression<Func<Tag, T>> selector)
+        { return await GetTagPropertyOrDefaultAsync(Guid.Parse(TagId), selector); }
 
         #endregion
 

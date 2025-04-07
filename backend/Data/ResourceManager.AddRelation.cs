@@ -630,14 +630,14 @@ namespace backend.Data
 
         #endregion
 
-        #region Resource-Admin Tag
+        #region Resource-Tag
 
         // Range
-        public async Task AddAdminTagToResourceRangeAsync(Guid resourceId, Guid[] tagIds)
+        public async Task AddTagToResourceRangeAsync(Guid resourceId, Guid[] tagIds)
         {
             if (tagIds.Length == 0) return;
 
-            ResourceAdminTagRelation[] tagRelations = new ResourceAdminTagRelation[tagIds.Length];
+            ResourceTagRelation[] tagRelations = new ResourceTagRelation[tagIds.Length];
 
             for (int i = 0; i < tagIds.Length; i++)
             {
@@ -648,79 +648,32 @@ namespace backend.Data
                 };
             }
 
-            await database.ResourceAdminTagRelations.AddRangeAsync(tagRelations);
+            await database.ResourceTagRelations.AddRangeAsync(tagRelations);
 
             await database.SaveChangesAsync();
         }
 
-        public async Task AddAdminTagToResourceRangeAsync(Guid resourceId, string[] tagIds)
-        { await AddAdminTagToResourceRangeAsync(resourceId, StringToGuidArray(tagIds)); }
+        public async Task AddTagToResourceRangeAsync(Guid resourceId, string[] tagIds)
+        { await AddTagToResourceRangeAsync(resourceId, StringToGuidArray(tagIds)); }
 
-        public async Task AddAdminTagToResourceRangeAsync(string resourceId, Guid[] tagIds)
-        { await AddAdminTagToResourceRangeAsync(Guid.Parse(resourceId), tagIds); }
+        public async Task AddTagToResourceRangeAsync(string resourceId, Guid[] tagIds)
+        { await AddTagToResourceRangeAsync(Guid.Parse(resourceId), tagIds); }
 
-        public async Task AddAdminTagToResourceRangeAsync(string resourceId, string[] tagIds)
-        { await AddAdminTagToResourceRangeAsync(Guid.Parse(resourceId), StringToGuidArray(tagIds)); }
-
-        // Single
-        public async Task AddAdminTagToResourceAsync(Guid resourceId, Guid tagId)
-        { await AddAdminTagToResourceRangeAsync(resourceId, [tagId]); }
-
-        public async Task AddAdminTagToResourceAsync(string resourceId, Guid tagId)
-        { await AddAdminTagToResourceAsync(Guid.Parse(resourceId), tagId); }
-
-        public async Task AddAdminTagToResourceAsync(Guid resourceId, string tagId)
-        { await AddAdminTagToResourceAsync(resourceId, Guid.Parse(tagId)); }
-
-        public async Task AddAdminTagToResourceAsync(string resourceId, string tagId)
-        { await AddAdminTagToResourceAsync(Guid.Parse(resourceId), Guid.Parse(tagId)); }
-
-        #endregion
-
-        #region Resource-User Tag
-
-        // Range
-        public async Task AddUserTagToResourceRangeAsync(Guid resourceId, Guid[] tagIds)
-        {
-            if (tagIds.Length == 0) return;
-
-            ResourceUserTagRelation[] tagRelations = new ResourceUserTagRelation[tagIds.Length];
-
-            for (int i = 0; i < tagIds.Length; i++)
-            {
-                tagRelations[i] = new()
-                {
-                    ResourceId = resourceId,
-                    TagId = tagIds[i]
-                };
-            }
-
-            await database.ResourceUserTagRelations.AddRangeAsync(tagRelations);
-
-            await database.SaveChangesAsync();
-        }
-
-        public async Task AddUserTagToResourceRangeAsync(Guid resourceId, string[] tagIds)
-        { await AddUserTagToResourceRangeAsync(resourceId, StringToGuidArray(tagIds)); }
-
-        public async Task AddUserTagToResourceRangeAsync(string resourceId, Guid[] tagIds)
-        { await AddUserTagToResourceRangeAsync(Guid.Parse(resourceId), tagIds); }
-
-        public async Task AddUserTagToResourceRangeAsync(string resourceId, string[] tagIds)
-        { await AddUserTagToResourceRangeAsync(Guid.Parse(resourceId), StringToGuidArray(tagIds)); }
+        public async Task AddTagToResourceRangeAsync(string resourceId, string[] tagIds)
+        { await AddTagToResourceRangeAsync(Guid.Parse(resourceId), StringToGuidArray(tagIds)); }
 
         // Single
-        public async Task AddUserTagToResourceAsync(Guid resourceId, Guid tagId)
-        { await AddUserTagToResourceRangeAsync(resourceId, [tagId]); }
+        public async Task AddTagToResourceAsync(Guid resourceId, Guid tagId)
+        { await AddTagToResourceRangeAsync(resourceId, [tagId]); }
 
-        public async Task AddUserTagToResourceAsync(string resourceId, Guid tagId)
-        { await AddUserTagToResourceAsync(Guid.Parse(resourceId), tagId); }
+        public async Task AddTagToResourceAsync(string resourceId, Guid tagId)
+        { await AddTagToResourceAsync(Guid.Parse(resourceId), tagId); }
 
-        public async Task AddUserTagToResourceAsync(Guid resourceId, string tagId)
-        { await AddUserTagToResourceAsync(resourceId, Guid.Parse(tagId)); }
+        public async Task AddTagToResourceAsync(Guid resourceId, string tagId)
+        { await AddTagToResourceAsync(resourceId, Guid.Parse(tagId)); }
 
-        public async Task AddUserTagToResourceAsync(string resourceId, string tagId)
-        { await AddUserTagToResourceAsync(Guid.Parse(resourceId), Guid.Parse(tagId)); }
+        public async Task AddTagToResourceAsync(string resourceId, string tagId)
+        { await AddTagToResourceAsync(Guid.Parse(resourceId), Guid.Parse(tagId)); }
 
         #endregion
 

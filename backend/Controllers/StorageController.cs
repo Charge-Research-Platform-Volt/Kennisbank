@@ -217,7 +217,7 @@ namespace backend.Controllers
 
             try
             {
-                if (!await resourceManager.UpdateResourceTitleAsync(dto.Id, dto.Title))
+                if (!await resourceManager.UpdateResourceAsync(dto.Id, r => r.Title, dto.Title))
                     return NotFound(new StorageResponse("ID was not found in database."));
 
                 return Ok(new StorageResponse("File renamed succesfully."));

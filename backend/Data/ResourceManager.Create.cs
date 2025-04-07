@@ -43,11 +43,8 @@ namespace backend.Data
 
             await database.SaveResourceChangesAsync();
 
-            // Add admin tag relations to database
-            await AddAdminTagToResourceRangeAsync(resourceId, dto.AdminTags);
-
-            // Add user tag relations to database
-            await AddUserTagToResourceRangeAsync(resourceId, dto.UserTags);
+            // Add tag relations to database
+            await AddTagToResourceRangeAsync(resourceId, dto.Tags);
 
             // Add author relations to database
             await AddAuthorToResourceRangeAsync(resourceId, dto.Authors);
@@ -63,6 +60,9 @@ namespace backend.Data
 
             // Add non-author related person relations to database
             await AddRelatedPersonToResourceRangeAsync(resourceId, FirstsOfTupleArray(dto.RelatedPersons), SecondsOfTupleArray(dto.RelatedPersons));
+
+            // Add all sources to database
+            await AddSourceToResourceRangeAsync(resourceId, dto.Sources);
 
             // Add related source relations to database
             await AddRelatedSourceToResourceRangeAsync(resourceId, dto.RelatedSources);
@@ -112,6 +112,9 @@ namespace backend.Data
 
                 await database.AudioMetadata.AddAsync(audio);
             }
+
+            // URL is required in audio, so add it to sources
+            await AddSourceToResourceAsync(resourceId, dto.URL);
 
             await database.SaveChangesAsync();
 
@@ -251,46 +254,25 @@ namespace backend.Data
             return regionId;
         }
 
-        // --- Admin Tag
+        // --- Tag
 
-        public async Task<Guid> CreateAdminTagAsync(AdminTagCreateDto dto)
+        public async Task<Guid> CreateTagAsync(TagCreateDto dto)
         {
-            // Generate new ID for the admin tag
+            // Generate new ID for the tag
             Guid tagId = Guid.NewGuid();
 
-            // Create an admin tag instance using the DTO
-            AdminTag adminTag = new()
+            // Create a tag instance using the DTO
+            Tag tag = new()
             {
                 Id = tagId,
                 Name = dto.Name,
-            };
-
-            // Add admin tag to database
-            await database.AdminTags.AddAsync(adminTag);
-
-            await database.SaveChangesAsync();
-
-            return tagId;
-        }
-
-        // --- User Tag
-
-        public async Task<Guid> CreateUserTagAsync(UserTagCreateDto dto)
-        {
-            // Generate new ID for the user tag
-            Guid tagId = Guid.NewGuid();
-
-            // Create an user tag instance using the DTO
-            UserTag userTag = new()
-            {
-                Id = tagId,
-                Name = dto.Name,
-                User = dto.User,
+                IsStandardized = dto.IsStandardized,
+                CreatedBy = dto.CreatedBy,
                 CreatedOn = DateTime.UtcNow,
             };
 
-            // Add user tag to database
-            await database.UserTags.AddAsync(userTag);
+            // Add tag to database
+            await database.Tags.AddAsync(tag);
 
             await database.SaveChangesAsync();
 

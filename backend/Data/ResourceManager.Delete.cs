@@ -46,11 +46,8 @@ namespace backend.Data
             // Remove all resource-related_sources relations containing this resource
             await RemoveAllResourceRelatedSourceRelationsWithResourceIdAsync(id);
 
-            // Remove all resource-admintag relations containing this resource
-            await RemoveAllResourceUserTagRelationsWithResourceIdAsync(id);
-
-            // Remove all resource-admintag relations containing this resource
-            await RemoveAllResourceUserTagRelationsWithResourceIdAsync(id);
+            // Remove all resource-tag relations containing this resource
+            await RemoveAllResourceTagRelationsWithResourceIdAsync(id);
 
             return count > 0;
         }
@@ -173,35 +170,20 @@ namespace backend.Data
         public async Task<bool> DeleteDocumentMetadataAsync(string resourceId)
         { return await DeleteDocumentMetadataAsync(Guid.Parse(resourceId)); }
 
-        // --- User Tag
+        // --- Tag
 
-        public async Task<bool> DeleteUserTagAsync(Guid id)
+        public async Task<bool> DeleteTagAsync(Guid id)
         {
-            int count = await DeleteAsync(database.UserTags, tag => tag.Id == id);
+            int count = await DeleteAsync(database.Tags, tag => tag.Id == id);
 
-            // Remove all resource-usertag relations containing this tag
-            await RemoveUserTagFromAllResourcesAsync(id);
+            // Remove all resource-tag relations containing this tag
+            await RemoveTagFromAllResourcesAsync(id);
 
             return count > 0;
         }
         
-        public async Task<bool> DeleteUserTagAsync(string id)
-        { return await DeleteUserTagAsync(Guid.Parse(id)); }
-
-        // --- Admin Tag
-
-        public async Task<bool> DeleteAdminTagAsync(Guid id)
-        {
-            int count = await DeleteAsync(database.AdminTags, tag => tag.Id == id);
-
-            // Remove all resource-admintag relations containing this tag
-            await RemoveAdminTagFromAllResourcesAsync(id);
-
-            return count > 0;
-        }
-        
-        public async Task<bool> DeleteAdminTagAsync(string id)
-        { return await DeleteAdminTagAsync(Guid.Parse(id)); }
+        public async Task<bool> DeleteTagAsync(string id)
+        { return await DeleteTagAsync(Guid.Parse(id)); }
 
         // --- Resource type
 

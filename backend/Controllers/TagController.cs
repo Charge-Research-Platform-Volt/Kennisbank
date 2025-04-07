@@ -34,13 +34,13 @@ public class TagController : ControllerBase
             Summary = "List all tags.",
             Description = "List all standardized tags created by admins."
         )]
-    [SwaggerResponse(200, "List of tags", typeof(List<AdminTag>))]
+    [SwaggerResponse(200, "List of tags", typeof(List<Tag>))]
     [SwaggerResponse(500, "Internal server error")]
     public IActionResult Get()
     {
         try
         {
-            return Ok(_context.AdminTags.ToList().OrderBy(t => t.Name));
+            return Ok(_context.Tags.ToList().OrderBy(t => t.Name));
         }
         catch (Exception e)
         {
@@ -62,7 +62,7 @@ public class TagController : ControllerBase
             Summary = "Adds new standard tag.",
             Description = "Lets an admin add a new tag to the list of standardized tags."
         )]
-    [SwaggerResponse(200, "New tag added", typeof(AdminTag))]
+    [SwaggerResponse(200, "New tag added", typeof(Tag))]
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(409, "Tag already exists")]
     [SwaggerResponse(500, "Internal server error")]
@@ -77,16 +77,19 @@ public class TagController : ControllerBase
             return BadRequest(new { message = "Name is required" });
         }
 
-        AdminTag tag = new()
+        Tag tag = new()
         {
             Id = Guid.NewGuid(),
             Name = tagName,
+            IsStandardized = true,
+            CreatedBy = "TestUser1",
+            CreatedOn = DateTime.UtcNow,
         };
 
         // Add the tag
         try
         {
-            await _context.AdminTags.AddAsync(tag);
+            await _context.Tags.AddAsync(tag);
             await _context.SaveChangesAsync();
         }
         catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
@@ -120,7 +123,7 @@ public class TagController : ControllerBase
             Summary = "Delete standard tag.",
             Description = "Lets and admin delete a tag from the list of standardized tags."
         )]
-    [SwaggerResponse(200, "Tag deleted", typeof(AdminTag))]
+    [SwaggerResponse(200, "Tag deleted", typeof(Tag))]
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(404, "Tag not found")]
     [SwaggerResponse(500, "Internal server error")]
@@ -138,7 +141,7 @@ public class TagController : ControllerBase
         Guid guid = Guid.Parse(id);
 
         //find tag in database
-        AdminTag? tag = await _context.AdminTags.FirstOrDefaultAsync(t => t.Id == guid); //if not found: set tag to null
+        Tag? tag = await _context.Tags.FirstOrDefaultAsync(t => t.Id == guid); //if not found: set tag to null
 
         //check if tag is found
         if (tag == null)
@@ -148,7 +151,7 @@ public class TagController : ControllerBase
         }
 
         //remove tag from database
-        _context.AdminTags.Remove(tag);
+        _context.Tags.Remove(tag);
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "Tag deleted." });
@@ -165,7 +168,7 @@ public class TagController : ControllerBase
             Summary = "Change tag name.",
             Description = "Lets and admin change the name of a standardized tag."
         )]
-    [SwaggerResponse(200, "Tag name changed", typeof(AdminTag))]
+    [SwaggerResponse(200, "Tag name changed", typeof(Tag))]
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(404, "Tag not found")]
     [SwaggerResponse(409, "Tag already exists")]
@@ -200,7 +203,7 @@ public class TagController : ControllerBase
         }
 
         //find tag in database
-        AdminTag? tag = await _context.AdminTags.FirstOrDefaultAsync(t => t.Id == guid); //if not found: set tag to null
+        Tag? tag = await _context.Tags.FirstOrDefaultAsync(t => t.Id == guid); //if not found: set tag to null
 
         //check if tag is found
         if (tag == null)

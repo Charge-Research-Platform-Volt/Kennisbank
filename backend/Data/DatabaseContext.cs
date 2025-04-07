@@ -12,10 +12,8 @@ namespace KnowledgeBank.Data
         public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options) { }
 
         public DbSet<Resource> Resources { get; set; }
-        public DbSet<AdminTag> AdminTags { get; set; }
-        public DbSet<ResourceAdminTagRelation> ResourceAdminTagRelations { get; set; }
-        public DbSet<UserTag> UserTags { get; set; }
-        public DbSet<ResourceUserTagRelation> ResourceUserTagRelations { get; set; }
+        public DbSet<Tag> Tags { get; set; }
+        public DbSet<ResourceTagRelation> ResourceTagRelations { get; set; }
         public DbSet<User> AppUsers { get; set; } // Renamed to avoid conflict with IdentityDbContext.Users
         public DbSet<ResourceVector> Vectors { get; set; }
         public DbSet<DocumentMetadata> DocumentMetadata { get; set; }
@@ -47,11 +45,8 @@ namespace KnowledgeBank.Data
                 .HasForeignKey<ResourceVector>(v => v.ResourceId)
                 .OnDelete(DeleteBehavior.Cascade);    // Automatically deletes vector on file delete
 
-            modelBuilder.Entity<ResourceAdminTagRelation>()
+            modelBuilder.Entity<ResourceTagRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.TagId }); // Define composite primary key
-
-            modelBuilder.Entity<ResourceUserTagRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.TagId });
 
             modelBuilder.Entity<ResourceAuthorRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.PersonId});

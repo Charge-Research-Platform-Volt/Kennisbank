@@ -76,8 +76,7 @@ public class Resource
     [JsonIgnore] public ICollection<ResourceRelatedOrganisationRelation>? RelatedOrganisations { get; set; }
     [JsonIgnore] public ICollection<ResourceRelatedSourceRelation>? RelatedSources { get; set; }
     [JsonIgnore] public ICollection<ResourceSourceRelation>? Sources { get; set; }
-    [JsonIgnore] public ICollection<ResourceAdminTagRelation>? AdminTags { get; set; }
-    [JsonIgnore] public ICollection<ResourceUserTagRelation>? UserTags { get; set; }
+    [JsonIgnore] public ICollection<ResourceTagRelation>? Tags { get; set; }
 
     #endregion
 }
@@ -90,9 +89,9 @@ public class ResourceCreateDto // Data Transfer Object (DTO)
     public string? PublicationCode { get; set; }
     public required DateTime PublicationDate { get; set; }
     public string? License { get; set; }
+    public string[] Sources { get; set; } = [];
     public string? Note { get; set; }
-    public string[] AdminTags { get; set; } = [];
-    public string[] UserTags { get; set; } = [];
+    public string[] Tags { get; set; } = [];
     public string[] Authors { get; set; } = [];
     // Tuple: (OrganisationId, role?)
     public (string, string?)[] Organisations { get; set; } = [];

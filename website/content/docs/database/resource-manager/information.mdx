@@ -1,0 +1,46 @@
+---
+title: Information
+description: Information and existence checks using the resource manager.
+order: 7
+---
+
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Resource Existence Checks](#resource-existence-checks)
+- [Hash Checks](#hash-checks)
+
+## Introduction
+This part of the Resource Manager corresponds to the `ResourceManager.Info.cs` in the backend. It provides methods for checking existence and retrieving basic information about entities in the database.
+
+## Resource Existence Checks
+To check if a resource exists in the database, you can use the `ResourceExistsAsync` method:
+
+```csharp
+// Check if resource exists using GUID
+Guid resourceId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+bool exists = await resourceManager.ResourceExistsAsync(resourceId);
+
+// Check if resource exists using string ID
+string resourceIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+bool exists = await resourceManager.ResourceExistsAsync(resourceIdString);
+```
+
+The method returns a boolean indicating whether the resource exists in the database.
+
+## Hash Checks
+To check if a resource with a specific hash exists in the database, you can use the `HashExistsAsync` method:
+
+```csharp
+// Check if a resource with the given hash exists
+string hash = "910480d376168a8dc26aff21ab868a4e00083ced69319bca731ef9aa401fcc70";
+Guid? resourceId = await resourceManager.HashExistsAsync(hash);
+```
+
+The method returns:
+- The resource ID (as a GUID) if a resource with the given hash exists
+- `null` if no resource with the given hash exists, or if the provided hash is null or empty
+
+This is particularly useful for checking if a file has already been uploaded to the system, which can help prevent duplication.
+
+<Callout title="Note">The hash is typically a SHA-256 hash of the file content, which is calculated when a file resource is created. This allows for efficient file duplication checking.</Callout>

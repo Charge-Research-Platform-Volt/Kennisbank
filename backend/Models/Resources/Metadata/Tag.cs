@@ -4,9 +4,9 @@ using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 namespace KnowledgeBank.Models;
 
-[Table("user-tags")]
+[Table("tags")]
 [Index(nameof(Name), IsUnique = true)]
-public class UserTag
+public class Tag
 {
     [Key]
     [Column("id")]
@@ -14,6 +14,9 @@ public class UserTag
 
     [Column("name")]
     public required string Name { get; set; }
+
+    [Column("is-standardized")]
+    public required bool IsStandardized = false;
 
     [Column("is-approved")]
     public bool IsApproved { get; set; } = false;
@@ -26,19 +29,21 @@ public class UserTag
 
     // TODO: Should be the actual User object or userId, not just a string.
     [Column("created-by")]
-    public required string User { get; set; }
+    public required string CreatedBy { get; set; }
 
     [Column("created-on")]
     public required DateTime CreatedOn { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
-    [JsonIgnore] public ICollection<ResourceUserTagRelation>? Resources { get; set; }
+    [JsonIgnore] public ICollection<ResourceTagRelation>? Resources { get; set; }
 }
 
-public class UserTagCreateDto
+public class TagCreateDto
 {
     public required string Name { get; set; }
+    public required bool IsStandardized { get; set; } = false;
     public bool IsApproved { get; set; } = false;
+    public string? ApprovedBy { get; set; }
     // TODO: Should be User ID, see TODO above.
-    public required string User { get; set; }
+    public required string CreatedBy { get; set; }
 }
