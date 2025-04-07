@@ -87,7 +87,7 @@ public class TagController : ControllerBase
         };
 
         // Check if the tag already exists in the UserTags table
-        bool userTagExists = await _context.UserTags.AnyAsync(ut => ut.Name.ToLower() == tagName.ToLower());
+        bool userTagExists = await _context.Tags.AnyAsync(ut => ut.Name.ToLower() == tagName.ToLower());
 
         if (userTagExists)
         {
@@ -225,7 +225,7 @@ public class TagController : ControllerBase
         }
 
         // Check if the tag already exists in the UserTags table
-        bool userTagExists = await _context.UserTags.AnyAsync(ut => ut.Name.ToLower() == newName.ToLower());
+        bool userTagExists = await _context.Tags.AnyAsync(ut => ut.Name.ToLower() == newName.ToLower());
 
         if (userTagExists)
         {

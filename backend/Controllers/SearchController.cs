@@ -147,7 +147,7 @@ public class SearchController : ControllerBase
             if (string.IsNullOrEmpty(query))
             {
                 // No query provided: return all files with default ordering
-                items = await database.Files
+                items = await database.Resources
                     .FromSqlRaw("SELECT * FROM files ORDER BY id")
                     .Skip(skip).Take(pageSize)
                     .ToArrayAsync();
@@ -165,9 +165,9 @@ public class SearchController : ControllerBase
                 //  Keep in mind these examples do not take stemming into consideration, the words 
                 //  in the query and database are stemmed to improve search results.  
 
-            // Converts the user query to a tsvector and compares this to the file vector
-            Resource[]? items = await database.Resources
-                .FromSqlRaw(@"
+                // Converts the user query to a tsvector and compares this to the file vector
+                items = await database.Resources
+                    .FromSqlRaw(@"
                     SELECT DISTINCT ON (f.id)
                         f.*, 
                         GREATEST(
@@ -181,11 +181,12 @@ public class SearchController : ControllerBase
                         OR similarity(f.title, {0}) > 0.3
                         OR similarity(f.description, {0}) > 0.3
                     ORDER BY f.id, rank DESC", query)
-                .Skip(skip).Take(pageSize)
-                .ToArrayAsync();
+                    .Skip(skip).Take(pageSize)
+                    .ToArrayAsync();
 
-            if (items == null)
-                return Ok(new PageResponse("No files found.", pageIndex, pageSize, Array.Empty<Resource>()));
+                if (items == null)
+                    return Ok(new PageResponse("No files found.", pageIndex, pageSize, Array.Empty<Resource>()));
+            }
 
             return Ok(new PageResponse($"{items.Length} files found.", pageIndex, pageSize, items));
         }

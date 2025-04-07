@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
+using System;
 
 namespace KnowledgeBank.Controllers;
 
@@ -145,6 +146,10 @@ public class UserTagController : ControllerBase
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> DeleteTag(string id)
     {
+        Guid guid = Guid.Parse(id);
+        //find tag in database
+        Tag? userTag = await _context.Tags.FirstOrDefaultAsync(t => t.Id == guid); //if not found: set tag to null
+
         try
         {
             Log.Information("Removing user tag from user tag list.");
@@ -156,25 +161,25 @@ public class UserTagController : ControllerBase
                 return BadRequest(new { message = "Id is required" });
             }
 
-            Guid guid = Guid.Parse(id);
+            
 
-        //find tag in database
-        Tag? userTag = await _context.Tags.FirstOrDefaultAsync(t => t.Id == guid); //if not found: set tag to null
+            
 
-        //check if tag is found
-        if (userTag == null)
-        {
-            Log.Error("Tag not found.");
-            return NotFound(new { message = "Tag not found." });
+            //check if tag is found
+            if (userTag == null)
+            {
+                Log.Error("Tag not found.");
+                return NotFound(new { message = "Tag not found." });
+            }
+
+            // Make sure the user has created this tag or it's the admin deleting it
+            if (userTag.CreatedBy != "TestUser1") // TODO: Shouldn't compare strings but actual users
+            {
+                Log.Error("Another user has created this tag.");
+                return StatusCode(403, new { message = "Another user has created this tag." });
+            }
         }
-
-        // Make sure the user has created this tag or it's the admin deleting it
-        if (userTag.CreatedBy != "TestUser1") // TODO: Shouldn't compare strings but actual users
-        {
-            Log.Error("Another user has created this tag.");
-            return StatusCode(403, new { message = "Another user has created this tag." });
-        }
-        catch (Exception e)
+        catch
         {
             Log.Error("Tag has been approved and can no longer be deleted.");
             return Conflict(new { message = "Tag has been approved and can no longer be deleted." });

@@ -15,6 +15,7 @@ namespace KnowledgeBank.Data
         public DbSet<Tag> Tags { get; set; }
         public DbSet<ResourceTagRelation> ResourceTagRelations { get; set; }
         public DbSet<User> AppUsers { get; set; } // Renamed to avoid conflict with IdentityDbContext.Users
+        public DbSet<Invitation> Invitations { get; set; }
         public DbSet<ResourceVector> Vectors { get; set; }
         public DbSet<DocumentMetadata> DocumentMetadata { get; set; }
         public DbSet<WebsiteMetadata> WebsiteMetadata { get; set; }
