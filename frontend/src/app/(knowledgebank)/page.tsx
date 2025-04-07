@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
 import { DocumentPageResponseSchema } from "@/types/document.type";
 import Link from "next/link";
@@ -7,66 +6,56 @@ import Archive from "@/icons/archive";
 import Projects from "@/icons/projects-icon";
 import Search from "@/icons/search-icon";
 import GetFileIcon from "@/components/getFileIcon";
+import OpenFileButton from "@/components/open-file-button";
 
 export default async function Home() {
   // fetches all documents
-  const result = await FetchWithValidation(
-      DocumentPageResponseSchema,
-      "http://backend:8080/Storage/list-paged?pageIndex=1&pageSize=4",
-  );
+  const result = await FetchWithValidation(DocumentPageResponseSchema, "http://backend:8080/Storage/list-paged?pageIndex=1&pageSize=4");
 
   let files = result.data?.files ?? [];
 
   // only display first 4 files, needs to be updated to display recently opened files
-  if(files.length > 4){
+  if (files.length > 4) {
     files = files.slice(0, 4);
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-full px-6">
-      <div className="max-w-4xl w-full text-center">
+    <div className="flex min-h-full flex-col items-center justify-center px-6">
+      <div className="w-full max-w-4xl text-center">
         <Greeting />
-        <p className="text-gray-500 mb-10 text-lg">Where do you want to go?</p>
+        <p className="mb-10 text-lg text-gray-500">Where do you want to go?</p>
 
         {/* Main buttons */}
-        <div className="flex gap-10 mb-10 justify-center">
+        <div className="mb-10 flex justify-center gap-10">
           {[
-            { icon: <Search className="w-50 h-50" fill="#4b5563" />, text: "Search", path: "" },
-            { icon: <Projects className="w-50 h-50" fill="#4b5563" />, text: "Projects", path: "/projects"},
-            { icon: <Archive className="w-50 h-50" fill="#4b5563" />, text: "Archive", path: "/archive" },
+            { icon: <Search className="h-50 w-50" fill="#4b5563" />, text: "Search", path: "" },
+            { icon: <Projects className="h-50 w-50" fill="#4b5563" />, text: "Projects", path: "/projects" },
+            { icon: <Archive className="h-50 w-50" fill="#4b5563" />, text: "Archive", path: "/archive" },
           ].map((btn, index) => (
             <Link key={index} href={btn.path}>
-              <div
-                key={index}
-                className="flex flex-col items-center bg-gray-100 p-6 rounded-xl border border-gray-300 hover:bg-gray-200 transition cursor-pointer w-32 h-32 shadow-md"
-              >
+              <div className="flex h-32 w-32 cursor-pointer flex-col items-center rounded-xl border border-gray-300 bg-gray-100 p-6 shadow-md transition hover:bg-gray-200">
                 {btn.icon}
-                <p className="text-gray-600 font-medium text-lg mt-2">{btn.text}</p>
+                <p className="mt-2 text-lg font-medium text-gray-600">{btn.text}</p>
               </div>
             </Link>
           ))}
         </div>
 
         {/* Files */}
-        <div className="w-full max-w-xl bg-gray-100  rounded-lg shadow-lg mx-auto">
-          <h2 className="font-semibold text-xl mb-1 mt-1">Files</h2>
+        <div className="mx-auto w-full max-w-xl rounded-lg bg-gray-100 shadow-lg">
+          <h2 className="mt-1 mb-1 text-xl font-semibold">Files</h2>
           <div className="flex flex-col">
             {files.map((file, index) => (
               <div
                 key={file.id}
-                className={`flex items-center justify-between p-2 bg-white border hover:bg-gray-200
-                  ${index === 0 ? "rounded-t-lg" : ""} 
-                  ${index === files.length - 1 ? "rounded-b-lg" : ""}
-                  ${index !== 0 && index !== files.length - 1 ? "border-t-0" : ""}
-                `}
+                className={`flex items-center justify-between gap-2 border bg-white p-2 hover:bg-gray-200 ${index === 0 ? "rounded-t-lg" : ""} ${index === files.length - 1 ? "rounded-b-lg" : ""} ${index !== 0 && index !== files.length - 1 ? "border-t-0" : ""} `}
               >
-                <span className="flex items-center gap-2 text-lg w-full overflow-hidden">
-                  {GetFileIcon(file.fileType)}
-                  <span className="truncate w-[250px] md:w-[350px] lg:w-[450px] block text-left text-sm">
-                    {file.name}
-                  </span>
+                <span className="flex w-full items-center gap-2 overflow-hidden text-lg">
+                  <GetFileIcon fileType={file.fileType} />
+                  <span className="block w-[250px] truncate text-left text-sm md:w-[350px] lg:w-[450px]">{file.name}</span>
                 </span>
-                <Link href={`file/${file.id}`}><Button>Open</Button></Link>
+
+                <OpenFileButton file={file} />
               </div>
             ))}
           </div>

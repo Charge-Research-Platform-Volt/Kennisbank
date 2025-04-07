@@ -8,6 +8,7 @@ export const RegisterRequestSchema = z.object({
     // lastname: z.string().min(1 , { message: "Last name is required" }),
     email: z.string().min(1 , { message: "Email is required" }),
     password: z.string().min(1 , { message: "Password is required" }),
+    token: z.string().min(1 , { message: "Token is required "}),
 });
 
 // Type definitions derived from the schemas

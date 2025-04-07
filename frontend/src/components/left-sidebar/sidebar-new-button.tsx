@@ -11,7 +11,7 @@ import { FormResponse } from "@/types/return.type";
 import { DocumentBase, WebsiteBase } from "@/types/document.type";
 import { Button } from "@/components/ui/button";
 import { getFileHasher } from "@/utils/fileHashWorker";
-import { TagsArray } from "@/types/tag.type";
+import { TagsArray, UserTagsArray } from "@/types/tag.type";
 import TagSelectionDropdown from "../TagSelectionDropdown";
 import { InputHeader, InputBlock, FInput, FileInfo, PopupTitle } from "../ui/Popup";
 import New from "@/icons/new";
@@ -27,7 +27,7 @@ const initialWebsiteState: FormResponse<WebsiteBase> = {
   message: "",
 };
 
-export default function NewButton({ tags }: { tags: TagsArray }) {
+export default function NewButton({ userTags, standardizedTags }: { userTags: UserTagsArray, standardizedTags: TagsArray }) {
   const popupRef = useRef<HTMLDivElement | null>(null); //Ref used to check if user clicks outside of popup
   const [status, setStatus] = useState<UploadStatus>("idle"); //upload status
   const [uploadPopup, setUploadPopup] = useState(false); //bool which determines whether you can see the new popup
@@ -179,7 +179,7 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
       toast.error("Please input a URL!");
     }
 
-    setStatus("uploading");
+    setStatus("uploading"); 
 
     try {
       startTransition(async () => {
@@ -315,7 +315,7 @@ export default function NewButton({ tags }: { tags: TagsArray }) {
 
                     <div className="flex flex-1 flex-col">
                       {/* Add Tags dropdown box*/}
-                      <TagSelectionDropdown className="h-full w-full" tags={tags}></TagSelectionDropdown>
+                      <TagSelectionDropdown className="h-full w-full" userTags={userTags} standardizedTags={standardizedTags}></TagSelectionDropdown>
                     </div>
                   </div>
                 </div>

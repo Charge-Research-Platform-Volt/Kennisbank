@@ -15,7 +15,7 @@ const initialState: FormResponse<TagBase> = {
 
 export default function CreateUserTag() {
   const [state, action, isPending] = useActionState(AddUserTag, initialState);
-  console.log("CreateUserTag state:");
+  console.log("CreateTag state:");
   console.log(state.message);
 
   useEffect(() => {
@@ -27,21 +27,23 @@ export default function CreateUserTag() {
   }, [state]);
 
   return (
-    <form className="mb-4 flex max-w-xl space-x-2" action={action}>
-      <Input
-        type="text"
-        name="name"
-        placeholder="Tag name"
-        disabled={isPending}
-      />
-      <Button
-        className="w-24"
-        variant="default"
-        type="submit"
-        disabled={isPending}
-      >
-        {isPending ? "Creating..." : "Create"}
-      </Button>
+    <form className="mb-4 flex space-x-2 w-full" action={action}>
+      <div className="relative w-full">
+        <Input
+          type="text"
+          name="name"
+          placeholder="New tag"
+          disabled={isPending}
+        />
+        <Button
+          className="absolute inset-y-0 right-2 flex items-center justify-center bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
+          variant="default"
+          type="submit"
+          disabled={isPending}
+        >
+            <span className="text-xl">{isPending ? "..." : "+"}</span>
+        </Button>
+      </div>
     </form>
   );
 }

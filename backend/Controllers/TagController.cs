@@ -27,7 +27,7 @@ public class TagController : ControllerBase
     /// Retrieves all tags from the drive.
     /// </summary>
     /// <returns>
-    /// Returns a 200 OK response containing a list of all Drive entities.
+    /// Returns a 200 OK response containing a list of all tags.
     /// </returns>
     [HttpGet("all-tags")]
     [SwaggerOperation(
@@ -82,6 +82,15 @@ public class TagController : ControllerBase
             Id = Guid.NewGuid(),
             Name = tagName,
         };
+
+        // Check if the tag already exists in the UserTags table
+        bool userTagExists = await _context.UserTags.AnyAsync(ut => ut.Name.ToLower() == tagName.ToLower());
+
+        if (userTagExists)
+        {
+            Log.Error("Tag already exists in UserTags table.");
+            return Conflict(new { message = "Tag already exists in the user tags list, try converting it instead." });
+        }
 
         // Add the tag
         try
@@ -154,10 +163,13 @@ public class TagController : ControllerBase
         return Ok(new { message = "Tag deleted." });
     }
 
+    /// <summary>
+    /// Changes the name of a tag.
     /// </summary>
-    /// <param name="tagName">The name of the tag to delete.</param>
+    /// <param name="id">The id of the tag.</param>
+    /// <param name="newName">The new name of the tag.</param>
     /// <returns>
-    /// Returns a 200 OK response containing the deleted tag.
+    /// Returns a 200 OK response.
     // </returns>
     [HttpPatch("change-tag-name/{id}/{newName}")]
     [Authorize(Policy = "RequireAdminRole")]
@@ -207,6 +219,15 @@ public class TagController : ControllerBase
         {
             Log.Error("Tag not found.");
             return NotFound(new { message = "Tag not found." });
+        }
+
+        // Check if the tag already exists in the UserTags table
+        bool userTagExists = await _context.UserTags.AnyAsync(ut => ut.Name.ToLower() == newName.ToLower());
+
+        if (userTagExists)
+        {
+            Log.Error("Tag already exists in UserTags table.");
+            return Conflict(new { message = "Tag already exists in the user tags list, try converting the user tag instead." });
         }
 
         //Change tag name

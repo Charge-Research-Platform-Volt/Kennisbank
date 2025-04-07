@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Input } from "../ui/input";
 import SidebarPart from "./sidebar-part";
 import NewButton from "@/components/left-sidebar/sidebar-new-button";
-import type { TagsArray } from "@/types/tag.type";
+import type { TagsArray, UserTagsArray } from "@/types/tag.type";
 import Settings from "@/icons/settings";
 import Archive from "@/icons/archive";
 import Tags from "@/icons/tags-icon";
@@ -19,12 +18,13 @@ import HideMenu from "@/icons/menu/hide-menu";
 import ShowMenu from "@/icons/menu/show-menu";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Logout } from "@/actions/authActions";
+import QuickSearch from "../quick-search";
 
 // Menu items
 const menuItems: SidebarItem[] = [
   { id: 1, name: "Home", path: "/", icon: <Home className="h-4 w-4" /> },
   { id: 2, name: "Archive", path: "/archive", icon: <Archive className="h-4 w-4" /> },
-  { id: 3, name: "Tags", path: "/standardizedtags", icon: <Tags className="h-4 w-4" /> },
+  { id: 3, name: "Tags", path: "/tags", icon: <Tags className="h-4 w-4" /> },
 ];
 
 // Projects
@@ -37,7 +37,7 @@ const projects: SidebarItem[] = [
   },
 ];
 
-export default function LeftSidebarClient({ tags }: { tags: TagsArray }) {
+export default function LeftSidebarClient({ userTags, standardizedTags }: { userTags: UserTagsArray, standardizedTags: TagsArray }) {
   const [isOpen, setIsOpen] = useState(true);
   const [profileButtonWidth, setProfileButtonWidth] = useState(0);
   const profileButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -90,10 +90,10 @@ export default function LeftSidebarClient({ tags }: { tags: TagsArray }) {
           {/* Menu items */}
           <nav className="flex h-full flex-col">
             <div className="mb-10 space-y-2">
-              <NewButton tags={tags} />
+              <NewButton userTags={userTags} standardizedTags={standardizedTags} />
 
               {/* Search bar */}
-              <Input type="text" name="search" placeholder="&#x1F50E;&#xFE0E; Search" />
+              <QuickSearch />
             </div>
 
             {/* Menu and project parts */}
@@ -105,7 +105,7 @@ export default function LeftSidebarClient({ tags }: { tags: TagsArray }) {
           <nav className="mt-auto" >
             <ul>
               <li>
-                <Link data-testid = "sidebar" href="/settings" className="flex items-center gap-x-2 rounded-md p-2 hover:bg-gray-200">
+                <Link data-testid = "sidebar" href="/users" className="flex items-center gap-x-2 rounded-md p-2 hover:bg-gray-200">
                   <Settings className="h-4 w-4" />
                   Settings
                 </Link>

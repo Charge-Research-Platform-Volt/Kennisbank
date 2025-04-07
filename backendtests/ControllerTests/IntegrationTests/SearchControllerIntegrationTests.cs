@@ -1,60 +1,36 @@
-using Moq;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using backend.Controllers;
-using backend.Data;
-using backend.Responses;
+using Microsoft.AspNetCore.Mvc;
+using backend.Tests.Infrastructure;
 using KnowledgeBank.Models;
 using KnowledgeBank.Data;
+using Moq;
+using Microsoft.EntityFrameworkCore;
+using backend.Data;
+using backend.Responses;
 using Microsoft.EntityFrameworkCore.Storage;
-namespace backend.Tests;
+
+namespace backend.Tests.Integration;
 
 [TestFixture]
 [Category("IntegrationTest")]
-public class SearchControllerIntegrationTests
+public class SearchControllerTests : TestBase
 {
-    private DbContextOptions<DatabaseContext> _options;
-    private DatabaseContext _context;
     private SearchController _controller;
     private Mock<IAzureBlobService> _mockBlobService;
-    private IDbContextTransaction _transaction;
 
 
     [SetUp]
-    public void SetUp()
+    public void SetupController()
     {
         _mockBlobService = new Mock<IAzureBlobService>();
-
-        // Determine the host based on runtime environment
-        string dbHost = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true" 
-            ? "database"   // To run test in CI/CD
-            : "localhost"; // To run test locally
-        
-        _options = new DbContextOptionsBuilder<DatabaseContext>()
-            .UseNpgsql($"Host={dbHost};Database=postgres;Username=postgres;Password=postgres")
-            .Options;
-
-        _context = new DatabaseContext(_options);
-
-        // file_vectors table needs this extension
-        _context.Database.ExecuteSqlRaw("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
-        _context.Database.ExecuteSqlRaw("ALTER TABLE file_vectors ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
-
-        // Start a transaction for rollback after each test
-        _transaction = _context.Database.BeginTransaction();
-
-        _context.Database.UseTransaction(_transaction.GetDbTransaction());
-
-        _controller = new SearchController(_mockBlobService.Object, _context);
+        _controller = new SearchController(_mockBlobService.Object, Context);
     }
 
-    [TearDown]
-    public void TearDown()
+    protected override async Task SeedTemplateDatabase(DatabaseContext context)
     {
-        // Rollback the transaction so DB state remains unchanged
-        _transaction.Rollback();
-        _transaction.Dispose();
-        _context.Dispose();
+        // Enable extension for text-search-vectors
+        await context.Database.ExecuteSqlRawAsync("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
+        await context.Database.ExecuteSqlRawAsync("ALTER TABLE file_vectors ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
     }
 
     [Test]
@@ -72,11 +48,11 @@ public class SearchControllerIntegrationTests
         };
 
         // Add the file to the database.
-        await _context.Files.AddAsync(testFile);
-        await _context.SaveFileChangesAsync();
+        await Context.Files.AddAsync(testFile);
+        await Context.SaveFileChangesAsync();
 
 
-        var savedFile = await _context.Files.FirstOrDefaultAsync(f => f.Name == "Integration Test File");
+        var savedFile = await Context.Files.FirstOrDefaultAsync(f => f.Name == "Integration Test File");
         Assert.That(savedFile, Is.Not.Null, "Test file was not saved in the database");
 
         // Perform a full-text search on the file name
@@ -85,7 +61,6 @@ public class SearchControllerIntegrationTests
         Assert.That(result, Is.Not.Null, "The search result is null");
 
         var testResult = result as ObjectResult;
-        TestContext.Out.WriteLine($"Returned status code: {testResult?.StatusCode}");
 
         // Check the result status code
         var okResult = result as OkObjectResult;
@@ -114,8 +89,8 @@ public class SearchControllerIntegrationTests
         };
 
         // Add the file to the database.
-        await _context.Files.AddAsync(testFile);
-        await _context.SaveFileChangesAsync();
+        await Context.Files.AddAsync(testFile);
+        await Context.SaveFileChangesAsync();
 
         // Perform a full-text search on the file name
         var result = await _controller.FullTextSearch("Ohmega", 1, 10);
@@ -147,8 +122,8 @@ public class SearchControllerIntegrationTests
         };
 
         // Add the file to the database.
-        await _context.Files.AddAsync(testFile);
-        await _context.SaveFileChangesAsync();
+        await Context.Files.AddAsync(testFile);
+        await Context.SaveFileChangesAsync();
 
 
         // Perform a full-text search on the file name with a query that 

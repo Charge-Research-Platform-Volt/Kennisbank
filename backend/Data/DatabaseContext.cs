@@ -16,6 +16,7 @@ namespace KnowledgeBank.Data
         public DbSet<UserTag> UserTags { get; set; }
         public DbSet<User> AppUsers { get; set; } // Renamed to avoid conflict with IdentityDbContext.Users
         public DbSet<FileVector> Vectors { get; set; }
+        public DbSet<Invitation> Invitations { get; set; }
         public DbSet<Website> Websites { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -66,15 +67,14 @@ namespace KnowledgeBank.Data
         {
             // Generates an Enumerable<Task> of SQL queries that inserts the
             // vector, if there's a conflict, replace existing vector instead
-            var updateTasks = updatedFiles.Select(file =>
-                Database.ExecuteSqlInterpolatedAsync($@"
+            foreach (var file in updatedFiles)
+            {
+                await Database.ExecuteSqlInterpolatedAsync($@"
                     INSERT INTO file_vectors (id, file_id, vector)
-                    VALUES (gen_random_uuid(), {file.Id}, to_tsvector('english', {file.Name} || ' ' || {file.Description}))
+                    VALUES (gen_random_uuid(), {file.Id}, to_tsvector('english', {file.Name} || ' ' || {file.Description ?? ""}))
                     ON CONFLICT (file_id) 
-                    DO UPDATE SET vector = EXCLUDED.vector;"));
-
-            // Task that will complete when all subtasks have completed
-            await Task.WhenAll(updateTasks);
+                    DO UPDATE SET vector = EXCLUDED.vector;");
+            }
         }
 
         // protected override void OnModelCreating(ModelBuilder modelBuilder)

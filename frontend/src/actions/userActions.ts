@@ -1,0 +1,199 @@
+"use server";
+
+import { FormResponse } from "@/types/return.type";
+import { SaveUserResponse, User, UserPageResponse, UsersArraySchema, UserSchema } from "@/types/user.type";
+import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+
+export const DeleteUser = async (user: User ): Promise<FormResponse<User>> => {
+    console.log("Deleting user: ", user.id);
+
+    //validate the data
+    const rawData = user;
+    const validatedData = UserSchema.safeParse(rawData);
+    if(!validatedData.success) {
+        return {
+            success: false,
+            message: validatedData.error.errors[0].message,
+        };
+    }
+
+    // Send the data to the backend
+    const cookieHeader = await cookies();
+    const response = await fetch(
+        `http://backend:8080/User/delete?userId=${encodeURIComponent(user.id)}`,
+        {
+            method: "DELETE",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+        },
+    );
+
+    //parse the data from the response
+    const data = await response.json();
+
+    // Check if the request was succesful, if not, return an error
+    if (!response.ok) {
+        return {
+            success: false,
+            message: data.message,
+        };
+    }
+
+    // Revalidate the cache for the usertags page
+    revalidatePath("/users");
+    return {
+        success: true,
+        message: data.message,
+    };
+};
+
+export const SaveUser = async (
+    state: SaveUserResponse,
+    { newEmail, newRole }: { newEmail: string; newRole: string }
+): Promise<SaveUserResponse> => {
+    console.log("Updating user: ", state.user.id);
+
+    //validate the data
+    const rawData = state.user;
+    const validatedData = UserSchema.safeParse(rawData);
+    if(!validatedData.success) {
+        return {
+            success: false,
+            message: validatedData.error.errors[0].message,
+            user: state.user,
+        };
+    }
+
+    //create a new user object to avoid mutating the original one, this will be the result of the action
+    const newUser = structuredClone(state.user);
+
+    //update the email in the backend
+    if(newEmail != state.user.email) {
+        // Send the data to the backend
+        const cookieHeader = await cookies();
+        const response = await fetch(
+            `http://backend:8080/User/update-mail`,
+            {
+                method: "PATCH",
+                credentials: "include",
+                headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+                body: JSON.stringify({
+                    userId: state.user.id,
+                    email: newEmail,
+                }),
+            },
+        );
+
+        //parse the data from the response
+        const data = await response.json();
+
+        // Check if the request was succesful, if not, return an error
+        if (!response.ok) {
+            return {
+                success: false,
+                message: "Saving failed: " + data.errors ? Object.values(data.errors).flat().join("\n") : data.message,
+                user: newUser,
+            };
+        }
+
+        //request was succesful, update the user object
+        newUser.email = newEmail;
+    }
+
+    //update the role in the backend
+    if(newRole != state.user.role) {
+        // Send the data to the backend
+        const cookieHeader = await cookies();
+        const response = await fetch(
+            `http://backend:8080/Roles/assign`,
+            {
+                method: "PATCH",
+                credentials: "include",
+                headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+                body: JSON.stringify({
+                    userId: state.user.id,
+                    roleName: newRole,
+                }),
+            },
+        );
+
+        //parse the data from the response
+        const data = await response.json();
+
+        // Check if the request was succesful, if not, return an error
+        if (!response.ok) {
+            return {
+                success: false,
+                message: "Saving role failed: " + data.message,
+                user: newUser,
+            };
+        }
+
+        //request was succesful, update the user object
+        newUser.role = newRole;
+    }
+
+    // Revalidate the cache for the usertags page
+    return {
+        success: true,
+        message: "Updating data succeeded",
+        user: newUser,
+    };
+};
+
+export const ListUsersPaged = async (pageIndex: number ): Promise<UserPageResponse> => {
+    console.log("Getting user page: ");
+
+    // Send the data to the backend
+    const cookieHeader = await cookies();
+    const response = await fetch(
+        `http://backend:8080/User/list-paged?pageIndex=${pageIndex}&pageSize=50`,
+        {
+            method: "GET",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+        },
+    );
+
+    //parse the data from the response
+    const data = await response.json();
+
+    // Check if the request was succesful, if not, return an error
+    if (!response.ok) {
+        return {
+            success: false,
+            message: data.message,
+        };
+    }
+
+    //validate the data
+    if(!data){
+        return {
+            success: false,
+            message: "No data found",
+        };
+    }
+
+    //validate the users array
+    const users = data.users;
+    const validatedUsers = UsersArraySchema.safeParse(users);
+    if (!validatedUsers.success) {
+        return {
+            success: false,
+            message: validatedUsers.error.errors[0].message,
+        };
+    }
+
+    revalidatePath("/users");
+    
+    // Check if the request was succesful, if not, return an error
+    return {
+        success: true,
+        message: "Users fetched successfully",
+        users: validatedUsers.data,
+        pageIndex: data.pageIndex,
+        pageSize: data.pageSize,
+        pageCount: data.pageCount,
+    }
+};

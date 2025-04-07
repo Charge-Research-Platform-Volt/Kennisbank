@@ -34,7 +34,6 @@ namespace backend.Migrations
                         .HasColumnName("created_at");
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("description");
 
@@ -102,6 +101,32 @@ namespace backend.Migrations
                     b.ToTable("file_vectors");
                 });
 
+            modelBuilder.Entity("KnowledgeBank.Models.Invitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("email");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("token");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("invitations");
+                });
+
             modelBuilder.Entity("KnowledgeBank.Models.Tag", b =>
                 {
                     b.Property<Guid>("Id")
@@ -129,14 +154,6 @@ namespace backend.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<DateTime?>("ApprovedOn")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("approved_on");
-
-                    b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_on");
-
                     b.Property<bool>("IsApproved")
                         .HasColumnType("boolean")
                         .HasColumnName("is_approved");
@@ -145,11 +162,6 @@ namespace backend.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name");
-
-                    b.Property<string>("User")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("user");
 
                     b.HasKey("Id");
 

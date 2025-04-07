@@ -13,6 +13,8 @@ export const AddDocument = async (
     formData: FormData,
 ): Promise<FormResponse<DocumentBase>> => {
     try {
+        console.log("Adding document");
+
         // Raw data from the form.
         const rawData: DocumentBase = {
             name: (formData.get("name") as string)?.trim() || defaultName,
@@ -20,6 +22,7 @@ export const AddDocument = async (
             file: formData.get("file") as File,
             hash: formData.get("hash") as string,
         };
+        console.log("validating document");
 
         // Validate the raw data, if it fails, return an error.
         const validatedData = DocumentBaseSchema.safeParse(rawData);
@@ -31,17 +34,20 @@ export const AddDocument = async (
                 inputs: rawData,
             };
         }
+        console.log("Document validated");
 
         if(rawData.name == defaultName){
             formData.set("name", defaultName);
         }
+        console.log("Setting hash");
 
         formData.set("hash", hash);
+        console.log("Getting tag ids");
 
         const tagIDs: string[] = [];
         
         for (const [key, value] of formData.entries()) {
-            if (key.startsWith('tags[') && key.endsWith(']')) {
+            if (key.startsWith('standardizedTags[') && key.endsWith(']')) {
                 tagIDs.push(value as string);
             }
         }
@@ -52,8 +58,24 @@ export const AddDocument = async (
             });
         }
 
+        const userTagIDs: string[] = [];
+        
+        for (const [key, value] of formData.entries()) {
+            if (key.startsWith('userTags[') && key.endsWith(']')) {
+                userTagIDs.push(value as string);
+            }
+        }
+
+        if (userTagIDs.length > 0) {
+            userTagIDs.forEach(tagID => {
+                formData.append('tags', tagID);
+            });
+        }
+
+        console.log("Sending data to backend");
+        console.log(formData);
         // Send the data to the backend.
-        const cookieHeader = cookies();
+        const cookieHeader = await cookies();
         const response = await fetch("http://backend:8080/storage/upload", {
             method: "PUT",
             body: formData,
@@ -62,9 +84,11 @@ export const AddDocument = async (
         });
         
         const data = await response.json();
-
+        console.log("Data received from backend");
         // Check if the request was successful, if not, return an error.
         if (!response.ok) {
+            console.log("Something failed");
+            console.log(data);
             return {
                 success: false,
                 message: data.message,
