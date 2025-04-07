@@ -107,7 +107,12 @@ namespace KnowledgeBank
             // # Authentication
             app.UseAuthentication();
             app.UseAuthorization();
-            app.MapGroup("Auth").MapIdentityApi<User>().WithTags("Auth").WithOpenApi(ConfigureIdentityApiOptions);
+            app.MapGroup("Auth").MapIdentityApi<User>().WithTags("Auth").WithOpenApi(ConfigureIdentityApiOptions).AddEndpointFilter(async (efiContext, next) =>
+            {
+                if(HideEndpointFilter.PathsToHide.Any(p => p == efiContext.HttpContext.Request.Path))
+                    return Results.Forbid();
+                return await next(efiContext);
+            });
 
             app.Run();
         }
@@ -124,6 +129,7 @@ namespace KnowledgeBank
         {
             c.SwaggerDoc("v1", new OpenApiInfo { Title = "KnowledgeBank", Version = "v1" });
             c.EnableAnnotations();
+            c.DocumentFilter<HideEndpointFilter>();
         }
 
 

@@ -90,9 +90,8 @@ test-backend:
   before_script:
     - *setup_environment
   script:
-    - docker-compose up -d database storage
-    - *wait_for_database
-    - docker-compose run --rm backend sh -c "dotnet build && dotnet test --filter Category=Unit"
+    - *start_backend
+    - docker-compose run --rm backend sh -c "dotnet build && dotnet test --logger:"console;verbosity=detailed" "
   after_script:
     - *cleanup
 

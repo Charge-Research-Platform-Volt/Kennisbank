@@ -27,7 +27,7 @@ public class TagController : ControllerBase
     /// Retrieves all tags from the drive.
     /// </summary>
     /// <returns>
-    /// Returns a 200 OK response containing a list of all Drive entities.
+    /// Returns a 200 OK response containing a list of all tags.
     /// </returns>
     [HttpGet("all-tags")]
     [SwaggerOperation(
@@ -40,7 +40,7 @@ public class TagController : ControllerBase
     {
         try
         {
-            return Ok(_context.Tags.ToList().OrderBy(t => t.Name));
+            return Ok(_context.Tags.OrderBy(t => t.Name).ToList());
         }
         catch (Exception e)
         {
@@ -85,6 +85,15 @@ public class TagController : ControllerBase
             CreatedBy = "TestUser1",
             CreatedOn = DateTime.UtcNow,
         };
+
+        // Check if the tag already exists in the UserTags table
+        bool userTagExists = await _context.UserTags.AnyAsync(ut => ut.Name.ToLower() == tagName.ToLower());
+
+        if (userTagExists)
+        {
+            Log.Error("Tag already exists in UserTags table.");
+            return Conflict(new { message = "Tag already exists in the user tags list, try converting it instead." });
+        }
 
         // Add the tag
         try
@@ -157,16 +166,19 @@ public class TagController : ControllerBase
         return Ok(new { message = "Tag deleted." });
     }
 
+    /// <summary>
+    /// Changes the name of a tag.
     /// </summary>
-    /// <param name="tagName">The name of the tag to delete.</param>
+    /// <param name="id">The id of the tag.</param>
+    /// <param name="newName">The new name of the tag.</param>
     /// <returns>
-    /// Returns a 200 OK response containing the deleted tag.
+    /// Returns a 200 OK response.
     // </returns>
     [HttpPatch("change-tag-name/{id}/{newName}")]
     [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
             Summary = "Change tag name.",
-            Description = "Lets and admin change the name of a standardized tag."
+            Description = "Lets an admin change the name of a standardized tag."
         )]
     [SwaggerResponse(200, "Tag name changed", typeof(Tag))]
     [SwaggerResponse(400, "Bad request")]
@@ -210,6 +222,15 @@ public class TagController : ControllerBase
         {
             Log.Error("Tag not found.");
             return NotFound(new { message = "Tag not found." });
+        }
+
+        // Check if the tag already exists in the UserTags table
+        bool userTagExists = await _context.UserTags.AnyAsync(ut => ut.Name.ToLower() == newName.ToLower());
+
+        if (userTagExists)
+        {
+            Log.Error("Tag already exists in UserTags table.");
+            return Conflict(new { message = "Tag already exists in the user tags list, try converting the user tag instead." });
         }
 
         //Change tag name

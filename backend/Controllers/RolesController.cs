@@ -7,6 +7,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using backend.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using Docker.DotNet.Models;
 
 namespace backend.Controllers
 {
@@ -101,13 +102,13 @@ namespace backend.Controllers
                 User? user = await userManager.FindByIdAsync(dto.UserId);
 
                 if (user == null)
-                    return NotFound("Invalid user ID.");
+                    return NotFound(new {message = "Invalid user ID."});
 
                 if (!await roleManager.RoleExistsAsync(dto.RoleName))
-                    return NotFound("Invalid role name.");
+                    return NotFound(new { message = "Invalid role name."});
 
                 if (await userManager.IsInRoleAsync(user, dto.RoleName))
-                    return BadRequest($"User is already has the role '{dto.RoleName}'");
+                    return BadRequest(new {message = $"User is already has the role '{dto.RoleName}'"});
 
                 IList<string> currentRoles = await userManager.GetRolesAsync(user);
                 IdentityResult removeResult = await userManager.RemoveFromRolesAsync(user, currentRoles);
@@ -118,14 +119,14 @@ namespace backend.Controllers
                 IdentityResult result = await userManager.AddToRoleAsync(user, dto.RoleName);
 
                 if (result.Succeeded)
-                    return Ok($"User '{user.UserName}' added to role '{dto.RoleName}' successfully.");
+                    return Ok(new { message = $"User '{user.UserName}' added to role '{dto.RoleName}' successfully." });
 
                 return BadRequest(result.Errors);
             }
             catch (Exception e)
             {
                 logger.Error(e, "Error assigning role {RoleName} to user with ID {UserID}", dto.RoleName, dto.UserId);
-                return StatusCode(500, "Internal server error.");
+                return StatusCode(500, new { message = "Internal server error." });
             }
         }
 
