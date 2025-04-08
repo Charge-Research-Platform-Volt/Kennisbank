@@ -2,7 +2,7 @@ import type React from "react";
 
 // Testing library
 import "@testing-library/jest-dom";
-import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+import { vi, describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import RightSidebar, { NoDocumentSelected } from "@/components/sidebar/right-sidebar/right-sidebar";
 import { useSidebar } from "@/context/sidebar-provider";
