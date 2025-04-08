@@ -33,9 +33,14 @@ public class FileItem
     [Column("updated_at")]
     public required DateTime UpdatedAt { get; set; }
 
+    public List<Tag> Tags { get; } = [];
+    public List<UserTag> UserTags { get; } = [];
+
+
     // Navigation property (one to one). JsonIgnore excludes it from response bodies.
     [JsonIgnore]
     public FileVector? Vector { get; set; }
+
 }
 
 public class StorageUploadDto //Data Transfer Object (DTO)

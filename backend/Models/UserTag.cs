@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 namespace KnowledgeBank.Models;
 
@@ -16,4 +17,7 @@ public class UserTag
 
     [Column("is_approved")]
     public bool IsApproved { get; set; }
+
+    [JsonIgnore]
+    public List<FileItem> Files { get; } = [];
 }

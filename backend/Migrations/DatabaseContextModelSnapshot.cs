@@ -62,19 +62,34 @@ namespace backend.Migrations
                     b.ToTable("files");
                 });
 
-            modelBuilder.Entity("KnowledgeBank.Models.FileTagLink", b =>
+            modelBuilder.Entity("KnowledgeBank.Models.FileTag", b =>
                 {
                     b.Property<Guid>("DocId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("doc-id");
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("TagId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("tag-id");
+                        .HasColumnType("uuid");
 
                     b.HasKey("DocId", "TagId");
 
-                    b.ToTable("doc-tag");
+                    b.HasIndex("TagId");
+
+                    b.ToTable("FileTag");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.FileUserTag", b =>
+                {
+                    b.Property<Guid>("DocId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserTagId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("DocId", "UserTagId");
+
+                    b.HasIndex("UserTagId");
+
+                    b.ToTable("FileUserTag");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.FileVector", b =>
@@ -381,6 +396,36 @@ namespace backend.Migrations
                     b.HasBaseType("Microsoft.AspNetCore.Identity.IdentityUser");
 
                     b.HasDiscriminator().HasValue("User");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.FileTag", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.FileItem", null)
+                        .WithMany()
+                        .HasForeignKey("DocId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KnowledgeBank.Models.Tag", null)
+                        .WithMany()
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.FileUserTag", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.FileItem", null)
+                        .WithMany()
+                        .HasForeignKey("DocId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KnowledgeBank.Models.UserTag", null)
+                        .WithMany()
+                        .HasForeignKey("UserTagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.FileVector", b =>

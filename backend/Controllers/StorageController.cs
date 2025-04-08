@@ -84,7 +84,7 @@ namespace backend.Controllers
 
                         foreach (string tag in dto.Tags)
                         {
-                            FileTagLink tagEntry = new()
+                            FileTag tagEntry = new()
                             {
                                 DocId = id,
                                 TagId = Guid.Parse(tag),
@@ -316,7 +316,7 @@ namespace backend.Controllers
         {
             try
             {
-                FileItem[]? items = await database.Files.OrderByDescending(f => f.CreatedAt).ToArrayAsync();
+                FileItem[]? items = await database.Files.OrderByDescending(f => f.CreatedAt).Include(f => f.Tags).ToArrayAsync();
 
                 if (items == null)
                     return Ok(new PageResponse("No files in database.", 0, 0, Array.Empty<FileItem>()));

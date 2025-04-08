@@ -12,7 +12,7 @@ namespace KnowledgeBank.Data
 
         public DbSet<FileItem> Files { get; set; }
         public virtual DbSet<Tag> Tags { get; set; }
-        public DbSet<FileTagLink> FileTagLinks { get; set; }
+        public DbSet<FileTag> FileTagLinks { get; set; }
         public DbSet<UserTag> UserTags { get; set; }
         public DbSet<User> AppUsers { get; set; } // Renamed to avoid conflict with IdentityDbContext.Users
         public DbSet<FileVector> Vectors { get; set; }
@@ -26,7 +26,47 @@ namespace KnowledgeBank.Data
                 .HasForeignKey<FileVector>(v => v.FileId)
                 .OnDelete(DeleteBehavior.Cascade);    // Automatically deletes vector on file delete
 
-            modelBuilder.Entity<FileTagLink>()
+
+            modelBuilder.Entity<FileItem>().HasMany(f => f.Tags)
+                .WithMany(t => t.Files)
+                .UsingEntity<FileTag>(
+                    j => j
+                        .HasOne<Tag>()
+                        .WithMany()
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Cascade),
+                    j => j
+                        .HasOne<FileItem>()
+                        .WithMany()
+                        .HasForeignKey("DocId")
+                        .OnDelete(DeleteBehavior.Cascade),
+                    j =>
+                    {
+                        j.HasKey("DocId", "TagId");
+                    });
+
+            modelBuilder.Entity<FileItem>().HasMany(f => f.UserTags)
+            .WithMany(t => t.Files)
+            .UsingEntity<FileUserTag>(
+                j => j
+                    .HasOne<UserTag>()
+                    .WithMany()
+                    .HasForeignKey("UserTagId")
+                    .OnDelete(DeleteBehavior.Cascade),
+                j => j
+                    .HasOne<FileItem>()
+                    .WithMany()
+                    .HasForeignKey("DocId")
+                    .OnDelete(DeleteBehavior.Cascade),
+                j =>
+                {
+                    j.HasKey("DocId", "UserTagId");
+                });
+
+
+
+
+            modelBuilder.Entity<FileTag>()
                 .HasKey(ft => new { ft.DocId, ft.TagId }); // Define composite primary key
 
             base.OnModelCreating(modelBuilder);
