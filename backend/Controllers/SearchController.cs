@@ -1,15 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
-using backend.Data;
-using Microsoft.AspNetCore.StaticFiles;
+using KnowledgeBank.Data;
 using Swashbuckle.AspNetCore.Annotations;
 using Serilog;
-using backend.Responses;
-using KnowledgeBank.Data;
+using KnowledgeBank.Responses;
 using KnowledgeBank.Models;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 
-namespace backend.Controllers;
+namespace KnowledgeBank.Controllers;
 
 
 [ApiController]

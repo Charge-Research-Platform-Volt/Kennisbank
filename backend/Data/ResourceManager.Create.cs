@@ -1,6 +1,6 @@
 ﻿using KnowledgeBank.Models;
 
-namespace backend.Data
+namespace KnowledgeBank.Data
 {
     // This part is for creating resources
     public partial class ResourceManager
@@ -256,7 +256,7 @@ namespace backend.Data
 
         // --- Tag
 
-        public async Task<Guid> CreateTagAsync(TagCreateDto dto)
+        public async Task<Guid> CreateTagAsync(TagCreateDto dto, bool isStandardized = false)
         {
             // Generate new ID for the tag
             Guid tagId = Guid.NewGuid();
@@ -266,7 +266,7 @@ namespace backend.Data
             {
                 Id = tagId,
                 Name = dto.Name,
-                IsStandardized = dto.IsStandardized,
+                IsStandardized = isStandardized,
                 CreatedBy = dto.CreatedBy,
                 CreatedOn = DateTime.UtcNow,
             };

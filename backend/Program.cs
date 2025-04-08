@@ -1,6 +1,5 @@
-using backend.Data;
-using backend.Security;
 using KnowledgeBank.Data;
+using KnowledgeBank.Security;
 using KnowledgeBank.Extensions;
 using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +9,6 @@ using Microsoft.OpenApi.Models;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
-using System.Threading.Tasks;
 
 namespace KnowledgeBank
 {

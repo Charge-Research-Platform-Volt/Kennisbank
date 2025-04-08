@@ -2,8 +2,6 @@ using System.Data;
 using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
-using backend.Models;
 
 namespace KnowledgeBank.Data
 {

@@ -6,7 +6,7 @@ using Microsoft.VisualBasic.FileIO;
 using System.Linq;
 using System.Linq.Expressions;
 
-namespace backend.Data
+namespace KnowledgeBank.Data
 {
     public partial class ResourceManager
     {

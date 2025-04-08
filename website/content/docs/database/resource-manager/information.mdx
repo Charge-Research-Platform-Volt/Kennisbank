@@ -9,6 +9,12 @@ order: 7
 - [Introduction](#introduction)
 - [Resource Existence Checks](#resource-existence-checks)
 - [Hash Checks](#hash-checks)
+- [Tag Existence Checks](#tag-existence-checks)
+- [Person Existence Checks](#person-existence-checks)
+- [Organisation Existence Checks](#organisation-existence-checks)
+- [Region Existence Checks](#region-existence-checks)
+- [Metadata Existence Checks](#metadata-existence-checks)
+- [Resource Type Existence Checks](#resource-type-existence-checks)
 
 ## Introduction
 This part of the Resource Manager corresponds to the `ResourceManager.Info.cs` in the backend. It provides methods for checking existence and retrieving basic information about entities in the database.
@@ -24,6 +30,9 @@ bool exists = await resourceManager.ResourceExistsAsync(resourceId);
 // Check if resource exists using string ID
 string resourceIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
 bool exists = await resourceManager.ResourceExistsAsync(resourceIdString);
+
+// Check if resource exists using a custom predicate
+bool exists = await resourceManager.ResourceExistsAsync(resource => resource.Name == "Example Resource");
 ```
 
 The method returns a boolean indicating whether the resource exists in the database.
@@ -43,4 +52,143 @@ The method returns:
 
 This is particularly useful for checking if a file has already been uploaded to the system, which can help prevent duplication.
 
-<Callout title="Note">The hash is typically a SHA-256 hash of the file content, which is calculated when a file resource is created. This allows for efficient file duplication checking.</Callout>
+<Callout title="Note">The hash is a SHA-256 hash of the file content, which is calculated when a file resource is created. This allows for efficient file duplication checking.</Callout>
+
+## Tag Existence Checks
+To check if a tag exists in the database, you can use the `TagExistsAsync` method:
+
+```csharp
+// Check if tag exists using GUID
+Guid tagId = Guid.Parse("a7e3d914-6e8b-4c22-9c8f-2d1b5a03e5a6");
+bool exists = await resourceManager.TagExistsAsync(tagId);
+
+// Check if tag exists using string ID
+string tagIdString = "a7e3d914-6e8b-4c22-9c8f-2d1b5a03e5a6";
+bool exists = await resourceManager.TagExistsAsync(tagIdString);
+
+// Check if tag exists using a custom predicate
+bool exists = await resourceManager.TagExistsAsync(tag => tag.Name == "Important");
+```
+
+## Person Existence Checks
+To check if a person exists in the database, you can use the `PersonExistsAsync` method:
+
+```csharp
+// Check if person exists using GUID
+Guid personId = Guid.Parse("b8c4d915-7f9c-5d33-0d9g-3e2c6b14f6b7");
+bool exists = await resourceManager.PersonExistsAsync(personId);
+
+// Check if person exists using string ID
+string personIdString = "b8c4d915-7f9c-5d33-0d9g-3e2c6b14f6b7";
+bool exists = await resourceManager.PersonExistsAsync(personIdString);
+
+// Check if person exists using a custom predicate
+bool exists = await resourceManager.PersonExistsAsync(person => person.Name == "John Doe");
+```
+
+## Organisation Existence Checks
+To check if an organisation exists in the database, you can use the `OrganisationExistsAsync` method:
+
+```csharp
+// Check if organisation exists using GUID
+Guid organisationId = Guid.Parse("c9d5e026-8g0d-6e44-1e0h-4f3d7c25g7c8");
+bool exists = await resourceManager.OrganisationExistsAsync(organisationId);
+
+// Check if organisation exists using string ID
+string organisationIdString = "c9d5e026-8g0d-6e44-1e0h-4f3d7c25g7c8";
+bool exists = await resourceManager.OrganisationExistsAsync(organisationIdString);
+
+// Check if organisation exists using a custom predicate
+bool exists = await resourceManager.OrganisationExistsAsync(org => org.Name == "Example Corp");
+```
+
+## Region Existence Checks
+To check if a region exists in the database, you can use the `RegionExistsAsync` method:
+
+```csharp
+// Check if region exists using GUID
+Guid regionId = Guid.Parse("d0e6f137-9h1e-7f55-2f1i-5g4e8d36h8d9");
+bool exists = await resourceManager.RegionExistsAsync(regionId);
+
+// Check if region exists using string ID
+string regionIdString = "d0e6f137-9h1e-7f55-2f1i-5g4e8d36h8d9";
+bool exists = await resourceManager.RegionExistsAsync(regionIdString);
+
+// Check if region exists using a custom predicate
+bool exists = await resourceManager.RegionExistsAsync(region => region.Name == "North America");
+```
+
+## Metadata Existence Checks
+The Resource Manager provides specific methods for checking if metadata exists for different resource types:
+
+### Audio Metadata
+```csharp
+// Check if audio metadata exists for a resource
+Guid resourceId = Guid.Parse("e1f7g248-0i2f-8g66-3g2j-6h5f9e47i9e0");
+bool exists = await resourceManager.AudioMetadataExistsAsync(resourceId);
+
+// Using string ID
+string resourceIdString = "e1f7g248-0i2f-8g66-3g2j-6h5f9e47i9e0";
+bool exists = await resourceManager.AudioMetadataExistsAsync(resourceIdString);
+
+// Using a custom predicate
+bool exists = await resourceManager.AudioMetadataExistsAsync(metadata => metadata.Duration > 180);
+```
+
+### Video Metadata
+```csharp
+// Check if video metadata exists for a resource
+Guid resourceId = Guid.Parse("f2g8h359-1j3g-9h77-4h3k-7i6g0f58j0f1");
+bool exists = await resourceManager.VideoMetadataExistsAsync(resourceId);
+
+// Using string ID
+string resourceIdString = "f2g8h359-1j3g-9h77-4h3k-7i6g0f58j0f1";
+bool exists = await resourceManager.VideoMetadataExistsAsync(resourceIdString);
+
+// Using a custom predicate
+bool exists = await resourceManager.VideoMetadataExistsAsync(metadata => metadata.Resolution == "1080p");
+```
+
+### Document Metadata
+```csharp
+// Check if document metadata exists for a resource
+Guid resourceId = Guid.Parse("g3h9i460-2k4h-0i88-5i4l-8j7h1g69k1g2");
+bool exists = await resourceManager.DocumentMetadataExistsAsync(resourceId);
+
+// Using string ID
+string resourceIdString = "g3h9i460-2k4h-0i88-5i4l-8j7h1g69k1g2";
+bool exists = await resourceManager.DocumentMetadataExistsAsync(resourceIdString);
+
+// Using a custom predicate
+bool exists = await resourceManager.DocumentMetadataExistsAsync(metadata => metadata.PageCount > 10);
+```
+
+### Website Metadata
+```csharp
+// Check if website metadata exists for a resource
+Guid resourceId = Guid.Parse("h4i0j571-3l5i-1j99-6j5m-9k8i2h70l2h3");
+bool exists = await resourceManager.WebsiteMetadataExistsAsync(resourceId);
+
+// Using string ID
+string resourceIdString = "h4i0j571-3l5i-1j99-6j5m-9k8i2h70l2h3";
+bool exists = await resourceManager.WebsiteMetadataExistsAsync(resourceIdString);
+
+// Using a custom predicate
+bool exists = await resourceManager.WebsiteMetadataExistsAsync(metadata => metadata.Url.Contains("example.com"));
+```
+
+## Resource Type Existence Checks
+To check if a resource type exists in the database, you can use the `ResourceTypeExistsAsync` method:
+
+```csharp
+// Check if resource type exists using GUID
+Guid resourceTypeId = Guid.Parse("i5j1k682-4m6j-2k00-7k6n-0l9j3i81m3i4");
+bool exists = await resourceManager.ResourceTypeExistsAsync(resourceTypeId);
+
+// Check if resource type exists using string ID
+string resourceTypeIdString = "i5j1k682-4m6j-2k00-7k6n-0l9j3i81m3i4";
+bool exists = await resourceManager.ResourceTypeExistsAsync(resourceTypeIdString);
+
+// Check if resource type exists using a custom predicate
+bool exists = await resourceManager.ResourceTypeExistsAsync(type => type.Name == "Document");
+```

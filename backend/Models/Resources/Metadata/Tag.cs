@@ -41,7 +41,6 @@ public class Tag
 public class TagCreateDto
 {
     public required string Name { get; set; }
-    public required bool IsStandardized { get; set; } = false;
     public bool IsApproved { get; set; } = false;
     public string? ApprovedBy { get; set; }
     // TODO: Should be User ID, see TODO above.

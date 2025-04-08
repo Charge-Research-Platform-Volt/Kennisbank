@@ -1,18 +1,14 @@
-﻿using backend.Responses;
-using Docker.DotNet.Models;
-using KnowledgeBank.Data;
-using KnowledgeBank.Models;
+﻿using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Scaffolding.Metadata;
-using System.IO;
 
-namespace backend.Data
+namespace KnowledgeBank.Data
 {
     public static class TestDataSeeder
     {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         private static IAzureBlobService blobService;
         private static DatabaseContext database;
+        private static ResourceManager resourceManager;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         private static string testDataPath = Path.Combine("/app", "testdata") + "/";
 
@@ -21,6 +17,7 @@ namespace backend.Data
             using IServiceScope scope = serviceProvider.CreateScope();
             blobService = scope.ServiceProvider.GetRequiredService<IAzureBlobService>();
             database = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+            resourceManager = scope.ServiceProvider.GetRequiredService<ResourceManager>();
 
             // await ShamelessCopyOfUpload("path", "title", "");
             await AddTestAuthor("William Shakespeare", "Librarian", "Lived a long time ago", "william.shakespeare@gmail.com", "@WilliamShakespear");
@@ -46,26 +43,19 @@ namespace backend.Data
 
         private static async Task AddTestAuthor(string name, string occupation, string description, string emailaddress, string linkedin)
         {
-            Guid id = Guid.NewGuid();
-
-            Person? personItem = await database.Persons.Where(f => f.Name == name).FirstOrDefaultAsync();
-
-            if (personItem != null) return;
+            if (await resourceManager.PersonExistsAsync(p => p.Name == name)) return;
             try
             {
-                Person person = new()
+                PersonCreateDto dto = new()
                 {
-                    Id = id,
                     Name = name,
                     Occupation = occupation,
                     Description = description,
                     EmailAddress = emailaddress,
-                    Linkedin = linkedin
+                    Linkedin = linkedin,
                 };
 
-
-                await database.Persons.AddAsync(person);
-                await database.SaveResourceChangesAsync();
+                await resourceManager.CreatePersonAsync(dto);
             }
             catch (Exception e)
             {
@@ -77,15 +67,24 @@ namespace backend.Data
         {
             path = testDataPath + path;
 
-            Resource? item = await database.Resources.Where(f => f.Title == title).FirstOrDefaultAsync();
+            if (await resourceManager.ResourceExistsAsync(r => r.Title == title)) return;
 
-            if (item != null) return;
+            ResourceCreateDto dto = new()
+            {
+                Title = title,
+                Description = description,
+                LanguageCode = "??",
+                TypeId = DatabaseSeeder.UnknownResourceTypeId,
+                PublicationDate = DateTime.UtcNow,
+            };
 
             string extension = Path.GetExtension(path);
 
             string fileType = Filetype.ConvertExtensionToFiletype(extension);
 
-            Guid id = Guid.NewGuid();
+            await resourceManager.BeginTransaction();
+
+            Guid id = await resourceManager.CreateResourceAsync(dto);
 
             try
             {
@@ -94,20 +93,7 @@ namespace backend.Data
 
                 if (result == BLOB_STATUSCODE.OK)
                 {
-                    Resource drive = new()
-                    {
-                        Id = id,
-                        Title = title,
-                        Description = description,
-                        TypeId = new Guid("0cc285a8-0f07-11f0-a0a6-5600051f1387"),
-                        LanguageCode = "??",
-                        FileType = fileType,
-                        CreationDate = DateTime.UtcNow,
-                        PublicationDate = DateTime.UtcNow,
-                    };
-
-                    await database.Resources.AddAsync(drive);
-                    await database.SaveResourceChangesAsync();
+                    await resourceManager.Commit();
                 }
             }
             catch (Exception e)

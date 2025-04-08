@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using System.Text.Json.Serialization;
 
-namespace backend.Data
+namespace KnowledgeBank.Data
 {
     /// <summary>
     /// Provides methods to generate DTOs from models with support for nested relations.

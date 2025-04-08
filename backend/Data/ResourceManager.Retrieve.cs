@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace backend.Data
+namespace KnowledgeBank.Data
 {
     // This part is for retrieving resources or their properties
     public partial class ResourceManager
@@ -65,7 +65,7 @@ namespace backend.Data
 
         protected async Task<T[]> GetPageAsync<T>(DbSet<T> dbSet, int pageIndex = 1, int pageSize = 100, Expression<Func<T, object>>? orderBy = null, bool orderDescending = false, Expression<Func<T, bool>>? predicate = null, params string[] includeProperties) where T : class
         {
-            // Return empty for invalid input
+            // Return empty for invalid inpt
             if (pageIndex < 1 || pageSize < 1) return [];
 
             // Calculate how many records we need to skip
@@ -872,13 +872,13 @@ namespace backend.Data
 
         #region Tag
 
-        private readonly Expression<Func<Tag, object>> tagDefaultOrderBy = ut => ut.Name;
+        private readonly Expression<Func<Tag, object>> tagDefaultOrderBy = t => t.Name;
         private const bool tagDefaultOrderDescending = false;
 
 
         // Single
         public async Task<Tag?> GetTagAsync(Guid id)
-        { return await GetAsync(database.Tags, ut => ut.Id == id); }
+        { return await GetAsync(database.Tags, t => t.Id == id); }
 
         public async Task<Tag?> GetTagAsync(string id)
         { return await GetTagAsync(Guid.Parse(id)); }
@@ -890,7 +890,7 @@ namespace backend.Data
         }
 
         public async Task<Tag?> GetTagAsync(Guid id, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending, params string[] includeProperties)
-        { return await GetTagAsync(ut => ut.Id == id, orderBy, orderDescending, includeProperties); }
+        { return await GetTagAsync(t => t.Id == id, orderBy, orderDescending, includeProperties); }
 
         public async Task<Tag?> GetTagAsync(string id, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending, params string[] includeProperties)
         { return await GetTagAsync(Guid.Parse(id), orderBy, orderDescending, includeProperties); }
@@ -901,7 +901,7 @@ namespace backend.Data
         { return await GetAsync(database.Tags, predicate, tagDefaultOrderBy, tagDefaultOrderDescending, includeProperties); }
 
         public async Task<Tag?> GetTagAsync(Guid id, params string[] includeProperties)
-        { return await GetTagAsync(ut => ut.Id == id, tagDefaultOrderBy, tagDefaultOrderDescending, includeProperties); }
+        { return await GetTagAsync(t => t.Id == id, tagDefaultOrderBy, tagDefaultOrderDescending, includeProperties); }
 
         public async Task<Tag?> GetTagAsync(string id, params string[] includeProperties)
         { return await GetTagAsync(Guid.Parse(id), tagDefaultOrderBy, tagDefaultOrderDescending, includeProperties); }
@@ -946,7 +946,7 @@ namespace backend.Data
         // Property
 
         public async Task<T> GetTagPropertyAsync<T>(Guid TagId, Expression<Func<Tag, T>> selector)
-        { return await GetPropertyAsync(database.Tags, ut => ut.Id == TagId, selector); }
+        { return await GetPropertyAsync(database.Tags, t => t.Id == TagId, selector); }
 
         public async Task<T> GetTagPropertyAsync<T>(string TagId, Expression<Func<Tag, T>> selector)
         { return await GetTagPropertyAsync(Guid.Parse(TagId), selector); }
@@ -954,7 +954,7 @@ namespace backend.Data
 
 
         public async Task<T?> GetTagPropertyOrDefaultAsync<T>(Guid TagId, Expression<Func<Tag, T>> selector)
-        { return await GetPropertyOrDefaultAsync(database.Tags, ut => ut.Id == TagId, selector); }
+        { return await GetPropertyOrDefaultAsync(database.Tags, t => t.Id == TagId, selector); }
 
         public async Task<T?> GetTagPropertyOrDefaultAsync<T>(string TagId, Expression<Func<Tag, T>> selector)
         { return await GetTagPropertyOrDefaultAsync(Guid.Parse(TagId), selector); }

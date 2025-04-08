@@ -12,14 +12,10 @@ namespace KnowledgeBank.Controllers;
 [Route("[controller]")]
 [Produces("application/json")]
 [Authorize]
-public class TagController : ControllerBase
+public class TagController(ResourceManager resourceManager) : ControllerBase
 {
     // Database context
-    private readonly DatabaseContext _context;
-    public TagController(DatabaseContext context)
-    {
-        _context = context;
-    }
+    private readonly ResourceManager resourceManager = resourceManager;
 
     // ----------- Endpoints:
 
@@ -32,62 +28,164 @@ public class TagController : ControllerBase
     [HttpGet("all-tags")]
     [SwaggerOperation(
             Summary = "List all tags.",
-            Description = "List all standardized tags created by admins."
+            Description = "List all tags."
         )]
-    [SwaggerResponse(200, "List of tags", typeof(List<Tag>))]
+    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
     [SwaggerResponse(500, "Internal server error")]
-    public IActionResult Get()
+    public async Task<IActionResult> GetAll()
     {
         try
         {
-            return Ok(_context.Tags.OrderBy(t => t.Name).ToList());
+            return Ok(await resourceManager.GetAllTagsAsync());
         }
         catch (Exception e)
         {
-            Log.Error(e, "Failed to retrieve documents");
+            Log.Error(e, "Failed to retrieve tags");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpGet("tag-page")]
+    [SwaggerOperation(Summary = "List all tags paged.", Description = "List all tags paged.")]
+    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetAllPaged(int pageIndex = 1, int pageSize = 100)
+    {
+        try
+        {
+            return Ok(await resourceManager.GetTagPageAsync(pageIndex, pageSize));
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to retrieve tag page");
             return StatusCode(500, new { message = "Internal server error" });
         }
     }
 
     /// <summary>
-    /// Adds a new tag to the tag list.
+    /// Retrieves all standardized tags from the drive.
+    /// </summary>
+    /// <returns>
+    /// Returns a 200 OK response containing a list of all tags.
+    /// </returns>
+    [HttpGet("all-standard-tags")]
+    [SwaggerOperation(
+            Summary = "List all standardized tags.",
+            Description = "List all standardizedtags."
+        )]
+    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetAllStandardized()
+    {
+        try
+        {
+            return Ok(await resourceManager.GetAllTagsAsync(t => t.IsStandardized));
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to retrieve tags");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpGet("standard-tag-page")]
+    [SwaggerOperation(Summary = "List all standardized tags paged.", Description = "List all standardized tags paged.")]
+    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetAllStandardizedPaged(int pageIndex = 1, int pageSize = 100)
+    {
+        try
+        {
+            return Ok(await resourceManager.GetTagPageAsync(
+                pageIndex: pageIndex,
+                pageSize: pageSize,
+                predicate: t => t.IsStandardized
+            ));
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to retrieve standardized tag page");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    /// <summary>
+    /// Retrieves all standardized tags from the drive.
+    /// </summary>
+    /// <returns>
+    /// Returns a 200 OK response containing a list of all tags.
+    /// </returns>
+    [HttpGet("all-user-tags")]
+    [SwaggerOperation(
+            Summary = "List all user tags.",
+            Description = "List all user tags."
+        )]
+    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetAllUser()
+    {
+        try
+        {
+            return Ok(await resourceManager.GetAllTagsAsync(t => !t.IsStandardized));
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to retrieve user tags");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpGet("user-tag-page")]
+    [SwaggerOperation(Summary = "List all user tags paged.", Description = "List all user tags paged.")]
+    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetAllUserPaged(int pageIndex = 1, int pageSize = 100)
+    {
+        try
+        {
+            return Ok(await resourceManager.GetTagPageAsync(
+                pageIndex: pageIndex,
+                pageSize: pageSize,
+                predicate: t => !t.IsStandardized
+            ));
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to retrieve standardized tag page");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    /// <summary>
+    /// Adds a new standard tag to the tag list.
     /// </summary>
     /// <param name="tagName">The name of the tag to add.</param>
     /// <returns>
     /// Returns a 200 OK response containing the added tag.
-    // </returns>
-    [HttpPost("add-tag/{tagName}")]
+    /// </returns>
+    [HttpPost("add-standard-tag/{tagName}")]
     [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
             Summary = "Adds new standard tag.",
             Description = "Lets an admin add a new tag to the list of standardized tags."
         )]
-    [SwaggerResponse(200, "New tag added", typeof(Tag))]
+    [SwaggerResponse(200, "New tag added", typeof(Guid))]
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(409, "Tag already exists")]
     [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> AddTag(string tagName)
+    public async Task<IActionResult> AddStandardTag([FromBody] TagCreateDto dto)
     {
         Log.Information("Adding new tag to tag list.");
 
         // Make sure we have the required fields
-        if (string.IsNullOrEmpty(tagName))
+        if (string.IsNullOrEmpty(dto.Name))
         {
             Log.Error("Name is required");
             return BadRequest(new { message = "Name is required" });
         }
 
-        Tag tag = new()
-        {
-            Id = Guid.NewGuid(),
-            Name = tagName,
-            IsStandardized = true,
-            CreatedBy = "TestUser1",
-            CreatedOn = DateTime.UtcNow,
-        };
-
         // Check if the tag already exists in the UserTags table
-        bool userTagExists = await _context.Tags.AnyAsync(ut => ut.Name.ToLower() == tagName.ToLower());
+        bool userTagExists = await resourceManager.TagExistsAsync(t => t.Name == dto.Name);
 
         if (userTagExists)
         {
@@ -98,8 +196,12 @@ public class TagController : ControllerBase
         // Add the tag
         try
         {
-            await _context.Tags.AddAsync(tag);
-            await _context.SaveChangesAsync();
+            // Create the tag
+            Guid tagId = await resourceManager.CreateTagAsync(dto, true);
+
+            // Adding the tag was successful
+            Log.Information("New tag added to tag list.");
+            return Ok(tagId);
         }
         catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
         {
@@ -113,10 +215,66 @@ public class TagController : ControllerBase
             Log.Error(e, "Failed to add tag.");
             return StatusCode(500, new { message = "Internal server error" });
         }
+    }
 
-        // Adding the tag was successful
-        Log.Information("New tag added to tag list.");
-        return Ok(new { message = "Tag added." });
+    /// <summary>
+    /// Adds a new tag to the tag list.
+    /// </summary>
+    /// <param name="tagName">The name of the tag to add.</param>
+    /// <returns>
+    /// Returns a 200 OK response containing the added tag.
+    /// </returns>
+    [HttpPost("add-tag/{tagName}")]
+    [SwaggerOperation(
+            Summary = "Adds new tag.",
+            Description = "Adds a tag."
+        )]
+    [SwaggerResponse(200, "New tag added", typeof(Guid))]
+    [SwaggerResponse(400, "Bad request")]
+    [SwaggerResponse(409, "Tag already exists")]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> AddTag([FromBody] TagCreateDto dto)
+    {
+        Log.Information("Adding new tag to tag list.");
+
+        // Make sure we have the required fields
+        if (string.IsNullOrEmpty(dto.Name))
+        {
+            Log.Error("Name is required");
+            return BadRequest(new { message = "Name is required" });
+        }
+
+        // Check if the tag already exists in the UserTags table
+        bool userTagExists = await resourceManager.TagExistsAsync(t => t.Name == dto.Name);
+
+        if (userTagExists)
+        {
+            Log.Error("Tag already exists in UserTags table.");
+            return Conflict(new { message = "Tag already exists in the user tags list, try converting it instead." });
+        }
+
+        // Add the tag
+        try
+        {
+            // Create the tag
+            Guid tagId = await resourceManager.CreateTagAsync(dto);
+
+            // Adding the tag was successful
+            Log.Information("New tag added to tag list.");
+            return Ok(tagId);
+        }
+        catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
+        {
+            // The tag already exists
+            Log.Error(e, "Tag already exists.");
+            return Conflict(new { message = "Tag already exists." });
+        }
+        catch (Exception e)
+        {
+            // Something else went wrong
+            Log.Error(e, "Failed to add tag.");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
     }
 
     /// <summary>
@@ -132,7 +290,7 @@ public class TagController : ControllerBase
             Summary = "Delete standard tag.",
             Description = "Lets and admin delete a tag from the list of standardized tags."
         )]
-    [SwaggerResponse(200, "Tag deleted", typeof(Tag))]
+    [SwaggerResponse(200, "Tag deleted")]
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(404, "Tag not found")]
     [SwaggerResponse(500, "Internal server error")]
@@ -147,23 +305,11 @@ public class TagController : ControllerBase
             return BadRequest(new { message = "Id is required" });
         }
 
-        Guid guid = Guid.Parse(id);
+        if (await resourceManager.DeleteTagAsync(id))
+            return Ok(new { message = "Tag deleted." });
 
-        //find tag in database
-        Tag? tag = await _context.Tags.FirstOrDefaultAsync(t => t.Id == guid); //if not found: set tag to null
-
-        //check if tag is found
-        if (tag == null)
-        {
-            Log.Error("Tag not found.");
-            return NotFound(new { message = "Tag not found." });
-        }
-
-        //remove tag from database
-        _context.Tags.Remove(tag);
-        await _context.SaveChangesAsync();
-
-        return Ok(new { message = "Tag deleted." });
+        Log.Error("Tag not found.");
+        return NotFound(new { message = "Tag not found." });
     }
 
     /// <summary>
@@ -202,42 +348,22 @@ public class TagController : ControllerBase
             return BadRequest(new { message = "New name is required" });
         }
 
-        //parse id
-        Guid guid;
-        try
-        {
-            guid = Guid.Parse(id);
-        }
-        catch (FormatException)
-        {
-            Log.Error("Invalid id format.");
-            return BadRequest(new { message = "Invalid id format." });
-        }
-
-        //find tag in database
-        Tag? tag = await _context.Tags.FirstOrDefaultAsync(t => t.Id == guid); //if not found: set tag to null
-
-        //check if tag is found
-        if (tag == null)
-        {
-            Log.Error("Tag not found.");
-            return NotFound(new { message = "Tag not found." });
-        }
-
-        // Check if the tag already exists in the UserTags table
-        bool userTagExists = await _context.Tags.AnyAsync(ut => ut.Name.ToLower() == newName.ToLower());
-
-        if (userTagExists)
-        {
-            Log.Error("Tag already exists in UserTags table.");
-            return Conflict(new { message = "Tag already exists in the user tags list, try converting the user tag instead." });
-        }
-
         //Change tag name
         try
         {
-            tag.Name = newName;
-            await _context.SaveChangesAsync();
+            if (await resourceManager.TagExistsAsync(t => t.Name == newName))
+            {
+                Log.Error("Tag already exists in UserTags table.");
+                return Conflict(new { message = "Tag already exists in the user tags list, try converting the user tag instead." });
+            }
+
+            if (!await resourceManager.UpdateTagAsync(id, t => t.Name, newName))
+            {
+                Log.Error("Tag not found.");
+                return NotFound(new { message = "Tag not found." });
+            }
+
+            return Ok(new { message = "Tag name changed." });
         }
         catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
         {
@@ -245,7 +371,7 @@ public class TagController : ControllerBase
             Log.Error(e, "Tag already exists.");
             return Conflict(new { message = "New tag name already exists." });
         }
-
-        return Ok(new { message = "Tag name changed." });
     }
+
+    // TODO: Approving tags
 }
