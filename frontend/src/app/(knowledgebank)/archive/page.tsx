@@ -29,7 +29,7 @@ export default function ArchivePage() {
     query = query.trim();
 
     fetchFiles(
-      `http://localhost:8080/Search/search-full-txt?${`query=${query}&`}pageIndex=1&pageSize=100`,
+      `http://localhost:8080/Search/search-full-text?${`query=${query}&`}pageIndex=1&pageSize=100`,
       (response) => {
         setSearchResults(response);
       },
