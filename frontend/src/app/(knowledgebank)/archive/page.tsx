@@ -8,6 +8,9 @@ import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { OctagonAlert } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Filter from "@/icons/filter";
+import FilterButton from "./components/filter-button";
 
 export default function ArchivePage() {
   // State for search results, is null when no fetch has been completed yet, a string when an error occurs, or the fetch response.
@@ -48,7 +51,7 @@ export default function ArchivePage() {
   return (
     <>
       <div className="py-2 *:not-first:mt-2">
-        <div className="relative">
+        <div className="relative w-full">
           <Input
             className="peer h-10 ps-9"
             placeholder="Search"
@@ -60,6 +63,7 @@ export default function ArchivePage() {
           <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
             <Search className="h-4 w-4" aria-hidden="true" fill="currentColor" />
           </div>
+          <FilterButton />
         </div>
       </div>
 
