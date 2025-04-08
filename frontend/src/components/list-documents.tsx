@@ -19,7 +19,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 export default function ListDocuments({ data }: { data: DocumentPageResponse }) {
   // Column definitions
   const columnDefs = useState<ColDef[]>([
-    { field: "name", flex: 15, filter: true, cellRenderer: Render },
+    { field: "name", flex: 15, cellRenderer: Render },
     { field: "description", flex: 15 },
     { field: "fileType", flex: 3, headerName: "Type" },
     { field: "createdAt", flex: 6, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
