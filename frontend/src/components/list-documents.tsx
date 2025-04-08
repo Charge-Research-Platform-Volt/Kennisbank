@@ -12,7 +12,6 @@ import { tableTheme } from "@/lib/tableConfig";
 import GetFileIcon from "./getFileIcon";
 import { format, parseISO } from "date-fns";
 import OpenFileButton from "./open-file-button";
-import { Button } from "./ui/button";
 import { useSidebar } from "@/context/sidebar-provider";
 
 // Register all modules

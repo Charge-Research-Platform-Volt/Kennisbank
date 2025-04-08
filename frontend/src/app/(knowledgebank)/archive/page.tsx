@@ -1,5 +1,4 @@
 import ListDocuments from "@/components/list-documents";
-import RightSidebar from "@/components/sidebar/right-sidebar/right-sidebar";
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
 import { DocumentPageResponseSchema } from "@/types/document.type";
 

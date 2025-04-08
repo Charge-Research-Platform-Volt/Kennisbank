@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import ListDocuments from "@/components/list-documents";
 import { SidebarProvider } from "@/context/sidebar-provider";
 

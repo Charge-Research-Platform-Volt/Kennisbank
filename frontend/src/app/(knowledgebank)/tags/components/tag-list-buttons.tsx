@@ -10,31 +10,12 @@ import AdminIcon from "@/icons/tag-icons/admin-tag";
 import { DeleteUserTag } from "@/actions/userTagActions";
 import DeleteIcon from "@/icons/delete-icon";
 
-
 export function ApproveTagButton({ tag }: { tag: UserTag }) {
-  return (
-    <ActionButton<string>
-      action={ApproveUserTag}
-      actionName="Approving user tag"
-      actionArg={tag.id}
-      successMessage="Tag approved"
-      icon={ApproveTagIcon}
-      title="Approve tag"
-    />
-  );
+  return <ActionButton<string> action={ApproveUserTag} actionName="Approving user tag" actionArg={tag.id} successMessage="Tag approved" icon={ApproveTagIcon} title="Approve tag" />;
 }
 
 export function ConvertTagButton({ tag }: { tag: UserTag }) {
-  return (
-    <ActionButton<string>
-      action={ConvertUserTag}
-      actionName="Convert user tag"
-      actionArg={tag.id}
-      successMessage="Tag converted"
-      icon={AdminIcon}
-      title="Convert to standardized tag"
-    />
-  );
+  return <ActionButton<string> action={ConvertUserTag} actionName="Convert user tag" actionArg={tag.id} successMessage="Tag converted" icon={AdminIcon} title="Convert to standardized tag" />;
 }
 
 interface DeleteTagButtonProps {
@@ -44,31 +25,13 @@ interface DeleteTagButtonProps {
 
 export function DeleteTagButton({ tag, userTag }: DeleteTagButtonProps) {
   if (userTag) {
-    return (
-      <ActionButton<UserTag>
-        action={DeleteUserTag}
-        actionName="Deleting user tag"
-        actionArg={userTag}
-        successMessage="Tag deleted"
-        icon={DeleteIcon}
-        title="Delete tag"
-      />
-    );
+    return <ActionButton<UserTag> action={DeleteUserTag} actionName="Deleting user tag" actionArg={userTag} successMessage="Tag deleted" icon={DeleteIcon} title="Delete tag" />;
   }
-  
+
   if (tag) {
-    return (
-      <ActionButton<Tag>
-        action={DeleteStandardizedTag}
-        actionName="Deleting standardized tag"
-        actionArg={tag}
-        successMessage="Tag deleted"
-        icon={DeleteIcon}
-        title="Delete tag"
-      />
-    );
+    return <ActionButton<Tag> action={DeleteStandardizedTag} actionName="Deleting standardized tag" actionArg={tag} successMessage="Tag deleted" icon={DeleteIcon} title="Delete tag" />;
   }
-  
+
   // Fallback empty button for type safety
   return null;
 }
