@@ -41,7 +41,7 @@ export default function ListDocuments({ data }: { data: DocumentPageResponse }) 
   }, []);
 
   return (
-    <div className="h-[calc(100vh-1.25rem)] w-full">
+    <div className="h-[calc(100vh-5.75rem)] w-full">
       <AgGridReact rowData={data.files} columnDefs={columnDefs} theme={tableTheme} rowSelection={rowSelection as RowSelectionOptions} />
     </div>
   );
