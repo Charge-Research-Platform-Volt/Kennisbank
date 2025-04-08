@@ -11,8 +11,8 @@ import { DocumentBase } from "@/types/document.type";
 import { Button } from "@/components/ui/button";
 import { getFileHasher } from "@/utils/fileHashWorker";
 import { TagsArray, UserTagsArray } from "@/types/tag.type";
-import TagSelectionDropdown from "../TagSelectionDropdown";
-import { InputHeader, InputBlock, FInput, FileInfo, PopupTitle } from "../ui/Popup";
+import TagSelectionDropdown from "@/components/TagSelectionDropdown";
+import { InputHeader, InputBlock, FInput, FileInfo, PopupTitle } from "@/components/ui/Popup";
 import New from "@/icons/new";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error" | "checking";
@@ -22,7 +22,7 @@ const initialState: FormResponse<DocumentBase> = {
   message: "",
 };
 
-export default function NewButton({ userTags, standardizedTags }: { userTags: UserTagsArray, standardizedTags: TagsArray }) {
+export default function NewButton({ userTags, standardizedTags }: { userTags: UserTagsArray; standardizedTags: TagsArray }) {
   const popupRef = useRef<HTMLDivElement | null>(null); //Ref used to check if user clicks outside of popup
   const [status, setStatus] = useState<UploadStatus>("idle"); //upload status
   const [uploadPopup, setUploadPopup] = useState(false); //bool which determines whether you can see the new popup
@@ -37,10 +37,10 @@ export default function NewButton({ userTags, standardizedTags }: { userTags: Us
 
   const [newButtonWidth, setNewButtonWidth] = useState(0);
   const newButtonRef = React.useRef<HTMLButtonElement>(null);
-  useEffect(() => {  
-  if(newButtonRef.current){
-        setNewButtonWidth(newButtonRef.current.offsetWidth);
-      }
+  useEffect(() => {
+    if (newButtonRef.current) {
+      setNewButtonWidth(newButtonRef.current.offsetWidth);
+    }
   }, []);
 
   const [isPendingTransition, startTransition] = useTransition();
@@ -59,11 +59,10 @@ export default function NewButton({ userTags, standardizedTags }: { userTags: Us
       closeUploadPopup();
     } else if (state.message) {
       toast.error(state.message);
-      setStatus("error")
-    }
-    else {
-      toast.error("unknown error")
-      setStatus("error")
+      setStatus("error");
+    } else {
+      toast.error("unknown error");
+      setStatus("error");
     }
   }, [state]);
 
@@ -140,7 +139,7 @@ export default function NewButton({ userTags, standardizedTags }: { userTags: Us
       return;
     }
 
-    setStatus("uploading"); 
+    setStatus("uploading");
 
     try {
       startTransition(async () => {
@@ -156,9 +155,14 @@ export default function NewButton({ userTags, standardizedTags }: { userTags: Us
     <div>
       <DropdownMenu>
         {/* Purple New button */}
-        <DropdownMenuTrigger ref={newButtonRef} className="font-face bg-purple text-md active:bg-purple flex h-9 w-full cursor-pointer items-center gap-1 rounded-md pl-3 text-left text-white hover:bg-[#6f2aaf]">
+        <DropdownMenuTrigger
+          ref={newButtonRef}
+          className="font-face bg-purple text-md active:bg-purple flex h-9 w-full cursor-pointer items-center gap-1 rounded-md pl-3 text-left text-white hover:bg-[#6f2aaf]"
+        >
           <New className="h-5 w-5" />
-          <div data-testid="button_text" className="pb-0.5">New</div>
+          <div data-testid="button_text" className="pb-0.5">
+            New
+          </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent style={{ width: newButtonWidth }}>
           {/* Upload item in popup */}

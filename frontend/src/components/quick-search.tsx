@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogOverlay, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import Search from "@/icons/search-icon";
@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { OctagonAlert } from "lucide-react";
 import GetFileIcon from "./getFileIcon";
 import Link from "next/link";
+import Kbd from "./kbd";
 
 interface File {
   name: string;
@@ -63,6 +64,13 @@ export default function QuickSearch() {
     fetchSearchResults(query);
   }, 300);
 
+  const [shortcut, setShortcut] = useState("Ctrl + K");
+
+  useLayoutEffect(() => {
+    const isMac = navigator.userAgent.includes("Mac");
+    setShortcut(isMac ? "Cmd + K" : "Ctrl + K");
+  }, []);
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -72,7 +80,7 @@ export default function QuickSearch() {
               <Search className="h-4 w-4" />
               Search
             </div>
-            <kbd className="text-[10px]">{navigator.userAgent.includes("Mac") ? "Cmd" : "Ctrl"} + K</kbd>
+            <Kbd>{shortcut}</Kbd>
           </Button>
         </DialogTrigger>
         <DialogOverlay />

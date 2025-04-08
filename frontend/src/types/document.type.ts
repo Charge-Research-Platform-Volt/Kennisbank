@@ -1,14 +1,15 @@
 import { z } from "zod";
+import { TagSchema } from "./tag.type";
 
 /**
  * Base document schema without ID
  */
 export const DocumentBaseSchema = z.object({
-	name: z.string().min(1 , { message: "Name is required" }),
-	description: z.string().nullable(),
-	file: z.instanceof(File, {message: "File is required"}),
-	//tags: z.string().min(1, {message: "At least 1 tag is required"}),
-	hash: z.string({ message: "Hash should be a string" }),
+  name: z.string().min(1, { message: "Name is required" }),
+  description: z.string().nullable(),
+  file: z.instanceof(File, { message: "File is required" }),
+  //tags: z.string().min(1, {message: "At least 1 tag is required"}),
+  hash: z.string({ message: "Hash should be a string" }),
 });
 
 /**
@@ -21,13 +22,14 @@ export const DocumentSchema = DocumentBaseSchema.extend({
 export const DocumentArraySchema = z.array(DocumentSchema);
 
 export const DocumentResponseSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().min(1, { message: "Name is required" }),
-  description: z.string().nullable(),
-  fileType: z.string().min(1, { message: "File type is required" }),
-  hash: z.string().min(1, { message: "Hash is required" }).nullable(),
-  createdAt: z.string().min(1, { message: "Created at is required" }),
-  updatedAt: z.string().min(1, { message: "Updated at is required" }),
+  id: z.string().uuid().optional(),
+  name: z.string().min(1, { message: "Name is required" }).optional(),
+  description: z.string().nullable().optional(),
+  fileType: z.string().min(1, { message: "File type is required" }).optional(),
+  hash: z.string().min(1, { message: "Hash is required" }).nullable().optional(),
+  createdAt: z.string().min(1, { message: "Created at is required" }).optional(),
+  updatedAt: z.string().min(1, { message: "Updated at is required" }).optional(),
+  tags: z.array(TagSchema),
 });
 
 export const DocumentResponseArraySchema = z.array(DocumentResponseSchema);

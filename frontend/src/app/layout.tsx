@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { TabletSmartphone } from "lucide-react";
 import { Inter } from "next/font/google";
+import { SidebarProvider } from "@/context/sidebar-provider";
 //import LeftSidebarServer from "@/components/left-sidebar/left-sidebar-server";
 
 // Metadata
@@ -22,7 +23,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html className={inter.className} lang="en">
       <body className="flex h-screen w-screen overflow-hidden">
-        {children}
+        <SidebarProvider>{children}</SidebarProvider>
         <Toaster />
 
         {/* Mobile device warning */}
