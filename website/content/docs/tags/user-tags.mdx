@@ -1,0 +1,31 @@
+---
+title: User Tags
+description: Learn about the User Tags
+---
+**Author:** Rens van Moorsel
+
+## Introduction
+
+## Types in the frontend
+### UserTagBase
+**Description**: The UserTagBase is the base type for all user created tag types in the frontend.
+
+**Fields**:
+- **Name (string)**: The name of the tag.
+- **IsApproved (bool)**: The IsApproved property tells if the tag is approved by an admin.
+
+### UserTag
+**Description**: The UserTag is the base type for all user created tag types in the frontend extended with the Id field.
+
+**Fields**:
+- **Name (string)**: The name of the tag.
+- **Id (string)**: The Id is the key in the database and is used to identify the tag.
+- **IsApproved (bool)**: The IsApproved property tells if the tag is approved by an admin.
+
+### UserTagsArray
+**Description**: The UserTagsArray is an array of the UserTag type. It is used to represent a list of tags that are used to categorize content.
+
+### Tag class in the backend
+Namespace: KnowledgeBank.Models
+
+The UserTag class is used to represent a user created tag in the backend of the knowledgebank and in the PostgreSQL database. It contains the properties Id (GUID), Name (string) and IsApproved (bool). The Id and Name are required and unique. The Id is the key in the database and is used to identify the tag. The Name is the name of the tag and is used to display the tag in the frontend. The IsApproved property tells if the tag is approved by an admin.
