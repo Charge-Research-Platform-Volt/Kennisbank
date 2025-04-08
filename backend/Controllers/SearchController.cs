@@ -58,7 +58,6 @@ public class SearchController : ControllerBase
             var queryBuilder = filter?.ToQueryBuilder(database) ?? database.Files.AsQueryable();
 
             FileItem[]? items = await queryBuilder
-                .Where(f => EF.Functions.ILike(f.Name, "%" + query + "%"))
                 .OrderByDescending(f => EF.Functions.TrigramsSimilarity(f.Name, query))
                 .Skip(skip).Take(pageSize)
                 .ToArrayAsync();
@@ -105,7 +104,6 @@ public class SearchController : ControllerBase
             var queryBuilder = filter?.ToQueryBuilder(database) ?? database.Files.AsQueryable();
 
             FileItem[]? items = await queryBuilder
-                .Where(f => EF.Functions.ILike(f.Description ?? "", "%" + query + "%"))
                 .OrderByDescending(f => EF.Functions.TrigramsSimilarity(f.Description ?? "", query))
                 .Skip(skip).Take(pageSize)
                 .ToArrayAsync();
