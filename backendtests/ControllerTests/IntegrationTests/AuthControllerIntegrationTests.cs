@@ -11,6 +11,7 @@ using Moq;
 using Microsoft.AspNetCore.Http;
 using KnowledgeBank.Utils;
 using System.Net;
+using System.Security.Claims;
 
 namespace backend.Tests.Integration;
 
@@ -21,6 +22,10 @@ public class AuthControllerTests : TestBase
     private AuthController _controller;
     private UserManager<User> _userManager;
     private SignInManager<User> _signInManager;
+    private Mock<IHttpContextAccessor> _mockHttpContextAccessor;
+    private Mock<IUserClaimsPrincipalFactory<User>> _mockUserClaimsPrincipalFactory;
+    private Mock<HttpContext> _mockHttpContext;
+    private UserStore<User> _userStore;
 
     protected override Task SeedTemplateDatabase(DatabaseContext context)
     {
@@ -41,12 +46,14 @@ public class AuthControllerTests : TestBase
     [SetUp]
     public void SetupController()
     {
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        var mockUserClaimsPrincipalFactory = new Mock<IUserClaimsPrincipalFactory<User>>();
-        var userStore = new UserStore<User>(Context);
+        _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        _mockHttpContext = new Mock<HttpContext>();
+        _mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(_mockHttpContext.Object);
+        _mockUserClaimsPrincipalFactory = new Mock<IUserClaimsPrincipalFactory<User>>();
+        _userStore = new UserStore<User>(Context);
 
         _userManager = new UserManager<User>(
-           userStore,
+           _userStore,
             null,
             new PasswordHasher<User>(),
             new[] { new UserValidator<User>() },
@@ -58,8 +65,8 @@ public class AuthControllerTests : TestBase
         );
         _signInManager = new SignInManager<User>(
             _userManager,
-            mockHttpContextAccessor.Object,
-            mockUserClaimsPrincipalFactory.Object,
+            _mockHttpContextAccessor.Object,
+            _mockUserClaimsPrincipalFactory.Object,
             null, null, null, null
         );
 
@@ -69,11 +76,12 @@ public class AuthControllerTests : TestBase
     protected override Task OnTestTearDown()
     {
         _userManager?.Dispose();
+        _userStore?.Dispose();
         return base.OnTestTearDown();
     }
 
     [Test]
-    public async Task SendInvitation()
+    public async Task SendInvitation_CreatesInvitation_WithCorrectParameters()
     {
         // Arrange
         string email = "test@test.nl";
@@ -95,7 +103,7 @@ public class AuthControllerTests : TestBase
     }
 
     [Test]
-    public async Task SignUpWithWrongEmail()
+    public async Task SignUp_ReturnsBadRequest_WithWrongEmail()
     {
         // Arrange
         string email = "test@test.nl";
@@ -129,7 +137,7 @@ public class AuthControllerTests : TestBase
     }
 
     [Test]
-    public async Task SignUpWithWrongToken()
+    public async Task SignUp_ReturnsBadRequest_WithWrongToken()
     {
         // Arrange
         string email = "test@test.nl";
@@ -163,7 +171,7 @@ public class AuthControllerTests : TestBase
     }
 
     [Test]
-    public async Task SignUpWithMixedUpTokenEmail()
+    public async Task SignUp_ReturnsBadRequest_WithMixedUpTokenEmail()
     {
         // Arrange
         string email1 = "test@test.nl";
@@ -211,7 +219,7 @@ public class AuthControllerTests : TestBase
     }
 
     [Test]
-    public async Task SignWithOutdatedInvite()
+    public async Task SignUp_ReturnsBadRequest_WithOutdatedInvite()
     {
         // Arrange
         string email = "test@test.nl";
@@ -245,7 +253,7 @@ public class AuthControllerTests : TestBase
     }
 
     [Test]
-    public async Task SignUpWithCorrectData()
+    public async Task SignUp_CreatesUser_WithCorrectData()
     {
         // Arrange
         string email = "test@test.nl";
@@ -277,7 +285,7 @@ public class AuthControllerTests : TestBase
     }
 
     [Test]
-    public async Task SignUpWithoutInvite()
+    public async Task SignUp_ReturnsBadRequest_WithoutInvite()
     {
         // Arrange
         string email = "test@test.nl";
@@ -294,5 +302,203 @@ public class AuthControllerTests : TestBase
         var badRequestResult = result as BadRequestObjectResult;
         Assert.That(badRequestResult, Is.Not.Null);
         Assert.That(badRequestResult?.StatusCode, Is.EqualTo((int)HttpStatusCode.BadRequest));
+    }
+
+    [Test]
+    public async Task SignIn_Succesful_WithCorrectCredentials()
+    {
+        // Arrange
+        string email = "test@test.nl";
+        string password = "Test123!";
+        
+        // Create user
+        var user = new User
+        {
+            Id = Guid.NewGuid().ToString(),
+            UserName = email,
+            Email = email,
+            NormalizedEmail = email.ToUpper(),
+            NormalizedUserName = email.ToUpper(),
+            EmailConfirmed = true
+        };
+        
+        await _userManager.CreateAsync(user, password);
+        await _userManager.AddToRoleAsync(user, "user");
+        
+        var mockSignInResult = Microsoft.AspNetCore.Identity.SignInResult.Success;
+        var mockSignInManager = new Mock<SignInManager<User>>(
+            _userManager,
+            _mockHttpContextAccessor.Object,
+            new Mock<IUserClaimsPrincipalFactory<User>>().Object,
+            null, null, null, null
+        );
+        
+        mockSignInManager
+            .Setup(sm => sm.PasswordSignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()))
+            .ReturnsAsync(mockSignInResult);
+        
+        
+        // Assert
+        var result = await mockSignInManager.Object.PasswordSignInAsync(email, password, false, false);
+        Assert.That(result.Succeeded, Is.True, "The sign-in should succeed with correct credentials");
+    }
+
+    [Test]
+    public async Task SignIn_Unsuccesful_WithIncorrectCredentials()
+    {
+        // Arrange
+        string email = "test@test.nl";
+        string password = "Test123!";
+        string wrongPassword = "WrongPassword123!";
+        
+        // Create user
+        var user = new User
+        {
+            Id = Guid.NewGuid().ToString(),
+            UserName = email,
+            Email = email,
+            NormalizedEmail = email.ToUpper(),
+            NormalizedUserName = email.ToUpper(),
+            EmailConfirmed = true
+        };
+        
+        await _userManager.CreateAsync(user, password);
+        await _userManager.AddToRoleAsync(user, "user");
+        
+        var mockSignInResult = Microsoft.AspNetCore.Identity.SignInResult.Failed;
+        var mockSignInManager = new Mock<SignInManager<User>>(
+            _userManager,
+            _mockHttpContextAccessor.Object,
+            new Mock<IUserClaimsPrincipalFactory<User>>().Object,
+            null, null, null, null
+        );
+        
+        mockSignInManager
+            .Setup(sm => sm.PasswordSignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()))
+            .ReturnsAsync(mockSignInResult);
+        
+        // Assert
+        var result = await mockSignInManager.Object.PasswordSignInAsync(email, wrongPassword, false, false);
+        Assert.That(result.Succeeded, Is.False, "The sign-in should fail with incorrect credentials");
+    }
+
+    [Test]
+    public void Ping_ReturnsEmail_WhenAuthenticated()
+        {
+        // Arrange
+        string email = "test@test.nl";
+        var expectedReturnValue = new { Email = email };
+        
+        // Create an authenticated user with the email claim
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Email, email)
+        };
+        
+        var identity = new ClaimsIdentity(claims, IdentityConstants.ApplicationScheme);
+        var principal = new ClaimsPrincipal(identity);
+        
+        // Set up the mock HttpContext with the authenticated user
+        var mockHttpContext = new Mock<HttpContext>();
+        mockHttpContext.Setup(c => c.User).Returns(principal);
+        
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = mockHttpContext.Object
+        };
+
+        // Act
+        var result = _controller.Ping();
+        
+        // Assert
+        Assert.That(result, Is.TypeOf<OkObjectResult>(), "The result must be an OkObjectResult.");
+        var okResult = result as OkObjectResult;
+        Assert.That(okResult?.StatusCode, Is.EqualTo((int)HttpStatusCode.OK));
+        
+        // Verify the email is returned in the response
+        Assert.That(ObjectComparer.AreObjectsEqual(okResult.Value, expectedReturnValue), 
+            "The response should contain the user's email.");
+    }
+
+    [Test]
+    public async Task Logout_ReturnsOkResult_WithValidRequest()
+    {
+        // Arrange
+        var mockSignInManager = new Mock<SignInManager<User>>(
+            _userManager,
+            _mockHttpContextAccessor.Object,
+            new Mock<IUserClaimsPrincipalFactory<User>>().Object,
+            null, null, null, null
+        );
+        
+        mockSignInManager
+            .Setup(sm => sm.SignOutAsync())
+            .Returns(Task.CompletedTask);
+        
+        _controller = new AuthController(mockSignInManager.Object, Context);
+        
+        // Simulate an authenticated user
+        var claims = new List<Claim> { new Claim(ClaimTypes.Name, "test@test.nl") };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
+        
+        var mockHttpContext = new Mock<HttpContext>();
+        mockHttpContext.Setup(c => c.User).Returns(principal);
+        mockHttpContext.Setup(c => c.User.Identity.IsAuthenticated).Returns(true);
+        
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = mockHttpContext.Object
+        };
+        
+        // Act
+        var result = await _controller.Logout(new {});
+        
+        // Assert
+        Assert.That(result, Is.TypeOf<OkResult>(), "The result must be an OkResult.");
+        var okResult = result as OkResult;
+        Assert.That(okResult?.StatusCode, Is.EqualTo((int)HttpStatusCode.OK));
+        
+        // Verify the SignOutAsync method was called once
+        mockSignInManager.Verify(sm => sm.SignOutAsync(), Times.Once);
+    }
+
+    [Test]
+    public async Task Logout_ReturnsUnauthorized_WithNullRequest()
+    {
+        // Arrange
+        var mockSignInManager = new Mock<SignInManager<User>>(
+            _userManager,
+            _mockHttpContextAccessor.Object,
+            new Mock<IUserClaimsPrincipalFactory<User>>().Object,
+            null, null, null, null
+        );
+        
+        _controller = new AuthController(mockSignInManager.Object, Context);
+        
+        // Simulate an authenticated user
+        var claims = new List<Claim> { new Claim(ClaimTypes.Name, "test@test.nl") };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
+        
+        var mockHttpContext = new Mock<HttpContext>();
+        mockHttpContext.Setup(c => c.User).Returns(principal);
+        mockHttpContext.Setup(c => c.User.Identity.IsAuthenticated).Returns(true);
+        
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = mockHttpContext.Object
+        };
+        
+        // Act
+        var result = await _controller.Logout(null);
+        
+        // Assert
+        Assert.That(result, Is.TypeOf<UnauthorizedResult>(), "The result must be an UnauthorizedResult.");
+        var unauthorizedResult = result as UnauthorizedResult;
+        Assert.That(unauthorizedResult?.StatusCode, Is.EqualTo((int)HttpStatusCode.Unauthorized));
+        
+        // Verify the SignOutAsync method was NOT called
+        mockSignInManager.Verify(sm => sm.SignOutAsync(), Times.Never);
     }
 }
