@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using backend.Data;
-using Microsoft.AspNetCore.StaticFiles;
 using Swashbuckle.AspNetCore.Annotations;
 using Serilog;
 using backend.Responses;
@@ -29,7 +28,7 @@ public class SearchController : ControllerBase
         this.database = databaseContext;
     }
 
-    [HttpGet("search-name")]
+    [HttpPost("search-name")]
     [SwaggerOperation(
         Summary = "Search database by name.",
         Description = "Searches for files in database based on a given name, with pagination."
@@ -56,39 +55,12 @@ public class SearchController : ControllerBase
         {
             int skip = (pageIndex - 1) * pageSize;
 
-            var queryBuilder = database.Files.AsQueryable();
-            
-            if(filter != null)
-            {
-                if(filter.TagFilters != null && filter.TagFilters.Length > 0)
-                {
-                    var tagFilterQuery = database.FileTagLinks
-                        .Where(dt => filter.TagFilters.Contains(dt.TagId.ToString())) // Filter by tags
-                        .GroupBy(dt => dt.DocId)
-                        .Where(g => g.Count() == filter.TagFilters.Length) // Ensure that files have all tags
-                        .Select(g => g.Key);  // get the file IDs
+            var queryBuilder = filter?.ToQueryBuilder(database) ?? database.Files.AsQueryable();
 
-                    queryBuilder = queryBuilder.Where(f => tagFilterQuery.Contains(f.Id));
-                }
-
-                if(filter.StartDate != null)
-                {
-                    queryBuilder = queryBuilder.Where(f => f.CreatedAt >= filter.StartDate);
-                }
-
-                if(filter.EndDate != null)
-                {
-                    queryBuilder = queryBuilder.Where(f => f.CreatedAt <= filter.EndDate);
-                }
-            }
-
-            FileItem[]? items = await database.Files
-                .FromSqlRaw(@"
-                    SELECT * FROM files 
-                    ORDER BY similarity(name, {0}) DESC", query)
+            FileItem[]? items = await queryBuilder
+                .OrderByDescending(f => EF.Functions.TrigramsSimilarity(f.Name, query))
                 .Skip(skip).Take(pageSize)
                 .ToArrayAsync();
-
 
             if (items == null)
                 return Ok(new PageResponse("No files found.", pageIndex, pageSize, Array.Empty<FileItem>()));
@@ -102,7 +74,7 @@ public class SearchController : ControllerBase
         }
     }
 
-    [HttpGet("search-description")]
+    [HttpPost("search-description")]
     [SwaggerOperation(
         Summary = "Search database by description.",
         Description = "Searches for files in database based on a given description, with pagination."
@@ -113,7 +85,8 @@ public class SearchController : ControllerBase
     public async Task<IActionResult> SearchByDescription(
         [FromQuery] string query,
         [FromQuery] int pageIndex = 1,
-        [FromQuery] int pageSize = 20)
+        [FromQuery] int pageSize = 20,
+        [FromBody] FilterDto? filter = null)
     {
         if (pageIndex < 1)
             return BadRequest(new StorageResponse("Page index cannot be lower than 1."));
@@ -128,10 +101,10 @@ public class SearchController : ControllerBase
         {
             int skip = (pageIndex - 1) * pageSize;
 
-            FileItem[]? items = await database.Files
-                .FromSqlRaw(@"
-                    SELECT * FROM files 
-                    ORDER BY similarity(description, {0}) DESC", query)
+            var queryBuilder = filter?.ToQueryBuilder(database) ?? database.Files.AsQueryable();
+
+            FileItem[]? items = await queryBuilder
+                .OrderByDescending(f => EF.Functions.TrigramsSimilarity(f.Description ?? "", query))
                 .Skip(skip).Take(pageSize)
                 .ToArrayAsync();
 
@@ -147,7 +120,7 @@ public class SearchController : ControllerBase
         }
     }
 
-    [HttpGet("search-full-text")]
+    [HttpPost("search-full-text")]
     [SwaggerOperation(
         Summary = "FTS the database by name and description.",
         Description = "FTS for files in database based by name and description, with pagination."
@@ -158,7 +131,8 @@ public class SearchController : ControllerBase
     public async Task<IActionResult> FullTextSearch(
         [FromQuery] string? query,
         [FromQuery] int pageIndex = 1,
-        [FromQuery] int pageSize = 20)
+        [FromQuery] int pageSize = 20,
+        [FromBody] FilterDto? filter = null)
     {
         if (pageIndex < 1)
             return BadRequest(new StorageResponse("Page index cannot be lower than 1."));
@@ -172,11 +146,13 @@ public class SearchController : ControllerBase
             int skip = (pageIndex - 1) * pageSize;
             FileItem[]? items;
 
+            var queryBuilder = filter?.ToQueryBuilder(database) ?? database.Files.AsQueryable();
+
             if (string.IsNullOrEmpty(query))
             {
                 // No query provided: return all files with default ordering
-                items = await database.Files
-                    .FromSqlRaw("SELECT * FROM files ORDER BY id")
+                items = await queryBuilder
+                    .OrderByDescending(f => f.Id)
                     .Skip(skip).Take(pageSize)
                     .ToArrayAsync();
             }
@@ -195,8 +171,9 @@ public class SearchController : ControllerBase
 
                 // Converts the user query to a tsvector and compares this to the file vector
                 var tsQuery = string.Join(" & ", query.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(term => term + ":*"));
-
-                items = await database.Files
+                
+                // Execute query
+                var itemsFromRawSql = database.Files
                     .FromSqlRaw(@"
                         SELECT DISTINCT ON (f.id)
                             f.*,
@@ -211,6 +188,17 @@ public class SearchController : ControllerBase
                             OR similarity(f.name, {1}) > 0.3
                             OR similarity(f.description, {1}) > 0.3
                         ORDER BY f.id, rank DESC", tsQuery, query)
+                    .AsQueryable();
+
+                // save the order
+                var orderedIds = await itemsFromRawSql
+                    .Select(f => f.Id)
+                    .ToListAsync();
+
+                // combine filters with query result
+                items = await queryBuilder
+                    .Where(f => itemsFromRawSql.Any(sqlItem => sqlItem.Id == f.Id)) // filter the files based on the IDs from the SQL query
+                    .OrderBy(f => orderedIds.IndexOf(f.Id)) // maintain the order of the IDs from the SQL query
                     .Skip(skip).Take(pageSize)
                     .ToArrayAsync();
             }

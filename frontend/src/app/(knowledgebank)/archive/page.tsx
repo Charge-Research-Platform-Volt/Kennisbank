@@ -1,10 +1,115 @@
+"use client";
+
 import ListDocuments from "@/components/list-documents";
-import { FetchWithValidation } from "@/lib/fetchWithValidation";
-import { DocumentPageResponseSchema } from "@/types/document.type";
+import { DocumentPageResponse } from "@/types/document.type";
+import { Input } from "@/components/ui/input";
+import Search from "@/icons/search-icon";
+import { useDebouncedCallback } from "use-debounce";
+import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import { OctagonAlert } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Filter from "@/icons/filter";
+import FilterButton from "./components/filter-button";
 
-export default async function ArchivePage() {
-  const result = await FetchWithValidation(DocumentPageResponseSchema, "http://backend:8080/Storage/list-all");
-  console.log(result.error);
+export default function ArchivePage() {
+  // State for search results, is null when no fetch has been completed yet, a string when an error occurs, or the fetch response.
+  const [searchResults, setSearchResults] = useState<DocumentPageResponse | null | String>(null);
 
-  return <div className="flex">{result.success ? <ListDocuments data={result.data} /> : <div>Error loading documents</div>}</div>;
+  // Fetch initial files
+  useEffect(() => {
+    fetchFiles(
+      "http://localhost:8080/Storage/list-all",
+      "GET",
+      (response) => {
+        if (searchResults === null) setSearchResults(response);
+      },
+      "An error occurred while fetching initial files.",
+    );
+  }, []);
+
+  // Fetch search results
+  async function fetchQuery(query: string) {
+    query = query.trim();
+
+    fetchFiles(
+      `http://localhost:8080/Search/search-full-text?${`query=${query}&`}pageIndex=1&pageSize=100`,
+      "POST",
+      (response) => {
+        setSearchResults(response);
+      },
+      "An error occurred while fetching search results.",
+    );
+  }
+
+  // Respond to search input changes
+  // Debounce the search input to avoid too many requests
+  const handleSearch = useDebouncedCallback(async (query: string) => {
+    fetchQuery(query);
+  }, 300);
+
+  return (
+    <>
+      <div className="py-2 *:not-first:mt-2">
+        <div className="relative w-full">
+          <Input
+            className="peer h-10 ps-9"
+            placeholder="Search"
+            type="text"
+            onChange={(e) => {
+              handleSearch(e.target.value);
+            }}
+          />
+          <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
+            <Search className="h-4 w-4" aria-hidden="true" fill="currentColor" />
+          </div>
+          <FilterButton />
+        </div>
+      </div>
+
+      <div className="flex py-2">
+        {typeof searchResults === "string" || searchResults instanceof String ? (
+          <p className="flex items-center gap-3 p-3">
+            <OctagonAlert size={16} /> {searchResults}
+          </p>
+        ) : (
+          <ListDocuments data={searchResults ?? { message: "", pageIndex: 0, pageSize: 0, files: [], responseType: "" }} />
+        )}
+      </div>
+    </>
+  );
+
+  // Helper function for fetching files
+  // Todo: Should maybe be abstracted higher up.
+  async function fetchFiles(
+    url: string,
+    method: string = "GET",
+    onSuccess: (response: DocumentPageResponse) => void,
+    errorMessage: string,
+    onError: () => void = () => {
+      toast.error(errorMessage);
+      setSearchResults(errorMessage);
+    },
+  ) {
+    try {
+      const response = await fetch(url, {
+        credentials: "include",
+        method: method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        onSuccess(data);
+      } else {
+        console.error(response.body);
+        onError();
+      }
+    } catch (e) {
+      console.error(e);
+      onError();
+    }
+  }
 }

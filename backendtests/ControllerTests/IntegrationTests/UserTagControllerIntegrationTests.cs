@@ -1,48 +1,22 @@
-﻿using KnowledgeBank.Data;
-using Microsoft.EntityFrameworkCore;
-using KnowledgeBank.Models;
+using backend.Controllers;
+using backend.Models;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Storage;
+using backend.Tests.Infrastructure;
 using KnowledgeBank.Controllers;
+using KnowledgeBank.Models;
 
-namespace backend.Tests;
+namespace backend.Tests.Integration;
 
 [TestFixture]
 [Category("IntegrationTest")]
-public class TagControllerIntegrationTests
+public class UserTagControllerTests : TestBase
 {
-    private DbContextOptions<DatabaseContext> _options;
-    private DatabaseContext _context;
-    private TagController _controller;
-    private IDbContextTransaction _transaction;
+    private UserTagController _controller;
 
     [SetUp]
-    public void Setup()
+    public void SetupController()
     {
-        // Determine the host based on runtime environment
-        string dbHost = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true"
-            ? "database"   // To run test in CI/CD
-            : "localhost"; // To run test locally
-
-        _options = new DbContextOptionsBuilder<DatabaseContext>()
-            .UseNpgsql($"Host={dbHost};Database=postgres;Username=postgres;Password=postgres")
-            .Options;
-
-        _context = new DatabaseContext(_options);
-
-        _transaction = _context.Database.BeginTransaction();
-
-        _context.Database.UseTransaction(_transaction.GetDbTransaction());
-
-        _controller = new TagController(_context);
-    }
-
-    [TearDown]
-    public void TearDown()
-    {
-        _transaction.Rollback();
-        _transaction.Dispose();
-        _context.Dispose();
+        _controller = new UserTagController(Context);
     }
 
     [TestCase("test")]
@@ -50,41 +24,40 @@ public class TagControllerIntegrationTests
     [Description("Simple test for adding tags")]
     public async Task AddTagTest(string input)
     {
-        // Clear all Tags so we can assert on Count later
-        _context.Tags.RemoveRange(_context.Tags);
-        await _context.SaveChangesAsync();
-        
+        // Clear all UserTags so we can assert on Count later
+        Context.UserTags.RemoveRange(Context.UserTags);
+        await Context.SaveChangesAsync();
+
         // Add tag
         OkObjectResult addResponse = (await _controller.AddTag(input)) as OkObjectResult;
 
         // Check that statuscode is correct, count of tags is 1 and the name is correct
         Assert.That(addResponse.StatusCode, Is.EqualTo(200));
-        Assert.That(_context.Tags.Count(), Is.EqualTo(1));
-        Assert.That(_context.Tags.First().Name, Is.EqualTo(input));
+        Assert.That(Context.UserTags.Count(), Is.EqualTo(1));
+        Assert.That(Context.UserTags.First().Name, Is.EqualTo(input));
 
         // Check that adding multiple tags works
         await _controller.AddTag("test123");
-        Assert.That(_context.Tags.Count(), Is.EqualTo(2));
+        Assert.That(Context.UserTags.Count(), Is.EqualTo(2));
     }
 
     [TestCase("test")]
     [Description("Simple test for deleting tags")]
     public async Task DeleteTagTest(string input)
     {
-        // Clear all Tags so we can assert on Count later
-        _context.Tags.RemoveRange(_context.Tags);
-        await _context.SaveChangesAsync();
+        // Clear all UserTags so we can assert on Count later
+        Context.UserTags.RemoveRange(Context.UserTags);
+        await Context.SaveChangesAsync();
 
         // add tag as before
         await _controller.AddTag(input);
-        string addedTagGUID = _context.Tags.First().Id.ToString();
+        string addedTagGUID = Context.UserTags.First().Id.ToString();
 
         // Now we delete and test if the database is empty again
         OkObjectResult delResponse = (await _controller.DeleteTag(addedTagGUID)) as OkObjectResult;
 
         Assert.That(delResponse.StatusCode, Is.EqualTo(200));
-        Assert.That(_context.Tags.Count(), Is.EqualTo(0));
-
+        Assert.That(Context.UserTags.Count(), Is.EqualTo(0));
     }
 
     [TestCase("cd34f056-c81a-4906-9f38-315233e83126")]
@@ -104,21 +77,21 @@ public class TagControllerIntegrationTests
     public async Task ChangeTagTest(string orgName, string newName)
     {
         // Clear all Tags so we can assert on Count later
-        _context.Tags.RemoveRange(_context.Tags);
-        await _context.SaveChangesAsync();
+        Context.UserTags.RemoveRange(Context.UserTags);
+        await Context.SaveChangesAsync();
         
         // Add tag as before and get the GUID
         await _controller.AddTag(orgName);
-        string addedTagGUID = _context.Tags.First().Id.ToString();
+        string addedTagGUID = Context.UserTags.First().Id.ToString();
 
         // Change tag name to new name and check if the database contains 1 element
         OkObjectResult changeResponse = (await _controller.ChangeTagName(addedTagGUID, newName)) as OkObjectResult;
         Assert.That(changeResponse.StatusCode, Is.EqualTo(200));
-        Assert.That(_context.Tags.Count(), Is.EqualTo(1));
+        Assert.That(Context.UserTags.Count(), Is.EqualTo(1));
 
         // Fetch changed tag and double check if the tag is correctly changed
         OkObjectResult allTags = _controller.Get() as OkObjectResult;
-        List<Tag> tagList = allTags.Value as List<Tag>;
+        List<UserTag> tagList = allTags.Value as List<UserTag>;
 
         Assert.That(tagList.Count, Is.EqualTo(1));
         Assert.That(tagList[0].Name, Is.EqualTo(newName));

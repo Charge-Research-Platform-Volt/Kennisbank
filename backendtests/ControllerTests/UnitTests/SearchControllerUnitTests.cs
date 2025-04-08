@@ -5,7 +5,9 @@ using backend.Controllers;
 using backend.Data;
 using KnowledgeBank.Data;
 using System.Net;
-namespace backend.Tests;
+
+
+namespace backend.Tests.Unit;
 
 
 [TestFixture]

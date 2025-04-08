@@ -126,7 +126,7 @@ namespace KnowledgeBank.Controllers
 
                     IdentityResult roleResult = await _signInManager.UserManager.AddToRoleAsync(user, "user");
 
-                    if (!result.Succeeded)
+                    if (!roleResult.Succeeded)
                         return BadRequest(new {message = string.Join(" ", roleResult.Errors.Select(e => e.Description))});
                     
                     await transaction.CommitAsync();

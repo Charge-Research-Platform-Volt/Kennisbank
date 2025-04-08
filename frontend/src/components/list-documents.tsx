@@ -19,12 +19,12 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 export default function ListDocuments({ data }: { data: DocumentPageResponse }) {
   // Column definitions
   const columnDefs = useState<ColDef[]>([
-    { field: "name", width: 500, filter: true, cellRenderer: Render },
-    { field: "description", width: 300 },
+    { field: "name", flex: 3, cellRenderer: Render },
+    { field: "description", flex: 2 },
     { field: "fileType", width: 70, headerName: "Type" },
     { field: "createdAt", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
     { field: "updatedAt", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
-    { field: "", width: 100, cellRenderer: DownloadRenderer },
+    { field: "", width: 30, cellRenderer: DownloadRenderer },
   ])[0];
 
   // const [defaultColDef, setDefaultColDef] = useState({
@@ -41,7 +41,7 @@ export default function ListDocuments({ data }: { data: DocumentPageResponse }) 
   }, []);
 
   return (
-    <div className="h-[calc(100vh-1.25rem)] w-full">
+    <div className="h-[calc(100vh-5.75rem)] w-full">
       <AgGridReact rowData={data.files} columnDefs={columnDefs} theme={tableTheme} rowSelection={rowSelection as RowSelectionOptions} />
     </div>
   );
