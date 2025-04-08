@@ -6,10 +6,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Newtonsoft.Json;
-using System.Reflection;
 using System.Security.Claims;
 
-namespace backend.Tests;
+namespace backend.Tests.Unit;
 
 public class RolesControllerUnitTests
 {

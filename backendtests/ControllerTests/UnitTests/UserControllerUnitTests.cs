@@ -4,15 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using KnowledgeBank.Data;
 using Microsoft.AspNetCore.Identity;
 using KnowledgeBank.Models;
-using backend.Responses;
-namespace backend.Tests;
-using Microsoft.EntityFrameworkCore.Query;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Threading;
-using System.Threading.Tasks;
 
+namespace backend.Tests.Unit;
 
 [TestFixture]
 [Category("UnitTest")]
