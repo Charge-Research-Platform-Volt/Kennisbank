@@ -6,13 +6,14 @@ using Serilog;
 using backend.Responses;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace backend.Controllers;
 
 
 [ApiController]
+[Authorize]
 [Route("[controller]")]
 [Produces("application/json")]
 public class SearchController : ControllerBase
@@ -39,7 +40,8 @@ public class SearchController : ControllerBase
     public async Task<IActionResult> SearchByName(
         [FromQuery] string query,
         [FromQuery] int pageIndex = 1,
-        [FromQuery] int pageSize = 20)
+        [FromQuery] int pageSize = 20,
+        [FromBody] FilterDto? filter = null)
     {
         if (pageIndex < 1)
             return BadRequest(new StorageResponse("Page index cannot be lower than 1."));
@@ -53,6 +55,32 @@ public class SearchController : ControllerBase
         try
         {
             int skip = (pageIndex - 1) * pageSize;
+
+            var queryBuilder = database.Files.AsQueryable();
+            
+            if(filter != null)
+            {
+                if(filter.TagFilters != null && filter.TagFilters.Length > 0)
+                {
+                    var tagFilterQuery = database.FileTagLinks
+                        .Where(dt => filter.TagFilters.Contains(dt.TagId.ToString())) // Filter by tags
+                        .GroupBy(dt => dt.DocId)
+                        .Where(g => g.Count() == filter.TagFilters.Length) // Ensure that files have all tags
+                        .Select(g => g.Key);  // get the file IDs
+
+                    queryBuilder = queryBuilder.Where(f => tagFilterQuery.Contains(f.Id));
+                }
+
+                if(filter.StartDate != null)
+                {
+                    queryBuilder = queryBuilder.Where(f => f.CreatedAt >= filter.StartDate);
+                }
+
+                if(filter.EndDate != null)
+                {
+                    queryBuilder = queryBuilder.Where(f => f.CreatedAt <= filter.EndDate);
+                }
+            }
 
             FileItem[]? items = await database.Files
                 .FromSqlRaw(@"
