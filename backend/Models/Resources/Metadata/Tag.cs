@@ -16,7 +16,7 @@ public class Tag
     public required string Name { get; set; }
 
     [Column("is-standardized")]
-    public required bool IsStandardized = false;
+    public required bool IsStandardized { get; set; } = false;
 
     [Column("is-approved")]
     public bool IsApproved { get; set; } = false;
@@ -24,7 +24,7 @@ public class Tag
     [Column("approved-on")]
     public DateTime? ApprovedOn { get; set; }
 
-    [Column("approvedBy")]
+    [Column("approved-by")]
     public Guid? ApprovedBy { get; set; }
 
     // TODO: Should be the actual User object or userId, not just a string.
