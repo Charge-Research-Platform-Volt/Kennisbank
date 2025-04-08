@@ -19,12 +19,12 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 export default function ListDocuments({ data }: { data: DocumentPageResponse }) {
   // Column definitions
   const columnDefs = useState<ColDef[]>([
-    { field: "name", width: 500, filter: true, cellRenderer: Render },
-    { field: "description", width: 300 },
-    { field: "fileType", width: 70, headerName: "Type" },
-    { field: "createdAt", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
-    { field: "updatedAt", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
-    { field: "", width: 100, cellRenderer: DownloadRenderer },
+    { field: "name", flex: 15, filter: true, cellRenderer: Render },
+    { field: "description", flex: 15 },
+    { field: "fileType", flex: 3, headerName: "Type" },
+    { field: "createdAt", flex: 6, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
+    { field: "updatedAt", flex: 6, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
+    { field: "", flex: 1, cellRenderer: DownloadRenderer },
   ])[0];
 
   // const [defaultColDef, setDefaultColDef] = useState({
