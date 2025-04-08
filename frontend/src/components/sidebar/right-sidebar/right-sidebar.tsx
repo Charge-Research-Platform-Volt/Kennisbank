@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Sidebar } from "../../ui/new-sidebar";
+import { Sidebar } from "../../ui/sidebar";
 import { useSidebar } from "@/context/sidebar-provider";
 import { Button } from "../../ui/button";
 import OpenFileButton from "../../open-file-button";
