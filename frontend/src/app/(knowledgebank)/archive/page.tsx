@@ -17,6 +17,7 @@ export default function ArchivePage() {
   useEffect(() => {
     fetchFiles(
       "http://localhost:8080/Storage/list-all",
+      "GET",
       (response) => {
         if (searchResults === null) setSearchResults(response);
       },
@@ -30,6 +31,7 @@ export default function ArchivePage() {
 
     fetchFiles(
       `http://localhost:8080/Search/search-full-text?${`query=${query}&`}pageIndex=1&pageSize=100`,
+      "POST",
       (response) => {
         setSearchResults(response);
       },
@@ -77,6 +79,7 @@ export default function ArchivePage() {
   // Todo: Should maybe be abstracted higher up.
   async function fetchFiles(
     url: string,
+    method: string = "GET",
     onSuccess: (response: DocumentPageResponse) => void,
     errorMessage: string,
     onError: () => void = () => {
@@ -87,7 +90,7 @@ export default function ArchivePage() {
     try {
       const response = await fetch(url, {
         credentials: "include",
-        method: "GET",
+        method: method,
         headers: {
           "Content-Type": "application/json",
         },
