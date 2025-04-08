@@ -8,8 +8,7 @@ order: 0
 
 All the files and websites users can add to the system, we call resources. These resources have a lot of metadata that is very relevant in a lot of situations. 
 Instead of writing database instructions every time, we have made a library, the Resource Manager, that abstracts these actions for easy use and quicker development.
-The Resource Manager handles all database related operations regarding the resources themselves and their metadata.
-The Resource Manager is added as a service in ASP.NET and can be retrieved by adding it in the contstructor of a controller. \
+The Resource Manager handles all database related operations regarding the resources themselves and their metadata. \
 The library consists of 8 parts that we will all cover in this documentation.
 
 ## Table of Contents:
@@ -22,3 +21,28 @@ The library consists of 8 parts that we will all cover in this documentation.
 - [Remove Relations](/docs/database/resource-manager/remove-relations) - Removing connections between resources and/or metadata
 - [Information](/docs/database/resource-manager/information) - Getting information from the database that is accessed frequently
 - [Transactions](/docs/database/resource-manager/transactions) - Managing database transactions
+
+
+## Initializing
+
+The Resource Manager is added as a service in ASP.NET and can be retrieved by adding it in the contstructor of a controller.\
+Example:
+```csharp
+public class ExampleController(ResourceManager resourceManager) : ControllerBase
+{
+    private readonly ResourceManager resourceManager = resourceManager;
+}
+```
+
+Or:
+```csharp
+public class ExampleController : ControllerBase
+{
+    private readonly ResourceManager resourceManager = resourceManager;
+
+    public ExampleController(Resourcemanager resourceManager)
+    {
+        this.resourceManager = resourceManager;
+    }
+}
+```
