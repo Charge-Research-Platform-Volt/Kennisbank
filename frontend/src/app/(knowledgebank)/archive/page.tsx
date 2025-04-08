@@ -8,13 +8,21 @@ import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { OctagonAlert } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import Filter from "@/icons/filter";
 import FilterButton from "./components/filter-button";
+
+type filterDto = {
+  tagFilters: string[];
+  startDate?: Date;
+  endDate?: Date;
+}
 
 export default function ArchivePage() {
   // State for search results, is null when no fetch has been completed yet, a string when an error occurs, or the fetch response.
   const [searchResults, setSearchResults] = useState<DocumentPageResponse | null | String>(null);
+  const [startYear, setStartYear] = useState<number | null>(null);
+  const [endYear, setEndYear] = useState<number | null>(null);
+  const [tagFilters, setTagFilters] = useState<string[]>([]);
+  const [currentQuery, setCurrentQuery] = useState<string>("");
 
   // Fetch initial files
   useEffect(() => {
@@ -39,6 +47,12 @@ export default function ArchivePage() {
         setSearchResults(response);
       },
       "An error occurred while fetching search results.",
+      undefined,
+      {
+        tagFilters: tagFilters,
+        startDate: startYear ? new Date(startYear, 0, 1) : undefined,
+        endDate: endYear ? new Date(endYear, 11, 31, 23, 59, 59, 999) : undefined,
+      }
     );
   }
 
@@ -58,12 +72,19 @@ export default function ArchivePage() {
             type="text"
             onChange={(e) => {
               handleSearch(e.target.value);
+              setCurrentQuery(e.target.value);
             }}
           />
           <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
             <Search className="h-4 w-4" aria-hidden="true" fill="currentColor" />
           </div>
-          <FilterButton />
+          <FilterButton onApplyAction={(tagFilters, startDate, endDate) => {
+            console.log("Filter applied:", tagFilters, startDate, endDate);
+            setTagFilters(tagFilters);
+            setStartYear(startDate);
+            setEndYear(endDate);
+            handleSearch(currentQuery);
+          }} />
         </div>
       </div>
 
@@ -90,6 +111,7 @@ export default function ArchivePage() {
       toast.error(errorMessage);
       setSearchResults(errorMessage);
     },
+    filter?: filterDto
   ) {
     try {
       const response = await fetch(url, {
@@ -98,6 +120,7 @@ export default function ArchivePage() {
         headers: {
           "Content-Type": "application/json",
         },
+        ...(filter ? { body: JSON.stringify(filter) } : {})
       });
 
       if (response.ok) {

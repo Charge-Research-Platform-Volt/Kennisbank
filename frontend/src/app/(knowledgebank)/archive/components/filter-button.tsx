@@ -5,7 +5,7 @@ import Filter from "@/icons/filter";
 import FilterPopup from "./filter-popup";
 import { useEffect, useRef, useState } from "react";
 
-export default function FilterButton() {
+export default function FilterButton({onApplyAction}: {onApplyAction: (tagFilters: string[], startDate: number, endDate: number) => void}) {
   const [isOpen, setIsOpen] = useState(false);
   const filterButtonRef = useRef<HTMLDivElement>(null);
 
@@ -16,11 +16,11 @@ export default function FilterButton() {
         setIsOpen(false);
       }
     };
-    document.addEventListener("click", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
 
     // Cleanup the event listener on component unmount
     return () => {
-      document.removeEventListener("click", handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -35,7 +35,7 @@ export default function FilterButton() {
             >
               <Filter className="h-6 w-4" aria-hidden="true" fill="currentColor" />
         </Button>
-        <FilterPopup isVisible={isOpen} className="absolute top-full mt-2 right-0 w-60 " />
+        <FilterPopup onApplyAction={onApplyAction} isVisible={isOpen} className="absolute top-full mt-2 right-0" />
       </div>
     </>
   )
