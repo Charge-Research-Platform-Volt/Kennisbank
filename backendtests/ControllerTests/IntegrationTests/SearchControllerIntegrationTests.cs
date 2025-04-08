@@ -26,11 +26,12 @@ public class SearchControllerTests : TestBase
         _controller = new SearchController(_mockBlobService.Object, Context);
     }
 
-    protected override async Task SeedTemplateDatabase(DatabaseContext context)
+    protected override async Task SeedTestDatabase (DatabaseContext context)
     {
         // Enable extension for text-search-vectors
         await context.Database.ExecuteSqlRawAsync("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
-        await context.Database.ExecuteSqlRawAsync("ALTER TABLE file_vectors ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
+        await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""resource-vectors"" ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
+        await DatabaseSeeder.SeedTemplate(context);
     }
 
     [Test]

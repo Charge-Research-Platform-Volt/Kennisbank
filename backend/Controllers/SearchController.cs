@@ -57,7 +57,7 @@ public class SearchController : ControllerBase
             Resource[]? items = await database.Resources
                 .FromSqlRaw(@"
                     SELECT * FROM resources 
-                    ORDER BY similarity(name, {0}) DESC", query)
+                    ORDER BY similarity(title, {0}) DESC", query)
                 .Skip(skip).Take(pageSize)
                 .ToArrayAsync();
 
