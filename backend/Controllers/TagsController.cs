@@ -11,8 +11,8 @@ namespace KnowledgeBank.Controllers;
 [ApiController]
 [Route("[controller]")]
 [Produces("application/json")]
-[Authorize]
-public class TagController(ResourceManager resourceManager) : ControllerBase
+[Authorize] 
+public class TagsController(ResourceManager resourceManager) : ControllerBase
 {
     // Database context
     private readonly ResourceManager resourceManager = resourceManager;
@@ -163,7 +163,7 @@ public class TagController(ResourceManager resourceManager) : ControllerBase
     /// <returns>
     /// Returns a 200 OK response containing the added tag.
     /// </returns>
-    [HttpPost("add-standard-tag/{tagName}")]
+    [HttpPut("add-standard-tag")]
     [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
             Summary = "Adds new standard tag.",
@@ -220,11 +220,10 @@ public class TagController(ResourceManager resourceManager) : ControllerBase
     /// <summary>
     /// Adds a new tag to the tag list.
     /// </summary>
-    /// <param name="tagName">The name of the tag to add.</param>
     /// <returns>
     /// Returns a 200 OK response containing the added tag.
     /// </returns>
-    [HttpPost("add-tag/{tagName}")]
+    [HttpPut("add-user-tag")]
     [SwaggerOperation(
             Summary = "Adds new tag.",
             Description = "Adds a tag."
@@ -296,20 +295,28 @@ public class TagController(ResourceManager resourceManager) : ControllerBase
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> DeleteTag(string id)
     {
-        Log.Information("Removing tag from tag list.");
-
-        // Make sure we have the required fields
-        if (id == null)
+        try
         {
-            Log.Error("Id is required");
-            return BadRequest(new { message = "Id is required" });
+            Log.Information("Removing tag from tag list.");
+
+            // Make sure we have the required fields
+            if (id == null)
+            {
+                Log.Error("Id is required");
+                return BadRequest(new { message = "Id is required" });
+            }
+
+            if (await resourceManager.DeleteTagAsync(id))
+                return Ok(new { message = "Tag deleted." });
+
+            Log.Error("Tag not found.");
+            return NotFound(new { message = "Tag not found." });
         }
-
-        if (await resourceManager.DeleteTagAsync(id))
-            return Ok(new { message = "Tag deleted." });
-
-        Log.Error("Tag not found.");
-        return NotFound(new { message = "Tag not found." });
+        catch (Exception e)
+        {
+            Log.Error(e, "Error deleting tag {TagId}", id);
+            return StatusCode(500, "Internal server error.");
+        }
     }
 
     /// <summary>
@@ -320,13 +327,13 @@ public class TagController(ResourceManager resourceManager) : ControllerBase
     /// <returns>
     /// Returns a 200 OK response.
     // </returns>
-    [HttpPatch("change-tag-name/{id}/{newName}")]
+    [HttpPatch("rename-tag/{id}/{newName}")]
     [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
             Summary = "Change tag name.",
-            Description = "Lets an admin change the name of a standardized tag."
+            Description = "Lets an admin change the name of a tag."
         )]
-    [SwaggerResponse(200, "Tag name changed", typeof(Tag))]
+    [SwaggerResponse(200, "Tag name changed")]
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(404, "Tag not found")]
     [SwaggerResponse(409, "Tag already exists")]
@@ -373,5 +380,55 @@ public class TagController(ResourceManager resourceManager) : ControllerBase
         }
     }
 
-    // TODO: Approving tags
+    [HttpPatch("approve-tag/{id}")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerResponse(200, "Tag was approved")]
+    [SwaggerResponse(400, "Bad request")]
+    [SwaggerResponse(404, "Tag not found")]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> ApproveTag(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return BadRequest(new { message = "ID is required." });
+
+        try
+        {
+            // Check if tag exists
+            if (!await resourceManager.TagExistsAsync(id)) return NotFound(new { message = "Tag was not found." });
+
+            await resourceManager.UpdateTagAsync(id, t => t.IsApproved, true);
+
+            return Ok(new { message = "Tag was approved" });
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Error approving tag {TagId}", id);
+            return StatusCode(500, "Internal Server Error");
+        }
+    }
+
+    [HttpPatch("make-standardized/{id}")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerResponse(200, "Tag was standardized")]
+    [SwaggerResponse(400, "Bad request")]
+    [SwaggerResponse(404, "Tag not found")]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> MakeStandardized(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return BadRequest(new { message = "ID is required." });
+
+        try
+        {
+            // Check if tag exists
+            if (!await resourceManager.TagExistsAsync(id)) return NotFound(new { message = "Tag was not found." });
+
+            await resourceManager.UpdateTagAsync(id, t => t.IsStandardized, true);
+
+            return Ok(new { message = "Tag was standardized" });
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Error approving tag {TagId}", id);
+            return StatusCode(500, "Internal Server Error");
+        }
+    }
 }

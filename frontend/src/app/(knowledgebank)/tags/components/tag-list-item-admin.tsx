@@ -2,23 +2,17 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tag, UserTag } from "@/types/tag.type";
+import { Tag, TagRenameDto } from "@/types/tag.type";
 import { toast } from "sonner";
 import { useActionState, useEffect, useState } from "react";
 import { FormResponse } from "@/types/return.type";
-import { SaveStandardizedTag } from "@/actions/standardizedTagActions";
+import { RenameTag } from "@/actions/tagActions";
 import SaveIcon from "@/icons/save-icon";
-import ApprovedTag from "@/icons/tag-icons/aproved-tag";
+import ApprovedTagIcon from "@/icons/tag-icons/aproved-tag";
 import AdminIcon from "@/icons/tag-icons/admin-tag";
-import { SaveUserTag } from "@/actions/userTagActions";
 import { TagActionButtons } from "./tag-action-buttons";
 
-const initialStateStandardizedTag: FormResponse<Tag> = {
-  success: false,
-  message: "",
-};
-
-const initialStateUserTag: FormResponse<UserTag> = {
+const initialStateTag: FormResponse<TagRenameDto> = {
   success: false,
   message: "",
 };
@@ -32,35 +26,24 @@ const initialStateUserTag: FormResponse<UserTag> = {
  * - Action buttons based on tag type and state
  * 
  * @param {Object} props - Component props
- * @param {Tag} [props.tag] - Standardized tag object (optional)
- * @param {UserTag} [props.userTag] - User tag object (optional)
+ * @param {Tag} [props.tag] - Tag object
  * @returns {ReactElement} The rendered tag list item
  */
-export default function TagListItemAdmin({tag = undefined, userTag = undefined}: {tag?: Tag, userTag?: UserTag}) {
-  const [saveStandardizedTagState, saveStandardizedTagAction, savingStandardizedTagIsPending] = useActionState(SaveStandardizedTag, initialStateStandardizedTag);
-  const [saveUserTagState, saveUserTagAction, savingUserTagIsPending]  = useActionState(SaveUserTag, initialStateUserTag);
+export default function TagListItemAdmin({ tag }: { tag: Tag }) {
+  const [saveTagState, saveTagAction, savingTagIsPending] = useActionState(RenameTag, initialStateTag);
 
-  const [tagName, setTagName] = useState(userTag ? userTag.name : tag?.name);
+  const [tagName, setTagName] = useState(tag.name);
   const [editting, setEditting] = useState(false);
   
   // Handle form action responses
   useEffect(() => {
-    if (saveStandardizedTagState.success) {
-      toast.success(saveStandardizedTagState.message);
+    if (saveTagState.success) {
+      toast.success(saveTagState.message);
       setEditting(false);
-    } else if (saveStandardizedTagState.message) {
-      toast.error(saveStandardizedTagState.message);
+    } else if (saveTagState.message) {
+      toast.error(saveTagState.message);
     }
-  }, [saveStandardizedTagState]);
-
-  useEffect(() => {
-    if (saveUserTagState.success) {
-      toast.success(saveUserTagState.message);
-      setEditting(false);
-    } else if (saveUserTagState.message) {
-      toast.error(saveUserTagState.message);
-    }
-  }, [saveUserTagState]);
+  }, [saveTagState]);
 
   // Handle edit button click
   const handleEditClick = (e: React.MouseEvent) => {
@@ -69,9 +52,9 @@ export default function TagListItemAdmin({tag = undefined, userTag = undefined}:
   };
   
   // Determine which form action to use
-  const formAction = userTag ? saveUserTagAction : saveStandardizedTagAction;
-  const isSaving = savingUserTagIsPending || savingStandardizedTagIsPending;
-  const tagId = userTag ? userTag.id : tag?.id;
+  const formAction = saveTagAction;
+  const isSaving = savingTagIsPending;
+  const tagId = tag.id;
   
   return (
     <div className="flex w-full items-center justify-between gap-2">
@@ -105,18 +88,18 @@ export default function TagListItemAdmin({tag = undefined, userTag = undefined}:
         <form className="relative w-full shadow rounded-md px-3 py-1" action={formAction}>
           <div className="flex">
             <p>{tagName}</p>
-            {userTag && userTag.isApproved ? (
-              <ApprovedTag className="h-5 w-5 ml-2" />
-            ) : userTag ? (
+
+            {
+              tag.isStandardized ?
+              ( <AdminIcon className="h-5 w-5 ml-2" />) :
+              tag.isApproved ?
+              ( <ApprovedTagIcon className="h-5 w-5 ml-2" />) :
               ""
-            ) : (
-              <AdminIcon className="h-5 w-5 ml-2" />
-            )}
+            }
           </div>
           <div className="absolute inset-y-0 right-2 flex items-center justify-center">
             <TagActionButtons 
-              tag={tag} 
-              userTag={userTag} 
+              tag={tag}
               onEditClick={handleEditClick} 
             />
           </div>

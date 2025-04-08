@@ -267,9 +267,14 @@ namespace KnowledgeBank.Data
                 Id = tagId,
                 Name = dto.Name,
                 IsStandardized = isStandardized,
+                IsApproved = dto.IsApproved,
                 CreatedBy = dto.CreatedBy,
                 CreatedOn = DateTime.UtcNow,
             };
+
+            // Set approved by if present
+            if (!string.IsNullOrEmpty(dto.ApprovedBy))
+                tag.ApprovedBy = Guid.Parse(dto.ApprovedBy);
 
             // Add tag to database
             await database.Tags.AddAsync(tag);

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { TagBase } from "@/types/tag.type";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { AddStandardizedTag } from "@/actions/standardizedTagActions";
+import { AddStandardizedTag } from "@/actions/tagActions";
 
 const initialState: FormResponse<TagBase> = {
   success: false,
