@@ -1,7 +1,5 @@
 ﻿using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace KnowledgeBank.Data
 {

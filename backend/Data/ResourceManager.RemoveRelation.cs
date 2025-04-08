@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace backend.Data
+namespace KnowledgeBank.Data
 {
     // This part is for removing relations
     public partial class ResourceManager

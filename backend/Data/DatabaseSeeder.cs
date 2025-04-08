@@ -1,10 +1,4 @@
-﻿using backend.Responses;
-using KnowledgeBank.Data;
-using KnowledgeBank.Models;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Scaffolding.Metadata;
-
-namespace backend.Data
+﻿namespace KnowledgeBank.Data
 {
     public static class DatabaseSeeder
     {

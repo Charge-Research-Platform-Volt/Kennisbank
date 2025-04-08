@@ -1,6 +1,6 @@
 ﻿using KnowledgeBank.Models;
 
-namespace backend.Data
+namespace KnowledgeBank.Data
 {
     // This part is for adding relations
     public partial class ResourceManager

@@ -1,6 +1,6 @@
 ﻿using KnowledgeBank.Models;
 
-namespace backend.Responses;
+namespace KnowledgeBank.Responses;
 
 public struct STORAGE_RESPONSE_TYPE
 {

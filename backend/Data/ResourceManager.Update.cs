@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using System.Net.Sockets;
 
-namespace backend.Data
+namespace KnowledgeBank.Data
 {
     // This part is for updating properties
     public partial class ResourceManager

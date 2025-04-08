@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using backend.Data;
 using Microsoft.AspNetCore.StaticFiles;
 using Swashbuckle.AspNetCore.Annotations;
 using Serilog;
-using backend.Responses;
+using KnowledgeBank.Responses;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using System.Text;
@@ -11,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 
-namespace backend.Controllers
+namespace KnowledgeBank.Controllers
 {
     [ApiController]
     [Route("[controller]")]

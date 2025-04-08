@@ -252,22 +252,24 @@ To create a tag we use the `TagCreateDto` which has the following fields:
 | Property | Required | Type | Description |
 |----------|----------|------|-------------|
 | Name | Yes | string | The name of the tag |
-| IsStandardized | Yes | bool | Whether the tag is standardized or not (defaults to `false`) |
 | IsApproved | No | bool | Whether the tag is approved (defaults to `false`) |
 | ApprovedBy | No | string | The ID of the user who approved the tag |
 | CreatedBy | Yes | string | The ID of the user who created the tag |
 
-Creating a tag is as easy as using the `ResourceManager.CreateTagAsync(TagCreateDto dto)` function like so:
+Creating a tag is as easy as using the `ResourceManager.CreateTagAsync(TagCreateDto dto, bool isStandardized = false)` function like so:
 
 ```csharp
 TagCreateDto dto = new()
 {
     Name = "Example Tag",
-    IsStandardized = false,
     CreatedBy = "userId"
 };
 
+// For a user tag:
 resourceManager.CreateTagAsync(dto);
+
+// For a standardized tag:
+resourceManager.CreateTagAsync(dto, true);
 ```
 
 ## Create a Resource Type
