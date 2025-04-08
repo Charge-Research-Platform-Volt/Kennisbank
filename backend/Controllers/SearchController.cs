@@ -216,6 +216,36 @@ public class SearchController : ControllerBase
             return StatusCode(500, new StorageResponse("Error listing files."));
         }
     }
+
+    [HttpGet("get-oldest-document")]
+    [SwaggerOperation(
+        Summary = "Returns the oldest document.",
+        Description = "Searches the whole Files table and returns the oldest one from that table."
+    )]
+    [SwaggerResponse(200, "Oldest document", typeof(List<FileItem>))]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetOldestDocument()
+    {
+        try
+        {
+            // Get the oldest document from the files table
+            // TODO: change created_at to published_at when metadata is merged
+            FileItem[]? items = await database.Files
+            .FromSqlRaw("SELECT * FROM files ORDER BY created_at")
+            .Take(1)
+            .ToArrayAsync();
+
+            if (items == null)
+                return Ok(new FileInfoResponse("No files found", null));
+
+            return Ok(new FileInfoResponse("Oldest file found", items[0]));
+        }
+        catch(Exception)
+        {
+            return StatusCode(500, new StorageResponse("Error checking files."));
+        }
+
+    }
 }
 
 
