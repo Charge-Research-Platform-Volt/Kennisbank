@@ -89,13 +89,13 @@ public class AuthControllerTests : TestBase
         DateTime startTime = DateTime.UtcNow;
 
         // Act
-        var result = await _controller.Invite(email);
+        IActionResult result = await _controller.Invite(email);
 
         // Assert
         Assert.That(result, Is.TypeOf<OkResult>(), "The result must be an OkResult.");
         
         Assert.That(Context.Invitations.Count(), Is.EqualTo(1), "The number of invitations in the database must be 1.");
-        var invitation = Context.Invitations.FirstOrDefault(i => i.Email == hashedEmail);
+        Invitation? invitation = Context.Invitations.FirstOrDefault(i => i.Email == hashedEmail);
         Assert.That(invitation, Is.Not.Null, "There must be an invitation with the hashed email in the database.");
         Assert.That(invitation.Email, Is.EqualTo(hashedEmail), "The email must be the hashed email of the user.");
         Assert.That(invitation.CreatedAt, Is.LessThanOrEqualTo(DateTime.UtcNow), "The creation date of the invitation must be set correctly.");
@@ -121,18 +121,18 @@ public class AuthControllerTests : TestBase
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _controller.Register(new SignUpDto(){
+        IActionResult result = await _controller.Register(new SignUpDto(){
             Email = "wrong@email.com",
             Password = "Test123!",
             Token = token,
         });
 
         // Assert
-        var badRequestResult = result as BadRequestObjectResult;
+        BadRequestObjectResult? badRequestResult = result as BadRequestObjectResult;
         Assert.That(badRequestResult, Is.Not.Null, "The result must be a BadRequestObjectResult.");
         Assert.That(badRequestResult.StatusCode, Is.EqualTo(400), "The statuscode must be 400.");
 
-        var user = Context.Users.FirstOrDefault(u => u.Email == email);
+        IdentityUser? user = Context.Users.FirstOrDefault(u => u.Email == email);
         Assert.That(user, Is.Null, "The user must not be created in the database.");
     }
 
@@ -155,18 +155,18 @@ public class AuthControllerTests : TestBase
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _controller.Register(new SignUpDto(){
+        IActionResult result = await _controller.Register(new SignUpDto(){
             Email = email,
             Password = "Test123!",
             Token = "wrongtoken",
         });
 
         // Assert
-        var badRequestResult = result as BadRequestObjectResult;
+        BadRequestObjectResult? badRequestResult = result as BadRequestObjectResult;
         Assert.That(badRequestResult, Is.Not.Null, "The result must be a BadRequestObjectResult.");
         Assert.That(badRequestResult.StatusCode, Is.EqualTo(400), "The statuscode must be 400.");
 
-        var user = Context.Users.FirstOrDefault(u => u.Email == email);
+        IdentityUser? user = Context.Users.FirstOrDefault(u => u.Email == email);
         Assert.That(user, Is.Null, "The user must not be created in the database.");
     }
 
@@ -201,20 +201,20 @@ public class AuthControllerTests : TestBase
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _controller.Register(new SignUpDto(){
+        IActionResult result = await _controller.Register(new SignUpDto(){
             Email = email1,
             Password = "Test123!",
             Token = token2,
         });
 
         // Assert
-        var badRequestResult = result as BadRequestObjectResult;
+        BadRequestObjectResult? badRequestResult = result as BadRequestObjectResult;
         Assert.That(badRequestResult, Is.Not.Null, "The result must be a BadRequestObjectResult.");
         Assert.That(badRequestResult.StatusCode, Is.EqualTo(400), "The statuscode must be 400.");
 
-        var user1 = Context.Users.FirstOrDefault(u => u.Email == email1);
+        IdentityUser? user1 = Context.Users.FirstOrDefault(u => u.Email == email1);
         Assert.That(user1, Is.Null, "The user must not be created in the database.");
-        var user2 = Context.Users.FirstOrDefault(u => u.Email == email2);
+        IdentityUser? user2 = Context.Users.FirstOrDefault(u => u.Email == email2);
         Assert.That(user2, Is.Null, "The user must not be created in the database.");
     }
 
@@ -237,18 +237,18 @@ public class AuthControllerTests : TestBase
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _controller.Register(new SignUpDto(){
+        IActionResult result = await _controller.Register(new SignUpDto(){
             Email = email,
             Password = "Test123!",
             Token = token,
         });
 
         // Assert
-        var badRequestResult = result as BadRequestObjectResult;
+        BadRequestObjectResult? badRequestResult = result as BadRequestObjectResult;
         Assert.That(badRequestResult, Is.Not.Null, "The result must be a BadRequestObjectResult.");
         Assert.That(badRequestResult.StatusCode, Is.EqualTo(400), "The statuscode must be 400.");
 
-        var user = Context.Users.FirstOrDefault(u => u.Email == email);
+        IdentityUser? user = Context.Users.FirstOrDefault(u => u.Email == email);
         Assert.That(user, Is.Null, "The user must not be created in the database.");
     }
 
@@ -271,7 +271,7 @@ public class AuthControllerTests : TestBase
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _controller.Register(new SignUpDto(){
+        IActionResult result = await _controller.Register(new SignUpDto(){
             Email = email,
             Password = "Test123!",
             Token = token,
@@ -280,7 +280,7 @@ public class AuthControllerTests : TestBase
         // Assert
         Assert.That(result, Is.TypeOf<OkObjectResult>(), "The result must be an OkResult.");
 
-        var user = Context.Users.FirstOrDefault(u => u.Email == email);
+        IdentityUser? user = Context.Users.FirstOrDefault(u => u.Email == email);
         Assert.That(user, Is.Not.Null, "The user must be created in the database.");
     }
 
@@ -292,14 +292,14 @@ public class AuthControllerTests : TestBase
         string password = "Test123!";
 
         // Act
-        var result = await _controller.Register(new SignUpDto(){
+        IActionResult result = await _controller.Register(new SignUpDto(){
             Email = email,
             Password = password,
             Token = ""
         });
 
         // Assert
-        var badRequestResult = result as BadRequestObjectResult;
+        BadRequestObjectResult? badRequestResult = result as BadRequestObjectResult;
         Assert.That(badRequestResult, Is.Not.Null);
         Assert.That(badRequestResult?.StatusCode, Is.EqualTo((int)HttpStatusCode.BadRequest));
     }
@@ -310,9 +310,9 @@ public class AuthControllerTests : TestBase
         // Arrange
         string email = "test@test.nl";
         string password = "Test123!";
-        
+
         // Create user
-        var user = new User
+        User user = new User
         {
             Id = Guid.NewGuid().ToString(),
             UserName = email,
@@ -324,9 +324,9 @@ public class AuthControllerTests : TestBase
         
         await _userManager.CreateAsync(user, password);
         await _userManager.AddToRoleAsync(user, "user");
-        
-        var mockSignInResult = Microsoft.AspNetCore.Identity.SignInResult.Success;
-        var mockSignInManager = new Mock<SignInManager<User>>(
+
+        Microsoft.AspNetCore.Identity.SignInResult mockSignInResult = Microsoft.AspNetCore.Identity.SignInResult.Success;
+        Mock<SignInManager<User>> mockSignInManager = new Mock<SignInManager<User>>(
             _userManager,
             _mockHttpContextAccessor.Object,
             new Mock<IUserClaimsPrincipalFactory<User>>().Object,
@@ -336,10 +336,10 @@ public class AuthControllerTests : TestBase
         mockSignInManager
             .Setup(sm => sm.PasswordSignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()))
             .ReturnsAsync(mockSignInResult);
-        
-        
+
+
         // Assert
-        var result = await mockSignInManager.Object.PasswordSignInAsync(email, password, false, false);
+        Microsoft.AspNetCore.Identity.SignInResult result = await mockSignInManager.Object.PasswordSignInAsync(email, password, false, false);
         Assert.That(result.Succeeded, Is.True, "The sign-in should succeed with correct credentials");
     }
 
@@ -350,9 +350,9 @@ public class AuthControllerTests : TestBase
         string email = "test@test.nl";
         string password = "Test123!";
         string wrongPassword = "WrongPassword123!";
-        
+
         // Create user
-        var user = new User
+        User user = new User
         {
             Id = Guid.NewGuid().ToString(),
             UserName = email,
@@ -364,9 +364,9 @@ public class AuthControllerTests : TestBase
         
         await _userManager.CreateAsync(user, password);
         await _userManager.AddToRoleAsync(user, "user");
-        
-        var mockSignInResult = Microsoft.AspNetCore.Identity.SignInResult.Failed;
-        var mockSignInManager = new Mock<SignInManager<User>>(
+
+        Microsoft.AspNetCore.Identity.SignInResult mockSignInResult = Microsoft.AspNetCore.Identity.SignInResult.Failed;
+        Mock<SignInManager<User>> mockSignInManager = new Mock<SignInManager<User>>(
             _userManager,
             _mockHttpContextAccessor.Object,
             new Mock<IUserClaimsPrincipalFactory<User>>().Object,
@@ -376,9 +376,9 @@ public class AuthControllerTests : TestBase
         mockSignInManager
             .Setup(sm => sm.PasswordSignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()))
             .ReturnsAsync(mockSignInResult);
-        
+
         // Assert
-        var result = await mockSignInManager.Object.PasswordSignInAsync(email, wrongPassword, false, false);
+        Microsoft.AspNetCore.Identity.SignInResult result = await mockSignInManager.Object.PasswordSignInAsync(email, wrongPassword, false, false);
         Assert.That(result.Succeeded, Is.False, "The sign-in should fail with incorrect credentials");
     }
 
@@ -387,19 +387,19 @@ public class AuthControllerTests : TestBase
         {
         // Arrange
         string email = "test@test.nl";
-        var expectedReturnValue = new { Email = email };
-        
+        object expectedReturnValue = new { Email = email };
+
         // Create an authenticated user with the email claim
-        var claims = new List<Claim>
+        List<Claim> claims = new List<Claim>
         {
             new Claim(ClaimTypes.Email, email)
         };
-        
-        var identity = new ClaimsIdentity(claims, IdentityConstants.ApplicationScheme);
-        var principal = new ClaimsPrincipal(identity);
-        
+
+        ClaimsIdentity identity = new ClaimsIdentity(claims, IdentityConstants.ApplicationScheme);
+        ClaimsPrincipal principal = new ClaimsPrincipal(identity);
+
         // Set up the mock HttpContext with the authenticated user
-        var mockHttpContext = new Mock<HttpContext>();
+        Mock<HttpContext> mockHttpContext = new Mock<HttpContext>();
         mockHttpContext.Setup(c => c.User).Returns(principal);
         
         _controller.ControllerContext = new ControllerContext
@@ -408,11 +408,11 @@ public class AuthControllerTests : TestBase
         };
 
         // Act
-        var result = _controller.Ping();
+        IActionResult result = _controller.Ping();
         
         // Assert
         Assert.That(result, Is.TypeOf<OkObjectResult>(), "The result must be an OkObjectResult.");
-        var okResult = result as OkObjectResult;
+        OkObjectResult? okResult = result as OkObjectResult;
         Assert.That(okResult?.StatusCode, Is.EqualTo((int)HttpStatusCode.OK));
         
         // Verify the email is returned in the response
@@ -424,7 +424,7 @@ public class AuthControllerTests : TestBase
     public async Task Logout_ReturnsOkResult_WithValidRequest()
     {
         // Arrange
-        var mockSignInManager = new Mock<SignInManager<User>>(
+        Mock<SignInManager<User>> mockSignInManager = new Mock<SignInManager<User>>(
             _userManager,
             _mockHttpContextAccessor.Object,
             new Mock<IUserClaimsPrincipalFactory<User>>().Object,
@@ -436,13 +436,13 @@ public class AuthControllerTests : TestBase
             .Returns(Task.CompletedTask);
         
         _controller = new AuthController(mockSignInManager.Object, Context);
-        
+
         // Simulate an authenticated user
-        var claims = new List<Claim> { new Claim(ClaimTypes.Name, "test@test.nl") };
-        var identity = new ClaimsIdentity(claims, "TestAuth");
-        var principal = new ClaimsPrincipal(identity);
-        
-        var mockHttpContext = new Mock<HttpContext>();
+        List<Claim> claims = new List<Claim> { new Claim(ClaimTypes.Name, "test@test.nl") };
+        ClaimsIdentity identity = new ClaimsIdentity(claims, "TestAuth");
+        ClaimsPrincipal principal = new ClaimsPrincipal(identity);
+
+        Mock<HttpContext> mockHttpContext = new Mock<HttpContext>();
         mockHttpContext.Setup(c => c.User).Returns(principal);
         mockHttpContext.Setup(c => c.User.Identity.IsAuthenticated).Returns(true);
         
@@ -450,13 +450,13 @@ public class AuthControllerTests : TestBase
         {
             HttpContext = mockHttpContext.Object
         };
-        
+
         // Act
-        var result = await _controller.Logout(new {});
+        IActionResult result = await _controller.Logout(new {});
         
         // Assert
         Assert.That(result, Is.TypeOf<OkResult>(), "The result must be an OkResult.");
-        var okResult = result as OkResult;
+        OkResult? okResult = result as OkResult;
         Assert.That(okResult?.StatusCode, Is.EqualTo((int)HttpStatusCode.OK));
         
         // Verify the SignOutAsync method was called once
@@ -467,7 +467,7 @@ public class AuthControllerTests : TestBase
     public async Task Logout_ReturnsUnauthorized_WithNullRequest()
     {
         // Arrange
-        var mockSignInManager = new Mock<SignInManager<User>>(
+        Mock<SignInManager<User>> mockSignInManager = new Mock<SignInManager<User>>(
             _userManager,
             _mockHttpContextAccessor.Object,
             new Mock<IUserClaimsPrincipalFactory<User>>().Object,
@@ -475,13 +475,13 @@ public class AuthControllerTests : TestBase
         );
         
         _controller = new AuthController(mockSignInManager.Object, Context);
-        
+
         // Simulate an authenticated user
-        var claims = new List<Claim> { new Claim(ClaimTypes.Name, "test@test.nl") };
-        var identity = new ClaimsIdentity(claims, "TestAuth");
-        var principal = new ClaimsPrincipal(identity);
-        
-        var mockHttpContext = new Mock<HttpContext>();
+        List<Claim> claims = new List<Claim> { new Claim(ClaimTypes.Name, "test@test.nl") };
+        ClaimsIdentity identity = new ClaimsIdentity(claims, "TestAuth");
+        ClaimsPrincipal principal = new ClaimsPrincipal(identity);
+
+        Mock<HttpContext> mockHttpContext = new Mock<HttpContext>();
         mockHttpContext.Setup(c => c.User).Returns(principal);
         mockHttpContext.Setup(c => c.User.Identity.IsAuthenticated).Returns(true);
         
@@ -489,13 +489,13 @@ public class AuthControllerTests : TestBase
         {
             HttpContext = mockHttpContext.Object
         };
-        
+
         // Act
-        var result = await _controller.Logout(null);
+        IActionResult result = await _controller.Logout(null);
         
         // Assert
         Assert.That(result, Is.TypeOf<UnauthorizedResult>(), "The result must be an UnauthorizedResult.");
-        var unauthorizedResult = result as UnauthorizedResult;
+        UnauthorizedResult? unauthorizedResult = result as UnauthorizedResult;
         Assert.That(unauthorizedResult?.StatusCode, Is.EqualTo((int)HttpStatusCode.Unauthorized));
         
         // Verify the SignOutAsync method was NOT called
