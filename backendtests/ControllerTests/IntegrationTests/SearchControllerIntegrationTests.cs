@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using backend.Data;
 using backend.Responses;
 using Microsoft.EntityFrameworkCore.Storage;
+using Bogus.DataSets;
+using System.Globalization;
 
 namespace backend.Tests.Integration;
 
@@ -73,6 +75,147 @@ public class SearchControllerTests : TestBase
         // Should only be one result
         Assert.That(pageResponse.Files.First().Name, Is.EqualTo("Integration Test File"));
     }
+
+    [TestCase("2001-11-11T12:00:00Z", "2010-11-11T12:00:00Z", "2012-12-04T12:00:00Z", "2008-12-04T12:00:00Z")]
+    [TestCase("2005-11-11T12:00:00Z", "2018-01-05T12:00:00Z", "2020-03-07T12:00:00Z", "2012-04-04T12:00:00Z")]
+    [TestCase("1965-03-12T12:00:00Z", "1972-04-15T12:00:00Z", "2021-05-18T12:00:00Z", "1968-02-25T12:00:00Z")]
+    [Description("Checks if filtering on end date works correctly. Input are 3 datetime stamps and the output should always be that the approved test file is the only one returned.")]
+    public async Task Filter_Date_Test(string startDate, string endDate, string failDate, string passDate)
+    {
+        DateTime start = DateTime.ParseExact(startDate, "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+        DateTime end = DateTime.ParseExact(endDate, "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+        DateTime fail = DateTime.ParseExact(failDate, "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+        DateTime pass = DateTime.ParseExact(passDate, "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
+
+        FileItem approvedTestFile = new()
+        {
+            Id = new Guid(),
+            Name = "Integration Test File",
+            Description = "This is a test file about AI Ohmega",
+            FileType = "text",
+            CreatedAt = pass,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        FileItem filteredTestFile = new()
+        {
+            Id = new Guid(),
+            Name = "Extraordinary file",
+            Description = "This is a test file that checks if it is created correctly",
+            FileType = "text",
+            CreatedAt = fail,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        // Filter with endDate
+        FilterDto filter = new();
+        filter.StartDate = start;
+        filter.EndDate = end;
+
+        // Add the file to the database.
+        await Context.Files.AddAsync(approvedTestFile);
+        await Context.Files.AddAsync(filteredTestFile);
+        await Context.SaveFileChangesAsync();
+
+        // Perform a full-text search on the file name
+        var result = await _controller.SearchByName("Integration Test", 1, 100, filter);
+
+        Assert.That(result, Is.Not.Null, "The search result is null");
+
+        var testResult = result as ObjectResult;
+
+        // Check the result status code
+        var okResult = result as OkObjectResult;
+        Assert.That(okResult, Is.Not.Null);
+        Assert.That(okResult.StatusCode, Is.EqualTo(200));
+
+        // Assert: Check the results returned from the search
+        var pageResponse = okResult.Value as PageResponse;
+        Assert.That(pageResponse, Is.Not.Null);
+        // Should only be one result which is the approved test file
+        Assert.That(pageResponse.Files.Count, Is.EqualTo(1));
+        Assert.That(pageResponse.Files.First().Name, Is.EqualTo("Integration Test File"));
+    }
+
+    [TestCase("test")]
+    [Description("Checks if filtering on end date works correctly. Input are 3 datetime stamps and the output should always be that the approved test file is the only one returned.")]
+    public async Task Filter_Tag_Test(string tag)
+    {
+        Guid tagGuid = Guid.NewGuid();
+        Guid docGuid = Guid.NewGuid();
+
+
+        Tag newTag = new()
+        {
+            Id = tagGuid,
+            Name = tag
+        };
+        //Add tag to database
+        await Context.Tags.AddAsync(newTag);
+        await Context.SaveChangesAsync();
+
+        FileItem approvedTestFile = new()
+        {
+            Id = docGuid,
+            Name = "Integration Test File",
+            Description = "This is a test file about AI Ohmega",
+            FileType = "text",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        FileItem filteredTestFile = new()
+        {
+            Id = new Guid(),
+            Name = "Extraordinary file",
+            Description = "This is a test file that checks if it is created correctly",
+            FileType = "text",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        FileTagLink ftl = new()
+        {
+            DocId = docGuid,
+            TagId = tagGuid
+        };
+
+        // Filter with endDate
+        FilterDto filter = new()
+        {
+            TagFilters = new string[] {tagGuid.ToString()}
+        };
+
+
+        // Add the file to the database.
+        await Context.Files.AddAsync(approvedTestFile);
+        await Context.Files.AddAsync(filteredTestFile);
+        await Context.SaveFileChangesAsync();
+
+        // Link file and tag
+        await Context.FileTagLinks.AddAsync(ftl);
+        await Context.SaveChangesAsync();
+
+        // Perform a full-text search on the file name
+        var result = await _controller.SearchByName("Integration Test", 1, 100, filter);
+
+        Assert.That(result, Is.Not.Null, "The search result is null");
+
+        var testResult = result as ObjectResult;
+
+        // Check the result status code
+        var okResult = result as OkObjectResult;
+        Assert.That(okResult, Is.Not.Null);
+        Assert.That(okResult.StatusCode, Is.EqualTo(200));
+
+        // Assert: Check the results returned from the search
+        var pageResponse = okResult.Value as PageResponse;
+        Assert.That(pageResponse, Is.Not.Null);
+        // Should only be one result which is the approved test file
+        Assert.That(pageResponse.Files.Count, Is.EqualTo(1));
+        Assert.That(pageResponse.Files.First().Name, Is.EqualTo("Integration Test File"));
+    }
+
 
     [Test]
     public async Task FullTextSearch_ReturnsResults_WhenDataExists()

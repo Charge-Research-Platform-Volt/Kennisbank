@@ -6,12 +6,10 @@ import RangeSlider, { InputEvent } from 'react-range-slider-input';
 import 'react-range-slider-input/dist/style.css';
 import "./filter-documents.css"
 import { FInput } from "../ui/Popup";
-//import { FetchWithValidation } from "@/lib/fetchWithValidation";
-//import { FileInfoResponseSchema } from "@/types/storage.type";
+
 
 const curYear = new Date().getUTCFullYear();
-//const oldestUpload = await FetchWithValidation(FileInfoResponseSchema, "http://backend:8080/Search/get-oldest-document");
-const oldestUpload = 1968;
+const oldestUpload = 1968; // REPLACE WITH ACTUAL OLDEST DOCUMENT
 
 type range = [old: number, new: number];
 
