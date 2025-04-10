@@ -1,4 +1,6 @@
-﻿namespace KnowledgeBank.Data
+﻿using Microsoft.EntityFrameworkCore;
+
+namespace KnowledgeBank.Data
 {
     public static class DatabaseSeeder
     {
@@ -12,7 +14,11 @@
         private static async Task SeedData(DatabaseContext database)
         {
             // Seed data (this part is common between both Seed and SeedTemplate methods)
-            await database.ResourceTypes.AddAsync(new() { Id = new Guid(UnknownResourceTypeId), Name = "Unknown" });
+            if (!await database.ResourceTypes.AnyAsync(rt => rt.Id == new Guid(UnknownResourceTypeId)))
+            {
+                // Add the unknown resource type if it doesn't exist
+                await database.ResourceTypes.AddAsync(new() { Id = new Guid(UnknownResourceTypeId), Name = "Unknown" });
+            }
 
             // Save changes
             await database.SaveChangesAsync();
