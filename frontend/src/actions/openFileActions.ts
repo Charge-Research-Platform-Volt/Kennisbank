@@ -1,6 +1,6 @@
-import { DocumentResponse } from "@/types/document.type";
+import { ResourceResponse } from "@/types/resource.type";
 
-export const handleOpenFile = async (file: DocumentResponse) => {
+export const handleOpenFile = async (file: ResourceResponse) => {
     const url = `http://localhost:8080/Storage/download/${file.id}`;
     
     if(file.fileType === "pdf"){

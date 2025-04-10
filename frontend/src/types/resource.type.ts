@@ -53,3 +53,4 @@ export const ResourcePageResponseSchema = z.object({
 export type ResourceBase = z.infer<typeof ResourceBaseSchema>;
 export type Resource = z.infer<typeof ResourceSchema>;
 export type ResourcePageResponse = z.infer<typeof ResourcePageResponseSchema>;
+export type ResourceResponse = z.infer<typeof ResourceResponseSchema>;
