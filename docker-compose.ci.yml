@@ -58,7 +58,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-      start_period: 300s
+      start_period: 150s
 
   # Start frontend after backend
   frontend:
