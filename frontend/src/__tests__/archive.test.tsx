@@ -14,8 +14,8 @@ const testData = {
             description: "A sample test document",
             fileType: "pdf",
             hash: null,
-            createdAt: "2024-01-01T12:00:00Z",
-            updatedAt: "2024-01-02T12:00:00Z",
+            createdAt: "2024-01-01T12:00:00",
+            updatedAt: "2024-01-02T12:00:00",
         }
     ]
 };
@@ -34,6 +34,7 @@ describe('ListDocuments', () => {
         expect(await screen.findByText('A sample test document')).toBeInTheDocument();
         expect(await screen.findByText('pdf')).toBeInTheDocument();
         expect(await screen.findByText('2024-01-01 12:00')).toBeInTheDocument();
+        expect(await screen.findByText('2024-01-02 12:00')).toBeInTheDocument();
     });
 });
 
