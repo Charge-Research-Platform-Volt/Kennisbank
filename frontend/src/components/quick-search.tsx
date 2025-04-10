@@ -11,21 +11,12 @@ import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
 import { OctagonAlert } from "lucide-react";
 import GetFileIcon from "./getFileIcon";
-import Link from "next/link";
-
-interface File {
-  name: string;
-  id: string;
-  description: string;
-  hash: string | null;
-  fileType: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { handleOpenFile } from "@/actions/openFileActions";
+import { DocumentResponse } from "@/types/document.type";
 
 export default function QuickSearch() {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchResults, setSearchResults] = useState<File[]>([]);
+  const [searchResults, setSearchResults] = useState<DocumentResponse[]>([]);
 
   // Keyboard shortcut
   useHotkeys("mod+k", () => setIsOpen(true), { preventDefault: true });
@@ -115,10 +106,11 @@ export default function QuickSearch() {
             {/* Results list */}
             {searchResults.length > 0 &&
               searchResults.map((file) => (
-                <Link
-                  href={`/file/${file.id}`}
+                <div
+                  onClick={() => handleOpenFile(file)}
                   key={file.id}
-                  className="hover:bg-muted-foreground/20 focus-visible:bg-muted-foreground/20 rounded-lg bg-transparent p-3 transition-colors outline-none"
+                  role="button"
+                  className="hover:bg-muted-foreground/20 focus-visible:bg-muted-foreground/20 rounded-lg bg-transparent p-3 transition-colors outline-none cursor-pointer"
                 >
                   <div className={`${file.description !== "" && "mb-2"} flex items-start gap-2`}>
                     <GetFileIcon fileType={file.fileType} className="mt-[3px]" />
@@ -126,7 +118,7 @@ export default function QuickSearch() {
                   </div>
 
                   {file.description !== "" && <p className="text-muted-foreground/80 text-sm">{file.description}</p>}
-                </Link>
+                </div>
               ))}
           </div>
         </DialogContent>
