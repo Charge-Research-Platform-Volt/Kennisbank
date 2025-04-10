@@ -48,7 +48,7 @@ export default async function Home() {
             {files.map((file, index) => (
               <div
                 key={file.id}
-                className={`flex items-center justify-between gap-2 border bg-white p-2 hover:bg-gray-200 ${index === 0 ? "rounded-t-lg" : ""} ${index === files.length - 1 ? "rounded-b-lg" : ""} ${index !== 0 && index !== files.length - 1 ? "border-t-0" : ""} `}
+                className={`flex items-center justify-between gap-2 border bg-white p-2 hover:bg-gray-200 ${index === 0 ? "rounded-t-lg" : ""} ${index === files.length - 1 ? "rounded-b-lg" : ""} ${index !== 0 ? "border-t-0" : ""} `}
               >
                 <span className="flex w-full items-center gap-2 overflow-hidden text-lg">
                   <GetFileIcon fileType={file.fileType} />
