@@ -1,6 +1,6 @@
 import React from "react";
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
-import { TagsArraySchema } from "@/types/tag.type";
+import { TagArraySchema } from "@/types/tag.type";
 import TagListItem from "./tag-list-item";
 import TagListItemAdmin from "./tag-list-item-admin";
 import { getCurrentUserRole } from "@/lib/auth-server";
@@ -10,8 +10,8 @@ export default async function ListTags() {
     const isAdmin = userRole.role === "admin";
 
     const tagsResult = await FetchWithValidation(
-        TagsArraySchema,
-        "http://backend:8080/tag/all-tags",
+        TagArraySchema,
+        "http://backend:8080/tags/all-tags",
     );
 
     if (!tagsResult.success) {
@@ -25,7 +25,7 @@ export default async function ListTags() {
     }
 
     
-    const tags = TagsArraySchema.parse(tagsResult.data)
+    const tags = TagArraySchema.parse(tagsResult.data)
       
     if (tags.length === 0) {
         return (

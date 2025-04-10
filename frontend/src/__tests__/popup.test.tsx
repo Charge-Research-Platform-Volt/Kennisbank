@@ -1,10 +1,10 @@
 import { expect, test } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import NewButton from '@/components/left-sidebar/sidebar-new-button'
-import { TagsArraySchema, UserTagsArraySchema } from '@/types/tag.type'
+import { TagArraySchema, UserTagsArraySchema } from '@/types/tag.type'
 import TagSelectionDropdown from '@/components/TagSelectionDropdown'
 
-const testTags = TagsArraySchema.parse([
+const testTags = TagArraySchema.parse([
     {
         name: "bla",
         id: "3b542bc8-9b38-4c40-926d-dcd46c576fdf"

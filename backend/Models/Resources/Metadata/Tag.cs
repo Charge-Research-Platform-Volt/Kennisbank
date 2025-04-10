@@ -27,9 +27,8 @@ public class Tag
     [Column("approved-by")]
     public Guid? ApprovedBy { get; set; }
 
-    // TODO: Should be the actual User object or userId, not just a string.
     [Column("created-by")]
-    public required string CreatedBy { get; set; }
+    public required Guid CreatedBy { get; set; }
 
     [Column("created-on")]
     public required DateTime CreatedOn { get; set; } = DateTime.UtcNow;
@@ -43,6 +42,5 @@ public class TagCreateDto
     public required string Name { get; set; }
     public bool IsApproved { get; set; } = false;
     public string? ApprovedBy { get; set; }
-    // TODO: Should be User ID, see TODO above.
-    public required string CreatedBy { get; set; }
+    public string CreatedBy { get; set; } = "";
 }

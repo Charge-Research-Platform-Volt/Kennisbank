@@ -10,7 +10,7 @@ import { FormResponse } from "@/types/return.type";
 import { ResourceBase } from "@/types/resource.type";
 import { Button } from "@/components/ui/button";
 import { getFileHasher } from "@/utils/fileHashWorker";
-import { TagsArray, UserTagsArray } from "@/types/tag.type";
+import { TagArray } from "@/types/tag.type";
 import TagSelectionDropdown from "..//uploadComponents/TagSelectionDropdown";
 import { InputHeader, InputBlock, FInput, FileInfo, PopupTitle } from "../ui/Popup";
 import New from "@/icons/new";
@@ -22,7 +22,7 @@ const initialState: FormResponse<ResourceBase> = {
   message: "",
 };
 
-export default function NewButton({ userTags, standardizedTags }: { userTags: UserTagsArray, standardizedTags: TagsArray }) {
+export default function NewButton({ tags }: { tags: TagArray }) {
   const popupRef = useRef<HTMLDivElement | null>(null); //Ref used to check if user clicks outside of popup
   const [status, setStatus] = useState<UploadStatus>("idle"); //upload status
   const [uploadPopup, setUploadPopup] = useState(false); //bool which determines whether you can see the new popup
@@ -251,7 +251,7 @@ export default function NewButton({ userTags, standardizedTags }: { userTags: Us
 
                     <div className="flex flex-1 flex-col">
                       {/* Add Tags dropdown box*/}
-                      <TagSelectionDropdown className="h-full w-full" userTags={userTags} standardizedTags={standardizedTags}></TagSelectionDropdown>
+                      <TagSelectionDropdown className="h-full w-full" tags={tags}></TagSelectionDropdown>
                     </div>
                   </div>
                 </div>

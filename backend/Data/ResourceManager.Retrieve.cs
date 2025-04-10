@@ -495,7 +495,7 @@ namespace KnowledgeBank.Data
 
         #region Audio
 
-        private readonly Expression<Func<AudioMetadata, object>> audioDefaultOrderBy = a => a.Length;
+        private readonly Expression<Func<AudioMetadata, object>>? audioDefaultOrderBy = null;
         private const bool audioDefaultOrderDescending = false;
 
 
@@ -589,7 +589,7 @@ namespace KnowledgeBank.Data
 
         #region Video
 
-        private readonly Expression<Func<VideoMetadata, object>> videoDefaultOrderBy = v => v.Length;
+        private readonly Expression<Func<VideoMetadata, object>>? videoDefaultOrderBy = null;
         private const bool videoDefaultOrderDescending = false;
 
 
@@ -684,7 +684,7 @@ namespace KnowledgeBank.Data
 
         #region Website
 
-        private readonly Expression<Func<WebsiteMetadata, object>> websiteDefaultOrderBy = w => w.AccessedOn;
+        private readonly Expression<Func<WebsiteMetadata, object>>? websiteDefaultOrderBy = null;
         private const bool websiteDefaultOrderDescending = true;
 
 
@@ -778,7 +778,7 @@ namespace KnowledgeBank.Data
 
         #region Document
 
-        private readonly Expression<Func<DocumentMetadata, object>> documentDefaultOrderBy = d => d.Abstract;
+        private readonly Expression<Func<DocumentMetadata, object>>? documentDefaultOrderBy = null;
         private const bool documentDefaultOrderDescending = false;
 
 

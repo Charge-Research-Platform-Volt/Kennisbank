@@ -12,7 +12,6 @@ export default function DeleteUserButton({user} : {user: User}) {
 
     //delete user when the button is clicked
     function handleDelete() {
-        console.log("Deleting user:", user.username);
         startTransition(async () => {
             try{
                 // run the delete action

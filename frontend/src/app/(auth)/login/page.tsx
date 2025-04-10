@@ -19,8 +19,6 @@ export default function LoginPage() {
     const [password, setPassword] = useState<string>("");
     
     const [state, action, isPending] = useActionState(Login, initialState);
-    console.log("Login state:");
-    console.log(state.message);
     
     const router = useRouter();
     useEffect(() => {

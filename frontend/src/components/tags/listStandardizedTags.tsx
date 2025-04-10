@@ -1,9 +1,9 @@
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
-import { TagsArraySchema } from "@/types/tag.type";
+import { TagArraySchema } from "@/types/tag.type";
 
 export default async function ListStandardizedTags() {
     const result = await FetchWithValidation(
-        TagsArraySchema,
+        TagArraySchema,
         "http://backend:8080/Tag/all-tags",
       );
     

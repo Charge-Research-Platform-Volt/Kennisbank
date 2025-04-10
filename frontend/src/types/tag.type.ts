@@ -8,27 +8,24 @@ export const TagSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
   isStandardized: z.boolean(),
   isApproved: z.boolean(),
-  approvedOn: z.date().nullable(),
+  approvedOn: z.string().nullable(),
   approvedBy: z.string().uuid().nullable(),
-  createdBy: z.string().min(1, { message: "CreatedBy is required" }),
-  createdOn: z.date(),
+  createdBy: z.string().uuid().min(1, { message: "CreatedBy is required" }),
+  createdOn: z.string(),
 });
 
-export const TagsArraySchema = z.array(TagSchema);
+export const TagArraySchema = z.array(TagSchema);
 
 // Type definitions derived from the schemas
 export type Tag = z.infer<typeof TagSchema>;
 
-export type TagsArray = z.infer<typeof TagsArraySchema>;
+export type TagArray = z.infer<typeof TagArraySchema>;
 
 /**
  * Tag create dto scheme
  */
 export const TagCreateDtoSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
-  isApproved: z.boolean().nullable(),
-  approvedBy: z.string().uuid().nullable(),
-  createdBy: z.string().min(1, { message: "Created by is required!" })
 });
 
 export type TagCreateDto = z.infer<typeof TagCreateDtoSchema>;
@@ -44,9 +41,23 @@ export const TagRenameDtoSchema = z.object({
 export type TagRenameDto = z.infer<typeof TagRenameDtoSchema>;
 
 /**
+ * Tag response schema
+ */
+export const TagResponseSchema = z.object({
+  message: z.string(),
+  tagId: z.string().uuid().nullable(),
+  tags: z.array(TagArraySchema).nullable(),
+})
+
+export type TagResponse = z.infer<typeof TagResponseSchema>;
+
+
+
+
+/**
  * Splits tags into standardized and non-standardized arrays
  */
-export const splitTagsByStandardization = (tags: TagsArray) => {
+export const splitTagsByStandardization = (tags: TagArray) => {
   return tags.reduce(
     (acc, tag) => {
       if (tag.isStandardized) {

@@ -8,9 +8,6 @@ import { cookies } from "next/headers";
 export const AddStandardizedTag = async (prevState: FormResponse<TagCreateDto>, formData: FormData): Promise<FormResponse<TagCreateDto>> => {
   const rawData: TagCreateDto = {
     name: formData.get("name") as string,
-    isApproved: true,
-    approvedBy: formData.get("createdBy") as string,
-    createdBy: formData.get("createdBy") as string,
   };
 
   // Validate the raw data, if it fails, return an error
@@ -25,11 +22,12 @@ export const AddStandardizedTag = async (prevState: FormResponse<TagCreateDto>, 
   }
 
   // Send the data to the backend
-  const cookieHeader = cookies();
-  const response = await fetch(`http://backend:8080/tags/add-standard-tag/${encodeURIComponent(rawData.name)}`, {
+  const cookieHeader = await cookies();
+  const response = await fetch(`http://backend:8080/tags/add-standard-tag`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
-    credentials: "include",	
+    credentials: "include",
+    body: JSON.stringify(rawData),
   });
   const data = await response.json();
 
@@ -50,11 +48,10 @@ export const AddStandardizedTag = async (prevState: FormResponse<TagCreateDto>, 
 };
 
 export const AddUserTag = async (prevState: FormResponse<TagCreateDto>, formData: FormData): Promise<FormResponse<TagCreateDto>> => {
+  console.log("Adding user tag");
+
   const rawData: TagCreateDto = {
     name: formData.get("name") as string,
-    isApproved: null,
-    approvedBy: null,
-    createdBy: formData.get("createdBy") as string,
   };
 
   // Validate the raw data, if it fails, return an error
@@ -68,22 +65,29 @@ export const AddUserTag = async (prevState: FormResponse<TagCreateDto>, formData
     };
   }
 
+  console.log("Input validated");
+
   // Send the data to the backend
-  const cookieHeader = cookies();
-  const response = await fetch(`http://backend:8080/tags/add-user-tag/${encodeURIComponent(rawData.name)}`, {
+  const cookieHeader = await cookies();
+  const response = await fetch(`http://backend:8080/tags/add-user-tag`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
-    credentials: "include",	
+    credentials: "include",
+    body: JSON.stringify(rawData),
   });
+
   const data = await response.json();
 
   // Check if the request was successful, if not, return an error
   if (!response.ok) {
+    console.log("Error in response: ", data.message);
     return {
       success: false,
       message: data.message,
     };
   }
+  
+  console.log("Tag created");
 
   // Revalidate the cache for the standardizedtags page
   revalidatePath("/tags", "layout");
@@ -97,7 +101,7 @@ export const DeleteTag = async (tagId: string): Promise<FormResponse<{id: string
   console.log("Deleting tag: ", tagId);
 
   // Send the data to the backend
-  const cookieHeader = cookies();
+  const cookieHeader = await cookies();
   const response = await fetch(`http://backend:8080/tags/delete-tag/${encodeURIComponent(tagId)}`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },

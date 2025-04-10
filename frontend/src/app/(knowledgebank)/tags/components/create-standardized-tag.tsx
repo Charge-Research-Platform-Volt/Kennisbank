@@ -3,20 +3,18 @@
 import React, { useActionState, useEffect } from "react";
 import type { FormResponse } from "@/types/return.type";
 import { toast } from "sonner";
-import { TagBase } from "@/types/tag.type";
+import { Tag } from "@/types/tag.type";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AddStandardizedTag } from "@/actions/tagActions";
 
-const initialState: FormResponse<TagBase> = {
+const initialState: FormResponse<Tag> = {
   success: false,
   message: "",
 };
 
 export default function CreateStandardizedTag() {
   const [state, action, isPending] = useActionState(AddStandardizedTag, initialState);
-  console.log("CreateStandardizedTag state:");
-  console.log(state.message);
 
   useEffect(() => {
     if (state.success) {

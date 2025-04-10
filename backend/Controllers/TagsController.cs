@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace KnowledgeBank.Controllers;
 
@@ -196,12 +197,16 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         // Add the tag
         try
         {
+            // Get the GUID of the user
+            string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId != null) dto.CreatedBy = userId;
+
             // Create the tag
             Guid tagId = await resourceManager.CreateTagAsync(dto, true);
 
             // Adding the tag was successful
             Log.Information("New tag added to tag list.");
-            return Ok(tagId);
+            return Ok(new { message = "Tag added successfully.", tagId });
         }
         catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
         {
@@ -255,12 +260,16 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         // Add the tag
         try
         {
+            // Get the GUID of the user
+            string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId != null) dto.CreatedBy = userId;
+
             // Create the tag
             Guid tagId = await resourceManager.CreateTagAsync(dto);
 
             // Adding the tag was successful
             Log.Information("New tag added to tag list.");
-            return Ok(tagId);
+            return Ok(new { message = "Tag added successfully.", tagId });
         }
         catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
         {
@@ -396,6 +405,11 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             if (!await resourceManager.TagExistsAsync(id)) return NotFound(new { message = "Tag was not found." });
 
             await resourceManager.UpdateTagAsync(id, t => t.IsApproved, true);
+            await resourceManager.UpdateTagAsync(id, t => t.ApprovedOn, DateTime.UtcNow);
+            
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId != null)
+                await resourceManager.UpdateTagAsync(id, t => t.ApprovedBy, Guid.Parse(userId));
 
             return Ok(new { message = "Tag was approved" });
         }

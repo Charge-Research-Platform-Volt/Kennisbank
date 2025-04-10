@@ -66,8 +66,7 @@ interface ActionButtonProps<T> {
 }: ActionButtonProps<T>): ReactElement {
   const [isPending, startTransition] = useTransition();
 
-  function handleAction() {
-    console.log(`${actionName}:`, (actionArg as any)?.name);
+  function handleAction()   {
     startTransition(async () => {
       const result = await action(actionArg);
       if (result && result.success) {

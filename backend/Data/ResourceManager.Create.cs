@@ -1,4 +1,5 @@
-﻿using KnowledgeBank.Models;
+﻿using System.Xml;
+using KnowledgeBank.Models;
 
 namespace KnowledgeBank.Data
 {
@@ -267,14 +268,22 @@ namespace KnowledgeBank.Data
                 Id = tagId,
                 Name = dto.Name,
                 IsStandardized = isStandardized,
-                IsApproved = dto.IsApproved,
-                CreatedBy = dto.CreatedBy,
+                IsApproved = isStandardized ? true : dto.IsApproved,
+                CreatedBy = Guid.Parse(dto.CreatedBy),
                 CreatedOn = DateTime.UtcNow,
             };
 
-            // Set approved by if present
-            if (!string.IsNullOrEmpty(dto.ApprovedBy))
+            // Set approved by if present or if isStandardized (createdBy == approvedBy)
+            if (isStandardized)
+            {
+                tag.ApprovedBy = Guid.Parse(dto.CreatedBy);
+                tag.ApprovedOn = DateTime.UtcNow;
+            }
+            else if (!string.IsNullOrEmpty(dto.ApprovedBy))
+            {
                 tag.ApprovedBy = Guid.Parse(dto.ApprovedBy);
+                tag.ApprovedOn = DateTime.UtcNow;
+            }
 
             // Add tag to database
             await database.Tags.AddAsync(tag);
