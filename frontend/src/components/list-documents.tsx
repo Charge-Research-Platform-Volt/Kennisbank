@@ -7,7 +7,7 @@ import { useState } from "react";
 import { AgGridReact } from "ag-grid-react";
 import type { ColDef, RowSelectionOptions } from "ag-grid-community";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
-import { ResourcePageResponse } from "@/types/resource.type";
+import { ResourcePageResponse, ResourceResponse } from "@/types/resource.type";
 import { tableTheme } from "@/lib/tableConfig";
 import GetFileIcon from "./getFileIcon";
 import { format, parseISO } from "date-fns";
@@ -24,6 +24,7 @@ export default function ListResources({ data }: { data: ResourcePageResponse }) 
     { field: "fileType", width: 70, headerName: "Type" },
     { field: "creationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
     { field: "publicationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
+    { field: "", width: 100, cellRenderer: DownloadRenderer },
   ])[0];
 
   // const [defaultColDef, setDefaultColDef] = useState({
@@ -80,10 +81,25 @@ export function Render(params: { data: { fileType: string }; value: string;  }) 
  * @returns 
  */
 
-export function DownloadRenderer(params: { data: DocumentResponse }) {
+/**
+ * 
+ * @param params - The parameters for rendering the download button
+ * @param params.data - Data object containing file information
+ * @param params.data.id - The ID of the file (used to construct the download URL)
+ * @param params.data.fileType - The type of the file (used to determine the appropriate action)
+ * @param params.data.name - The name of the file (used for display purposes)
+ * @param params.data.description - The description of the file (not used in this function)
+ * @param params.data.hash - The hash of the file (not used in this function)
+ * @param params.data.createdAt - The creation date of the file (not used in this function)
+ * * @param params.data.updatedAt - The last update date of the file (not used in this function)
+ * @returns 
+ */
+
+export function DownloadRenderer(params: { data: ResourceResponse }) {
   return (
     <div className="flex items-center justify-center">
       <OpenFileButton file={params.data} asIcon={true} />
     </div>
   );
 }
+
