@@ -137,15 +137,15 @@ namespace KnowledgeBank.Data
         {
             // Generates an Enumerable<Task> of SQL queries that inserts the
             // vector, if there's a conflict, replace existing vector instead
-            var updateTasks = updatedResources.Select(resource =>
-                Database.ExecuteSqlInterpolatedAsync($@"
+            foreach (var resource in updatedResources)
+            {
+                await Database.ExecuteSqlInterpolatedAsync($@"
                     INSERT INTO ""resource-vectors"" (id, ""resource-id"", vector)
                     VALUES (gen_random_uuid(), {resource.Id}, to_tsvector('english', {resource.Title} || ' ' || {resource.Description}))
                     ON CONFLICT (""resource-id"") 
-                    DO UPDATE SET vector = EXCLUDED.vector;"));
+                    DO UPDATE SET vector = EXCLUDED.vector;");
+            }
 
-            // Task that will complete when all subtasks have completed
-            await Task.WhenAll(updateTasks);
         }
     }
 }

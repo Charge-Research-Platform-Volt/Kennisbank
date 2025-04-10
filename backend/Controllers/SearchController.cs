@@ -27,15 +27,15 @@ public class SearchController : ControllerBase
         this.database = databaseContext;
     }
 
-    [HttpPost("search-name")]
+    [HttpPost("search-title")]
     [SwaggerOperation(
-        Summary = "Search database by name.",
-        Description = "Searches for resources in database based on a given name, with pagination."
+        Summary = "Search database by title.",
+        Description = "Searches for resources in database based on a given title, with pagination."
     )]
     [SwaggerResponse(200, "List of search results", typeof(Resource[]))]
     [SwaggerResponse(400, "Invalid search query")]
     [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> SearchByName(
+    public async Task<IActionResult> SearchByTitle(
         [FromQuery] string query,
         [FromQuery] int pageIndex = 1,
         [FromQuery] int pageSize = 20,
@@ -121,8 +121,8 @@ public class SearchController : ControllerBase
 
     [HttpPost("search-full-text")]
     [SwaggerOperation(
-        Summary = "FTS the database by name and description.",
-        Description = "FTS for resources in database based by name and description, with pagination."
+        Summary = "FTS the database by title and description.",
+        Description = "FTS for resources in database based by title and description, with pagination."
     )]
     [SwaggerResponse(200, "List of search results", typeof(Resource[]))]
     [SwaggerResponse(400, "Invalid search query")]
