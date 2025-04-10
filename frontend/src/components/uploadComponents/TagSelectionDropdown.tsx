@@ -163,15 +163,9 @@ export default function TagSelectionDropdown({ tags, className }: { tags: TagArr
         <div className={`absolute right-0 left-0 z-10 max-h-50 max-w-full overflow-y-auto bg-white shadow-lg ${filteredTags.length > 0 ? "rounded border" : ""}`}>
           {filteredTags.map((tag) => (
               <button data-testid="select_tag" key={tag.name} onClick={addTags} type="button" className="flex gap-2 w-full cursor-pointer p-2 text-left transition-colors duration-200 hover:bg-blue-100">
-                {tag.name}<AdminTagIcon className="h-4 w-4 self-center" />
+                {tag.name}{ tag.isStandardized ? <AdminTagIcon className="h-4 w-4 self-center" /> : tag.isApproved ? <ApprovedTagIcon className="h-4 w-4" /> : "" }
               </button>
             ))}
-            
-            {/*filteredUserTags.map((tag) => (
-              <button data-testid="select_tag" key={tag.name} onClick={addUserTags} type="button" className="flex gap-2 w-full cursor-pointer p-2 text-left transition-colors duration-200 hover:bg-blue-100">
-                {tag.name}{tag.isApproved ? <ApprovedTagIcon className="h-4 w-4 self-center" /> : ""}
-              </button>
-            ))*/}
             
         </div>
       </div>
@@ -180,35 +174,19 @@ export default function TagSelectionDropdown({ tags, className }: { tags: TagArr
           <div key={tag.name} className="flex w-full p-2 text-left transition-colors duration-200">
             <div className="flex items-center gap-2">
               <p>{tag.name}</p>
-              <AdminTagIcon className="h-4 w-4"/>
+              {tag.isStandardized ? <AdminTagIcon className="h-4 w-4"/> : tag.isApproved ? <ApprovedTagIcon className="h-4 w-4" /> : "" }
             </div>
             <Button data-testid="delete_tag" onClick={deleteTags} name={tag.id} className="ml-auto cursor-pointer" type="button">
               Delete
             </Button>
           </div>
         ))}
-        {/*addedUserTags.map((tag) => (
-          <div key={tag.name} className="flex w-full p-2 text-left transition-colors duration-200">
-            <div className="flex items-center gap-2">
-              <p>{tag.name}</p>
-              {tag.isApproved && <ApprovedTagIcon className="h-4 w-4" />}
-            </div>
-            <Button onClick={deleteUserTags} name={tag.id} className="ml-auto cursor-pointer" type="button">
-              Delete
-            </Button>
-          </div>
-        ))*/}
       </div>
 
       {/* Hidden inputs to send the selected tags to the server */}
       {addedTags.map((tag, index) => (
-        <input key={index} type="hidden" name={`standardizedTags[${index}]`} value={tag.id} />
+        <input key={index} type="hidden" name={`tags[${index}]`} value={tag.id} />
       ))}
-
-      {/* Hidden inputs to send the selected tags to the server */}
-      {/*addedUserTags.map((tag, index) => (
-        <input key={index} type="hidden" name={`userTags[${index}]`} value={tag.id} />
-      ))*/}
     </div>
   );
 }
