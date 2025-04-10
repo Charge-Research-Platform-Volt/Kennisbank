@@ -120,7 +120,7 @@ namespace KnowledgeBank.Controllers
 
             try
             {
-                if (await resourceManager.ResourceExistsAsync(id))
+                if (!await resourceManager.ResourceExistsAsync(id))
                     return NotFound(new StorageResponse("ID not found in the database."));
 
                 string filetype = await resourceManager.GetResourcePropertyAsync(id, resource => resource.FileType);
