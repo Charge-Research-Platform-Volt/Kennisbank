@@ -29,7 +29,7 @@ describe('ListDocuments', () => {
         expect(await screen.findByText('Type')).toBeInTheDocument();
         expect(await screen.findByText('Created At')).toBeInTheDocument();
         expect(await screen.findByText('Updated At')).toBeInTheDocument();
-        
+
         expect(await screen.findByText('Test Document')).toBeInTheDocument();
         expect(await screen.findByText('A sample test document')).toBeInTheDocument();
         expect(await screen.findByText('pdf')).toBeInTheDocument();

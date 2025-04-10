@@ -1,5 +1,5 @@
-import { expect, test, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { expect, test } from 'vitest'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import FilterDocuments from '@/components/filter-documents/filter-documents'
 
 describe('rangeselector', () =>
@@ -28,7 +28,10 @@ describe('rangeselector', () =>
         const slider = await screen.getByTestId("element").children;
 
         //Test if changing textboxes affect sliders
-        fireEvent.change(minBox, {target:{value:"1988"}});
+        
+        act(() => {
+            fireEvent.change(minBox, {target:{value:"1988"}});
+        })
         expect(screen.getAllByDisplayValue(`${1988}`));
         expect(slider[0].ariaValueNow).toEqual("1988");
 
