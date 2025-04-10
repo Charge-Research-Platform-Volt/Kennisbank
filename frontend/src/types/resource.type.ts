@@ -10,6 +10,7 @@ export const ResourceBaseSchema = z.object({
   languageCode: z.string().min(1, {message: "languageCode is required"}).max(2, {message: "Cant be longer than 2 characters"}),
   publicationDate: z.date(),
 	file: z.instanceof(File, {message: "File is required"}),
+  fileType: z.string().min(1, {message: "File type is required"}),
 	//tags: z.string().min(1, {message: "At least 1 tag is required"}),
 	hash: z.string({ message: "Hash should be a string" }),
 });

@@ -30,7 +30,7 @@ public class SearchController : ControllerBase
         Summary = "Search database by name.",
         Description = "Searches for files in database based on a given name, with pagination."
     )]
-    [SwaggerResponse(200, "List of search results", typeof(List<Resource>))]
+    [SwaggerResponse(200, "List of search results", typeof(Resource[]))]
     [SwaggerResponse(400, "Invalid search query")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> SearchByName(
@@ -76,7 +76,7 @@ public class SearchController : ControllerBase
         Summary = "Search database by description.",
         Description = "Searches for files in database based on a given description, with pagination."
     )]
-    [SwaggerResponse(200, "List of search results", typeof(List<Resource>))]
+    [SwaggerResponse(200, "List of search results", typeof(Resource[]))]
     [SwaggerResponse(400, "Invalid search query")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> SearchByDescription(
@@ -121,7 +121,7 @@ public class SearchController : ControllerBase
         Summary = "FTS the database by name and description.",
         Description = "FTS for files in database based by name and description, with pagination."
     )]
-    [SwaggerResponse(200, "List of search results", typeof(List<Resource>))]
+    [SwaggerResponse(200, "List of search results", typeof(Resource[]))]
     [SwaggerResponse(400, "Invalid search query")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> FullTextSearch(

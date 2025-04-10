@@ -21,10 +21,19 @@ export default async function Home() {
     files = files.slice(0, 4);
   }
 
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: process.env.NEXT_PUBLIC_TIMEZONE || 'Europe/Berlin',
+    hour: 'numeric',
+    hour12: false
+  });
+  
+  const timeString = formatter.format(new Date());
+  const currentHour = parseInt(timeString, 10);
+
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-6">
       <div className="w-full max-w-4xl text-center">
-        <Greeting />
+        <Greeting initialHour={ currentHour } />
         <p className="mb-10 text-lg text-gray-500">Where do you want to go?</p>
 
         {/* Main buttons */}

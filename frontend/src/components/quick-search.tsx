@@ -11,9 +11,8 @@ import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
 import { OctagonAlert } from "lucide-react";
 import GetFileIcon from "./getFileIcon";
-import Link from "next/link";
-import { handleOpenFile } from "@/actions/openFileActions";
 import { Resource } from "@/types/resource.type"
+import { handleOpenFile } from "@/actions/openFileActions";
 
 export default function QuickSearch() {
   const [isOpen, setIsOpen] = useState(false);
