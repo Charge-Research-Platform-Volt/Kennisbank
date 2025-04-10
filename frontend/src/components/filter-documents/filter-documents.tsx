@@ -54,9 +54,10 @@ export default function FilterDocuments(){
     };
 
     return <div className="w-[450px]">
-        <RangeSlider min={oldestUpload} max={curYear} value={curRange} onInput={(e) => changeRangeSlider(e)} id="range-slider-purple"/>
+        <RangeSlider data-testid="slider" min={oldestUpload} max={curYear} value={curRange} onInput={(e) => changeRangeSlider(e)} id="range-slider-purple"/>
         <div className="flex gap-2 mt-6">
             <FInput
+            data-testid="min_year"
             className="flex-grow text-white text-center font-ubuntu rounded-lg bg-[#502379] hover:bg-[#6f2aaf]"
             type="text"
             placeholder="Year oldest"
@@ -64,6 +65,7 @@ export default function FilterDocuments(){
             onChange={changeRangeTextBoxMin}
             />
             <FInput
+            data-testid="max_year"
             className="flex-grow text-white text-center font-ubuntu rounded-lg bg-[#502379] hover:bg-[#6f2aaf]"
             type="text"
             placeholder="Year newest"
