@@ -1,7 +1,5 @@
 "use client";
 
-import ListDocuments from "@/components/list-documents";
-import { DocumentPageResponse } from "@/types/document.type";
 import { Input } from "@/components/ui/input";
 import Search from "@/icons/search-icon";
 import { useDebouncedCallback } from "use-debounce";
@@ -9,6 +7,8 @@ import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { OctagonAlert } from "lucide-react";
 import FilterButton from "./components/filter-button";
+import { ResourcePageResponse } from "@/types/resource.type";
+import ListResources from "@/components/list-documents";
 
 type filterDto = {
   tagFilters: string[];
@@ -18,7 +18,7 @@ type filterDto = {
 
 export default function ArchivePage() {
   // State for search results, is null when no fetch has been completed yet, a string when an error occurs, or the fetch response.
-  const [searchResults, setSearchResults] = useState<DocumentPageResponse | null | String>(null);
+  const [searchResults, setSearchResults] = useState<ResourcePageResponse | null | String>(null);
   const [startYear, setStartYear] = useState<number | null>(null);
   const [endYear, setEndYear] = useState<number | null>(null);
   const [tagFilters, setTagFilters] = useState<string[]>([]);
@@ -94,7 +94,7 @@ export default function ArchivePage() {
             <OctagonAlert size={16} /> {searchResults}
           </p>
         ) : (
-          <ListDocuments data={searchResults ?? { message: "", pageIndex: 0, pageSize: 0, files: [], responseType: "" }} />
+          <ListResources data={searchResults ?? { message: "", pageIndex: 0, pageSize: 0, resources: [], responseType: "" }} />
         )}
       </div>
     </>
@@ -105,7 +105,7 @@ export default function ArchivePage() {
   async function fetchFiles(
     url: string,
     method: string = "GET",
-    onSuccess: (response: DocumentPageResponse) => void,
+    onSuccess: (response: ResourcePageResponse) => void,
     errorMessage: string,
     onError: () => void = () => {
       toast.error(errorMessage);

@@ -7,7 +7,7 @@ import { useState } from "react";
 import { AgGridReact } from "ag-grid-react";
 import type { ColDef, RowSelectionOptions } from "ag-grid-community";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
-import { DocumentPageResponse, DocumentResponse } from "@/types/document.type";
+import { ResourcePageResponse, ResourceResponse } from "@/types/resource.type";
 import { tableTheme } from "@/lib/tableConfig";
 import GetFileIcon from "./getFileIcon";
 import { format, parseISO } from "date-fns";
@@ -16,14 +16,14 @@ import OpenFileButton from "./open-file-button";
 // Register all modules
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-export default function ListDocuments({ data }: { data: DocumentPageResponse }) {
+export default function ListResources({ data }: { data: ResourcePageResponse }) {
   // Column definitions
   const columnDefs = useState<ColDef[]>([
-    { field: "name", flex: 3, cellRenderer: Render },
+    { field: "title", flex: 3, filter: true, cellRenderer: Render },
     { field: "description", flex: 2 },
     { field: "fileType", width: 70, headerName: "Type" },
-    { field: "createdAt", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
-    { field: "updatedAt", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
+    { field: "creationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
+    { field: "publicationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
     { field: "", width: 30, cellRenderer: DownloadRenderer },
   ])[0];
 
@@ -41,8 +41,8 @@ export default function ListDocuments({ data }: { data: DocumentPageResponse }) 
   }, []);
 
   return (
-    <div className="h-[calc(100vh-5.75rem)] w-full">
-      <AgGridReact rowData={data.files} columnDefs={columnDefs} theme={tableTheme} rowSelection={rowSelection as RowSelectionOptions} />
+    <div className="h-[calc(100vh-1.25rem)] w-full">
+      <AgGridReact rowData={data.resources} columnDefs={columnDefs} theme={tableTheme} rowSelection={rowSelection as RowSelectionOptions} />
     </div>
   );
 }
@@ -81,10 +81,25 @@ export function Render(params: { data: { fileType: string }; value: string;  }) 
  * @returns 
  */
 
-export function DownloadRenderer(params: { data: DocumentResponse }) {
+/**
+ * 
+ * @param params - The parameters for rendering the download button
+ * @param params.data - Data object containing file information
+ * @param params.data.id - The ID of the file (used to construct the download URL)
+ * @param params.data.fileType - The type of the file (used to determine the appropriate action)
+ * @param params.data.name - The name of the file (used for display purposes)
+ * @param params.data.description - The description of the file (not used in this function)
+ * @param params.data.hash - The hash of the file (not used in this function)
+ * @param params.data.createdAt - The creation date of the file (not used in this function)
+ * * @param params.data.updatedAt - The last update date of the file (not used in this function)
+ * @returns 
+ */
+
+export function DownloadRenderer(params: { data: ResourceResponse }) {
   return (
     <div className="flex items-center justify-center">
       <OpenFileButton file={params.data} asIcon={true} />
     </div>
   );
 }
+

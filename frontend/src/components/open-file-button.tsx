@@ -3,9 +3,9 @@
 import { handleOpenFile } from "@/actions/openFileActions";
 import { Button } from "@/components/ui/button";
 import DownloadIcon from "@/icons/download-icon";
-import { DocumentResponse } from "@/types/document.type";
+import { ResourceResponse } from "@/types/resource.type";
 
-export default function OpenFileButton({file, asIcon = false}: {file: DocumentResponse, asIcon?: boolean}) {
+export default function OpenFileButton({file, asIcon = false}: {file: ResourceResponse, asIcon?: boolean}) {
     return asIcon ? 
     (
         <Button

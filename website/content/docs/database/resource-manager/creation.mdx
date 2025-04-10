@@ -1,0 +1,292 @@
+---
+title: Creation
+description: Creating resources using the resource manager.
+order: 1
+---
+
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Create a Resource](#create-a-resource)
+- [Create Document Metadata](#create-document-metadata)
+- [Create Audio Metadata](#create-audio-metadata)
+- [Create Video Metadata](#create-video-metadata)
+- [Create Website Metadata](#create-website-metadata)
+- [Create a Person](#create-a-person)
+- [Create an Organisation](#create-an-organisation)
+- [Create a Region](#create-a-region)
+- [Create an Admin Tag](#create-an-admin-tag)
+- [Create an User Tag](#create-an-user-tag)
+- [Create a Resource Type](#create-a-resource-type)
+
+## Introduction
+This part of the Resource Manager corresponds to the `ResourceManager.Create.cs` in the backend. It is responsible for creating resources, entities (like a person) and metadata entries.
+The library also handles setting up relations given at creation.
+
+## Create a Resource
+Resources are the most frequent created objects in our application. These are also the objects with the most relations that are often already known at the time of creation.
+The library supports all possible relations but they are not necessarily required at the time of creation. \
+To create a resource you need to use a `ResourceCreateDto`. A DTO is a Data Transfer Object, which holds all the information necessary to create the resource in this case.
+The resource create DTO can be found in `Resource.cs` and has these properties:
+
+| Property | Required | Type | Description |
+|----------|----------|------|-------------|
+| Title | Yes | string | The title/name of the resource |
+| Description | No | string | A short description of the resource |
+| TypeId | Yes | string | The ID of the resource type |
+| LanguageCode | Yes | string | The two letter language code for the resource ([ISO639-1](https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes)) |
+| PublicationCode | No | string | The publication code (DOI / ISBN / ISSN) |
+| PublicationDate | Yes | DateTime | The date when the resource was published |
+| License | No | string | The license information for the resource |
+| Sources | No | string[] | The URLs to the sources of the resource |
+| Note | No | string | Additional notes about the resource |
+| Tags | No | string[] | Array of tag IDs |
+| Authors | No | string[] | Array of person IDs |
+| Organisations | No | (string, string?)[] | Array of tuples containing (OrganisationId, (optional) Role of the organisation). These organisations had a direct influence, like a publisher. |
+| Regions | No | string[] | Array of region IDs. This shows which region(s) the resource is regarding. |
+| RelatedOrganisations | No | (string, string?)[] | Array of tuples containing (OrganisationId, (optional) Role of the organisation). These organisations have an indirect relation to the resource. |
+| RelatedPersons | No | (string, string?)[] | Array of tuples containing (PersonId, (optional) Role of the person). All persons that are not the author but are related. |
+| RelatedSources | No | string[] | Array of related source IDs |
+
+<Callout title="Note">All the IDs from Tags down (and TypeId) require a valid UUID that is present in the database.</Callout>
+
+To actually create the resource, you now call the `ResourceManager.CreateResourceAsync(ResourceCreateDto dto)` function from the instance retrieved in the controllers constructor.
+ The Resource Manager will create all relations that are passed here automatically. Here is an example:
+
+```csharp
+ResourceCreateDto dto = new()
+{
+    Title = "Example title",
+    TypeId = "d429af17-72d9-4bf1-8418-4e25f51ff7e7",
+    LanguageCode = "EN",
+    PublicationDate = DateTime.Parse("2002-07-18"),
+};
+
+resourceManager.CreateResourceAsync(dto);
+```
+
+If a resource is a file we have additional information to pass to the database.
+To account for this there is an `FileResourceCreateDto` also found in `Resource.cs`, which inherits from the normal `ResourceCreateDto` and adds the following fields:
+
+| Property | Required | Type | Description |
+|----------|----------|------|-------------|
+| File | Yes | IFormFile | The file to be uploaded, extracted from the submit form in the PUT request |
+| Hash | No | string | The SHA-256 hash of the file used for duplication checking |
+
+The `CreateResourceAsync` function automatically detects if a `FileResourceCreateDto` is used instead of a `ResourceCreateDto` and adds the fields automatically. Here is an example:
+
+```csharp
+FileResourceCreateDto dto = new()
+{
+    Title = "Example title",
+    TypeId = "d429af17-72d9-4bf1-8418-4e25f51ff7e7",
+    LanguageCode = "EN",
+    PublicationDate = DateTime.Parse("2002-07-18"),
+    File = fileStream,
+    Hash = "910480d376168a8dc26aff21ab868a4e00083ced69319bca731ef9aa401fcc70"
+};
+
+resourceManager.CreateResourceAsync(dto);
+```
+
+## Create Document
+Resources that are document, meaning text files, can have some extra metadata. These are stored in a separate table that can be joined later.
+To make this easier the library contains a wrapper method that creates the base resource and the Document Metadata and links them together. \
+To create a document we use the specialized `DocumentCreateDto` which inherits from the previously mentioned `FileResourceCreateDto` and adds the following fields:
+
+| Property | Required | Type | Description |
+|----------|----------|------|-------------|
+| Abstract | No | string | An abstract of the document |
+
+Creating a document is as easy as using the `ResourceManager.CreateDocumentAsync(DocumentCreateDto dto)` function like so:
+
+```csharp
+DocumentCreateDto dto = new()
+{
+    // ... all resource related properties like shown above
+    Abstract = "Example Abstract"
+};
+
+resourceManager.CreateDocumentAsync(dto);
+```
+
+## Create Audio
+Just like documents, we can also have resources that are audio files. These also have extra metadata which is stored elsewhere.
+To create a audio resource we use the specialized `AudioCreateDto` which also inherits from the previously mentioned `FileResourceCreateDto` and adds the following fields:
+
+| Property | Required | Type | Description |
+|----------|----------|------|-------------|
+| URL | Yes | string | The URL to the audio file |
+| Length | No | ulong | The length of the audio file in ms |
+
+Creating an audio resource is as easy as using the `ResourceManager.CreateAudioAsync(AudioCreateDto dto)` function like so:
+
+```csharp
+AudioCreateDto dto = new()
+{
+    // ... all resource related properties like shown above
+    URL = "https://example.url",
+    Length = 300000
+};
+
+resourceManager.CreateAudioAsync(dto);
+```
+
+## Create Video
+Video files are very similar to audio files and also have extra metadata which is stored elsewhere.
+To create a video resource we use the specialized `VideoCreateDto` which also inherits from the previously mentioned `FileResourceCreateDto` and adds the following fields:
+
+| Property | Required | Type | Description |
+|----------|----------|------|-------------|
+| Length | No | ulong | The length of the video file in ms |
+
+Creating a video resource is as easy as using the `ResourceManager.CreateVideoAsync(VideoCreateDto dto)` function like so:
+
+```csharp
+VideoCreateDto dto = new()
+{
+    // ... all resource related properties like shown above
+    Length = 300000
+};
+
+resourceManager.CreateVideoAsync(dto);
+```
+
+## Create Website
+Websites are also a type of resource that has extra metadata which is stored elsewhere.
+To create a website resource we use the specialized `WebsiteCreateDto` which also inherits from the previously mentioned `ResourceCreateDto` and adds the following fields:
+
+| Property | Required | Type | Description |
+|----------|----------|------|-------------|
+| URL | Yes | string | The URL to the website |
+| AccessedOn | No | DateTime | The date on which the website was accessed |
+
+Creating a website resource is as easy as using the `ResourceManager.CreateWebsiteAsync(WebsiteCreateDto dto)` function like so:
+
+```csharp
+WebsiteCreateDto dto = new()
+{
+    // ... all resource related properties like shown above
+    Url = "https://example.url",
+    AccessedOn = DateTime.UtcNow,
+};
+
+resourceManager.CreateWebsiteAsync(dto);
+```
+
+## Create a Person
+Persons are entities in our database that can have relations to other persons, organisations and resources. These are stored separately from resources.
+To create a person we use the `PersonCreateDto` which has the following fields:
+
+| Property | Required | Type | Description |
+|----------|----------|------|-------------|
+| Name | Yes | string | The full name of the person |
+| Occupation | Yes | string | The occupation of the person |
+| Description | No | string | A short description of the person |
+| EmailAddress | No | string | The email address of the person |
+| Linkedin | No | string | The URL of the person's Linkedin page |
+| OrganisationRelations | No | (string, string?) | Tuples of relations the person has to organisations: (OrganisationId, (optional) The role of the person in this organisation) |
+| PersonRelations | No | (string, string?) | Tuples of relations the person has with other people: (PersonId, (optional) The relation to this person) |
+
+Creating a person is as easy as using the `ResourceManager.CreatePersonAsync(PersonCreateDto dto)` function like so:
+
+```csharp
+PersonCreateDto dto = new()
+{
+    Name = "Example Name",
+    Occupation = "Example Occupation",
+};
+
+resourceManager.CreatePersonAsync(dto);
+```
+
+## Create an Organisation
+Organisations are entities in our database that can have relations to resources, persons, and other organisations. These are stored separately from resources.
+To create an organisation we use the `OrganisationCreateDto` which has the following fields:
+
+| Property | Required | Type | Description |
+|----------|----------|------|-------------|
+| Name | Yes | string | The name of the organisation |
+| Description | No | string | A short description of the organisation |
+| Website | No | string | The URL of the organisation's website |
+| EmailAddress | No | string | The email address of the organisation |
+| OrganisationRelations | No | (string, string?)[] | Tuples of relations the organisation has with other organisations: (OrganisationId, (optional) The relationship description) |
+
+Creating an organisation is as easy as using the `ResourceManager.CreateOrganisationAsync(OrganisationCreateDto dto)` function like so:
+
+```csharp
+OrganisationCreateDto dto = new()
+{
+    Name = "Example Organisation",
+    Description = "Example Description",
+    Website = "https://example.org",
+    EmailAddress = "contact@example.org"
+};
+
+resourceManager.CreateOrganisationAsync(dto);
+```
+
+## Create a Region
+Regions represent geographical areas in our database that can be associated with resources. These are stored separately from resources.
+To create a region we use the `RegionCreateDto` which has the following fields:
+
+| Property | Required | Type | Description |
+|----------|----------|------|-------------|
+| Name | Yes | string | The name of the region |
+
+Creating a region is as easy as using the `ResourceManager.CreateRegionAsync(RegionCreateDto dto)` function like so:
+
+```csharp
+RegionCreateDto dto = new()
+{
+    Name = "Example Region",
+};
+
+resourceManager.CreateRegionAsync(dto);
+```
+
+## Create a Tag
+Tags are used to categorize resources in our database. Tags can be standardized and can be approved by administrators.
+To create a tag we use the `TagCreateDto` which has the following fields:
+
+| Property | Required | Type | Description |
+|----------|----------|------|-------------|
+| Name | Yes | string | The name of the tag |
+| IsApproved | No | bool | Whether the tag is approved (defaults to `false`) |
+| ApprovedBy | No | string | The ID of the user who approved the tag |
+| CreatedBy | Yes | string | The ID of the user who created the tag |
+
+Creating a tag is as easy as using the `ResourceManager.CreateTagAsync(TagCreateDto dto, bool isStandardized = false)` function like so:
+
+```csharp
+TagCreateDto dto = new()
+{
+    Name = "Example Tag",
+    CreatedBy = "userId"
+};
+
+// For a user tag:
+resourceManager.CreateTagAsync(dto);
+
+// For a standardized tag:
+resourceManager.CreateTagAsync(dto, true);
+```
+
+## Create a Resource Type
+Resource types are used to categorize resources by their type (e.g., Document, Video, Audio).
+To create a resource type we use the `ResourceTypeCreateDto` which has the following fields:
+
+| Property | Required | Type | Description |
+|----------|----------|------|-------------|
+| Name | Yes | string | The name of the resource type |
+
+Creating a resource type is as easy as using the `ResourceManager.CreateResourceType(ResourceTypeCreateDto dto)` function like so:
+
+```csharp
+ResourceTypeCreateDto dto = new()
+{
+    Name = "Example Resource Type",
+};
+
+resourceManager.CreateResourceType(dto);
+```

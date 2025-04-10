@@ -54,7 +54,7 @@ services:
     networks:
       - my_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/status"]
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/status || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 5

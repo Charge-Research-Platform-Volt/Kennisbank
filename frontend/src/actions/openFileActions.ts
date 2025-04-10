@@ -1,7 +1,7 @@
-import { DocumentResponse } from "@/types/document.type";
+import { ResourceResponse } from "@/types/resource.type";
 
-export const handleOpenFile = async (file: DocumentResponse) => {
-    const url = `http://localhost:8080/Storage/download/${file.id}`;
+export const handleOpenFile = async (file: ResourceResponse) => {
+    const url = `http://localhost:8080/storage/download/${file.id}`;
     
     if(file.fileType === "pdf"){
         try {
@@ -11,7 +11,7 @@ export const handleOpenFile = async (file: DocumentResponse) => {
             });
           
             if (!response.ok) {
-            throw new Error(`Error getting file: ${response.statusText}`);
+                throw new Error(`Error getting file: ${response.statusText}`);
             }
 
             const blob = await response.blob();

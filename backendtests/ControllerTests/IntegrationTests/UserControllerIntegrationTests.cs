@@ -1,15 +1,10 @@
 using Moq;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using backend.Controllers;
-using backend.Data;
-using backend.Responses;
 using KnowledgeBank.Models;
-using KnowledgeBank.Data;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Http;
 using backend.Tests.Infrastructure;
+using KnowledgeBank.Controllers;
+using KnowledgeBank.Responses;
 
 namespace backend.Tests.Integration;
 

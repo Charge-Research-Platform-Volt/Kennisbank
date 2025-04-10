@@ -8,29 +8,29 @@ public class FilterDto
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
 
-    public IQueryable<FileItem> ToQueryBuilder(DatabaseContext database)
+    public IQueryable<Resource> ToQueryBuilder(DatabaseContext database)
     {
-        var queryBuilder = database.Files.AsQueryable();
+        var queryBuilder = database.Resources.AsQueryable();
             
         if(this.TagFilters != null && this.TagFilters.Length > 0)
         {
-            var tagFilterQuery = database.FileTagLinks
+            var tagFilterQuery = database.ResourceTagRelations
                 .Where(dt => this.TagFilters.Contains(dt.TagId.ToString())) // Filter by tags
-                .GroupBy(dt => dt.DocId)
-                .Where(g => g.Count() == this.TagFilters.Length) // Ensure that files have all tags
-                .Select(g => g.Key);  // get the file IDs
+                .GroupBy(dt => dt.ResourceId)
+                .Where(g => g.Count() == this.TagFilters.Length) // Ensure that resources have all tags
+                .Select(g => g.Key);  // get the resources IDs
 
             queryBuilder = queryBuilder.Where(f => tagFilterQuery.Contains(f.Id));
         }
 
         if(this.StartDate != null)
         {
-            queryBuilder = queryBuilder.Where(f => f.CreatedAt >= this.StartDate);
+            queryBuilder = queryBuilder.Where(f => f.CreationDate >= this.StartDate);
         }
 
         if(this.EndDate != null)
         {
-            queryBuilder = queryBuilder.Where(f => f.CreatedAt <= this.EndDate);
+            queryBuilder = queryBuilder.Where(f => f.CreationDate <= this.EndDate);
         }
 
         return queryBuilder;

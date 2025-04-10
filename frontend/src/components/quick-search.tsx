@@ -11,12 +11,13 @@ import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
 import { OctagonAlert } from "lucide-react";
 import GetFileIcon from "./getFileIcon";
+import { Resource, ResourceResponse } from "@/types/resource.type"
 import { handleOpenFile } from "@/actions/openFileActions";
-import { DocumentResponse } from "@/types/document.type";
+import { useQuickSearch } from "./quick-search-context";
 
 export default function QuickSearch() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchResults, setSearchResults] = useState<DocumentResponse[]>([]);
+  const { isOpen, setIsOpen } = useQuickSearch();
+  const [searchResults, setSearchResults] = useState<ResourceResponse[]>([]);
 
   // Keyboard shortcut
   useHotkeys("mod+k", () => setIsOpen(true), { preventDefault: true });
@@ -40,7 +41,7 @@ export default function QuickSearch() {
       }
 
       const data = await response.json();
-      setSearchResults(data.files);
+      setSearchResults(data.resources);
     } catch {
       toast.error("An error occurred.");
     }
@@ -96,7 +97,7 @@ export default function QuickSearch() {
           {/* Search results*/}
           <div className="flex h-full flex-col gap-1 overflow-y-auto">
             {/* No results found */}
-            {searchResults.length === 0 && (
+            {searchResults && searchResults.length === 0 && (
               <p className="flex items-center gap-3 p-3">
                 <OctagonAlert size={16} />
                 No results found.
@@ -104,7 +105,7 @@ export default function QuickSearch() {
             )}
 
             {/* Results list */}
-            {searchResults.length > 0 &&
+            {searchResults && searchResults.length > 0 &&
               searchResults.map((file) => (
                 <div
                   onClick={() => handleOpenFile(file)}
@@ -114,7 +115,7 @@ export default function QuickSearch() {
                 >
                   <div className={`${file.description !== "" && "mb-2"} flex items-start gap-2`}>
                     <GetFileIcon fileType={file.fileType} className="mt-[3px]" />
-                    <h3>{file.name}</h3>
+                    <h3>{file.title}</h3>
                   </div>
 
                   {file.description !== "" && <p className="text-muted-foreground/80 text-sm">{file.description}</p>}

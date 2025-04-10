@@ -28,8 +28,6 @@ export async function FetchWithValidation<T>(schema: z.ZodSchema<T>, url: string
         Cookie: cookieHeader.toString() || "",
       },
     });
-    console.log("Request URL: ", url);
-    console.log("Response: ", response);
 
     // Parse the response as JSON
     const data = await response.json();

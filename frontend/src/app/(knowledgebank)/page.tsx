@@ -1,34 +1,45 @@
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
-import { DocumentPageResponseSchema } from "@/types/document.type";
+import { ResourcePageResponseSchema } from "@/types/resource.type";
 import Link from "next/link";
 import Greeting from "../components/greating-text";
 import Archive from "@/icons/archive";
 import Projects from "@/icons/projects-icon";
-import Search from "@/icons/search-icon";
 import GetFileIcon from "@/components/getFileIcon";
 import OpenFileButton from "@/components/open-file-button";
+import SearchButton from "../components/search-button";
 
 export default async function Home() {
   // fetches all documents
-  const result = await FetchWithValidation(DocumentPageResponseSchema, "http://backend:8080/Storage/list-paged?pageIndex=1&pageSize=4");
-
-  let files = result.data?.files ?? [];
+  const result = await FetchWithValidation(
+      ResourcePageResponseSchema,
+      "http://backend:8080/Storage/list-paged?pageIndex=1&pageSize=4",
+  );
+  let files = result.data?.resources ?? [];
 
   // only display first 4 files, needs to be updated to display recently opened files
   if (files.length > 4) {
     files = files.slice(0, 4);
   }
 
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: process.env.NEXT_PUBLIC_TIMEZONE || 'Europe/Berlin',
+    hour: 'numeric',
+    hour12: false
+  });
+  
+  const timeString = formatter.format(new Date());
+  const currentHour = parseInt(timeString, 10);
+
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-6">
       <div className="w-full max-w-4xl text-center">
-        <Greeting />
+        <Greeting initialHour={ currentHour } />
         <p className="mb-10 text-lg text-gray-500">Where do you want to go?</p>
 
         {/* Main buttons */}
         <div className="mb-10 flex justify-center gap-10">
+          <SearchButton />
           {[
-            { icon: <Search className="h-50 w-50" fill="#4b5563" />, text: "Search", path: "" },
             { icon: <Projects className="h-50 w-50" fill="#4b5563" />, text: "Projects", path: "/projects" },
             { icon: <Archive className="h-50 w-50" fill="#4b5563" />, text: "Archive", path: "/archive" },
           ].map((btn, index) => (
@@ -48,11 +59,13 @@ export default async function Home() {
             {files.map((file, index) => (
               <div
                 key={file.id}
-                className={`flex items-center justify-between gap-2 border bg-white p-2 hover:bg-gray-200 ${index === 0 ? "rounded-t-lg" : ""} ${index === files.length - 1 ? "rounded-b-lg" : ""} ${index !== 0 && index !== files.length - 1 ? "border-t-0" : ""} `}
+                className={`flex items-center justify-between gap-2 border bg-white p-2 hover:bg-gray-200 ${index === 0 ? "rounded-t-lg" : ""} ${index === files.length - 1 ? "rounded-b-lg" : ""} ${index !== 0 ? "border-t-0" : ""} `}
               >
-                <span className="flex w-full items-center gap-2 overflow-hidden text-lg">
-                  <GetFileIcon fileType={file.fileType} />
-                  <span className="block w-[250px] truncate text-left text-sm md:w-[350px] lg:w-[450px]">{file.name}</span>
+                <span className="flex items-center gap-2 text-lg w-full overflow-hidden">
+                  {<GetFileIcon fileType={file.fileType} />}
+                  <span className="truncate w-[250px] md:w-[350px] lg:w-[450px] block text-left text-sm">
+                    {file.title}
+                  </span>
                 </span>
 
                 <OpenFileButton file={file} />

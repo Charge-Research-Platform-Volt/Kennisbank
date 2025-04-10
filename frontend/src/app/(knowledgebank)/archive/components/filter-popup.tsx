@@ -1,16 +1,15 @@
 "use client";
 
 import DateFilterSlider from "@/components/filter-documents/filter-documents";
-import TagSelectionDropdown from "@/components/TagSelectionDropdown";
 import { Button } from "@/components/ui/button";
 import { InputHeader } from "@/components/ui/Popup";
+import TagSelectionDropdown from "@/components/uploadComponents/TagSelectionDropdown";
 import { useEffect, useState } from "react";
 
 export default function FilterPopup({ isVisible, onApplyAction, className }: { isVisible: boolean, onApplyAction: (tagFilters: string[], startDate: number, endDate: number) => void, className?: string }) {
     const [error, setError] = useState(false);
 
-    const [standardizedTags, setStandardizedTags] = useState([]);
-    const [userTags, setUserTags] = useState([]);
+    const [tags, setTags] = useState([]);
 
     const [startYear, setStartYear] = useState<number>(0);
     const [endYear, setEndYear] = useState<number>(0);
@@ -29,7 +28,7 @@ export default function FilterPopup({ isVisible, onApplyAction, className }: { i
                     <>
                         <InputHeader>Published between:</InputHeader>
                         <DateFilterSlider setStartYearAction={setStartYear} setEndYearAction={setEndYear} className="w-[450px] mt-[10px]" />
-                        <TagSelectionDropdown onSelectionChangedAction={setTagFilters} createButton={false} userTags={userTags} standardizedTags={standardizedTags} />
+                        <TagSelectionDropdown onSelectionChangedAction={setTagFilters} createButton={false} tags={tags} />
                         <div className="flex justify-end mt-[10px]">
                             <Button onClick={() => onApplyAction(tagFilters, startYear, endYear)}>Apply</Button>
                         </div>
@@ -41,29 +40,18 @@ export default function FilterPopup({ isVisible, onApplyAction, className }: { i
 
     async function fetchTags() {
         try{
-            const standardizedTagsResponse = await fetch("http://localhost:8080/Tag/all-tags", {
+            const response = await fetch("http://localhost:8080/Tags/all-tags", {
                 credentials: "include",
                 method: "GET"
             });
     
-            if(!standardizedTagsResponse.ok){
-                throw new Error("Failed to fetch standardized tags");
+            if(!response.ok){
+                console.error("Error fetching tags:", response.statusText);
+                setError(true);
+                return;
             }
 
-            setStandardizedTags(await standardizedTagsResponse.json());
-    
-            const userTagsResponse = await fetch("http://localhost:8080/UserTag/all-tags", {
-                credentials: "include",
-                method: "GET"
-            });
-            
-            if(!userTagsResponse.ok){
-                throw new Error("Failed to fetch user tags");
-            }
-
-            setUserTags(await userTagsResponse.json());
-
-
+            setTags(await response.json());
         }
         catch(error) {
             console.error("Error fetching tags:", error);

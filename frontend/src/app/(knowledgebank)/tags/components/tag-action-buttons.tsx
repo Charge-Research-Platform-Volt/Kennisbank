@@ -1,13 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Tag, UserTag } from "@/types/tag.type";
+import { Tag } from "@/types/tag.type";
 import EditIcon from "@/icons/edit-icon";
 import { ApproveTagButton, DeleteTagButton, ConvertTagButton } from "./tag-list-buttons";
 
 interface TagActionButtonsProps {
-  tag?: Tag;
-  userTag?: UserTag;
+  tag: Tag;
   onEditClick: (e: React.MouseEvent) => void;
 }
 
@@ -22,7 +21,7 @@ interface TagActionButtonsProps {
  * @param {TagActionButtonsProps} props - The component props
  * @returns {ReactElement} - The rendered action buttons
  */
-export function TagActionButtons({ tag, userTag, onEditClick }: TagActionButtonsProps) {
+export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
   // Common Edit Button that appears for all tag types
   const EditButton = () => (
     <Button
@@ -37,23 +36,23 @@ export function TagActionButtons({ tag, userTag, onEditClick }: TagActionButtons
   );
 
   // If unapproved user tag 
-  if (userTag && !userTag.isApproved) {
+  if (!tag.isStandardized && !tag.isApproved) {
     return (
       <div className="flex">
-        <ApproveTagButton tag={userTag} />
+        <ApproveTagButton tag={tag} />
         <EditButton />
-        <DeleteTagButton userTag={userTag} />
+        <DeleteTagButton tag={tag} />
       </div>
     );
   }
   
   // If approved user tag
-  if (userTag && userTag.isApproved) {
+  if (!tag.isStandardized && tag.isApproved) {
     return (
       <div className="flex">
-        <ConvertTagButton tag={userTag} />
+        <ConvertTagButton tag={tag} />
         <EditButton />
-        <DeleteTagButton userTag={userTag} />
+        <DeleteTagButton tag={tag} />
       </div>
     );
   }

@@ -1,14 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
-using backend.Data;
+using KnowledgeBank.Data;
 using Swashbuckle.AspNetCore.Annotations;
 using Serilog;
-using backend.Responses;
-using KnowledgeBank.Data;
+using KnowledgeBank.Responses;
 using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 
-namespace backend.Controllers;
+namespace KnowledgeBank.Controllers;
 
 
 [ApiController]
@@ -31,9 +30,9 @@ public class SearchController : ControllerBase
     [HttpPost("search-name")]
     [SwaggerOperation(
         Summary = "Search database by name.",
-        Description = "Searches for files in database based on a given name, with pagination."
+        Description = "Searches for resources in database based on a given name, with pagination."
     )]
-    [SwaggerResponse(200, "List of search results", typeof(List<FileItem>))]
+    [SwaggerResponse(200, "List of search results", typeof(Resource[]))]
     [SwaggerResponse(400, "Invalid search query")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> SearchByName(
@@ -55,31 +54,31 @@ public class SearchController : ControllerBase
         {
             int skip = (pageIndex - 1) * pageSize;
 
-            var queryBuilder = filter?.ToQueryBuilder(database) ?? database.Files.AsQueryable();
+            var queryBuilder = filter?.ToQueryBuilder(database) ?? database.Resources.AsQueryable();
 
-            FileItem[]? items = await queryBuilder
-                .OrderByDescending(f => EF.Functions.TrigramsSimilarity(f.Name, query))
+            Resource[]? items = await queryBuilder
+                .OrderByDescending(f => EF.Functions.TrigramsSimilarity(f.Title, query))
                 .Skip(skip).Take(pageSize)
                 .ToArrayAsync();
 
             if (items == null)
-                return Ok(new PageResponse("No files found.", pageIndex, pageSize, Array.Empty<FileItem>()));
+                return Ok(new PageResponse("No resources found.", pageIndex, pageSize, Array.Empty<Resource>()));
 
-            return Ok(new PageResponse($"{items.Length} files found.", pageIndex, pageSize, items));
+            return Ok(new PageResponse($"{items.Length} resources found.", pageIndex, pageSize, items));
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error listing files on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
-            return StatusCode(500, new StorageResponse("Error listing files."));
+            logger.Error(e, "Error listing resources on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
+            return StatusCode(500, new StorageResponse("Error listing resources."));
         }
     }
 
     [HttpPost("search-description")]
     [SwaggerOperation(
         Summary = "Search database by description.",
-        Description = "Searches for files in database based on a given description, with pagination."
+        Description = "Searches for resources in database based on a given description, with pagination."
     )]
-    [SwaggerResponse(200, "List of search results", typeof(List<FileItem>))]
+    [SwaggerResponse(200, "List of search results", typeof(Resource[]))]
     [SwaggerResponse(400, "Invalid search query")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> SearchByDescription(
@@ -101,31 +100,31 @@ public class SearchController : ControllerBase
         {
             int skip = (pageIndex - 1) * pageSize;
 
-            var queryBuilder = filter?.ToQueryBuilder(database) ?? database.Files.AsQueryable();
+            var queryBuilder = filter?.ToQueryBuilder(database) ?? database.Resources.AsQueryable();
 
-            FileItem[]? items = await queryBuilder
+            Resource[]? items = await queryBuilder
                 .OrderByDescending(f => EF.Functions.TrigramsSimilarity(f.Description ?? "", query))
                 .Skip(skip).Take(pageSize)
                 .ToArrayAsync();
 
             if (items == null)
-                return Ok(new PageResponse("No files found.", pageIndex, pageSize, Array.Empty<FileItem>()));
+                return Ok(new PageResponse("No resources found.", pageIndex, pageSize, Array.Empty<Resource>()));
 
-            return Ok(new PageResponse($"{items.Length} files found.", pageIndex, pageSize, items));
+            return Ok(new PageResponse($"{items.Length} resources found.", pageIndex, pageSize, items));
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error listing files on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
-            return StatusCode(500, new StorageResponse("Error listing files."));
+            logger.Error(e, "Error listing resources on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
+            return StatusCode(500, new StorageResponse("Error listing resources."));
         }
     }
 
     [HttpPost("search-full-text")]
     [SwaggerOperation(
         Summary = "FTS the database by name and description.",
-        Description = "FTS for files in database based by name and description, with pagination."
+        Description = "FTS for resources in database based by name and description, with pagination."
     )]
-    [SwaggerResponse(200, "List of search results", typeof(List<FileItem>))]
+    [SwaggerResponse(200, "List of search results", typeof(Resource[]))]
     [SwaggerResponse(400, "Invalid search query")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> FullTextSearch(
@@ -140,17 +139,17 @@ public class SearchController : ControllerBase
         if (pageSize < 1)
             return BadRequest(new StorageResponse("Page size cannot be lower than 1."));
 
-        // If the query is empty, return all files
+        // If the query is empty, return all resources
         try
         {
             int skip = (pageIndex - 1) * pageSize;
-            FileItem[]? items;
+            Resource[]? items;
 
-            var queryBuilder = filter?.ToQueryBuilder(database) ?? database.Files.AsQueryable();
+            var queryBuilder = filter?.ToQueryBuilder(database) ?? database.Resources.AsQueryable();
 
             if (string.IsNullOrEmpty(query))
             {
-                // No query provided: return all files with default ordering
+                // No query provided: return all resources with default ordering
                 items = await queryBuilder
                     .OrderByDescending(f => f.Id)
                     .Skip(skip).Take(pageSize)
@@ -173,21 +172,21 @@ public class SearchController : ControllerBase
                 var tsQuery = string.Join(" & ", query.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(term => term + ":*"));
                 
                 // Execute query
-                var itemsFromRawSql = database.Files
+                var itemsFromRawSql = database.Resources
                     .FromSqlRaw(@"
                         SELECT DISTINCT ON (f.id)
-                            f.*,
+                            f.*, 
                             GREATEST(
-                                ts_rank(fv.vector, to_tsquery('english', {0})),
-                                similarity(f.name, {1}),
-                                similarity(f.description, {1})
+                                ts_rank(fv.vector, websearch_to_tsquery('english', {0})),
+                                similarity(f.title, {0}),
+                                similarity(f.description, {0})
                             ) AS rank 
-                        FROM files f
-                        JOIN file_vectors fv ON fv.file_id = f.id
-                        WHERE fv.vector @@ to_tsquery('english', {0})
-                            OR similarity(f.name, {1}) > 0.3
-                            OR similarity(f.description, {1}) > 0.3
-                        ORDER BY f.id, rank DESC", tsQuery, query)
+                        FROM resources f
+                        JOIN ""resource-vectors"" fv ON fv.""resource-id"" = f.id
+                        WHERE fv.vector @@ websearch_to_tsquery('english', {0})
+                            OR similarity(f.title, {0}) > 0.3
+                            OR similarity(f.description, {0}) > 0.3
+                        ORDER BY f.id, rank DESC", query)
                     .AsQueryable();
 
                 // save the order
@@ -197,52 +196,51 @@ public class SearchController : ControllerBase
 
                 // combine filters with query result
                 items = await queryBuilder
-                    .Where(f => itemsFromRawSql.Any(sqlItem => sqlItem.Id == f.Id)) // filter the files based on the IDs from the SQL query
+                    .Where(f => itemsFromRawSql.Any(sqlItem => sqlItem.Id == f.Id)) // filter the resources based on the IDs from the SQL query
                     .OrderBy(f => orderedIds.IndexOf(f.Id)) // maintain the order of the IDs from the SQL query
                     .Skip(skip).Take(pageSize)
                     .ToArrayAsync();
+
+                if (items == null)
+                    return Ok(new PageResponse("No resources found.", pageIndex, pageSize, Array.Empty<Resource>()));
             }
 
-            if (items == null)
-                return Ok(new PageResponse("No files found.", pageIndex, pageSize, Array.Empty<FileItem>()));
-
-            return Ok(new PageResponse($"{items.Length} files found.", pageIndex, pageSize, items));
+            return Ok(new PageResponse($"{items.Length} resources found.", pageIndex, pageSize, items));
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error listing files on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
-            return StatusCode(500, new StorageResponse("Error listing files."));
+            logger.Error(e, "Error listing resources on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
+            return StatusCode(500, new StorageResponse("Error listing resources."));
         }
     }
 
     [HttpGet("get-oldest-document")]
     [SwaggerOperation(
         Summary = "Returns the oldest document.",
-        Description = "Searches the whole Files table and returns the oldest one from that table."
+        Description = "Searches the whole Resources table and returns the oldest one from that table."
     )]
-    [SwaggerResponse(200, "Oldest document", typeof(List<FileItem>))]
+    [SwaggerResponse(200, "Oldest document", typeof(List<Resource>))]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> GetOldestDocument()
     {
         try
         {
-            // Get the oldest document from the files table
+            // Get the oldest document from the resources table
             // TODO: change created_at to published_at when metadata is merged
-            FileItem[]? items = await database.Files
-            .FromSqlRaw("SELECT * FROM files ORDER BY created_at")
+            Resource[]? items = await database.Resources
+            .FromSqlRaw("SELECT * FROM resources ORDER BY created_at")
             .Take(1)
             .ToArrayAsync();
 
             if (items == null)
-                return Ok(new FileInfoResponse("No files found", null));
+                return Ok(new ResourceInfoResponse("No resources found", null));
 
-            return Ok(new FileInfoResponse("Oldest file found", items[0]));
+            return Ok(new ResourceInfoResponse("Oldest resource found", items[0]));
         }
         catch(Exception)
         {
-            return StatusCode(500, new StorageResponse("Error checking files."));
+            return StatusCode(500, new StorageResponse("Error checking resources."));
         }
-
     }
 }
 
