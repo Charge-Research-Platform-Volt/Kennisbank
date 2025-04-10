@@ -24,6 +24,7 @@ export const AddDocument = async (
             file: formData.get("file") as File,
             hash: formData.get("hash") as string,
             publicationDate: new Date("1995-12-17T03:24:00"),
+            fileType: null,
         };
         console.log("validating document");
 

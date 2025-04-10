@@ -85,6 +85,7 @@ namespace KnowledgeBank.Data
             await resourceManager.BeginTransaction();
 
             Guid id = await resourceManager.CreateResourceAsync(dto);
+            await resourceManager.UpdateResourceAsync(id, r => r.FileType, fileType);
 
             try
             {

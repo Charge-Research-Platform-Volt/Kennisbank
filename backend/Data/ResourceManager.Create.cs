@@ -1,5 +1,6 @@
 ﻿using System.Xml;
 using KnowledgeBank.Models;
+using Serilog;
 
 namespace KnowledgeBank.Data
 {
@@ -32,6 +33,7 @@ namespace KnowledgeBank.Data
             if (dto is FileResourceCreateDto fDto)
             {
                 resource.FileType = Filetype.ConvertExtensionToFiletype(Path.GetExtension(fDto.File.FileName));
+                Log.Debug("Creating file resource with filetype {FileType}", resource.FileType);
                 resource.Hash = fDto.Hash;
             }
 
