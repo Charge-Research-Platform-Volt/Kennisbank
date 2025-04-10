@@ -1,12 +1,9 @@
 ﻿using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using Azure.Storage.Blobs.Specialized;
-using Microsoft.Extensions.Configuration;
 using Serilog;
-using System.Text;
 
-namespace backend.Data
+namespace KnowledgeBank.Data
 {
     public enum BLOB_STATUSCODE { OK, FAILED, NOTFOUND, ALREADYEXISTS, INVALID }
 

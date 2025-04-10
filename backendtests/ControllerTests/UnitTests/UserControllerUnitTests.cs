@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using KnowledgeBank.Data;
 using Microsoft.AspNetCore.Identity;
 using KnowledgeBank.Models;
+using KnowledgeBank.Controllers;
 
 namespace backend.Tests.Unit;
 

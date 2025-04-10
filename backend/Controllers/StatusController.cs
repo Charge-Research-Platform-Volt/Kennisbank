@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
-namespace backend.Controllers
+namespace KnowledgeBank.Controllers
 {
     [ApiController]
     [Route("[controller]")]

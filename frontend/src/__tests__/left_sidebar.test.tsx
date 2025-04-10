@@ -1,10 +1,10 @@
 import { expect, test } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import LeftSidebarClient from '@/components/left-sidebar/left-sidebar-client'
-import { TagsArraySchema } from '@/types/tag.type'
+import { TagArraySchema } from '@/types/tag.type'
 import { QuickSearchProvider } from '@/components/quick-search-context'
 
-const testTags = TagsArraySchema.parse([])
+const testTags = TagArraySchema.parse([])
 
 const expectedComponents : string[] = ['Home', 'Tags', 'Archive', 'Project 1', 'Settings', 'Help'].sort()
 

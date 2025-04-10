@@ -7,22 +7,22 @@ import { AddDocument } from "@/actions/documentActions";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { FormResponse } from "@/types/return.type";
-import { DocumentBase } from "@/types/document.type";
+import { ResourceBase } from "@/types/resource.type";
 import { Button } from "@/components/ui/button";
 import { getFileHasher } from "@/utils/fileHashWorker";
-import { TagsArray, UserTagsArray } from "@/types/tag.type";
-import TagSelectionDropdown from "../TagSelectionDropdown";
+import { TagArray } from "@/types/tag.type";
+import TagSelectionDropdown from "..//uploadComponents/TagSelectionDropdown";
 import { InputHeader, InputBlock, FInput, FileInfo, PopupTitle } from "../ui/Popup";
 import New from "@/icons/new";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error" | "checking";
 
-const initialState: FormResponse<DocumentBase> = {
+const initialState: FormResponse<ResourceBase> = {
   success: false,
   message: "",
 };
 
-export default function NewButton({ userTags, standardizedTags }: { userTags: UserTagsArray, standardizedTags: TagsArray }) {
+export default function NewButton({ tags }: { tags: TagArray }) {
   const popupRef = useRef<HTMLDivElement | null>(null); //Ref used to check if user clicks outside of popup
   const [status, setStatus] = useState<UploadStatus>("idle"); //upload status
   const [uploadPopup, setUploadPopup] = useState(false); //bool which determines whether you can see the new popup
@@ -44,7 +44,7 @@ export default function NewButton({ userTags, standardizedTags }: { userTags: Us
   }, []);
 
   const [isPendingTransition, startTransition] = useTransition();
-  const [state, action] = useActionState((prevState: FormResponse<DocumentBase>, formData: FormData) => {
+  const [state, action] = useActionState((prevState: FormResponse<ResourceBase>, formData: FormData) => {
     const fileName = newFile?.name.substring(0, newFile?.name.lastIndexOf(".")) || "";
     return AddDocument(fileName, fileHash, prevState, formData);
   }, initialState);
@@ -60,10 +60,16 @@ export default function NewButton({ userTags, standardizedTags }: { userTags: Us
     } else if (state.message) {
       toast.error(state.message);
       setStatus("error")
-    }
-    else {
-      toast.error("unknown error")
-      setStatus("error")
+    } else if (state.errors) {
+      // Get all error arrays from the error object
+      Object.values(state.errors).forEach(errorsArray => {
+        // Each property might be an array of error messages or undefined
+        if (errorsArray) {
+          errorsArray.forEach(errorMsg => {
+            toast.error(errorMsg);
+          });
+        }
+      });
     }
   }, [state]);
 
@@ -224,7 +230,7 @@ export default function NewButton({ userTags, standardizedTags }: { userTags: Us
                   {/* Document title entry */}
                   <InputBlock data-testid="popup_text" className="justify-start">
                     <InputHeader>Document Title: </InputHeader>
-                    <FInput className="w-full" type="string" placeholder="Enter document title" name="name" onChange={(e) => setTitle(e.target.value.trim())} />
+                    <FInput className="w-full" type="string" placeholder="Enter document title" name="title" onChange={(e) => setTitle(e.target.value.trim())} />
                   </InputBlock>
 
                   <div className="flex gap-3">
@@ -251,7 +257,7 @@ export default function NewButton({ userTags, standardizedTags }: { userTags: Us
 
                     <div className="flex flex-1 flex-col">
                       {/* Add Tags dropdown box*/}
-                      <TagSelectionDropdown className="h-full w-full" userTags={userTags} standardizedTags={standardizedTags}></TagSelectionDropdown>
+                      <TagSelectionDropdown className="h-full w-full" tags={tags}></TagSelectionDropdown>
                     </div>
                   </div>
                 </div>

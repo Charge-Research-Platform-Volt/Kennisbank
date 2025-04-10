@@ -23,8 +23,6 @@ export default function SignUpPage() {
   
     const [state, action, isPending] = useActionState(Register, initialState);
 
-    console.log("Register state:");
-    console.log(state.message);
     const router = useRouter();
 
     useEffect(() => {

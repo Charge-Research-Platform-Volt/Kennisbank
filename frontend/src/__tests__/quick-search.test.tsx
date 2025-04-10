@@ -39,24 +39,34 @@ const mockSearchResults = {
   pageIndex: 1,
   pageSize: 10,
   responseType: "SearchFullTextResponse",
-  files: [
+  resources: [  // Changed from 'files' to 'resources'
     {
-      name: "Document 1",
+      title: "Document 1",
       id: "doc1",
       description: "Test description",
       hash: "hash1",
       fileType: "pdf",
-      createdAt: "2025-01-01",
-      updatedAt: "2025-01-02",
+      typeId: "type1",
+      languageCode: "en",
+      publicationCode: null,
+      license: null,
+      note: null,
+      creationDate: "2025-01-01",
+      publicationDate: "2025-01-02"
     },
     {
-      name: "File 1",
+      title: "File 1",
       id: "doc2",
       description: "",
       hash: null,
       fileType: "docx",
-      createdAt: "2025-02-01",
-      updatedAt: "2025-02-02",
+      typeId: "type1",
+      languageCode: "en",
+      publicationCode: null,
+      license: null,
+      note: null,
+      creationDate: "2025-02-01",
+      publicationDate: "2025-02-02"
     },
   ],
 };
@@ -182,10 +192,10 @@ describe("QuickSearch Component test", () => {
 
     // Test if the buttons triggers the action
     await userEvent.click(screen.getByText("Document 1"));
-    expect(openFileActions.handleOpenFile).toHaveBeenCalledWith(mockSearchResults.files[0]);
+    expect(openFileActions.handleOpenFile).toHaveBeenCalledWith(mockSearchResults.resources[0]);
     
     await userEvent.click(screen.getByText("File 1"));
-    expect(openFileActions.handleOpenFile).toHaveBeenCalledWith(mockSearchResults.files[1]);
+    expect(openFileActions.handleOpenFile).toHaveBeenCalledWith(mockSearchResults.resources[1]);
   });
 
   // Test-5

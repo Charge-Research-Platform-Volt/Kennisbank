@@ -1,0 +1,380 @@
+---
+title: Remove Relations
+description: Removing relations between entities using the resource manager.
+order: 6
+---
+
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Organisation-Organisation Relations](#organisation-organisation-relations)
+- [Person-Organisation Relations](#person-organisation-relations)
+- [Person-Person Relations](#person-person-relations)
+- [Resource-Person (Author) Relations](#resource-person-author-relations)
+- [Resource-Organisation Relations](#resource-organisation-relations)
+- [Resource-Region Relations](#resource-region-relations)
+- [Resource-Source Relations](#resource-source-relations)
+- [Resource-Related Organisation Relations](#resource-related-organisation-relations)
+- [Resource-Related Person Relations](#resource-related-person-relations)
+- [Resource-Related Source Relations](#resource-related-source-relations)
+- [Resource-Tag Relations](#resource-tag-relations)
+- [Resource-ResourceType Relations](#resource-resourcetype-relations)
+
+## Introduction
+This part of the Resource Manager corresponds to the `ResourceManager.RemoveRelation.cs` in the backend. It is responsible for removing relations between various entities in the database, such as organisations, persons, resources, and metadata. The library provides methods for removing both single relations and pruning all relations of a specific type.
+
+## Organisation-Organisation Relations
+To remove relations between organisations, you can use the following methods:
+
+```csharp
+// Remove a single relation between organisations
+Guid sourceOrganisationId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+Guid targetOrganisationId = Guid.Parse("e530bf18-83e0-5cf2-9529-5f36g62ff8f8");
+bool success = await resourceManager.RemoveOrganisationRelationshipAsync(
+    sourceOrganisationId,
+    targetOrganisationId
+);
+
+// Remove a single relation using string IDs
+string sourceOrganisationIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+string targetOrganisationIdString = "e530bf18-83e0-5cf2-9529-5f36g62ff8f8";
+bool success = await resourceManager.RemoveOrganisationRelationshipAsync(
+    sourceOrganisationIdString,
+    targetOrganisationIdString
+);
+
+// Remove all relations where an organisation is the source
+bool success = await resourceManager.RemoveAllOrganisationRelationshipsWithSourceIdAsync(
+    sourceOrganisationId
+);
+
+// Remove all relations where an organisation is the target
+bool success = await resourceManager.RemoveAllOrganisationRelationshipsWithTargetIdAsync(
+    targetOrganisationId
+);
+
+// Remove all relations containing a specific organisation (either as source or target)
+bool success = await resourceManager.RemoveAllOrganisationRelationshipsContainingIdAsync(
+    organisationId
+);
+```
+
+## Person-Organisation Relations
+To remove relations between persons and organisations, you can use the following methods:
+
+```csharp
+// Remove a single relation between a person and an organisation
+Guid personId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+Guid organisationId = Guid.Parse("e530bf18-83e0-5cf2-9529-5f36g62ff8f8");
+bool success = await resourceManager.RemovePersonFromOrganisationAsync(
+    personId,
+    organisationId
+);
+
+// Remove a single relation using string IDs
+string personIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+string organisationIdString = "e530bf18-83e0-5cf2-9529-5f36g62ff8f8";
+bool success = await resourceManager.RemovePersonFromOrganisationAsync(
+    personIdString,
+    organisationIdString
+);
+
+// Remove a person from all organisations
+bool success = await resourceManager.RemovePersonFromAllOrganisationsAsync(
+    personId
+);
+
+// Remove all persons from a specific organisation
+bool success = await resourceManager.RemoveAllPersonOrganisationRelationsWithOrganisationIdAsync(
+    organisationId
+);
+```
+
+## Person-Person Relations
+To remove relations between persons, you can use the following methods:
+
+```csharp
+// Remove a single relation between persons
+Guid sourcePersonId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+Guid targetPersonId = Guid.Parse("e530bf18-83e0-5cf2-9529-5f36g62ff8f8");
+bool success = await resourceManager.RemovePersonRelationshipAsync(
+    sourcePersonId,
+    targetPersonId
+);
+
+// Remove a single relation using string IDs
+string sourcePersonIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+string targetPersonIdString = "e530bf18-83e0-5cf2-9529-5f36g62ff8f8";
+bool success = await resourceManager.RemovePersonRelationshipAsync(
+    sourcePersonIdString,
+    targetPersonIdString
+);
+
+// Remove all relations where a person is the source
+bool success = await resourceManager.RemoveAllPersonRelationshipsWithSourceIdAsync(
+    sourcePersonId
+);
+
+// Remove all relations where a person is the target
+bool success = await resourceManager.RemoveAllPersonRelationshipsWithTargetIdAsync(
+    targetPersonId
+);
+
+// Remove all relations containing a specific person (either as source or target)
+bool success = await resourceManager.RemoveAllPersonRelationshipsContainingIdAsync(
+    personId
+);
+```
+
+## Resource-Person (Author) Relations
+To remove author relations between resources and persons, you can use the following methods:
+
+```csharp
+// Remove a single author from a resource
+Guid resourceId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+Guid personId = Guid.Parse("e530bf18-83e0-5cf2-9529-5f36g62ff8f8");
+bool success = await resourceManager.RemoveAuthorFromResourceAsync(
+    resourceId,
+    personId
+);
+
+// Remove a single author using string IDs
+string resourceIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+string personIdString = "e530bf18-83e0-5cf2-9529-5f36g62ff8f8";
+bool success = await resourceManager.RemoveAuthorFromResourceAsync(
+    resourceIdString,
+    personIdString
+);
+
+// Remove a person as author from all resources
+bool success = await resourceManager.RemoveAuthorFromAllResourcesAsync(
+    personId
+);
+
+// Remove all authors from a specific resource
+bool success = await resourceManager.RemoveAllResourceAuthorRelationsWithResourceIdAsync(
+    resourceId
+);
+```
+
+## Resource-Organisation Relations
+To remove direct organisation relations from resources, you can use the following methods:
+
+```csharp
+// Remove a single organisation from a resource
+Guid resourceId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+Guid organisationId = Guid.Parse("e530bf18-83e0-5cf2-9529-5f36g62ff8f8");
+bool success = await resourceManager.RemoveOrganisationFromResourceAsync(
+    resourceId,
+    organisationId
+);
+
+// Remove a single organisation using string IDs
+string resourceIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+string organisationIdString = "e530bf18-83e0-5cf2-9529-5f36g62ff8f8";
+bool success = await resourceManager.RemoveOrganisationFromResourceAsync(
+    resourceIdString,
+    organisationIdString
+);
+
+// Remove an organisation from all resources
+bool success = await resourceManager.RemoveOrganisationFromAllResourcesAsync(
+    organisationId
+);
+
+// Remove all organisations from a specific resource
+bool success = await resourceManager.RemoveAllResourceOrganisationRelationsWithResourceIdAsync(
+    resourceId
+);
+```
+
+## Resource-Region Relations
+To remove region relations from resources, you can use the following methods:
+
+```csharp
+// Remove a single region from a resource
+Guid resourceId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+Guid regionId = Guid.Parse("e530bf18-83e0-5cf2-9529-5f36g62ff8f8");
+bool success = await resourceManager.RemoveRegionFromResourceAsync(
+    resourceId,
+    regionId
+);
+
+// Remove a single region using string IDs
+string resourceIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+string regionIdString = "e530bf18-83e0-5cf2-9529-5f36g62ff8f8";
+bool success = await resourceManager.RemoveRegionFromResourceAsync(
+    resourceIdString,
+    regionIdString
+);
+
+// Remove a region from all resources
+bool success = await resourceManager.RemoveRegionFromAllResourcesAsync(
+    regionId
+);
+
+// Remove all regions from a specific resource
+bool success = await resourceManager.RemoveAllResourceRegionRelationsWithResourceIdAsync(
+    resourceId
+);
+```
+
+## Resource-Source Relations
+To remove source URLs from resources, you can use the following methods:
+
+```csharp
+// Remove a single source URL from a resource
+Guid resourceId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+string url = "https://example.com/source1";
+bool success = await resourceManager.RemoveSourceFromResourceAsync(
+    resourceId,
+    url
+);
+
+// Remove a single source URL using string ID
+string resourceIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+bool success = await resourceManager.RemoveSourceFromResourceAsync(
+    resourceIdString,
+    url
+);
+
+// Remove all source URLs from a specific resource
+bool success = await resourceManager.RemoveAllResourceSourceRelationsWithResourceIdAsync(
+    resourceId
+);
+```
+
+## Resource-Related Organisation Relations
+To remove related (indirect) organisation relations from resources, you can use the following methods:
+
+```csharp
+// Remove a single related organisation from a resource
+Guid resourceId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+Guid organisationId = Guid.Parse("e530bf18-83e0-5cf2-9529-5f36g62ff8f8");
+bool success = await resourceManager.RemoveRelatedOrganisationFromResourceAsync(
+    resourceId,
+    organisationId
+);
+
+// Remove a single related organisation using string IDs
+string resourceIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+string organisationIdString = "e530bf18-83e0-5cf2-9529-5f36g62ff8f8";
+bool success = await resourceManager.RemoveRelatedOrganisationFromResourceAsync(
+    resourceIdString,
+    organisationIdString
+);
+
+// Remove a related organisation from all resources
+bool success = await resourceManager.RemoveRelatedOrganisationFromAllResourcesAsync(
+    organisationId
+);
+
+// Remove all related organisations from a specific resource
+bool success = await resourceManager.RemoveAllResourceRelatedOrganisationRelationsWithResourceIdAsync(
+    resourceId
+);
+```
+
+<Callout title="Note">The difference between direct organisation relations (using `RemoveOrganisationFromResourceAsync`) and related organisation relations (using `RemoveRelatedOrganisationFromResourceAsync`) is that direct relations represent organisations that had a direct influence on the resource (e.g., publishers), while related organisations have an indirect connection to the resource.</Callout>
+
+## Resource-Related Person Relations
+To remove related person (non-author) relations from resources, you can use the following methods:
+
+```csharp
+// Remove a single related person from a resource
+Guid resourceId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+Guid personId = Guid.Parse("e530bf18-83e0-5cf2-9529-5f36g62ff8f8");
+bool success = await resourceManager.RemoveRelatedPersonFromResourceAsync(
+    resourceId,
+    personId
+);
+
+// Remove a single related person using string IDs
+string resourceIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+string personIdString = "e530bf18-83e0-5cf2-9529-5f36g62ff8f8";
+bool success = await resourceManager.RemoveRelatedPersonFromResourceAsync(
+    resourceIdString,
+    personIdString
+);
+
+// Remove a related person from all resources
+bool success = await resourceManager.RemoveRelatedPersonFromAllResourcesAsync(
+    personId
+);
+
+// Remove all related persons from a specific resource
+bool success = await resourceManager.RemoveAllResourceRelatedPersonRelationsWithResourceIdAsync(
+    resourceId
+);
+```
+
+<Callout title="Note">The difference between author relations (using `RemoveAuthorFromResourceAsync`) and related person relations (using `RemoveRelatedPersonFromResourceAsync`) is that authors are directly responsible for creating the resource, while related persons have some other connection to the resource.</Callout>
+
+## Resource-Related Source Relations
+To remove related source URLs from resources, you can use the following methods:
+
+```csharp
+// Remove a single related source URL from a resource
+Guid resourceId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+string url = "https://example.com/related1";
+bool success = await resourceManager.RemoveRelatedSourceFromResourceAsync(
+    resourceId,
+    url
+);
+
+// Remove a single related source URL using string ID
+string resourceIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+bool success = await resourceManager.RemoveRelatedSourceFromResourceAsync(
+    resourceIdString,
+    url
+);
+
+// Remove all related source URLs from a specific resource
+bool success = await resourceManager.RemoveAllResourceRelatedSourceRelationsWithResourceIdAsync(
+    resourceId
+);
+```
+
+<Callout title="Note">The difference between source URLs (using `RemoveSourceFromResourceAsync`) and related source URLs (using `RemoveRelatedSourceFromResourceAsync`) is that source URLs are the direct sources of the resource, while related source URLs have some other connection to the resource but aren't its source.</Callout>
+
+## Resource-Tag Relations
+To remove tag relations from resources, you can use the following methods:
+
+```csharp
+// Remove a single tag from a resource
+Guid resourceId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+Guid tagId = Guid.Parse("e530bf18-83e0-5cf2-9529-5f36g62ff8f8");
+bool success = await resourceManager.RemoveTagFromResourceAsync(
+    resourceId,
+    tagId
+);
+
+// Remove a single tag using string IDs
+string resourceIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+string tagIdString = "e530bf18-83e0-5cf2-9529-5f36g62ff8f8";
+bool success = await resourceManager.RemoveTagFromResourceAsync(
+    resourceIdString,
+    tagIdString
+);
+
+// Remove a tag from all resources
+bool success = await resourceManager.RemoveTagFromAllResourcesAsync(
+    tagId
+);
+
+// Remove all tags from a specific resource
+bool success = await resourceManager.RemoveAllResourceTagRelationsWithResourceIdAsync(
+    resourceId
+);
+```
+
+## Resource-ResourceType Relations
+To remove a resource type from a resource, you can use the following method:
+
+```csharp
+// Remove resource type from a resource
+Guid resourceId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+bool success = await resourceManager.RemoveResourceTypeFromResourceAsync(resourceId);
+```
+
+<Callout title="Note">When removing a resource type from a resource, the system automatically assigns the "Unknown" resource type to the resource instead of leaving it without a type.</Callout>

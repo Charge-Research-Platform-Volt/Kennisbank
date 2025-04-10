@@ -7,6 +7,7 @@
     <UserSecretsId>ef88ea2f-afc8-47b1-aec0-7bc86e979967</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>.</DockerfileContext>
+	  <RootNamespace>KnowledgeBank</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

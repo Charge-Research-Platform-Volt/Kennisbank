@@ -1,4 +1,4 @@
-using backend.Data;
+using KnowledgeBank.Data;
 
 namespace backend.Tests
 {

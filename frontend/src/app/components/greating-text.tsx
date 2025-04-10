@@ -2,9 +2,26 @@
 
 import { useState, useEffect } from "react";
 
+interface GreetingProps {
+  initialHour: number;
+}
+
 // displays a different greeting dependent on what time of day it is
-export default function Greeting() { 
-  const [greetingState, setGreeting] = useState("Good");
+export default function Greeting({ initialHour }: GreetingProps) {
+  let greeting = "";
+  const currentHour = initialHour;
+  if (currentHour >= 12 && currentHour < 18) {
+    greeting = "Good afternoon";
+  } else if (currentHour >= 18) {
+    greeting = "Good evening";
+  } else if (currentHour < 4){
+    greeting = "Good night";
+  }
+  else {
+    greeting = "Good morning";
+  }
+  
+  const [greetingState, setGreeting] = useState(greeting);
 
   useEffect(() => {
     const currentHour = new Date().getHours();

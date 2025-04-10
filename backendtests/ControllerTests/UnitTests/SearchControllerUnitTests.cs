@@ -1,10 +1,9 @@
 ﻿using Moq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using backend.Controllers;
-using backend.Data;
 using KnowledgeBank.Data;
 using System.Net;
+using KnowledgeBank.Controllers;
 
 
 namespace backend.Tests.Unit;
