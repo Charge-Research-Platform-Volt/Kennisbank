@@ -16,7 +16,7 @@ import { toast } from "sonner";
  *
  * @returns The dropdown box where the user can type and select tags to be added to the document
  */
-export default function TagSelectionDropdown({ userTags, standardizedTags, className }: { userTags: UserTagsArray, standardizedTags: TagsArray; className?: string }) {  
+export default function TagSelectionDropdown({ userTags, standardizedTags, onSelectionChangedAction = () => {}, className, createButton = true }: { userTags: UserTagsArray, standardizedTags: TagsArray, onSelectionChangedAction?: (tagFilters: string[]) => void, className?: string, createButton?: boolean }) {  
   const MAX_TAGS: number = 10;
 
   // States containing the inputvalue, tags returned by the input value, and the tags to be added to the document
@@ -80,6 +80,7 @@ export default function TagSelectionDropdown({ userTags, standardizedTags, class
     if (selectedTag) {
       const newTags = [...addedTags, selectedTag];
       updateTags(newTags);
+      handleTagSelectionChange([...newTags.map(tag => tag.id), ...addedUserTags.map(tag => tag.id)]); // Call the action passed from the parent component
       setInputValue("");
       setFilteredTags([]);
     }
@@ -107,6 +108,7 @@ export default function TagSelectionDropdown({ userTags, standardizedTags, class
     if (selectedUserTag) {
       const newUserTags = [...addedUserTags, selectedUserTag];
       updateUserTags(newUserTags);
+      handleTagSelectionChange([...addedTags.map(tag => tag.id), ...newUserTags.map(tag => tag.id)]); // Call the action passed from the parent component
       setInputValue("");
       setFilteredUserTags([]);
     }
@@ -121,7 +123,9 @@ export default function TagSelectionDropdown({ userTags, standardizedTags, class
     const selectedTag = addedTags.find((tag) => tag.id === tagId);
 
     if (selectedTag) {
-      updateTags((prevTags) => prevTags.filter((tag) => tag.name !== selectedTag.name));
+      const updatedTags = addedTags.filter((tag) => tag.name !== selectedTag.name);
+      updateTags(updatedTags);
+      handleTagSelectionChange([...updatedTags.map(tag => tag.id), ...addedUserTags.map(tag => tag.id)]); // Call the action passed from the parent component
     }
   };
 
@@ -134,9 +138,15 @@ export default function TagSelectionDropdown({ userTags, standardizedTags, class
     const selectedUserTag = addedUserTags.find((tag) => tag.id === tagId);
 
     if (selectedUserTag) {
-      updateUserTags((prevUserTags) => prevUserTags.filter((tag) => tag.name !== selectedUserTag.name));
+      const updatedUserTags = addedUserTags.filter((tag) => tag.name !== selectedUserTag.name);
+      updateUserTags(updatedUserTags);
+      handleTagSelectionChange([...addedTags.map(tag => tag.id), ...updatedUserTags.map(tag => tag.id)]); // Call the action passed from the parent component
     }
   };
+
+  function handleTagSelectionChange(selectedTags: string[]) {
+    onSelectionChangedAction(selectedTags); // Call the action passed from the parent component
+  }
 
   // Filters tags to display only those tags that correspond with the input value
   function filterTags() {
@@ -196,9 +206,12 @@ export default function TagSelectionDropdown({ userTags, standardizedTags, class
         <InputBlock data-testid="popup_text" className="block w-full">
           <div className="flex items-center mt-1">
             <InputHeader className="">Tags: </InputHeader>
-            <Button onClick={() => setShowCreateTagField(!showCreateTagField)} className="ml-auto cursor-pointer text-sm" type="button">
-              {showCreateTagField ? 'Cancel' : 'Create'}
-            </Button>
+            {createButton ? (
+              <Button onClick={() => setShowCreateTagField(!showCreateTagField)} className="ml-auto cursor-pointer text-sm" type="button">
+                {showCreateTagField ? 'Cancel' : 'Create'}
+              </Button>
+            ) : ''}
+           
           </div>
 
           {showCreateTagField && (
@@ -243,7 +256,7 @@ export default function TagSelectionDropdown({ userTags, standardizedTags, class
             ))}
         </div>
       </div>
-      <div className="mt-1 h-[100%] max-h-50 overflow-y-auto border">
+      <div className="mt-1 h-50 max-h-50 overflow-y-auto border">
         {addedTags.map((tag) => (
           <div key={tag.name} className="flex w-full p-2 text-left transition-colors duration-200">
             <div className="flex items-center gap-2">

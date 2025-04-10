@@ -15,7 +15,7 @@ const oldestUpload = 1968;
 
 type range = [old: number, new: number];
 
-export default function FilterDocuments(){
+export default function DateFilterSlider( {className, setStartYearAction, setEndYearAction} : {className?: string, setStartYearAction: (year: number) => void, setEndYearAction: (year: number) => void}) {
     // ranges of the slider and textbox
     const [curRange, changeCurRange] = useState<range>([oldestUpload, curYear]);
     const [curTextboxRange, changeCurTextboxRange] = useState<range>([oldestUpload, curYear]);
@@ -27,6 +27,8 @@ export default function FilterDocuments(){
         // update range and visualize the change by changing the textbox
         changeCurRange(newRange)
         changeCurTextboxRange(newRange)
+        setStartYearAction(newRange[0]);
+        setEndYearAction(newRange[1]);
     };
 
     const changeRangeTextBoxMin = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,7 +55,7 @@ export default function FilterDocuments(){
         }
     };
 
-    return <div className="w-[450px]">
+    return <div className={className}>
         <RangeSlider data-testid="slider" min={oldestUpload} max={curYear} value={curRange} onInput={(e) => changeRangeSlider(e)} id="range-slider-purple"/>
         <div className="flex gap-2 mt-6">
             <FInput
