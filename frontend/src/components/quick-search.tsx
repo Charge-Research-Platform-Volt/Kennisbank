@@ -13,9 +13,10 @@ import { OctagonAlert } from "lucide-react";
 import GetFileIcon from "./getFileIcon";
 import { Resource, ResourceResponse } from "@/types/resource.type"
 import { handleOpenFile } from "@/actions/openFileActions";
+import { useQuickSearch } from "./quick-search-context";
 
 export default function QuickSearch() {
-  const [isOpen, setIsOpen] = useState(false);
+  const { isOpen, setIsOpen } = useQuickSearch();
   const [searchResults, setSearchResults] = useState<ResourceResponse[]>([]);
 
   // Keyboard shortcut

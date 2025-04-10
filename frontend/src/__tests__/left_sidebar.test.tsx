@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import LeftSidebarClient from '@/components/left-sidebar/left-sidebar-client'
 import { TagArraySchema } from '@/types/tag.type'
+import { QuickSearchProvider } from '@/components/quick-search-context'
 
 const testTags = TagArraySchema.parse([])
 
@@ -9,13 +10,13 @@ const expectedComponents : string[] = ['Home', 'Tags', 'Archive', 'Project 1', '
 
 describe('sidebar', () =>
     test('Left_Sidebar renders all components with correct names', async() =>{
-        render(<LeftSidebarClient tags={testTags}/>)
+        render(<QuickSearchProvider><LeftSidebarClient tags={testTags}/></QuickSearchProvider>)
         const componentNames = await screen.getAllByTestId("sidebar").map(elem => elem.textContent ?? '').sort();
         expect(componentNames).toEqual(expectedComponents);
     }),
 
     test('Left_Sidebar renders different components if hidden', async() =>{
-        render(<LeftSidebarClient tags={testTags}/>)
+        render(<QuickSearchProvider><LeftSidebarClient tags={testTags}/></QuickSearchProvider>)
 
         // hides sidebar
         const button = screen.getByTestId("sidebar_hide");

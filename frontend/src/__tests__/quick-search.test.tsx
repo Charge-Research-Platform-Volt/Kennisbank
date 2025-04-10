@@ -12,6 +12,7 @@ import userEvent from "@testing-library/user-event";
 import QuickSearch from "@/components/quick-search";
 
 import * as openFileActions from "@/actions/openFileActions";
+import { QuickSearchProvider } from "@/components/quick-search-context";
 
 // Mock dependencies
 vi.mock("sonner", () => ({
@@ -120,7 +121,7 @@ describe("QuickSearch Component test", () => {
 
   // Test-1
   it("renders the search button correctly", () => {
-    render(<QuickSearch />);
+    render(<QuickSearchProvider><QuickSearch /></QuickSearchProvider>);
 
     // Check if the buttons are rendered
     expect(screen.getByText("Search")).toBeInTheDocument();
@@ -128,7 +129,7 @@ describe("QuickSearch Component test", () => {
 
   // Test-2
   it("opens the dialog when search button is clicked", async () => {
-    render(<QuickSearch />);
+    render(<QuickSearchProvider><QuickSearch /></QuickSearchProvider>);
 
     const searchButton = screen.getByText("Search");
 
@@ -147,7 +148,7 @@ describe("QuickSearch Component test", () => {
 
   // Test-3
   it("opens the dialog when hotkey is pressed", async () => {
-    render(<QuickSearch />);
+    render(<QuickSearchProvider><QuickSearch /></QuickSearchProvider>);
 
     // Trigger the hotkey
     await act(async () => {
@@ -164,7 +165,7 @@ describe("QuickSearch Component test", () => {
 
   //Test-4
   it("fetches search results when dialog is opened", async () => {
-    render(<QuickSearch />);
+    render(<QuickSearchProvider><QuickSearch /></QuickSearchProvider>);
 
     const searchButton = screen.getByText("Search");
 
@@ -199,7 +200,7 @@ describe("QuickSearch Component test", () => {
 
   // Test-5
   it("handles search input and triggers search", async () => {
-    render(<QuickSearch />);
+    render(<QuickSearchProvider><QuickSearch /></QuickSearchProvider>);
 
     const searchButton = screen.getByText("Search");
 
@@ -235,7 +236,7 @@ describe("QuickSearch Component test", () => {
 
   // Test-6
   it("unavailable search results", async () => {
-    render(<QuickSearch />);
+    render(<QuickSearchProvider><QuickSearch /></QuickSearchProvider>);
 
     const searchButton = screen.getByText("Search");
 
@@ -298,7 +299,7 @@ describe("QuickSearch Component test", () => {
       });
     });
 
-    render(<QuickSearch />);
+    render(<QuickSearchProvider><QuickSearch /></QuickSearchProvider>);
 
     const searchButton = screen.getByText("Search");
 
@@ -321,7 +322,7 @@ describe("QuickSearch Component test", () => {
       throw new Error("Network error");
     });
 
-    render(<QuickSearch />);
+    render(<QuickSearchProvider><QuickSearch /></QuickSearchProvider>);
 
     const searchButton = screen.getByText("Search");
 
@@ -339,7 +340,7 @@ describe("QuickSearch Component test", () => {
 
   // Test-9
   it("closes the dialog when clicking outside", async () => {
-    render(<QuickSearch />);
+    render(<QuickSearchProvider><QuickSearch /></QuickSearchProvider>);
 
     const searchButton = screen.getByText("Search");
 
