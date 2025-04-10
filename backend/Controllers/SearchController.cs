@@ -6,9 +6,8 @@ using KnowledgeBank.Responses;
 using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
-using KnowledgeBank.Controllers;
 
-namespace backend.Controllers;
+namespace KnowledgeBank.Controllers;
 
 
 [ApiController]
