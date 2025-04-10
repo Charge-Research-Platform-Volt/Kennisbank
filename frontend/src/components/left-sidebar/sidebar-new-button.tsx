@@ -60,10 +60,16 @@ export default function NewButton({ tags }: { tags: TagArray }) {
     } else if (state.message) {
       toast.error(state.message);
       setStatus("error")
-    }
-    else {
-      toast.error("unknown error")
-      setStatus("error")
+    } else if (state.errors) {
+      // Get all error arrays from the error object
+      Object.values(state.errors).forEach(errorsArray => {
+        // Each property might be an array of error messages or undefined
+        if (errorsArray) {
+          errorsArray.forEach(errorMsg => {
+            toast.error(errorMsg);
+          });
+        }
+      });
     }
   }, [state]);
 
