@@ -43,7 +43,7 @@ COPY backend/ /backend/
 COPY backendtests/ /backendtests/
 
 # Copy testdata directory to /app/testdata
-COPY backend/testdata/ /app/testdata/
+COPY testdata/ /app/testdata/
 
 # Install Entity Framework Core tools
 RUN dotnet tool install --global dotnet-ef
