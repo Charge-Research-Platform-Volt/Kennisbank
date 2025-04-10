@@ -11,12 +11,12 @@ import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
 import { OctagonAlert } from "lucide-react";
 import GetFileIcon from "./getFileIcon";
-import { Resource } from "@/types/resource.type"
+import { Resource, ResourceResponse } from "@/types/resource.type"
 import { handleOpenFile } from "@/actions/openFileActions";
 
 export default function QuickSearch() {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchResults, setSearchResults] = useState<Resource[]>([]);
+  const [searchResults, setSearchResults] = useState<ResourceResponse[]>([]);
 
   // Keyboard shortcut
   useHotkeys("mod+k", () => setIsOpen(true), { preventDefault: true });
@@ -95,7 +95,7 @@ export default function QuickSearch() {
           {/* Search results*/}
           <div className="flex h-full flex-col gap-1 overflow-y-auto">
             {/* No results found */}
-            {searchResults.length === 0 && (
+            {searchResults && searchResults.length === 0 && (
               <p className="flex items-center gap-3 p-3">
                 <OctagonAlert size={16} />
                 No results found.
@@ -103,7 +103,7 @@ export default function QuickSearch() {
             )}
 
             {/* Results list */}
-            {searchResults.length > 0 &&
+            {searchResults && searchResults.length > 0 &&
               searchResults.map((file) => (
                 <div
                   onClick={() => handleOpenFile(file)}

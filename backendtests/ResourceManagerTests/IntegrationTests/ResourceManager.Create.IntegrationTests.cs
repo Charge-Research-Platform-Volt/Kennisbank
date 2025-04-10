@@ -4,6 +4,8 @@ using KnowledgeBank.Data;
 using Moq;
 using Microsoft.EntityFrameworkCore;
 using KnowledgeBank.Controllers;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace backend.Tests.Integration;
 
@@ -12,12 +14,40 @@ namespace backend.Tests.Integration;
 public class ResourceManagerCreateTests : TestBase
 {
     private ResourceManager _resourceManager;
+    private UserManager<User> _userManager;
     private Mock<IAzureBlobService> _mockBlobService;
 
+    private string testUserId;
+
+    [TearDown]
+    public void TearDown()
+    {
+        _userManager?.Dispose();
+    }
 
     [SetUp]
-    public void SetupController()
+    public async Task SetupController()
     {
+        var userStore = new UserStore<User>(Context);
+        _userManager = new UserManager<User>(
+           userStore,
+            null,
+            new PasswordHasher<User>(),
+            new[] { new UserValidator<User>() },
+            new[] { new PasswordValidator<User>() }, 
+            new UpperInvariantLookupNormalizer(),
+            new IdentityErrorDescriber(),
+            null, 
+            null 
+        );
+
+        User user = new() {
+            UserName = "admin",
+        };
+
+        await _userManager.CreateAsync(user, "Admin123!");
+        testUserId = Context.Users.FirstOrDefault(u => u.UserName == "admin").Id;
+
         _mockBlobService = new Mock<IAzureBlobService>();
         _resourceManager = new ResourceManager(Context);
     }
@@ -91,13 +121,13 @@ public class ResourceManagerCreateTests : TestBase
     public async Task CreateResourceAsync_WithExistingTagId_CreatesTagRelation()
     {
         // Arrange
-        TagCreateDto testTagDto = new TagCreateDto
+        TagCreateDto testTagDto = new()
         {
-            Name = "Tag1",
-            CreatedBy = "test"
+            Name = "testTag",
+            CreatedBy = testUserId,
         };
-        await _resourceManager.CreateTagAsync(testTagDto);
-        Tag? testTag = await Context.Tags.FirstOrDefaultAsync();
+
+        Guid testTagId = await _resourceManager.CreateTagAsync(testTagDto);
 
         ResourceType resourceType = await Context.ResourceTypes.FirstAsync();
 
@@ -108,7 +138,7 @@ public class ResourceManagerCreateTests : TestBase
             TypeId = resourceType.Id.ToString(),
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
-            Tags =  [testTag.Id.ToString()]
+            Tags = [testTagId.ToString()]
         };
 
         // Act
@@ -121,7 +151,7 @@ public class ResourceManagerCreateTests : TestBase
 
         Assert.That(resource, Is.Not.Null);
         Assert.That(resource.Tags, Has.Count.EqualTo(1));
-        Assert.That(resource.Tags.First().TagId, Is.EqualTo(testTag.Id));
+        Assert.That(resource.Tags.First().TagId, Is.EqualTo(testTagId));
     }
 
     [Test]
@@ -131,32 +161,28 @@ public class ResourceManagerCreateTests : TestBase
         TagCreateDto testTagDto = new TagCreateDto
         {
             Name = "Tag1",
-            CreatedBy = "test"
+            CreatedBy = testUserId
         };
-        await _resourceManager.CreateTagAsync(testTagDto);
-        Tag? testTag = await Context.Tags.FirstOrDefaultAsync();
+        Guid testTagId = await _resourceManager.CreateTagAsync(testTagDto);
 
         PersonCreateDto testPersonDto = new PersonCreateDto
         {
             Name = "Test Name",
             Occupation = "Test Occupation"
         };
-        await _resourceManager.CreatePersonAsync(testPersonDto);
-        Person? testPerson = await Context.Persons.FirstOrDefaultAsync();
+        Guid testPersonId = await _resourceManager.CreatePersonAsync(testPersonDto);
 
         OrganisationCreateDto testOrganisationDto = new OrganisationCreateDto
         {
             Name = "Utrecht University"
         };
-        await _resourceManager.CreateOrganisationAsync(testOrganisationDto);
-        Organisation? testOrganisation = await Context.Organisations.FirstOrDefaultAsync();
+        Guid testOrganisationId = await _resourceManager.CreateOrganisationAsync(testOrganisationDto);
 
         RegionCreateDto testRegionDto = new RegionCreateDto
         {
             Name = "Utrecht"
         };
-        await _resourceManager.CreateRegionAsync(testRegionDto);
-        Region? testRegion = await Context.Regions.FirstOrDefaultAsync();
+        Guid testRegionId = await _resourceManager.CreateRegionAsync(testRegionDto);
 
         ResourceType? type = await Context.ResourceTypes.FirstAsync();
 
@@ -167,10 +193,10 @@ public class ResourceManagerCreateTests : TestBase
             TypeId = type.Id.ToString(),
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
-            Tags = [testTag.Id.ToString()],
-            Authors = [testPerson.Id.ToString()],
-            Organisations = [(testOrganisation.Id.ToString(), "boss")],
-            Regions = [testRegion.Id.ToString()]
+            Tags = [testTagId.ToString()],
+            Authors = [testPersonId.ToString()],
+            Organisations = [(testOrganisationId.ToString(), "boss")],
+            Regions = [testRegionId.ToString()]
         };
 
         // Act
@@ -185,9 +211,9 @@ public class ResourceManagerCreateTests : TestBase
             .FirstAsync(r => r.Id == resourceId);
 
 
-        Assert.That(resource.Tags.Any(t => t.TagId == testTag.Id));
-        Assert.That(resource.Authors.Any(a => a.PersonId == testPerson.Id));
-        Assert.That(resource.Organisations.Any(o => o.OrganisationId == testOrganisation.Id));
-        Assert.That(resource.Regions.Any(r => r.RegionId == testRegion.Id));
+        Assert.That(resource.Tags.Any(t => t.TagId == testTagId));
+        Assert.That(resource.Authors.Any(a => a.PersonId == testPersonId));
+        Assert.That(resource.Organisations.Any(o => o.OrganisationId == testOrganisationId));
+        Assert.That(resource.Regions.Any(r => r.RegionId == testRegionId));
     }
 }
