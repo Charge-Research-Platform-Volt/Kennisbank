@@ -11,7 +11,7 @@ export const handleOpenFile = async (file: ResourceResponse) => {
             });
           
             if (!response.ok) {
-            throw new Error(`Error getting file: ${response.statusText}`);
+                throw new Error(`Error getting file: ${response.statusText}`);
             }
 
             const blob = await response.blob();
