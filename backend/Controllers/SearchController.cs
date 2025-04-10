@@ -27,15 +27,15 @@ public class SearchController : ControllerBase
         this.database = databaseContext;
     }
 
-    [HttpPost("search-name")]
+    [HttpPost("search-title")]
     [SwaggerOperation(
-        Summary = "Search database by name.",
-        Description = "Searches for files in database based on a given name, with pagination."
+        Summary = "Search database by title.",
+        Description = "Searches for resources in database based on a given title, with pagination."
     )]
     [SwaggerResponse(200, "List of search results", typeof(List<Resource>))]
     [SwaggerResponse(400, "Invalid search query")]
     [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> SearchByName(
+    public async Task<IActionResult> SearchByTitle(
         [FromQuery] string query,
         [FromQuery] int pageIndex = 1,
         [FromQuery] int pageSize = 20,
@@ -62,21 +62,21 @@ public class SearchController : ControllerBase
                 .ToArrayAsync();
 
             if (items == null)
-                return Ok(new PageResponse("No files found.", pageIndex, pageSize, Array.Empty<Resource>()));
+                return Ok(new PageResponse("No resources found.", pageIndex, pageSize, Array.Empty<Resource>()));
 
-            return Ok(new PageResponse($"{items.Length} files found.", pageIndex, pageSize, items));
+            return Ok(new PageResponse($"{items.Length} resources found.", pageIndex, pageSize, items));
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error listing files on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
-            return StatusCode(500, new StorageResponse("Error listing files."));
+            logger.Error(e, "Error listing resources on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
+            return StatusCode(500, new StorageResponse("Error listing resources."));
         }
     }
 
     [HttpPost("search-description")]
     [SwaggerOperation(
         Summary = "Search database by description.",
-        Description = "Searches for files in database based on a given description, with pagination."
+        Description = "Searches for resources in database based on a given description, with pagination."
     )]
     [SwaggerResponse(200, "List of search results", typeof(List<Resource>))]
     [SwaggerResponse(400, "Invalid search query")]
@@ -108,21 +108,21 @@ public class SearchController : ControllerBase
                 .ToArrayAsync();
 
             if (items == null)
-                return Ok(new PageResponse("No files found.", pageIndex, pageSize, Array.Empty<Resource>()));
+                return Ok(new PageResponse("No resources found.", pageIndex, pageSize, Array.Empty<Resource>()));
 
-            return Ok(new PageResponse($"{items.Length} files found.", pageIndex, pageSize, items));
+            return Ok(new PageResponse($"{items.Length} resources found.", pageIndex, pageSize, items));
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error listing files on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
-            return StatusCode(500, new StorageResponse("Error listing files."));
+            logger.Error(e, "Error listing resources on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
+            return StatusCode(500, new StorageResponse("Error listing resources."));
         }
     }
 
     [HttpPost("search-full-text")]
     [SwaggerOperation(
-        Summary = "FTS the database by name and description.",
-        Description = "FTS for files in database based by name and description, with pagination."
+        Summary = "FTS the database by title and description.",
+        Description = "FTS for resources in database based by title and description, with pagination."
     )]
     [SwaggerResponse(200, "List of search results", typeof(List<Resource>))]
     [SwaggerResponse(400, "Invalid search query")]
@@ -139,7 +139,7 @@ public class SearchController : ControllerBase
         if (pageSize < 1)
             return BadRequest(new StorageResponse("Page size cannot be lower than 1."));
 
-        // If the query is empty, return all files
+        // If the query is empty, return all resources
         try
         {
             int skip = (pageIndex - 1) * pageSize;
@@ -149,7 +149,7 @@ public class SearchController : ControllerBase
 
             if (string.IsNullOrEmpty(query))
             {
-                // No query provided: return all files with default ordering
+                // No query provided: return all resources with default ordering
                 items = await queryBuilder
                     .OrderByDescending(f => f.Id)
                     .Skip(skip).Take(pageSize)
@@ -168,7 +168,7 @@ public class SearchController : ControllerBase
                 //  Keep in mind these examples do not take stemming into consideration, the words 
                 //  in the query and database are stemmed to improve search results.  
 
-                // Converts the user query to a tsvector and compares this to the file vector
+                // Converts the user query to a tsvector and compares this to the resource vector
                 var tsQuery = string.Join(" & ", query.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(term => term + ":*"));
                 
                 // Execute query
@@ -196,28 +196,28 @@ public class SearchController : ControllerBase
 
                 // combine filters with query result
                 items = await queryBuilder
-                    .Where(f => itemsFromRawSql.Any(sqlItem => sqlItem.Id == f.Id)) // filter the files based on the IDs from the SQL query
+                    .Where(f => itemsFromRawSql.Any(sqlItem => sqlItem.Id == f.Id)) // filter the resources based on the IDs from the SQL query
                     .OrderBy(f => orderedIds.IndexOf(f.Id)) // maintain the order of the IDs from the SQL query
                     .Skip(skip).Take(pageSize)
                     .ToArrayAsync();
             }
 
             if (items == null)
-                return Ok(new PageResponse("No files found.", pageIndex, pageSize, Array.Empty<Resource>()));
+                return Ok(new PageResponse("No resources found.", pageIndex, pageSize, Array.Empty<Resource>()));
 
-            return Ok(new PageResponse($"{items.Length} files found.", pageIndex, pageSize, items));
+            return Ok(new PageResponse($"{items.Length} resources found.", pageIndex, pageSize, items));
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error listing files on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
-            return StatusCode(500, new StorageResponse("Error listing files."));
+            logger.Error(e, "Error listing resources on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
+            return StatusCode(500, new StorageResponse("Error listing resources."));
         }
     }
 
     [HttpGet("get-oldest-document")]
     [SwaggerOperation(
         Summary = "Returns the oldest document.",
-        Description = "Searches the whole Files table and returns the oldest one from that table."
+        Description = "Searches the whole Resources table and returns the oldest one from that table."
     )]
     [SwaggerResponse(200, "Oldest document", typeof(List<Resource>))]
     [SwaggerResponse(500, "Internal server error")]
@@ -225,21 +225,21 @@ public class SearchController : ControllerBase
     {
         try
         {
-            // Get the oldest document from the files table
+            // Get the oldest document from the resources table
             // TODO: change created_at to published_at when metadata is merged
             Resource[]? items = await database.Resources
-            .FromSqlRaw("SELECT * FROM files ORDER BY created_at")
+            .OrderBy(f => f.CreationDate)
             .Take(1)
             .ToArrayAsync();
 
             if (items == null)
-                return Ok(new ResourceInfoResponse("No files found", null));
+                return Ok(new ResourceInfoResponse("No resources found", null));
 
-            return Ok(new ResourceInfoResponse("Oldest file found", items[0]));
+            return Ok(new ResourceInfoResponse("Oldest resources found", items[0]));
         }
         catch(Exception)
         {
-            return StatusCode(500, new StorageResponse("Error checking files."));
+            return StatusCode(500, new StorageResponse("Error checking resources."));
         }
 
     }
