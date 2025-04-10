@@ -4,12 +4,14 @@ import { toast } from "sonner";
 
 // Testing library
 import "@testing-library/jest-dom";
-import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+import { vi, describe, it, expect, beforeEach, afterEach, } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 // Component to test
 import QuickSearch from "@/components/quick-search";
+
+import * as openFileActions from "@/actions/openFileActions";
 
 // Mock dependencies
 vi.mock("sonner", () => ({
@@ -57,6 +59,11 @@ const mockSearchResults = {
     },
   ],
 };
+
+// Mocking the openFileActions module
+vi.mock("@/actions/openFileActions", () => ({
+  handleOpenFile: vi.fn(), 
+}));
 
 // Types
 interface CustomWindow extends Window {
@@ -172,10 +179,12 @@ describe("QuickSearch Component test", () => {
     // Test that document description is displayed
     expect(screen.getByText("Test description")).toBeInTheDocument();
 
-    // Test the links are properly generated
-    const links = screen.getAllByRole("link");
-    expect(links[0]).toHaveAttribute("href", "/file/doc1");
-    expect(links[1]).toHaveAttribute("href", "/file/doc2");
+    // Test if the buttons triggers the action
+    await userEvent.click(screen.getByText("Document 1"));
+    expect(openFileActions.handleOpenFile).toHaveBeenCalledWith(mockSearchResults.files[0]);
+    
+    await userEvent.click(screen.getByText("File 1"));
+    expect(openFileActions.handleOpenFile).toHaveBeenCalledWith(mockSearchResults.files[1]);
   });
 
   // Test-5

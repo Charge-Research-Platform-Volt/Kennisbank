@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { OctagonAlert } from "lucide-react";
 import GetFileIcon from "./getFileIcon";
 import Link from "next/link";
+import { handleOpenFile } from "@/actions/openFileActions";
 import { Resource } from "@/types/resource.type"
 
 export default function QuickSearch() {
@@ -105,10 +106,11 @@ export default function QuickSearch() {
             {/* Results list */}
             {searchResults.length > 0 &&
               searchResults.map((file) => (
-                <Link
-                  href={`/file/${file.id}`}
+                <div
+                  onClick={() => handleOpenFile(file)}
                   key={file.id}
-                  className="hover:bg-muted-foreground/20 focus-visible:bg-muted-foreground/20 rounded-lg bg-transparent p-3 transition-colors outline-none"
+                  role="button"
+                  className="hover:bg-muted-foreground/20 focus-visible:bg-muted-foreground/20 rounded-lg bg-transparent p-3 transition-colors outline-none cursor-pointer"
                 >
                   <div className={`${file.description !== "" && "mb-2"} flex items-start gap-2`}>
                     <GetFileIcon fileType={file.fileType} className="mt-[3px]" />
@@ -116,7 +118,7 @@ export default function QuickSearch() {
                   </div>
 
                   {file.description !== "" && <p className="text-muted-foreground/80 text-sm">{file.description}</p>}
-                </Link>
+                </div>
               ))}
           </div>
         </DialogContent>
