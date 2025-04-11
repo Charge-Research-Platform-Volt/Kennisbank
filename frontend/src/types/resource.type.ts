@@ -8,12 +8,17 @@ export const ResourceBaseSchema = z.object({
 	description: z.string(),
   typeId: z.string().min(1, {message: "Type is required"}),
   languageCode: z.string().min(1, {message: "languageCode is required"}).max(2, {message: "Cant be longer than 2 characters"}),
-  publicationDate: z.date(),
-	file: z.instanceof(File, {message: "File is required"}),
-  fileType: z.string().nullable(),
-	//tags: z.string().min(1, {message: "At least 1 tag is required"}),
-	hash: z.string({ message: "Hash should be a string" }),
+  publicationDate: z.date()
 });
+
+export const FileResourceSchema = ResourceBaseSchema.extend({
+	file: z.instanceof(File, {message: "File is required"}),
+	hash: z.string({ message: "Hash should be a string" })
+})
+
+export const WebsiteResourceSchema = ResourceBaseSchema.extend({
+  url: z.string().min(1, {message: "URL is required"})
+})
 
 /**
  * Complete document schema with ID that extends the base document
@@ -51,6 +56,8 @@ export const ResourcePageResponseSchema = z.object({
 
 // Type definitions derived from the schemas
 export type ResourceBase = z.infer<typeof ResourceBaseSchema>;
+export type FileBase = z.infer<typeof FileResourceSchema>;
+export type WebsiteBase = z.infer<typeof WebsiteResourceSchema>;
 export type Resource = z.infer<typeof ResourceSchema>;
 export type ResourcePageResponse = z.infer<typeof ResourcePageResponseSchema>;
 export type ResourceResponse = z.infer<typeof ResourceResponseSchema>;

@@ -3,12 +3,12 @@
 import React, { useRef, useEffect, useState, ChangeEvent, useActionState, useTransition } from "react";
 import "@/components/ui/Popup.css";
 import "@/app/globals.css";
-import { AddResource } from "@/actions/resourceActions";
+import { AddDocument } from "@/actions/documentActions";
 import { AddWebsite } from "@/actions/websiteActions";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { FormResponse } from "@/types/return.type";
-import { ResourceBase } from "@/types/resource.type";
+import { FileResourceSchema, WebsiteResourceSchema, type FileBase, type WebsiteBase } from "@/types/resource.type";
 import { Button } from "@/components/ui/button";
 import { getFileHasher } from "@/utils/fileHashWorker";
 import { TagArray } from "@/types/tag.type";
@@ -18,7 +18,12 @@ import New from "@/icons/new";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error" | "checking";
 
-const initialResourceState: FormResponse<ResourceBase> = {
+const initialWebsiteResourceState: FormResponse<WebsiteBase> = {
+  success: false,
+  message: "",
+};
+
+const initialFileResourceState: FormResponse<FileBase> = {
   success: false,
   message: "",
 };
@@ -49,26 +54,30 @@ export default function NewButton({ tags }: { tags: TagArray }) {
   type uploadType = "File" | "Website";
 
   const [isPendingTransition, startTransition] = useTransition();
-  const [state, action] = useActionState((prevState: FormResponse<ResourceBase>, formData: FormData) => {
+  const [fileState, fileAction] = useActionState((prevState: FormResponse<FileBase>, formData: FormData) => {
     const fileName = newFile?.name.substring(0, newFile?.name.lastIndexOf(".")) || "";
-    return AddResource(fileName, fileHash, prevState, formData);
-  }, initialResourceState);
+    return AddDocument(fileName, fileHash, prevState, formData);
+  }, initialFileResourceState);
+
+  const [websiteState, websiteAction] = useActionState((prevState: FormResponse<WebsiteBase>, formData: FormData) => {
+    return AddWebsite(prevState, formData);
+  }, initialWebsiteResourceState);
 
   const isPending = isPendingTransition;
 
   //error messaging //
 
   useEffect(() => {
-    if (state.success) {
-      toast.success(state.message);
+    if (fileState.success) {
+      toast.success(fileState.message);
 
       closeUploadPopup();
-    } else if (state.message) {
-      toast.error(state.message);
+    } else if (fileState.message) {
+      toast.error(fileState.message);
       setStatus("error")
-    } else if (state.errors) {
+    } else if (fileState.errors) {
       // Get all error arrays from the error object
-      Object.values(state.errors).forEach(errorsArray => {
+      Object.values(fileState.errors).forEach(errorsArray => {
         // Each property might be an array of error messages or undefined
         if (errorsArray) {
           errorsArray.forEach(errorMsg => {
@@ -77,7 +86,27 @@ export default function NewButton({ tags }: { tags: TagArray }) {
         }
       });
     }
-  }, [state]);
+  }, [fileState]);
+
+  useEffect(() => {
+    if (websiteState.success) {
+      toast.success(websiteState.message);
+
+      closeUploadPopup();
+    } else if (websiteState.message) {
+      toast.error(websiteState.message);
+    } else if (websiteState.errors) {
+      // Get all error arrays from the error object
+      Object.values(websiteState.errors).forEach(errorsArray => {
+        // Each property might be an array of error messages or undefined
+        if (errorsArray) {
+          errorsArray.forEach(errorMsg => {
+            toast.error(errorMsg);
+          });
+        }
+      });
+    }
+  }, [websiteState]);
 
   //upload new file popup //
   const closePopup = (e: MouseEvent) => {
@@ -177,10 +206,10 @@ export default function NewButton({ tags }: { tags: TagArray }) {
     try {
       startTransition(async () => {
         if(newUploadType === "File"){
-          await action(formData);
+          await fileAction(formData);
         }
         if(newUploadType === "Website"){
-          await action(formData);
+          await websiteAction(formData);
         }
       });
     } catch (error) {
@@ -280,7 +309,7 @@ export default function NewButton({ tags }: { tags: TagArray }) {
                   {/* Document title entry */}
                   <InputBlock data-testid="popup_text" className="justify-start">
                     <InputHeader>Document Title: </InputHeader>
-                    <FInput className="w-full" type="string" placeholder="Enter document title" name="name" value={title} onChange={(e) => setTitle(e.target.value.trim())} />
+                    <FInput className="w-full" type="string" placeholder="Enter document title" name="title" value={title} onChange={(e) => setTitle(e.target.value.trim())} />
                   </InputBlock>
 
                   <div className="flex gap-3">

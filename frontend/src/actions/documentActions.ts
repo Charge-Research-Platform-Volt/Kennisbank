@@ -1,35 +1,34 @@
 "use server";
 
-import { ResourceBaseSchema, type ResourceBase } from "@/types/resource.type";
+import { FileResourceSchema, type FileBase } from "@/types/resource.type";
 import { FormResponse } from "@/types/return.type";
 import { revalidatePath } from "next/cache";
 //import { Log } from "../../Pino";
 import { cookies } from "next/headers";
 
-export const AddResource = async (
+export const AddDocument = async (
     defaultName: string,
     hash: string,
-    prevState: FormResponse<ResourceBase>,
+    prevState: FormResponse<FileBase>,
     formData: FormData,
-): Promise<FormResponse<ResourceBase>> => {
+): Promise<FormResponse<FileBase>> => {
     try {
         console.log("Adding resource");
 
         // Raw data from the form.
-        const rawData: ResourceBase = {
+        const rawData: FileBase = {
             title: (formData.get("title") as string)?.trim() || defaultName,
             typeId: "0cc285a8-0f07-11f0-a0a6-5600051f1387", // This is the GUID of the unknown type
             languageCode: "AA",
             description: formData.get("description") as string,
             file: formData.get("file") as File,
             hash: formData.get("hash") as string,
-            publicationDate: new Date("1995-12-17T03:24:00"),
-            fileType: null,
+            publicationDate: new Date("1995-12-17T03:24:00")
         };
         console.log("validating resource");
 
         // Validate the raw data, if it fails, return an error.
-        const validatedData = ResourceBaseSchema.safeParse(rawData);
+        const validatedData = FileResourceSchema.safeParse(rawData);
 
         if (!validatedData.success) {
             return {
@@ -38,7 +37,7 @@ export const AddResource = async (
                 inputs: rawData,
             };
         }
-        console.log("Resource validated");
+        console.log("Document validated");
 
         if(rawData.title == defaultName){
             formData.set("title", defaultName);

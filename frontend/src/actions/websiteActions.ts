@@ -1,9 +1,9 @@
 "use server";
 
-import { WebsiteBaseSchema, type WebsiteBase } from "@/types/document.type";
+import { WebsiteResourceSchema, type WebsiteBase } from "@/types/resource.type";
 import type { FormResponse } from "@/types/return.type";
 import { revalidatePath } from "next/cache";
-import { Log } from "../../Pino";
+//import { Log } from "../../Pino";
 import { cookies } from "next/headers";
 
 export const AddWebsite = async (
@@ -14,13 +14,16 @@ export const AddWebsite = async (
         // Raw data from the form.
         const rawData: WebsiteBase = {
             url: formData.get("url") as string,
-            name: (formData.get("name") as string)?.trim(),
+            title: (formData.get("title") as string)?.trim(),
             description: formData.get("description") as string,
+            typeId: "0cc285a8-0f07-11f0-a0a6-5600051f1387", //unknown type id
+            languageCode: "AA",
+            publicationDate: new Date("1995-12-17T03:24:00")
         };
 
 
         // Validate the raw data, if it fails, return an error.
-        const validatedData = WebsiteBaseSchema.safeParse(rawData);
+        const validatedData = WebsiteResourceSchema.safeParse(rawData);
 
 
         if (!validatedData.success) {
@@ -30,6 +33,13 @@ export const AddWebsite = async (
                 inputs: rawData,
             };
         }
+
+        formData.set("typeId", rawData.typeId);
+        formData.set("languageCode", rawData.languageCode);
+        formData.set("publicationDate", rawData.publicationDate.toISOString());
+
+
+
 
         const tagIDs: string[] = [];
         
