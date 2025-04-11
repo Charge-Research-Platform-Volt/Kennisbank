@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Responses;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
@@ -13,14 +14,10 @@ namespace backend.Controllers
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class WebsiteUploadController : ControllerBase
+    public class WebsiteUploadController(ResourceManager resourceManager) : ControllerBase
     {
-        // Database context
-        private readonly DatabaseContext _context;
-        public WebsiteUploadController(DatabaseContext context)
-        {
-            _context = context;
-        }
+        private readonly ResourceManager resourceManager = resourceManager;
+        
         /// <summary>
         /// Checks if the URL is valid
         /// </summary>
@@ -38,13 +35,14 @@ namespace backend.Controllers
             Summary = "lists all websites",
             Description = "HttpGet request that fetches all websites uploaded to the archive"
         )]
-        [SwaggerResponse(200, "List of websites", typeof(List<Website>))]
+        [SwaggerResponse(200, "List of websites")]
         [SwaggerResponse(500, "Internal server error")]
-        public IActionResult Get()
+        public async Task<IActionResult> Get()
         {
+
             try
             {
-                return Ok(_context.Websites.OrderBy(web => web.Name).ToList());
+                return Ok(DtoGenerator.ToDto(await resourceManager.GetAllResourcesAsync(predicate: r => r.FileType == "website", includeProperties: "WebsiteMetadata")));
             }
             catch (Exception e)
             {
@@ -65,19 +63,19 @@ namespace backend.Controllers
                 Summary = "Uploads a new website.",
                 Description = "Lets a user upload a new website to the archive."
             )]
-        [SwaggerResponse(200, "New website uploaded", typeof(Website))]
+        [SwaggerResponse(200, "New website uploaded")]
         [SwaggerResponse(400, "Bad request")]
         [SwaggerResponse(409, "Website already exists in database")]
         [SwaggerResponse(500, "Internal server error")]
-        public async Task<IActionResult> AddWebsite([FromForm] WebUploadDto dto)
+        public async Task<IActionResult> AddWebsite([FromForm] WebsiteCreateDto dto)
         {
             Log.Information("Adding new website to database.");
 
-            if(string.IsNullOrEmpty(dto.URL) || !ValidURL(dto.URL) )
+            if(string.IsNullOrEmpty(dto.Url) || !ValidURL(dto.Url) )
             {
                 return BadRequest("URL is not provided or invalid.");
             }
-            if(string.IsNullOrEmpty(dto.Name))
+            if(string.IsNullOrEmpty(dto.Title))
             {
                 return BadRequest("Title is not provided");
             }
@@ -86,39 +84,11 @@ namespace backend.Controllers
                 return BadRequest("Description is not provided");
             }
 
-            Guid id = Guid.NewGuid();
-            //Log(id);
 
             try
             {
-                Website website = new()
-                {
-                    Id = id,
-                    URL = dto.URL,
-                    Name = dto.Name,
-                    Description = dto.Description,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                await _context.Websites.AddAsync(website);
-
-                foreach (string tag in dto.Tags)
-                {
-                    FileTagLink tagEntry = new()
-                    {
-                        DocId = id,
-                        TagId = Guid.Parse(tag),
-                    };
-
-                    await _context.FileTagLinks.AddAsync(tagEntry);
-                }
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
-            {
-                // The website URL already is in the database
-                Log.Error(e, "Website URL already exists in database.");
-                return Conflict(new { message = "Website URL already exists." });
+                Log.Information("Adding website '{URL}' to database", dto.Url);
+                Guid id = await resourceManager.CreateResourceAsync(dto);
             }
             catch(Exception e)
             {
@@ -145,7 +115,7 @@ namespace backend.Controllers
                 Summary = "Delete website.",
                 Description = "Lets an admin delete a website."
             )]
-        [SwaggerResponse(200, "Website deleted", typeof(Website))]
+        [SwaggerResponse(200, "Website deleted")]
         [SwaggerResponse(400, "Bad request")]
         [SwaggerResponse(404, "Website not found")]
         [SwaggerResponse(500, "Internal server error")]
@@ -161,19 +131,19 @@ namespace backend.Controllers
             Guid guid = Guid.Parse(id);
             Log.Error(id);
 
-            // Find website
-            Website? website = await _context.Websites.FirstOrDefaultAsync(web => web.Id == guid);
-
-            if(website == null)
+            try
             {
-                Log.Error("Website could not be found");
-                return BadRequest(new {message = "website could not be found"});
-            }
-            // Remove website from database
-            _context.Websites.Remove(website);
-            await _context.SaveChangesAsync();
+                // Find and remove website
+                if (await resourceManager.ResourceExistsAsync(id))
+                    return NotFound(new StorageResponse("ID was not found in database. Website was deleted succesfully."));
 
-            return Ok(new { message = "website deleted"});
+                return Ok(new { message = "website deleted" });
+            }
+            catch (Exception e)
+            {
+                Log.Information(e, "Error while detecting website with ID {id}", id);
+                return StatusCode(500, new StorageResponse("Error while removing website. "));
+            }
         }
 
 
@@ -184,18 +154,18 @@ namespace backend.Controllers
         /// <param name="newTitleOrURL">the new title or url to change to</param>
         /// <param name="column">the attribute to change</param>
         /// <returns>Ok if it succeeds</returns>
-        [HttpPatch("change-website/{id}/{newTitleOrUrl}/{column}")]
+        [HttpPatch("change-website/{id}/{newTitleOrUrl}/{column}/{oldUrl}")]
         [Authorize(Policy = "RequireAdminRole")]
         [SwaggerOperation(
                 Summary = "Change website.",
                 Description = "Lets an admin change a website."
             )]
-        [SwaggerResponse(200, "Website changed", typeof(Website))]
+        [SwaggerResponse(200, "Website changed")]
         [SwaggerResponse(400, "Bad request")]
         [SwaggerResponse(404, "Website not found")]
         [SwaggerResponse(409, "New URL already exists")]
         [SwaggerResponse(500, "Internal server error")]
-        public async Task<IActionResult> ChangeWebsite(string id, string newTitleOrURL, string column)
+        public async Task<IActionResult> ChangeWebsite(string id, string newTitleOrURL, string column, string? oldUrl)
         {
             Log.Information("Changing website title or URL");
 
@@ -230,27 +200,24 @@ namespace backend.Controllers
                 return BadRequest(new { message = "Invalid id format." });
             }
 
-            Website? website = await _context.Websites.FirstOrDefaultAsync(web => web.Id == guid);
-
-            if(website == null)
-            {
-                Log.Error("no such website found");
-                return NotFound(new {message = "so such website found"});
-            }
             //Change website url or title
             try
             {
-                if(column == "URL")
-                    website.URL = newTitleOrURL;
+                if (column == "URL")
+                {
+                    if (!await resourceManager.UpdateResourceSourceRelationAsync(id, oldUrl, newTitleOrURL))
+                        return NotFound(new StorageResponse("ID was not found in database."));
+                }
                 else
-                    website.Name = newTitleOrURL;
-                await _context.SaveChangesAsync();
+                {
+                    if (!await resourceManager.UpdateResourceAsync(id, r => r.Title, newTitleOrURL))
+                        return NotFound(new StorageResponse("ID was not found in database."));
+                }
             }
-            catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
+            catch (Exception e)
             {
-                // The website url already exists
-                Log.Error(e, "URL already exists.");
-                return Conflict(new { message = "New URL already exists." });
+                Log.Error(e, "Error while renaming file with ID {Id}.", id);
+                return StatusCode(500, new StorageResponse("Error while renaming file."));
             }
             return Ok(new { message = "Website URL or Title changed"});
         }
