@@ -1,6 +1,5 @@
-using backend.Data;
-using backend.Security;
 using KnowledgeBank.Data;
+using KnowledgeBank.Security;
 using KnowledgeBank.Extensions;
 using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +9,6 @@ using Microsoft.OpenApi.Models;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
-using System.Threading.Tasks;
 
 namespace KnowledgeBank
 {
@@ -58,6 +56,8 @@ namespace KnowledgeBank
                 options => options.UseNpgsql(builder.Configuration.GetValue<string>("CONNECTION_STRING")
             ));
 
+            builder.Services.AddScoped<ResourceManager>();
+
             // CORS to allow Cross Origin Resource Sharing
             builder.Services.AddCors(options =>
             {
@@ -91,13 +91,7 @@ namespace KnowledgeBank
             using (IServiceScope scope = app.Services.CreateScope())
             {
                 await RoleInitializer.InitializeAsync(app.Services);
-                await TestDataSeeder.Seed(app.Services);
-            }
-
-            // Initialize roles
-            using (IServiceScope scope = app.Services.CreateScope())
-            {
-                await RoleInitializer.InitializeAsync(app.Services);
+                await DatabaseSeeder.Seed(app.Services);
                 await TestDataSeeder.Seed(app.Services);
             }
 

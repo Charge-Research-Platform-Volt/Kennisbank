@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using Serilog;
-using backend.Responses;
+using KnowledgeBank.Responses;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
+
+namespace KnowledgeBank.Controllers;
 
 /// <summary>
 /// Controller for all sorts of functionality that 

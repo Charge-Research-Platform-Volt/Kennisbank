@@ -1,0 +1,206 @@
+---
+title: Deletion
+description: Deleting resources using the resource manager.
+order: 2
+---
+
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Delete a Resource](#delete-a-resource)
+- [Delete Document Metadata](#delete-document-metadata)
+- [Delete Audio Metadata](#delete-audio-metadata)
+- [Delete Video Metadata](#delete-video-metadata)
+- [Delete Website Metadata](#delete-website-metadata)
+- [Delete a Person](#delete-a-person)
+- [Delete an Organisation](#delete-an-organisation)
+- [Delete a Region](#delete-a-region)
+- [Delete a Tag](#delete-a-tag)
+- [Delete a Resource Type](#delete-a-resource-type)
+
+## Introduction
+This part of the Resource Manager corresponds to the `ResourceManager.Delete.cs` in the backend. It is responsible for deleting resources, entities (like a person) and metadata entries.
+The library automatically handles removing all related relations when an entity is deleted to maintain database integrity.
+
+## Delete a Resource
+When deleting a resource, the Resource Manager automatically removes all relations associated with the resource. This includes:
+- Resource-author relations
+- Resource-organisation relations
+- Resource-region relations
+- Resource-source relations
+- Resource-related organisation relations
+- Resource-related person relations
+- Resource-related source relations
+- Resource-tag relations
+
+To delete a resource, you can use the `ResourceManager.DeleteResourceAsync` method which accepts either a GUID or a string ID:
+
+```csharp
+// Delete using a GUID
+Guid resourceId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+bool success = await resourceManager.DeleteResourceAsync(resourceId);
+
+// Or delete using a string
+string resourceIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+bool success = await resourceManager.DeleteResourceAsync(resourceIdString);
+```
+
+The method returns a boolean indicating whether the deletion was successful.
+
+## Delete Document Metadata
+Document metadata can be deleted separately from the resource itself using the `DeleteDocumentMetadataAsync` method:
+
+```csharp
+// Delete metadata using a GUID
+Guid resourceId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+bool success = await resourceManager.DeleteDocumentMetadataAsync(resourceId);
+
+// Or delete metadata using a string
+string resourceIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+bool success = await resourceManager.DeleteDocumentMetadataAsync(resourceIdString);
+```
+
+<Callout title="Note">Note that this only deletes the metadata, not the resource itself.</Callout>
+
+## Delete Audio Metadata
+Audio metadata can be deleted separately from the resource itself using the `DeleteAudioMetadataAsync` method:
+
+```csharp
+// Delete metadata using a GUID
+Guid resourceId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+bool success = await resourceManager.DeleteAudioMetadataAsync(resourceId);
+
+// Or delete metadata using a string
+string resourceIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+bool success = await resourceManager.DeleteAudioMetadataAsync(resourceIdString);
+```
+
+<Callout title="Note">Note that this only deletes the metadata, not the resource itself.</Callout>
+
+## Delete Video Metadata
+Video metadata can be deleted separately from the resource itself using the `DeleteVideoMetadataAsync` method:
+
+```csharp
+// Delete metadata using a GUID
+Guid resourceId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+bool success = await resourceManager.DeleteVideoMetadataAsync(resourceId);
+
+// Or delete metadata using a string
+string resourceIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+bool success = await resourceManager.DeleteVideoMetadataAsync(resourceIdString);
+```
+
+<Callout title="Note">Note that this only deletes the metadata, not the resource itself.</Callout>
+
+## Delete Website Metadata
+Website metadata can be deleted separately from the resource itself using the `DeleteWebsiteMetadataAsync` method:
+
+```csharp
+// Delete metadata using a GUID
+Guid resourceId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+bool success = await resourceManager.DeleteWebsiteMetadataAsync(resourceId);
+
+// Or delete metadata using a string
+string resourceIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+bool success = await resourceManager.DeleteWebsiteMetadataAsync(resourceIdString);
+```
+
+<Callout title="Note">Note that this only deletes the metadata, not the resource itself.</Callout>
+
+## Delete a Person
+When deleting a person, the Resource Manager automatically removes all relations associated with the person. This includes:
+- Removing the person from all organisations they are part of
+- Deleting all person relationships containing this person
+- Removing the person as an author from all resources
+- Removing the person as a related person from all resources
+
+To delete a person, you can use the `DeletePersonAsync` method which accepts either a GUID or a string ID:
+
+```csharp
+// Delete using a GUID
+Guid personId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+bool success = await resourceManager.DeletePersonAsync(personId);
+
+// Or delete using a string
+string personIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+bool success = await resourceManager.DeletePersonAsync(personIdString);
+```
+
+The method returns a boolean indicating whether the deletion was successful.
+
+## Delete an Organisation
+When deleting an organisation, the Resource Manager automatically removes all relations associated with the organisation. This includes:
+- Deleting all organisation relationships containing this organisation
+- Removing the organisation from all direct resource relations
+- Removing all person-organisation relations containing this organisation
+- Removing the organisation as a related organisation from all resources
+
+To delete an organisation, you can use the `DeleteOrganisationAsync` method which accepts either a GUID or a string ID:
+
+```csharp
+// Delete using a GUID
+Guid organisationId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+bool success = await resourceManager.DeleteOrganisationAsync(organisationId);
+
+// Or delete using a string
+string organisationIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+bool success = await resourceManager.DeleteOrganisationAsync(organisationIdString);
+```
+
+The method returns a boolean indicating whether the deletion was successful.
+
+## Delete a Region
+When deleting a region, the Resource Manager automatically removes all relations associated with the region. This includes:
+- Removing the region from all resources that reference it
+
+To delete a region, you can use the `DeleteRegionAsync` method which accepts either a GUID or a string ID:
+
+```csharp
+// Delete using a GUID
+Guid regionId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+bool success = await resourceManager.DeleteRegionAsync(regionId);
+
+// Or delete using a string
+string regionIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+bool success = await resourceManager.DeleteRegionAsync(regionIdString);
+```
+
+The method returns a boolean indicating whether the deletion was successful.
+
+## Delete a Tag
+When deleting a tag, the Resource Manager automatically removes all relations associated with the tag. This includes:
+- Removing the tag from all resources that use it
+
+To delete a tag, you can use the `DeleteTagAsync` method which accepts either a GUID or a string ID:
+
+```csharp
+// Delete using a GUID
+Guid tagId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+bool success = await resourceManager.DeleteTagAsync(tagId);
+
+// Or delete using a string
+string tagIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+bool success = await resourceManager.DeleteTagAsync(tagIdString);
+```
+
+The method returns a boolean indicating whether the deletion was successful.
+
+## Delete a Resource Type
+When deleting a resource type, the Resource Manager automatically handles resources that were using this type by:
+- Setting the type of all resources with this type to the "unknown" resource type
+
+To delete a resource type, you can use the `DeleteResourceTypeAsync` method which accepts either a GUID or a string ID:
+
+```csharp
+// Delete using a GUID
+Guid typeId = Guid.Parse("d429af17-72d9-4bf1-8418-4e25f51ff7e7");
+bool success = await resourceManager.DeleteResourceTypeAsync(typeId);
+
+// Or delete using a string
+string typeIdString = "d429af17-72d9-4bf1-8418-4e25f51ff7e7";
+bool success = await resourceManager.DeleteResourceTypeAsync(typeIdString);
+```
+
+The method returns a boolean indicating whether the deletion was successful.
+
+<Callout title="Note">When a resource type is deleted, resources that were using this type will have their type changed to the "unknown" type rather than being deleted. This preserves the resources while maintaining database integrity.</Callout>

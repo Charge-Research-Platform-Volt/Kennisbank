@@ -3,31 +3,27 @@
 import React, { useRef, useEffect, useState, ChangeEvent, useActionState, useTransition } from "react";
 import "@/components/ui/Popup.css";
 import "@/app/globals.css";
-import { AddDocument } from "@/actions/documentActions";
+import { AddResource } from "@/actions/resourceActions";
 import { AddWebsite } from "@/actions/websiteActions";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { FormResponse } from "@/types/return.type";
-import { DocumentBase, WebsiteBase } from "@/types/document.type";
+import { ResourceBase } from "@/types/resource.type";
 import { Button } from "@/components/ui/button";
 import { getFileHasher } from "@/utils/fileHashWorker";
-import { TagsArray, UserTagsArray } from "@/types/tag.type";
-import TagSelectionDropdown from "../TagSelectionDropdown";
+import { TagArray } from "@/types/tag.type";
+import TagSelectionDropdown from "..//uploadComponents/TagSelectionDropdown";
 import { InputHeader, InputBlock, FInput, FileInfo, PopupTitle } from "../ui/Popup";
 import New from "@/icons/new";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error" | "checking";
 
-const initialFileState: FormResponse<DocumentBase> = {
-  success: false,
-  message: "",
-};
-const initialWebsiteState: FormResponse<WebsiteBase> = {
+const initialResourceState: FormResponse<ResourceBase> = {
   success: false,
   message: "",
 };
 
-export default function NewButton({ userTags, standardizedTags }: { userTags: UserTagsArray, standardizedTags: TagsArray }) {
+export default function NewButton({ tags }: { tags: TagArray }) {
   const popupRef = useRef<HTMLDivElement | null>(null); //Ref used to check if user clicks outside of popup
   const [status, setStatus] = useState<UploadStatus>("idle"); //upload status
   const [uploadPopup, setUploadPopup] = useState(false); //bool which determines whether you can see the new popup
@@ -53,38 +49,35 @@ export default function NewButton({ userTags, standardizedTags }: { userTags: Us
   type uploadType = "File" | "Website";
 
   const [isPendingTransition, startTransition] = useTransition();
-  const [fileState, fileAction] = useActionState((prevState: FormResponse<DocumentBase>, formData: FormData) => {
+  const [state, action] = useActionState((prevState: FormResponse<ResourceBase>, formData: FormData) => {
     const fileName = newFile?.name.substring(0, newFile?.name.lastIndexOf(".")) || "";
-    return AddDocument(fileName, fileHash, prevState, formData);
-  }, initialFileState);
-
-  const [websiteState, websiteAction] = useActionState((prevState: FormResponse<WebsiteBase>, formData: FormData) => {
-    return AddWebsite(prevState, formData);
-  }, initialWebsiteState);
+    return AddResource(fileName, fileHash, prevState, formData);
+  }, initialResourceState);
 
   const isPending = isPendingTransition;
 
   //error messaging //
 
   useEffect(() => {
-    if (fileState.success) {
-      toast.success(fileState.message);
+    if (state.success) {
+      toast.success(state.message);
 
       closeUploadPopup();
-    } else if (fileState.message) {
-      toast.error(fileState.message);
+    } else if (state.message) {
+      toast.error(state.message);
+      setStatus("error")
+    } else if (state.errors) {
+      // Get all error arrays from the error object
+      Object.values(state.errors).forEach(errorsArray => {
+        // Each property might be an array of error messages or undefined
+        if (errorsArray) {
+          errorsArray.forEach(errorMsg => {
+            toast.error(errorMsg);
+          });
+        }
+      });
     }
-  }, [fileState]);
-
-  useEffect(() => {
-    if (websiteState.success) {
-      toast.success(websiteState.message);
-
-      closeUploadPopup();
-    } else if (websiteState.message) {
-      toast.error(websiteState.message);
-    }
-  }, [websiteState]);
+  }, [state]);
 
   //upload new file popup //
   const closePopup = (e: MouseEvent) => {
@@ -184,10 +177,10 @@ export default function NewButton({ userTags, standardizedTags }: { userTags: Us
     try {
       startTransition(async () => {
         if(newUploadType === "File"){
-          await fileAction(formData);
+          await action(formData);
         }
         if(newUploadType === "Website"){
-          await websiteAction(formData);
+          await action(formData);
         }
       });
     } catch (error) {
@@ -315,7 +308,7 @@ export default function NewButton({ userTags, standardizedTags }: { userTags: Us
 
                     <div className="flex flex-1 flex-col">
                       {/* Add Tags dropdown box*/}
-                      <TagSelectionDropdown className="h-full w-full" userTags={userTags} standardizedTags={standardizedTags}></TagSelectionDropdown>
+                      <TagSelectionDropdown className="h-full w-full" tags={tags}></TagSelectionDropdown>
                     </div>
                   </div>
                 </div>

@@ -1,30 +1,75 @@
 import { z } from "zod";
 
 /**
- * Base tag scheme
+ * Tag scheme
  */
-export const TagBaseSchema = z.object({
+export const TagSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1, { message: "Name is required" }),
+  isStandardized: z.boolean(),
+  isApproved: z.boolean(),
+  approvedOn: z.string().nullable(),
+  approvedBy: z.string().uuid().nullable(),
+  createdBy: z.string().uuid().min(1, { message: "CreatedBy is required" }),
+  createdOn: z.string(),
+});
+
+export const TagArraySchema = z.array(TagSchema);
+
+// Type definitions derived from the schemas
+export type Tag = z.infer<typeof TagSchema>;
+
+export type TagArray = z.infer<typeof TagArraySchema>;
+
+/**
+ * Tag create dto scheme
+ */
+export const TagCreateDtoSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
 });
 
-export const TagSchema = TagBaseSchema.extend({
-  id: z.string().uuid(),
-});
+export type TagCreateDto = z.infer<typeof TagCreateDtoSchema>;
 
-export const UserTagBaseSchema = TagBaseSchema.extend({});
+/**
+ * Tag rename dto schema
+ */
+export const TagRenameDtoSchema = z.object({
+  id: z.string().uuid().min(1, {message: "ID is required"}),
+  newName: z.string().min(1, { message: "New name is required"})
+})
 
-export const UserTagSchema = TagSchema.extend({
-  isApproved: z.boolean(),
-});
+export type TagRenameDto = z.infer<typeof TagRenameDtoSchema>;
 
-export const TagsArraySchema = z.array(TagSchema);
-export const UserTagsArraySchema = z.array(UserTagSchema);
+/**
+ * Tag response schema
+ */
+export const TagResponseSchema = z.object({
+  message: z.string(),
+  tagId: z.string().uuid().nullable(),
+  tags: z.array(TagArraySchema).nullable(),
+})
 
-// Type definitions derived from the schemas
-export type TagBase = z.infer<typeof TagBaseSchema>;
-export type Tag = z.infer<typeof TagSchema>;
+export type TagResponse = z.infer<typeof TagResponseSchema>;
 
-export type TagsArray = z.infer<typeof TagsArraySchema>;
-export type UserTagBase = z.infer<typeof UserTagBaseSchema>;
-export type UserTag = z.infer<typeof UserTagSchema>;
-export type UserTagsArray = z.infer<typeof UserTagsArraySchema>;
+
+
+
+/**
+ * Splits tags into standardized and non-standardized arrays
+ */
+export const splitTagsByStandardization = (tags: TagArray) => {
+  return tags.reduce(
+    (acc, tag) => {
+      if (tag.isStandardized) {
+        acc.standardized.push(tag);
+      } else {
+        acc.nonStandardized.push(tag);
+      }
+      return acc;
+    },
+    {
+      standardized: [] as Tag[],
+      nonStandardized: [] as Tag[],
+    }
+  );
+};

@@ -1,0 +1,104 @@
+---
+title: Database Tables
+description: Describes all the tables found in the database and their function in the system
+---
+
+
+We use a PostgreSQL database
+
+## Tables
+**resource**\
+`id`: UUID, Primary Key, Not NULL\
+`title`: text, Not NULL\
+`type`: text, Not NULL\
+`publication-id`: text\
+`publication-date`: datetime with timestamp\
+`description`: text\
+`language`: text, Not NULL\
+`note`: text\
+`licence`: text\
+`creation-date`: timestamp with timezone, Not NULL\
+`hash`: character vary, length 64\
+`filetype`: character vary, length 50, Not NULL\
+
+**persons**\
+`id`: uuid, Primary Key, Not NULL\
+`name`: text, Not NULL\
+`occupation`: text, Not NULL\
+`description`: text, Not NULL\
+`email-address`: text, Not NULL\
+`linkedin`: text, Not NULL
+
+**organisations**\
+`id`: UUID, Primary Key, Not NULL\
+`name`: text, Not NULL\
+`description`: text, Not NULL\
+`url`: text, Not NULL\
+`email-address`: text, Not NULL
+
+**resource-author**\
+`id`: UUID, Primary Key, Not NULL\
+`resource-id`: UUID, Foreign Key, Not NULL\
+`person-id`: UUID, Foreign Key, Not NULL
+
+**resource-related_person**\
+`id`: UUID, Primary Key, Not NULL\
+`resource-id`: UUID, Foreign Key, Not NULL\
+`person-id`: UUID, Foreign Key, Not NULL
+
+**resource-organisation**\
+`id`: UUID, Primary Key, Not NULL\
+`resource-id`: UUID, Foreign Key, Not NULL\
+`organisation-id`: UUID, Foreign Key, Not NULL
+
+**resource-organisation-relation**\
+`id`: UUID, Primary Key, Not NULL\
+`function`: text, Not NULL\
+`resource-id`: UUID, Foreign Key, Not NULL\
+`organisation-id`: UUID, Foreign Key, Not NULL
+
+**resource-source**\
+`id`: UUID, Primary Key, Not NULL\
+`resource-id`: UUID, Foreign Key, Not NULL\
+`source`: text, Not NULL
+
+**resource-related_source**\
+`id`: UUID, Primary Key, Not NULL\
+`resource-id`: UUID, Foreign Key, Not NULL\
+`source`: text, Not NULL
+
+**regions**\
+`id`: UUID, Primary Key, Not NULL\
+`region`: text, Not NULL
+
+**resource-region**\
+`id`: UUID, Primary Key, Not NULL\
+`resource-id`: UUID, Foreign Key, Not NULL\
+`region-id`: UUID, Foreign Key, Not NULL
+
+**person-relationship**\
+`id`: UUID, Primary Key, Not NULL\
+`source-person-id`: UUID, Foreign Key, Not NULL\
+`target-person-id2`: UUID, Foreign Key, Not NULL
+
+**organisation-relationship**\
+`id`: UUID, Primary Key, Not NULL\
+`source-organisation-id`: UUID, Foreign Key, Not NULL\
+`target-organisation-id2`: UUID, Foreign Key, Not NULL
+
+**person-organisation**\
+`id`: UUID, Primary Key, Not NULL\
+`person-id`: UUID, Foreign Key, Not NULL\
+`organisation-id`: UUID, Foreign Key, Not NULL
+
+**tags**\
+`id`: UUID, Primary Key, Not NULL\
+`name`: text, Not NULL
+
+**user_tags**\
+`id`: UUID, Primary Key, Not NULL\
+`name`: text, Not NULL\
+`is-approved`: boolean, Not NULL\
+`user`: text, Not NULL\
+`created_on`: timestamp with time zone, Not NULL\
+`approved_on`: timestamp with time zone
