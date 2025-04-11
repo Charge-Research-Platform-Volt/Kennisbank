@@ -1,4 +1,3 @@
-using backend.Controllers;
 using backend.Models;
 using Microsoft.AspNetCore.Mvc;
 using backend.Tests.Infrastructure;

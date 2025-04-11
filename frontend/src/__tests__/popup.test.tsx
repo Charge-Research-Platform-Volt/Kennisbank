@@ -1,30 +1,28 @@
 import { expect, test } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import NewButton from '@/components/left-sidebar/sidebar-new-button'
-import { TagsArraySchema, UserTagsArraySchema } from '@/types/tag.type'
-import TagSelectionDropdown from '@/components/TagSelectionDropdown'
+import { TagArraySchema } from '@/types/tag.type'
+import TagSelectionDropdown from '@/components/uploadComponents/TagSelectionDropdown'
 
-const testTags = TagsArraySchema.parse([
+const testTags = TagArraySchema.parse([
     {
         name: "bla",
-        id: "3b542bc8-9b38-4c40-926d-dcd46c576fdf"
+        id: "3b542bc8-9b38-4c40-926d-dcd46c576fdf",
+        isStandardized: false,
+        isApproved: false,
+        approvedOn: null,
+        approvedBy: null,
+        createdBy: "3b542bc8-9b38-4c40-926d-dcd46c576fdf", // Must be a valid UUID
+        createdOn: "2024-01-01T12:00:00Z"
     }
 ]);
-const testUserTags = UserTagsArraySchema.parse([
-    {
-        name: "bla2",
-        id: "4b542bc8-9b38-4c40-926d-dcd46c576fdf",
-        isApproved: false,
-        user: null
-    }
-])
 
 const expectedComponents : string[] = ['Upload New Document', 'Create New Project'];
 const popUpText : string[] = ['Tags:', 'Upload Document', 'Document Title:', 'Description:', 'Author Name:', 'Upload'];
 
 describe('popup', () =>
     test('There are buttons that work correctly and render components with correct names', async() =>{
-        render(<NewButton userTags={testUserTags} standardizedTags={testTags}/>);
+        render(<NewButton tags={testTags} />);
         const buttonName = await screen.queryAllByTestId("button_text").map(elem => elem.textContent ?? '');
         expect(buttonName).toEqual(["New"]); // 1 button
 
@@ -51,7 +49,7 @@ describe('popup', () =>
     }),
 
     test('The tag selection dropdown works as expected', async() => {
-        render(<TagSelectionDropdown userTags={testUserTags} standardizedTags={testTags} className="test"></TagSelectionDropdown>);
+        render(<TagSelectionDropdown tags={testTags} className="test"></TagSelectionDropdown>);
         const inputTags = await screen.getByTestId("input_tags");
 
         // SIMULATE INPUT
@@ -59,7 +57,7 @@ describe('popup', () =>
 
         // GET NEW BUTTONS
         let displayedTags = await screen.getAllByTestId("select_tag"); // there is only 1
-        expect(displayedTags).toHaveLength(testTags.length + testUserTags.length);
+        expect(displayedTags).toHaveLength(testTags.length);
 
         // ADD TAG
         fireEvent.click(displayedTags[0])

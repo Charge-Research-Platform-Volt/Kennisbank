@@ -1,6 +1,6 @@
 ﻿using KnowledgeBank.Models;
 
-namespace backend.Responses;
+namespace KnowledgeBank.Responses;
 
 public struct STORAGE_RESPONSE_TYPE
 {
@@ -88,13 +88,13 @@ public class ExistsResponse : StorageResponse
     }
 }
 
-public class FileInfoResponse : StorageResponse
+public class ResourceInfoResponse : StorageResponse
 {
-    public FileItem FileInfo { get; }
+    public Resource FileInfo { get; }
 
-    public FileInfoResponse(string message, FileItem fileInfo) : base(message, STORAGE_RESPONSE_TYPE.FILEINFO)
+    public ResourceInfoResponse(string message, Resource resourceInfo) : base(message, STORAGE_RESPONSE_TYPE.FILEINFO)
     {
-        this.FileInfo = fileInfo;
+        this.FileInfo = resourceInfo;
     }
 }
 
@@ -102,12 +102,12 @@ public class PageResponse : StorageResponse
 {
     public int PageIndex { get; }
     public int PageSize { get; }
-    public FileItem[] Files { get; }
+    public Resource[] Resources { get; }
 
-    public PageResponse(string message, int pageIndex, int pageSize, FileItem[] files) : base(message, STORAGE_RESPONSE_TYPE.PAGE)
+    public PageResponse(string message, int pageIndex, int pageSize, Resource[] resources) : base(message, STORAGE_RESPONSE_TYPE.PAGE)
     {
         this.PageIndex = pageIndex;
         this.PageSize = pageSize;
-        this.Files = files;
+        this.Resources = resources;
     }
 }

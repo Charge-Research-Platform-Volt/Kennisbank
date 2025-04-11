@@ -1,15 +1,15 @@
-﻿using backend.Responses;
-using KnowledgeBank.Data;
-using KnowledgeBank.Models;
+﻿using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Scaffolding.Metadata;
 
-namespace backend.Data
+namespace KnowledgeBank.Data
 {
     public static class TestDataSeeder
     {
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         private static IAzureBlobService blobService;
         private static DatabaseContext database;
+        private static ResourceManager resourceManager;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         private static string testDataPath = Path.Combine("/app", "testdata") + "/";
 
         public static async Task Seed(IServiceProvider serviceProvider)
@@ -17,7 +17,14 @@ namespace backend.Data
             using IServiceScope scope = serviceProvider.CreateScope();
             blobService = scope.ServiceProvider.GetRequiredService<IAzureBlobService>();
             database = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+            resourceManager = scope.ServiceProvider.GetRequiredService<ResourceManager>();
 
+            // await ShamelessCopyOfUpload("path", "title", "");
+            await AddTestAuthor("William Shakespeare", "Librarian", "Lived a long time ago", "william.shakespeare@gmail.com", "@WilliamShakespear");
+            await AddTestAuthor("Donal Trump", "Entertainer", "Hates everyone", "americanumberone@trump.com", "@Idiot");
+            await AddTestAuthor("Ozzy Osbourne", "Rockstar", "Loves drugs", "Ozz.Bourne@gmail.com", "@OzzyOsbourne");
+            await AddTestAuthor("Jan Adriaanszoon Leeghwater", "Windmills", "Insanely good at creating land from oceans", "leeghwater@gmail.com", "@LeeghwaterJan");
+            await AddTestAuthor("Mark Rutte", "NATO BAAS", "Committed treason against the Dutch people", "Markie.Rutte@gmail.com", "@MarkRutte");
             await ShamelessCopyOfUpload("WRRRaport - Opgave AI.pdf", "Opgave AI. De nieuwe systeemtechnologie", "WRR reageert op de regeringsaanvraag over de impact van AI op publieke waarden. AI wordt gezien als een systeemtechnologie met langdurige, grootschalige en onvoorspelbare effecten, daarom pleit de WRR voor een integrale aanpak met sterke overheidsbetrokkenheid");
             await ShamelessCopyOfUpload("WP+50v2_+AI+van+repliek+gediend_DEF_DT.pdf", "AI van repliek gediend? Een verkenning van tegenmacht vanuit maatschappelijke organisaties", "");
             await ShamelessCopyOfUpload("Aandacht+voor+media.+Naar+nieuwe+waarborgen+voor+hun+democratische++functies.pdf", "Aandacht voor media. Naar nieuwe waarborgen voor hun democratische functies", "In dit rapport onderzoekt de WRR de kenmerken en werking van het nieuwe mediasysteem en wat de impact ervan is op de democratie. We concluderen dat de drie democratische functies van media onder druk staan en dat nieuw beleid noodzakelijk is");
@@ -34,19 +41,51 @@ namespace backend.Data
             await ShamelessCopyOfUpload("1887_3731030-Full Text.pdf", "Stimulering en facilitering van burgerinitiatieven door de overheid: over de invulling van de ‘dienende overheid’ bij derde generatie burgerparticipatie", "");
         }
 
+        private static async Task AddTestAuthor(string name, string occupation, string description, string emailaddress, string linkedin)
+        {
+            if (await resourceManager.PersonExistsAsync(p => p.Name == name)) return;
+            try
+            {
+                PersonCreateDto dto = new()
+                {
+                    Name = name,
+                    Occupation = occupation,
+                    Description = description,
+                    EmailAddress = emailaddress,
+                    Linkedin = linkedin,
+                };
+
+                await resourceManager.CreatePersonAsync(dto);
+            }
+            catch (Exception e)
+            {
+                Serilog.Log.Logger.Error(e, "Error adding person to document: {name}.");
+            }
+        }
+
         private static async Task ShamelessCopyOfUpload(string path, string title, string description)
         {
             path = testDataPath + path;
 
-            FileItem? item = await database.Files.Where(f => f.Name == title).FirstOrDefaultAsync();
+            if (await resourceManager.ResourceExistsAsync(r => r.Title == title)) return;
 
-            if (item != null) return;
+            ResourceCreateDto dto = new()
+            {
+                Title = title,
+                Description = description,
+                LanguageCode = "??",
+                TypeId = DatabaseSeeder.UnknownResourceTypeId,
+                PublicationDate = DateTime.UtcNow,
+            };
 
             string extension = Path.GetExtension(path);
 
             string fileType = Filetype.ConvertExtensionToFiletype(extension);
 
-            Guid id = Guid.NewGuid();
+            await resourceManager.BeginTransaction();
+
+            Guid id = await resourceManager.CreateResourceAsync(dto);
+            await resourceManager.UpdateResourceAsync(id, r => r.FileType, fileType);
 
             try
             {
@@ -55,18 +94,7 @@ namespace backend.Data
 
                 if (result == BLOB_STATUSCODE.OK)
                 {
-                    FileItem drive = new()
-                    {
-                        Id = id,
-                        Name = title,
-                        Description = description,
-                        FileType = fileType,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow,
-                    };
-
-                    await database.Files.AddAsync(drive);
-                    await database.SaveFileChangesAsync();
+                    await resourceManager.Commit();
                 }
             }
             catch (Exception e)
