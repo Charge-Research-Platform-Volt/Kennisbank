@@ -51,6 +51,25 @@ namespace backend.Controllers
             }
         }
 
+        [HttpGet("get-website/{id}")]
+        [SwaggerOperation(
+            Summary = "gets website by id",
+            Description = "HttpGet request that fetches the website url that corresponds with the id"
+        )]
+        [SwaggerResponse(200, "URL of website")]
+        [SwaggerResponse(500, "Internal server error")]
+        public async Task<IActionResult> Get_Website(string id)
+        {
+            try{
+                return Ok(await resourceManager.GetWebsiteURL(id));
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "Failed to retrieve uploaded websites.");
+                return StatusCode(500, new {message = "Internal server error"});
+            }
+        }
+
         /// <summary>
         /// Uploads a new website to the database.
         /// </summary>
@@ -88,7 +107,8 @@ namespace backend.Controllers
             try
             {
                 Log.Information("Adding website '{URL}' to database", dto.Url);
-                Guid id = await resourceManager.CreateResourceAsync(dto);
+                Log.Information(dto.Url);
+                Guid id = await resourceManager.CreateWebsiteAsync(dto);
             }
             catch(Exception e)
             {

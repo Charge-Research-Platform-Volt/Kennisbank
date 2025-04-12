@@ -29,22 +29,34 @@ export const ResourceSchema = ResourceBaseSchema.extend({
 
 export const ResourceArraySchema = z.array(ResourceSchema);
 
-export const ResourceResponseSchema = z.object({
+export const BaseResourceResponseSchema = z.object({
   id: z.string().uuid(),
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().min(0, { message: "Description is required" }),
   typeId: z.string().min(1, { message: "Type is required" }),
+  fileType: z.string().min(1, { message: "File type is required" }),
   languageCode: z.string().min(1, { message: "Language code is required" }).length(2, { message: "Language code should be two characters long" }),
   publicationCode: z.string().nullable(),
   license: z.string().nullable(),
   note: z.string().nullable(),
-  fileType: z.string().min(1, { message: "File type is required" }),
-  hash: z.string().min(1, { message: "Hash is required" }).nullable(),
   creationDate: z.string().min(1, { message: "Created at is required" }),
   publicationDate: z.string().min(1, { message: "Updated at is required" }),
+})
+
+export const ResourceResponseSchema = BaseResourceResponseSchema.extend({
+  hash: z.string().min(1, { message: "Hash is required" }).nullable().optional(),
 });
 
-export const ResourceResponseArraySchema = z.array(ResourceResponseSchema);
+export const WebsiteResponseSchema = BaseResourceResponseSchema.extend({
+  url: z.string().optional(),
+})
+
+export const ResponseSchema = z.union([
+  ResourceResponseSchema,
+  WebsiteResponseSchema
+]);
+
+export const ResourceResponseArraySchema = z.array(ResponseSchema);
 
 export const ResourcePageResponseSchema = z.object({
   pageIndex: z.number().min(0, { message: "Page index should be a positive integer" }),
@@ -60,4 +72,4 @@ export type FileBase = z.infer<typeof FileResourceSchema>;
 export type WebsiteBase = z.infer<typeof WebsiteResourceSchema>;
 export type Resource = z.infer<typeof ResourceSchema>;
 export type ResourcePageResponse = z.infer<typeof ResourcePageResponseSchema>;
-export type ResourceResponse = z.infer<typeof ResourceResponseSchema>;
+export type ResourceResponse = z.infer<typeof ResponseSchema>;
