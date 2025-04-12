@@ -5,11 +5,12 @@ export const handleOpenFile = async (file: ResourceResponse) => {
     let url: string | undefined;
 
     function makeValid(input:string):string {
+        console.log(input)
         const validBeginLink = ["https://", "http://"];
-        validBeginLink.forEach(element => {
+        for(const element of validBeginLink) {
             if(input.startsWith(element))
                 return input;
-        });
+        };
         return "https://" + input;
     }
 
