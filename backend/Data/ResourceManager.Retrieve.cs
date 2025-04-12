@@ -719,11 +719,6 @@ namespace KnowledgeBank.Data
         public async Task<WebsiteMetadata?> GetWebsiteMetadataAsync(string resourceId, params string[] includeProperties)
         { return await GetWebsiteMetadataAsync(Guid.Parse(resourceId), websiteDefaultOrderBy, websiteDefaultOrderDescending, includeProperties); }
 
-        public async Task<ResourceSourceRelation?> GetWebsiteURL(Guid resourceId)
-        { return await GetAsync(database.ResourceSourceRelations, w => w.ResourceId == resourceId); }
-        public async Task<ResourceSourceRelation?> GetWebsiteURL(string resourceId)
-        { return await GetWebsiteURL(Guid.Parse(resourceId)); }
-
         // Multiple
         public async Task<WebsiteMetadata[]> GetAllWebsiteMetadatasAsync(Expression<Func<WebsiteMetadata, object>>? orderBy = null, bool orderDescending = websiteDefaultOrderDescending, Expression<Func<WebsiteMetadata, bool>>? predicate = null)
         {

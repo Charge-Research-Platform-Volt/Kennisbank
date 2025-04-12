@@ -331,15 +331,5 @@ namespace KnowledgeBank.Data
         { return await UnapproveTagOnResourceAsync(Guid.Parse(tagId), Guid.Parse(resourceId), Guid.Parse(adminId)); }
 
         #endregion
-
-        #region Resource Source
-
-        public async Task<bool> UpdateResourceSourceRelationAsync(Guid resourceId, string oldUrl, string newUrl)
-        { return await UpdatePropertyAsync(database.ResourceSourceRelations, i => i.ResourceId == resourceId && i.Url == oldUrl, i => i.Url, newUrl) > 0; }
-
-        public async Task<bool> UpdateResourceSourceRelationAsync(string resourceId, string oldUrl, string newUrl)
-        { return await UpdateResourceSourceRelationAsync(Guid.Parse(resourceId), oldUrl, newUrl); }
-
-        #endregion
     }
 }

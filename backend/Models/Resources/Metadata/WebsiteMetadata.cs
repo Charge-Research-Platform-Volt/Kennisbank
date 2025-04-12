@@ -13,6 +13,9 @@ public class WebsiteMetadata
     [ForeignKey("Resource")]
     public required Guid ResourceId { get; set; }
 
+    [Column("url")]
+    public required string Url { get; set; }
+
     [Column("accessed-on")]
     public DateTime? AccessedOn { get; set; }
 

@@ -161,14 +161,12 @@ namespace KnowledgeBank.Data
                 WebsiteMetadata website = new()
                 {
                     ResourceId = resourceId,
+                    Url = dto.Url,
                     AccessedOn = dto.AccessedOn,
                 };
 
                 await database.WebsiteMetadata.AddAsync(website);
             }
-
-            // Add source relation to database (this is the url of the website)
-            await AddSourceToResourceAsync(resourceId, dto.Url);
 
             await database.SaveChangesAsync();
 

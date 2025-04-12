@@ -60,8 +60,9 @@ namespace backend.Controllers
         [SwaggerResponse(500, "Internal server error")]
         public async Task<IActionResult> Get_Website(string id)
         {
-            try{
-                return Ok(await resourceManager.GetWebsiteURL(id));
+            try
+            {
+                return Ok(await resourceManager.GetWebsiteMetadataPropertyAsync(id, metadata => metadata.Url));
             }
             catch (Exception e)
             {
@@ -109,6 +110,9 @@ namespace backend.Controllers
                 Log.Information("Adding website '{URL}' to database", dto.Url);
                 Log.Information(dto.Url);
                 Guid id = await resourceManager.CreateWebsiteAsync(dto);
+                // Uploading website successful
+                Log.Information("Website added to the database.");
+                return Ok(new { message = "Website uploaded.", id });
             }
             catch(Exception e)
             {
@@ -116,10 +120,6 @@ namespace backend.Controllers
                 Log.Error(e, "Failed to add website.");
                 return StatusCode(500, new { message = "Internal server error" });
             }
-
-            // Uploading website successful
-            Log.Information("Website added to the database.");
-            return Ok(new { message = "Website uploaded." });
         }
 
         /// <summary>
@@ -148,8 +148,6 @@ namespace backend.Controllers
                 Log.Error("id is required");
                 return BadRequest(new {message = "id is required"});
             }
-            Guid guid = Guid.Parse(id);
-            Log.Error(id);
 
             try
             {
@@ -174,7 +172,7 @@ namespace backend.Controllers
         /// <param name="newTitleOrURL">the new title or url to change to</param>
         /// <param name="column">the attribute to change</param>
         /// <returns>Ok if it succeeds</returns>
-        [HttpPatch("change-website/{id}/{newTitleOrUrl}/{column}/{oldUrl}")]
+        [HttpPatch("change-website/{id}/{newTitleOrUrl}/{column}")]
         [Authorize(Policy = "RequireAdminRole")]
         [SwaggerOperation(
                 Summary = "Change website.",
@@ -185,7 +183,7 @@ namespace backend.Controllers
         [SwaggerResponse(404, "Website not found")]
         [SwaggerResponse(409, "New URL already exists")]
         [SwaggerResponse(500, "Internal server error")]
-        public async Task<IActionResult> ChangeWebsite(string id, string newTitleOrURL, string column, string? oldUrl)
+        public async Task<IActionResult> ChangeWebsite(string id, string newTitleOrURL, string column)
         {
             Log.Information("Changing website title or URL");
 
@@ -225,7 +223,7 @@ namespace backend.Controllers
             {
                 if (column == "URL")
                 {
-                    if (!await resourceManager.UpdateResourceSourceRelationAsync(id, oldUrl, newTitleOrURL))
+                    if (!await resourceManager.UpdateWebsiteMetadataAsync(id, metadata => metadata.Url, newTitleOrURL))
                         return NotFound(new StorageResponse("ID was not found in database."));
                 }
                 else
