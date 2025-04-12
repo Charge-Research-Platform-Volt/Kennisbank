@@ -309,7 +309,7 @@ export default function NewButton({ tags }: { tags: TagArray }) {
                   {/* Document title entry */}
                   <InputBlock data-testid="popup_text" className="justify-start">
                     <InputHeader>Document Title: </InputHeader>
-                    <FInput className="w-full" type="string" placeholder="Enter document title" name="title" value={title} onChange={(e) => setTitle(e.target.value.trim())} />
+                    <FInput className="w-full" type="string" placeholder="Enter document title" name="title" value={title} onChange={(e) => setTitle(e.target.value.trimStart())} />
                   </InputBlock>
 
                   <div className="flex gap-3">
@@ -324,14 +324,14 @@ export default function NewButton({ tags }: { tags: TagArray }) {
                           maxLength={512}
                           className="h-40 w-full resize-none bg-slate-200 pl-2"
                           value = {description}
-                          onChange={(e) => setDescription(e.target.value.trim())}
+                          onChange={(e) => setDescription(e.target.value.trimStart())}
                         />
                       </InputBlock>
 
                       {/* Author entry */}
                       <InputBlock data-testid="popup_text">
                         <InputHeader className="">Author Name: </InputHeader>
-                        <FInput className="w-full" type="string" name="author" placeholder="Enter author name" value={author} onChange={(e) => setAuthor(e.target.value.trim())} />
+                        <FInput className="w-full" type="string" name="author" placeholder="Enter author name" value={author} onChange={(e) => setAuthor(e.target.value.trimStart())} />
                       </InputBlock>
                     </div>
 
