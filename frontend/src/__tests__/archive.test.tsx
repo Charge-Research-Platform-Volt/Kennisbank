@@ -1,50 +1,179 @@
-import { describe, expect, test } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import ListDocuments from '@/components/list-documents';
+import { afterEach, describe, expect, test, it, vi, beforeAll } from "vitest";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import ListDocuments from "@/components/list-documents";
+import ArchivePage from "@/app/(knowledgebank)/archive/page";
 
-const testData = {
+const filterButtonApplyMock = vi.fn()
+
+beforeAll(() => {
+  vi.mock("@/app/(knowledgebank)/archive/components/filter-button", () => ({
+    default: (children: {onApplyAction: (tagFilters: string[], startDate: number, endDate: number) => void }) => {
+      filterButtonApplyMock.mockImplementation(children.onApplyAction);
+      return <>Filter Button Mock</>
+    }
+  }))
+})
+
+afterEach(() => {
+  vi.clearAllMocks();
+})
+
+const testFile =
+  {
+      id: "123",
+      title: "Test Document",
+      description: "A sample test document",
+      fileType: "pdf",
+      hash: null,
+      typeId: "type1",
+      languageCode: "en",
+      publicationCode: null,
+      license: null,
+      note: null,
+      creationDate: "2024-01-01T12:00:00Z",
+      publicationDate: "2024-01-02T12:00:00Z"
+  }
+
+function newData(data: any) {
+  return {
     message: "Success",
     pageIndex: 1,
     pageSize: 10,
     responseType: "ok",
-    resources: [ 
-      {
-        id: "123",
-        title: "Test Document",
-        description: "A sample test document",
-        fileType: "pdf",
-        hash: null,
-        typeId: "type1",
-        languageCode: "en",
-        publicationCode: null,
-        license: null,
-        note: null,
-        creationDate: "2024-01-01T12:00:00Z",
-        publicationDate: "2024-01-02T12:00:00Z"
-      }
-    ]
+    resources: data,
   };
+}
 
-  describe('ListDocuments', () => {
-    test('renders documents correctly', async () => {
-        render(<ListDocuments data={testData} />);
+function newDataResponse(data: Array<any>) { return new Response(
+    JSON.stringify(newData(data)),
+    { status: 200 },
+)}
 
-        expect(await screen.findByText('Title')).toBeInTheDocument();
-        expect(await screen.findByText('Description')).toBeInTheDocument();
-        expect(await screen.findByText('Type')).toBeInTheDocument();
-        // Updated column header expectations
-        expect(await screen.findByText('Creation Date')).toBeInTheDocument();
-        expect(await screen.findByText('Publication Date')).toBeInTheDocument();
-        
-        expect(await screen.findByText('Test Document')).toBeInTheDocument();
-        expect(await screen.findByText('A sample test document')).toBeInTheDocument();
-        expect(await screen.findByText('pdf')).toBeInTheDocument();
-        
-        // Date format expectations for the new field names
-        const creationDate = new Date('2024-01-01T12:00:00Z').toLocaleString();
-        const publicationDate = new Date('2024-01-02T12:00:00Z').toLocaleString();
-        
-        expect(await screen.findByText('Creation Date')).toBeInTheDocument();
-        expect(await screen.findByText('Publication Date')).toBeInTheDocument();
+function newErrorResponse() { return new Response(
+    JSON.stringify({ message: "Error" }),
+    { status: 500 },
+)}
+
+describe('ArchivePage', () => {
+    it('renders the search component and document list', async () => {
+        global.fetch = vi.fn().mockResolvedValueOnce(newDataResponse([]))
+
+        const { container, getByText, getByRole, getByPlaceholderText } = render(<ArchivePage />)
+        expect(container.querySelector(`svg[xmlns="http://www.w3.org/2000/svg"]`)).toBeInTheDocument()
+        expect(getByPlaceholderText("Search")).toBeInTheDocument()
+        expect(getByText("Filter Button Mock")).toBeInTheDocument()
+        expect(getByRole("grid")).toBeInTheDocument()
+
+        await waitFor(() => {
+            expect(getByText('Title')).toBeInTheDocument();
+            expect(getByText('Description')).toBeInTheDocument();
+            expect(getByText('Type')).toBeInTheDocument();
+            expect(getByText('Creation Date')).toBeInTheDocument();
+            expect(getByText('Publication Date')).toBeInTheDocument();
+            }
+        )
+    })
+})
+
+describe("Rendering fetch results", () => {
+  test('renders initial documents correctly', async () => {
+      const { getByText } = render(<ListDocuments data={newData([testFile])} />);
+
+      await waitFor(() => {
+          expect(getByText(testFile.title)).toBeInTheDocument();
+          expect(getByText(testFile.description)).toBeInTheDocument();
+          expect(getByText(testFile.fileType)).toBeInTheDocument();
+          expect(getByText(getCompareString(testFile.creationDate))).toBeInTheDocument();
+          expect(getByText(getCompareString(testFile.publicationDate))).toBeInTheDocument();
+      })
+  });
+
+  test('renders error message when fetch fails', async () => {
+      global.fetch = vi.fn().mockResolvedValue(newErrorResponse())
+
+      const { getByText } = render(<ArchivePage />);
+
+      await waitFor(() => {
+          expect(getByText("An error occurred while fetching initial files.")).toBeInTheDocument();
+      })
+  })
+
+  test("renders initial, then search finds nothing and finally search finds something", async () => {
+    // Simulate the initial fetch
+    global.fetch = vi.fn().mockResolvedValue(newDataResponse([testFile]))
+
+    const { getByText } = render(<ArchivePage />);
+    const searchInput = screen.getByPlaceholderText("Search");
+
+    // Use await for because we need to be sure only the current results are present
+    // So that expect isn't bleeding into other states
+    await waitFor(async () => {
+      expect(fetch).toHaveResolved();
     });
+
+    expect(getByText(testFile.title)).toBeInTheDocument();
+
+    // Simulate a search with no results
+    global.fetch = vi.fn().mockResolvedValueOnce(newDataResponse([]))
+
+    await act(async () => {
+      vi.useFakeTimers();
+      fireEvent.change(searchInput, { target: { value: "nothing" } });
+      vi.advanceTimersByTime(300);
+      vi.useRealTimers();
+    });
+
+    await waitFor(async () => {
+      expect(fetch).toHaveResolved();
+    });
+
+    expect(getByText("No Rows To Show")).toBeInTheDocument();
+
+    // Simulate a search with results
+    global.fetch = vi.fn().mockResolvedValueOnce(newDataResponse([testFile]))
+
+    await act(async () => {
+      vi.useFakeTimers();
+      fireEvent.change(searchInput, { target: { value: "test" } });
+      vi.advanceTimersByTime(300);
+      vi.useRealTimers();
+    });
+
+    await waitFor(async () => {
+      expect(fetch).toHaveResolved();
+    });
+
+    expect(getByText(testFile.title)).toBeInTheDocument();
+  });
+
+  test('renders error message when search fetch fails', async () => {
+      global.fetch = vi.fn().mockResolvedValueOnce(newDataResponse([]))
+
+      const { getByText } = render(<ArchivePage />);
+
+      await waitFor(async() => {
+        expect(fetch).toHaveResolved();
+      })
+
+      global.fetch = vi.fn().mockResolvedValueOnce(newErrorResponse())
+
+      const searchInput = screen.getByPlaceholderText("Search")
+
+      await act(async () => {
+        vi.useFakeTimers();
+        fireEvent.change(searchInput, { target: { value: "error" } });
+        vi.advanceTimersByTime(300);
+        vi.useRealTimers();
+      });
+
+      await waitFor(async() => {
+        expect(fetch).toHaveResolved();
+      })
+
+      expect(getByText("An error occurred while fetching search results.")).toBeInTheDocument();
+  })
 });
+
+function getCompareString(dateString: string) {
+  return new Date(dateString).toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" });
+}
