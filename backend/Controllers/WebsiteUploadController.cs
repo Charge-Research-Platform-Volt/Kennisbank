@@ -154,7 +154,7 @@ namespace backend.Controllers
             try
             {
                 // Find and remove website
-                if (await resourceManager.ResourceExistsAsync(id))
+                if (await resourceManager.DeleteResourceAsync(id))
                     return NotFound(new StorageResponse("ID was not found in database. Website was deleted succesfully."));
 
                 return Ok(new { message = "website deleted" });
