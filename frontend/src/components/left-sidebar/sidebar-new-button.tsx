@@ -242,7 +242,7 @@ export default function NewButton({ tags }: { tags: TagArray }) {
       {uploadPopup && (
         <div className="popupContainer">
 
-          <div ref={popupRef} className="popup h-full min-h-155 min-w-130 p-5">
+          <div ref={popupRef} className="popup h-full min-h-160 min-w-130 p-5">
             <form
               className="h-full max-h-[100%]"
               onSubmit={(e) => {
@@ -260,10 +260,10 @@ export default function NewButton({ tags }: { tags: TagArray }) {
                     <Button onClick={() => changeTab("Website")} className="mr-2" data-testid = "changeToWebsiteUpload" type="button">Website</Button>
                     <Button onClick={() => changeTab("File")} data-testid = "changeToFileUpload" type="button">File</Button>
                     </div>
-                    <div className="mt-5 mb-2 flex w-40">
+                    <div>
                       {/* Label is what you see however you click the input, only applicable if the user uploads a file */}
                       {newUploadType === "File" && (
-                        <div>
+                        <div className="mt-5 mb-2 flex w-40">
                           <label htmlFor="file-Picker" className="labelCSS flex h-full w-full min-w-40 cursor-pointer items-center justify-center rounded-xl bg-[#E5E5E5] font-bold hover:bg-[#c9c2c2]">
                           {status === "checking" ? "Checking file..." : "Upload New File"}
                             </label>
@@ -277,14 +277,6 @@ export default function NewButton({ tags }: { tags: TagArray }) {
                             disabled={status === "checking" || status === "uploading"}
                           />
                         </div>)}
-                      {newUploadType === "Website" && (
-                      <div>
-                        <InputBlock className="justify-start">
-                          <InputHeader>Website URL: </InputHeader>
-                          <FInput className="w-full" type="string" placeholder="Enter URL" name="url" onChange={(e) => setNewWebsite(e.target.value.trim())} />
-                        </InputBlock>
-                      </div>
-                      )}
                     </div>
                   </div>
 
@@ -307,6 +299,15 @@ export default function NewButton({ tags }: { tags: TagArray }) {
 
 
                   {/* Document title entry */}
+                  {newUploadType === "Website" && (
+                      <div>
+                        <InputBlock className="justify-start">
+                          <InputHeader>Website URL: </InputHeader>
+                          <FInput className="w-full" type="string" placeholder="Enter URL" name="url" onChange={(e) => setNewWebsite(e.target.value.trim())} />
+                        </InputBlock>
+                      </div>
+                      )}
+                  
                   <InputBlock data-testid="popup_text" className="justify-start">
                     <InputHeader>Document Title: </InputHeader>
                     <FInput className="w-full" type="string" placeholder="Enter document title" name="title" value={title} onChange={(e) => setTitle(e.target.value.trimStart())} />
