@@ -95,10 +95,14 @@ namespace KnowledgeBank.Data
                 if (result == BLOB_STATUSCODE.OK)
                 {
                     await resourceManager.Commit();
+                }else
+                {
+                    await resourceManager.Rollback();
                 }
             }
             catch (Exception e)
             {
+                await resourceManager.Rollback();
                 Serilog.Log.Logger.Error(e, "Error uploading file {FileName}.", path);
             }
         }
