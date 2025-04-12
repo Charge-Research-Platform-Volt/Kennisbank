@@ -56,7 +56,7 @@ export const handleOpenFile = async (file: ResourceResponse) => {
                 // if all succeeds open the window, making it valid (otherwise it will direct to our domain + url)
             }).then(jsonresponse =>
                 {
-                    window.open(makeValid(jsonresponse['url']), '_blank') 
+                    window.open(makeValid(jsonresponse), '_blank') 
                 })
         // other errors
         } catch (error) {

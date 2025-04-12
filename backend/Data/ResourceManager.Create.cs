@@ -155,10 +155,8 @@ namespace KnowledgeBank.Data
             // Create the base resource
             Guid resourceId = await CreateResourceAsync(dto);
 
-            // Add metadata if present
-            if (dto.AccessedOn != null)
-            {
-                WebsiteMetadata website = new()
+            // Add metadata
+            WebsiteMetadata website = new()
                 {
                     ResourceId = resourceId,
                     Url = dto.Url,
@@ -166,7 +164,6 @@ namespace KnowledgeBank.Data
                 };
 
                 await database.WebsiteMetadata.AddAsync(website);
-            }
 
             await database.SaveChangesAsync();
 

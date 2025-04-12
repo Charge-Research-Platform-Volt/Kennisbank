@@ -760,20 +760,21 @@ namespace KnowledgeBank.Data
 
         #region Resource-WebsiteMetadata
 
-        public async Task AddWebsiteMetadataToResourceAsync(Guid resourceId)
+        public async Task AddWebsiteMetadataToResourceAsync(Guid resourceId, string url)
         {
             if (await GetWebsiteMetadataAsync(resourceId) != null) return;
 
             await database.WebsiteMetadata.AddAsync(new()
             {
-                ResourceId = resourceId
+                ResourceId = resourceId,
+                Url = url
             });
 
             await database.SaveChangesAsync();
         }
 
-        public async Task AddWebsiteMetadataToResourceAsync(string resourceId)
-        { await AddWebsiteMetadataToResourceAsync(Guid.Parse(resourceId)); }
+        public async Task AddWebsiteMetadataToResourceAsync(string resourceId, string url)
+        { await AddWebsiteMetadataToResourceAsync(Guid.Parse(resourceId), url); }
 
         #endregion
     }
