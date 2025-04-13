@@ -4,6 +4,8 @@ export const handleOpenFile = async (file: ResourceResponse) => {
 
     let url: string | undefined;
 
+    // If the website is of the form www.input.nl or similar, put https:// before it so it doesn't use the
+    // knowledgebank host as its base
     function makeValid(input:string):string {
         console.log(input)
         const validBeginLink = ["https://", "http://"];
@@ -14,6 +16,7 @@ export const handleOpenFile = async (file: ResourceResponse) => {
         return "https://" + input;
     }
 
+    // Anything but a website at the moment we'll just open from the storage
     if(file.fileType != "website"){
         url = `http://localhost:8080/storage/download/${file.id}`;
         try {
@@ -34,6 +37,7 @@ export const handleOpenFile = async (file: ResourceResponse) => {
             console.error("Error getting file:", error);
         }
     }
+    // If it is a website, get the url of the archive file and go to that website
     else{
         const website = WebsiteResponseSchema.safeParse(file);
         if(!website.success)
