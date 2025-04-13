@@ -45,7 +45,7 @@ export default function ListResources({ data }: { data: ResourcePageResponse }) 
 
   return (
     <div className="h-[calc(100vh-1.25rem)] w-full">
-      <AgGridReact rowData={data.resources} columnDefs={columnDefs} theme={tableTheme} rowSelection={rowSelection as RowSelectionOptions} />
+      <AgGridReact rowData={data.resources} columnDefs={columnDefs} theme={tableTheme} rowSelection={rowSelection as RowSelectionOptions} onRowClicked={(row) => toggleRightSidebar(row.data)} />
     </div>
   );
 }

@@ -4,12 +4,12 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { usePathname } from "next/navigation";
 
 // Types
-import type { DocumentResponse } from "@/types/document.type";
+import type { ResourceResponse } from "@/types/resource.type";
 
 type SidebarContextType = {
   // Selected document
-  selectedDocument: DocumentResponse | null;
-  setSelectedDocument: (file: DocumentResponse | null) => void;
+  selectedDocument: ResourceResponse | null;
+  setSelectedDocument: (file: ResourceResponse | null) => void;
 
   // State and functions for the left sidebar
   leftSidebarState: "expanded" | "collapsed";
@@ -21,7 +21,7 @@ type SidebarContextType = {
   rightSidebarState: "expanded" | "collapsed";
   rightSidebarOpen: boolean;
   setRightSidebarOpen: (open: boolean) => void;
-  toggleRightSidebar: (document: DocumentResponse | null) => void;
+  toggleRightSidebar: (document: ResourceResponse | null) => void;
 };
 
 // This context is used to manage the state of the sidebar
@@ -41,7 +41,7 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
   const pathname = usePathname();
 
   // State for the selected document
-  const [selectedDocument, setSelectedDocument] = useState<DocumentResponse | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<ResourceResponse | null>(null);
 
   // State and functions for the left sidebar
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
@@ -51,7 +51,7 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
   // State and functions for the right sidebar
   const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
   const rightSidebarState = rightSidebarOpen ? "expanded" : "collapsed";
-  const toggleRightSidebar = (document: DocumentResponse | null) => {
+  const toggleRightSidebar = (document: ResourceResponse | null) => {
     if (document) setSelectedDocument(document);
 
     if (document && selectedDocument && selectedDocument.id !== document.id) {

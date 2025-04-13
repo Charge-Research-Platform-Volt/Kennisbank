@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ResourceResponseSchema } from "./resource.type";
 
 /**
  * Tag scheme
@@ -55,21 +56,17 @@ export type TagResponse = z.infer<typeof TagResponseSchema>;
 
 
 /**
- * Splits tags into standardized and non-standardized arrays
+ * Tag relation response schema
  */
-export const splitTagsByStandardization = (tags: TagArray) => {
-  return tags.reduce(
-    (acc, tag) => {
-      if (tag.isStandardized) {
-        acc.standardized.push(tag);
-      } else {
-        acc.nonStandardized.push(tag);
-      }
-      return acc;
-    },
-    {
-      standardized: [] as Tag[],
-      nonStandardized: [] as Tag[],
-    }
-  );
-};
+export const TagRelationSchema = z.object({
+  resourceId: z.string().uuid(),
+  tagId: z.string().uuid(),
+  isApproved: z.boolean(),
+  approvedOn: z.string().nullable(),
+  approvedBy: z.string().uuid().nullable(),
+  tag: TagSchema.nullable()
+})
+
+export type TagRelation = z.infer<typeof TagRelationSchema>;
+
+export const TagRelationArraySchema = z.array(TagRelationSchema);

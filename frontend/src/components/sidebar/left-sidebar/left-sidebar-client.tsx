@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import SidebarPart from "./sidebar-part";
-import NewButton from "@/components/left-sidebar/sidebar-new-button";
+import NewButton from "@/components/sidebar/left-sidebar/sidebar-new-button";
 import type { TagArray } from "@/types/tag.type";
 import Settings from "@/icons/settings";
 import Archive from "@/icons/archive";

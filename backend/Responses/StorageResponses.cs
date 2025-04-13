@@ -90,9 +90,9 @@ public class ExistsResponse : StorageResponse
 
 public class ResourceInfoResponse : StorageResponse
 {
-    public Resource FileInfo { get; }
+    public object FileInfo { get; }
 
-    public ResourceInfoResponse(string message, Resource resourceInfo) : base(message, STORAGE_RESPONSE_TYPE.FILEINFO)
+    public ResourceInfoResponse(string message, object resourceInfo) : base(message, STORAGE_RESPONSE_TYPE.FILEINFO)
     {
         this.FileInfo = resourceInfo;
     }
@@ -102,9 +102,9 @@ public class PageResponse : StorageResponse
 {
     public int PageIndex { get; }
     public int PageSize { get; }
-    public Resource[] Resources { get; }
+    public object[] Resources { get; }
 
-    public PageResponse(string message, int pageIndex, int pageSize, Resource[] resources) : base(message, STORAGE_RESPONSE_TYPE.PAGE)
+    public PageResponse(string message, int pageIndex, int pageSize, object[] resources) : base(message, STORAGE_RESPONSE_TYPE.PAGE)
     {
         this.PageIndex = pageIndex;
         this.PageSize = pageSize;
