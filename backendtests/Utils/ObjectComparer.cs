@@ -14,7 +14,7 @@ public static class ObjectComparer
     // Returns true if both objects have the same properties,
     // and these properties have the same values.
     /// </returns>
-    public static bool AreObjectsEqual(object obj1, object obj2)
+    public static bool AreObjectsEqual(object? obj1, object? obj2)
     {
         if (obj1 == null && obj2 == null)
             return true;

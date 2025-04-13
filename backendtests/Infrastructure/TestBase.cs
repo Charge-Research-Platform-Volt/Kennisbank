@@ -143,10 +143,14 @@ public abstract class TestBase
 
     /// <summary>
     /// One-time teardown for the test class.
+    /// Drops the template database to ensure complete cleanup.
     /// </summary>
     [OneTimeTearDown]
     public async Task GlobalTearDown()
     {
+        // Drop the template database
+        await DropDatabase(TemplateDbName);
+
         // Call the virtual method for test class-specific one-time teardown
         await OnGlobalTearDown();
     }
@@ -245,26 +249,7 @@ public abstract class TestBase
         NpgsqlConnection.ClearAllPools();
         
         // Drop the test database to clean up
-        await using NpgsqlConnection connection = new NpgsqlConnection(MasterConnectionString);
-        await connection.OpenAsync();
-
-        // First, terminate all connections to the test database
-        using (NpgsqlCommand cmd = connection.CreateCommand())
-        {
-            cmd.CommandText = $@"
-                SELECT pg_terminate_backend(pg_stat_activity.pid)
-                FROM pg_stat_activity
-                WHERE pg_stat_activity.datname = '{TestDatabaseName}'
-                AND pid <> pg_backend_pid();";
-            await cmd.ExecuteNonQueryAsync();
-        }
-
-        // Then drop the test database
-        using (NpgsqlCommand cmd = connection.CreateCommand())
-        {
-            cmd.CommandText = $"DROP DATABASE IF EXISTS {TestDatabaseName};";
-            await cmd.ExecuteNonQueryAsync();
-        }
+        await DropDatabase(TestDatabaseName);
     }
     
     /// <summary>
@@ -275,5 +260,29 @@ public abstract class TestBase
     protected virtual Task OnTestTearDown()
     {
         return Task.CompletedTask;
+    }
+
+    private async Task DropDatabase(string databaseName)
+    {
+        await using NpgsqlConnection connection = new NpgsqlConnection(MasterConnectionString);
+        await connection.OpenAsync();
+
+        // Terminate all connections to the database
+        using (NpgsqlCommand cmd = connection.CreateCommand())
+        {
+            cmd.CommandText = $@"
+            SELECT pg_terminate_backend(pg_stat_activity.pid)
+            FROM pg_stat_activity
+            WHERE pg_stat_activity.datname = '{databaseName}'
+            AND pid <> pg_backend_pid();";
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // Then drop the database
+        using (NpgsqlCommand cmd = connection.CreateCommand())
+        {
+            cmd.CommandText = $"DROP DATABASE IF EXISTS {databaseName};";
+            await cmd.ExecuteNonQueryAsync();        
+        }
     }
 }
