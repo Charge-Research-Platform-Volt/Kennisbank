@@ -37,7 +37,7 @@ export default function ArchivePage() {
   }, []);
 
   // Fetch search results
-  async function fetchQuery(query: string) {
+  async function fetchQuery(query: string = currentQuery, tags: string[] = tagFilters, start: number | null = startYear, end: number | null = endYear) {
     query = query.trim();
 
     fetchFiles(
@@ -49,17 +49,17 @@ export default function ArchivePage() {
       "An error occurred while fetching search results.",
       undefined,
       {
-        tagFilters: tagFilters,
-        startDate: startYear ? new Date(startYear, 0, 1) : undefined,
-        endDate: endYear ? new Date(endYear, 11, 31, 23, 59, 59, 999) : undefined,
+        tagFilters: tags,
+        startDate: start ? new Date(start, 0, 1) : undefined,
+        endDate: end ? new Date(end, 11, 31, 23, 59, 59, 999) : undefined,
       }
     );
   }
 
   // Respond to search input changes
   // Debounce the search input to avoid too many requests
-  const handleSearch = useDebouncedCallback(async (query: string) => {
-    fetchQuery(query);
+  const handleSearch = useDebouncedCallback(async (query: string | undefined = undefined, tags: string[] | undefined = undefined, start: number | null | undefined = undefined, end: number | null | undefined = undefined) => {
+    fetchQuery(query, tags, start, end);
   }, 300);
 
   return (
@@ -83,7 +83,7 @@ export default function ArchivePage() {
             setTagFilters(tagFilters);
             setStartYear(startDate);
             setEndYear(endDate);
-            handleSearch(currentQuery);
+            handleSearch(undefined, tagFilters, startDate, endDate);
           }} />
         </div>
       </div>
