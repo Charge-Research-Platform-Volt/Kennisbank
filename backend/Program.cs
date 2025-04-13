@@ -1,6 +1,5 @@
-using backend.Data;
-using backend.Security;
 using KnowledgeBank.Data;
+using KnowledgeBank.Security;
 using KnowledgeBank.Extensions;
 using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +9,7 @@ using Microsoft.OpenApi.Models;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
-using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace KnowledgeBank
 {
@@ -58,6 +57,8 @@ namespace KnowledgeBank
                 options => options.UseNpgsql(builder.Configuration.GetValue<string>("CONNECTION_STRING")
             ));
 
+            builder.Services.AddScoped<ResourceManager>();
+
             // CORS to allow Cross Origin Resource Sharing
             builder.Services.AddCors(options =>
             {
@@ -73,6 +74,8 @@ namespace KnowledgeBank
             // # Application
             WebApplication app = builder.Build();
 
+            // # Create database if it does not exist
+            app.EnsureCreatedDatabase();
 
             // # Middleware
             if (app.Environment.IsDevelopment())
@@ -82,23 +85,19 @@ namespace KnowledgeBank
                 app.UseSwagger();
                 app.UseSwaggerUI(ConfigureSwaggerUI);
                 app.UseDeveloperExceptionPage();
-
-                // Apply database migrations
-                app.ApplyMigrations();
             }
 
-            // Initialize roles
+            // Seeding the database with initial data
             using (IServiceScope scope = app.Services.CreateScope())
             {
                 await RoleInitializer.InitializeAsync(app.Services);
-                await TestDataSeeder.Seed(app.Services);
-            }
-
-            // Initialize roles
-            using (IServiceScope scope = app.Services.CreateScope())
-            {
-                await RoleInitializer.InitializeAsync(app.Services);
-                await TestDataSeeder.Seed(app.Services);
+                await DatabaseSeeder.Seed(app.Services);
+                
+                if (app.Environment.IsDevelopment())
+                {
+                    // Seed test data only in development environment:
+                    await TestDataSeeder.Seed(app.Services);
+                }
             }
 
             app.UseHttpsRedirection();
@@ -108,9 +107,6 @@ namespace KnowledgeBank
             app.UseAuthorization();
             app.MapControllers();
 
-            // # Authentication
-            app.UseAuthentication();
-            app.UseAuthorization();
             app.MapGroup("Auth").MapIdentityApi<User>().WithTags("Auth").WithOpenApi(ConfigureIdentityApiOptions).AddEndpointFilter(async (efiContext, next) =>
             {
                 if(HideEndpointFilter.PathsToHide.Any(p => p == efiContext.HttpContext.Request.Path))

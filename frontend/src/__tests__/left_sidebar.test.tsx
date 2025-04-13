@@ -1,26 +1,22 @@
-import { expect, test } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
-import LeftSidebarClient from "@/components/sidebar/left-sidebar/left-sidebar-client";
-import { TagsArraySchema } from "@/types/tag.type";
+import { expect, test } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+import LeftSidebarClient from '@/components/left-sidebar/left-sidebar-client'
+import { TagArraySchema } from '@/types/tag.type'
+import { QuickSearchProvider } from '@/components/quick-search-context'
 
-const testTags = TagsArraySchema.parse([]);
+const testTags = TagArraySchema.parse([])
 
 const expectedComponents: string[] = ["Home", "Tags", "Archive", "Project 1", "Settings", "Help"].sort();
 
-describe(
-  "sidebar",
-  () =>
-    test("Left_Sidebar renders all components with correct names", async () => {
-      render(<LeftSidebarClient tags={testTags} />);
-      const componentNames = await screen
-        .getAllByTestId("sidebar")
-        .map((elem) => elem.textContent ?? "")
-        .sort();
-      expect(componentNames).toEqual(expectedComponents);
+describe('sidebar', () =>
+    test('Left_Sidebar renders all components with correct names', async() =>{
+        render(<QuickSearchProvider><LeftSidebarClient tags={testTags}/></QuickSearchProvider>)
+        const componentNames = await screen.getAllByTestId("sidebar").map(elem => elem.textContent ?? '').sort();
+        expect(componentNames).toEqual(expectedComponents);
     }),
 
-  test("Left_Sidebar renders different components if hidden", async () => {
-    render(<LeftSidebarClient tags={testTags} />);
+    test('Left_Sidebar renders different components if hidden', async() =>{
+        render(<QuickSearchProvider><LeftSidebarClient tags={testTags}/></QuickSearchProvider>)
 
     // hides sidebar
     const button = screen.getByTestId("sidebar_hide");

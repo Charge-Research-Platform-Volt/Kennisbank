@@ -91,7 +91,7 @@ test-backend:
     - *setup_environment
   script:
     - *start_backend
-    - docker-compose run --rm backend sh -c "dotnet build && dotnet test"
+    - docker-compose run --rm backend sh -c 'dotnet build && dotnet test --logger:"console;verbosity=detailed"'
   after_script:
     - *cleanup
 

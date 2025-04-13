@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using backend.Data;
 using Microsoft.AspNetCore.StaticFiles;
 using Swashbuckle.AspNetCore.Annotations;
 using Serilog;
-using backend.Responses;
+using KnowledgeBank.Responses;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using System.Text;
@@ -11,24 +10,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 
-namespace backend.Controllers
+namespace KnowledgeBank.Controllers
 {
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class StorageController : ControllerBase
+    public class StorageController(IAzureBlobService blobService, ResourceManager resourceManager) : ControllerBase
     {
-        private readonly IAzureBlobService blobService;
-        private readonly Serilog.ILogger logger;
-        private readonly DatabaseContext database;
-
-        public StorageController(IAzureBlobService blobService, DatabaseContext databaseContext)
-        {
-            this.blobService = blobService;
-            this.logger = Log.ForContext<StorageController>();
-            this.database = databaseContext;
-        }
+        private readonly IAzureBlobService blobService = blobService;
+        private readonly Serilog.ILogger logger = Log.ForContext<StorageController>();
+        private readonly ResourceManager resourceManager = resourceManager;
 
         [HttpPut("upload")]
         [SwaggerOperation(
@@ -40,7 +32,7 @@ namespace backend.Controllers
         [SwaggerResponse(409, "File already exists", typeof(StorageResponse))]
         [SwaggerResponse(400, "Invalid file", typeof(StorageResponse))]
         [SwaggerResponse(500, "Server error", typeof(StorageResponse))]
-        public async Task<IActionResult> UploadFile([FromForm] StorageUploadDto dto)
+        public async Task<IActionResult> UploadFile([FromForm] FileResourceCreateDto dto)
         {
             if (dto.File == null)
                 return BadRequest(new StorageResponse("No file was uploaded."));
@@ -48,8 +40,17 @@ namespace backend.Controllers
             if (dto.File.Length == 0)
                 return BadRequest(new StorageResponse("The uploaded file was empty."));
 
-            if (string.IsNullOrEmpty(dto.Name))
+            if (string.IsNullOrEmpty(dto.Title))
                 return BadRequest(new StorageResponse("No name was provided."));
+
+            if (string.IsNullOrEmpty(dto.TypeId))
+                return BadRequest(new StorageResponse("No type ID was provided."));
+
+            if (string.IsNullOrEmpty(dto.LanguageCode))
+                return BadRequest(new StorageResponse("No language code was provided"));
+
+            if (dto.PublicationDate == DateTime.MinValue)
+                return BadRequest(new StorageResponse("No publication date was provided"));
 
             string extension = Path.GetExtension(dto.File.FileName);
 
@@ -58,52 +59,41 @@ namespace backend.Controllers
 
             string fileType = Filetype.ConvertExtensionToFiletype(extension);
 
-            Guid id = Guid.NewGuid();
+            await resourceManager.BeginTransaction();
+
+            Guid id = await resourceManager.CreateResourceAsync(dto);
 
             try
             {
-                Dictionary<string, string> metadata = new Dictionary<string, string> { { "extension", extension } };
-                BLOB_STATUSCODE result = await blobService.UploadBlobAsync(fileType, id.ToString(), metadata, dto.File.OpenReadStream(), dto.Overwrite);
+                logger.Information("Adding file '{FileName}' to blob storage...", dto.File.FileName);
+                Dictionary<string, string> metadata = new() { { "extension", extension } };
+                BLOB_STATUSCODE result = await blobService.UploadBlobAsync(fileType, id.ToString(), metadata, dto.File.OpenReadStream());
 
                 switch (result)
                 {
                     case BLOB_STATUSCODE.OK:
 
-                        FileItem drive = new()
-                        {
-                            Id = id,
-                            Name = dto.Name,
-                            Description = dto.Description,
-                            Hash = dto.Hash,
-                            FileType = fileType,
-                            CreatedAt = DateTime.UtcNow,
-                            UpdatedAt = DateTime.UtcNow,
-                        };
+                        logger.Information("Adding file '{FileName}' to database...", dto.File.FileName);
 
-                        await database.Files.AddAsync(drive);
+                        // Save changes to database since file upload succeeded
+                        await resourceManager.Commit();
 
-                        foreach (string tag in dto.Tags)
-                        {
-                            FileTag tagEntry = new()
-                            {
-                                DocId = id,
-                                TagId = Guid.Parse(tag),
-                            };
-
-                            await database.FileTagLinks.AddAsync(tagEntry);
-                        }
-
-                        await database.SaveFileChangesAsync();
-
+                        logger.Information("File '{FileName}' added successfully", dto.File.FileName);
                         return Ok(new FileUploadResult(id.ToString(), fileType, dto.File.Length));
 
                     case BLOB_STATUSCODE.NOTFOUND:
+                        // Roll back changes to database since file upload failed
+                        await resourceManager.Rollback();
                         return NotFound(new ContainerResponse("Container could not be found", fileType));
 
                     case BLOB_STATUSCODE.ALREADYEXISTS:
+                        // Roll back changes to database since file upload failed
+                        await resourceManager.Rollback();
                         return Conflict(new FileResponse("File already exists and overwrite is disabled.", id.ToString(), fileType));
 
                     default:
+                        // Roll back changes to database since file upload failed
+                        await resourceManager.Rollback();
                         return StatusCode(500, new StorageResponse("Error uploading file."));
                 }
             }
@@ -130,24 +120,24 @@ namespace backend.Controllers
 
             try
             {
-                FileItem? item = await database.Files.FindAsync(Guid.Parse(id));
-
-                if (item == null)
+                if (!await resourceManager.ResourceExistsAsync(id))
                     return NotFound(new StorageResponse("ID not found in the database."));
 
-                BlobDownloadResponse? maybeResponse = await blobService.DownloadBlobAsync(item.FileType, id);
+                string filetype = await resourceManager.GetResourcePropertyAsync(id, resource => resource.FileType);
+
+                BlobDownloadResponse? maybeResponse = await blobService.DownloadBlobAsync(filetype, id);
 
                 if (maybeResponse == null)
-                    return NotFound(new FileResponse("File could not be found but exists in database.", id, item.FileType));
+                    return NotFound(new FileResponse("File could not be found but exists in database.", id, filetype));
 
                 BlobDownloadResponse response = (BlobDownloadResponse)maybeResponse;
 
                 string contentType = "application/octet-stream";
-                string fileName = sanitizeFileName(item.Name) + response.Metadata["extension"];
+                string fileName = SanitizeFileName(await resourceManager.GetResourcePropertyAsync(id, resource => resource.Title)) + response.Metadata["extension"];
 
                 if (Path.HasExtension(fileName))
                 {
-                    FileExtensionContentTypeProvider provider = new FileExtensionContentTypeProvider();
+                    FileExtensionContentTypeProvider provider = new();
                     if (provider.TryGetContentType(fileName, out string? type) && !string.IsNullOrEmpty(type))
                         contentType = type;
                 }
@@ -178,24 +168,23 @@ namespace backend.Controllers
 
             try
             {
-                FileItem? item = await database.Files.FindAsync(Guid.Parse(id));
-
-                if (item == null)
+                if (await resourceManager.ResourceExistsAsync(id))
                     return NotFound(new StorageResponse("ID was not found in database. File was deleted succesfully."));
 
-                BLOB_STATUSCODE result = await blobService.DeleteBlobAsync(item.FileType, id);
+                string filetype = await resourceManager.GetResourcePropertyAsync(id, resource => resource.FileType);
+
+                BLOB_STATUSCODE result = await blobService.DeleteBlobAsync(filetype, id);
 
                 switch (result)
                 {
                     case BLOB_STATUSCODE.OK:
 
-                        database.Files.Remove(item);
-                        await database.SaveFileChangesAsync();
+                        await resourceManager.DeleteResourceAsync(id);
 
-                        return Ok(new FileResponse("File deleted successfully", id, item.FileType));
+                        return Ok(new FileResponse("File deleted successfully", id, filetype));
 
                     case BLOB_STATUSCODE.NOTFOUND:
-                        return NotFound(new FileResponse("File not found but exists in database.", id, item.FileType));
+                        return NotFound(new FileResponse("File not found but exists in database.", id, filetype));
 
                     default:
                         return StatusCode(500, new StorageResponse("Error while deleting file."));
@@ -217,24 +206,18 @@ namespace backend.Controllers
         [SwaggerResponse(404, "File not found", typeof(StorageResponse))]
         [SwaggerResponse(400, "Invalid name or ID", typeof(StorageResponse))]
         [SwaggerResponse(500, "Server error", typeof(StorageResponse))]
-        public async Task<IActionResult> Rename([FromBody] StorageRenameDto dto)
+        public async Task<IActionResult> Rename([FromBody] ResourceRenameDto dto)
         {
             if (string.IsNullOrEmpty(dto.Id))
                 return BadRequest(new StorageResponse("Invalid ID."));
 
-            if (string.IsNullOrEmpty(dto.Name))
+            if (string.IsNullOrEmpty(dto.Title))
                 return BadRequest(new StorageResponse("Invalid name."));
 
             try
             {
-                FileItem? item = await database.Files.FindAsync(Guid.Parse(dto.Id));
-
-                if (item == null)
+                if (!await resourceManager.UpdateResourceAsync(dto.Id, r => r.Title, dto.Title))
                     return NotFound(new StorageResponse("ID was not found in database."));
-
-                item.Name = dto.Name;
-
-                await database.SaveFileChangesAsync();
 
                 return Ok(new StorageResponse("File renamed succesfully."));
             }
@@ -261,12 +244,12 @@ namespace backend.Controllers
 
             try
             {
-                FileItem? item = await database.Files.Where(f => f.Hash == hash).FirstOrDefaultAsync();
+                Guid? resourceId = await resourceManager.HashExistsAsync(hash);
 
-                if (item == null)
+                if (resourceId == null)
                     return Ok(new ExistsResponse("File does not exist.", false, ""));
 
-                return Ok(new ExistsResponse("File already exists", true, item.Id.ToString()));
+                return Ok(new ExistsResponse("File already exists", true, ((Guid)resourceId).ToString()));
             }
             catch (Exception e)
             {
@@ -291,12 +274,12 @@ namespace backend.Controllers
 
             try
             {
-                FileItem? item = await database.Files.FindAsync(Guid.Parse(id));
+                Resource? item = await resourceManager.GetResourceAsync(id);
 
                 if (item == null)
                     return NotFound(new StorageResponse("File not found."));
 
-                return Ok(new FileInfoResponse("File found.", item));
+                return Ok(new ResourceInfoResponse("File found.", item));
             }
             catch (Exception e)
             {
@@ -316,10 +299,10 @@ namespace backend.Controllers
         {
             try
             {
-                FileItem[]? items = await database.Files.OrderByDescending(f => f.CreatedAt).Include(f => f.Tags).ToArrayAsync();
+                Resource[]? items = await resourceManager.GetAllResourcesAsync();
 
                 if (items == null)
-                    return Ok(new PageResponse("No files in database.", 0, 0, Array.Empty<FileItem>()));
+                    return Ok(new PageResponse("No files in database.", 0, 0, []));
 
                 return Ok(new PageResponse($"{items.Length} files found.", 0, 0, items));
             }
@@ -348,13 +331,10 @@ namespace backend.Controllers
 
             try
             {
-                // Calculate how many records we need to skip
-                int skip = (pageIndex - 1) * pageSize;
-
-                FileItem[]? items = await database.Files.Skip(skip).Take(pageSize).ToArrayAsync();
+                Resource[]? items = await resourceManager.GetResourcePageAsync(pageIndex, pageSize);
 
                 if (items == null)
-                    return Ok(new PageResponse("No files on this page.", pageIndex, pageSize, Array.Empty<FileItem>()));
+                    return Ok(new PageResponse("No files on this page.", pageIndex, pageSize, []));
 
                 return Ok(new PageResponse($"{items.Length} files found.", pageIndex, pageSize, items));
             }
@@ -366,7 +346,7 @@ namespace backend.Controllers
         }
 
         // Makes a valid filename
-        private string sanitizeFileName(string fileName, bool preserveSpaces = true)
+        private static string SanitizeFileName(string fileName, bool preserveSpaces = true)
         {
             if (string.IsNullOrEmpty(fileName))
                 return "unnamed";
@@ -377,7 +357,7 @@ namespace backend.Controllers
 
             // Retrieve invalid chars
             char[] invalidChars = Path.GetInvalidFileNameChars();
-            StringBuilder sb = new StringBuilder();
+            StringBuilder sb = new();
 
             foreach (char c in fileName)
             {
@@ -412,7 +392,7 @@ namespace backend.Controllers
             // Limit length of name
             int maxLength = 255 - extension.Length;
             if (result.Length > maxLength)
-                result = result.Substring(0, maxLength);
+                result = result[..maxLength];
 
             // Return result + extension
             return result + extension;

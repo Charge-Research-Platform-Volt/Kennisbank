@@ -41,9 +41,8 @@ services:
       target: ci-runner
     ports:
       - "8080:8080"
-      - "8081:8081"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Production
       - CONNECTION_STRING=Host=database;Port=5432;Username=postgres;Password=postgres;Database=postgres;Include Error Detail=true
       - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://storage:10000/devstoreaccount1;
     depends_on:
@@ -54,7 +53,7 @@ services:
     networks:
       - my_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/status"]
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/status || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 5

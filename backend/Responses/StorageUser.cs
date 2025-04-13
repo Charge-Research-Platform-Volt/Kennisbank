@@ -1,4 +1,4 @@
-namespace backend.Responses;
+namespace KnowledgeBank.Responses;
 
 public class AddUser
 {

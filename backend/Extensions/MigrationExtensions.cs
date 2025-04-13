@@ -15,12 +15,33 @@ public static class MigrationExtensions
         {
             context.Database.Migrate();
 
-            context.Database.ExecuteSqlRaw("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
-            context.Database.ExecuteSqlRaw("CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_name_trgm ON files USING GIN (name gin_trgm_ops);");
-            context.Database.ExecuteSqlRaw("CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_description_trgm ON files USING GIN (description gin_trgm_ops);");
-            context.Database.ExecuteSqlRaw("ALTER TABLE file_vectors ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
-            context.Database.ExecuteSqlRaw("CREATE INDEX idx_file_vector ON file_vectors USING GIN(vector);");
-
+            CreateVectors(context);
         }
+    }
+
+    public static void EnsureDeletedDatabase(this IApplicationBuilder app)
+    {
+        using IServiceScope scope = app.ApplicationServices.CreateScope();
+        using DatabaseContext context = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+
+        context.Database.EnsureDeleted();
+    }
+
+    public static void EnsureCreatedDatabase(this IApplicationBuilder app)
+    {
+        using IServiceScope scope = app.ApplicationServices.CreateScope();
+        using DatabaseContext context = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+
+        if (context.Database.EnsureCreated()) 
+            CreateVectors(context);
+    }
+
+    private static void CreateVectors(DatabaseContext context)
+    {
+        context.Database.ExecuteSqlRaw("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
+        context.Database.ExecuteSqlRaw("CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_title_trgm ON resources USING GIN (title gin_trgm_ops);");
+        context.Database.ExecuteSqlRaw("CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_description_trgm ON resources USING GIN (description gin_trgm_ops);");
+        context.Database.ExecuteSqlRaw("ALTER TABLE \"resource-vectors\" ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
+        context.Database.ExecuteSqlRaw("CREATE INDEX idx_resource_vector ON \"resource-vectors\" USING GIN(vector);");
     }
 }

@@ -4,8 +4,8 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import SidebarPart from "./sidebar-part";
-import NewButton from "./sidebar-new-button";
-import type { TagsArray, UserTagsArray } from "@/types/tag.type";
+import NewButton from "@/components/left-sidebar/sidebar-new-button";
+import type { TagArray } from "@/types/tag.type";
 import Settings from "@/icons/settings";
 import Archive from "@/icons/archive";
 import Tags from "@/icons/tags-icon";
@@ -37,7 +37,7 @@ const projects: SidebarItem[] = [
   },
 ];
 
-export default function LeftSidebarClient({ userTags, standardizedTags }: { userTags: UserTagsArray; standardizedTags: TagsArray }) {
+export default function LeftSidebarClient({ tags }: { tags: TagArray }) {
   const [isOpen, setIsOpen] = useState(true);
   const [profileButtonWidth, setProfileButtonWidth] = useState(0);
   const profileButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -90,7 +90,7 @@ export default function LeftSidebarClient({ userTags, standardizedTags }: { user
           {/* Menu items */}
           <nav className="flex h-full flex-col">
             <div className="mb-10 space-y-2">
-              <NewButton userTags={userTags} standardizedTags={standardizedTags} />
+              <NewButton tags={tags} />
 
               {/* Search bar */}
               <QuickSearch />
@@ -134,7 +134,7 @@ export default function LeftSidebarClient({ userTags, standardizedTags }: { user
                   </DropdownMenuTrigger>
 
                   <DropdownMenuContent side="top" style={{ width: profileButtonWidth }}>
-                    <DropdownMenuItem onClick={() => console.log("Profile clicked")} className="cursor-pointer">
+                    <DropdownMenuItem className="cursor-pointer">
                       Profile
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />

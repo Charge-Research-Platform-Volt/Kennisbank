@@ -7,9 +7,8 @@ using Swashbuckle.AspNetCore.Annotations;
 using backend.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using Docker.DotNet.Models;
 
-namespace backend.Controllers
+namespace KnowledgeBank.Controllers
 {
     [ApiController]
     [Route("[controller]")]

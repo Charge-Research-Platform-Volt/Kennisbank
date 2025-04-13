@@ -1,4 +1,4 @@
-﻿namespace backend.Data
+﻿namespace KnowledgeBank.Data
 {
     public static class Filetype
     {
