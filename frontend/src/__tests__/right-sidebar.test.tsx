@@ -16,15 +16,58 @@ vi.mock("@/context/sidebar-provider", () => ({
 describe("RightSidebar", () => {
   const mockToggleRightSidebar = vi.fn();
 
+  const mockTagRelation1 = {
+    resourceId: "123",
+    tagId: "456",
+    isApproved: false,
+    approvedOn: null,
+    approvedBy: null,
+    tag: {
+      id: "456",
+      name: "Tag 1",
+      isStandardized: false,
+      isApproved: false,
+      approvedOn: null,
+      approvedBy: null,
+      createdBy: "User1",
+      createdOn: "2024-01-01T12:00:00Z"
+    }
+  }
+
+  const mockTagRelation2 = {
+    resourceId: "123",
+    tagId: "789",
+    isApproved: false,
+    approvedOn: null,
+    approvedBy: null,
+    tag: {
+      id: "789",
+      name: "Tag 2",
+      isStandardized: false,
+      isApproved: false,
+      approvedOn: null,
+      approvedBy: null,
+      createdBy: "User1",
+      createdOn: "2024-01-01T12:00:00Z"
+    }
+  }
+
   const mockDocument = {
-    id: "doc1",
-    name: "Test Document",
+    id: "123",
+    title: "Test Document",
     description: "This is a test document",
-    createdAt: "2023-01-01T12:00:00Z",
-    updatedAt: "2023-01-02T12:00:00Z",
-    tags: [
-      { id: "tag1", name: "Tag 1" },
-      { id: "tag2", name: "Tag 2" },
+    fileType: "pdf",
+    hash: null,
+    typeId: "type1",
+    languageCode: "en",
+    publicationCode: null,
+    license: null,
+    note: null,
+    creationDate: "2024-01-01T12:00:00Z",
+    publicationDate: "2024-01-02T12:00:00Z",
+    tagRelations: [
+      mockTagRelation1,
+      mockTagRelation2
     ],
   };
 
@@ -60,7 +103,6 @@ describe("RightSidebar", () => {
 
     // Check date formatting
     expect(screen.getByText(/Created At:/)).toBeInTheDocument();
-    expect(screen.getByText(/Updated At:/)).toBeInTheDocument();
   });
 
   it("renders document without tags when tags are empty", () => {

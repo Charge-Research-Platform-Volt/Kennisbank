@@ -13,7 +13,6 @@ export const AddDocument = async (
     formData: FormData,
 ): Promise<FormResponse<ResourceBase>> => {
     try {
-        console.log("Adding document");
 
         // Raw data from the form.
         const rawData: ResourceBase = {
@@ -26,7 +25,6 @@ export const AddDocument = async (
             publicationDate: new Date("1995-12-17T03:24:00"),
             fileType: null,
         };
-        console.log("validating document");
 
         // Validate the raw data, if it fails, return an error.
         const validatedData = ResourceBaseSchema.safeParse(rawData);
@@ -38,19 +36,16 @@ export const AddDocument = async (
                 inputs: rawData,
             };
         }
-        console.log("Document validated");
 
         if(rawData.title == defaultName){
             formData.set("title", defaultName);
         }
-        console.log("Setting hash");
         
         formData.set("typeId", rawData.typeId);
         formData.set("languageCode", rawData.languageCode);
         formData.set("publicationDate", rawData.publicationDate.toISOString());
         
         formData.set("hash", hash);
-        console.log("Getting tag ids");
 
         const tagIDs: string[] = [];
         
@@ -80,8 +75,6 @@ export const AddDocument = async (
             });
         }
 
-        console.log("Sending data to backend");
-        console.log(formData);
         // Send the data to the backend.
         const cookieHeader = await cookies();
         const response = await fetch("http://backend:8080/storage/upload", {
@@ -91,7 +84,7 @@ export const AddDocument = async (
             headers: { Cookie: cookieHeader.toString() || "" },
         });
         const data = await response.json();
-        console.log("Data received from backend");
+
         // Check if the request was successful, if not, return an error.
         if (!response.ok) {
             console.log("Something failed");

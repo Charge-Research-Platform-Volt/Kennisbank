@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { ResourceResponseSchema } from "./resource.type";
 
 /**
  * Tag scheme

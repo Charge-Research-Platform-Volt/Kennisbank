@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import NewButton from '@/components/left-sidebar/sidebar-new-button'
+import NewButton from '@/components/sidebar/left-sidebar/sidebar-new-button'
 import { TagArraySchema } from '@/types/tag.type'
 import TagSelectionDropdown from '@/components/uploadComponents/TagSelectionDropdown'
 
