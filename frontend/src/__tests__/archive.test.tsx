@@ -1,8 +1,7 @@
 import { afterEach, describe, expect, test, it, vi, beforeAll } from "vitest";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, fireEvent, waitFor, act } from "@testing-library/react";
 import ListDocuments from "@/components/list-documents";
 import ArchivePage from "@/app/(knowledgebank)/archive/page";
-import { Title } from "@radix-ui/react-dialog";
 
 const filterButtonApplyMock = vi.fn();
 
@@ -48,17 +47,17 @@ function newData(data: any) {
   };
 }
 
-function newDataResponse(data: Array<any>) {
-  return new Response(JSON.stringify(newData(data)), { status: 200 });
+function newDataResponsePromise(data: Array<any>) {
+  return Promise.resolve(new Response(JSON.stringify(newData(data)), { status: 200 }));
 }
 
-function newErrorResponse() {
-  return new Response(JSON.stringify({ message: "Error" }), { status: 500 });
+function newErrorResponsePromise() {
+  return Promise.resolve(new Response(JSON.stringify({ message: "Error" }), { status: 500 }));
 }
 
 describe("ArchivePage", () => {
   it("renders the search component and document list", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce(newDataResponse([]));
+    global.fetch = vi.fn().mockResolvedValueOnce(newDataResponsePromise([]));
 
     const { container, getByText, getByRole, getByPlaceholderText } = render(<ArchivePage />);
     expect(container.querySelector(`svg[xmlns="http://www.w3.org/2000/svg"]`)).toBeInTheDocument();
@@ -78,75 +77,71 @@ describe("ArchivePage", () => {
 
 describe("Rendering fetch results", () => {
   test("renders initial documents correctly", async () => {
-    const { getByText } = render(<ListDocuments data={newData([testFile])} />);
+    global.fetch = vi.fn(() => (newDataResponsePromise([testFile])));
 
-    await waitFor(() => {
-      expect(getByText(testFile.title)).toBeInTheDocument();
-      expect(getByText(testFile.description)).toBeInTheDocument();
-      expect(getByText(testFile.fileType)).toBeInTheDocument();
-      expect(getByText(getCompareString(testFile.creationDate))).toBeInTheDocument();
-      expect(getByText(getCompareString(testFile.publicationDate))).toBeInTheDocument();
-    });
+    const { getByText } = render(<ArchivePage />);
+
+    await awaitFetchResolve(1);
+
+    expect(getByText(testFile.title)).toBeInTheDocument();
+    expect(getByText(testFile.description)).toBeInTheDocument();
+    expect(getByText(testFile.fileType)).toBeInTheDocument();
+    expect(getByText(getCompareString(testFile.creationDate))).toBeInTheDocument();
+    expect(getByText(getCompareString(testFile.publicationDate))).toBeInTheDocument();
   });
 
   test("renders error message when fetch fails", async () => {
-    global.fetch = vi.fn().mockResolvedValue(newErrorResponse());
+    global.fetch = vi.fn(() => (newErrorResponsePromise()));
 
     const { getByText } = render(<ArchivePage />);
 
-    await waitFor(() => {
-      expect(getByText("An error occurred while fetching initial files.")).toBeInTheDocument();
-    });
+    await awaitFetchResolve(1);
+
+    expect(getByText("An error occurred while fetching initial files.")).toBeInTheDocument();
   });
 
   test("renders error message when search fetch fails", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce(Promise.resolve(newErrorResponse()));
+    global.fetch = vi.fn(() => (newErrorResponsePromise()));
 
-    const { getByText } = render(<ArchivePage />);
+    const { getByText, getByPlaceholderText } = render(<ArchivePage />);
 
-    const searchInput = screen.getByPlaceholderText("Search");
+    const searchInput = getByPlaceholderText("Search");
 
-    debouncedChange(() => fireEvent.change(searchInput, { target: { value: "error" } }));
+    await awaitDebouncedChange(() => fireEvent.change(searchInput, { target: { value: "error" } }));
 
-    await waitFor(() => {
-      expect(getByText("An error occurred while fetching search results.")).toBeInTheDocument();
-    });
+    expect(getByText("An error occurred while fetching search results.")).toBeInTheDocument();
   });
 
   test("renders different documents when search is changed", async () => {
     const files = [testFile];
 
     // Simulate the initial fetch
-    global.fetch = vi.fn((input: any) => {
+    global.fetch = vi.fn(async (input: any) => {
       if (typeof input === "string") {
         if (input.includes("list-all")) {
-          return Promise.resolve(newDataResponse([testFile]));
+          return newDataResponsePromise([testFile]);
         } else if (input.includes("search-full-text")) {
-          return Promise.resolve(newDataResponse(files.filter((file) => file.title.toLowerCase().includes(new URL(input).searchParams.get("query")!.toLowerCase()))));
+          return newDataResponsePromise(files.filter((file) => file.title.toLowerCase().includes(new URL(input).searchParams.get("query")!.toLowerCase())));
         }
       }
       throw new Error("Unexpected fetch call");
     });
 
-    const { getByText } = render(<ArchivePage />);
+    const { getByText, getByPlaceholderText } = render(<ArchivePage />);
 
-    const searchInput = screen.getByPlaceholderText("Search");
+    const searchInput = getByPlaceholderText("Search");
 
     await awaitFetchResolve(1);
 
-    await waitFor(() => expect(getByText(testFile.title)).toBeInTheDocument());
+    expect(getByText(testFile.title)).toBeInTheDocument();
 
-    debouncedChange(() => fireEvent.change(searchInput, { target: { value: "nothing" } }))
+    await awaitDebouncedChange(() => fireEvent.change(searchInput, { target: { value: "nothing" } }), 2);
 
-    await awaitFetchResolve(2);
+    expect(getByText("No Rows To Show")).toBeInTheDocument();
 
-    await waitFor(() => expect(getByText("No Rows To Show")).toBeInTheDocument());
+    await awaitDebouncedChange(() => fireEvent.change(searchInput, { target: { value: "test" } }), 3);
 
-    debouncedChange(() => fireEvent.change(searchInput, { target: { value: "test" } }))
-
-    await awaitFetchResolve(3);
-
-    await waitFor(() => expect(getByText(testFile.title)).toBeInTheDocument());
+    expect(getByText(testFile.title)).toBeInTheDocument();
   });
 
   test("renders different documents when filters are applied", async () => {
@@ -162,12 +157,11 @@ describe("Rendering fetch results", () => {
     global.fetch = vi.fn((input: any, init: RequestInit | undefined) => {
       if (typeof input === "string") {
         if (input.includes("list-all")) {
-          return Promise.resolve(newDataResponse(files));
+          return newDataResponsePromise(files);
         } else if (input.includes("search-full-text")) {
           console.log(init!.body!);
           const filter = JSON.parse(init!.body! as string);
-          return Promise.resolve(
-            newDataResponse(
+          return newDataResponsePromise(
               files.filter(
                 (file) =>
                   file.title.toLowerCase().includes(new URL(input).searchParams.get("query")!.toLowerCase()) &&
@@ -175,8 +169,7 @@ describe("Rendering fetch results", () => {
                   (filter.startDate ? new Date(file.publicationDate) >= new Date(filter.startDate) : true) &&
                   (filter.endDate ? new Date(file.publicationDate) <= new Date(filter.endDate) : true),
               ),
-            ),
-          );
+            )
         }
       }
       throw new Error("Unexpected fetch call");
@@ -191,27 +184,21 @@ describe("Rendering fetch results", () => {
     expect(getByText(title3)).toBeInTheDocument();
     expect(getByText(title4)).toBeInTheDocument();
 
-    debouncedChange(() => filterButtonApplyMock(["tag1"], null, null));
-
-    await awaitFetchResolve(2);
+    await awaitDebouncedChange(() => filterButtonApplyMock(["tag1"], null, null), 2);
 
     expect(queryByText(title1)).not.toBeInTheDocument();
     expect(getByText(title2)).toBeInTheDocument();
     expect(getByText(title3)).toBeInTheDocument();
     expect(getByText(title4)).toBeInTheDocument();
 
-    debouncedChange(() => filterButtonApplyMock(["tag1"], 2025, null));
-
-    await awaitFetchResolve(3);
+    await awaitDebouncedChange(() => filterButtonApplyMock(["tag1"], 2025, null), 3);
 
     expect(queryByText(title1)).not.toBeInTheDocument();
     expect(queryByText(title2)).not.toBeInTheDocument();
     expect(getByText(title3)).toBeInTheDocument();
     expect(getByText(title4)).toBeInTheDocument();
 
-    debouncedChange(() => filterButtonApplyMock(["tag1"], 2025, 2027));
-
-    await awaitFetchResolve(4);
+    await awaitDebouncedChange(() => filterButtonApplyMock(["tag1"], 2025, 2027), 4);
 
     expect(queryByText(title1)).not.toBeInTheDocument();
     expect(queryByText(title2)).not.toBeInTheDocument();
@@ -221,7 +208,7 @@ describe("Rendering fetch results", () => {
 });
 
 // Make a change that has to be "debounced", aka time has to pass since the last change before the change is confirmed
-async function debouncedChange(action: () => void) {
+async function awaitDebouncedChange(action: () => void, fetchTimes: number = -1) {
   await act(async () => {
     vi.useFakeTimers();
     action();
@@ -229,16 +216,16 @@ async function debouncedChange(action: () => void) {
     vi.advanceTimersByTime(300);
     vi.useRealTimers();
   });
+  await awaitFetchResolve(fetchTimes);
 }
 
 // Wait for the fetch to resolve, and if given, the nth resolve, then let the Promise queue resolve
-async function awaitFetchResolve(n: number | undefined = undefined) {
+async function awaitFetchResolve(times: number = -1) {
   await waitFor(async () => {
-    if (n === undefined) {
+    if (times === -1) {
       expect(fetch).toHaveResolved;
-    }
-    else {
-      expect(fetch).toHaveResolvedTimes(n);
+    } else {
+      expect(fetch).toHaveResolvedTimes(times);
     }
     // The fetch response is a Promise, so we need to pass priority to the Promise queue, this can be done with this "hack" (resolving a nothing Promise)
     await Promise.resolve();
