@@ -129,23 +129,24 @@ describe("Rendering fetch results", () => {
     });
 
     const { getByText } = render(<ArchivePage />);
+
     const searchInput = screen.getByPlaceholderText("Search");
 
-    awaitFetchResolve(1);
+    await awaitFetchResolve(1);
 
-    expect(getByText(testFile.title)).toBeInTheDocument();
+    await waitFor(() => expect(getByText(testFile.title)).toBeInTheDocument());
 
     debouncedChange(() => fireEvent.change(searchInput, { target: { value: "nothing" } }))
 
-    awaitFetchResolve(2);
+    await awaitFetchResolve(2);
 
-    expect(getByText("No Rows To Show")).toBeInTheDocument();
+    await waitFor(() => expect(getByText("No Rows To Show")).toBeInTheDocument());
 
     debouncedChange(() => fireEvent.change(searchInput, { target: { value: "test" } }))
 
-    awaitFetchResolve(3);
+    await awaitFetchResolve(3);
 
-    expect(getByText(testFile.title)).toBeInTheDocument();
+    await waitFor(() => expect(getByText(testFile.title)).toBeInTheDocument());
   });
 
   test("renders different documents when filters are applied", async () => {
@@ -183,7 +184,7 @@ describe("Rendering fetch results", () => {
 
     const { getByText, queryByText } = render(<ArchivePage />);
 
-    awaitFetchResolve(1);
+    await awaitFetchResolve(1);
 
     expect(getByText(title1)).toBeInTheDocument();
     expect(getByText(title2)).toBeInTheDocument();
@@ -192,7 +193,7 @@ describe("Rendering fetch results", () => {
 
     debouncedChange(() => filterButtonApplyMock(["tag1"], null, null));
 
-    awaitFetchResolve(2);
+    await awaitFetchResolve(2);
 
     expect(queryByText(title1)).not.toBeInTheDocument();
     expect(getByText(title2)).toBeInTheDocument();
@@ -201,7 +202,7 @@ describe("Rendering fetch results", () => {
 
     debouncedChange(() => filterButtonApplyMock(["tag1"], 2025, null));
 
-    awaitFetchResolve(3);
+    await awaitFetchResolve(3);
 
     expect(queryByText(title1)).not.toBeInTheDocument();
     expect(queryByText(title2)).not.toBeInTheDocument();
@@ -210,7 +211,7 @@ describe("Rendering fetch results", () => {
 
     debouncedChange(() => filterButtonApplyMock(["tag1"], 2025, 2027));
 
-    awaitFetchResolve(4);
+    await awaitFetchResolve(4);
 
     expect(queryByText(title1)).not.toBeInTheDocument();
     expect(queryByText(title2)).not.toBeInTheDocument();
