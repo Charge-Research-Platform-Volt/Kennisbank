@@ -20,12 +20,12 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 export default function ListResources({ data }: { data: ResourcePageWithTagsResponse }) {
   // Column definitions
   const columnDefs = useState<ColDef[]>([
-    { field: "title", flex: 3, filter: true, cellRenderer: Render },
-    { field: "description", flex: 2 },
-    { field: "fileType", width: 70, headerName: "Type" },
-    { field: "creationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
-    { field: "publicationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
-    { field: "", width: 30, cellRenderer: DownloadRenderer },
+    { field: "title", flex: 3, cellRenderer: Render, resizable: false },
+    { field: "description", flex: 2, resizable: false },
+    { field: "fileType", width: 70, headerName: "Type", resizable: false },
+    { field: "creationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm"), resizable: false },
+    { field: "publicationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm"), resizable: false },
+    { field: "", width: 30, cellRenderer: DownloadRenderer, resizable: false },
   ])[0];
 
   // const [defaultColDef, setDefaultColDef] = useState({
@@ -45,7 +45,7 @@ export default function ListResources({ data }: { data: ResourcePageWithTagsResp
 
   return (
     <div className="h-[calc(100vh-6rem)] w-full">
-      <AgGridReact rowData={data.resources} columnDefs={columnDefs} theme={tableTheme} rowSelection={rowSelection as RowSelectionOptions} onRowClicked={(row) => toggleRightSidebar(row.data)} />
+      <AgGridReact suppressMovableColumns={true} rowData={data.resources} columnDefs={columnDefs} theme={tableTheme} rowSelection={rowSelection as RowSelectionOptions} onRowClicked={(row) => toggleRightSidebar(row.data)} />
     </div>
   );
 }
