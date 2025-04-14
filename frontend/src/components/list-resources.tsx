@@ -38,7 +38,6 @@ export default function ListResources({ data }: { data: ResourcePageWithTagsResp
 
   // deselect the row when the sidebar is closed
   const onCloseSidebar = () => {
-    console.log("onCloseSidebar");
     gridApiRef.current?.deselectAll();
   };
 
