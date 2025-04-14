@@ -117,9 +117,9 @@ public class WebsiteUploadControllerTests : TestBase
         Assert.That(Context.Resources.Count, Is.EqualTo(0));
     }
 
-    [TestCase("www.test.nl", "www.woah.nl", "URL")]
+    [TestCase("www.test.nl", "www.woah.nl", WebsiteColumn.Url)]
     //[TestCase("www.newtest.nl", "Better Test Website", "Title")]
-    public async Task Change_Website_Test(string website, string newAttribute, string attribute)
+    public async Task Change_Website_Test(string website, string newAttribute, WebsiteColumn attribute)
     {
         ResourceType resourceType = await Context.ResourceTypes.FirstAsync();
 
@@ -149,7 +149,7 @@ public class WebsiteUploadControllerTests : TestBase
         await Context.SaveChangesAsync();
 
         // Check that if URL is changed, the metadata table is changed, and if the title is changed the resources table is changed
-        if(attribute == "URL")
+        if(attribute == WebsiteColumn.Url)
         {
             Assert.That(Context.WebsiteMetadata.Where(prop => prop.Url == website).Count, Is.EqualTo(0));
             Assert.That(Context.WebsiteMetadata.Where(prop => prop.Url == newAttribute), Is.Not.Null);
