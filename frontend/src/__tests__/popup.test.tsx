@@ -17,8 +17,9 @@ const testTags = TagArraySchema.parse([
     }
 ]);
 
-const expectedComponents : string[] = ['Upload New Document', 'Create New Project'];
-const popUpText : string[] = ['Tags:', 'Upload Document', 'Document Title:', 'Description:', 'Author Name:', 'Upload'];
+const expectedComponents : string[] = ['Upload New Document', 'Upload New Website', 'Create New Project'];
+const popUpFileText : string[] = ['Tags:', 'Upload File', 'Document Title:', 'Description:', 'Author Name:', 'Upload'];
+const popUpWebsiteText: string[] = ['Upload Website', 'Website URL:'];
 
 describe('popup', () =>
     test('There are buttons that work correctly and render components with correct names', async() =>{
@@ -31,7 +32,7 @@ describe('popup', () =>
         fireEvent.keyDown(button, { key: 'Enter' });
         const componentNames = await screen.queryAllByTestId('button_in');
 
-        expect(componentNames).toHaveLength(expectedComponents.length); // 2 buttons
+        expect(componentNames).toHaveLength(expectedComponents.length); // 3 buttons
 
         expectedComponents.forEach(element => {
             expect(screen.getByText(element)).toBeInTheDocument(); // correct names for buttons
@@ -41,9 +42,33 @@ describe('popup', () =>
         fireEvent.click(componentNames[0]);
         const popupNames = await screen.queryAllByTestId('popup_text');
 
-        expect(popupNames).toHaveLength(popUpText.length);
+        expect(popupNames).toHaveLength(popUpFileText.length);
 
-        popUpText.forEach(element => {
+        popUpFileText.forEach(element => {
+            expect(screen.getByText(element)).toBeInTheDocument();
+        });
+    }),
+
+    test('Upload File button works correctly', async() => {
+        render(<NewButton tags={testTags}/>);
+
+        const button = screen.getByTestId('button_text');
+        fireEvent.keyDown(button, { key: 'Enter' });
+        const componentNames = await screen.queryAllByTestId('button_in');
+        fireEvent.click(componentNames[0]);
+
+        expect(screen.getByText('Upload File')).toBeInTheDocument();
+    }),
+
+    test('Upload Website button works correctly', async() => {
+        render(<NewButton tags={testTags}/>);
+
+        const button = screen.getByTestId('button_text');
+        fireEvent.keyDown(button, { key: 'Enter' });
+        const componentNames = await screen.queryAllByTestId('button_in');
+        fireEvent.click(componentNames[1]);
+
+        popUpWebsiteText.forEach(element => {
             expect(screen.getByText(element)).toBeInTheDocument();
         });
     }),
