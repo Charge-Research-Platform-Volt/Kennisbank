@@ -74,7 +74,7 @@ export default function ListResources({ data }: { data: ResourcePageWithTagsResp
 
   return (
     <div className="h-[calc(100vh-6rem)] w-full">
-      <AgGridReact suppressMovableColumns={true} rowData={data.resources} columnDefs={columnDefs} theme={tableTheme} onGridReady={onGridReady} rowSelection={rowSelection as RowSelectionOptions} onRowClicked={onRowClicked} />
+      <AgGridReact suppressMovableColumns={true} suppressCellFocus={true} rowData={data.resources} columnDefs={columnDefs} theme={tableTheme} onGridReady={onGridReady} rowSelection={rowSelection as RowSelectionOptions} onRowClicked={onRowClicked} />
     </div>
   );
 }

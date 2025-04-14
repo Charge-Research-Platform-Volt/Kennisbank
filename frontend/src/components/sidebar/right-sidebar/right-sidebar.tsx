@@ -12,7 +12,7 @@ export default function RightSidebar() {
   const { selectedDocument, toggleRightSidebar, onCloseClicked } = useSidebar();
 
   return (
-    <Sidebar side="right" width="400px">
+    <Sidebar side="right" width="300px">
       {selectedDocument ? (
         <>
           <div className="flex items-center justify-between p-2">
