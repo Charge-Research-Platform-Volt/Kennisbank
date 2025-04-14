@@ -14,9 +14,6 @@ export default async function Home() {
       ResourcePageResponseSchema,
       "http://backend:8080/Storage/list-paged?pageIndex=1&pageSize=4",
   );
-
-  console.log(result);
-
   let files = result.data?.resources ?? [];
 
   // only display first 4 files, needs to be updated to display recently opened files
