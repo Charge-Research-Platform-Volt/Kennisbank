@@ -13,7 +13,6 @@ export const AddDocument = async (
     formData: FormData,
 ): Promise<FormResponse<FileBase>> => {
     try {
-        console.log("Adding resource");
 
         // Raw data from the form.
         const rawData: FileBase = {
@@ -25,7 +24,6 @@ export const AddDocument = async (
             hash: formData.get("hash") as string,
             publicationDate: new Date("1995-12-17T03:24:00")
         };
-        console.log("validating resource");
 
         // Validate the raw data, if it fails, return an error.
         const validatedData = FileResourceSchema.safeParse(rawData);
@@ -37,19 +35,16 @@ export const AddDocument = async (
                 inputs: rawData,
             };
         }
-        console.log("Document validated");
 
         if(rawData.title == defaultName){
             formData.set("title", defaultName);
         }
-        console.log("Setting hash");
         
         formData.set("typeId", rawData.typeId);
         formData.set("languageCode", rawData.languageCode);
         formData.set("publicationDate", rawData.publicationDate.toISOString());
         
         formData.set("hash", hash);
-        console.log("Getting tag ids");
 
         const tagIDs: string[] = [];
         
@@ -79,8 +74,6 @@ export const AddDocument = async (
             });
         }
 
-        console.log("Sending data to backend");
-        console.log(formData);
         // Send the data to the backend.
         const cookieHeader = await cookies();
         const response = await fetch("http://backend:8080/storage/upload", {
@@ -91,7 +84,7 @@ export const AddDocument = async (
         });
         
         const data = await response.json();
-        console.log("Data received from backend");
+
         // Check if the request was successful, if not, return an error.
         if (!response.ok) {
             console.log("Something failed");

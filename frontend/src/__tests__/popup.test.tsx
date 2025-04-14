@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import NewButton from '@/components/left-sidebar/sidebar-new-button'
+import NewButton from '@/components/sidebar/left-sidebar/sidebar-new-button'
 import { TagArraySchema } from '@/types/tag.type'
 import TagSelectionDropdown from '@/components/uploadComponents/TagSelectionDropdown'
 
@@ -77,21 +77,21 @@ describe('popup', () =>
         render(<TagSelectionDropdown tags={testTags} className="test"></TagSelectionDropdown>);
         const inputTags = await screen.getByTestId("input_tags");
 
-        // SIMULATE INPUT
-        fireEvent.change(inputTags, { target: { value: "b" } });
+    // SIMULATE INPUT
+    fireEvent.change(inputTags, { target: { value: "b" } });
 
         // GET NEW BUTTONS
         let displayedTags = await screen.getAllByTestId("select_tag"); // there is only 1
         expect(displayedTags).toHaveLength(testTags.length);
 
-        // ADD TAG
-        fireEvent.click(displayedTags[0])
-        let deleteTags = await screen.getAllByTestId("delete_tag"); // there is only 1
-        expect(deleteTags).toHaveLength(1);
-        fireEvent.click(deleteTags[0]);
-        deleteTags = await screen.queryAllByTestId("delete_tag");
-        displayedTags = await screen.queryAllByTestId("select_tag");
-        expect(deleteTags).toEqual([]);
-        expect(displayedTags).toEqual([]);
-    })
-)
+    // ADD TAG
+    fireEvent.click(displayedTags[0]);
+    let deleteTags = await screen.getAllByTestId("delete_tag"); // there is only 1
+    expect(deleteTags).toHaveLength(1);
+    fireEvent.click(deleteTags[0]);
+    deleteTags = await screen.queryAllByTestId("delete_tag");
+    displayedTags = await screen.queryAllByTestId("select_tag");
+    expect(deleteTags).toEqual([]);
+    expect(displayedTags).toEqual([]);
+  }),
+);

@@ -12,8 +12,8 @@ import { FileResourceSchema, WebsiteResourceSchema, type FileBase, type WebsiteB
 import { Button } from "@/components/ui/button";
 import { getFileHasher } from "@/utils/fileHashWorker";
 import { TagArray } from "@/types/tag.type";
-import TagSelectionDropdown from "..//uploadComponents/TagSelectionDropdown";
-import { InputHeader, InputBlock, FInput, FileInfo, PopupTitle } from "../ui/Popup";
+import TagSelectionDropdown from "@/components/uploadComponents/TagSelectionDropdown";
+import { InputHeader, InputBlock, FInput, FileInfo, PopupTitle } from "@/components/ui/Popup";
 import New from "@/icons/new";
 
 type UploadStatus = "idle" | "uploading" | "success" | "error" | "checking";
@@ -46,9 +46,9 @@ export default function NewButton({ tags }: { tags: TagArray }) {
   const [newButtonWidth, setNewButtonWidth] = useState(0);
   const newButtonRef = React.useRef<HTMLButtonElement>(null);
   useEffect(() => {
-  if(newButtonRef.current){
-        setNewButtonWidth(newButtonRef.current.offsetWidth);
-      }
+    if (newButtonRef.current) {
+      setNewButtonWidth(newButtonRef.current.offsetWidth);
+    }
   }, []);
 
   type uploadType = "File" | "Website";
@@ -202,7 +202,7 @@ export default function NewButton({ tags }: { tags: TagArray }) {
       toast.error("Please input a URL!");
     }
 
-    setStatus("uploading"); 
+    setStatus("uploading");
 
     try {
       startTransition(async () => {
@@ -223,9 +223,14 @@ export default function NewButton({ tags }: { tags: TagArray }) {
     <div>
       <DropdownMenu>
         {/* Purple New button */}
-        <DropdownMenuTrigger ref={newButtonRef} className="font-face bg-purple text-md active:bg-purple flex h-9 w-full cursor-pointer items-center gap-1 rounded-md pl-3 text-left text-white hover:bg-[#6f2aaf]">
+        <DropdownMenuTrigger
+          ref={newButtonRef}
+          className="font-face bg-purple text-md active:bg-purple flex h-9 w-full cursor-pointer items-center gap-1 rounded-md pl-3 text-left text-white hover:bg-[#6f2aaf]"
+        >
           <New className="h-5 w-5" />
-          <div data-testid="button_text" className="pb-0.5">New</div>
+          <div data-testid="button_text" className="pb-0.5">
+            New
+          </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent style={{ width: newButtonWidth }}>
           {/* Upload file item in popup */}

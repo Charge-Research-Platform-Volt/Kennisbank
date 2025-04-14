@@ -15,7 +15,7 @@ namespace KnowledgeBank.Data
         /// <param name="entity">The entity instance</param>
         /// <param name="includeProperties">Relations to include in the DTO (supports dot notation like "Authors.Person")</param>
         /// <returns>An object representing the DTO</returns>
-        public static object ToDto<T>(T entity, params string[] includeProperties)
+        public static object ToDto<T>(T entity, bool useCamelCase = true, params string[] includeProperties)
         {
             if (entity == null) throw new ArgumentNullException(nameof(entity));
 
@@ -23,13 +23,13 @@ namespace KnowledgeBank.Data
             Dictionary<string, HashSet<string>> includePaths = ParseIncludePaths(includeProperties);
 
             // Convert entity to a DTO
-            return ConvertEntityToDto(entity, includePaths);
+            return ConvertEntityToDto(entity, includePaths, useCamelCase);
         }
 
         /// <summary>
         /// Convert an entity to a DTO, including specified properties.
         /// </summary>
-        private static Dictionary<string, object?> ConvertEntityToDto(object entity, Dictionary<string, HashSet<string>> includePaths)
+        private static Dictionary<string, object?> ConvertEntityToDto(object entity, Dictionary<string, HashSet<string>> includePaths, bool useCamelCase)
         {
             Type entityType = entity.GetType();
             Dictionary<string, object?> dto = [];
@@ -42,9 +42,11 @@ namespace KnowledgeBank.Data
                 if (jsonIgnore != null && !includePaths.ContainsKey(prop.Name))
                     continue;
 
+                string propKey = useCamelCase ? ToCamelCase(prop.Name) : prop.Name;
+
                 // Add primitive properties directly
                 if (IsPrimitiveOrString(prop.PropertyType))
-                    dto[prop.Name] = prop.GetValue(entity);
+                    dto[propKey] = prop.GetValue(entity);
 
                 // Process included relations
                 else if (includePaths.TryGetValue(prop.Name, out HashSet<string>? nestedIncludes))
@@ -65,23 +67,34 @@ namespace KnowledgeBank.Data
                             foreach (object item in collection)
                             {
                                 // Recursively convert each item in the collection
-                                dtoList.Add(ConvertEntityToDto(item, ParseIncludePaths(nestedIncludes)));
+                                dtoList.Add(ConvertEntityToDto(item, ParseIncludePaths(nestedIncludes), useCamelCase));
                             }
 
-                            dto[prop.Name] = dtoList;
+                            dto[propKey] = dtoList;
                         }
                     }
 
                     // Handle single navigation property
                     else
                     {
-                        object nestedDto = ConvertEntityToDto(value, ParseIncludePaths(nestedIncludes));
-                        dto[prop.Name] = nestedDto;
+                        object nestedDto = ConvertEntityToDto(value, ParseIncludePaths(nestedIncludes), useCamelCase);
+                        dto[propKey] = nestedDto;
                     }
                 }
             }
 
             return dto;
+        }
+
+        /// <summary>
+        /// Converts a string from PascalCase to camelCase
+        /// </summary>
+        private static string ToCamelCase(string str)
+        {
+            if (string.IsNullOrEmpty(str) || !char.IsUpper(str[0]))
+                return str;
+
+            return char.ToLowerInvariant(str[0]) + str.Substring(1);
         }
 
         /// <summary>

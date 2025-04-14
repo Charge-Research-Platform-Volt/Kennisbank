@@ -7,7 +7,6 @@ import { DeleteTag, ApproveTag, MakeStandardized } from "@/actions/tagActions";
 import AdminIcon from "@/icons/tag-icons/admin-tag";
 import DeleteIcon from "@/icons/delete-icon";
 
-
 export function ApproveTagButton({ tag }: { tag: Tag }) {
   return (
     <ActionButton<string>
@@ -47,7 +46,7 @@ export function DeleteTagButton({ tag }: { tag: Tag }) {
       />
     );
   }
-  
+
   // Fallback empty button for type safety
   return null;
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TagRelationArraySchema } from "./tag.type";
 
 /**
  * Base document schema without ID
@@ -66,10 +67,22 @@ export const ResourcePageResponseSchema = z.object({
   responseType: z.string().min(1, { message: "Response type is required" }),
 });
 
+export const ResourceWithTagsResponseSchema = ResourceResponseSchema.extend({
+  tagRelations: TagRelationArraySchema,
+});
+
+export const ResourceWithTagsResponseArraySchema = z.array(ResourceWithTagsResponseSchema);
+
+export const ResourcePageWithTagsResponseSchema = ResourcePageResponseSchema.extend({
+  resources: ResourceWithTagsResponseArraySchema,
+});
+
 // Type definitions derived from the schemas
 export type ResourceBase = z.infer<typeof ResourceBaseSchema>;
 export type FileBase = z.infer<typeof FileResourceSchema>;
 export type WebsiteBase = z.infer<typeof WebsiteResourceSchema>;
 export type Resource = z.infer<typeof ResourceSchema>;
 export type ResourcePageResponse = z.infer<typeof ResourcePageResponseSchema>;
-export type ResourceResponse = z.infer<typeof ResponseSchema>;
+export type ResourceWithTagsResponse = z.infer<typeof ResourceWithTagsResponseSchema>;
+export type ResourcePageWithTagsResponse = z.infer<typeof ResourcePageWithTagsResponseSchema>;
+export type ResourceResponse = z.infer<typeof ResourceResponseSchema>;

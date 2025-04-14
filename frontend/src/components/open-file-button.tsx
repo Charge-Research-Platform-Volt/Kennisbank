@@ -5,11 +5,21 @@ import { Button } from "@/components/ui/button";
 import DownloadIcon from "@/icons/download-icon";
 import { ResourceResponse } from "@/types/resource.type";
 
-export default function OpenFileButton({file, asIcon = false}: {file: ResourceResponse, asIcon?: boolean}) {
+export default function OpenFileButton({
+  file,
+  asIcon = false,
+  variant = "default",
+}: {
+  file: ResourceResponse,
+  asIcon?: boolean,
+  variant?: "default" | "link" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined;
+}) {
   function buttonText(): string 
   {
     switch(file.fileType)
     {
+      case "pdf":
+        return "Open PDF"
       case "website":
         return "Visit Website"
       default:
@@ -43,6 +53,6 @@ export default function OpenFileButton({file, asIcon = false}: {file: ResourceRe
 
     ) : 
     (
-        <Button onClick={() => handleOpenFile(file)} className="w-[99.08px]">{buttonAltText()}</Button>
+        <Button onClick={() => handleOpenFile(file)} className="w-[99.08px]" variant={variant}>{buttonAltText()}</Button>
     );
 }

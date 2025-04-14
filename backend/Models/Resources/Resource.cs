@@ -76,7 +76,7 @@ public class Resource
     [JsonIgnore] public ICollection<ResourceRelatedOrganisationRelation>? RelatedOrganisations { get; set; }
     [JsonIgnore] public ICollection<ResourceRelatedSourceRelation>? RelatedSources { get; set; }
     [JsonIgnore] public ICollection<ResourceSourceRelation>? Sources { get; set; }
-    [JsonIgnore] public ICollection<ResourceTagRelation>? Tags { get; set; }
+    [JsonIgnore] public ICollection<ResourceTagRelation>? TagRelations { get; set; }
 
     #endregion
 }

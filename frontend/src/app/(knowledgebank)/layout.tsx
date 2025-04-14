@@ -1,5 +1,6 @@
-import LeftSidebarServer from "@/components/left-sidebar/left-sidebar-server";
+import LeftSidebarServer from "@/components/sidebar/left-sidebar/left-sidebar-server";
 import { QuickSearchProvider } from "@/components/quick-search-context";
+import RightSidebar from "@/components/sidebar/right-sidebar/right-sidebar";
 
 export default async function KnowledgeBankLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
@@ -7,7 +8,8 @@ export default async function KnowledgeBankLayout({ children }: Readonly<{ child
       <div className="flex h-screen w-full">
         <LeftSidebarServer />
         <main className="w-full overflow-y-auto p-2.5">{children}</main>
-      </div>
+        <RightSidebar />
+    </div>
     </QuickSearchProvider>
   );
 }
