@@ -30,7 +30,8 @@ export default function QuickSearch() {
 
     try {
       const response = await fetch(`http://localhost:8080/Search/search-full-text?${query ? `query=${query}&` : ""}pageIndex=1&pageSize=10`, {
-        method: "GET",
+        method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },

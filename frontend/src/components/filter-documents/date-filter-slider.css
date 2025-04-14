@@ -1,0 +1,21 @@
+#range-slider-purple {
+    background: grey-100;
+}
+
+#range-slider-purple .range-slider__range {
+background: #6f2aaf;
+transition: height 0.3s;
+}
+
+#range-slider-purple .range-slider__thumb {
+background: #502379;
+transition: transform 0.3s;
+}
+
+#range-slider-purple .range-slider__thumb[data-active] {
+transform: translate(-50%, -50%) scale(1.25);
+}
+
+#range-slider-purple .range-slider__range[data-active] {
+height: 16px;
+}

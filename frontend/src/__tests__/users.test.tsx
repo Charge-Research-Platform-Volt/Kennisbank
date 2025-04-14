@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { toast } from 'sonner';
 import UsersPage from '@/app/(knowledgebank)/users/page';
@@ -79,8 +79,10 @@ describe('InvitationCard', () => {
     const submitButton = screen.getByRole('button', { name: /send invitation/i });
 
     // Simulate user input
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.click(submitButton);
+    act(() => {
+      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+      fireEvent.click(submitButton);
+    })
 
     // Wait for form submission
     await waitFor(() => {
@@ -103,8 +105,10 @@ describe('InvitationCard', () => {
     const submitButton = screen.getByRole('button', { name: /send invitation/i });
 
     // Simulate user input
-    fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
-    fireEvent.click(submitButton);
+    act(() => {
+      fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
+      fireEvent.click(submitButton);
+    })
 
     // Wait for form submission
     await waitFor(() => {
@@ -174,7 +178,9 @@ describe('UsersList', () => {
     await waitFor(() => expect(screen.getByText('user1@example.com')).toBeTruthy());
     
     const nextButton = screen.getByRole('button', { name: /next/i });
-    fireEvent.click(nextButton);
+    act(() => {
+      fireEvent.click(nextButton);
+    })
     
     await waitFor(() => expect(vi.mocked(ListUsersPaged)).toHaveBeenCalledWith(2));
   });
