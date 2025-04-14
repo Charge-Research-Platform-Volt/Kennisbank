@@ -8,7 +8,7 @@ import { AddWebsite } from "@/actions/websiteActions";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { FormResponse } from "@/types/return.type";
-import { FileResourceSchema, WebsiteResourceSchema, type FileBase, type WebsiteBase } from "@/types/resource.type";
+import { type FileBase, type WebsiteBase } from "@/types/resource.type";
 import { Button } from "@/components/ui/button";
 import { getFileHasher } from "@/utils/fileHashWorker";
 import { TagArray } from "@/types/tag.type";

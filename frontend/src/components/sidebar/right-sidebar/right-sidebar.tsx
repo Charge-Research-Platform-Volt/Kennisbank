@@ -9,15 +9,18 @@ import Divider from "../divider";
 import Kbd from "@/components/kbd";
 
 export default function RightSidebar() {
-  const { selectedDocument, toggleRightSidebar } = useSidebar();
+  const { selectedDocument, toggleRightSidebar, onCloseClicked } = useSidebar();
 
   return (
-    <Sidebar side="right" width="400px">
+    <Sidebar side="right" width="300px">
       {selectedDocument ? (
         <>
           <div className="flex items-center justify-between p-2">
             <OpenFileButton file={selectedDocument} variant="outline" />
-            <Button onClick={() => toggleRightSidebar(null)} variant="outline">
+            <Button onClick={() => {
+              toggleRightSidebar(null);
+              onCloseClicked?.();
+            }} variant="outline">
               Close
               <Kbd>ESC</Kbd>
             </Button>

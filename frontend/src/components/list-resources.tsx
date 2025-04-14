@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import { useState } from "react";
 
 // Table imports
 import { AgGridReact } from "ag-grid-react";
-import type { ColDef, RowSelectionOptions } from "ag-grid-community";
+import type { ColDef, GridApi, GridReadyEvent, RowClickedEvent, RowSelectionOptions } from "ag-grid-community";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 import { ResourcePageWithTagsResponse, ResourceResponse } from "@/types/resource.type";
 import { tableTheme } from "@/lib/tableConfig";
@@ -20,12 +20,12 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 export default function ListResources({ data }: { data: ResourcePageWithTagsResponse }) {
   // Column definitions
   const columnDefs = useState<ColDef[]>([
-    { field: "title", flex: 3, filter: true, cellRenderer: Render },
-    { field: "description", flex: 2 },
-    { field: "fileType", width: 70, headerName: "Type" },
-    { field: "creationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
-    { field: "publicationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm") },
-    { field: "", width: 30, cellRenderer: DownloadRenderer },
+    { field: "title", flex: 3, cellRenderer: Render, resizable: false, minWidth: 200 },
+    { field: "description", flex: 2, resizable: false, minWidth: 200 },
+    { field: "fileType", width: 70, headerName: "Type", resizable: false },
+    { field: "creationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm"), resizable: false },
+    { field: "publicationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm"), resizable: false },
+    { field: "", width: 30, cellRenderer: DownloadRenderer, resizable: false },
   ])[0];
 
   // const [defaultColDef, setDefaultColDef] = useState({
@@ -34,18 +34,47 @@ export default function ListResources({ data }: { data: ResourcePageWithTagsResp
   //   filter: false,
   // });
 
+  const gridApiRef = useRef<GridApi | null>(null);
+
+  // deselect the row when the sidebar is closed
+  const onCloseSidebar = () => {
+    gridApiRef.current?.deselectAll();
+  };
+
+  // use sidebar context
+  const { rightSidebarOpen, toggleRightSidebar, setOnCloseClicked } = useSidebar();
+
+  //when grid is ready, set the gridApi and onCloseClicked function
+  const onGridReady = (params: GridReadyEvent) => {
+    gridApiRef.current = params.api;
+    setOnCloseClicked(() => onCloseSidebar); 
+  };
+
   // Row selection
   const rowSelection = useMemo(() => {
     return {
-      mode: "multiRow",
+      checkboxes: false,
+      mode: "singleRow",
+      enableClickSelection: true,
     };
   }, []);
 
-  const { toggleRightSidebar } = useSidebar();
+  // if on row clicked, deselect all and select the clicked row (if sidebar was closed)
+  const onRowClicked = (e?: RowClickedEvent) => {
+    gridApiRef.current?.deselectAll();
+    
+    if(e){
+      toggleRightSidebar(e.data)
+
+      if(!rightSidebarOpen){
+        e.node.setSelected(true);
+      }
+    }
+  };
 
   return (
     <div className="h-[calc(100vh-6rem)] w-full">
-      <AgGridReact rowData={data.resources} columnDefs={columnDefs} theme={tableTheme} rowSelection={rowSelection as RowSelectionOptions} onRowClicked={(row) => toggleRightSidebar(row.data)} />
+      <AgGridReact suppressMovableColumns={true} suppressCellFocus={true} rowData={data.resources} columnDefs={columnDefs} theme={tableTheme} onGridReady={onGridReady} rowSelection={rowSelection as RowSelectionOptions} onRowClicked={onRowClicked} />
     </div>
   );
 }
