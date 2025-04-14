@@ -33,6 +33,7 @@ export default function TagListItemAdmin({ tag }: { tag: Tag }) {
   const [saveTagState, saveTagAction, savingTagIsPending] = useActionState(RenameTag, initialStateTag);
 
   const [tagName, setTagName] = useState(tag.name);
+  const [originalTagName, setOriginalTagName] = useState(tag.name);
   const [editting, setEditting] = useState(false);
   
   // Handle form action responses
@@ -40,6 +41,7 @@ export default function TagListItemAdmin({ tag }: { tag: Tag }) {
     if (saveTagState.success) {
       toast.success(saveTagState.message);
       setEditting(false);
+      setOriginalTagName(tagName);
     } else if (saveTagState.message) {
       toast.error(saveTagState.message);
     }
@@ -82,6 +84,11 @@ export default function TagListItemAdmin({ tag }: { tag: Tag }) {
             type="hidden"
             name="id"
             value={tagId}
+          />
+          <Input
+            type="hidden"
+            name="originalTagName"
+            value={originalTagName}
           />
         </form>
       ) : (

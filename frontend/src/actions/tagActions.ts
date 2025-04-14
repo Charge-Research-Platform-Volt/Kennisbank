@@ -1,7 +1,7 @@
 "use server";
 
 import type { FormResponse } from "@/types/return.type";
-import { TagCreateDto, TagCreateDtoSchema, TagSchema, TagRenameDto } from "@/types/tag.type";
+import { TagCreateDto, TagCreateDtoSchema, TagRenameDto } from "@/types/tag.type";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
@@ -126,21 +126,19 @@ export const DeleteTag = async (tagId: string): Promise<FormResponse<{id: string
 };
 
 export const RenameTag = async (prevState: FormResponse<TagRenameDto>, formData: FormData): Promise<FormResponse<TagRenameDto>> => {
+  if(formData.get("name") == formData.get("originalTagName")) {
+    return {
+      success: true,
+      message: "Tag name changed.",
+    };
+  }
+
   const rawData: TagRenameDto = {
     newName: formData.get("name") as string,
     id: formData.get("id") as string,
   };
 
-  // Validate the raw data, if it fails, return an error
-  const validatedData = TagSchema.safeParse(rawData);
-
-  if (!validatedData.success) {
-    return {
-      success: false,
-      message: validatedData.error.errors[0].message,
-      inputs: rawData,
-    };
-  }
+  console.log("Renaming tag: ", rawData.id, " to ", rawData.newName);
 
   // Send the data to the backend
   const cookieHeader = cookies();
@@ -149,6 +147,7 @@ export const RenameTag = async (prevState: FormResponse<TagRenameDto>, formData:
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
     credentials: "include",
   });
+  
   const data = await response.json();
 
   // Check if the request was successful, if not, return an error
