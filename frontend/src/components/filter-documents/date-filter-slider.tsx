@@ -4,7 +4,7 @@ import React from "react";
 import { useState } from "react";
 import RangeSlider, { InputEvent } from 'react-range-slider-input';
 import 'react-range-slider-input/dist/style.css';
-import "./filter-documents.css"
+import "./date-filter-slider.css"
 import { FInput } from "../ui/Popup";
 
 

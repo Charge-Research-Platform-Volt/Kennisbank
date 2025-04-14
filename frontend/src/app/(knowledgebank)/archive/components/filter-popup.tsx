@@ -1,6 +1,6 @@
 "use client";
 
-import DateFilterSlider from "@/components/filter-documents/filter-documents";
+import DateFilterSlider from "@/components/filter-documents/date-filter-slider";
 import { Button } from "@/components/ui/button";
 import { InputHeader } from "@/components/ui/Popup";
 import TagSelectionDropdown from "@/components/uploadComponents/TagSelectionDropdown";

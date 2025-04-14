@@ -577,6 +577,11 @@ namespace KnowledgeBank.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("accessed-on");
 
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("url");
+
                     b.HasKey("ResourceId");
 
                     b.ToTable("website-metadata");

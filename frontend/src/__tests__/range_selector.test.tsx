@@ -1,10 +1,10 @@
 import { expect, test } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
-import FilterDocuments from '@/components/filter-documents/filter-documents'
+import DateFilterSlider from '@/components/filter-documents/date-filter-slider';
 
 describe('rangeselector', () =>
     test("The components are rendered successfully", async() =>{
-        render(<FilterDocuments/>);
+        render(<DateFilterSlider setEndYearAction={()=>{}} setStartYearAction={()=>{}}/>);
 
         // When rendering it should display the current year and the year of the oldest document
         const curYear = new Date().getUTCFullYear();
@@ -18,7 +18,7 @@ describe('rangeselector', () =>
         expect(slider.children[1].ariaValueNow).toEqual(`${curYear}`);
     }),
     test("Changing the textbox changes the slider", async() =>{
-        render(<FilterDocuments/>);
+        render(<DateFilterSlider setEndYearAction={()=>{}} setStartYearAction={()=>{}}/>);
 
         // The textboxes
         const maxBox = await screen.getByTestId("max_year");

@@ -10,8 +10,6 @@ import Kbd from "@/components/kbd";
 
 export default function RightSidebar() {
   const { selectedDocument, toggleRightSidebar } = useSidebar();
-  if (selectedDocument)
-    console.log(selectedDocument.tagRelations)
 
   return (
     <Sidebar side="right" width="400px">
