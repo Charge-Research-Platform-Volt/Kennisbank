@@ -4,12 +4,12 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { usePathname } from "next/navigation";
 
 // Types
-import type { ResourceResponse } from "@/types/resource.type";
+import type { ResourceWithTagsResponse } from "@/types/resource.type";
 
 type SidebarContextType = {
   // Selected document
-  selectedDocument: ResourceResponse | null;
-  setSelectedDocument: (file: ResourceResponse | null) => void;
+  selectedDocument: ResourceWithTagsResponse | null;
+  setSelectedDocument: (file: ResourceWithTagsResponse | null) => void;
 
   // State and functions for the left sidebar
   leftSidebarState: "expanded" | "collapsed";
@@ -21,7 +21,7 @@ type SidebarContextType = {
   rightSidebarState: "expanded" | "collapsed";
   rightSidebarOpen: boolean;
   setRightSidebarOpen: (open: boolean) => void;
-  toggleRightSidebar: (document: ResourceResponse | null) => void;
+  toggleRightSidebar: (document: ResourceWithTagsResponse | null) => void;
 };
 
 // This context is used to manage the state of the sidebar
@@ -41,7 +41,7 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
   const pathname = usePathname();
 
   // State for the selected document
-  const [selectedDocument, setSelectedDocument] = useState<ResourceResponse | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<ResourceWithTagsResponse | null>(null);
 
   // State and functions for the left sidebar
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
@@ -51,7 +51,7 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
   // State and functions for the right sidebar
   const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
   const rightSidebarState = rightSidebarOpen ? "expanded" : "collapsed";
-  const toggleRightSidebar = (document: ResourceResponse | null) => {
+  const toggleRightSidebar = (document: ResourceWithTagsResponse | null) => {
     if (document) setSelectedDocument(document);
 
     if (document && selectedDocument && selectedDocument.id !== document.id) {
