@@ -18,6 +18,8 @@ export default function OpenFileButton({
   {
     switch(file.fileType)
     {
+      case "pdf":
+        return "Open PDF"
       case "website":
         return "Visit Website"
       default:
@@ -51,6 +53,6 @@ export default function OpenFileButton({
 
     ) : 
     (
-        <Button onClick={() => handleOpenFile(file)} className="w-[99.08px]">{buttonAltText()}</Button>
+        <Button onClick={() => handleOpenFile(file)} className="w-[99.08px]" variant={variant}>{buttonAltText()}</Button>
     );
 }
