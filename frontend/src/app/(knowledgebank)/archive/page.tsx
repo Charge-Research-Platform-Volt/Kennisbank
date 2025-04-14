@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { OctagonAlert } from "lucide-react";
 import FilterButton from "./components/filter-button";
 import { ResourcePageWithTagsResponse } from "@/types/resource.type";
-import ListResources from "@/components/list-documents";
+import ListResources from "@/components/list-resources";
 
 type filterDto = {
   tagFilters: string[];
