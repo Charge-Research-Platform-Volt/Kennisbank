@@ -17,7 +17,7 @@ const testTags = TagArraySchema.parse([
     }
 ]);
 
-const expectedComponents : string[] = ['Upload New Document', 'Create New Project'];
+const expectedComponents : string[] = ['Upload New Document', 'Upload New Website', 'Create New Project'];
 const popUpFileText : string[] = ['Tags:', 'Upload File', 'Document Title:', 'Description:', 'Author Name:', 'Upload'];
 const popUpWebsiteText: string[] = ['Upload Website', 'Website URL:'];
 
@@ -32,7 +32,7 @@ describe('popup', () =>
         fireEvent.keyDown(button, { key: 'Enter' });
         const componentNames = await screen.queryAllByTestId('button_in');
 
-        expect(componentNames).toHaveLength(expectedComponents.length); // 2 buttons
+        expect(componentNames).toHaveLength(expectedComponents.length); // 3 buttons
 
         expectedComponents.forEach(element => {
             expect(screen.getByText(element)).toBeInTheDocument(); // correct names for buttons
@@ -49,7 +49,7 @@ describe('popup', () =>
         });
     }),
 
-    test('Switching tabs works correctly', async() => {
+    test('Upload File button works correctly', async() => {
         render(<NewButton tags={testTags}/>);
 
         const button = screen.getByTestId('button_text');
@@ -57,20 +57,20 @@ describe('popup', () =>
         const componentNames = await screen.queryAllByTestId('button_in');
         fireEvent.click(componentNames[0]);
 
+        expect(screen.getByText('Upload File')).toBeInTheDocument();
+    }),
 
-        // CLICK UPLOAD WEBSITE
-        const switchToWebsiteUpload = screen.getByTestId("changeToWebsiteUpload");
-        fireEvent.click(switchToWebsiteUpload);
+    test('Upload Website button works correctly', async() => {
+        render(<NewButton tags={testTags}/>);
+
+        const button = screen.getByTestId('button_text');
+        fireEvent.keyDown(button, { key: 'Enter' });
+        const componentNames = await screen.queryAllByTestId('button_in');
+        fireEvent.click(componentNames[1]);
 
         popUpWebsiteText.forEach(element => {
             expect(screen.getByText(element)).toBeInTheDocument();
         });
-
-        // CLICK UPLOAD FILE
-        const switchToFileUpload = screen.getByTestId("changeToFileUpload");
-        fireEvent.click(switchToFileUpload);
-
-        expect(screen.getByText('Upload File')).toBeInTheDocument();
     }),
 
     test('The tag selection dropdown works as expected', async() => {
