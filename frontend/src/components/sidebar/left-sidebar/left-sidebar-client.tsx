@@ -104,14 +104,12 @@ export default function LeftSidebarClient({ tags, userEmail, userRole }: { tags:
           {/* Bottom items of the menu */}
           <nav className="mt-auto">
             <ul>
-              { userRole == "admin" || userRole == "user" ? (
-                <li>
+              <li>
                 <Link data-testid="sidebar" href="/users" className="flex items-center gap-x-2 rounded-md p-2 hover:bg-gray-200">
                   <Settings className="h-4 w-4" />
                   Settings
                 </Link>
               </li>
-              ) : ""}
 
               <li>
                 <Link data-testid="sidebar" href="http://localhost:3001/guide" className="flex items-center gap-x-2 rounded-xl p-2 hover:bg-gray-200">
