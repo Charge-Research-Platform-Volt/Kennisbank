@@ -37,7 +37,7 @@ const projects: SidebarItem[] = [
   },
 ];
 
-export default function LeftSidebarClient({ tags }: { tags: TagArray }) {
+export default function LeftSidebarClient({ tags, userEmail, userRole }: { tags: TagArray; userEmail: string; userRole: string }) {
   const [isOpen, setIsOpen] = useState(true);
   const [profileButtonWidth, setProfileButtonWidth] = useState(0);
   const profileButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -104,12 +104,14 @@ export default function LeftSidebarClient({ tags }: { tags: TagArray }) {
           {/* Bottom items of the menu */}
           <nav className="mt-auto">
             <ul>
-              <li>
+              { userRole == "admin" ? (
+                <li>
                 <Link data-testid="sidebar" href="/users" className="flex items-center gap-x-2 rounded-md p-2 hover:bg-gray-200">
                   <Settings className="h-4 w-4" />
                   Settings
                 </Link>
               </li>
+              ) : ""}
 
               <li>
                 <Link data-testid="sidebar" href="http://localhost:3001/guide" className="flex items-center gap-x-2 rounded-xl p-2 hover:bg-gray-200">
@@ -128,8 +130,8 @@ export default function LeftSidebarClient({ tags }: { tags: TagArray }) {
                   >
                     <Image src="/img/default-profile-picture.svg" alt="Help" width={24} height={24} className="mr-2" />
                     <div>
-                      <p className="text-sm">Name</p>
-                      <p className="text-sm text-gray-500">example@gmail.com</p>
+                      <p className="text-sm">{"Charge " + String(userRole).charAt(0).toUpperCase() + String(userRole).slice(1) + " User"}</p>
+                      <p className="text-sm text-gray-500">{userEmail}</p>
                     </div>
                   </DropdownMenuTrigger>
 
