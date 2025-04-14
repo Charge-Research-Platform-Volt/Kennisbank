@@ -1,12 +1,12 @@
-import { expect, test } from 'vitest'
+import { describe, expect, test } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import LeftSidebarClient from '@/components/left-sidebar/left-sidebar-client'
+import LeftSidebarClient from '@/components/sidebar/left-sidebar/left-sidebar-client'
 import { TagArraySchema } from '@/types/tag.type'
 import { QuickSearchProvider } from '@/components/quick-search-context'
 
 const testTags = TagArraySchema.parse([])
 
-const expectedComponents : string[] = ['Home', 'Tags', 'Archive', 'Project 1', 'Settings', 'Help'].sort()
+const expectedComponents: string[] = ["Home", "Tags", "Archive", "Project 1", "Settings", "Help"].sort();
 
 describe('sidebar', () =>
     test('Left_Sidebar renders all components with correct names', async() =>{
@@ -18,16 +18,19 @@ describe('sidebar', () =>
     test('Left_Sidebar renders different components if hidden', async() =>{
         render(<QuickSearchProvider><LeftSidebarClient tags={testTags}/></QuickSearchProvider>)
 
-        // hides sidebar
-        const button = screen.getByTestId("sidebar_hide");
-        fireEvent.click(button);
-        const componentNames = await screen.queryAllByTestId("sidebar");
-        expect(componentNames).toEqual([]);
+    // hides sidebar
+    const button = screen.getByTestId("sidebar_hide");
+    fireEvent.click(button);
+    const componentNames = await screen.queryAllByTestId("sidebar");
+    expect(componentNames).toEqual([]);
 
-        // unhides sidebar
-        const buttonUnhide = screen.getByTestId("sidebar_hide");
-        fireEvent.click(buttonUnhide);
-        const newComponentNames = await screen.queryAllByTestId("sidebar").map(elem => elem.textContent ?? '').sort();
-        expect(newComponentNames).toEqual(expectedComponents);
-    })
-)
+    // unhides sidebar
+    const buttonUnhide = screen.getByTestId("sidebar_hide");
+    fireEvent.click(buttonUnhide);
+    const newComponentNames = await screen
+      .queryAllByTestId("sidebar")
+      .map((elem) => elem.textContent ?? "")
+      .sort();
+    expect(newComponentNames).toEqual(expectedComponents);
+  }),
+);

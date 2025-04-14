@@ -13,6 +13,9 @@ public class WebsiteMetadata
     [ForeignKey("Resource")]
     public required Guid ResourceId { get; set; }
 
+    [Column("url")]
+    public required string Url { get; set; }
+
     [Column("accessed-on")]
     public DateTime? AccessedOn { get; set; }
 
@@ -24,4 +27,9 @@ public class WebsiteCreateDto : ResourceCreateDto
 {
     public required string Url { get; set; }
     public DateTime? AccessedOn { get; set; }
+}
+
+public enum WebsiteColumn{
+    Url, 
+    Title
 }

@@ -73,7 +73,7 @@ public class SearchControllerTests : TestBase
         var pageResponse = okResult.Value as PageResponse;
         Assert.That(pageResponse, Is.Not.Null);
         // Should only be one result
-        Assert.That(pageResponse.Resources.First().Title, Is.EqualTo("Integration Test File"));
+        Assert.That(((Resource)pageResponse.Resources.First()).Title, Is.EqualTo("Integration Test File"));
     }
 
     [TestCase("2001-11-11T12:00:00Z", "2010-11-11T12:00:00Z", "2012-12-04T12:00:00Z", "2008-12-04T12:00:00Z")]
@@ -261,7 +261,7 @@ public class SearchControllerTests : TestBase
         Assert.That(pageResponse, Is.Not.Null);
         // Should only be one result
         Assert.That(pageResponse.Resources.Count, Is.EqualTo(1));
-        Assert.That(pageResponse.Resources.First().Title, Is.EqualTo("Integration Test File"));
+        Assert.That(((Resource)pageResponse.Resources.First()).Title, Is.EqualTo("Integration Test File"));
     }
 
     [Test]

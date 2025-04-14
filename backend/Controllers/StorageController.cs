@@ -9,6 +9,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
+using System.Text.Json;
 
 namespace KnowledgeBank.Controllers
 {
@@ -299,12 +300,18 @@ namespace KnowledgeBank.Controllers
         {
             try
             {
-                Resource[]? items = await resourceManager.GetAllResourcesAsync();
+                Resource[]? items = await resourceManager.GetAllResourcesAsync(includeProperties: [ "TagRelations.Tag" ]);
 
                 if (items == null)
-                    return Ok(new PageResponse("No files in database.", 0, 0, []));
+                    return Ok(new PageResponse("No files in database.", 0, 0, Array.Empty<Resource>()));
+                
+                object[] dtos = new object[items.Length];
+                for (int i = 0; i < items.Length; i++)
+                {
+                    dtos[i] = DtoGenerator.ToDto(items[i], includeProperties: [ "TagRelations.Tag" ]);
+                }
 
-                return Ok(new PageResponse($"{items.Length} files found.", 0, 0, items));
+                return Ok(new PageResponse($"{items.Length} files found.", 0, 0, dtos));
             }
             catch (Exception e)
             {
@@ -334,7 +341,7 @@ namespace KnowledgeBank.Controllers
                 Resource[]? items = await resourceManager.GetResourcePageAsync(pageIndex, pageSize);
 
                 if (items == null)
-                    return Ok(new PageResponse("No files on this page.", pageIndex, pageSize, []));
+                    return Ok(new PageResponse("No files on this page.", pageIndex, pageSize, Array.Empty<Resource>()));
 
                 return Ok(new PageResponse($"{items.Length} files found.", pageIndex, pageSize, items));
             }

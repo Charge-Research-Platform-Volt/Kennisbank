@@ -38,7 +38,7 @@ namespace KnowledgeBank.Data
             await ShamelessCopyOfUpload("Handreiking-Burgerberaden_okt-2024-v2.pdf", "Handreiking Burgerberaden", "");
             await ShamelessCopyOfUpload("Essay+Burgers+gelijkwaardig+aan+ontwerptafel+van+beleid.pdf", "Burgers gelijkwaardig aan de ontwerptafel", "");
             await ShamelessCopyOfUpload("kennedy-et-al-2020-demographics-and-(equal-)-voice-assessing-participation-in-online-deliberative-sessions.pdf", "Demographics and (Equal?) Voice: Assessing Participation in Online Deliberative Sessions", "");
-            await ShamelessCopyOfUpload("1887_3731030-Full Text.pdf", "Stimulering en facilitering van burgerinitiatieven door de overheid: over de invulling van de ‘dienende overheid’ bij derde generatie burgerparticipatie", "");
+            await ShamelessCopyOfUpload("1887_3731030-Full Text.pdf", "Stimulering en facilitering van burgerinitiatieven door de overheid: over de invulling van de ‘dienende overheid’ bij derde generatie burgerparticipatie", "");     
         }
 
         private static async Task AddTestAuthor(string name, string occupation, string description, string emailaddress, string linkedin)
