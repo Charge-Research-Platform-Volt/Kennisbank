@@ -55,12 +55,14 @@ export default function ListResources({ data }: { data: ResourcePageWithTagsResp
     return {
       checkboxes: false,
       mode: "singleRow",
-      enableClickSelection: true,
     };
   }, []);
 
   // if on row clicked, deselect all and select the clicked row (if sidebar was closed)
   const onRowClicked = (e: RowClickedEvent) => {
+    // do nothing if the download button is clicked
+    if((e.event?.target as HTMLElement)?.closest(".download-button")) return;
+
     toggleRightSidebar(e.data)
 
     e.node.setSelected(true);
@@ -131,7 +133,7 @@ export function Render(params: { data: { fileType: string }; value: string }) {
 
 export function DownloadRenderer(params: { data: ResourceResponse }) {
   return (
-    <div className="flex items-center justify-center">
+    <div className="flex items-center justify-center download-button">
       <OpenFileButton file={params.data} asIcon={true} />
     </div>
   );
