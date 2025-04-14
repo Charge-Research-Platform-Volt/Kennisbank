@@ -38,7 +38,7 @@ export const ResourceResponseSchema = z.object({
   hash: z.string().min(1, { message: "Hash is required" }).nullable(),
   creationDate: z.string().min(1, { message: "Created at is required" }),
   publicationDate: z.string().min(1, { message: "Updated at is required" }),
-  tagRelations: TagRelationArraySchema.nullable(),
+  tagRelations: TagRelationArraySchema.nullable().optional(),
 });
 
 export const ResourceResponseArraySchema = z.array(ResourceResponseSchema);
