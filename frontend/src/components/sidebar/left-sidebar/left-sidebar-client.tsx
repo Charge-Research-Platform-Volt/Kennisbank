@@ -37,7 +37,7 @@ const projects: SidebarItem[] = [
   },
 ];
 
-export default function LeftSidebarClient({ tags }: { tags: TagArray }) {
+export default function LeftSidebarClient({ tags, userEmail, userRole }: { tags: TagArray; userEmail: string; userRole: string }) {
   const [isOpen, setIsOpen] = useState(true);
   const [profileButtonWidth, setProfileButtonWidth] = useState(0);
   const profileButtonRef = React.useRef<HTMLButtonElement>(null);
@@ -128,8 +128,8 @@ export default function LeftSidebarClient({ tags }: { tags: TagArray }) {
                   >
                     <Image src="/img/default-profile-picture.svg" alt="Help" width={24} height={24} className="mr-2" />
                     <div>
-                      <p className="text-sm">Name</p>
-                      <p className="text-sm text-gray-500">example@gmail.com</p>
+                      <p className="text-sm">{"Charge " + String(userRole).charAt(0).toUpperCase() + String(userRole).slice(1)}</p>
+                      <p className="text-sm text-gray-500">{userEmail}</p>
                     </div>
                   </DropdownMenuTrigger>
 
