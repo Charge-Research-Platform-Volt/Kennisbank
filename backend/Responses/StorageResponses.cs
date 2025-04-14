@@ -102,6 +102,7 @@ public class PageResponse : StorageResponse
 {
     public int PageIndex { get; }
     public int PageSize { get; }
+    // Object because the resources can be generated with DTO Generator that can differ from the model
     public object[] Resources { get; }
 
     public PageResponse(string message, int pageIndex, int pageSize, object[] resources) : base(message, STORAGE_RESPONSE_TYPE.PAGE)
