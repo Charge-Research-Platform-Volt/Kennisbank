@@ -104,7 +104,7 @@ export default function LeftSidebarClient({ tags, userEmail, userRole }: { tags:
           {/* Bottom items of the menu */}
           <nav className="mt-auto">
             <ul>
-              { userRole == "admin" ? (
+              { userRole == "admin" || userRole == "user" ? (
                 <li>
                 <Link data-testid="sidebar" href="/users" className="flex items-center gap-x-2 rounded-md p-2 hover:bg-gray-200">
                   <Settings className="h-4 w-4" />
@@ -130,7 +130,7 @@ export default function LeftSidebarClient({ tags, userEmail, userRole }: { tags:
                   >
                     <Image src="/img/default-profile-picture.svg" alt="Help" width={24} height={24} className="mr-2" />
                     <div>
-                      <p className="text-sm">{"Charge " + String(userRole).charAt(0).toUpperCase() + String(userRole).slice(1) + " User"}</p>
+                      <p className="text-sm">{"Charge " + String(userRole).charAt(0).toUpperCase() + String(userRole).slice(1)}</p>
                       <p className="text-sm text-gray-500">{userEmail}</p>
                     </div>
                   </DropdownMenuTrigger>
