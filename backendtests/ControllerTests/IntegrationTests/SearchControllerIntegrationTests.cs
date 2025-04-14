@@ -138,7 +138,7 @@ public class SearchControllerTests : TestBase
         Assert.That(pageResponse, Is.Not.Null);
         // Should only be one result which is the approved test file
         Assert.That(pageResponse.Resources.Count, Is.EqualTo(1));
-        Assert.That(pageResponse.Resources.First().Title, Is.EqualTo("Integration Test File"));
+        Assert.That((pageResponse.Resources.First() as Resource).Title, Is.EqualTo("Integration Test File"));
     }
 
     [TestCase("test")]
@@ -224,7 +224,7 @@ public class SearchControllerTests : TestBase
         Assert.That(pageResponse, Is.Not.Null);
         // Should only be one result which is the approved test file
         Assert.That(pageResponse.Resources.Count, Is.EqualTo(1));
-        Assert.That(pageResponse.Resources.First().Title, Is.EqualTo("Integration Test File"));
+        Assert.That((pageResponse.Resources.First() as Resource).Title, Is.EqualTo("Integration Test File"));
     }
 
 
