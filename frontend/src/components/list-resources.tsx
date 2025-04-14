@@ -20,8 +20,8 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 export default function ListResources({ data }: { data: ResourcePageWithTagsResponse }) {
   // Column definitions
   const columnDefs = useState<ColDef[]>([
-    { field: "title", flex: 3, cellRenderer: Render, resizable: false },
-    { field: "description", flex: 2, resizable: false },
+    { field: "title", flex: 3, cellRenderer: Render, resizable: false, minWidth: 200 },
+    { field: "description", flex: 2, resizable: false, minWidth: 200 },
     { field: "fileType", width: 70, headerName: "Type", resizable: false },
     { field: "creationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm"), resizable: false },
     { field: "publicationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm"), resizable: false },
