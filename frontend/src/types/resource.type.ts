@@ -38,7 +38,6 @@ export const ResourceResponseSchema = z.object({
   hash: z.string().min(1, { message: "Hash is required" }).nullable(),
   creationDate: z.string().min(1, { message: "Created at is required" }),
   publicationDate: z.string().min(1, { message: "Updated at is required" }),
-  tagRelations: TagRelationArraySchema.nullable(),
 });
 
 export const ResourceResponseArraySchema = z.array(ResourceResponseSchema);
@@ -51,8 +50,20 @@ export const ResourcePageResponseSchema = z.object({
   responseType: z.string().min(1, { message: "Response type is required" }),
 });
 
+export const ResourceWithTagsResponseSchema = ResourceResponseSchema.extend({
+  tagRelations: TagRelationArraySchema,
+});
+
+export const ResourceWithTagsResponseArraySchema = z.array(ResourceWithTagsResponseSchema);
+
+export const ResourcePageWithTagsResponseSchema = ResourcePageResponseSchema.extend({
+  resources: ResourceWithTagsResponseArraySchema,
+});
+
 // Type definitions derived from the schemas
 export type ResourceBase = z.infer<typeof ResourceBaseSchema>;
 export type Resource = z.infer<typeof ResourceSchema>;
 export type ResourcePageResponse = z.infer<typeof ResourcePageResponseSchema>;
+export type ResourceWithTagsResponse = z.infer<typeof ResourceWithTagsResponseSchema>;
+export type ResourcePageWithTagsResponse = z.infer<typeof ResourcePageWithTagsResponseSchema>;
 export type ResourceResponse = z.infer<typeof ResourceResponseSchema>;

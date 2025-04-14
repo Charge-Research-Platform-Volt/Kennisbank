@@ -7,7 +7,7 @@ import { useState } from "react";
 import { AgGridReact } from "ag-grid-react";
 import type { ColDef, RowSelectionOptions } from "ag-grid-community";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
-import { ResourcePageResponse, ResourceResponse } from "@/types/resource.type";
+import { ResourcePageWithTagsResponse, ResourceResponse } from "@/types/resource.type";
 import { tableTheme } from "@/lib/tableConfig";
 import GetFileIcon from "./getFileIcon";
 import { format, parseISO } from "date-fns";
@@ -17,7 +17,7 @@ import { useSidebar } from "@/context/sidebar-provider";
 // Register all modules
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-export default function ListResources({ data }: { data: ResourcePageResponse }) {
+export default function ListResources({ data }: { data: ResourcePageWithTagsResponse }) {
   // Column definitions
   const columnDefs = useState<ColDef[]>([
     { field: "title", width: 500, filter: true, cellRenderer: Render },

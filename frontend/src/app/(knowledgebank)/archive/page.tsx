@@ -1,9 +1,9 @@
 import ListResources from "@/components/list-documents";
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
-import { ResourcePageResponseSchema } from "@/types/resource.type";
+import { ResourcePageWithTagsResponseSchema } from "@/types/resource.type";
 
 export default async function ArchivePage() {
-  const result = await FetchWithValidation(ResourcePageResponseSchema, "http://backend:8080/Storage/list-all");
+  const result = await FetchWithValidation(ResourcePageWithTagsResponseSchema, "http://backend:8080/Storage/list-all");
 
   if (result.error) console.log(result.error);
 
