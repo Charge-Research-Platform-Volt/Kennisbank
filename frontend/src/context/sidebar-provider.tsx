@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, Dispatch, SetStateAction, useContext, useEffect, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { usePathname } from "next/navigation";
 
@@ -22,6 +22,8 @@ type SidebarContextType = {
   rightSidebarOpen: boolean;
   setRightSidebarOpen: (open: boolean) => void;
   toggleRightSidebar: (document: ResourceWithTagsResponse | null) => void;
+  onCloseClicked: () => void;
+  setOnCloseClicked: Dispatch<SetStateAction<() => void>>;
 };
 
 // This context is used to manage the state of the sidebar
@@ -38,6 +40,8 @@ export const useSidebar = () => {
 
 // This component provides the sidebar context to its children
 export const SidebarProvider = ({ children }: { children: React.ReactNode }) => {
+  const [onCloseClicked, setOnCloseClicked] = useState<(() => void)>(() => {});
+
   const pathname = usePathname();
 
   // State for the selected document
@@ -67,6 +71,7 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
 
   useHotkeys("esc", () => {
     setRightSidebarOpen(false);
+    onCloseClicked?.();
   });
 
   return (
@@ -86,6 +91,8 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
         rightSidebarOpen,
         setRightSidebarOpen,
         toggleRightSidebar,
+        onCloseClicked,
+        setOnCloseClicked,
       }}
     >
       {children}
