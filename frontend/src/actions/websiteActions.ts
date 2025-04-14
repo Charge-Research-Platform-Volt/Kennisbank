@@ -1,32 +1,30 @@
 "use server";
 
-import { FileResourceSchema, type FileBase } from "@/types/resource.type";
-import { FormResponse } from "@/types/return.type";
+import { WebsiteResourceSchema, type WebsiteBase } from "@/types/resource.type";
+import type { FormResponse } from "@/types/return.type";
 import { revalidatePath } from "next/cache";
 //import { Log } from "../../Pino";
 import { cookies } from "next/headers";
 
-export const AddDocument = async (
-    defaultName: string,
-    hash: string,
-    prevState: FormResponse<FileBase>,
+export const AddWebsite = async (
+    prevState: FormResponse<WebsiteBase>,
     formData: FormData,
-): Promise<FormResponse<FileBase>> => {
+): Promise<FormResponse<WebsiteBase>> => {
     try {
-
         // Raw data from the form.
-        const rawData: FileBase = {
-            title: (formData.get("title") as string)?.trim() || defaultName,
-            typeId: "0cc285a8-0f07-11f0-a0a6-5600051f1387", // This is the GUID of the unknown type
-            languageCode: "AA",
+        const rawData: WebsiteBase = {
+            url: formData.get("url") as string,
+            title: (formData.get("title") as string)?.trim(),
             description: formData.get("description") as string,
-            file: formData.get("file") as File,
-            hash: formData.get("hash") as string,
+            typeId: "0cc285a8-0f07-11f0-a0a6-5600051f1387", //unknown type id
+            languageCode: "AA",
             publicationDate: new Date("1995-12-17T03:24:00")
         };
 
+
         // Validate the raw data, if it fails, return an error.
-        const validatedData = FileResourceSchema.safeParse(rawData);
+        const validatedData = WebsiteResourceSchema.safeParse(rawData);
+
 
         if (!validatedData.success) {
             return {
@@ -36,20 +34,17 @@ export const AddDocument = async (
             };
         }
 
-        if(rawData.title == defaultName){
-            formData.set("title", defaultName);
-        }
-        
         formData.set("typeId", rawData.typeId);
         formData.set("languageCode", rawData.languageCode);
         formData.set("publicationDate", rawData.publicationDate.toISOString());
-        
-        formData.set("hash", hash);
+
+
+
 
         const tagIDs: string[] = [];
         
         for (const [key, value] of formData.entries()) {
-            if (key.startsWith('standardizedTags[') && key.endsWith(']')) {
+            if (key.startsWith('tags[') && key.endsWith(']')) {
                 tagIDs.push(value as string);
             }
         }
@@ -60,35 +55,21 @@ export const AddDocument = async (
             });
         }
 
-        const userTagIDs: string[] = [];
-        
-        for (const [key, value] of formData.entries()) {
-            if (key.startsWith('userTags[') && key.endsWith(']')) {
-                userTagIDs.push(value as string);
-            }
-        }
-
-        if (userTagIDs.length > 0) {
-            userTagIDs.forEach(tagID => {
-                formData.append('tags', tagID);
-            });
-        }
-
         // Send the data to the backend.
         const cookieHeader = await cookies();
-        const response = await fetch("http://backend:8080/storage/upload", {
+        console.log(validatedData);
+
+        const response = await fetch("http://backend:8080/WebsiteUpload/add-website", {
             method: "PUT",
             body: formData,
             credentials: "include",
             headers: { Cookie: cookieHeader.toString() || "" },
         });
-        
         const data = await response.json();
+
 
         // Check if the request was successful, if not, return an error.
         if (!response.ok) {
-            console.log("Something failed");
-            console.log(data);
             return {
                 success: false,
                 message: data.message,
@@ -105,7 +86,7 @@ export const AddDocument = async (
         };
     } catch (error) {
         //Log.error(`An error occurred: ${error}`);
-        console.log(error);
+
         return {
             success: false,
             message: "An error occurred.",

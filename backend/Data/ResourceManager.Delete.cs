@@ -49,6 +49,15 @@ namespace KnowledgeBank.Data
             // Remove all resource-tag relations containing this resource
             await RemoveAllResourceTagRelationsWithResourceIdAsync(id);
 
+            // Remove website metadata for this resource
+            await DeleteWebsiteMetadataAsync(id);
+
+            // Remove audio metadata for this resource
+            await DeleteAudioMetadataAsync(id);
+
+            // Remove document metadata for this resource
+            await DeleteDocumentMetadataAsync(id);
+
             return count > 0;
         }
 
