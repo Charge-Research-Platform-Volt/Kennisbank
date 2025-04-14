@@ -2,11 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using KnowledgeBank.Responses;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
 using Microsoft.AspNetCore.Authorization;
-using Docker.DotNet.Models;
 
 namespace backend.Controllers
 {
@@ -42,7 +40,7 @@ namespace backend.Controllers
 
             try
             {
-                return Ok(DtoGenerator.ToDto(await resourceManager.GetAllResourcesAsync(predicate: r => r.FileType == "website", includeProperties: "WebsiteMetadata")));
+                return Ok(await resourceManager.GetAllResourcesAsync(predicate: r => r.FileType == "website", includeProperties: "WebsiteMetadata"));
             }
             catch (Exception e)
             {
@@ -99,10 +97,6 @@ namespace backend.Controllers
             {
                 return BadRequest("Title is not provided");
             }
-            if(string.IsNullOrEmpty(dto.Description))
-            {
-                return BadRequest("Description is not provided");
-            }
 
 
             try
@@ -152,7 +146,7 @@ namespace backend.Controllers
             try
             {
                 // Find and remove website
-                if (await resourceManager.DeleteResourceAsync(id))
+                if (!await resourceManager.DeleteResourceAsync(id))
                     return NotFound(new StorageResponse("ID was not found in database. Website was deleted succesfully."));
 
                 return Ok(new { message = "website deleted" });
@@ -183,16 +177,9 @@ namespace backend.Controllers
         [SwaggerResponse(404, "Website not found")]
         [SwaggerResponse(409, "New URL already exists")]
         [SwaggerResponse(500, "Internal server error")]
-        public async Task<IActionResult> ChangeWebsite(string id, string newTitleOrURL, string column)
+        public async Task<IActionResult> ChangeWebsite(string id, string newTitleOrURL, WebsiteColumn column)
         {
             Log.Information("Changing website title or URL");
-
-            // column has to be either title or URL
-            if(column != "Title" && column != "URL")
-            {
-                Log.Information("no such attribute for website");
-                return BadRequest(new {message = "no such attribute for website"});
-            }
 
             if (string.IsNullOrEmpty(id))
             {
@@ -200,7 +187,7 @@ namespace backend.Controllers
                 return BadRequest(new { message = "Id is required" });
             }
 
-            if (string.IsNullOrEmpty(newTitleOrURL) || (column == "URL" && !ValidURL(newTitleOrURL)))
+            if (string.IsNullOrEmpty(newTitleOrURL) || (column == WebsiteColumn.Url && !ValidURL(newTitleOrURL)))
             {
                 Log.Error("invalid title or url");
                 return BadRequest(new { message = "invalid title or url" });
@@ -221,7 +208,7 @@ namespace backend.Controllers
             //Change website url or title
             try
             {
-                if (column == "URL")
+                if (column == WebsiteColumn.Url)
                 {
                     if (!await resourceManager.UpdateWebsiteMetadataAsync(id, metadata => metadata.Url, newTitleOrURL))
                         return NotFound(new StorageResponse("ID was not found in database."));

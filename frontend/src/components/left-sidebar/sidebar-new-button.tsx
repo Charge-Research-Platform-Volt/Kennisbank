@@ -115,7 +115,8 @@ export default function NewButton({ tags }: { tags: TagArray }) {
     }
   };
 
-  const clickNew = () => {
+  const clickNew = (tab: uploadType) => {
+    changeTab(tab); // Changes upload tab
     setUploadPopup(true); //opens popup for file upload
   };
 
@@ -227,9 +228,14 @@ export default function NewButton({ tags }: { tags: TagArray }) {
           <div data-testid="button_text" className="pb-0.5">New</div>
         </DropdownMenuTrigger>
         <DropdownMenuContent style={{ width: newButtonWidth }}>
-          {/* Upload item in popup */}
-          <DropdownMenuItem data-testid="button_in" className="cursor-pointer" onClick={clickNew}>
+          {/* Upload file item in popup */}
+          <DropdownMenuItem data-testid="button_in" className="cursor-pointer" onClick={() => clickNew("File")}>
             <label className="inline-block cursor-pointer">Upload New Document</label>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {/* Upload website item in popup */}
+          <DropdownMenuItem data-testid="button_in" className="cursor-pointer" onClick={() => clickNew("Website")}>
+            <label className="inline-block cursor-pointer">Upload New Website</label>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {/* New project item in popup */}
@@ -256,9 +262,6 @@ export default function NewButton({ tags }: { tags: TagArray }) {
                   <div className="flex-1 justify-start">
                   <div className="mb-2">
                     <PopupTitle data-testid="popup_text">Upload {newUploadType}</PopupTitle>
-                    <InputHeader>Information type: </InputHeader>
-                    <Button onClick={() => changeTab("Website")} className="mr-2" data-testid = "changeToWebsiteUpload" type="button">Website</Button>
-                    <Button onClick={() => changeTab("File")} data-testid = "changeToFileUpload" type="button">File</Button>
                     </div>
                     <div>
                       {/* Label is what you see however you click the input, only applicable if the user uploads a file */}

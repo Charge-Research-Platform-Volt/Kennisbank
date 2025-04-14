@@ -28,3 +28,8 @@ public class WebsiteCreateDto : ResourceCreateDto
     public required string Url { get; set; }
     public DateTime? AccessedOn { get; set; }
 }
+
+public enum WebsiteColumn{
+    Url, 
+    Title
+}
