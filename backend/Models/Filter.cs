@@ -10,11 +10,11 @@ public class FilterDto
 
     public IQueryable<Resource> ToQueryBuilder(DatabaseContext database)
     {
-        var queryBuilder = database.Resources.AsQueryable();
+        IQueryable<Resource> queryBuilder = database.Resources.AsQueryable();
             
         if(this.TagFilters != null && this.TagFilters.Length > 0)
         {
-            var tagFilterQuery = database.ResourceTagRelations
+            IQueryable<Guid> tagFilterQuery = database.ResourceTagRelations
                 .Where(dt => this.TagFilters.Contains(dt.TagId.ToString())) // Filter by tags
                 .GroupBy(dt => dt.ResourceId)
                 .Where(g => g.Count() == this.TagFilters.Length) // Ensure that resources have all tags
@@ -25,12 +25,12 @@ public class FilterDto
 
         if(this.StartDate != null)
         {
-            queryBuilder = queryBuilder.Where(f => f.CreationDate >= this.StartDate);
+            queryBuilder = queryBuilder.Where(f => f.PublicationDate >= this.StartDate);
         }
 
         if(this.EndDate != null)
         {
-            queryBuilder = queryBuilder.Where(f => f.CreationDate <= this.EndDate);
+            queryBuilder = queryBuilder.Where(f => f.PublicationDate <= this.EndDate);
         }
 
         return queryBuilder;

@@ -93,8 +93,8 @@ public class SearchControllerTests : TestBase
             Title = "Integration Test File",
             Description = "This is a test file about AI Ohmega",
             FileType = "text",
-            CreationDate = pass,
-            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
+            PublicationDate = pass,
             TypeId = Guid.Parse(DatabaseSeeder.UnknownResourceTypeId),
             LanguageCode = "??",
         };
@@ -105,8 +105,8 @@ public class SearchControllerTests : TestBase
             Title = "Extraordinary file",
             Description = "This is a test file that checks if it is created correctly",
             FileType = "text",
-            CreationDate = fail,
-            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
+            PublicationDate = fail,
             TypeId = Guid.Parse(DatabaseSeeder.UnknownResourceTypeId),
             LanguageCode = "??",
         };
