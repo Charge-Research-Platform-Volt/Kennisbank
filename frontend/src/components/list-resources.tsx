@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useState } from "react";
 
 // Table imports
@@ -38,6 +38,7 @@ export default function ListResources({ data }: { data: ResourcePageWithTagsResp
 
   // deselect the row when the sidebar is closed
   const onCloseSidebar = () => {
+    console.log("onCloseSidebar");
     gridApiRef.current?.deselectAll();
   };
 
@@ -60,17 +61,19 @@ export default function ListResources({ data }: { data: ResourcePageWithTagsResp
   }, []);
 
   // if on row clicked, deselect all and select the clicked row (if sidebar was closed)
-  const onRowClicked = (e?: RowClickedEvent) => {
-    gridApiRef.current?.deselectAll();
-    
-    if(e){
-      toggleRightSidebar(e.data)
+  const onRowClicked = (e: RowClickedEvent) => {
+    toggleRightSidebar(e.data)
 
-      if(!rightSidebarOpen){
-        e.node.setSelected(true);
-      }
-    }
+    e.node.setSelected(true);
   };
+
+  // unselect all rows when the sidebar is closed
+  useEffect(() => {
+    if (!rightSidebarOpen) {
+      gridApiRef.current?.deselectAll();
+    }
+  }
+  , [rightSidebarOpen]);
 
   return (
     <div className="h-[calc(100vh-6rem)] w-full">
