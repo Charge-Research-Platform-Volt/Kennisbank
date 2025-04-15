@@ -7,7 +7,7 @@ import Divider from "../divider";
 import { SidebarItem } from "@/types/sidebar";
 
 export default function SidebarPart({ name, items }: { name: string; items: SidebarItem[] }) {
-  const pathname = usePathname();
+  const pathname : string = usePathname();
 
   return (
     <ul className="mb-10 flex flex-col gap-2">

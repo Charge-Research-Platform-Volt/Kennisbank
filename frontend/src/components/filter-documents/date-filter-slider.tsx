@@ -8,8 +8,8 @@ import "./date-filter-slider.css"
 import { FInput } from "../ui/Popup";
 
 
-const curYear = new Date().getUTCFullYear();
-const oldestUpload = 1968; // REPLACE WITH ACTUAL OLDEST DOCUMENT
+const curYear : number = new Date().getUTCFullYear();
+const oldestUpload : number = 1968; // REPLACE WITH ACTUAL OLDEST DOCUMENT
 
 type range = [old: number, new: number];
 
@@ -20,7 +20,7 @@ export default function DateFilterSlider( {className, setStartYearAction, setEnd
 
     const changeRangeSlider = (event: InputEvent) => {
         // get value of both thumbs of slider
-        const newRangeValue = [...(event.values as () => IterableIterator<number>)()];
+        const newRangeValue : number[] = [...(event.values as () => IterableIterator<number>)()];
         const newRange: range = newRangeValue as range;
         // update range and visualize the change by changing the textbox
         changeCurRange(newRange)
@@ -31,7 +31,7 @@ export default function DateFilterSlider( {className, setStartYearAction, setEnd
 
     const changeRangeTextBoxMin = (event: React.ChangeEvent<HTMLInputElement>) => {
         // get the new minimum year
-        const newMinValue = Number(event.target.value);
+        const newMinValue : number = Number(event.target.value);
         // as long as it is a valid number, the change is seen in the textbox, but not yet in the slider
         if(!isNaN(newMinValue)){
             changeCurTextboxRange([newMinValue, curTextboxRange[1]]);
@@ -44,7 +44,7 @@ export default function DateFilterSlider( {className, setStartYearAction, setEnd
 
     const changeRangeTextBoxMax = (event: React.ChangeEvent<HTMLInputElement>) => {
         // Same as above, but for the other textbox
-        const newMaxValue = Number(event.target.value);
+        const newMaxValue : number = Number(event.target.value);
         if(!isNaN(newMaxValue)){
             changeCurTextboxRange([curTextboxRange[0], newMaxValue]);
         }

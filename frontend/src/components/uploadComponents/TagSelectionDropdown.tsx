@@ -13,6 +13,7 @@ import { toast } from "sonner";
  *
  * @param tags - Tags fetched from root
  * @param className - Styling fetched from parent
+ * @param createButton - Whether or not the create button should be added
  *
  * @returns The dropdown box where the user can type and select tags to be added to the document
  */

@@ -85,7 +85,7 @@ export const AddWebsite = async (
             message: data.message,
         };
     } catch (error) {
-        //Log.error(`An error occurred: ${error}`);
+        console.error(`An error occurred: ${error}`);
 
         return {
             success: false,

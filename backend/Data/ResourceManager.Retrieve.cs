@@ -21,7 +21,7 @@ namespace KnowledgeBank.Data
                     query = query.OrderBy(orderBy);
             }
 
-            foreach (var includeProperty in includeProperties)
+            foreach (string includeProperty in includeProperties)
             {
                 query = query.Include(includeProperty);
             }
@@ -47,7 +47,7 @@ namespace KnowledgeBank.Data
                     query = query.OrderBy(orderBy);
             }
 
-            foreach (var includeProperty in includeProperties)
+            foreach (string includeProperty in includeProperties)
             {
                 query = query.Include(includeProperty);
             }
@@ -85,7 +85,7 @@ namespace KnowledgeBank.Data
                     query = query.OrderBy(orderBy);
             }
 
-            foreach (var includeProperty in includeProperties)
+            foreach (string includeProperty in includeProperties)
             {
                 query = query.Include(includeProperty);
             }

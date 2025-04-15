@@ -7,7 +7,7 @@ namespace KnowledgeBank.Utils
     {
         public static void SendMail(string to, string subject, string body)
         {
-            var message = new MimeMessage();
+            MimeMessage message = new MimeMessage();
             message.From.Add(new MailboxAddress("Ohmega", "ohmega45@gmail.com"));
             message.To.Add(new MailboxAddress(to, to));
             message.Subject = subject;
@@ -17,7 +17,7 @@ namespace KnowledgeBank.Utils
                 Text = body
             };
 
-            using (var client = new SmtpClient())
+            using (SmtpClient client = new SmtpClient())
             {
                 client.Connect("smtp.gmail.com", 587, MailKit.Security.SecureSocketOptions.StartTls);
                 client.Authenticate("ohmega45@gmail.com", "wozy agto ddok vpch");

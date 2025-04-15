@@ -21,14 +21,14 @@ export default async function Home() {
     files = files.slice(0, 4);
   }
 
-  const formatter = new Intl.DateTimeFormat('en-US', {
+  const formatter : Intl.DateTimeFormat = new Intl.DateTimeFormat('en-US', {
     timeZone: process.env.NEXT_PUBLIC_TIMEZONE || 'Europe/Berlin',
     hour: 'numeric',
     hour12: false
   });
   
-  const timeString = formatter.format(new Date());
-  const currentHour = parseInt(timeString, 10);
+  const timeString : string = formatter.format(new Date());
+  const currentHour : number = parseInt(timeString, 10);
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-6">

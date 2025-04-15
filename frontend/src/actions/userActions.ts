@@ -3,6 +3,7 @@
 import { FormResponse } from "@/types/return.type";
 import { SaveUserResponse, User, UserPageResponse, UsersArraySchema, UserSchema } from "@/types/user.type";
 import { revalidatePath } from "next/cache";
+import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 import { cookies } from "next/headers";
 
 export const DeleteUser = async (user: User ): Promise<FormResponse<User>> => {
@@ -19,8 +20,8 @@ export const DeleteUser = async (user: User ): Promise<FormResponse<User>> => {
     }
 
     // Send the data to the backend
-    const cookieHeader = await cookies();
-    const response = await fetch(
+    const cookieHeader : ReadonlyRequestCookies = await cookies();
+    const response : Response = await fetch(
         `http://backend:8080/User/delete?userId=${encodeURIComponent(user.id)}`,
         {
             method: "DELETE",
@@ -71,8 +72,8 @@ export const SaveUser = async (
     //update the email in the backend
     if(newEmail != state.user.email) {
         // Send the data to the backend
-        const cookieHeader = await cookies();
-        const response = await fetch(
+        const cookieHeader : ReadonlyRequestCookies = await cookies();
+        const response : Response = await fetch(
             `http://backend:8080/User/update-mail`,
             {
                 method: "PATCH",
@@ -104,8 +105,8 @@ export const SaveUser = async (
     //update the role in the backend
     if(newRole != state.user.role) {
         // Send the data to the backend
-        const cookieHeader = await cookies();
-        const response = await fetch(
+        const cookieHeader : ReadonlyRequestCookies = await cookies();
+        const response : Response = await fetch(
             `http://backend:8080/Roles/assign`,
             {
                 method: "PATCH",
@@ -146,8 +147,8 @@ export const ListUsersPaged = async (pageIndex: number ): Promise<UserPageRespon
     console.log("Getting user page: ");
 
     // Send the data to the backend
-    const cookieHeader = await cookies();
-    const response = await fetch(
+    const cookieHeader : ReadonlyRequestCookies = await cookies();
+    const response : Response = await fetch(
         `http://backend:8080/User/list-paged?pageIndex=${pageIndex}&pageSize=50`,
         {
             method: "GET",

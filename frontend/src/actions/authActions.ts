@@ -52,7 +52,7 @@ export const Register = async (
         }
 
         // Send the data to the backend.
-        const response = await fetch("http://localhost:8080/Auth/signup", {
+        const response : Response = await fetch("http://localhost:8080/Auth/signup", {
             method: "POST",
             body: JSON.stringify({
                 email: rawData.email,

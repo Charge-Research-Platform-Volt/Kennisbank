@@ -28,7 +28,7 @@ public class ResourceManagerCreateTests : TestBase
     [SetUp]
     public async Task SetupController()
     {
-        var userStore = new UserStore<User>(Context);
+        UserStore<User> userStore = new UserStore<User>(Context);
         _userManager = new UserManager<User>(
            userStore,
             null,
@@ -186,7 +186,7 @@ public class ResourceManagerCreateTests : TestBase
 
         ResourceType? type = await Context.ResourceTypes.FirstAsync();
 
-        var dto = new ResourceCreateDto
+        ResourceCreateDto dto = new ResourceCreateDto
         {
             Title = "Test Resource",
             Description = "Multiple linked entities",

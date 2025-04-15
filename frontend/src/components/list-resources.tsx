@@ -28,12 +28,6 @@ export default function ListResources({ data }: { data: ResourcePageWithTagsResp
     { field: "", width: 30, cellRenderer: DownloadRenderer, resizable: false },
   ])[0];
 
-  // const [defaultColDef, setDefaultColDef] = useState({
-  //   resizable: true,
-  //   sortable: true,
-  //   filter: false,
-  // });
-
   const gridApiRef = useRef<GridApi | null>(null);
 
   // deselect the row when the sidebar is closed
