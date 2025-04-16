@@ -22,13 +22,13 @@ interface ActionButtonProps<T> {
   // Message to show on success
   successMessage?: string;
   // Icon component to render
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<unknown>;
   // Title for the button
   title: string;
   // Optional className for styling
   className?: string;
   // Props to pass to the icon component
-  iconProps?: Record<string, any>;
+  iconProps?: Record<string, unknown>;
 }
 
 /**
