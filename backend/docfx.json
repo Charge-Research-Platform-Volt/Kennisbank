@@ -1,0 +1,14 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "files": [ "backend.csproj" ],
+          "cwd": "."
+        }
+      ],
+      "dest": "docs",
+      "outputFormat": "markdown"
+    }
+  ]
+}

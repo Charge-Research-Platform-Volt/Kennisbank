@@ -3,6 +3,7 @@
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,macos,aspnetcore,csharp,dotnetcore
 
 /Migrations
+/docs
 
 ### ASPNETCore ###
 ## Ignore Visual Studio temporary files, build results, and
