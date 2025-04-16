@@ -17,6 +17,11 @@ import { useSidebar } from "@/context/sidebar-provider";
 // Register all modules
 ModuleRegistry.registerModules([AllCommunityModule]);
 
+/**
+ * 
+ * @param data - Data to display in the table, this is a page of the archive, possibly filtered through a search query or other means
+ * @returns A table representation of the data
+ */
 export default function ListResources({ data }: { data: ResourcePageWithTagsResponse }) {
   // Column definitions
   const columnDefs = useState<ColDef[]>([

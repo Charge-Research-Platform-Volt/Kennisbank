@@ -140,7 +140,6 @@ export default function TagSelectionDropdown({ tags, onSelectionChangedAction = 
                 {showCreateTagField ? 'Cancel' : 'Create'}
               </Button>
             ) : ''}
-           
           </div>
 
           {showCreateTagField && (
@@ -178,7 +177,6 @@ export default function TagSelectionDropdown({ tags, onSelectionChangedAction = 
                 {tag.name}{ tag.isStandardized ? <AdminTagIcon className="h-4 w-4 self-center" /> : tag.isApproved ? <ApprovedTagIcon className="h-4 w-4" /> : "" }
               </button>
             ))}
-            
         </div>
       </div>
       <div className="mt-1 h-50 max-h-50 overflow-y-auto border">

@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { Log } from "../../Pino";
+//import { Log } from "../../Pino";
 import { cookies } from "next/headers";
 
 /**
@@ -45,6 +45,7 @@ export async function FetchWithValidation<T>(schema: z.ZodSchema<T>, url: string
     const result = schema.safeParse(data);
     return result;
   } catch (error) {
+    console.log(error);
     //Log.error(`An error occurred: ${error}`);
 
     // Return an error object if an exception occurs

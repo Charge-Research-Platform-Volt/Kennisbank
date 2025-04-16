@@ -13,6 +13,15 @@ const oldestUpload : number = 1968; // REPLACE WITH ACTUAL OLDEST DOCUMENT
 
 type range = [old: number, new: number];
 
+/**
+ *
+ * @param className - Styling from root
+ * @param setStartYearAction - State variable that changes depending on the minimum value of this range selector
+ * @param setEndYearAction - State variable that changes depending on the maximum value of this range selector
+ *
+ * @returns A range selector, made using 2 sliders and 2 text boxes
+ *
+ */
 export default function DateFilterSlider( {className, setStartYearAction, setEndYearAction} : {className?: string, setStartYearAction: (year: number) => void, setEndYearAction: (year: number) => void}) {
     // ranges of the slider and textbox
     const [curRange, changeCurRange] = useState<range>([oldestUpload, curYear]);
@@ -53,8 +62,10 @@ export default function DateFilterSlider( {className, setStartYearAction, setEnd
         }
     };
 
+    // Range slider itself is most easily styled using css due to how it works
     return <div className={className}>
         <RangeSlider data-testid="slider" min={oldestUpload} max={curYear} value={curRange} onInput={(e) => changeRangeSlider(e)} id="range-slider-purple"/>
+        {/* The 2 text boxes at the bottom of the range slider that are linked to the slider and vice versa*/}
         <div className="flex gap-2 mt-6">
             <FInput
             data-testid="min_year"

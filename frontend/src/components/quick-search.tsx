@@ -11,12 +11,15 @@ import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
 import { OctagonAlert } from "lucide-react";
 import GetFileIcon from "./getFileIcon";
-import { Resource, ResourceResponse } from "@/types/resource.type"
+import { ResourceResponse } from "@/types/resource.type"
 import { handleOpenFile } from "@/actions/openFileActions";
 import { useQuickSearch } from "./quick-search-context";
-import Link from "next/link";
 import Kbd from "./kbd";
 
+/**
+ * 
+ * @returns QuickSearch bar in the top left corner of the screen. Users can then quickly search through the archive and open files / visit websites.
+ */
 export default function QuickSearch() {
   const { isOpen, setIsOpen } = useQuickSearch();
   const [searchResults, setSearchResults] = useState<ResourceResponse[]>([]);
