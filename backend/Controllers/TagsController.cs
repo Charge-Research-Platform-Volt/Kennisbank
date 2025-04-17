@@ -293,13 +293,14 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     /// Returns a 200 OK response containing the deleted tag.
     // </returns>
     [HttpDelete("delete-tag/{id}")]
-    [Authorize(Policy = "RequireAdminRole")]
+    [Authorize]
     [SwaggerOperation(
-            Summary = "Delete standard tag.",
-            Description = "Lets and admin delete a tag from the list of standardized tags."
+            Summary = "Deletes a tag.",
+            Description = "Lets admins delete any tag, and users delete their own tags if not assigned to resources."
         )]
     [SwaggerResponse(200, "Tag deleted")]
     [SwaggerResponse(400, "Bad request")]
+    [SwaggerResponse(403, "Forbidden - User cannot delete this tag")]
     [SwaggerResponse(404, "Tag not found")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> DeleteTag(string id)
@@ -314,12 +315,38 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                 Log.Error("Id is required");
                 return BadRequest(new { message = "Id is required" });
             }
-
+            
+            // Get the GUID of the user
+            Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
+            bool userIsAdmin = User.IsInRole("Admin");
+            
+            // Get the tag
+            Tag? tag = await resourceManager.GetTagAsync(id);
+            
+            if (tag == null)
+            {
+                Log.Error("Tag not found.");
+                return NotFound(new { message = "Tag not found."});
+            }
+            
+            // Get the resource-tag relations
+            // TODO: Abel is going to make methods to get relations, so f.e.
+            // here we'd need something like "tagRelations = await resourceManager.GetResourcesRelatedToTags().ToListAsync();"
+            
+            List<ResourceTagRelation> tagRelations = new();
+            
+            // Check if the user has permission to delete this tag
+            if (!userIsAdmin && (tag.CreatedBy != userId || tagRelations.Count == 0)) 
+            {
+                Log.Warning("User {UserId} attempted to delete {TagId} without permissions.", userId, id);
+                return Forbid();
+            }
+            
             if (await resourceManager.DeleteTagAsync(id))
                 return Ok(new { message = "Tag deleted." });
-
-            Log.Error("Tag not found.");
-            return NotFound(new { message = "Tag not found." });
+                
+            Log.Error("Failed to delete tag.");
+            return StatusCode(500, "Internal server error.");
         }
         catch (Exception e)
         {
