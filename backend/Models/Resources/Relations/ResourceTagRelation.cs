@@ -13,15 +13,9 @@ public class ResourceTagRelation
     [Column("tag-id")]
     [ForeignKey("Tag")]
     public required Guid TagId { get; set; }
-
-    [Column("is-approved")]
-    public bool IsApproved { get; set; } = false;
-
-    [Column("approved-on")]
-    public DateTime? ApprovedOn { get; set; }
-
-    [Column("approved-by")]
-    public Guid? ApprovedBy { get; set; }
+    
+    [Column("added-by")]
+    public Guid? AddedBy { get; set; }
 
     // Navigation properties
     [JsonIgnore] public Resource? Resource { get; set; }
