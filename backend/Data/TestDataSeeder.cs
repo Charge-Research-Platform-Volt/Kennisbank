@@ -1,11 +1,13 @@
 ﻿using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace KnowledgeBank.Data
 {
     public static class TestDataSeeder
     {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+        private static Random random = new Random();
         private static IAzureBlobService blobService;
         private static DatabaseContext database;
         private static ResourceManager resourceManager;
@@ -88,6 +90,7 @@ namespace KnowledgeBank.Data
             path = testDataPath + path;
 
             if (await resourceManager.ResourceExistsAsync(r => r.Title == title)) return;
+            DateTime randomDay = new DateTime(1960, 1, 1, 10, 0, 0, 0).AddDays(random.Next(0,22000)).ToUniversalTime(); //DateTime.ParseExact("1960-01-01T12:00:00Z", "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
 
             ResourceCreateDto dto = new()
             {
@@ -95,7 +98,7 @@ namespace KnowledgeBank.Data
                 Description = description,
                 LanguageCode = "??",
                 TypeId = DatabaseSeeder.UnknownResourceTypeId,
-                PublicationDate = DateTime.UtcNow,
+                PublicationDate = randomDay,
             };
 
             string extension = Path.GetExtension(path);

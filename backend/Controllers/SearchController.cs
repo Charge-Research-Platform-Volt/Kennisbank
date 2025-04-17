@@ -216,7 +216,7 @@ public class SearchController : ControllerBase
 
     [HttpGet("get-oldest-document")]
     [SwaggerOperation(
-        Summary = "Returns the oldest document.",
+        Summary = "Returns the oldest document year.",
         Description = "Searches the whole Resources table and returns the oldest one from that table."
     )]
     [SwaggerResponse(200, "Oldest document", typeof(List<Resource>))]
@@ -228,14 +228,14 @@ public class SearchController : ControllerBase
             // Get the oldest document from the resources table
             // TODO: change created_at to published_at when metadata is merged
             Resource[]? items = await database.Resources
-            .OrderBy(f => f.CreationDate)
+            .OrderBy(f => f.PublicationDate)
             .Take(1)
             .ToArrayAsync();
 
             if (items == null)
                 return Ok(new ResourceInfoResponse("No resources found", null));
 
-            return Ok(new ResourceInfoResponse("Oldest resources found", items[0]));
+            return Ok(new ResourceInfoResponse("Oldest resources found", items[0].PublicationDate.Year));
         }
         catch(Exception)
         {

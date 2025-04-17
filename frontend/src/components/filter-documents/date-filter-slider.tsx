@@ -1,6 +1,6 @@
 'use client'
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useState } from "react";
 import RangeSlider, { InputEvent } from 'react-range-slider-input';
 import 'react-range-slider-input/dist/style.css';
@@ -8,9 +8,7 @@ import "./date-filter-slider.css"
 import { FInput } from "../ui/Popup";
 
 
-const curYear : number = new Date().getUTCFullYear();
-const oldestUpload : number = 1968; // REPLACE WITH ACTUAL OLDEST DOCUMENT
-
+const curYear: number = new Date().getUTCFullYear();
 type range = [old: number, new: number];
 
 /**
@@ -23,9 +21,19 @@ type range = [old: number, new: number];
  *
  */
 export default function DateFilterSlider( {className, setStartYearAction, setEndYearAction} : {className?: string, setStartYearAction: (year: number) => void, setEndYearAction: (year: number) => void}) {
-    // ranges of the slider and textbox
+    // Ranges of the slider and textbox
+    const [oldestUpload, setOldestUpload] = useState<number>(1900)
     const [curRange, changeCurRange] = useState<range>([oldestUpload, curYear]);
     const [curTextboxRange, changeCurTextboxRange] = useState<range>([oldestUpload, curYear]);
+
+    // Get oldest uploaded document and set minimum of that slider to that year
+    useEffect(() => {
+        fetchOldest().then((oldestYear) => {
+            setOldestUpload(oldestYear);
+            changeCurRange([oldestYear, curYear]);
+            changeCurTextboxRange([oldestYear, curYear]);
+        });
+    }, [setStartYearAction, setEndYearAction]);
 
     const changeRangeSlider = (event: InputEvent) => {
         // get value of both thumbs of slider
@@ -61,6 +69,31 @@ export default function DateFilterSlider( {className, setStartYearAction, setEnd
             changeCurRange([curRange[0], newMaxValue]);
         }
     };
+
+    async function fetchOldest() {
+        try{
+            const response = await fetch(`http://localhost:8080/search/get-oldest-document`, {
+                credentials: "include",
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                }
+              });
+    
+              if (response.ok) {
+                const data = await response.json();
+                return data["fileInfo"] as number
+              } 
+              else {
+                console.error(response.body);
+                return 1900
+              }
+        }
+        catch(error){
+            console.error(error)
+            return 1900
+        }
+    }
 
     // Range slider itself is most easily styled using css due to how it works
     return <div className={className}>

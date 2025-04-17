@@ -109,7 +109,7 @@ export default function ArchivePage() {
     errorMessage: string,
     onError: () => void = () => {
       toast.error(errorMessage);
-      setSearchResults(errorMessage);
+      setSearchResults(errorMessage); 
     },
     filter?: filterDto
   ) {
