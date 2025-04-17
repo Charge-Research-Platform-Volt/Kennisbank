@@ -28,7 +28,7 @@ const initialFileResourceState: FormResponse<FileBase> = {
   message: "",
 };
 
-export default function NewButton({ tags }: { tags: TagArray }) {
+export default function NewButton({ tags, asIcon = false }: { tags: TagArray, asIcon?: boolean }) {
   const popupRef = useRef<HTMLDivElement | null>(null); //Ref used to check if user clicks outside of popup
   const [status, setStatus] = useState<UploadStatus>("idle"); //upload status
   const [uploadPopup, setUploadPopup] = useState(false); //bool which determines whether you can see the new popup
@@ -225,12 +225,10 @@ export default function NewButton({ tags }: { tags: TagArray }) {
         {/* Purple New button */}
         <DropdownMenuTrigger
           ref={newButtonRef}
-          className="font-face bg-purple text-md active:bg-purple flex h-9 w-full cursor-pointer items-center gap-1 rounded-md pl-3 text-left text-white hover:bg-[#6f2aaf]"
+          className={`font-face bg-purple text-md active:bg-purple flex h-9 w-full cursor-pointer items-center gap-1 rounded-md pl-3 text-left text-white hover:bg-[#6f2aaf] ${asIcon ? "mb-[2vh] rounded-l-none" : ""}`}
         >
           <New className="h-5 w-5" />
-          <div data-testid="button_text" className="pb-0.5">
-            New
-          </div>
+          {asIcon ? null : <div data-testid="button_text" className="pb-0.5">New</div>}
         </DropdownMenuTrigger>
         <DropdownMenuContent style={{ width: newButtonWidth }}>
           {/* Upload file item in popup */}

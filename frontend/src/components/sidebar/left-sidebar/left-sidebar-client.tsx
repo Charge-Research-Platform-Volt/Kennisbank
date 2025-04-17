@@ -19,6 +19,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Logout } from "@/actions/authActions";
 import QuickSearch from "@/components/quick-search";
 import Divider from "../divider";
+import Cookies from 'js-cookie';
+import { usePathname } from "next/navigation";
+import { useRouter } from 'next/navigation'
 
 // Menu items
 const menuItems: SidebarItem[] = [
@@ -37,10 +40,16 @@ const projects: SidebarItem[] = [
   },
 ];
 
-export default function LeftSidebarClient({ tags, userEmail, userRole }: { tags: TagArray; userEmail: string; userRole: string }) {
-  const [isOpen, setIsOpen] = useState(true);
+export default function LeftSidebarClient({ open, tags, userEmail, userRole }: { open: boolean, tags: TagArray; userEmail: string; userRole: string }) {
+  const [isOpen, setIsOpen] = useState(open);
   const [profileButtonWidth, setProfileButtonWidth] = useState(0);
   const profileButtonRef = React.useRef<HTMLButtonElement>(null);
+    
+  const settingsPage = "/users";
+
+  const pathname = usePathname();
+
+  const router = useRouter();
 
   const handleLogout = async () => {
     const result = await Logout();
@@ -57,18 +66,88 @@ export default function LeftSidebarClient({ tags, userEmail, userRole }: { tags:
 
   return (
     <div>
-      {/* Show menu button if menu is closed */}
+      {/* Show small menu bar if menu is closed */}
       {!isOpen && (
-        <div className="mt-4 mb-4 flex items-center justify-between">
+        <div className="flex flex-col h-screen bg-gray-100 pt-2.5 pb-2.5 overflow-y-auto">
           <button
             type="button"
             data-testid="sidebar_hide"
-            onClick={() => setIsOpen(!isOpen)}
-            className="cursor-pointer rounded rounded-l-none rounded-r-lg bg-gray-100 p-2 text-white transition hover:bg-gray-200"
+            onClick={() => { Cookies.set('menuOpened', !isOpen); setIsOpen(!isOpen); }}
+            className="cursor-pointer rounded rounded-l-none rounded-r-lg p-2 text-white transition hover:bg-gray-200 mb-4"
             style={{ cursor: "pointer" }}
           >
             <ShowMenu className="h-6 w-6" />
           </button>
+          <NewButton tags={tags} asIcon={true} />
+          <div className="flex flex-col overflow-y-auto min-h-15">
+            {menuItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                data-testid="sidebar_hide"
+                onClick={() => router.push(item.path)}
+                className={`cursor-pointer rounded rounded-l-none rounded-r-lg p-2 text-white transition hover:bg-gray-200" ${pathname === item.path ? "bg-white shadow-sm hover:bg-gray-200" : "hover:bg-gray-200"}`}
+                style={{ cursor: "pointer" }}
+              >
+                {item.icon}
+              </button>
+              )) }
+              {projects.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                data-testid="sidebar_hide"
+                onClick={() => router.push(item.path)}
+                className={`cursor-pointer rounded rounded-l-none rounded-r-lg p-2 text-white transition hover:bg-gray-200" ${pathname === item.path ? "bg-white shadow-sm hover:bg-gray-200" : "hover:bg-gray-200"}`}
+                style={{ cursor: "pointer" }}
+              >
+                {item.icon}
+              </button>
+              )) }
+          </div>
+          
+
+            <div className="flex flex-col mt-auto">
+              <button
+                type="button"
+                data-testid="sidebar_hide"
+                onClick={() => router.push(settingsPage)}
+                className={`cursor-pointer rounded rounded-l-none rounded-r-lg p-2 text-white transition hover:bg-gray-200 w-full`}
+                style={{ cursor: "pointer" }}
+              >
+                <Settings className="h-4 w-4" />
+              </button>
+              
+
+              <button
+                type="button"
+                data-testid="sidebar_hide"
+                onClick={() => router.push("http://localhost:3001/guide")}
+                className={`cursor-pointer rounded rounded-l-none rounded-r-lg p-2 text-white transition hover:bg-gray-200 w-full`}
+                style={{ cursor: "pointer" }}
+              >
+                <Help className="h-4 w-4" />
+              </button>
+              
+              <DropdownMenu>
+                    <DropdownMenuTrigger
+                      ref={profileButtonRef}
+                      className="cursor-pointer rounded rounded-l-none rounded-r-lg p-2 text-white transition hover:bg-gray-200 w-full"
+                    >
+                      <Image src="/img/default-profile-picture.svg" alt="Help" width={24} height={24} className="mr-2" />
+                    </DropdownMenuTrigger>
+
+                    <DropdownMenuContent side="top" style={{ width: profileButtonWidth }}>
+                      <DropdownMenuItem className="cursor-pointer">
+                        Profile
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                        Log out
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
         </div>
       )}
 
@@ -82,7 +161,7 @@ export default function LeftSidebarClient({ tags, userEmail, userRole }: { tags:
             </h2>
 
             {/* Hide menu button */}
-            <button type="button" data-testid="sidebar_hide" onClick={() => setIsOpen(!isOpen)} className="rounde rounded-lg p-2 text-white transition hover:bg-gray-200" style={{ cursor: "pointer" }}>
+            <button type="button" data-testid="sidebar_hide" onClick={() => { Cookies.set('menuOpened', !isOpen); setIsOpen(!isOpen); }} className="rounde rounded-lg p-2 text-white transition hover:bg-gray-200" style={{ cursor: "pointer" }}>
               <HideMenu className="h-6 w-6" />
             </button>
           </div>
@@ -107,7 +186,7 @@ export default function LeftSidebarClient({ tags, userEmail, userRole }: { tags:
           <nav>
             <ul>
               <li>
-                <Link data-testid="sidebar" href="/users" className="flex items-center gap-x-2 rounded-md p-2 hover:bg-gray-200">
+                <Link data-testid="sidebar" href={settingsPage} className="flex items-center gap-x-2 rounded-md p-2 hover:bg-gray-200">
                   <Settings className="h-4 w-4" />
                   Settings
                 </Link>
