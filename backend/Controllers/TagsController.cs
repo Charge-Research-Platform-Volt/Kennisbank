@@ -364,13 +364,14 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     /// Returns a 200 OK response.
     // </returns>
     [HttpPatch("rename-tag/{id}/{newName}")]
-    [Authorize(Policy = "RequireAdminRole")]
+    [Authorize]
     [SwaggerOperation(
             Summary = "Change tag name.",
-            Description = "Lets an admin change the name of a tag."
+            Description = "Lets admins change the name of any tag, and users their own tags if not assigned to resources."
         )]
     [SwaggerResponse(200, "Tag name changed")]
     [SwaggerResponse(400, "Bad request")]
+    [SwaggerResponse(403, "Forbidden - User cannot edit this tag")]
     [SwaggerResponse(404, "Tag not found")]
     [SwaggerResponse(409, "Tag already exists")]
     [SwaggerResponse(500, "Internal server error")]
@@ -394,6 +395,32 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         //Change tag name
         try
         {
+            // Get the GUID of the user
+            Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
+            bool userIsAdmin = User.IsInRole("Admin");
+            
+            // Get the tag
+            Tag? tag = await resourceManager.GetTagAsync(id);
+            
+            if (tag == null)
+            {
+                Log.Error("Tag not found.");
+                return NotFound(new { message = "Tag not found."});
+            }
+            
+            // Get the resource-tag relations
+            // TODO: Abel is going to make methods to get relations, so f.e.
+            // here we'd need something like "tagRelations = await resourceManager.GetResourcesRelatedToTags().ToListAsync();"
+            
+            List<ResourceTagRelation> tagRelations = new();
+            
+            // Check if the user has permission to delete this tag
+            if (!userIsAdmin && (tag.CreatedBy != userId || tagRelations.Count == 0)) 
+            {
+                Log.Warning("User {UserId} attempted to edit {TagId} without permissions.", userId, id);
+                return Forbid();
+            }
+        
             if (await resourceManager.TagExistsAsync(t => t.Name == newName))
             {
                 Log.Error("Tag already exists in UserTags table.");
