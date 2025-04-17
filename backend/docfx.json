@@ -8,7 +8,10 @@
         }
       ],
       "dest": "docs",
-      "outputFormat": "markdown"
+      "outputFormat": "markdown",
+      "disableGitFeatures": true,
+      "categoryLayout": "nested",
+      "namespaceLayout": "nested"
     }
   ]
 }
