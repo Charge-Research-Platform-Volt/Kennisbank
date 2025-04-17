@@ -8,7 +8,7 @@ describe('rangeselector', () =>
 
         // When rendering it should display the current year and the year of the oldest document
         const curYear = new Date().getUTCFullYear();
-        const oldYear = "1968"; // Change this to the oldest document uploaded
+        const oldYear = "1900"; // Change this to the oldest document, aka 1900 is the default
         expect(screen.getByDisplayValue(`${curYear}`));
         expect(screen.getByDisplayValue(`${oldYear}`));
 
