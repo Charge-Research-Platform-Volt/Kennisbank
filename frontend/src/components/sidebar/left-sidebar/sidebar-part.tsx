@@ -10,11 +10,11 @@ export default function SidebarPart({ name, items }: { name: string; items: Side
   const pathname = usePathname();
 
   return (
-    <ul className="mb-10 flex flex-col gap-2">
+    <ul className="flex flex-col gap-2">
       {/* Menu part title with line */}
       <Divider name={name} />
 
-      {/* Menu items */}
+      {/* menu items */}
       {items.map((item) => (
         <li key={item.id} data-testid = "sidebar">
           <Link href={item.path} className={`flex items-center gap-x-2 rounded-md p-2 hover:bg-gray-200 ${pathname === item.path ? "bg-white shadow-sm hover:bg-gray-200" : "hover:bg-gray-200"}`}>
@@ -23,6 +23,7 @@ export default function SidebarPart({ name, items }: { name: string; items: Side
           </Link>
         </li>
       ))}
+      
     </ul>
   );
 }

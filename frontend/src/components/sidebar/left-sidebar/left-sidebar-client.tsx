@@ -74,7 +74,7 @@ export default function LeftSidebarClient({ tags, userEmail, userRole }: { tags:
 
       {/* Show menu if it is opened */}
       {isOpen && (
-        <aside className={`flex h-screen flex-col bg-gray-100 p-2.5 transition-all duration-300 ${isOpen ? "w-64 bg-gray-100" : "w-16 bg-transparent"}`}>
+        <aside className={`flex h-screen flex-col bg-gray-100 p-2.5 transition-all duration-300 overflow-y-auto ${isOpen ? "w-64 bg-gray-100" : "w-16 bg-transparent"}`}>
           <div className="mb-4 flex items-center justify-between">
             {/* KnowledgeBase title */}
             <h2 className="text-xl font-semibold">
@@ -88,21 +88,23 @@ export default function LeftSidebarClient({ tags, userEmail, userRole }: { tags:
           </div>
 
           {/* Menu items */}
-          <nav className="flex h-full flex-col">
-            <div className="mb-10 space-y-2">
+          <nav className="flex-grow flex-col">
+            <div className="space-y-2 mb-[2vh]">
               <NewButton tags={tags} />
 
               {/* Search bar */}
               <QuickSearch />
             </div>
-
+          </nav>
+          
+          <nav className="flex-grow overflow-y-auto h-full min-h-20">
             {/* Menu and project parts */}
             <SidebarPart name="Menu" items={menuItems} />
             <SidebarPart name="Projects" items={projects} />
           </nav>
 
           {/* Bottom items of the menu */}
-          <nav className="mt-auto">
+          <nav>
             <ul>
               <li>
                 <Link data-testid="sidebar" href="/users" className="flex items-center gap-x-2 rounded-md p-2 hover:bg-gray-200">
