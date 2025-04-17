@@ -11,7 +11,11 @@ namespace KnowledgeBank.Data
         private static ResourceManager resourceManager;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         private static string testDataPath = Path.Combine("/app", "testdata") + "/";
-
+        /// <summary>
+        /// Adds test data to the database and blob storage
+        /// </summary>
+        /// <param name="serviceProvider">All services</param>
+        /// <returns></returns>
         public static async Task Seed(IServiceProvider serviceProvider)
         {
             using IServiceScope scope = serviceProvider.CreateScope();
@@ -41,6 +45,15 @@ namespace KnowledgeBank.Data
             await ShamelessCopyOfUpload("1887_3731030-Full Text.pdf", "Stimulering en facilitering van burgerinitiatieven door de overheid: over de invulling van de ‘dienende overheid’ bij derde generatie burgerparticipatie", "");     
         }
 
+        /// <summary>
+        /// Adds a test data author to the database
+        /// </summary>
+        /// <param name="name">Name of author</param>
+        /// <param name="occupation">Occupation of author</param>
+        /// <param name="description">Description of author</param>
+        /// <param name="emailaddress">Email of author</param>
+        /// <param name="linkedin">Linkedin of author</param>
+        /// <returns></returns>
         private static async Task AddTestAuthor(string name, string occupation, string description, string emailaddress, string linkedin)
         {
             if (await resourceManager.PersonExistsAsync(p => p.Name == name)) return;
@@ -63,6 +76,13 @@ namespace KnowledgeBank.Data
             }
         }
 
+        /// <summary>
+        /// Makes a shameless copy of an uploaded file in the testdata and updates the database and blob storage accordingly
+        /// </summary>
+        /// <param name="path">Path to the test file</param>
+        /// <param name="title">Name of test file</param>
+        /// <param name="description">Description of test file</param>
+        /// <returns></returns>
         private static async Task ShamelessCopyOfUpload(string path, string title, string description)
         {
             path = testDataPath + path;
