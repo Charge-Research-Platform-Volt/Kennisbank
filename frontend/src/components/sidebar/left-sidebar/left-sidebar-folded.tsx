@@ -20,7 +20,7 @@ export default function LeftSidebarFolded({ menuItems, projects, settingsPath, t
   return (
     <div className="flex flex-col h-screen bg-gray-100 pt-2.5 pb-2.5 overflow-y-auto">
         {/* Button for opening menu */}
-        <FoldedButton action={switchMenuAction} icon={<ShowMenu className="h-6 w-6" />} className="mb-4" />
+        <FoldedButton testid="sidebar_show" action={switchMenuAction} icon={<ShowMenu className="h-6 w-6" />} className="mb-4" />
         
         {/* New button */}
         <NewButton tags={tags} asIcon={true} />
@@ -29,7 +29,8 @@ export default function LeftSidebarFolded({ menuItems, projects, settingsPath, t
         <div className="flex flex-col overflow-y-auto min-h-15">
             { /* Menu items */ }
             {menuItems.map((item) => (
-                <FoldedButton 
+                <FoldedButton
+                    testid="hiddensidebar" 
                     key={item.id} 
                     action={() => router.push(item.path)} 
                     icon={item.icon} 
@@ -40,6 +41,7 @@ export default function LeftSidebarFolded({ menuItems, projects, settingsPath, t
             { /* Projects */ }
             {projects.map((item) => (
                 <FoldedButton
+                    testid="hiddensidebar" 
                     key={item.id}
                     action={() => router.push(item.path)}
                     icon={item.icon}
@@ -52,10 +54,12 @@ export default function LeftSidebarFolded({ menuItems, projects, settingsPath, t
         <div className="flex flex-col mt-auto">
             {/* Settings and Help */}
             <FoldedButton
+                testid="hiddensidebar" 
                 action={() => router.push(settingsPath)}
                 icon={<Settings className="h-4 w-4" />}
             />  
             <FoldedButton
+                testid="hiddensidebar" 
                 action={() => router.push("http://localhost:3001/guide")}
                 icon={<Help className="h-4 w-4" />}
             />            

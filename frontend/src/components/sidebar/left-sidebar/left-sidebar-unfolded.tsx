@@ -31,10 +31,10 @@ export default function LeftSidebarUnfolded({ menuItems, projects, settingsPath,
         {/* Menu items */}
         <nav className="flex-grow flex-col">
             <div className="space-y-2 mb-[2vh]">
-                <NewButton tags={tags} />
+                <NewButton data-testid="sidebar" tags={tags} />
 
                 {/* Search bar */}
-                <QuickSearch />
+                <QuickSearch data-testid="sidebar" />
             </div>
             </nav>
             
