@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import { join, relative, dirname } from  'path';
-import { stringify } from 'querystring';
 
 // Set input and output directories
 const inputDir = '../docfx-files';
@@ -68,6 +67,7 @@ function extractTypeWithLinks(line)
     if (isGenericType && typeTexts.length > 1) {
         // We have a generic type like Task<BLOB_STATUSCODE>
         return {
+            name: '',
             type: `${typeTexts[0]}<${typeTexts.slice(1).join(', ')}>${line.includes('>[]') ? '[]' : ''}`, // Full type name
             links: links, // All links in order
             description: ''
@@ -182,6 +182,7 @@ Object.entries(fileLocations).forEach(([className, file]) =>
     const outputLines = [];
     const parametersList = [];
     const exceptionsList = [];
+    const returnsList = [];
 
     let foundInherited = false;
     let foundParameters = false;
@@ -190,6 +191,7 @@ Object.entries(fileLocations).forEach(([className, file]) =>
     
     let foundParameterCount = 0;
     let foundExceptionCount = 0;
+    let foundReturnCount = 0;
     
     lines.forEach(line => 
     {
@@ -374,27 +376,56 @@ Object.entries(fileLocations).forEach(([className, file]) =>
             }
         }
         
-        // Check for the start of the Returns section
+        // Find the return section and make it into a table
         if (line.match(/^#{2,4}\s+Returns/)) 
-        {
-            // Found the Returns section
-            foundReturns = true;
-            return;
-        }
-        
-        // If we found the Returns section, display formatted return type
-        if (foundReturns) 
-        {
-            // If line is empty, ignore
-            if (line.trim() === "") return;
+            {
+                // Found the returns section
+                foundReturns = true;
+                foundReturnCount = 0;
+                returnsList.length = 0;
+                outputLines.push(`<h4 className='mb-0 ml-1'>Returns</h4>`);
+                return;
+            }
             
-            const typeWithLinks = extractTypeWithLinks(line);
             
-            outputLines.push(`<h4 className='mb-0'>Returns:</h4><CSharpType type='${typeWithLinks.type}' links={${JSON.stringify(typeWithLinks.links)}} />`);
-        
-            foundReturns = false;
-            return;
-        }
+            // If we found the returns section, add the members to the list
+            if (foundReturns) 
+            {
+                foundReturnCount++;
+            
+                // Ignore empty lines
+                if (line.trim() === "") return;
+                
+                const typeWithLinks = extractTypeWithLinks(line);
+                
+                // Check if line contains a return
+                if (typeWithLinks) 
+                {
+                    returnsList.push(typeWithLinks);
+                    
+                    foundReturnCount = 0;
+                    
+                    return;
+                }
+                // We did not match but was still returnFound = true, so we check for description line
+                // If counter is 2 and the line is not empty or starting with #, then we have a description line
+                // If it is more the return did not have a description
+                else if (returnsList.length > 0)
+                {
+                    // If we have a description line, add it to the last return
+                    if (foundReturnCount == 2 && !line.startsWith('#')) 
+                    {
+                        returnsList[returnsList.length - 1].description = line.trim();
+                        return;
+                    }
+                    // If there is no description, add the table to the output
+                    else if (foundReturnCount > 2 || line.startsWith('#'))
+                    {
+                        outputLines.push(`<TypeTable types={${JSON.stringify(returnsList)}} />\n`);
+                        foundReturns = false;
+                    }
+                }
+            }
         
         // Normal line, add to output
         outputLines.push(line);
