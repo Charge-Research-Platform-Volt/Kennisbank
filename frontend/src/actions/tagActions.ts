@@ -3,6 +3,7 @@
 import type { FormResponse } from "@/types/return.type";
 import { TagCreateDto, TagCreateDtoSchema, TagRenameDto } from "@/types/tag.type";
 import { revalidatePath } from "next/cache";
+import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 import { cookies } from "next/headers";
 
 export const AddStandardizedTag = async (prevState: FormResponse<TagCreateDto>, formData: FormData): Promise<FormResponse<TagCreateDto>> => {
@@ -22,8 +23,8 @@ export const AddStandardizedTag = async (prevState: FormResponse<TagCreateDto>, 
   }
 
   // Send the data to the backend
-  const cookieHeader = await cookies();
-  const response = await fetch(`http://backend:8080/tags/add-standard-tag`, {
+  const cookieHeader : ReadonlyRequestCookies = await cookies();
+  const response : Response = await fetch(`http://backend:8080/tags/add-standard-tag`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
     credentials: "include",
@@ -68,8 +69,8 @@ export const AddUserTag = async (prevState: FormResponse<TagCreateDto>, formData
   console.log("Input validated");
 
   // Send the data to the backend
-  const cookieHeader = await cookies();
-  const response = await fetch(`http://backend:8080/tags/add-user-tag`, {
+  const cookieHeader : ReadonlyRequestCookies = await cookies();
+  const response : Response = await fetch(`http://backend:8080/tags/add-user-tag`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
     credentials: "include",
@@ -141,7 +142,7 @@ export const RenameTag = async (prevState: FormResponse<TagRenameDto>, formData:
   console.log("Renaming tag: ", rawData.id, " to ", rawData.newName);
 
   // Send the data to the backend
-  const cookieHeader = cookies();
+  const cookieHeader : ReadonlyRequestCookies = cookies();
   const response = await fetch(`http://backend:8080/tags/rename-tag/${encodeURIComponent(rawData.id)}/${encodeURIComponent(rawData.newName)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
@@ -199,7 +200,7 @@ export const ApproveTag = async (tagId: string): Promise<FormResponse<{id: strin
 export const MakeStandardized = async (tagId: string): Promise<FormResponse<{ id: string }>> => {
   console.log("Making tag standardized: ", tagId);
 
-  const cookieHeader = await cookies();
+  const cookieHeader : ReadonlyRequestCookies = await cookies();
   const response = await fetch(
     `http://backend:8080/tags/make-standardized/${encodeURIComponent(tagId)}`,
     {

@@ -18,7 +18,7 @@ type filterDto = {
 
 export default function ArchivePage() {
   // State for search results, is null when no fetch has been completed yet, a string when an error occurs, or the fetch response.
-  const [searchResults, setSearchResults] = useState<ResourcePageWithTagsResponse | null | String>(null);
+  const [searchResults, setSearchResults] = useState<ResourcePageWithTagsResponse | null | string>(null);
   const [startYear, setStartYear] = useState<number | null>(null);
   const [endYear, setEndYear] = useState<number | null>(null);
   const [tagFilters, setTagFilters] = useState<string[]>([]);

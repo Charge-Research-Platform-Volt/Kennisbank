@@ -22,26 +22,26 @@ interface ActionButtonProps<T> {
   // Message to show on success
   successMessage?: string;
   // Icon component to render
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<unknown>;
   // Title for the button
   title: string;
   // Optional className for styling
   className?: string;
   // Props to pass to the icon component
-  iconProps?: Record<string, any>;
+  iconProps?: Record<string, unknown>;
 }
 
 /**
  * ActionButton - A reusable button component for handling async actions with loading state and toast notifications
- * 
+ *
  * This component encapsulates common patterns used in action buttons throughout the application:
  * - Manages loading state during async operations using React's useTransition
  * - Handles action execution and provides consistent console logging
  * - Displays toast notifications for success and error states
  * - Renders a button with an icon and consistent styling
- * 
+ *
  * @template T - The type of the argument passed to the action function
- * 
+ *
  * @example
  * // Button that approves a user tag
  * <ActionButton<string>
@@ -52,7 +52,7 @@ interface ActionButtonProps<T> {
  *   icon={ApproveTagIcon}
  *   title="Approve tag"
  * />
- * 
+ *
  * @returns A styled button that executes the provided action when clicked
  */export default function ActionButton<T>({
   action,

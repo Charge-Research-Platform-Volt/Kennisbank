@@ -406,8 +406,8 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
 
             await resourceManager.UpdateTagAsync(id, t => t.IsApproved, true);
             await resourceManager.UpdateTagAsync(id, t => t.ApprovedOn, DateTime.UtcNow);
-            
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId != null)
                 await resourceManager.UpdateTagAsync(id, t => t.ApprovedBy, Guid.Parse(userId));
 

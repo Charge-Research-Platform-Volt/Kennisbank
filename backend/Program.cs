@@ -160,7 +160,7 @@ namespace KnowledgeBank
         /// </remarks>
         private static void ConfigureLogging()
         {
-            var configuration = new ConfigurationBuilder()
+            IConfigurationRoot configuration = new ConfigurationBuilder()
                                         .SetBasePath(Directory.GetCurrentDirectory())
                                         .AddJsonFile("serilogsettings.json")
                                         .Build();
