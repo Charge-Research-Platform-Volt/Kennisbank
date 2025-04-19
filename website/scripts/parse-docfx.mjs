@@ -155,7 +155,7 @@ Object.entries(fileLocations).forEach(([className, file]) =>
     // Update links to point to the new location
     content = content.replace(/\[(.*?)\]\((.*?)\)/g, (match, p1, p2) => {
         // Get the class name from the link
-        const _className = p2.slice(0, -3);
+        const _className = p2.slice(0, -3).replace(/\\/g, '');
         
         // If the class name does not have a file location, return original
         if (!(_className in fileLocations)) return match;
@@ -389,7 +389,7 @@ Object.entries(fileLocations).forEach(([className, file]) =>
             
             const typeWithLinks = extractTypeWithLinks(line);
             
-            outputLines.push(`<h4 className='mb-0'>Returns:</h4><CSharpType type='${typeWithLinks.Type}' links={${JSON.stringify(typeWithLinks.links)}} />`);
+            outputLines.push(`<h4 className='mb-0'>Returns:</h4><CSharpType type='${typeWithLinks.type}' links={${JSON.stringify(typeWithLinks.links)}} />`);
         
             foundReturns = false;
             return;

@@ -29,7 +29,7 @@ export const CSharpType = ({ type, links }: { type: string, links: string[] }) =
                 <>
                     { links && links.length > 0 && links[0] ? (<a href={links[0]} target={links[0].startsWith('http') ? '_blank' : '_self'} className="no-underline text-inherit hover:text-inherit"><span style={{ color: colors.common }}>{baseType}</span></a>) : (<span style={{ color: colors.common }}>{baseType}</span>) }
                     <span style={{ color: colors.punctuation }}>{"<"}</span>
-                    {colorizeType(genericContent, links.slice(1, genericContent.split(',').length))}
+                    {colorizeType(genericContent, links.slice(1))}
                     <span style={{ color: colors.punctuation }}>{">"}</span>
                     {afterGeneric && colorizeType(afterGeneric, links.slice(genericContent.split(',').length))}
                 </>
