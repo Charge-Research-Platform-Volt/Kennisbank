@@ -8,10 +8,17 @@ using System.Linq.Expressions;
 
 namespace KnowledgeBank.Data
 {
+/// <summary>
+/// ResourceManager is a class that manages the resources in the database.
+/// </summary>
     public partial class ResourceManager
     {
         private readonly DatabaseContext database;
 
+        /// <summary>
+        /// ResourceManager constructor that takes a DatabaseContext as a parameter.
+        /// </summary>
+        /// <param name="dbContext">A DatabaseContext variable</param>
         public ResourceManager(DatabaseContext dbContext)
         {
             database = dbContext;

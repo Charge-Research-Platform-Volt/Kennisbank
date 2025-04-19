@@ -7,7 +7,7 @@
           "cwd": "."
         }
       ],
-      "dest": "docs",
+      "dest": "../website/docfx-files",
       "outputFormat": "markdown",
       "disableGitFeatures": true,
       "categoryLayout": "nested",
