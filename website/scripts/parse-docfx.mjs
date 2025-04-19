@@ -38,9 +38,10 @@ function extractTypeWithLinks(line)
             typeTexts.push(match[1]);
             links.push(match[2]);
         }
-    } 
+    }
+    
     // Process HTML pattern
-    else if (line.match(htmlPattern)) {
+    if (line.match(htmlPattern)) {
         // Reset pattern before using exec in a loop
         htmlPattern.lastIndex = 0;
         
@@ -171,7 +172,7 @@ Object.entries(fileLocations).forEach(([className, file]) =>
         if (file.includes('index')) relativePath = className.split('.').at(-1) + '/' + relativePath;
         
         // Return formatted link
-        return `<a href='${relativePath}'>${p1}</a>`;
+        return `<a href='${relativePath}'>${p1.replace(/\\/g, '')}</a>`;
     });
     
     // Process the content to place it in nice components
