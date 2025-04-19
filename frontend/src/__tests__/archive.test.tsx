@@ -236,3 +236,10 @@ async function awaitFetchResolve(times: number = -1) {
 function getCompareString(dateString: string) {
   return new Date(dateString).toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" });
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

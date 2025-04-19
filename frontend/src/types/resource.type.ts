@@ -86,3 +86,10 @@ export type ResourcePageResponse = z.infer<typeof ResourcePageResponseSchema>;
 export type ResourceWithTagsResponse = z.infer<typeof ResourceWithTagsResponseSchema>;
 export type ResourcePageWithTagsResponse = z.infer<typeof ResourcePageWithTagsResponseSchema>;
 export type ResourceResponse = z.infer<typeof ResourceResponseSchema>;
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

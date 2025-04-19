@@ -43,3 +43,9 @@ public class OrganisationCreateDto
     // Tuple: (OrganisationId, Relation?)
     public (string, string?)[] OrganisationRelations { get; set; } = Array.Empty<(string, string?)>();
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+
