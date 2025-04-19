@@ -33,7 +33,7 @@ export function TypeTable({ types }:{ types: TypeItem[] }) {
             </TableHeader>
             <TableBody>
                 { types.map((type) => (
-                <TableRow key={i++}>
+                <TableRow key={i++} className="hover:bg-transparent">
                     { includeName ? (<TableCell className="font-medium">{type.name}</TableCell>) : "" }
                     <TableCell>
                         <CSharpType type={type.type} links={type.links} />
