@@ -433,6 +433,23 @@ Object.entries(fileLocations).forEach(([className, file]) =>
     
     content = outputLines.join('\n');
     
+    // Add divider lines between all headings
+    const divider = '---\n';
+    let isFirstHeading = true;
+    
+    content = content.replace(/^(#{1,6}\s+.+)$/gm, (match) => 
+    {
+        // If it is the first heading, don't put a divider above
+        if (isFirstHeading) 
+        {
+            isFirstHeading = false;
+            return match;
+        }
+        
+        // Put divider above heading
+        return `${divider}${match}`;
+    });
+    
     // Write adjusted content to the file
     fs.writeFileSync(file, frontmatter + imports.join('\n') + '\n' + content, 'utf-8');
     //console.log(`✔ Processed: ${className}`); 
