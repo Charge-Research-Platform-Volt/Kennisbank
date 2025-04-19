@@ -144,6 +144,12 @@ export default function LeftSidebarClient({ tags, userEmail, userRole }: { tags:
                   </DropdownMenuContent>
                 </DropdownMenu>
               </li>
+              <li className="mt-2">
+                {/* Copyright notice (bottom left) */}
+                <label>
+                    <i>©Utrecht University (ICS)</i>
+                </label>
+              </li>
             </ul>
           </nav>
         </aside>

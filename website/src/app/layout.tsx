@@ -19,6 +19,9 @@ export default function RootLayout({
         <html lang="en" suppressHydrationWarning>
             <body className={inter.className}>
                 <RootProvider>{children}</RootProvider>
+                <label className="absolute right-4 bottom-4">
+                    <i>© Utrecht University (ICS)</i>
+                </label>
             </body>
         </html>
     );
