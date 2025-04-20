@@ -5,6 +5,10 @@ import { TagArraySchema } from "@/types/tag.type";
 import { z } from "zod";
 import { cookies } from 'next/headers';
 
+/**
+ * @summary This function does the needed fetches from a server component and gives them to the client side component for use.
+ * @returns Left side bar made from server component
+ */
 export default async function LeftSidebarServer() {
   const cookieStore = await cookies();
   const menuOpenedCookie : string | undefined  = cookieStore.get('menuOpened')?.value;

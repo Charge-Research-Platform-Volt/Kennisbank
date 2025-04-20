@@ -7,7 +7,7 @@ public class HideEndpointFilter : IDocumentFilter
 
     public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
     {
-        foreach (var path in PathsToHide)
+        foreach (string path in PathsToHide)
         {
             if (swaggerDoc.Paths.ContainsKey(path))
             {

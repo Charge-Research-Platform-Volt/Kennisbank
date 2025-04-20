@@ -6,8 +6,14 @@ import Link from "next/link";
 import Divider from "../divider";
 import { SidebarItem } from "@/types/sidebar";
 
+/**
+ * 
+ * @param name - Name of the type of items displayed as this part
+ * @param items - Items to display on the sidebar with an icon, name and path as most important attributes
+ * @returns A part of the sidebar divided by a line
+ */
 export default function SidebarPart({ name, items }: { name: string; items: SidebarItem[] }) {
-  const pathname = usePathname();
+  const pathname : string = usePathname();
 
   return (
     <ul className="flex flex-col gap-2">

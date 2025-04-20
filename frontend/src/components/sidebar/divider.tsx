@@ -1,6 +1,12 @@
 import { cn } from "@/lib/utils";
 import React from "react";
 
+/**
+ * 
+ * @param name - Divider name
+ * @param className - Divider styling from root
+ * @returns Divider of parts of the sidebar, displays the name of a specific part + a line
+ */
 export default function Divider({ name, className }: { name?: string; className?: string }) {
   return (
     <div className={cn("flex w-full flex-row items-center gap-2", className)}>

@@ -27,7 +27,12 @@ const initialFileResourceState: FormResponse<FileBase> = {
   success: false,
   message: "",
 };
-
+/**
+ * 
+ * @param tags - The tags fetched from the left-sidebar server component
+ * @param asIcon - Boolean that determines if the button should be rendered with an icon or not
+ * @returns An upload button where it is possible to upload files or websites through a popup
+ */
 export default function NewButton({ tags, asIcon = false }: { tags: TagArray, asIcon?: boolean }) {
   const popupRef = useRef<HTMLDivElement | null>(null); //Ref used to check if user clicks outside of popup
   const [status, setStatus] = useState<UploadStatus>("idle"); //upload status
@@ -304,8 +309,7 @@ export default function NewButton({ tags, asIcon = false }: { tags: TagArray, as
                     </div>
                   </div>)}
 
-
-                  {/* Document title entry */}
+                  {/* InputBlock for uploading websites */}
                   {newUploadType === "Website" && (
                       <div>
                         <InputBlock className="justify-start">
@@ -314,7 +318,7 @@ export default function NewButton({ tags, asIcon = false }: { tags: TagArray, as
                         </InputBlock>
                       </div>
                       )}
-                  
+                  {/* Document title entry */}
                   <InputBlock data-testid="popup_text" className="justify-start">
                     <InputHeader>Document Title: </InputHeader>
                     <FInput className="w-full" type="string" placeholder="Enter document title" name="title" value={title} onChange={(e) => setTitle(e.target.value.trimStart())} />

@@ -28,7 +28,15 @@ const projects: SidebarItem[] = [
     name: "Project 1",
   },
 ];
-
+/**
+ * 
+ * @param tags - All tags fetched from backend
+ * @param userEmail - Email of the user
+ * @param userRole - Role of the user (admin or user currently)
+ * @param opne - ...
+ * @summary - This function makes from the fetches in the server component the actual left side bar
+ * @returns The left side bar
+ */
 export default function LeftSidebarClient({ open, tags, userEmail, userRole }: { open: boolean, tags: TagArray; userEmail: string; userRole: string }) {
   const [isOpen, setIsOpen] = useState(open); 
 
