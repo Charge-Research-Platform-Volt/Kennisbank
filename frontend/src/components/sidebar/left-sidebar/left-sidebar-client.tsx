@@ -10,7 +10,6 @@ import ProjectIcon1 from "@/icons/project-icons/icon-1";
 import { Logout } from "@/actions/authActions";
 import Cookies from 'js-cookie';
 import LeftSidebarFolded from "./left-sidebar-folded";
-import AboutIcon from "@/icons/about-icon";
 import LeftSidebarUnfolded from "./left-sidebar-unfolded";
 
 // Menu items
@@ -60,7 +59,8 @@ export default function LeftSidebarClient({ open, tags, userEmail, userRole }: {
         <LeftSidebarFolded 
           menuItems={menuItems} 
           projects={projects} 
-          settingsPath="/users" 
+          settingsPath="/users"
+          aboutPath="/about"
           tags={tags} 
           handleLogoutAction={handleLogout} 
           switchMenuAction={switchMenuAction} 
@@ -73,6 +73,7 @@ export default function LeftSidebarClient({ open, tags, userEmail, userRole }: {
           menuItems={menuItems} 
           projects={projects} 
           settingsPath="/users" 
+          aboutPath="/about"
           tags={tags} 
           userEmail={userEmail} 
           userRole={userRole} 
