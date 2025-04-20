@@ -18,6 +18,7 @@ import ShowMenu from "@/icons/menu/show-menu";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Logout } from "@/actions/authActions";
 import QuickSearch from "@/components/quick-search";
+import AboutIcon from "@/icons/about-icon";
 import Divider from "../divider";
 
 // Menu items
@@ -116,6 +117,13 @@ export default function LeftSidebarClient({ tags, userEmail, userRole }: { tags:
                   <Help className="h-4 w-4" />
                   Help
                 </Link>
+              </li>
+
+              <li>
+                <Link data-testid="sidebar" href="/about" className="flex items-center gap-x-2 rounded-md p-2 hover:bg-gray-200">
+                  <AboutIcon className="h-4 w-4" />
+                    About us
+                  </Link>
               </li>
 
               <Divider />

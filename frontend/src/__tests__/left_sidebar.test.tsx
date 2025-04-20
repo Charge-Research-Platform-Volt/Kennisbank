@@ -6,7 +6,7 @@ import { QuickSearchProvider } from '@/components/quick-search-context'
 
 const testTags = TagArraySchema.parse([])
 
-const expectedComponents: string[] = ["Home", "Tags", "Archive", "Project 1", "Settings", "Help"].sort();
+const expectedComponents: string[] = ["Home", "Tags", "Archive", "Project 1", "Settings", "Help", "About us"].sort();
 
 describe('sidebar', () =>
     test('Left_Sidebar renders all components with correct names', async() =>{
