@@ -37,7 +37,7 @@ function newFile(name: string, publicationDate: string = "2024-01-02T12:00:00Z")
   };
 }
 
-function newData(data: any) {
+function newData(data: unknown) {
   return {
     message: "Success",
     pageIndex: 1,
@@ -47,7 +47,7 @@ function newData(data: any) {
   };
 }
 
-function newDataResponsePromise(data: Array<any>) {
+function newDataResponsePromise(data: Array<unknown>) {
   return Promise.resolve(new Response(JSON.stringify(newData(data)), { status: 200 }));
 }
 
@@ -116,7 +116,7 @@ describe("Rendering fetch results", () => {
     const files = [testFile];
 
     // Simulate the initial fetch
-    global.fetch = vi.fn(async (input: any) => {
+    global.fetch = vi.fn(async (input: unknown) => {
       if (typeof input === "string") {
         if (input.includes("list-all")) {
           return newDataResponsePromise([testFile]);
@@ -154,7 +154,7 @@ describe("Rendering fetch results", () => {
 
     // Set up the fetch mock, that will return documents based on filters
     // Since our documents themselves dont store tags, just treat "Tagged" in the title as having every tag
-    global.fetch = vi.fn((input: any, init: RequestInit | undefined) => {
+    global.fetch = vi.fn((input: unknown, init: RequestInit | undefined) => {
       if (typeof input === "string") {
         if (input.includes("list-all")) {
           return newDataResponsePromise(files);
@@ -223,7 +223,7 @@ async function awaitDebouncedChange(action: () => void, fetchTimes: number = -1)
 async function awaitFetchResolve(times: number = -1) {
   await waitFor(async () => {
     if (times === -1) {
-      expect(fetch).toHaveResolved;
+      expect(fetch).toHaveResolved();
     } else {
       expect(fetch).toHaveResolvedTimes(times);
     }

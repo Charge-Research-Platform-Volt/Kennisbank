@@ -28,7 +28,7 @@ public class ResourceManagerDeleteTests : TestBase
     [SetUp]
     public async Task SetupController()
     {
-        var userStore = new UserStore<User>(Context);
+        UserStore<User> userStore = new UserStore<User>(Context);
         _userManager = new UserManager<User>(
            userStore,
             null,
@@ -134,7 +134,7 @@ public class ResourceManagerDeleteTests : TestBase
         ResourceType? type = await Context.ResourceTypes.FirstAsync();
 
         // Create resource with all relationships
-        var resourceDto = new ResourceCreateDto
+        ResourceCreateDto resourceDto = new ResourceCreateDto
         {
             Title = "Resource with Relations to Delete",
             Description = "This resource and all its relations will be deleted",
@@ -158,23 +158,23 @@ public class ResourceManagerDeleteTests : TestBase
         // Check that resource is deleted
         Resource? deletedResource = await Context.Resources.FirstOrDefaultAsync(r => r.Id == resourceId);
         Assert.That(deletedResource, Is.Null);
-        
+
         // Check that all relations are deleted
-        var resourceAuthorRelations = await Context.ResourceAuthorRelations.Where(r => r.ResourceId == resourceId).ToListAsync();
-        var resourceOrganisationRelations = await Context.ResourceOrganisationRelations.Where(r => r.ResourceId == resourceId).ToListAsync();
-        var resourceRegionRelations = await Context.ResourceRegionRelations.Where(r => r.ResourceId == resourceId).ToListAsync();
-        var resourceTagRelations = await Context.ResourceTagRelations.Where(r => r.ResourceId == resourceId).ToListAsync();
+        List<ResourceAuthorRelation> resourceAuthorRelations = await Context.ResourceAuthorRelations.Where(r => r.ResourceId == resourceId).ToListAsync();
+        List<ResourceOrganisationRelation> resourceOrganisationRelations = await Context.ResourceOrganisationRelations.Where(r => r.ResourceId == resourceId).ToListAsync();
+        List<ResourceRegionRelation> resourceRegionRelations = await Context.ResourceRegionRelations.Where(r => r.ResourceId == resourceId).ToListAsync();
+        List<ResourceTagRelation> resourceTagRelations = await Context.ResourceTagRelations.Where(r => r.ResourceId == resourceId).ToListAsync();
         
         Assert.That(resourceAuthorRelations, Is.Empty);
         Assert.That(resourceOrganisationRelations, Is.Empty);
         Assert.That(resourceRegionRelations, Is.Empty);
         Assert.That(resourceTagRelations, Is.Empty);
-        
+
         // Verify the related entities themselves still exist
-        var existingTag = await Context.Tags.FirstOrDefaultAsync(t => t.Id == testTagId);
-        var existingPerson = await Context.Persons.FirstOrDefaultAsync(p => p.Id == testPersonId);
-        var existingOrg = await Context.Organisations.FirstOrDefaultAsync(o => o.Id == testOrganisationId);
-        var existingRegion = await Context.Regions.FirstOrDefaultAsync(r => r.Id == testRegionId);
+        Tag? existingTag = await Context.Tags.FirstOrDefaultAsync(t => t.Id == testTagId);
+        Person? existingPerson = await Context.Persons.FirstOrDefaultAsync(p => p.Id == testPersonId);
+        Organisation? existingOrg = await Context.Organisations.FirstOrDefaultAsync(o => o.Id == testOrganisationId);
+        Region? existingRegion = await Context.Regions.FirstOrDefaultAsync(r => r.Id == testRegionId);
         
         Assert.That(existingTag, Is.Not.Null);
         Assert.That(existingPerson, Is.Not.Null);
@@ -215,9 +215,9 @@ public class ResourceManagerDeleteTests : TestBase
         // Person should be deleted
         Person? deletedPerson = await Context.Persons.FirstOrDefaultAsync(p => p.Id == personId);
         Assert.That(deletedPerson, Is.Null);
-        
+
         // Author relation should be deleted
-        var authorRelation = await Context.ResourceAuthorRelations.FirstOrDefaultAsync(r => r.PersonId == personId);
+        ResourceAuthorRelation? authorRelation = await Context.ResourceAuthorRelations.FirstOrDefaultAsync(r => r.PersonId == personId);
         Assert.That(authorRelation, Is.Null);
         
         // Resource should still exist
@@ -258,9 +258,9 @@ public class ResourceManagerDeleteTests : TestBase
         // Organisation should be deleted
         Organisation? deletedOrg = await Context.Organisations.FirstOrDefaultAsync(o => o.Id == orgId);
         Assert.That(deletedOrg, Is.Null);
-        
+
         // Organization relation should be deleted
-        var orgRelation = await Context.ResourceOrganisationRelations.FirstOrDefaultAsync(r => r.OrganisationId == orgId);
+        ResourceOrganisationRelation? orgRelation = await Context.ResourceOrganisationRelations.FirstOrDefaultAsync(r => r.OrganisationId == orgId);
         Assert.That(orgRelation, Is.Null);
         
         // Resource should still exist
@@ -302,9 +302,9 @@ public class ResourceManagerDeleteTests : TestBase
         // Tag should be deleted
         Tag? deletedTag = await Context.Tags.FirstOrDefaultAsync(t => t.Id == tagId);
         Assert.That(deletedTag, Is.Null);
-        
+
         // Tag relation should be deleted
-        var tagRelation = await Context.ResourceTagRelations.FirstOrDefaultAsync(r => r.TagId == tagId);
+        ResourceTagRelation? tagRelation = await Context.ResourceTagRelations.FirstOrDefaultAsync(r => r.TagId == tagId);
         Assert.That(tagRelation, Is.Null);
         
         // Resource should still exist
@@ -345,9 +345,9 @@ public class ResourceManagerDeleteTests : TestBase
         // Region should be deleted
         Region? deletedRegion = await Context.Regions.FirstOrDefaultAsync(r => r.Id == regionId);
         Assert.That(deletedRegion, Is.Null);
-        
+
         // Region relation should be deleted
-        var regionRelation = await Context.ResourceRegionRelations.FirstOrDefaultAsync(r => r.RegionId == regionId);
+        ResourceRegionRelation? regionRelation = await Context.ResourceRegionRelations.FirstOrDefaultAsync(r => r.RegionId == regionId);
         Assert.That(regionRelation, Is.Null);
         
         // Resource should still exist
@@ -372,9 +372,9 @@ public class ResourceManagerDeleteTests : TestBase
         };
         
         Guid resourceId = await _resourceManager.CreateResourceAsync(resourceDto);
-        
+
         // Add document metadata
-        var documentMetadata = new DocumentMetadata
+        DocumentMetadata documentMetadata = new DocumentMetadata
         {
             ResourceId = resourceId,
             Abstract = "Useless abstract for test",

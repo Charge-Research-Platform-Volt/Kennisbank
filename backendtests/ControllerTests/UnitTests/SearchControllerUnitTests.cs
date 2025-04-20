@@ -29,15 +29,15 @@ public class SearchControllerUnitTests
     public async Task FullTextSearch_ReturnsBadRequest_WhenPageIndexIsLessThan1()
     {
         // Arrange
-        var query = "test";
-        var pageIndex = 0;  // Invalid page index
-        var pageSize = 20;
+        string query = "test";
+        int pageIndex = 0;  // Invalid page index
+        int pageSize = 20;
 
         // Act
-        var result = await _controller.FullTextSearch(query, pageIndex, pageSize);
+        IActionResult result = await _controller.FullTextSearch(query, pageIndex, pageSize);
 
         // Assert
-        var badRequestResult = result as BadRequestObjectResult;
+        BadRequestObjectResult? badRequestResult = result as BadRequestObjectResult;
         Assert.That(badRequestResult, Is.Not.Null);
         Assert.That(badRequestResult?.StatusCode, Is.EqualTo((int)HttpStatusCode.BadRequest));
     }
@@ -46,15 +46,15 @@ public class SearchControllerUnitTests
     public async Task FullTextSearch_ReturnsBadRequest_WhenPageSizeIsLessThan1()
     {
         // Arrange
-        var query = "test";
-        var pageIndex = 1;
-        var pageSize = 0;  // Invalid page size
+        string query = "test";
+        int pageIndex = 1;
+        int pageSize = 0;  // Invalid page size
 
         // Act
-        var result = await _controller.FullTextSearch(query, pageIndex, pageSize);
+        IActionResult result = await _controller.FullTextSearch(query, pageIndex, pageSize);
 
         // Assert
-        var badRequestResult = result as BadRequestObjectResult;
+        BadRequestObjectResult? badRequestResult = result as BadRequestObjectResult;
         Assert.That(badRequestResult, Is.Not.Null);
         Assert.That(badRequestResult?.StatusCode, Is.EqualTo((int)HttpStatusCode.BadRequest));
     }

@@ -23,7 +23,7 @@ export const Invite = async (
         }
 
         // Send the data to the backend
-        const response = await fetch(`http://localhost:8080/Auth/invite`, {
+        const response : Response = await fetch(`http://localhost:8080/Auth/invite`, {
             method: "POST",
             credentials: "include",
             headers: { "Content-Type": "application/json" },

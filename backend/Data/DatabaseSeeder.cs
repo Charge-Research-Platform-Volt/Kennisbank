@@ -10,7 +10,11 @@ namespace KnowledgeBank.Data
         private static DatabaseContext database;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
-        // Helper method for common seed logic
+        /// <summary>
+        /// Helper method for common seed logic
+        /// </summary>
+        /// <param name="database">Database in question</param>
+        /// <returns></returns>
         private static async Task SeedData(DatabaseContext database)
         {
             // Seed data (this part is common between both Seed and SeedTemplate methods)
@@ -24,7 +28,11 @@ namespace KnowledgeBank.Data
             await database.SaveChangesAsync();
         }
 
-        // Method for seeding the database in Program.cs
+        /// <summary>
+        /// Method for seeding the database in Program.cs
+        /// </summary>
+        /// <param name="serviceProvider">All services such as blob, database and resource manager</param>
+        /// <returns></returns>
         public static async Task Seed(IServiceProvider serviceProvider)
         {
             // Get database service from the main database
@@ -35,7 +43,11 @@ namespace KnowledgeBank.Data
             await SeedData(database);
         }
 
-        // Method for seeding the template databases in TestBase
+        /// <summary>
+        /// Method for seeding the template databases in TestBase
+        /// </summary>
+        /// <param name="database">Database to be seeded with a template</param>
+        /// <returns></returns>
         public static async Task SeedTemplate(DatabaseContext database)
         {
             // Call the common seed logic for the template database

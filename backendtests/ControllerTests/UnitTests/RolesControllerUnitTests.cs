@@ -19,12 +19,12 @@ public class RolesControllerUnitTests
     public RolesControllerUnitTests()
     {
         // Setup UserManager mock
-        var userStoreMock = new Mock<IUserStore<User>>();
+        Mock<IUserStore<User>> userStoreMock = new Mock<IUserStore<User>>();
         _mockUserManager = new Mock<UserManager<User>>(
             userStoreMock.Object, null, null, null, null, null, null, null, null);
 
         // Setup RoleManager mock
-        var roleStoreMock = new Mock<IRoleStore<IdentityRole>>();
+        Mock<IRoleStore<IdentityRole>> roleStoreMock = new Mock<IRoleStore<IdentityRole>>();
         _mockRoleManager = new Mock<RoleManager<IdentityRole>>(
             roleStoreMock.Object, null, null, null, null);
 
@@ -39,13 +39,13 @@ public class RolesControllerUnitTests
         {
             HttpContext = new DefaultHttpContext()
         };
-        var expectedReturnValue = new { role = "", isAuthenticated = false };
+        object expectedReturnValue = new { role = "", isAuthenticated = false };
 
         // Act
-        var result = await _controller.GetCurrentUserRole();
+        IActionResult result = await _controller.GetCurrentUserRole();
 
         // Assert
-        var okResult = result as OkObjectResult;
+        OkObjectResult? okResult = result as OkObjectResult;
         Assert.That(okResult, Is.Not.Null);
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
         Assert.That(ObjectComparer.AreObjectsEqual(okResult.Value, expectedReturnValue));
@@ -58,19 +58,19 @@ public class RolesControllerUnitTests
     public async Task GetCurrentUserRole_AuthenticatedWithRole_ReturnsCorrectRole(string expectedRole, bool expectedAuth)
     {
         // Arrange
-        var user = new User { Id = "user123" };
-        var claims = new List<Claim>
+        User user = new User { Id = "user123" };
+        List<Claim> claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, "user123")
         };
-        var identity = new ClaimsIdentity(claims, "TestAuth");
-        var claimsPrincipal = new ClaimsPrincipal(identity);
+        ClaimsIdentity identity = new ClaimsIdentity(claims, "TestAuth");
+        ClaimsPrincipal claimsPrincipal = new ClaimsPrincipal(identity);
 
         _controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = claimsPrincipal }
         };
-        var expectedReturnValue = new { role = expectedRole, isAuthenticated = expectedAuth };
+        object expectedReturnValue = new { role = expectedRole, isAuthenticated = expectedAuth };
 
 
         _mockUserManager.Setup(m => m.FindByIdAsync("user123"))
@@ -79,10 +79,10 @@ public class RolesControllerUnitTests
             .ReturnsAsync(new List<string> { expectedRole });
 
         // Act
-        var result = await _controller.GetCurrentUserRole();
+        IActionResult result = await _controller.GetCurrentUserRole();
 
         // Assert
-        var okResult = result as OkObjectResult;
+        OkObjectResult? okResult = result as OkObjectResult;
         Assert.That(okResult, Is.Not.Null);
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
         Assert.That(ObjectComparer.AreObjectsEqual(okResult.Value, expectedReturnValue));
@@ -92,16 +92,16 @@ public class RolesControllerUnitTests
     public async Task AssignRole_UserNotFound_ReturnsNotFound()
     {
         // Arrange
-        var dto = new RoleAssignDto { UserId = "user123", RoleName = "admin" };
+        RoleAssignDto dto = new RoleAssignDto { UserId = "user123", RoleName = "admin" };
 
         _mockUserManager.Setup(m => m.FindByIdAsync(dto.UserId))
             .ReturnsAsync((User)null);
 
         // Act
-        var result = await _controller.AssignRole(dto);
+        IActionResult result = await _controller.AssignRole(dto);
 
         // Assert
-        var notFoundResult = result as NotFoundObjectResult;
+        NotFoundObjectResult? notFoundResult = result as NotFoundObjectResult;
         Assert.That(notFoundResult, Is.Not.Null);
         Assert.That(notFoundResult.StatusCode, Is.EqualTo(404));
         Assert.That(JsonConvert.SerializeObject(notFoundResult.Value), Is.EqualTo("{\"message\":\"Invalid user ID.\"}"));
@@ -111,9 +111,9 @@ public class RolesControllerUnitTests
     public async Task AssignRole_UserFound_ReturnsOk()
     {
         // Arrange
-        var dto = new RoleAssignDto { UserId = "user123", RoleName = "user" };
-        var user = new User { Id = dto.UserId, UserName = "user123" }; 
-        var role = new IdentityRole { Name = "admin" };
+        RoleAssignDto dto = new RoleAssignDto { UserId = "user123", RoleName = "user" };
+        User user = new User { Id = dto.UserId, UserName = "user123" };
+        IdentityRole role = new IdentityRole { Name = "admin" };
 
         _mockUserManager.Setup(m => m.FindByIdAsync(dto.UserId))
             .ReturnsAsync(user);
@@ -134,13 +134,13 @@ public class RolesControllerUnitTests
             .ReturnsAsync(true);
 
         // Act
-        var result = await _controller.AssignRole(dto);
+        IActionResult result = await _controller.AssignRole(dto);
 
         // Assert
-        var okResult = result as OkObjectResult;
+        OkObjectResult? okResult = result as OkObjectResult;
         Assert.That(okResult, Is.Not.Null);
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
-        var expectedJson = JsonConvert.SerializeObject(new { message = $"User '{user.UserName}' added to role '{dto.RoleName}' successfully." });
+        string expectedJson = JsonConvert.SerializeObject(new { message = $"User '{user.UserName}' added to role '{dto.RoleName}' successfully." });
         Assert.That(JsonConvert.SerializeObject(okResult.Value), Is.EqualTo(expectedJson));
     }
 
@@ -148,8 +148,8 @@ public class RolesControllerUnitTests
     public async Task AssignRole_RoleNotFound_ReturnsNotFound()
     {
         // Arrange
-        var dto = new RoleAssignDto { UserId = "user123", RoleName = "nonExistentRole" };
-        var user = new User { Id = dto.UserId, UserName = "user123" }; 
+        RoleAssignDto dto = new RoleAssignDto { UserId = "user123", RoleName = "nonExistentRole" };
+        User user = new User { Id = dto.UserId, UserName = "user123" }; 
 
         _mockUserManager.Setup(m => m.FindByIdAsync(dto.UserId))
             .ReturnsAsync(user); 
@@ -158,13 +158,13 @@ public class RolesControllerUnitTests
             .ReturnsAsync((IdentityRole)null); 
 
         _mockRoleManager.Setup(m => m.RoleExistsAsync(dto.RoleName))
-            .ReturnsAsync(false); 
+            .ReturnsAsync(false);
 
         // Act
-        var result = await _controller.AssignRole(dto);
+        IActionResult result = await _controller.AssignRole(dto);
 
         // Assert
-        var notFoundResult = result as NotFoundObjectResult;
+        NotFoundObjectResult? notFoundResult = result as NotFoundObjectResult;
         Assert.That(notFoundResult, Is.Not.Null);
         Assert.That(notFoundResult.StatusCode, Is.EqualTo(404));
         Assert.That(JsonConvert.SerializeObject(notFoundResult.Value), Is.EqualTo("{\"message\":\"Invalid role name.\"}"));
@@ -174,15 +174,15 @@ public class RolesControllerUnitTests
     public async Task RetrieveUserRole_UserNotFound_ReturnsNotFound()
     {
         // Arrange
-        var userId = "user123";
+        string userId = "user123";
         _mockUserManager.Setup(m => m.FindByIdAsync(userId))
             .ReturnsAsync((User)null);
 
         // Act
-        var result = await _controller.RetrieveUserRole(userId);
+        IActionResult result = await _controller.RetrieveUserRole(userId);
 
         // Assert
-        var notFoundResult = result as NotFoundObjectResult;
+        NotFoundObjectResult? notFoundResult = result as NotFoundObjectResult;
         Assert.That(notFoundResult, Is.Not.Null);
         Assert.That(notFoundResult.StatusCode, Is.EqualTo(404));
         Assert.That(notFoundResult.Value, Is.EqualTo("User not found."));
@@ -193,20 +193,20 @@ public class RolesControllerUnitTests
     {
         // Arrange
         string userId = "user123";
-        var user = new User { Id = userId, UserName = "user123" };
-        var roles = new List<string> { "admin" }; 
+        User user = new User { Id = userId, UserName = "user123" };
+        List<string> roles = new List<string> { "admin" }; 
 
         _mockUserManager.Setup(m => m.FindByIdAsync(userId))
             .ReturnsAsync(user); 
 
         _mockUserManager.Setup(m => m.GetRolesAsync(user))
-            .ReturnsAsync(roles); 
+            .ReturnsAsync(roles);
 
         // Act
-        var result = await _controller.RetrieveUserRole(userId);
+        IActionResult result = await _controller.RetrieveUserRole(userId);
 
         // Assert
-        var okResult = result as OkObjectResult;
+        OkObjectResult? okResult = result as OkObjectResult;
         Assert.That(okResult, Is.Not.Null);
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
         Assert.That(okResult.Value, Is.EqualTo("admin")); 
@@ -216,15 +216,15 @@ public class RolesControllerUnitTests
     public async Task RetrieveUsersInRole_RoleNotFound_ReturnsNotFound()
     {
         // Arrange
-        var roleName = "admin";
+        string roleName = "admin";
         _mockRoleManager.Setup(r => r.RoleExistsAsync(roleName))
             .ReturnsAsync(false);
 
         // Act
-        var result = await _controller.RetrieveUsersInRole(roleName);
+        IActionResult result = await _controller.RetrieveUsersInRole(roleName);
 
         // Assert
-        var notFoundResult = result as NotFoundObjectResult;
+        NotFoundObjectResult? notFoundResult = result as NotFoundObjectResult;
         Assert.That(notFoundResult, Is.Not.Null);
         Assert.That(notFoundResult.StatusCode, Is.EqualTo(404));
         Assert.That(notFoundResult.Value, Is.EqualTo("Role does not exist."));
@@ -234,8 +234,8 @@ public class RolesControllerUnitTests
     public async Task RetrieveUsersInRole_RetrievesUsersInRole_ReturnsOkResult()
     {
         // Arrange
-        var roleName = "admin";
-        var users = new List<User>
+        string roleName = "admin";
+        List<User> users = new List<User>
         {
             new User { Id = "user123", UserName = "user123" },
             new User { Id = "user124", UserName = "user124" }
@@ -247,10 +247,10 @@ public class RolesControllerUnitTests
             .ReturnsAsync(users);
 
         // Act
-        var result = await _controller.RetrieveUsersInRole(roleName);
+        IActionResult result = await _controller.RetrieveUsersInRole(roleName);
 
         // Assert
-        var okResult = result as OkObjectResult;
+        OkObjectResult? okResult = result as OkObjectResult;
         Assert.That(okResult, Is.Not.Null);
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
         Assert.That(okResult.Value, Is.EqualTo(users));

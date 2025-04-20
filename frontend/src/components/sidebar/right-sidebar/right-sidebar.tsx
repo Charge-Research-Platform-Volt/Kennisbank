@@ -8,6 +8,10 @@ import OpenFileButton from "../../open-file-button";
 import Divider from "../divider";
 import Kbd from "@/components/kbd";
 
+/**
+ * 
+ * @returns The right sidebar visible when clicked on an item in the archive. Displays useful information such as metadata and related files (soon).
+ */
 export default function RightSidebar() {
   const { selectedDocument, toggleRightSidebar, onCloseClicked } = useSidebar();
 

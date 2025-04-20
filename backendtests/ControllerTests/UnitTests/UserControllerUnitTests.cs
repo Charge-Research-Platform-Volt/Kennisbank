@@ -20,7 +20,7 @@ public class UserControllerUnitTests
     public void SetUp()
     {
         // Mock UserManager<User>
-        var userStoreMock = new Mock<IUserStore<User>>();
+        Mock<IUserStore<User>> userStoreMock = new Mock<IUserStore<User>>();
         _mockUserManager = new Mock<UserManager<User>>(
             userStoreMock.Object, null, null, null, null, null, null, null, null
         );
@@ -33,11 +33,11 @@ public class UserControllerUnitTests
     public async Task UpdateMail_ReturnsNotFound_WhenUserDoesNotExist()
     {
         // Arrange
-        var dto = new UpdateEmailDto { UserId = "123", Email = "newemail@example.com" };
+        UpdateEmailDto dto = new UpdateEmailDto { UserId = "123", Email = "newemail@example.com" };
         _mockUserManager.Setup(m => m.FindByIdAsync(dto.UserId)).ReturnsAsync((User)null);
 
         // Act
-        var result = await _controller.UpdateMail(dto);
+        IActionResult result = await _controller.UpdateMail(dto);
 
         // Assert
         Assert.That(result, Is.InstanceOf<NotFoundObjectResult>());
@@ -50,7 +50,7 @@ public class UserControllerUnitTests
         _mockUserManager.Setup(m => m.FindByIdAsync("123")).ReturnsAsync((User)null);
 
         // Act
-        var result = await _controller.Delete("123");
+        IActionResult result = await _controller.Delete("123");
 
         // Assert
         Assert.That(result, Is.InstanceOf<NotFoundObjectResult>());

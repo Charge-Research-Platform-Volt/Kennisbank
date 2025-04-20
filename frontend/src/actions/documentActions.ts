@@ -3,6 +3,7 @@
 import { FileResourceSchema, type FileBase } from "@/types/resource.type";
 import { FormResponse } from "@/types/return.type";
 import { revalidatePath } from "next/cache";
+import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 //import { Log } from "../../Pino";
 import { cookies } from "next/headers";
 
@@ -75,8 +76,8 @@ export const AddDocument = async (
         }
 
         // Send the data to the backend.
-        const cookieHeader = await cookies();
-        const response = await fetch("http://backend:8080/storage/upload", {
+        const cookieHeader : ReadonlyRequestCookies = await cookies();
+        const response : Response = await fetch("http://backend:8080/storage/upload", {
             method: "PUT",
             body: formData,
             credentials: "include",

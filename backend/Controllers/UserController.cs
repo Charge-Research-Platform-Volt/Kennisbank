@@ -128,7 +128,7 @@ public class UserController : ControllerBase
             if (user.Email == dto.Email)
                 return BadRequest($"User has already the email '{dto.Email}'.");
                 
-            using (var transaction = await database.Database.BeginTransactionAsync())
+            using (Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction = await database.Database.BeginTransactionAsync())
             {
                 try
                 {

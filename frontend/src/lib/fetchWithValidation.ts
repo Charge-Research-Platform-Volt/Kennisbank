@@ -45,7 +45,7 @@ export async function FetchWithValidation<T>(schema: z.ZodSchema<T>, url: string
     const result = schema.safeParse(data);
     return result;
   } catch (error) {
-    //Log.error(`An error occurred: ${error}`);
+    Log.error(`An error occurred: ${error}`);
 
     // Return an error object if an exception occurs
     const fetchErrorResponse = {

@@ -17,6 +17,11 @@ import { useSidebar } from "@/context/sidebar-provider";
 // Register all modules
 ModuleRegistry.registerModules([AllCommunityModule]);
 
+/**
+ * 
+ * @param data - Data to display in the table, this is a page of the archive, possibly filtered through a search query or other means
+ * @returns A table representation of the data
+ */
 export default function ListResources({ data }: { data: ResourcePageWithTagsResponse }) {
   // Column definitions
   const columnDefs = useState<ColDef[]>([
@@ -27,12 +32,6 @@ export default function ListResources({ data }: { data: ResourcePageWithTagsResp
     { field: "publicationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm"), resizable: false },
     { field: "", width: 30, cellRenderer: DownloadRenderer, resizable: false },
   ])[0];
-
-  // const [defaultColDef, setDefaultColDef] = useState({
-  //   resizable: true,
-  //   sortable: true,
-  //   filter: false,
-  // });
 
   const gridApiRef = useRef<GridApi | null>(null);
 

@@ -4,6 +4,10 @@ import { FetchWithValidation } from "@/lib/fetchWithValidation";
 import { TagArraySchema } from "@/types/tag.type";
 import { z } from "zod";
 
+/**
+ * @summary This function does the needed fetches from a server component and gives them to the client side component for use.
+ * @returns Left side bar made from server component
+ */
 export default async function LeftSidebarServer() {
   const tagsResult = await FetchWithValidation(TagArraySchema, "http://backend:8080/tags/all-tags");
 

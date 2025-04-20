@@ -55,8 +55,8 @@ export default function TagListItemAdmin({ tag }: { tag: Tag }) {
   
   // Determine which form action to use
   const formAction = saveTagAction;
-  const isSaving = savingTagIsPending;
-  const tagId = tag.id;
+  const isSaving : boolean = savingTagIsPending;
+  const tagId : string = tag.id;
   
   return (
     <div className="flex w-full items-center justify-between gap-2">
