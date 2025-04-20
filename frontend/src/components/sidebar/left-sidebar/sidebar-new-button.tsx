@@ -30,9 +30,10 @@ const initialFileResourceState: FormResponse<FileBase> = {
 /**
  * 
  * @param tags - The tags fetched from the left-sidebar server component
+ * @param asIcon - Boolean that determines if the button should be rendered with just the icon (which it does when it is folded)
  * @returns An upload button where it is possible to upload files or websites through a popup
  */
-export default function NewButton({ tags }: { tags: TagArray }) {
+export default function NewButton({ tags, asIcon = false }: { tags: TagArray, asIcon?: boolean }) {
   const popupRef = useRef<HTMLDivElement | null>(null); //Ref used to check if user clicks outside of popup
   const [status, setStatus] = useState<UploadStatus>("idle"); //upload status
   const [uploadPopup, setUploadPopup] = useState(false); //bool which determines whether you can see the new popup
@@ -229,12 +230,11 @@ export default function NewButton({ tags }: { tags: TagArray }) {
         {/* Purple New button */}
         <DropdownMenuTrigger
           ref={newButtonRef}
-          className="font-face bg-purple text-md active:bg-purple flex h-9 w-full cursor-pointer items-center gap-1 rounded-md pl-3 text-left text-white hover:bg-[#6f2aaf]"
+          className={`bg-purple active:bg-purple cursor-pointer text-white hover:bg-[#6f2aaf] w-full p-2 ${asIcon ? "mb-[2vh] rounded rounded-l-none rounded-r-lg transition" : "font-face text-md flex h-9 items-center rounded-md text-left"}`}
         >
-          <New className="h-5 w-5" />
-          <div data-testid="button_text" className="pb-0.5">
-            New
-          </div>
+          <New className="h-5 w-5 mr-1"/>
+          {/* If asIcon is true, only show icon */}
+          {asIcon ? null : <div data-testid="button_text" className="pb-0.5">New</div>}
         </DropdownMenuTrigger>
         <DropdownMenuContent style={{ width: newButtonWidth }}>
           {/* Upload file item in popup */}
