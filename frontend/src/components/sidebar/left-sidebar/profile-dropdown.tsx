@@ -4,6 +4,14 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
+/**
+ * 
+ * @param asIcon - Boolean indicating whether or not to render the account details on the rest of the button (email and name)
+ * @param handleLogoutAction - Action to log out
+ * @param userEmail - Email of the user
+ * @param userRole - Current role of the user
+ * @returns The profile dropdown, which consists of a clickable profile picture, able to take the user to their profile or log out.
+ */
 export default function ProfileDropdown({ isIcon = false, handleLogoutAction, userEmail = "", userRole = "" }: { isIcon?: boolean; handleLogoutAction: () => void; userEmail?: string; userRole?: string, }) {
   const [profileButtonWidth, setProfileButtonWidth] = useState(0);
   const profileButtonRef = React.useRef<HTMLButtonElement>(null);

@@ -13,6 +13,18 @@ import QuickSearch from "@/components/quick-search";
 import ProfileDropdown from "./profile-dropdown";
 import Divider from "../divider";
 
+/**
+ * 
+ * @param menuItems - Menu items to display (home, archive, tags)
+ * @param projects - Recent projects to display
+ * @param settingsPath - Path to the settings page
+ * @param tags - Fetch of all tags
+ * @param userEmail - Email of the current user
+ * @param userRole - Role of the current user
+ * @param switchMenuAction - Action that switches from the folded sidebar to the unfolded
+ * @param handleLogoutAction - Action that logs out
+ * @returns The full left sidebar, which takes up more space than the folded one, but is also in more detail. Has all functionality of the left sidebar, including for example quick search.
+ */
 export default function LeftSidebarUnfolded({ menuItems, projects, settingsPath, tags, userEmail, userRole, switchMenuAction, handleLogoutAction }: { menuItems: SidebarItem[], projects: SidebarItem[], settingsPath: string, tags: TagArray; userEmail: string; userRole: string, switchMenuAction: () => void, handleLogoutAction: () => void }) {
   return (
     <aside className="flex h-screen flex-col bg-gray-100 p-2.5 transition-all duration-300 overflow-y-auto w-64">

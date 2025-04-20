@@ -30,7 +30,7 @@ const initialFileResourceState: FormResponse<FileBase> = {
 /**
  * 
  * @param tags - The tags fetched from the left-sidebar server component
- * @param asIcon - Boolean that determines if the button should be rendered with an icon or not
+ * @param asIcon - Boolean that determines if the button should be rendered with just the icon (which it does when it is folded)
  * @returns An upload button where it is possible to upload files or websites through a popup
  */
 export default function NewButton({ tags, asIcon = false }: { tags: TagArray, asIcon?: boolean }) {

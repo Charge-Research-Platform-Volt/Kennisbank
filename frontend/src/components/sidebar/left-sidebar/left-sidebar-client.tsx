@@ -33,7 +33,7 @@ const projects: SidebarItem[] = [
  * @param tags - All tags fetched from backend
  * @param userEmail - Email of the user
  * @param userRole - Role of the user (admin or user currently)
- * @param opne - ...
+ * @param open - Boolean determining whether the side bar is open or folded
  * @summary - This function makes from the fetches in the server component the actual left side bar
  * @returns The left side bar
  */

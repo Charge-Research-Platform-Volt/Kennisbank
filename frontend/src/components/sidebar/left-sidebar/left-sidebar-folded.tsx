@@ -12,6 +12,16 @@ import { useRouter } from 'next/navigation'
 import ProfileDropdown from "./profile-dropdown";
 import FoldedButton from "./folded-button";
 
+/**
+ * 
+ * @param menuItems - Menu items to display (home, archive, tags)
+ * @param projects - Recent projects to display
+ * @param settingsPath - Path to the settings page
+ * @param Tags - Fetch of all tags
+ * @param switchMenuAction - Action that switches from the folded sidebar to the unfolded
+ * @param handleLogoutAction - Action that logs out
+ * @returns The folded left sidebar, which takes up less space than the full one, but is also in less detail. Has most functionality of the normal sidebar.
+ */
 export default function LeftSidebarFolded({ menuItems, projects, settingsPath, tags, switchMenuAction, handleLogoutAction }: { menuItems: SidebarItem[], projects: SidebarItem[], settingsPath: string, tags: TagArray; switchMenuAction: () => void, handleLogoutAction: () => void }) {
   const pathname = usePathname();
 
