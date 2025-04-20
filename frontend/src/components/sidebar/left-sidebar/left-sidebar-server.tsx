@@ -7,8 +7,8 @@ import { cookies } from 'next/headers';
 
 export default async function LeftSidebarServer() {
   const cookieStore = await cookies();
-  const menuOpenedCookie = cookieStore.get('menuOpened')?.value;
-  const menuOpened = menuOpenedCookie === undefined ? true : menuOpenedCookie === "true";
+  const menuOpenedCookie : string | undefined  = cookieStore.get('menuOpened')?.value;
+  const menuOpened : boolean = menuOpenedCookie === undefined ? true : menuOpenedCookie === "true";
 
 
   const tagsResult = await FetchWithValidation(TagArraySchema, "http://backend:8080/tags/all-tags");
