@@ -216,6 +216,9 @@ Object.entries(fileLocations).forEach(([className, file]) =>
     const parametersList = [];
     const exceptionsList = [];
     const returnsList = [];
+    const structsList = [];
+    const interfacesList = [];
+    const enumsList = [];
 
     let foundNamespaces = false;
     let foundClasses = false;
@@ -223,12 +226,18 @@ Object.entries(fileLocations).forEach(([className, file]) =>
     let foundParameters = false;
     let foundExceptions = false;
     let foundReturns = false;
+    let foundStructs = false;
+    let foundInterfaces = false;
+    let foundEnums = false;
     
     let foundNamespacesCount = 0;
     let foundClassesCount = 0;
     let foundParameterCount = 0;
     let foundExceptionCount = 0;
     let foundReturnCount = 0;
+    let foundStructsCount = 0;
+    let foundInterfacesCount = 0;
+    let foundEnumsCount = 0;
     
     lines.forEach(line => 
     {
@@ -276,7 +285,9 @@ Object.entries(fileLocations).forEach(([className, file]) =>
                 foundNamespaces = false;
             }
         }
-    
+        
+        
+        
         // Find the classes section and make it into a table
         if (line.match(/^#{2,4}\s+Classes/)) 
         {
@@ -442,6 +453,8 @@ Object.entries(fileLocations).forEach(([className, file]) =>
             }
         }
         
+        
+        
         // Find the exception section and make it into a table
         if (line.match(/^#{2,4}\s+Exceptions/)) 
         {
@@ -493,6 +506,8 @@ Object.entries(fileLocations).forEach(([className, file]) =>
                 }
             }
         }
+        
+        
         
         // Find the return section and make it into a table
         if (line.match(/^#{2,4}\s+Returns/)) 
@@ -546,6 +561,209 @@ Object.entries(fileLocations).forEach(([className, file]) =>
             }
         }
         
+        
+        
+        // Find the structs section and make it into a table
+        if (line.match(/^#{2,4}\s+Structs/)) 
+        {
+            // Found the Structs section
+            foundStructs = true;
+            foundStructsCount = 0;
+            structsList.length = 0;
+            outputLines.push(`<h4 className='mb-0 ml-1'>Structs</h4>`);
+            return;
+        }
+        
+        
+        // If we found the Structs section, add the members to the list
+        if (foundStructs) 
+        {
+            foundStructsCount++;
+        
+            // Ignore empty lines
+            if (line.trim() === "") return;
+            
+            // Set class pattern to match the class format
+            const pattern = /<a href=['"]([^'"]*)['"][^>]*>([^<]*)<\/a>/;
+            
+            // Check if line contains a class
+            if (line.match(pattern)) 
+            {
+                const typeWithLinks = extractTypeWithLinks(line);
+                
+                structsList.push(typeWithLinks);
+                
+                foundStructsCount = 0;
+                
+                return;
+            }
+            // We did not match but was still StructsFound = true, so we check for description line
+            // If counter is 2 and the line is not empty or starting with #, then we have a description line
+            // If it is more the class did not have a description
+            else if (structsList.length > 0)
+            {
+                // If we have a description line, add it to the last class
+                if (foundStructsCount == 2 && !line.startsWith('#')) 
+                {
+                    structsList[structsList.length - 1].description = line.trim();
+                    return;
+                }
+                // If there is no description, add the table to the output
+                else if (foundStructsCount > 2 || line.startsWith('#'))
+                {
+                    // There was a line directly behind the description line, so this is probably the second part of a description
+                    if (foundStructsCount == 3 && !line.startsWith('#'))
+                    {
+                        // Add this line to the description, lower the foundStructsCount by one (in case there are more lines in the description), and return
+                        structsList[structsList.length - 1].description = structsList[structsList.length - 1].description + ' ' + line.trim();
+                        foundStructsCount--;
+                        return;
+                    }
+                    
+                    // Generate the type table and reset
+                    outputLines.push(`<TypeTable types={${JSON.stringify(structsList)}} />\n`);
+                    structsList.length = 0;
+                    foundStructs = false;
+                }
+            }
+        }
+        
+        
+        
+        // Find the Interfaces section and make it into a table
+        if (line.match(/^#{2,4}\s+Interfaces/)) 
+        {
+            // Found the Interfaces section
+            foundInterfaces = true;
+            foundInterfacesCount = 0;
+            interfacesList.length = 0;
+            outputLines.push(`<h4 className='mb-0 ml-1'>Interfaces</h4>`);
+            return;
+        }
+        
+        
+        // If we found the Interfaces section, add the members to the list
+        if (foundInterfaces) 
+        {
+            foundInterfacesCount++;
+        
+            // Ignore empty lines
+            if (line.trim() === "") return;
+            
+            // Set class pattern to match the class format
+            const pattern = /<a href=['"]([^'"]*)['"][^>]*>([^<]*)<\/a>/;
+            
+            // Check if line contains a class
+            if (line.match(pattern)) 
+            {
+                const typeWithLinks = extractTypeWithLinks(line);
+                
+                interfacesList.push(typeWithLinks);
+                
+                foundInterfacesCount = 0;
+                
+                return;
+            }
+            // We did not match but was still InterfacesFound = true, so we check for description line
+            // If counter is 2 and the line is not empty or starting with #, then we have a description line
+            // If it is more the class did not have a description
+            else if (interfacesList.length > 0)
+            {
+                // If we have a description line, add it to the last class
+                if (foundInterfacesCount == 2 && !line.startsWith('#')) 
+                {
+                    interfacesList[interfacesList.length - 1].description = line.trim();
+                    return;
+                }
+                // If there is no description, add the table to the output
+                else if (foundInterfacesCount > 2 || line.startsWith('#'))
+                {
+                    // There was a line directly behind the description line, so this is probably the second part of a description
+                    if (foundInterfacesCount == 3 && !line.startsWith('#'))
+                    {
+                        // Add this line to the description, lower the foundInterfacesCount by one (in case there are more lines in the description), and return
+                        interfacesList[interfacesList.length - 1].description = interfacesList[interfacesList.length - 1].description + ' ' + line.trim();
+                        foundInterfacesCount--;
+                        return;
+                    }
+                    
+                    // Generate the type table and reset
+                    outputLines.push(`<TypeTable types={${JSON.stringify(interfacesList)}} />\n`);
+                    interfacesList.length = 0;
+                    foundInterfaces = false;
+                }
+            }
+        }
+        
+        
+        
+        // Find the Enums section and make it into a table
+        if (line.match(/^#{2,4}\s+Enums/)) 
+        {
+            // Found the Enums section
+            foundEnums = true;
+            foundEnumsCount = 0;
+            enumsList.length = 0;
+            outputLines.push(`<h4 className='mb-0 ml-1'>Enums</h4>`);
+            return;
+        }
+        
+        
+        // If we found the Enums section, add the members to the list
+        if (foundEnums) 
+        {
+            foundEnumsCount++;
+        
+            // Ignore empty lines
+            if (line.trim() === "") return;
+            
+            // Set class pattern to match the class format
+            const pattern = /<a href=['"]([^'"]*)['"][^>]*>([^<]*)<\/a>/;
+            
+            // Check if line contains a class
+            if (line.match(pattern)) 
+            {
+                const typeWithLinks = extractTypeWithLinks(line);
+                
+                enumsList.push(typeWithLinks);
+                
+                foundEnumsCount = 0;
+                
+                return;
+            }
+            // We did not match but was still EnumsFound = true, so we check for description line
+            // If counter is 2 and the line is not empty or starting with #, then we have a description line
+            // If it is more the class did not have a description
+            else if (enumsList.length > 0)
+            {
+                // If we have a description line, add it to the last class
+                if (foundEnumsCount == 2 && !line.startsWith('#')) 
+                {
+                    enumsList[enumsList.length - 1].description = line.trim();
+                    return;
+                }
+                // If there is no description, add the table to the output
+                else if (foundEnumsCount > 2 || line.startsWith('#'))
+                {
+                    // There was a line directly behind the description line, so this is probably the second part of a description
+                    if (foundEnumsCount == 3 && !line.startsWith('#'))
+                    {
+                        // Add this line to the description, lower the foundEnumsCount by one (in case there are more lines in the description), and return
+                        enumsList[enumsList.length - 1].description = enumsList[enumsList.length - 1].description + ' ' + line.trim();
+                        foundEnumsCount--;
+                        return;
+                    }
+                    
+                    // Generate the type table and reset
+                    outputLines.push(`<TypeTable types={${JSON.stringify(enumsList)}} />\n`);
+                    enumsList.length = 0;
+                    foundEnums = false;
+                }
+            }
+        }
+            
+            
+        
         // Normal line, add to output
         outputLines.push(line);
     });
@@ -580,6 +798,15 @@ Object.entries(fileLocations).forEach(([className, file]) =>
         
     if (returnsList.length > 0)
         outputLines.push(`<TypeTable types={${JSON.stringify(returnsList)}} />\n`);
+        
+    if (structsList.length > 0)
+        outputLines.push(`<TypeTable types={${JSON.stringify(structsList)}} />\n`);
+        
+    if (interfacesList.length > 0)
+        outputLines.push(`<TypeTable types={${JSON.stringify(interfacesList)}} />\n`);
+        
+    if (enumsList.length > 0)
+        outputLines.push(`<TypeTable types={${JSON.stringify(enumsList)}} />\n`);
     
     content = outputLines.join('\n');
     
