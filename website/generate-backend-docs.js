@@ -9,6 +9,9 @@ const mjsDirectory = path.dirname(mjsScriptPath);
 // Target folder where docfx metadata should run
 const targetFolder = path.resolve('../backend');
 
+// First delete docfx-files folder
+fs.rmSync('./docfx-files', { recursive: true, force: true });
+
 // First run docfx metadata command in the target folder
 console.log(`Running docfx metadata in ${targetFolder}`);
 

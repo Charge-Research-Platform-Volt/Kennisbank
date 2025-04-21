@@ -1,4 +1,4 @@
-﻿namespace backend.Models;
+﻿namespace KnowledgeBank.Models;
 
 public class RoleAssignDto
 {

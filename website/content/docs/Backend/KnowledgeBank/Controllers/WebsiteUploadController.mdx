@@ -6,7 +6,7 @@ import { TypeTable } from "@/components/type_table"
 import { CSharpType } from "@/components/csharp_type"
 
 
-Namespace: <a href='../Controllers'>backend.Controllers</a>  
+Namespace: <a href='../Controllers'>KnowledgeBank.Controllers</a>  
 Assembly: backend.dll  
 
 ```csharp
@@ -219,7 +219,7 @@ public WebsiteUploadController(ResourceManager resourceManager)
 ```
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
-<TypeTable types={[{"name":"resourceManager","type":"ResourceManager","links":["../../KnowledgeBank/Data/ResourceManager"],"description":""}]} />
+<TypeTable types={[{"name":"resourceManager","type":"ResourceManager","links":["../Data/ResourceManager"],"description":""}]} />
 
 ---
 ## Methods
@@ -240,7 +240,7 @@ public Task<IActionResult> AddWebsite(WebsiteCreateDto dto)
 ```
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
-<TypeTable types={[{"name":"dto","type":"WebsiteCreateDto","links":["../../KnowledgeBank/Models/WebsiteCreateDto"],"description":"The dto used for adding the website to the db."}]} />
+<TypeTable types={[{"name":"dto","type":"WebsiteCreateDto","links":["../Models/WebsiteCreateDto"],"description":"The dto used for adding the website to the db."}]} />
 
 <h4 className='mb-0 ml-1'>Returns</h4>
 <TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":"Returns an OK response."}]} />
@@ -263,7 +263,7 @@ public Task<IActionResult> ChangeWebsite(string id, string newTitleOrURL, Websit
 ```
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
-<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"id of the website"},{"name":"newTitleOrURL","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"the new title or url to change to"},{"name":"column","type":"WebsiteColumn","links":["../../KnowledgeBank/Models/WebsiteColumn"],"description":"the attribute to change"}]} />
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"id of the website"},{"name":"newTitleOrURL","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"the new title or url to change to"},{"name":"column","type":"WebsiteColumn","links":["../Models/WebsiteColumn"],"description":"the attribute to change"}]} />
 
 <h4 className='mb-0 ml-1'>Returns</h4>
 <TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":"Ok if it succeeds"}]} />

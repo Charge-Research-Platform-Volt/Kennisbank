@@ -1,4 +1,4 @@
-using backend.Models;
+using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Mvc;
 using backend.Tests.Infrastructure;
 using KnowledgeBank.Controllers;

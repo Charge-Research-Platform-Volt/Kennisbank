@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using KnowledgeBank.Models;
 using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
-using backend.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
