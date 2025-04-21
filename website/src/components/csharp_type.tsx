@@ -73,7 +73,7 @@ export const CSharpType = ({ type, links }: { type: string, links: string[] }) =
         }
         
         // Check for common .NET types
-        if (commonTypes.some(t => text === t) || text.toLowerCase().endsWith('exception') || (links[0] && links[0].includes('microsoft'))) {
+        if (commonTypes.some(t => text === t) || text.toLowerCase().endsWith('exception') || (links && links.length > 0 && links[0] && links[0].includes('microsoft'))) {
             return links && links.length > 0 && links[0] ? (<a href={links[0]} target={links[0].startsWith('http') ? '_blank' : '_self'} className="no-underline text-inherit hover:text-inherit"><span style={{ color: colors.common }}>{text}</span></a>) : <span style={{ color: colors.common }}>{text}</span>;
         }
         

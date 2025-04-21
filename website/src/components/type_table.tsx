@@ -16,7 +16,7 @@ export type TypeItem =
     links: string[],
 }
 
-export function TypeTable({ types }:{ types: TypeItem[] }) {
+export function TypeTable({ types, fieldsTable = false }:{ types: TypeItem[], fieldsTable: boolean }) {
     const includeName = types.some((type) => type.name.trim() !== '');
     const includeDescription = types.some((type) => type.description.trim() !== '');
 
@@ -27,8 +27,8 @@ export function TypeTable({ types }:{ types: TypeItem[] }) {
             <TableHeader>
                 <TableRow>
                     { includeName? (<TableHead className="w-[100px]">Name</TableHead>) : "" }
-                    <TableHead>Type</TableHead>
-                    { includeDescription ? (<TableHead>Description</TableHead>) : "" }
+                    <TableHead>{fieldsTable ? 'Field' : 'Type'}</TableHead>
+                    { includeDescription ? (<TableHead>{fieldsTable ? 'Value' : 'Description' }</TableHead>) : "" }
                 </TableRow>
             </TableHeader>
             <TableBody>

@@ -83,6 +83,38 @@ function extractTypeWithLinks(line)
     }
 }
 
+function escapeHTMLExceptCodeBlocks(content) {
+    const codeBlockRegex = /```[\s\S]*?```/g;
+
+    // Split the content by code blocks
+    let parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = codeBlockRegex.exec(content)) !== null) {
+        // Add text before the code block (with < escaped)
+        if (match.index > lastIndex) {
+        let textPart = content.substring(lastIndex, match.index);
+        textPart = textPart.replace(/</g, '\\<');
+        parts.push(textPart);
+        }
+        
+        // Add the code block (unchanged)
+        parts.push(match[0]);
+        
+        lastIndex = match.index + match[0].length;
+    }
+
+    // Add any remaining text after the last code block (with < escaped)
+    if (lastIndex < content.length) {
+        let textPart = content.substring(lastIndex);
+        textPart = textPart.replace(/</g, '\\<');
+        parts.push(textPart);
+    }
+
+    return parts.join('');
+}
+
 
 
 // -----------------
@@ -136,7 +168,7 @@ Object.entries(fileLocations).forEach(([className, file]) =>
     let content = fs.readFileSync(file, 'utf-8');
     
     // Add frontmatter heading (required for fumadocs)
-    const frontmatter = `---\ntitle: ${className.split('.').at(-1)}\n---\n`;
+    const frontmatter = `---\ntitle: ${className.split('.').at(-1)}\n${file.includes('index') ? 'description: This is a namespace\n' : ''}---\n`;
     // Add imports
     const imports = [
         `import { CollapsibleInherited } from "@/components/collapsible"`,
@@ -151,7 +183,7 @@ Object.entries(fileLocations).forEach(([className, file]) =>
     content = content.replace(/^#(?![#]).*$/m, '');
     
     // Escape all < characters (required for fumadocs)
-    content = content.replace(/</g, '\\<');
+    content = escapeHTMLExceptCodeBlocks(content);
     
     // Update links to point to the new location
     content = content.replace(/\[(.*?)\]\((.*?)\)/g, (match, p1, p2) => {
@@ -177,55 +209,133 @@ Object.entries(fileLocations).forEach(([className, file]) =>
     
     // Process the content to place it in nice components
     const lines = content.split('\n');
-    const membersList = [];
-    const linksList = [];
+    const inheritedList = [];
+    const namespacesList = [];
+    const classesList = [];
     const outputLines = [];
     const parametersList = [];
     const exceptionsList = [];
     const returnsList = [];
 
+    let foundNamespaces = false;
+    let foundClasses = false;
     let foundInherited = false;
     let foundParameters = false;
     let foundExceptions = false;
     let foundReturns = false;
     
+    let foundNamespacesCount = 0;
+    let foundClassesCount = 0;
     let foundParameterCount = 0;
     let foundExceptionCount = 0;
     let foundReturnCount = 0;
     
     lines.forEach(line => 
     {
-        // Make the classes lists nice
-        if (file.includes('index') && line.includes('</a>')) 
+        // Find the namespaces section and make it into a table
+        if (line.match(/^#{2,4}\s+Namespaces/)) 
         {
-            // If we have a link, push it to the list, do nothing with it yet
-            linksList.push(line);
+            // Found the Namespaces section
+            foundNamespaces = true;
+            foundNamespacesCount = 0;
+            namespacesList.length = 0;
+            outputLines.push(`<h4 className='mb-0 ml-1'>Namespaces</h4>`);
             return;
         }
-        // Only do something if there is something in the list
-        else if (linksList.length > 0)
+        
+        if (foundNamespaces) 
         {
-            // If line is empty, ignore
+            // Found the namespaces section
+            if (line.includes('</a>')) 
+            {
+                // If we have a link, push it to the list, do nothing with it yet
+                namespacesList.push(line);
+                return;
+            }
+            // Only do something if there is something in the list
+            else if (namespacesList.length > 0)
+            {
+                // If line is empty, ignore
+                if (line.trim() === "") return;
+                
+                // If we have exactly one link, just add it normally
+                if (namespacesList.length == 1) 
+                {
+                    outputLines.push(namespacesList[0]);
+                }
+                else 
+                {
+                    // If we have multiple links, add them to a list
+                    outputLines.push(`<ul className='list-disc'>`);
+                    namespacesList.forEach(link => outputLines.push(`<li>${link.replace(/[\r\n]+/g, '')}</li>`));
+                    outputLines.push(`</ul>`);
+                }
+                
+                // Clear the list for the next iteration
+                namespacesList.length = 0;
+                foundNamespaces = false;
+            }
+        }
+    
+        // Find the classes section and make it into a table
+        if (line.match(/^#{2,4}\s+Classes/)) 
+        {
+            // Found the Classes section
+            foundClasses = true;
+            foundClassesCount = 0;
+            classesList.length = 0;
+            outputLines.push(`<h4 className='mb-0 ml-1'>Classes</h4>`);
+            return;
+        }
+        
+        
+        // If we found the Classes section, add the members to the list
+        if (foundClasses) 
+        {
+            foundClassesCount++;
+        
+            // Ignore empty lines
             if (line.trim() === "") return;
             
-            // If we have exactly one link, just add it normally
-            if (linksList.length == 1) 
-            {
-                outputLines.push(linksList[0]);
-            }
-            else 
-            {
-                // If we have multiple links, add them to a list
-                outputLines.push(`<ul className='list-disc'>`);
-                linksList.forEach(link => outputLines.push(`<li>${link.replace(/[\r\n]+/g, '')}</li>`));
-                outputLines.push(`</ul>`);
-            }
+            // Set class pattern to match the class format
+            const pattern = /<a href=['"]([^'"]*)['"][^>]*>([^<]*)<\/a>/;
             
-            // Clear the list for the next iteration
-            linksList.length = 0;
-            
-            return;
-        }
+            // Check if line contains a class
+            if (line.match(pattern)) 
+            {
+                const typeWithLinks = extractTypeWithLinks(line);
+                
+                classesList.push(typeWithLinks);
+                
+                foundClassesCount = 0;
+                
+                return;
+            }
+            // We did not match but was still classesFound = true, so we check for description line
+            // If counter is 2 and the line is not empty or starting with #, then we have a description line
+            // If it is more the class did not have a description
+            else if (classesList.length > 0)
+            {
+                // If we have a description line, add it to the last class
+                if (foundClassesCount == 2 && !line.startsWith('#')) 
+                {
+                    classesList[classesList.length - 1].description = line.trim();
+                    return;
+                }
+                // If there is no description, add the table to the output
+                else if (foundClassesCount > 2 || line.startsWith('#'))
+                {
+                    // There was a line directly behind the description line, so this is probably the second part of a description
+                    if (foundClassesCount == 3) classesList[classesList.length - 1].description = classesList[classesList.length - 1].description + ' ' + line.trim();
+                    outputLines.push(`<TypeTable types={${JSON.stringify(classesList)}} />\n`);
+                    classesList.length = 0;
+                    foundClasses = false;
+                    
+                    // Do not add the second description line to the output
+                    if (foundClassesCount == 3) return;
+                }
+            }
+        }            
         
         
         
@@ -245,21 +355,22 @@ Object.entries(fileLocations).forEach(([className, file]) =>
             if (line.trim() !== "")
             {
                 // Add if line is not empty
-                membersList.push(line);
+                inheritedList.push(line);
                 return;
             }
             
             // If no members, skip empty line
-            if (membersList.length === 0) return;
+            if (inheritedList.length === 0) return;
             
             // If line is empty, construct the collapsible
-            outputLines.push(`<CollapsibleInherited title='Show Inherited Members (${membersList.length})'>`);
-            membersList.forEach(member => 
+            outputLines.push(`<CollapsibleInherited title='Show Inherited Members (${inheritedList.length})'>`);
+            inheritedList.forEach(member => 
             {
                 // Add each member to the accordeon
                 outputLines.push(`${member}`);
             });
             outputLines.push(`</CollapsibleInherited>\n`);
+            inheritedList.length = 0;
             foundInherited = false;
             
             return;
@@ -320,6 +431,7 @@ Object.entries(fileLocations).forEach(([className, file]) =>
                 else if (foundParameterCount > 2 || line.startsWith('#'))
                 {
                     outputLines.push(`<TypeTable types={${JSON.stringify(parametersList)}} />\n`);
+                    parametersList.length = 0;
                     foundParameters = false;
                 }
             }
@@ -371,6 +483,7 @@ Object.entries(fileLocations).forEach(([className, file]) =>
                 else if (foundExceptionCount > 2 || line.startsWith('#'))
                 {
                     outputLines.push(`<TypeTable types={${JSON.stringify(exceptionsList)}} />\n`);
+                    exceptionsList.length = 0;
                     foundExceptions = false;
                 }
             }
@@ -378,58 +491,90 @@ Object.entries(fileLocations).forEach(([className, file]) =>
         
         // Find the return section and make it into a table
         if (line.match(/^#{2,4}\s+Returns/)) 
+        {
+            // Found the returns section
+            foundReturns = true;
+            foundReturnCount = 0;
+            returnsList.length = 0;
+            outputLines.push(`<h4 className='mb-0 ml-1'>Returns</h4>`);
+            return;
+        }
+        
+        
+        // If we found the returns section, add the members to the list
+        if (foundReturns) 
+        {
+            foundReturnCount++;
+        
+            // Ignore empty lines
+            if (line.trim() === "") return;
+            
+            const typeWithLinks = extractTypeWithLinks(line);
+            
+            // Check if line contains a return
+            if (typeWithLinks) 
             {
-                // Found the returns section
-                foundReturns = true;
+                returnsList.push(typeWithLinks);
+                
                 foundReturnCount = 0;
-                returnsList.length = 0;
-                outputLines.push(`<h4 className='mb-0 ml-1'>Returns</h4>`);
+                
                 return;
             }
-            
-            
-            // If we found the returns section, add the members to the list
-            if (foundReturns) 
+            // We did not match but was still returnFound = true, so we check for description line
+            // If counter is 2 and the line is not empty or starting with #, then we have a description line
+            // If it is more the return did not have a description
+            else if (returnsList.length > 0)
             {
-                foundReturnCount++;
-            
-                // Ignore empty lines
-                if (line.trim() === "") return;
-                
-                const typeWithLinks = extractTypeWithLinks(line);
-                
-                // Check if line contains a return
-                if (typeWithLinks) 
+                // If we have a description line, add it to the last return
+                if (foundReturnCount == 2 && !line.startsWith('#')) 
                 {
-                    returnsList.push(typeWithLinks);
-                    
-                    foundReturnCount = 0;
-                    
+                    returnsList[returnsList.length - 1].description = line.trim();
                     return;
                 }
-                // We did not match but was still returnFound = true, so we check for description line
-                // If counter is 2 and the line is not empty or starting with #, then we have a description line
-                // If it is more the return did not have a description
-                else if (returnsList.length > 0)
+                // If there is no description, add the table to the output
+                else if (foundReturnCount > 2 || line.startsWith('#'))
                 {
-                    // If we have a description line, add it to the last return
-                    if (foundReturnCount == 2 && !line.startsWith('#')) 
-                    {
-                        returnsList[returnsList.length - 1].description = line.trim();
-                        return;
-                    }
-                    // If there is no description, add the table to the output
-                    else if (foundReturnCount > 2 || line.startsWith('#'))
-                    {
-                        outputLines.push(`<TypeTable types={${JSON.stringify(returnsList)}} />\n`);
-                        foundReturns = false;
-                    }
+                    outputLines.push(`<TypeTable types={${JSON.stringify(returnsList)}} />\n`);
+                    returnsList.length = 0;
+                    foundReturns = false;
                 }
             }
+        }
         
         // Normal line, add to output
         outputLines.push(line);
     });
+    
+    // Make sure all lists are handled
+    if (classesList.length > 0)
+        outputLines.push(`<TypeTable types={${JSON.stringify(classesList)}} />\n`);
+    
+    if (namespacesList.length > 0) 
+    {
+        outputLines.push(`<ul className='list-disc'>`);
+        namespacesList.forEach(link => outputLines.push(`<li>${link.replace(/[\r\n]+/g, '')}</li>`));
+        outputLines.push(`</ul>`);
+    }
+    
+    if (inheritedList.length > 0) 
+    {
+        outputLines.push(`<CollapsibleInherited title='Show Inherited Members (${inheritedList.length})'>`);
+        inheritedList.forEach(member => 
+        {
+            // Add each member to the accordeon
+            outputLines.push(`${member}`);
+        });
+        outputLines.push(`</CollapsibleInherited>\n`);
+    }
+    
+    if (parametersList.length > 0)
+        outputLines.push(`<TypeTable types={${JSON.stringify(parametersList)}} />\n`);
+    
+    if (exceptionsList.length > 0)
+        outputLines.push(`<TypeTable types={${JSON.stringify(exceptionsList)}} />\n`);
+        
+    if (returnsList.length > 0)
+        outputLines.push(`<TypeTable types={${JSON.stringify(returnsList)}} />\n`);
     
     content = outputLines.join('\n');
     
@@ -449,6 +594,28 @@ Object.entries(fileLocations).forEach(([className, file]) =>
         // Put divider above heading
         return `${divider}${match}`;
     });
+    
+    // Color all the markdown links containing microsoft (these are types)
+    content = content.replace(/\[(\w+)\]\((https?:\/\/.*?microsoft\.com.*?)\)/g, (_, typeName, url) => {
+        return `<a href='${url}' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='${typeName}' /></a>`;
+    });
+    
+    // Color all the html links with relative path (these are types)
+    content = content.replace(/<a href=['"]((?!http)[^'"]*)['"]\s*>(\w+)<\/a>/g, (_, url, typeName) => {
+        return `<a href='${url}' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='${typeName}' /></a>`;
+    });
+    
+    // Remove newlines when arrows are used to preserve styling
+    content = content.replace(/(\s)←(\s)\n/g, '$1←$2');
+    
+    // Add namespace link if the current file is a namespace itself
+    if (file.includes('index')) 
+    {
+        const parentNamespace = (className.match(/(.*)\.[^.]*$/) || ['', ''])[1];
+        
+        if (parentNamespace.trim !== '' && fileLocations[parentNamespace])
+            content = `\nParent namespace: <a href='.'>${parentNamespace}</a>\n\n` + content;
+    }
     
     // Write adjusted content to the file
     fs.writeFileSync(file, frontmatter + imports.join('\n') + '\n' + content, 'utf-8');
