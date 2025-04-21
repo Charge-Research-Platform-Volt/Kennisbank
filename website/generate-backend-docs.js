@@ -10,6 +10,7 @@ const mjsDirectory = path.dirname(mjsScriptPath);
 const targetFolder = path.resolve('../backend');
 
 // First delete docfx-files folder
+console.log("Removing old DocFX Files...");
 fs.rmSync('./docfx-files', { recursive: true, force: true });
 
 // First run docfx metadata command in the target folder

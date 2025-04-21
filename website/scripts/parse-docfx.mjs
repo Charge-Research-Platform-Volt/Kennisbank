@@ -326,13 +326,18 @@ Object.entries(fileLocations).forEach(([className, file]) =>
                 else if (foundClassesCount > 2 || line.startsWith('#'))
                 {
                     // There was a line directly behind the description line, so this is probably the second part of a description
-                    if (foundClassesCount == 3) classesList[classesList.length - 1].description = classesList[classesList.length - 1].description + ' ' + line.trim();
+                    if (foundClassesCount == 3 && !line.startsWith('#'))
+                    {
+                        // Add this line to the description, lower the foundClassesCount by one (in case there are more lines in the description), and return
+                        classesList[classesList.length - 1].description = classesList[classesList.length - 1].description + ' ' + line.trim();
+                        foundClassesCount--;
+                        return;
+                    }
+                    
+                    // Generate the type table and reset
                     outputLines.push(`<TypeTable types={${JSON.stringify(classesList)}} />\n`);
                     classesList.length = 0;
                     foundClasses = false;
-                    
-                    // Do not add the second description line to the output
-                    if (foundClassesCount == 3) return;
                 }
             }
         }            
