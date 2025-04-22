@@ -3,7 +3,6 @@ import LeftSidebarClient from "./left-sidebar-client";
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
 import { TagArraySchema } from "@/types/tag.type";
 import { z } from "zod";
-import { cookies } from 'next/headers';
 import Help from "@/icons/help";
 import { SidebarItem } from "@/types/sidebar";
 import Home from "@/icons/home";
@@ -16,10 +15,6 @@ import { Users } from "lucide-react";
  * @returns Left side bar made from server component
  */
 export default async function LeftSidebarServer() {
-  const cookieStore = await cookies();
-  const menuOpenedCookie : string | undefined  = cookieStore.get('menuOpened')?.value;
-  const menuOpened : boolean = menuOpenedCookie === undefined ? true : menuOpenedCookie === "true";
-
   const tagsResult = await FetchWithValidation(TagArraySchema, "http://backend:8080/tags/all-tags");
 
   if (!tagsResult.success) {
@@ -44,17 +39,16 @@ export default async function LeftSidebarServer() {
     return <h1>ERROR</h1>;
   }
 
-  
   // Menu items
   const menuItems: SidebarItem[] = [
     { id: 1, name: "Home", path: "/", icon: <Home className="h-4 w-4" /> },
     { id: 2, name: "Archive", path: "/archive", icon: <Archive className="h-4 w-4" /> },
     { id: 3, name: "Tags", path: "/tags", icon: <Tags className="h-4 w-4" /> },
   ];
-  
+
   // Projects
-  const projects: SidebarItem[] = [  ];
-  
+  const projects: SidebarItem[] = [];
+
   // Items at the bottom of the sidebar (settings, help)
   const bottomMenuItems: SidebarItem[] = [
     {
@@ -66,7 +60,7 @@ export default async function LeftSidebarServer() {
   ];
 
   // If admin: add settings to the bottom menu items at index 0
-  if(userRole.data.role === "admin") {
+  if (userRole.data.role === "admin") {
     menuItems.splice(menuItems.length, 0, {
       id: 4,
       path: "/users",
@@ -75,12 +69,9 @@ export default async function LeftSidebarServer() {
     });
   }
 
-  return <LeftSidebarClient open={menuOpened} tags={tagsResult.data} userEmail={userEmail.data.email} userRole={userRole.data.role} menuItems={menuItems} projects={projects} bottomMenuItems={bottomMenuItems} />;
+  return <LeftSidebarClient tags={tagsResult.data} userEmail={userEmail.data.email} userRole={userRole.data.role} menuItems={menuItems} projects={projects} bottomMenuItems={bottomMenuItems} />;
 }
-
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

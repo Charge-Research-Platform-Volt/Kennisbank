@@ -11,16 +11,16 @@ import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
 import { OctagonAlert } from "lucide-react";
 import GetFileIcon from "./getFileIcon";
-import { ResourceResponse } from "@/types/resource.type"
+import { ResourceResponse } from "@/types/resource.type";
 import { handleOpenFile } from "@/actions/openFileActions";
 import { useQuickSearch } from "./quick-search-context";
 import Kbd from "./kbd";
 
 /**
- * 
+ *
  * @returns QuickSearch bar in the top left corner of the screen. Users can then quickly search through the archive and open files / visit websites.
  */
-export default function QuickSearch() {
+export default function QuickSearch({ minimize }: { minimize?: boolean }) {
   const { isOpen, setIsOpen } = useQuickSearch();
   const [searchResults, setSearchResults] = useState<ResourceResponse[]>([]);
 
@@ -72,7 +72,7 @@ export default function QuickSearch() {
     <>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" className="m-0 flex w-full items-center justify-between p-2">
+          <Button variant="outline" className={`m-0 flex w-full items-center justify-between overflow-hidden p-2 transition-all duration-200 ${!minimize && "w-9"}`}>
             <div className="flex items-center gap-2">
               <Search className="h-4 w-4" />
               Search
@@ -117,13 +117,14 @@ export default function QuickSearch() {
             )}
 
             {/* Results list */}
-            {searchResults && searchResults.length > 0 &&
+            {searchResults &&
+              searchResults.length > 0 &&
               searchResults.map((file) => (
                 <div
                   onClick={() => handleOpenFile(file)}
                   key={file.id}
                   role="button"
-                  className="hover:bg-muted-foreground/20 focus-visible:bg-muted-foreground/20 rounded-lg bg-transparent p-3 transition-colors outline-none cursor-pointer"
+                  className="hover:bg-muted-foreground/20 focus-visible:bg-muted-foreground/20 cursor-pointer rounded-lg bg-transparent p-3 transition-colors outline-none"
                 >
                   <div className={`${file.description !== "" && "mb-2"} flex items-start gap-2`}>
                     <GetFileIcon fileType={file.fileType} className="mt-[3px]" />
@@ -140,9 +141,6 @@ export default function QuickSearch() {
   );
 }
 
-
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-
