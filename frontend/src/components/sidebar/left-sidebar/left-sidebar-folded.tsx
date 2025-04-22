@@ -28,11 +28,6 @@ export default function LeftSidebarFolded({ menuItems, projects, bottomMenuItems
 
   const router = useRouter();
 
-  const { setIsOpen } = useQuickSearch();
-
-  // Keyboard shortcut
-  useHotkeys("mod+k", () => setIsOpen(true), { preventDefault: true });
-
   return (
     <div className="flex flex-col h-screen bg-gray-100 pt-2.5 pb-2.5 overflow-y-auto">
         {/* Button for opening menu */}
