@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ListUsersPaged } from "@/actions/userActions";
 import { toast } from "sonner";
 import { UserArray } from "@/types/user.type";
@@ -24,11 +24,14 @@ export default function UsersList() {
     const [error, setError] = useState("");
     const [pageCount, setPageCount] = useState(0);
     const [searchQuery, setSearchQuery] = useState("");
+    const fetches = useRef(0);
 
     //load user page when the page number changes
     useEffect(() => {
          async function fetchUsers() {
             setIsLoading(true);
+            const fetchAmount = fetches.current + 1;
+            fetches.current = fetchAmount;
             setError("");
             try {
                 const response = await ListUsersPaged(pageNumber, searchQuery);
@@ -37,14 +40,17 @@ export default function UsersList() {
                     setError(response.message);
                     return;
                 }
-
-                setUsers(response.users || []);
-                setPageCount(response.pageCount || 0);
+                if(fetchAmount === fetches.current) {
+                    setUsers(response.users || []);
+                    setPageCount(response.pageCount || 0);
+                }
             }
             catch {
                toast.error("Error loading users.");
             } finally {
-                setIsLoading(false);
+                if(fetchAmount === fetches.current) {
+                    setIsLoading(false);
+                }
             }
         }
 
