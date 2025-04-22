@@ -143,13 +143,13 @@ export const SaveUser = async (
     };
 };
 
-export const ListUsersPaged = async (pageIndex: number ): Promise<UserPageResponse> => {
+export const ListUsersPaged = async (pageIndex: number, query: string ): Promise<UserPageResponse> => {
     console.log("Getting user page: ");
 
     // Send the data to the backend
     const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response : Response = await fetch(
-        `http://backend:8080/User/list-paged?pageIndex=${pageIndex}&pageSize=50`,
+        `http://backend:8080/User/list-paged?pageIndex=${pageIndex}&pageSize=50&search=${encodeURIComponent(query)}`,
         {
             method: "GET",
             credentials: "include",

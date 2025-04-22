@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import UserListItem from "./UserListItem";
 import { Input } from "@/components/ui/input";
 import Search from "@/icons/search-icon";
+import { useDebouncedCallback } from "use-debounce";
 
 export default function UsersList() {
     const router = useRouter();
@@ -22,6 +23,7 @@ export default function UsersList() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
     const [pageCount, setPageCount] = useState(0);
+    const [searchQuery, setSearchQuery] = useState("");
 
     //load user page when the page number changes
     useEffect(() => {
@@ -29,7 +31,7 @@ export default function UsersList() {
             setIsLoading(true);
             setError("");
             try {
-                const response = await ListUsersPaged(pageNumber);
+                const response = await ListUsersPaged(pageNumber, searchQuery);
                 
                 if(!response.success) {
                     setError(response.message);
@@ -48,10 +50,16 @@ export default function UsersList() {
 
         fetchUsers();
     }
-    , [pageNumber]);
+    , [pageNumber, searchQuery]);
+
+    const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const value = event.target.value;
+        setPageNumber(1); //reset page number to 1 when searching
+        setSearchQuery(value);
+    }
 
     //update the url parameters when changing page, without reloading
-    const updatePageInUrl = (newPage: number) => {
+    const updatePageInUrl = useDebouncedCallback((newPage: number) => {
         const params : URLSearchParams = new URLSearchParams(searchParams.toString());
         if (newPage > 1) {
             params.set("page", newPage.toString());
@@ -59,7 +67,7 @@ export default function UsersList() {
             params.delete("page"); 
         }
         router.replace(`?${params.toString()}`, { scroll: false });
-    };
+    }, 300);
 
     //go to other page
     const goToPage = (newPage: number) => {
@@ -71,15 +79,15 @@ export default function UsersList() {
         <div className="w-full">
             <div className="pb-2">
                 <div className="relative w-full">
-                <Input
-                    className="peer h-10 ps-9"
-                    placeholder="Search"
-                    type="text"
-                    //onChange={}
-                />
-                <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
-                    <Search className="h-4 w-4" aria-hidden="true" fill="currentColor" />
-                </div>
+                    <Input
+                        className="peer h-10 ps-9"
+                        placeholder="Search"
+                        type="text"
+                        onChange={handleInputChange}
+                    />
+                    <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
+                        <Search className="h-4 w-4" aria-hidden="true" fill="currentColor" />
+                    </div>
                 </div>
             </div>
             {error.length > 0 ? 

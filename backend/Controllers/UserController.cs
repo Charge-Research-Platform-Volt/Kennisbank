@@ -70,7 +70,7 @@ public class UserController : ControllerBase
     )]
     [SwaggerResponse(200, "Users are loaded succesfully")]
     [SwaggerResponse(500, "Server error")]
-    public async Task<IActionResult> GetUsersPaged(int pageIndex = 1, int pageSize = 100)
+    public async Task<IActionResult> GetUsersPaged(int pageIndex = 1, int pageSize = 100, string? search = null)
     {
         if (pageIndex < 1)
                 return BadRequest(new StorageResponse("Page index cannot be lower than 1."));
@@ -83,7 +83,18 @@ public class UserController : ControllerBase
             // Calculate how many records we need to skip
             int skip = (pageIndex - 1) * pageSize;
 
-            User[]? users = await database.AppUsers.OrderBy(u => u.Email).Skip(skip).Take(pageSize).ToArrayAsync();
+            IQueryable<User> filteredUsers;
+
+            if(!string.IsNullOrEmpty(search))
+            {
+                filteredUsers = database.AppUsers.Where(u => EF.Functions.ILike(u.Email ?? "", $"%{search}%"));
+            }
+            else
+            {
+                filteredUsers = database.AppUsers;
+            }
+
+            User[]? users = await filteredUsers.OrderBy(u => u.Email).Skip(skip).Take(pageSize).ToArrayAsync();
             int totalUsers = await database.AppUsers.CountAsync();
             int pageCount = (int)Math.Ceiling((double)totalUsers / pageSize);
 
