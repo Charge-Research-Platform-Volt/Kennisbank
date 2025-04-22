@@ -6,7 +6,7 @@ import { TagRelationArraySchema } from "./tag.type";
  */
 export const ResourceBaseSchema = z.object({
 	title: z.string().min(1 , { message: "Title is required" }),
-	description: z.string(),
+	description: z.string().nullable(),
   typeId: z.string().min(1, {message: "Type is required"}),
   languageCode: z.string().min(1, {message: "languageCode is required"}).max(2, {message: "Cant be longer than 2 characters"}),
   publicationDate: z.date()
@@ -33,7 +33,7 @@ export const ResourceArraySchema = z.array(ResourceSchema);
 export const BaseResourceResponseSchema = z.object({
   id: z.string().uuid(),
   title: z.string().min(1, { message: "Title is required" }),
-  description: z.string().min(0, { message: "Description is required" }),
+  description: z.string().nullable(),
   typeId: z.string().min(1, { message: "Type is required" }),
   fileType: z.string().min(1, { message: "File type is required" }),
   languageCode: z.string().min(1, { message: "Language code is required" }).length(2, { message: "Language code should be two characters long" }),
