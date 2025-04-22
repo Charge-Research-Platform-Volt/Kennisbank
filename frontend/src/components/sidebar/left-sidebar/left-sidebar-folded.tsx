@@ -60,7 +60,6 @@ export default function LeftSidebarFolded({ menuItems, projects, bottomMenuItems
         
         { /* Bottom items */ }
         <div className="flex flex-col mt-auto">
-            {/* Settings and Help */}
             {bottomMenuItems.map((item) => (
                 <FoldedButton
                     testid="hiddensidebar" 
