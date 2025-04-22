@@ -40,18 +40,21 @@ export default function UsersList() {
                     setError(response.message);
                     return;
                 }
+
+                // only update the state if this is the latest fetch
                 if(fetchAmount === fetches.current) {
                     setUsers(response.users || []);
                     setPageCount(response.pageCount || 0);
+                    setIsLoading(false);
                 }
             }
             catch {
                toast.error("Error loading users.");
-            } finally {
-                if(fetchAmount === fetches.current) {
+               // only update the state if this is the latest fetch
+               if(fetchAmount === fetches.current) {
                     setIsLoading(false);
                 }
-            }
+            } 
         }
 
         fetchUsers();
