@@ -11,6 +11,8 @@ namespace KnowledgeBank.Data
 
         public async Task<Guid> CreateResourceAsync(ResourceCreateDto dto)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             Guid resourceId = Guid.NewGuid();
 
             // Construct resource 
@@ -44,8 +46,6 @@ namespace KnowledgeBank.Data
             // Add resource to database
             await database.Resources.AddAsync(resource);
 
-            await database.SaveResourceChangesAsync();
-
             // Add tag relations to database
             await AddTagToResourceRangeAsync(resourceId, dto.Tags);
 
@@ -69,6 +69,8 @@ namespace KnowledgeBank.Data
 
             // Add related source relations to database
             await AddRelatedSourceToResourceRangeAsync(resourceId, dto.RelatedSources);
+            
+            if (startedTransaction) await Commit();
 
             return resourceId;
         }
@@ -77,6 +79,8 @@ namespace KnowledgeBank.Data
 
         public async Task<Guid> CreateDocumentAsync(DocumentCreateDto dto)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             // Create the base resource
             Guid resourceId = await CreateResourceAsync(dto);
 
@@ -92,7 +96,7 @@ namespace KnowledgeBank.Data
                 await database.DocumentMetadata.AddAsync(doc);
             }
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
 
             return resourceId;
         }
@@ -101,6 +105,8 @@ namespace KnowledgeBank.Data
 
         public async Task<Guid> CreateAudioAsync(AudioCreateDto dto)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             // Create the base resource
             Guid resourceId = await CreateResourceAsync(dto);
 
@@ -119,7 +125,7 @@ namespace KnowledgeBank.Data
             // URL is required in audio, so add it to sources
             await AddSourceToResourceAsync(resourceId, dto.URL);
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
 
             return resourceId;
         }
@@ -128,6 +134,8 @@ namespace KnowledgeBank.Data
 
         public async Task<Guid> CreateVideoAsync(VideoCreateDto dto)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             // Create the base resource
             Guid resourceId = await CreateResourceAsync(dto);
 
@@ -143,7 +151,7 @@ namespace KnowledgeBank.Data
                 await database.VideoMetadata.AddAsync(video);
             }
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
 
             return resourceId;
         }
@@ -152,6 +160,8 @@ namespace KnowledgeBank.Data
 
         public async Task<Guid> CreateWebsiteAsync(WebsiteCreateDto dto)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             // Create the base resource
             Guid resourceId = await CreateResourceAsync(dto);
 
@@ -165,7 +175,7 @@ namespace KnowledgeBank.Data
 
                 await database.WebsiteMetadata.AddAsync(website);
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
 
             return resourceId;
         }
@@ -174,6 +184,8 @@ namespace KnowledgeBank.Data
 
         public async Task<Guid> CreatePersonAsync(PersonCreateDto dto)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             // Generate new ID for the person
             Guid personId = Guid.NewGuid();
 
@@ -197,7 +209,7 @@ namespace KnowledgeBank.Data
             // Add person relations if present
             await AddPersonRelationshipRangeAsync(personId, SecondsOfTupleArray(dto.PersonRelations), FirstsOfTupleArray(dto.PersonRelations));
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
 
             return personId;
         }
@@ -206,6 +218,8 @@ namespace KnowledgeBank.Data
 
         public async Task<Guid> CreateOrganisationAsync(OrganisationCreateDto dto)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             // Generate new ID for the organisation
             Guid organisationId = Guid.NewGuid();
 
@@ -225,7 +239,7 @@ namespace KnowledgeBank.Data
             // Add organisation relations if present
             await AddOrganisationRelationshipRangeAsync(organisationId, SecondsOfTupleArray(dto.OrganisationRelations), FirstsOfTupleArray(dto.OrganisationRelations));
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
 
             return organisationId;
         }
@@ -234,6 +248,8 @@ namespace KnowledgeBank.Data
 
         public async Task<Guid> CreateRegionAsync(RegionCreateDto dto)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             // Generate new ID for the region
             Guid regionId = Guid.NewGuid();
 
@@ -247,7 +263,7 @@ namespace KnowledgeBank.Data
             // Add region to database
             await database.Regions.AddAsync(region);
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
 
             return regionId;
         }
@@ -256,6 +272,8 @@ namespace KnowledgeBank.Data
 
         public async Task<Guid> CreateTagAsync(TagCreateDto dto, bool isStandardized = false)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             // Generate new ID for the tag
             Guid tagId = Guid.NewGuid();
 
@@ -285,7 +303,7 @@ namespace KnowledgeBank.Data
             // Add tag to database
             await database.Tags.AddAsync(tag);
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
 
             return tagId;
         }
@@ -294,6 +312,8 @@ namespace KnowledgeBank.Data
 
         public async Task<Guid> CreateResourceType(ResourceTypeCreateDto dto)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             // Generate new ID for the resource type
             Guid typeId = Guid.NewGuid();
 
@@ -307,7 +327,7 @@ namespace KnowledgeBank.Data
             // Add resource type to database
             await database.ResourceTypes.AddAsync(resourceType);
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
 
             return typeId;
         }
