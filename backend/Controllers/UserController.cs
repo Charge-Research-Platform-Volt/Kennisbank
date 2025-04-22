@@ -83,21 +83,21 @@ public class UserController : ControllerBase
             // Calculate how many records we need to skip
             int skip = (pageIndex - 1) * pageSize;
 
+            // filter based on the search query
             IQueryable<User> filteredUsers;
-
             if(!string.IsNullOrEmpty(search))
-            {
                 filteredUsers = database.AppUsers.Where(u => EF.Functions.ILike(u.Email ?? "", $"%{search}%"));
-            }
             else
-            {
                 filteredUsers = database.AppUsers;
-            }
 
+            // Get the users for the current page
             User[]? users = await filteredUsers.OrderBy(u => u.Email).Skip(skip).Take(pageSize).ToArrayAsync();
+
+            // Calculate total amount of pages
             int totalUsers = await database.AppUsers.CountAsync();
             int pageCount = (int)Math.Ceiling((double)totalUsers / pageSize);
-
+            
+            // Create the response
             UserResponse[]? userResponses = new UserResponse[users.Length];
             for (int i = 0; i < users.Length; i++)
             {
@@ -106,6 +106,7 @@ public class UserController : ControllerBase
                 userResponses[i] = new UserResponse(new Guid(user.Id), user.UserName, user.Email, user.EmailConfirmed, roles[0].ToString());
             }
 
+            // Check if there are no users on this page
             if (users == null)
                 return Ok(new UserPageResponse("No users on this page.", pageIndex, pageSize, pageCount, Array.Empty<UserResponse>()));
 
