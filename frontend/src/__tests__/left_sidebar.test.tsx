@@ -6,8 +6,8 @@ import { QuickSearchProvider } from '@/components/quick-search-context'
 
 const testTags = TagArraySchema.parse([])
 
-const expectedComponents: string[] = ["Home", "Tags", "Archive", "Project 1", "Settings", "Help", "About us"].sort();
-const expectedHiddenomponents: string[] = ["Home", "Tags", "Archive", "Project 1", "Settings", "Help", "About us"].sort();
+const expectedComponents: string[] = ["Home", "Tags", "Archive", "Project 1", "Settings", "Help"].sort();
+const expectedHiddenomponents: string[] = ["Home", "Tags", "Archive", "Project 1", "Settings", "Help"].sort();
 
 const username = "Testuser";
 const userEmail = "testuser@mail.nl";
