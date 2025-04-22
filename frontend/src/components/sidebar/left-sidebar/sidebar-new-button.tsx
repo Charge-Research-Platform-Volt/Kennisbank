@@ -246,11 +246,11 @@ export default function NewButton({ tags, asIcon = false }: { tags: TagArray, as
           <DropdownMenuItem data-testid="button_in" className="cursor-pointer" onClick={() => clickNew("Website")}>
             <label className="inline-block cursor-pointer">Upload New Website</label>
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
+          {/* <DropdownMenuSeparator /> */}
           {/* New project item in popup */}
-          <DropdownMenuItem data-testid="button_in" className="cursor-pointer">
+          {/* <DropdownMenuItem data-testid="button_in" className="cursor-pointer">
             <label className="inline-block cursor-pointer">Create New Project</label>
-          </DropdownMenuItem>
+          </DropdownMenuItem> */}
         </DropdownMenuContent>
       </DropdownMenu>
 
