@@ -26,7 +26,6 @@ import Divider from "../divider";
 export default function LeftSidebarUnfolded({ menuItems, projects, bottomMenuItems, tags, userEmail, userRole, switchMenuAction, handleLogoutAction }: { menuItems: SidebarItem[], projects: SidebarItem[], bottomMenuItems: SidebarItem[], tags: TagArray; userEmail: string; userRole: string, switchMenuAction: () => void, handleLogoutAction: () => void }) {
   return (
     <aside className="flex h-screen flex-col bg-gray-100 p-2.5 transition-all duration-300 overflow-y-auto w-64 pb-0">
-    <aside className="flex h-screen flex-col bg-gray-100 p-2.5 transition-all duration-300 overflow-y-auto w-64 pb-0">
         <div className="mb-4 flex items-center justify-between">
             {/* KnowledgeBase title */}
             <h2 className="text-xl font-semibold">
@@ -73,18 +72,11 @@ export default function LeftSidebarUnfolded({ menuItems, projects, bottomMenuIte
                 <li>
                     <label className="text-gray-400 text-xs"><i>©Utrecht University (ICS)</i></label>
                 </li>
-                <li>
-                    <label className="text-gray-400 text-xs"><i>©Utrecht University (ICS)</i></label>
-                </li>
             </ul>
         </nav>
     </aside>
   );
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
