@@ -3,7 +3,6 @@ import { ResourcePageResponseSchema } from "@/types/resource.type";
 import Link from "next/link";
 import Greeting from "../components/greating-text";
 import Archive from "@/icons/archive";
-import Projects from "@/icons/projects-icon";
 import GetFileIcon from "@/components/getFileIcon";
 import OpenFileButton from "@/components/open-file-button";
 import SearchButton from "../components/search-button";
