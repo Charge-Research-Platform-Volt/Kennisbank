@@ -8,8 +8,8 @@ interface GreetingProps {
 
 // displays a different greeting dependent on what time of day it is
 export default function Greeting({ initialHour }: GreetingProps) {
-  let greeting = "";
-  const currentHour = initialHour;
+  let greeting : string = "";
+  const currentHour : number = initialHour;
   if (currentHour >= 12 && currentHour < 18) {
     greeting = "Good afternoon";
   } else if (currentHour >= 18) {
@@ -39,3 +39,9 @@ export default function Greeting({ initialHour }: GreetingProps) {
 
   return <h1 className="text-5xl font-bold">{greetingState}</h1>;
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

@@ -27,8 +27,13 @@ const initialFileResourceState: FormResponse<FileBase> = {
   success: false,
   message: "",
 };
-
-export default function NewButton({ tags }: { tags: TagArray }) {
+/**
+ * 
+ * @param tags - The tags fetched from the left-sidebar server component
+ * @param asIcon - Boolean that determines if the button should be rendered with just the icon (which it does when it is folded)
+ * @returns An upload button where it is possible to upload files or websites through a popup
+ */
+export default function NewButton({ tags, asIcon = false }: { tags: TagArray, asIcon?: boolean }) {
   const popupRef = useRef<HTMLDivElement | null>(null); //Ref used to check if user clicks outside of popup
   const [status, setStatus] = useState<UploadStatus>("idle"); //upload status
   const [uploadPopup, setUploadPopup] = useState(false); //bool which determines whether you can see the new popup
@@ -225,12 +230,11 @@ export default function NewButton({ tags }: { tags: TagArray }) {
         {/* Purple New button */}
         <DropdownMenuTrigger
           ref={newButtonRef}
-          className="font-face bg-purple text-md active:bg-purple flex h-9 w-full cursor-pointer items-center gap-1 rounded-md pl-3 text-left text-white hover:bg-[#6f2aaf]"
+          className={`bg-purple active:bg-purple cursor-pointer text-white hover:bg-[#6f2aaf] w-full p-2 mb-2 ${asIcon ? "rounded rounded-l-none rounded-r-lg transition" : "font-face text-md flex h-9 items-center rounded-md text-left"}`}
         >
-          <New className="h-5 w-5" />
-          <div data-testid="button_text" className="pb-0.5">
-            New
-          </div>
+          <New className="h-5 w-5 mr-1"/>
+          {/* If asIcon is true, only show icon */}
+          {asIcon ? null : <div data-testid="button_text" className="pb-0.5">New</div>}
         </DropdownMenuTrigger>
         <DropdownMenuContent style={{ width: newButtonWidth }}>
           {/* Upload file item in popup */}
@@ -242,11 +246,11 @@ export default function NewButton({ tags }: { tags: TagArray }) {
           <DropdownMenuItem data-testid="button_in" className="cursor-pointer" onClick={() => clickNew("Website")}>
             <label className="inline-block cursor-pointer">Upload New Website</label>
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
+          {/* <DropdownMenuSeparator /> */}
           {/* New project item in popup */}
-          <DropdownMenuItem data-testid="button_in" className="cursor-pointer">
+          {/* <DropdownMenuItem data-testid="button_in" className="cursor-pointer">
             <label className="inline-block cursor-pointer">Create New Project</label>
-          </DropdownMenuItem>
+          </DropdownMenuItem> */}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -305,8 +309,7 @@ export default function NewButton({ tags }: { tags: TagArray }) {
                     </div>
                   </div>)}
 
-
-                  {/* Document title entry */}
+                  {/* InputBlock for uploading websites */}
                   {newUploadType === "Website" && (
                       <div>
                         <InputBlock className="justify-start">
@@ -315,7 +318,7 @@ export default function NewButton({ tags }: { tags: TagArray }) {
                         </InputBlock>
                       </div>
                       )}
-                  
+                  {/* Document title entry */}
                   <InputBlock data-testid="popup_text" className="justify-start">
                     <InputHeader>Document Title: </InputHeader>
                     <FInput className="w-full" type="string" placeholder="Enter document title" name="title" value={title} onChange={(e) => setTitle(e.target.value.trimStart())} />
@@ -373,3 +376,10 @@ export default function NewButton({ tags }: { tags: TagArray }) {
     </div>
   );
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

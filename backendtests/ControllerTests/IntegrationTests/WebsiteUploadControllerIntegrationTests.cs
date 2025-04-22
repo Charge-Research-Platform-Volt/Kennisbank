@@ -53,20 +53,20 @@ public class WebsiteUploadControllerTests : TestBase
         };
 
         // Add the website
-        var uploadWebsite = await _controller.AddWebsite(test);
+        IActionResult uploadWebsite = await _controller.AddWebsite(test);
 
         if(output)
         {
             // Check that website is uploaded correctly
-            var uploadResult = uploadWebsite as OkObjectResult;
+            OkObjectResult? uploadResult = uploadWebsite as OkObjectResult;
             Assert.That(uploadResult.StatusCode, Is.EqualTo(200));
 
             // Get ID of uploaded website
-            var uploadValue = uploadResult.Value;
-            var uploadID = uploadValue.GetType().GetProperties().First(prop => prop.Name == "id").GetValue(uploadValue , null);
+            object? uploadValue = uploadResult.Value;
+            object? uploadID = uploadValue.GetType().GetProperties().First(prop => prop.Name == "id").GetValue(uploadValue , null);
 
             // Check if website is in resource table
-            var getResult = await _controller.Get_Website(uploadID.ToString()) as OkObjectResult;
+            OkObjectResult? getResult = await _controller.Get_Website(uploadID.ToString()) as OkObjectResult;
             Assert.That(Context.Resources.Count, Is.EqualTo(1));
             Assert.That(getResult.StatusCode, Is.EqualTo(200));
 
@@ -78,7 +78,7 @@ public class WebsiteUploadControllerTests : TestBase
         else
         {
             // Check that website has failed uploading due to invalid url
-            var badResult = uploadWebsite as BadRequestObjectResult;
+            BadRequestObjectResult? badResult = uploadWebsite as BadRequestObjectResult;
             Assert.That(badResult.StatusCode, Is.EqualTo(400));
         }
     }
@@ -102,12 +102,12 @@ public class WebsiteUploadControllerTests : TestBase
         };
 
         // Add the website
-        var uploadWebsite = await _controller.AddWebsite(test);
-        var uploadResult = uploadWebsite as OkObjectResult;
+        IActionResult uploadWebsite = await _controller.AddWebsite(test);
+        OkObjectResult? uploadResult = uploadWebsite as OkObjectResult;
 
         // Get ID of uploaded website
-        var uploadValue = uploadResult.Value;
-        var uploadID = uploadValue.GetType().GetProperties().First(prop => prop.Name == "id").GetValue(uploadValue , null);
+        object? uploadValue = uploadResult.Value;
+        object? uploadID = uploadValue.GetType().GetProperties().First(prop => prop.Name == "id").GetValue(uploadValue , null);
 
         // Delete website
         await _controller.DeleteWebsite(uploadID.ToString());
@@ -137,12 +137,12 @@ public class WebsiteUploadControllerTests : TestBase
         };
 
         // Add the website
-        var uploadWebsite = await _controller.AddWebsite(test);
-        var uploadResult = uploadWebsite as OkObjectResult;
+        IActionResult uploadWebsite = await _controller.AddWebsite(test);
+        OkObjectResult? uploadResult = uploadWebsite as OkObjectResult;
 
         // Get ID of uploaded website
-        var uploadValue = uploadResult.Value;
-        var uploadID = uploadValue.GetType().GetProperties().First(prop => prop.Name == "id").GetValue(uploadValue , null);
+        object? uploadValue = uploadResult.Value;
+        object? uploadID = uploadValue.GetType().GetProperties().First(prop => prop.Name == "id").GetValue(uploadValue , null);
 
         // Change website
         await _controller.ChangeWebsite(uploadID.ToString(), newAttribute, attribute);
@@ -163,3 +163,10 @@ public class WebsiteUploadControllerTests : TestBase
 
     }
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

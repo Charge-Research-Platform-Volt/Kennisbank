@@ -52,7 +52,7 @@ export const Register = async (
         }
 
         // Send the data to the backend.
-        const response = await fetch("http://localhost:8080/Auth/signup", {
+        const response : Response = await fetch("http://localhost:8080/Auth/signup", {
             method: "POST",
             body: JSON.stringify({
                 email: rawData.email,
@@ -194,3 +194,10 @@ export async function Logout(): Promise<{success: boolean; message: string }>
         };
     }
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

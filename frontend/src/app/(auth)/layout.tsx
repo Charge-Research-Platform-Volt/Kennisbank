@@ -15,6 +15,11 @@ export default async function LoginLayout({ children }: { children: React.ReactN
                 />
 
                 {children}
+                
+                {/* Copyright notice (bottom left) */}
+                <label className="absolute text-gray-400 text-xs left-1 bottom-1">
+                    <i>©Utrecht University (ICS)</i>
+                </label>
             </div>
 
             {/* Image part (right part) */}
@@ -31,3 +36,9 @@ export default async function LoginLayout({ children }: { children: React.ReactN
         </div>
     ); 
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

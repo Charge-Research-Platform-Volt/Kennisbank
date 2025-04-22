@@ -28,7 +28,7 @@ public class ResourceManagerCreateTests : TestBase
     [SetUp]
     public async Task SetupController()
     {
-        var userStore = new UserStore<User>(Context);
+        UserStore<User> userStore = new UserStore<User>(Context);
         _userManager = new UserManager<User>(
            userStore,
             null,
@@ -186,7 +186,7 @@ public class ResourceManagerCreateTests : TestBase
 
         ResourceType? type = await Context.ResourceTypes.FirstAsync();
 
-        var dto = new ResourceCreateDto
+        ResourceCreateDto dto = new ResourceCreateDto
         {
             Title = "Test Resource",
             Description = "Multiple linked entities",
@@ -217,3 +217,9 @@ public class ResourceManagerCreateTests : TestBase
         Assert.That(resource.Regions.Any(r => r.RegionId == testRegionId));
     }
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

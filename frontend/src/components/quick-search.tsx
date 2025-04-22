@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect, useLayoutEffect, useState } from "react";
-import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogOverlay, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import React, { useEffect, useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogOverlay, DialogTitle } from "@/components/ui/dialog";
 import Search from "@/icons/search-icon";
 import { VisuallyHidden } from "radix-ui";
 import { Input } from "./ui/input";
@@ -11,12 +10,14 @@ import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
 import { OctagonAlert } from "lucide-react";
 import GetFileIcon from "./getFileIcon";
-import { Resource, ResourceResponse } from "@/types/resource.type"
+import { ResourceResponse } from "@/types/resource.type"
 import { handleOpenFile } from "@/actions/openFileActions";
 import { useQuickSearch } from "./quick-search-context";
-import Link from "next/link";
-import Kbd from "./kbd";
 
+/**
+ * 
+ * @returns QuickSearch bar in the top left corner of the screen. Users can then quickly search through the archive and open files / visit websites.
+ */
 export default function QuickSearch() {
   const { isOpen, setIsOpen } = useQuickSearch();
   const [searchResults, setSearchResults] = useState<ResourceResponse[]>([]);
@@ -58,25 +59,11 @@ export default function QuickSearch() {
     fetchSearchResults(query);
   }, 300);
 
-  const [shortcut, setShortcut] = useState("Ctrl + K");
-
-  useLayoutEffect(() => {
-    const isMac = navigator.userAgent.includes("Mac");
-    setShortcut(isMac ? "Cmd + K" : "Ctrl + K");
-  }, []);
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogTrigger asChild>
-          <Button variant="outline" className="m-0 flex w-full items-center justify-between p-2">
-            <div className="flex items-center gap-2">
-              <Search className="h-4 w-4" />
-              Search
-            </div>
-            <Kbd>{shortcut}</Kbd>
-          </Button>
-        </DialogTrigger>
+
         <DialogOverlay />
         <DialogContent className="h-full max-h-[450px] w-full content-start gap-2 p-1 sm:max-w-[650px]">
           <VisuallyHidden.Root>
@@ -136,3 +123,10 @@ export default function QuickSearch() {
     </>
   );
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

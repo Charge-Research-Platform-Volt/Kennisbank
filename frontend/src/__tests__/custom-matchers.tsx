@@ -11,7 +11,7 @@ import { expect } from 'vitest'
 // 3. Add it to frontend/vitest.d.ts so that typescript will be happy.
 //    Make sure to type everything correctly or you will get strange errors.
 
-function toHaveFormDataFields(actual: FormData, fields: Object) {
+function toHaveFormDataFields(actual: FormData, fields: object) {
   for (const [key, value] of Object.entries(fields)) {
     if (actual.get(key) !== value) {
       return {
@@ -28,3 +28,10 @@ function toHaveFormDataFields(actual: FormData, fields: Object) {
 expect.extend({
   toHaveFormDataFields,
 })
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

@@ -9,6 +9,13 @@ interface PageRoleGuardProps
     redirectTo?: string;
 }
 
+/**
+ * Checks if the page is able to be accessed by the current user
+ * @param children - The page
+ * @param requiredRole - The role required to access this page
+ * @param requiredRoles - Any of these roles are able to access the content
+ * @returns The page to be rendered
+ */
 export async function PageRoleGuard({ children, requiredRole, requiredRoles, redirectTo = '/unauthorized' }: PageRoleGuardProps)
 {
     if (requiredRole)
@@ -28,6 +35,14 @@ interface ContentRoleGuardProps
     fallback?: ReactNode;
 }
 
+/**
+ * Checks if the content is able to be accessed by the current user
+ * @param children - The content
+ * @param requiredRole - The required role to access this content
+ * @param requiredRoles - Any of these roles are able to access the content
+ * @param fallback - Fallback content in case the role is insufficient
+ * @returns The content to be rendered
+ */
 export async function ContentRoleGuard({ children, requiredRole, requiredRoles, fallback = null }: ContentRoleGuardProps)
 {
     let hasAccess: boolean = false;
@@ -51,3 +66,9 @@ export async function ContentRoleGuard({ children, requiredRole, requiredRoles, 
 
     return <>{children}</>
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

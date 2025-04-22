@@ -3,7 +3,6 @@ import { ResourcePageResponseSchema } from "@/types/resource.type";
 import Link from "next/link";
 import Greeting from "../components/greating-text";
 import Archive from "@/icons/archive";
-import Projects from "@/icons/projects-icon";
 import GetFileIcon from "@/components/getFileIcon";
 import OpenFileButton from "@/components/open-file-button";
 import SearchButton from "../components/search-button";
@@ -21,14 +20,14 @@ export default async function Home() {
     files = files.slice(0, 4);
   }
 
-  const formatter = new Intl.DateTimeFormat('en-US', {
+  const formatter : Intl.DateTimeFormat = new Intl.DateTimeFormat('en-US', {
     timeZone: process.env.NEXT_PUBLIC_TIMEZONE || 'Europe/Berlin',
     hour: 'numeric',
     hour12: false
   });
   
-  const timeString = formatter.format(new Date());
-  const currentHour = parseInt(timeString, 10);
+  const timeString : string = formatter.format(new Date());
+  const currentHour : number = parseInt(timeString, 10);
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-6">
@@ -40,7 +39,7 @@ export default async function Home() {
         <div className="mb-10 flex justify-center gap-10">
           <SearchButton />
           {[
-            { icon: <Projects className="h-50 w-50" fill="#4b5563" />, text: "Projects", path: "/projects" },
+            // { icon: <Projects className="h-50 w-50" fill="#4b5563" />, text: "Projects", path: "/projects" },
             { icon: <Archive className="h-50 w-50" fill="#4b5563" />, text: "Archive", path: "/archive" },
           ].map((btn, index) => (
             <Link key={index} href={btn.path}>
@@ -77,3 +76,10 @@ export default async function Home() {
     </div>
   );
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

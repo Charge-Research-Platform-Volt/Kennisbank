@@ -12,8 +12,8 @@ import UserListItem from "./UserListItem";
 export default function UsersList() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const pageParam = searchParams.get("page");
-    const initialPage = pageParam && !isNaN(Number(pageParam)) ? parseInt(pageParam) : 1;
+    const pageParam : string | null = searchParams.get("page");
+    const initialPage : number = pageParam && !isNaN(Number(pageParam)) ? parseInt(pageParam) : 1;
     const emptyUserArray: UserArray = [];
     const [users, setUsers] = useState(emptyUserArray);
     const [pageNumber, setPageNumber] = useState(initialPage);
@@ -50,7 +50,7 @@ export default function UsersList() {
 
     //update the url parameters when changing page, without reloading
     const updatePageInUrl = (newPage: number) => {
-        const params = new URLSearchParams(searchParams.toString());
+        const params : URLSearchParams = new URLSearchParams(searchParams.toString());
         if (newPage > 1) {
             params.set("page", newPage.toString());
         } else {
@@ -115,3 +115,9 @@ export default function UsersList() {
     )    
 }
   
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+
