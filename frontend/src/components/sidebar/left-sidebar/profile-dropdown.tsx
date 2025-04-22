@@ -44,10 +44,10 @@ export default function ProfileDropdown({ isIcon = false, handleLogoutAction, us
     
         { /* Dropdown menu */ }
         <DropdownMenuContent side="top" style={{ width: profileButtonWidth }}>
-            <DropdownMenuItem className="cursor-pointer">
+            {/* <DropdownMenuItem className="cursor-pointer">
                 Profile
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator /> */}
             <DropdownMenuItem onClick={handleLogoutAction} className="cursor-pointer">
                 Log out
             </DropdownMenuItem>
@@ -55,3 +55,7 @@ export default function ProfileDropdown({ isIcon = false, handleLogoutAction, us
     </DropdownMenu>
   );
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
