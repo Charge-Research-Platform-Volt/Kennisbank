@@ -17,7 +17,7 @@ const testTags = TagArraySchema.parse([
     }
 ]);
 
-const expectedComponents : string[] = ['Upload New Document', 'Upload New Website', 'Create New Project'];
+const expectedComponents : string[] = ['Upload New Document', 'Upload New Website'];
 const popUpFileText : string[] = ['Tags:', 'Upload File', 'Document Title:', 'Description:', 'Author Name:', 'Upload'];
 const popUpWebsiteText: string[] = ['Upload Website', 'Website URL:'];
 
