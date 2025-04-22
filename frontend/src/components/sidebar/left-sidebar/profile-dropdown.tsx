@@ -27,7 +27,7 @@ export default function ProfileDropdown({ isIcon = false, handleLogoutAction, us
         { /* Trigger button (profile photo and if not asIcon: username+email) */ }
         <DropdownMenuTrigger
             ref={profileButtonRef}
-            className={`font-face text-md flex h-auto w-full cursor-pointer items-center gap-1 rounded-xl bg-transparent p-2 text-left text-black shadow-none outline-none hover:bg-gray-200 data-[state=closed]:ring-0 ${isIcon ? "rounded-l-none" : ""}`}
+            className={`font-face text-md flex h-auto w-full cursor-pointer items-center gap-1 rounded-xl bg-transparent p-2 pb-0 text-left text-black shadow-none outline-none hover:bg-gray-200 data-[state=closed]:ring-0 ${isIcon ? "rounded-l-none" : ""}`}
         >
             { /* Profile photo */ }
             <Image src={`/img/default-profile-picture.svg`} alt="Help" width={24} height={24} className={`${isIcon ? "" : "mr-2"}`} />

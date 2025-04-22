@@ -1,6 +1,6 @@
 import Logo from "@/components/logo";
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
-import { Notebook, MonitorSmartphone, House } from "lucide-react";
+import { Notebook, MonitorSmartphone, House, Info } from "lucide-react";
 
 export const baseOptions: BaseLayoutProps = {
     nav: {
@@ -25,6 +25,12 @@ export const baseOptions: BaseLayoutProps = {
             url: "/docs",
             active: "url",
             icon: <MonitorSmartphone />,
+        },
+        {
+            text: "Development Team",
+            url: "/team",
+            active: "url",
+            icon: <Info />,
         },
     ],
 };

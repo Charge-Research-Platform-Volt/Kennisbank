@@ -11,7 +11,6 @@ import { usePathname } from "next/navigation";
 import { useRouter } from 'next/navigation'
 import ProfileDropdown from "./profile-dropdown";
 import FoldedButton from "./folded-button";
-import AboutIcon from "@/icons/about-icon";
 
 /**
  * 
@@ -24,7 +23,7 @@ import AboutIcon from "@/icons/about-icon";
  * @param handleLogoutAction - Action that logs out
  * @returns The folded left sidebar, which takes up less space than the full one, but is also in less detail. Has most functionality of the normal sidebar.
  */
-export default function LeftSidebarFolded({ menuItems, projects, settingsPath, aboutPath, tags, switchMenuAction, handleLogoutAction }: { menuItems: SidebarItem[], projects: SidebarItem[], settingsPath: string, aboutPath: string, tags: TagArray; switchMenuAction: () => void, handleLogoutAction: () => void }) {
+export default function LeftSidebarFolded({ menuItems, projects, settingsPath, tags, switchMenuAction, handleLogoutAction }: { menuItems: SidebarItem[], projects: SidebarItem[], settingsPath: string, tags: TagArray; switchMenuAction: () => void, handleLogoutAction: () => void }) {
   const pathname = usePathname();
 
   const router = useRouter();
@@ -75,10 +74,6 @@ export default function LeftSidebarFolded({ menuItems, projects, settingsPath, a
                 action={() => router.push("http://localhost:3001/guide")}
                 icon={<Help className="h-4 w-4" />}
             />
-            <FoldedButton
-                testid="hiddensidebar"
-                action={() => router.push(aboutPath)}
-                icon={<AboutIcon className="h-4 w-4"></AboutIcon>} />
             
             {/* Profile photo with dropdown */}
             <ProfileDropdown isIcon={true} handleLogoutAction={handleLogoutAction} />

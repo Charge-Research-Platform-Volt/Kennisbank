@@ -17,7 +17,7 @@ export default async function LoginLayout({ children }: { children: React.ReactN
                 {children}
                 
                 {/* Copyright notice (bottom left) */}
-                <label className="absolute left-4 bottom-4">
+                <label className="absolute text-gray-400 text-xs left-1 bottom-1">
                     <i>©Utrecht University (ICS)</i>
                 </label>
             </div>

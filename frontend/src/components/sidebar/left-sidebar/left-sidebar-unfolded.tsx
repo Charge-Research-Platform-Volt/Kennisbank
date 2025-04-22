@@ -12,7 +12,6 @@ import HideMenu from "@/icons/menu/hide-menu";
 import QuickSearch from "@/components/quick-search";
 import ProfileDropdown from "./profile-dropdown";
 import Divider from "../divider";
-import AboutIcon from "@/icons/about-icon";
 
 /**
  * 
@@ -27,9 +26,9 @@ import AboutIcon from "@/icons/about-icon";
  * @param handleLogoutAction - Action that logs out
  * @returns The full left sidebar, which takes up more space than the folded one, but is also in more detail. Has all functionality of the left sidebar, including for example quick search.
  */
-export default function LeftSidebarUnfolded({ menuItems, projects, settingsPath, aboutPath, tags, userEmail, userRole, switchMenuAction, handleLogoutAction }: { menuItems: SidebarItem[], projects: SidebarItem[], settingsPath: string, aboutPath: string, tags: TagArray; userEmail: string; userRole: string, switchMenuAction: () => void, handleLogoutAction: () => void }) {
+export default function LeftSidebarUnfolded({ menuItems, projects, settingsPath, tags, userEmail, userRole, switchMenuAction, handleLogoutAction }: { menuItems: SidebarItem[], projects: SidebarItem[], settingsPath: string, tags: TagArray; userEmail: string; userRole: string, switchMenuAction: () => void, handleLogoutAction: () => void }) {
   return (
-    <aside className="flex h-screen flex-col bg-gray-100 p-2.5 transition-all duration-300 overflow-y-auto w-64">
+    <aside className="flex h-screen flex-col bg-gray-100 p-2.5 transition-all duration-300 overflow-y-auto w-64 pb-0">
         <div className="mb-4 flex items-center justify-between">
             {/* KnowledgeBase title */}
             <h2 className="text-xl font-semibold">
@@ -74,19 +73,12 @@ export default function LeftSidebarUnfolded({ menuItems, projects, settingsPath,
                         Help
                     </Link>
                 </li>
-
-                <li>
-                    <Link data-testid="sidebar" href={aboutPath} className="flex items-center gap-x-2 rounded-md p-2 hover:bg-gray-200">
-                        <AboutIcon className="h-4 w-4"/>
-                        About us
-                    </Link>
-                </li>
                 <Divider />
                 <li>
                     <ProfileDropdown isIcon={false} handleLogoutAction={handleLogoutAction} userEmail={userEmail} userRole={userRole} />
                 </li>
                 <li>
-                    <label><i>©Utrecht University (ICS)</i></label>
+                    <label className="text-gray-400 text-xs"><i>©Utrecht University (ICS)</i></label>
                 </li>
             </ul>
         </nav>

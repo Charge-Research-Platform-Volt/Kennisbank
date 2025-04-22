@@ -60,7 +60,6 @@ export default function LeftSidebarClient({ open, tags, userEmail, userRole }: {
           menuItems={menuItems} 
           projects={projects} 
           settingsPath="/users"
-          aboutPath="/about"
           tags={tags} 
           handleLogoutAction={handleLogout} 
           switchMenuAction={switchMenuAction} 
@@ -73,7 +72,6 @@ export default function LeftSidebarClient({ open, tags, userEmail, userRole }: {
           menuItems={menuItems} 
           projects={projects} 
           settingsPath="/users" 
-          aboutPath="/about"
           tags={tags} 
           userEmail={userEmail} 
           userRole={userRole} 
