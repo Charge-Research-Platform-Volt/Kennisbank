@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import UserListItem from "./UserListItem";
+import { Input } from "@/components/ui/input";
+import Search from "@/icons/search-icon";
 
 export default function UsersList() {
     const router = useRouter();
@@ -67,6 +69,19 @@ export default function UsersList() {
 
     return (
         <div className="w-full">
+            <div className="pb-2">
+                <div className="relative w-full">
+                <Input
+                    className="peer h-10 ps-9"
+                    placeholder="Search"
+                    type="text"
+                    //onChange={}
+                />
+                <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
+                    <Search className="h-4 w-4" aria-hidden="true" fill="currentColor" />
+                </div>
+                </div>
+            </div>
             {error.length > 0 ? 
             //display error message if any
             (
@@ -83,7 +98,7 @@ export default function UsersList() {
             //display the users
             (
                 <div>
-                    <div className="flex flex-col space-y-4">
+                    <div className="flex flex-col space-y-2">
                         {users.map((user) => (
                             <UserListItem key={crypto.randomUUID()} user={user} />
                         ))}
