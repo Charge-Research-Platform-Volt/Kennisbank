@@ -9,9 +9,10 @@ import { useQuickSearch } from "@/components/quick-search-context";
 
 /**
  * 
- * @returns QuickSearch bar in the top left corner of the screen. Users can then quickly search through the archive and open files / visit websites.
+ * @param asIcon - If true, the button is displayed as an icon. If false, the button is displayed as a text button.
+ * @returns The a button for opening the quick search bar. The button is displayed as an icon if asIcon is true, and as a text button if asIcon is false.
  */
-export default function QuickSearchButton( {isIcon = false }: {isIcon?: boolean}) {
+export default function QuickSearchButton( {asIcon: asIcon = false }: {asIcon?: boolean}) {
   const { isOpen, setIsOpen } = useQuickSearch();
 
   const [shortcut, setShortcut] = useState("Ctrl + K");
@@ -23,7 +24,7 @@ export default function QuickSearchButton( {isIcon = false }: {isIcon?: boolean}
 
   return (
     <>
-        { !isIcon && (
+        { !asIcon && (
             <Button onClick={() => setIsOpen(!isOpen)} variant="outline" className="m-0 flex w-full items-center justify-between p-2">
                 <div className="flex items-center gap-2">
                     <Search className="h-4 w-4" />
@@ -32,7 +33,7 @@ export default function QuickSearchButton( {isIcon = false }: {isIcon?: boolean}
                 <Kbd>{shortcut}</Kbd>
             </Button>
         )}
-        { isIcon && (
+        { asIcon && (
             <FoldedButton action={() => setIsOpen(!isOpen)} icon={<Search className="h-4 w-4" />} className="mb-[2vh] bg-white pt-2 pb-2 shadow-xs" />
         )}
     </>

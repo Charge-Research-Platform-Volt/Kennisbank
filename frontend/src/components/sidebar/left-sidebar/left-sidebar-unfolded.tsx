@@ -7,7 +7,6 @@ import NewButton from "@/components/sidebar/left-sidebar/sidebar-new-button";
 import type { TagArray } from "@/types/tag.type";
 import type { SidebarItem } from "@/types/sidebar";
 import HideMenu from "@/icons/menu/hide-menu";
-import QuickSearch from "@/components/quick-search";
 import ProfileDropdown from "./profile-dropdown";
 import Divider from "../divider";
 import QuickSearchButton from "./quick-search-button";
