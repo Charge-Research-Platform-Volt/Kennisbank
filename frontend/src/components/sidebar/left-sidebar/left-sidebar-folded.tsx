@@ -9,8 +9,6 @@ import { usePathname } from "next/navigation";
 import { useRouter } from 'next/navigation'
 import ProfileDropdown from "./profile-dropdown";
 import FoldedButton from "./folded-button";
-import { useQuickSearch } from "@/components/quick-search-context";
-import { useHotkeys } from "react-hotkeys-hook";
 import QuickSearchButton from "./quick-search-button";
 
 /**
