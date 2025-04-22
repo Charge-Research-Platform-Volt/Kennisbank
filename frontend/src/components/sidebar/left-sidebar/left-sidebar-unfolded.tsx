@@ -10,6 +10,7 @@ import HideMenu from "@/icons/menu/hide-menu";
 import QuickSearch from "@/components/quick-search";
 import ProfileDropdown from "./profile-dropdown";
 import Divider from "../divider";
+import QuickSearchButton from "./quick-search-button";
 
 /**
  * 
@@ -44,7 +45,7 @@ export default function LeftSidebarUnfolded({ menuItems, projects, bottomMenuIte
                 <NewButton data-testid="sidebar" tags={tags} />
 
                 {/* Search bar */}
-                <QuickSearch data-testid="sidebar" />
+                <QuickSearchButton data-testid="sidebar" />
             </div>
         </nav>
             

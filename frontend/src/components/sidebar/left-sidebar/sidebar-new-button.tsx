@@ -230,7 +230,7 @@ export default function NewButton({ tags, asIcon = false }: { tags: TagArray, as
         {/* Purple New button */}
         <DropdownMenuTrigger
           ref={newButtonRef}
-          className={`bg-purple active:bg-purple cursor-pointer text-white hover:bg-[#6f2aaf] w-full p-2 ${asIcon ? "mb-[2vh] rounded rounded-l-none rounded-r-lg transition" : "font-face text-md flex h-9 items-center rounded-md text-left"}`}
+          className={`bg-purple active:bg-purple cursor-pointer text-white hover:bg-[#6f2aaf] w-full p-2 mb-2 ${asIcon ? "rounded rounded-l-none rounded-r-lg transition" : "font-face text-md flex h-9 items-center rounded-md text-left"}`}
         >
           <New className="h-5 w-5 mr-1"/>
           {/* If asIcon is true, only show icon */}
