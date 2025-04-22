@@ -141,7 +141,7 @@ namespace KnowledgeBank.Data
             {
                 await Database.ExecuteSqlInterpolatedAsync($@"
                     INSERT INTO ""resource-vectors"" (id, ""resource-id"", vector)
-                    VALUES (gen_random_uuid(), {resource.Id}, to_tsvector('english', {resource.Title} || ' ' || {resource.Description}))
+                    VALUES (gen_random_uuid(), {resource.Id}, to_tsvector('english', {resource.Title} || ' ' || {resource.Description ?? ""}))
                     ON CONFLICT (""resource-id"") 
                     DO UPDATE SET vector = EXCLUDED.vector;");
             }
