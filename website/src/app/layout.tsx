@@ -18,10 +18,18 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <body className={inter.className}>
-                <RootProvider>
-                    {children}
-                </RootProvider>
+                <RootProvider>{children}</RootProvider>
+                <label className="absolute right-1 bottom-1 text-xs">
+                    <i>© Utrecht University (ICS)</i>
+                </label>
             </body>
         </html>
     );
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

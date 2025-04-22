@@ -45,3 +45,9 @@ public static class MigrationExtensions
         context.Database.ExecuteSqlRaw("CREATE INDEX idx_resource_vector ON \"resource-vectors\" USING GIN(vector);");
     }
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

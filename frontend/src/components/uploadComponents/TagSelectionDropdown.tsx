@@ -13,6 +13,7 @@ import { toast } from "sonner";
  *
  * @param tags - Tags fetched from root
  * @param className - Styling fetched from parent
+ * @param createButton - Whether or not the create button should be added
  *
  * @returns The dropdown box where the user can type and select tags to be added to the document
  */
@@ -139,7 +140,6 @@ export default function TagSelectionDropdown({ tags, onSelectionChangedAction = 
                 {showCreateTagField ? 'Cancel' : 'Create'}
               </Button>
             ) : ''}
-           
           </div>
 
           {showCreateTagField && (
@@ -177,7 +177,6 @@ export default function TagSelectionDropdown({ tags, onSelectionChangedAction = 
                 {tag.name}{ tag.isStandardized ? <AdminTagIcon className="h-4 w-4 self-center" /> : tag.isApproved ? <ApprovedTagIcon className="h-4 w-4" /> : "" }
               </button>
             ))}
-            
         </div>
       </div>
       <div className="mt-1 h-50 max-h-50 overflow-y-auto border">
@@ -201,3 +200,10 @@ export default function TagSelectionDropdown({ tags, onSelectionChangedAction = 
     </div>
   );
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

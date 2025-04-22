@@ -8,7 +8,7 @@ export const handleOpenFile = async (file: ResourceResponse) => {
     // knowledgebank host as its base
     function makeValid(input:string):string {
         console.log(input)
-        const validBeginLink = ["https://", "http://"];
+        const validBeginLink : [string, string] = ["https://", "http://"];
         for(const element of validBeginLink) {
             if(input.startsWith(element))
                 return input;
@@ -20,7 +20,7 @@ export const handleOpenFile = async (file: ResourceResponse) => {
     if(file.fileType != "website"){
         url = `http://localhost:8080/storage/download/${file.id}`;
         try {
-            const response = await fetch(url, {
+            const response : Response = await fetch(url, {
                 method: 'GET',
                 credentials: 'include', // Makes sure cookies are included
             });
@@ -29,8 +29,8 @@ export const handleOpenFile = async (file: ResourceResponse) => {
                 throw new Error(`Error getting file: ${response.statusText}`);
             }
 
-            const blob = await response.blob();
-            const blobUrl = URL.createObjectURL(blob);
+            const blob : Blob = await response.blob();
+            const blobUrl : string = URL.createObjectURL(blob);
             
             window.open(blobUrl, '_blank');
         } catch (error) {
@@ -68,3 +68,9 @@ export const handleOpenFile = async (file: ResourceResponse) => {
         }
     }
   }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

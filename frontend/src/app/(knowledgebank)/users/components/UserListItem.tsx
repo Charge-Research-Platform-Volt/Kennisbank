@@ -76,18 +76,26 @@ export default function UserListItem({ user } : {user: User}) {
             { editting ? 
                 /* Item for editting email and role */
                 (
-                    <form className="relative w-full" onSubmit={handleSave}>
-                        <Input
-                            type="text"
-                            name="name"
-                            placeholder="Email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                        />
-                        <div className="absolute inset-y-0 right-2 flex items-center justify-center">
-                            <select value={role} onChange={(e) => setRole(e.target.value)} style={isSaving ? { pointerEvents: 'none' } : {}}>
-                                    <option value="user">User</option>
-                                    <option value="admin">Admin</option>
+                    <form className="w-full flex items-center gap-2" onSubmit={handleSave}>
+                        <div className="flex-1 min-w-0">
+                            <Input
+                                type="text"
+                                name="name"
+                                placeholder="Email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <select
+                                value={role}
+                                onChange={(e) => setRole(e.target.value)}
+                                disabled={isSaving}
+                                className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground border rounded px-2 py-1 text-sm"
+                            >
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
                             </select>
                             <Button
                                 className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
@@ -96,23 +104,26 @@ export default function UserListItem({ user } : {user: User}) {
                                 title="Save tag"
                                 disabled={isSaving}
                             >
-                                <SaveIcon className="h-5 w-5" fill="#737373"/>
+                                <SaveIcon className="h-5 w-5" fill="#737373" />
                             </Button>
                         </div>
-                        <Input
-                            type="hidden"
-                            name="id"
-                            value={userState.id}
-                        />
+                        <Input type="hidden" name="id" value={userState.id} />
                     </form>
                 ) : (
                     /* Item for displaying email and role with options for opening edit menu and deleting user */
-                    <form className="relative w-full shadow rounded-md px-3 py-1">
-                        <div className="flex gap-2">
-                            <p>{userState.email}</p>
+                    <form className="relative w-full flex items-center gap-2 shadow rounded-md px-3 py-1">
+                        <div className="flex-1 min-w-0">
+                            <p className="truncate whitespace-nowrap overflow-hidden">
+                            {userState.email}
+                            </p>
                         </div>
-                        <div className="absolute inset-y-0 right-2 flex items-center justify-center">
-                            <select value={role} onChange={(e) => setRole(e.target.value)} className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground" style={{ pointerEvents: 'none' }}>
+                        <div className="flex items-center gap-2">
+                            <select
+                                value={role}
+                                onChange={(e) => setRole(e.target.value)}
+                                className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
+                                style={{ pointerEvents: "none" }}
+                            >
                                 <option value="user">User</option>
                                 <option value="admin">Admin</option>
                             </select>
@@ -128,17 +139,18 @@ export default function UserListItem({ user } : {user: User}) {
                             >
                                 <EditIcon className="h-5 w-5" fill="#737373" />
                             </Button>
-
                             <DeleteUserButton user={userState} />
                         </div>
-                        <Input
-                            type="hidden"
-                            name="id"
-                            value={user.id}
-                        />
                     </form>
+
                 )}
         </div>
     )    
 }
   
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

@@ -51,7 +51,7 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(401, "The user is not authenticated")]
         public IActionResult Ping()
         {
-            var email = User.FindFirstValue(ClaimTypes.Email);
+            string? email = User.FindFirstValue(ClaimTypes.Email);
             return Ok(new { Email = email });
         }
 
@@ -95,12 +95,12 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(400, "Bad request")]
         public async Task<IActionResult> Register([FromBody] SignUpDto signUpDto)
         {
-            using (var transaction = await _context.Database.BeginTransactionAsync())
+            using (Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
                     // check if there is a recent invitation for the email and token
-                    var invitation = _context.Invitations.FirstOrDefault(i => i.Email == ShaUtils.Sha256(signUpDto.Email) 
+                    Invitation? invitation = _context.Invitations.FirstOrDefault(i => i.Email == ShaUtils.Sha256(signUpDto.Email) 
                                                                             && i.Token == ShaUtils.Sha256(signUpDto.Token) 
                                                                             && i.CreatedAt > DateTime.UtcNow.AddHours(-168));
                     if (invitation == null)
@@ -113,7 +113,7 @@ namespace KnowledgeBank.Controllers
                     await _context.SaveChangesAsync();
 
                     // create the user
-                    var user = new User
+                    User user = new User
                     {
                         Email = signUpDto.Email,
                         UserName = signUpDto.Email
@@ -143,3 +143,10 @@ namespace KnowledgeBank.Controllers
 
     }
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

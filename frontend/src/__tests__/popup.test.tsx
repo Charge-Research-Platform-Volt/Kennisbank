@@ -17,7 +17,7 @@ const testTags = TagArraySchema.parse([
     }
 ]);
 
-const expectedComponents : string[] = ['Upload New Document', 'Upload New Website', 'Create New Project'];
+const expectedComponents : string[] = ['Upload New Document', 'Upload New Website'];
 const popUpFileText : string[] = ['Tags:', 'Upload File', 'Document Title:', 'Description:', 'Author Name:', 'Upload'];
 const popUpWebsiteText: string[] = ['Upload Website', 'Website URL:'];
 
@@ -95,3 +95,10 @@ describe('popup', () =>
     expect(displayedTags).toEqual([]);
   }),
 );
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

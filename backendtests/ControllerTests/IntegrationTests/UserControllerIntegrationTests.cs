@@ -32,7 +32,7 @@ public class UserControllerTests : TestBase
     public async Task GetAllUsers_ReturnsResults_WhenDataExists()
     {
         // Arrange
-        var testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
+        User testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
         Context.AppUsers.Add(testUser);
         await Context.SaveChangesAsync();
         _userManagerMock.Setup(m => m.GetRolesAsync(It.IsAny<User>())).ReturnsAsync((User user) => {
@@ -40,14 +40,14 @@ public class UserControllerTests : TestBase
         });
 
         // Act
-        var result = await _controller.GetAllUsers();
+        IActionResult result = await _controller.GetAllUsers();
 
         // Assert
-        var okResult = result as OkObjectResult;
+        OkObjectResult? okResult = result as OkObjectResult;
         Assert.That(okResult, Is.Not.Null);
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
 
-        var response = okResult.Value as UserResponse[];
+        UserResponse[]? response = okResult.Value as UserResponse[];
         Assert.That(response.Length, Is.GreaterThan(0));
     }
 
@@ -55,7 +55,7 @@ public class UserControllerTests : TestBase
     public async Task GetUsersPaged_ReturnsResults_WhenDataExists()
     {
         // Arrange
-        var testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
+        User testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
         Context.AppUsers.Add(testUser);
         await Context.SaveChangesAsync();
         _userManagerMock.Setup(m => m.GetRolesAsync(It.IsAny<User>())).ReturnsAsync((User user) => {
@@ -63,10 +63,10 @@ public class UserControllerTests : TestBase
         });
 
         // Act
-        var result = await _controller.GetUsersPaged(1, 10);
+        IActionResult result = await _controller.GetUsersPaged(1, 10);
 
         // Assert
-        var okResult = result as OkObjectResult;
+        OkObjectResult? okResult = result as OkObjectResult;
         Assert.That(okResult, Is.Not.Null);
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
 
@@ -84,17 +84,24 @@ public class UserControllerTests : TestBase
     public async Task Delete_RemovesUser_WhenSuccessful()
     {
         // Arrange
-        var testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
+        User testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
         _userManagerMock.Setup(m => m.FindByIdAsync(testUser.Id)).ReturnsAsync(testUser);
         _userManagerMock.Setup(m => m.DeleteAsync(testUser)).ReturnsAsync(IdentityResult.Success);
         await Context.SaveChangesAsync();
 
         // Act
-        var result = await _controller.Delete(testUser.Id);
+        IActionResult result = await _controller.Delete(testUser.Id);
 
         // Assert
-        var okResult = result as OkObjectResult;
+        OkObjectResult? okResult = result as OkObjectResult;
         Assert.That(okResult, Is.Not.Null);
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
     }
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

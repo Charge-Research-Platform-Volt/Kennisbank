@@ -1,17 +1,23 @@
 ﻿using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace KnowledgeBank.Data
 {
     public static class TestDataSeeder
     {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+        private static Random random = new Random();
         private static IAzureBlobService blobService;
         private static DatabaseContext database;
         private static ResourceManager resourceManager;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         private static string testDataPath = Path.Combine("/app", "testdata") + "/";
-
+        /// <summary>
+        /// Adds test data to the database and blob storage
+        /// </summary>
+        /// <param name="serviceProvider">All services</param>
+        /// <returns></returns>
         public static async Task Seed(IServiceProvider serviceProvider)
         {
             using IServiceScope scope = serviceProvider.CreateScope();
@@ -41,6 +47,15 @@ namespace KnowledgeBank.Data
             await ShamelessCopyOfUpload("1887_3731030-Full Text.pdf", "Stimulering en facilitering van burgerinitiatieven door de overheid: over de invulling van de ‘dienende overheid’ bij derde generatie burgerparticipatie", "");     
         }
 
+        /// <summary>
+        /// Adds a test data author to the database
+        /// </summary>
+        /// <param name="name">Name of author</param>
+        /// <param name="occupation">Occupation of author</param>
+        /// <param name="description">Description of author</param>
+        /// <param name="emailaddress">Email of author</param>
+        /// <param name="linkedin">Linkedin of author</param>
+        /// <returns></returns>
         private static async Task AddTestAuthor(string name, string occupation, string description, string emailaddress, string linkedin)
         {
             if (await resourceManager.PersonExistsAsync(p => p.Name == name)) return;
@@ -63,11 +78,19 @@ namespace KnowledgeBank.Data
             }
         }
 
+        /// <summary>
+        /// Makes a shameless copy of an uploaded file in the testdata and updates the database and blob storage accordingly
+        /// </summary>
+        /// <param name="path">Path to the test file</param>
+        /// <param name="title">Name of test file</param>
+        /// <param name="description">Description of test file</param>
+        /// <returns></returns>
         private static async Task ShamelessCopyOfUpload(string path, string title, string description)
         {
             path = testDataPath + path;
 
             if (await resourceManager.ResourceExistsAsync(r => r.Title == title)) return;
+            DateTime randomDay = new DateTime(1960, 1, 1, 10, 0, 0, 0).AddDays(random.Next(0,22000)).ToUniversalTime(); //DateTime.ParseExact("1960-01-01T12:00:00Z", "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
 
             ResourceCreateDto dto = new()
             {
@@ -75,7 +98,7 @@ namespace KnowledgeBank.Data
                 Description = description,
                 LanguageCode = "??",
                 TypeId = DatabaseSeeder.UnknownResourceTypeId,
-                PublicationDate = DateTime.UtcNow,
+                PublicationDate = randomDay,
             };
 
             string extension = Path.GetExtension(path);
@@ -108,3 +131,10 @@ namespace KnowledgeBank.Data
         }
     }
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

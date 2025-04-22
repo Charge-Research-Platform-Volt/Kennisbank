@@ -113,13 +113,13 @@ namespace KnowledgeBank.Data
         public async Task<int> SaveResourceChangesAsync(CancellationToken cancellationToken = default)
         {
             // Get files that were added or modified
-            var updatedResources = ChangeTracker.Entries<Resource>()
+            List<Resource> updatedResources = ChangeTracker.Entries<Resource>()
                 .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
                 .Select(e => e.Entity)
                 .ToList();
 
             // First save the changes to the database
-            var result = await base.SaveChangesAsync(cancellationToken);
+            int result = await base.SaveChangesAsync(cancellationToken);
 
             // If there are any updated files, update their search vectors
             if (updatedResources.Count != 0) await UpdateResourceVectorAsync(updatedResources);
@@ -137,11 +137,11 @@ namespace KnowledgeBank.Data
         {
             // Generates an Enumerable<Task> of SQL queries that inserts the
             // vector, if there's a conflict, replace existing vector instead
-            foreach (var resource in updatedResources)
+            foreach (Resource resource in updatedResources)
             {
                 await Database.ExecuteSqlInterpolatedAsync($@"
                     INSERT INTO ""resource-vectors"" (id, ""resource-id"", vector)
-                    VALUES (gen_random_uuid(), {resource.Id}, to_tsvector('english', {resource.Title} || ' ' || {resource.Description}))
+                    VALUES (gen_random_uuid(), {resource.Id}, to_tsvector('english', {resource.Title} || ' ' || {resource.Description ?? ""}))
                     ON CONFLICT (""resource-id"") 
                     DO UPDATE SET vector = EXCLUDED.vector;");
             }
@@ -149,3 +149,9 @@ namespace KnowledgeBank.Data
         }
     }
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+
