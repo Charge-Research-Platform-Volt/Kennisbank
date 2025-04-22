@@ -1,6 +1,5 @@
-using backend.Models;
-using KnowledgeBank.Controllers;
 using KnowledgeBank.Models;
+using KnowledgeBank.Controllers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;

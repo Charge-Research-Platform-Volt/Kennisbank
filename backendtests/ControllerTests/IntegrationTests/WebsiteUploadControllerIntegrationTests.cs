@@ -7,7 +7,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using KnowledgeBank.Controllers;
 using KnowledgeBank.Responses;
-using backend.Controllers;
 
 namespace backend.Tests.Integration;
 
