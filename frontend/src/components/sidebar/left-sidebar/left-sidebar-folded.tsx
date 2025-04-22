@@ -3,9 +3,7 @@
 import React from "react";
 import NewButton from "@/components/sidebar/left-sidebar/sidebar-new-button";
 import type { TagArray } from "@/types/tag.type";
-import Settings from "@/icons/settings";
 import type { SidebarItem } from "@/types/sidebar";
-import Help from "@/icons/help";
 import ShowMenu from "@/icons/menu/show-menu";
 import { usePathname } from "next/navigation";
 import { useRouter } from 'next/navigation'
@@ -16,14 +14,13 @@ import FoldedButton from "./folded-button";
  * 
  * @param menuItems - Menu items to display (home, archive, tags)
  * @param projects - Recent projects to display
- * @param settingsPath - Path to the settings page
- * @param aboutPath - Path to about page
+ * @param bottomMenuItems - Items at the bottom of the sidebar (settings, help)
  * @param Tags - Fetch of all tags
  * @param switchMenuAction - Action that switches from the folded sidebar to the unfolded
  * @param handleLogoutAction - Action that logs out
  * @returns The folded left sidebar, which takes up less space than the full one, but is also in less detail. Has most functionality of the normal sidebar.
  */
-export default function LeftSidebarFolded({ menuItems, projects, settingsPath, tags, switchMenuAction, handleLogoutAction }: { menuItems: SidebarItem[], projects: SidebarItem[], settingsPath: string, tags: TagArray; switchMenuAction: () => void, handleLogoutAction: () => void }) {
+export default function LeftSidebarFolded({ menuItems, projects, bottomMenuItems, tags, switchMenuAction, handleLogoutAction }: { menuItems: SidebarItem[], projects: SidebarItem[], bottomMenuItems: SidebarItem[], tags: TagArray; switchMenuAction: () => void, handleLogoutAction: () => void }) {
   const pathname = usePathname();
 
   const router = useRouter();
@@ -64,23 +61,23 @@ export default function LeftSidebarFolded({ menuItems, projects, settingsPath, t
         { /* Bottom items */ }
         <div className="flex flex-col mt-auto">
             {/* Settings and Help */}
-            <FoldedButton
-                testid="hiddensidebar" 
-                action={() => router.push(settingsPath)}
-                icon={<Settings className="h-4 w-4" />}
-            />  
-            <FoldedButton
-                testid="hiddensidebar" 
-                action={() => router.push("http://localhost:3001/guide")}
-                icon={<Help className="h-4 w-4" />}
-            />
-            
-            {/* Profile photo with dropdown */}
+            {bottomMenuItems.map((item) => (
+                <FoldedButton
+                    testid="hiddensidebar" 
+                    key={item.id}
+                    action={() => router.push(item.path)}
+                    icon={item.icon}
+                />
+            )) }
             <ProfileDropdown isIcon={true} handleLogoutAction={handleLogoutAction} />
         </div>
     </div>
     )
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.

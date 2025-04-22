@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 /**
  * 
@@ -44,10 +44,10 @@ export default function ProfileDropdown({ isIcon = false, handleLogoutAction, us
     
         { /* Dropdown menu */ }
         <DropdownMenuContent side="top" style={{ width: profileButtonWidth }}>
-            <DropdownMenuItem className="cursor-pointer">
+            {/* <DropdownMenuItem className="cursor-pointer">
                 Profile
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator /> */}
             <DropdownMenuItem onClick={handleLogoutAction} className="cursor-pointer">
                 Log out
             </DropdownMenuItem>
