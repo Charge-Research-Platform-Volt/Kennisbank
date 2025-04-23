@@ -20,6 +20,7 @@ export default function UsersList() {
     const emptyUserArray: UserArray = [];
     const [users, setUsers] = useState(emptyUserArray);
     const [pageNumber, setPageNumber] = useState(initialPage);
+    const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
     const [pageCount, setPageCount] = useState(0);
     const [searchQuery, setSearchQuery] = useState("");
@@ -43,10 +44,16 @@ export default function UsersList() {
                 if(fetchAmount === fetches.current) {
                     setUsers(response.users || []);
                     setPageCount(response.pageCount || 0);
+                    setIsLoading(false);
                 }
             }
             catch {
                toast.error("Error loading users.");
+
+               if(fetchAmount === fetches.current) {
+                    setError("Error loading users.");
+                    setIsLoading(false);
+                }
             } 
         }
 
@@ -124,6 +131,12 @@ export default function UsersList() {
                             Next
                         </Button>
                     </div>
+                </div>
+            ) : isLoading ? 
+            //display if loading
+            (
+                <div className="text-center text-gray-500">
+                    Loading users...
                 </div>
             ) : (
                 <div className="text-center text-gray-500">
