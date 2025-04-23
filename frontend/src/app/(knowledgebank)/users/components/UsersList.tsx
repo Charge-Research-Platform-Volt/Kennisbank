@@ -35,7 +35,6 @@ export default function UsersList() {
             setError("");
             try {
                 const response = await ListUsersPaged(pageNumber, searchQuery);
-                console.log("query: ", searchQuery);
                 
                 if(!response.success) {
                     setError(response.message);
@@ -44,7 +43,6 @@ export default function UsersList() {
 
                 // only update the state if this is the latest fetch
                 if(fetchAmount === fetches.current) {
-                    console.log("Fetched users: ", response.users);
                     setUsers(response.users || []);
                     setPageCount(response.pageCount || 0);
                     setIsLoading(false);
