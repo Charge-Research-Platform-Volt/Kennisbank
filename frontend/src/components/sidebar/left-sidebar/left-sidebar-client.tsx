@@ -55,7 +55,7 @@ export default function LeftSidebarClient({
   return (
     <Sidebar side="left" width="300px" collapsible="icon" className={`${open ? "p-2" : "px-1.5 pt-2"}`}>
       {/* Header */}
-      <div className={`flex items-center justify-between pb-4`}>
+      <div className={"flex items-center justify-between pb-4"}>
         {/* KnowledgeBase title */}
         <Link href="/">
           <h2 className={cn("overflow-hidden text-xl font-semibold transition-all duration-300", !open && "max-w-0 opacity-0")}>KnowledgeBank</h2>

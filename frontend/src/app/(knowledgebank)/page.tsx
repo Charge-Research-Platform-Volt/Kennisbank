@@ -1,11 +1,11 @@
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
 import { ResourcePageResponseSchema } from "@/types/resource.type";
 import Link from "next/link";
-import Greeting from "../components/greating-text";
+import Greeting from "../_components/greating-text";
 import Archive from "@/icons/archive";
 import GetFileIcon from "@/components/getFileIcon";
 import OpenFileButton from "@/components/open-file-button";
-import SearchButton from "../components/search-button";
+import SearchButton from "../_components/search-button";
 
 export default async function Home() {
   // fetches all documents

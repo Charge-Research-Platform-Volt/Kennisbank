@@ -93,7 +93,7 @@ export default function ArchivePage() {
         </div>
       </div>
 
-      <div className="flex py-2">
+      <div className="flex pt-2">
         {typeof searchResults === "string" || searchResults instanceof String ? (
           <p className="flex items-center gap-3 p-3">
             <OctagonAlert size={16} /> {searchResults}

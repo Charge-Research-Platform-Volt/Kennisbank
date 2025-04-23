@@ -38,14 +38,12 @@ export const useSidebar = () => {
 
 // This component provides the sidebar context to its children
 export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSidebarDefaultState: boolean; children: React.ReactNode }) => {
-  const [onCloseClicked, setOnCloseClicked] = useState<() => void>(() => {});
-
   const pathname: string = usePathname();
 
   // State for the selected document
   const [selectedDocument, setSelectedDocument] = useState<ResourceWithTagsResponse | null>(null);
 
-  // State and functions for the left sidebar
+  // - State and functions for the left sidebar
   const [leftSidebarOpen, setLeftSidebarOpen] = useState<boolean>(leftSidebarDefaultState);
   const leftSidebarState = leftSidebarOpen ? "expanded" : "collapsed";
   const toggleLeftSidebar = () => {
@@ -55,7 +53,7 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
     document.cookie = `leftSidebar:state=${!leftSidebarOpen}; path=/; max-age=31536000; SameSite=None; Secure`;
   };
 
-  // State and functions for the right sidebar
+  // - State and functions for the right sidebar
   const [rightSidebarOpen, setRightSidebarOpen] = useState<boolean>(false);
   const rightSidebarState = rightSidebarOpen ? "expanded" : "collapsed";
   const toggleRightSidebar = (document: ResourceWithTagsResponse | null) => {
@@ -74,7 +72,6 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
 
   useHotkeys("esc", () => {
     setRightSidebarOpen(false);
-    onCloseClicked?.();
   });
 
   return (
