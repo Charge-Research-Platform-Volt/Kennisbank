@@ -80,7 +80,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     {
         try
         {
-            return Ok(await resourceManager.GetAllTagsAsync(t => t.IsStandardized));
+            return Ok(await resourceManager.GetAllTagsAsync(predicate: t => t.IsStandardized));
         }
         catch (Exception e)
         {
@@ -127,7 +127,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     {
         try
         {
-            return Ok(await resourceManager.GetAllTagsAsync(t => !t.IsStandardized));
+            return Ok(await resourceManager.GetAllTagsAsync(predicate: t => !t.IsStandardized));
         }
         catch (Exception e)
         {
