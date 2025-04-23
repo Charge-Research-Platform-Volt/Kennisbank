@@ -13,7 +13,7 @@ import { OctagonAlert } from "lucide-react";
 import GetFileIcon from "./getFileIcon";
 import { ResourceResponse } from "@/types/resource.type";
 import { handleOpenFile } from "@/actions/openFileActions";
-import { useQuickSearch } from "./quick-search-context";
+import { useQuickSearch } from "../context/quick-search-provider";
 import Kbd from "./kbd";
 
 /**

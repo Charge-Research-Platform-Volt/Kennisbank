@@ -57,12 +57,13 @@ export default function LeftSidebarClient({
       {/* Header */}
       <div className={`flex items-center justify-between pb-4`}>
         {/* KnowledgeBase title */}
-        <h2 className={cn("overflow-hidden text-xl font-semibold transition-all duration-300", !open && "max-w-0 opacity-0")}>
-          <Link href="/">KnowledgeBank</Link>
-        </h2>
+        <Link href="/">
+          <h2 className={cn("overflow-hidden text-xl font-semibold transition-all duration-300", !open && "max-w-0 opacity-0")}>KnowledgeBank</h2>
+        </Link>
 
         {/* Hide menu button */}
         <Button
+          data-testid="sidebar_hide"
           variant="outline"
           size="icon"
           onClick={() => {

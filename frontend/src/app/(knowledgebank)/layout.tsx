@@ -1,5 +1,5 @@
 import LeftSidebarServer from "@/components/sidebar/left-sidebar/left-sidebar-server";
-import { QuickSearchProvider } from "@/components/quick-search-context";
+import { QuickSearchProvider } from "@/context/quick-search-provider";
 import RightSidebar from "@/components/sidebar/right-sidebar/right-sidebar";
 
 export default async function KnowledgeBankLayout({ children }: Readonly<{ children: React.ReactNode }>) {
