@@ -274,6 +274,20 @@ namespace KnowledgeBank.Data
         { await AddAuthorToResourceRangeAsync(Guid.Parse(resourceId), StringToGuidArray(personIds)); }
 
         // Single
+        
+        /// <summary>
+        /// Adds a person as an author to a resource.
+        /// 
+        /// <example>
+        /// For example:
+        /// <code>
+        /// await AddAuthorToResourceAsync(exampleResourceId, examplePersonId);
+        /// </code>
+        /// </example>
+        /// </summary>
+        /// <param name="resourceId">The ID of the resource</param>
+        /// <param name="personId">The ID of the person</param>
+        /// <returns></returns>
         public async Task AddAuthorToResourceAsync(Guid resourceId, Guid personId)
         { await AddAuthorToResourceRangeAsync(resourceId, [personId]); }
 
