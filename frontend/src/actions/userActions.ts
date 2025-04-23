@@ -143,6 +143,12 @@ export const SaveUser = async (
     };
 };
 
+/**
+ * 
+ * @param pageIndex - The page index to fetch
+ * @param query - The query to search for users
+ * @returns - A promise that resolves to a UserPageResponse object containing the users and pagination information
+ */
 export const ListUsersPaged = async (pageIndex: number, query: string ): Promise<UserPageResponse> => {
     console.log("Getting user page: ");
 

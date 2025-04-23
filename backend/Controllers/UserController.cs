@@ -70,7 +70,7 @@ public class UserController : ControllerBase
     )]
     [SwaggerResponse(200, "Users are loaded succesfully")]
     [SwaggerResponse(500, "Server error")]
-    public async Task<IActionResult> GetUsersPaged(int pageIndex = 1, int pageSize = 100, string? search = null)
+    public async Task<IActionResult> GetUsersPaged(int pageIndex = 1, int pageSize = 100, string? searchQuery = null)
     {
         if (pageIndex < 1)
                 return BadRequest(new StorageResponse("Page index cannot be lower than 1."));
@@ -85,8 +85,8 @@ public class UserController : ControllerBase
 
             // filter based on the search query
             IQueryable<User> filteredUsers;
-            if(!string.IsNullOrEmpty(search))
-                filteredUsers = database.AppUsers.Where(u => EF.Functions.ILike(u.Email ?? "", $"%{search}%"));
+            if(!string.IsNullOrEmpty(searchQuery))
+                filteredUsers = database.AppUsers.Where(u => EF.Functions.ILike(u.Email ?? "", $"%{searchQuery}%"));
             else
                 filteredUsers = database.AppUsers;
 
