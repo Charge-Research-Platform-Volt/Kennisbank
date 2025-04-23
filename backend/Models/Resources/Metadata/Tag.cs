@@ -34,7 +34,7 @@ public class Tag
     public required DateTime CreatedOn { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
-    [JsonIgnore] public ICollection<ResourceTagRelation>? Resources { get; set; }
+    [JsonIgnore] public ICollection<ResourceTagRelation>? ResourceTagRelations { get; set; }
 }
 
 public class TagCreateDto

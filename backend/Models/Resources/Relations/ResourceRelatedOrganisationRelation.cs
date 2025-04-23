@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
@@ -21,7 +20,7 @@ public class ResourceRelatedOrganisationRelation
 
     // Navigation properties
     [JsonIgnore] public Resource? Resource { get; set; }
-    [JsonIgnore] public Organisation? RelatedOrganisation { get; set; }
+    [JsonIgnore] public Organisation? Organisation { get; set; }
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
