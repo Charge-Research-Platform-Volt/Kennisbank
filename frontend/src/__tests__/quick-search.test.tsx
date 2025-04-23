@@ -12,7 +12,9 @@ import userEvent from "@testing-library/user-event";
 import QuickSearch from "@/components/quick-search";
 
 import * as openFileActions from "@/actions/openFileActions";
+
 import { QuickSearchProvider } from "@/context/quick-search-provider";
+import QuickSearchButton from "@/components/sidebar/left-sidebar/quick-search-button";
 
 // Mock dependencies
 vi.mock("sonner", () => ({
@@ -125,6 +127,12 @@ describe("QuickSearch Component test", () => {
     render(
       <QuickSearchProvider>
         <QuickSearch />
+      </QuickSearchProvider>,
+    );
+    render(
+      <QuickSearchProvider>
+        <QuickSearch />
+        <QuickSearchButton />
       </QuickSearchProvider>,
     );
 

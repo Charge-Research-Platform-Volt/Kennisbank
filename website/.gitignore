@@ -3,6 +3,7 @@
 /.source
 /content/docs/(api)/**
 swagger.json
+/docfx-files
 
 # dependencies
 /node_modules

@@ -1,0 +1,102 @@
+---
+title: PersonOrganisationRelation
+---
+import { CollapsibleInherited } from "@/components/collapsible"
+import { TypeTable } from "@/components/type_table"
+import { CSharpType } from "@/components/csharp_type"
+
+
+Namespace: <a href='../Models'>KnowledgeBank.Models</a>  
+Assembly: backend.dll  
+
+```csharp
+[Table("person-organisation")]
+public class PersonOrganisationRelation
+```
+
+#### Inheritance
+
+<a href='https://learn.microsoft.com/dotnet/api/system.object' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='object' /></a> ← <a href='' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='PersonOrganisationRelation' /></a>
+
+
+
+<CollapsibleInherited title='Show Inherited Members (7)'>
+[object.Equals\(object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\)), 
+[object.Equals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\-system\-object\)), 
+[object.GetHashCode\(\)](https://learn.microsoft.com/dotnet/api/system.object.gethashcode), 
+[object.GetType\(\)](https://learn.microsoft.com/dotnet/api/system.object.gettype), 
+[object.MemberwiseClone\(\)](https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone), 
+[object.ReferenceEquals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.referenceequals), 
+[object.ToString\(\)](https://learn.microsoft.com/dotnet/api/system.object.tostring)
+</CollapsibleInherited>
+
+---
+## Properties
+
+---
+###  Organisation
+
+```csharp
+[JsonIgnore]
+public Organisation? Organisation { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='Organisation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Organisation' /></a>?
+
+---
+###  OrganisationId
+
+```csharp
+[Column("organisation-id")]
+[ForeignKey("Organisation")]
+public required Guid OrganisationId { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.guid' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Guid' /></a>
+
+---
+###  Person
+
+```csharp
+[JsonIgnore]
+public Person? Person { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='Person' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Person' /></a>?
+
+---
+###  PersonId
+
+```csharp
+[Column("person-id")]
+[ForeignKey("Person")]
+public required Guid PersonId { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.guid' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Guid' /></a>
+
+---
+###  Role
+
+```csharp
+[Column("role")]
+public string? Role { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>?
+

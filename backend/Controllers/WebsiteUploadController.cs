@@ -6,7 +6,7 @@ using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
 using Microsoft.AspNetCore.Authorization;
 
-namespace backend.Controllers
+namespace KnowledgeBank.Controllers
 {
     [ApiController]
     [Route("[controller]")]

@@ -16,7 +16,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 EXPOSE 3001
 ENV PORT=3001
 # Create custom entrypoint script to run npm install as well to update everything
-ENTRYPOINT npm install && npm run dev
+ENTRYPOINT npm install && npm run dev --turbopack
 
 # -- CI Runner
 FROM deps AS ci-runner

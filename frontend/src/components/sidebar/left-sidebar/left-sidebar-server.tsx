@@ -64,7 +64,7 @@ export default async function LeftSidebarServer() {
     menuItems.splice(menuItems.length, 0, {
       id: 4,
       path: "/users",
-      icon: <Users className="h-4 w-4" />,
+      icon: <Users color="black" className="h-4 w-4" />,
       name: "Users",
     });
   }
