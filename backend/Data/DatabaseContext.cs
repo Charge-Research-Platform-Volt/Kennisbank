@@ -77,9 +77,6 @@ namespace KnowledgeBank.Data
             modelBuilder.Entity<ResourceRelatedSourceRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.Url });
 
-            modelBuilder.Entity<ResourceResourceTypeRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.ResourceTypeId });
-
             modelBuilder.Entity<OrganisationRelationship>()
                 .HasOne(or => or.SourceOrganisation)
                 .WithMany(o => o.TargetRelationships)

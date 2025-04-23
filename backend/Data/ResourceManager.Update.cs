@@ -12,7 +12,10 @@ namespace KnowledgeBank.Data
 
         protected async Task<int> UpdatePropertyAsync<T, TProperty>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate, Expression<Func<T, TProperty>> propertySelector, TProperty newValue) where T : class
         {
-            return await dbSet.Where(predicate).ExecuteUpdateAsync(s => s.SetProperty(e => EF.Property<TProperty>(e, GetPropertyName(propertySelector)), _ => newValue));
+            bool startedTransaction = await BeginTransaction();
+            int count = await dbSet.Where(predicate).ExecuteUpdateAsync(s => s.SetProperty(e => EF.Property<TProperty>(e, GetPropertyName(propertySelector)), _ => newValue));
+            if (startedTransaction) await Commit();
+            return count;
         }
 
         #endregion
@@ -274,9 +277,15 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> ApproveTagOnResourceAsync(Guid tagId, Guid resourceId, Guid adminId)
         {
-                    await UpdatePropertyAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.IsApproved, true);
-                    await UpdatePropertyAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.ApprovedBy, adminId);
-            return  await UpdatePropertyAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.ApprovedOn, DateTime.UtcNow) > 0;
+            bool startedTransaction = await BeginTransaction();
+
+            int count = 0;
+            count += await UpdatePropertyAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.IsApproved, true);
+            count += await UpdatePropertyAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.ApprovedBy, adminId);
+            count += await UpdatePropertyAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.ApprovedOn, DateTime.UtcNow);
+            
+            if (startedTransaction) await Commit();
+            return count > 0;
         }
 
         public async Task<bool> ApproveTagOnResourceAsync(Guid tagId, Guid resourceId, string adminId)
@@ -304,9 +313,15 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> UnapproveTagOnResourceAsync(Guid tagId, Guid resourceId, Guid adminId)
         {
-                    await UpdatePropertyAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.IsApproved, false);
-                    await UpdatePropertyAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.ApprovedBy, null);
-            return  await UpdatePropertyAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.ApprovedOn, null) > 0;
+            bool startedTransaction = await BeginTransaction();
+
+            int count = 0;
+            count += await UpdatePropertyAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.IsApproved, false);
+            count += await UpdatePropertyAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.ApprovedBy, null);
+            count += await UpdatePropertyAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.ApprovedOn, null);
+            
+            if (startedTransaction) await Commit();
+            return count > 0;
         }
 
         public async Task<bool> UnapproveTagOnResourceAsync(Guid tagId, Guid resourceId, string adminId)
