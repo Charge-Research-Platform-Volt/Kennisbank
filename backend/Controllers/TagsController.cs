@@ -160,7 +160,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     /// <summary>
     /// Adds a new standard tag to the tag list.
     /// </summary>
-    /// <param name="tagName">The name of the tag to add.</param>
+    /// <param name="dto">The DTO for tag creation.</param>
     /// <returns>
     /// Returns a 200 OK response containing the added tag.
     /// </returns>
@@ -291,7 +291,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     /// <param name="id">The id of the tag to delete.</param>
     /// <returns>
     /// Returns a 200 OK response containing the deleted tag.
-    // </returns>
+    /// </returns>
     [HttpDelete("delete-tag/{id}")]
     [Authorize]
     [SwaggerOperation(
@@ -359,7 +359,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     /// <param name="newName">The new name of the tag.</param>
     /// <returns>
     /// Returns a 200 OK response.
-    // </returns>
+    /// </returns>
     [HttpPatch("rename-tag/{id}/{newName}")]
     [Authorize]
     [SwaggerOperation(
@@ -491,6 +491,75 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         {
             Log.Error(e, "Error approving tag {TagId}", id);
             return StatusCode(500, "Internal Server Error");
+        }
+    }
+    
+    [HttpPatch("merge/{id1}/{id2}")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerResponse(200, "Tags merged")]
+    [SwaggerResponse(400, "Bad request")]
+    [SwaggerResponse(404, "Tag(s) not found")]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> Merge(string id1, string id2) 
+    {
+        // Validate input parameters
+        if (string.IsNullOrEmpty(id1) || string.IsNullOrEmpty(id2)) 
+            return BadRequest(new { message = "IDs are required." });
+            
+        if (id1 == id2)
+            return BadRequest(new { message = "Cannot merge a tag with itself." });
+            
+        if (!Guid.TryParse(id1, out Guid tagId1) || !Guid.TryParse(id2, out Guid tagId2))
+            return BadRequest(new { message = "Invalid tag ID format." });
+        
+        try 
+        {
+            // Check if both tags exist
+            if (!await resourceManager.TagExistsAsync(id1) || !await resourceManager.TagExistsAsync(id2)) 
+                return NotFound(new { message = "One or both tags were not found." });
+
+            await resourceManager.BeginTransaction();
+            
+            // Get all resources related to the second tag
+            ResourceTagRelation[]? tagRelations = await resourceManager
+                .GetAllResourceTagRelationsAsync(
+                    predicate: r => r.TagId == tagId2,
+                    includeProperties: "Resource");
+            
+            // Find resources that already have the first tag to avoid duplicates
+            ResourceTagRelation[]? resourcesWithTag1 = await resourceManager
+                .GetAllResourceTagRelationsAsync(predicate: r => r.TagId == tagId1);
+            
+            HashSet<Guid> existingResourceIds = resourcesWithTag1.Select(r => r.ResourceId).ToHashSet();
+            
+            // Add the first tag to resources that don't already have it
+            foreach (ResourceTagRelation relation in tagRelations) 
+            {
+                if (!existingResourceIds.Contains(relation.ResourceId))
+                {
+                    await resourceManager.AddTagToResourceAsync(relation.ResourceId, tagId1);
+                }
+            }
+            
+            // Delete the second tag
+            if (!await resourceManager.DeleteTagAsync(id2))
+            {
+                await resourceManager.Rollback();
+                Log.Error("Failed to delete tag {TagId2} during merge", id2);
+                return StatusCode(500, new { message = "Failed to delete old tag during merge." });
+            }
+            
+            // Commit the changes made
+            await resourceManager.Commit();
+            return Ok(new { message = "Tags merged successfully." });
+        }
+        catch (Exception e) 
+        {
+            // Rollback if there was an error
+            await resourceManager.Rollback();
+        
+            Log.Error(e, "Error merging tags {TagId1} and {TagId2}", id1, id2);
+            return StatusCode(500, new { message = "Internal Server Error" });
         }
     }
 }
