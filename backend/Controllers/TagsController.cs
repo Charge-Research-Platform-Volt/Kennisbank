@@ -318,7 +318,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             
             // Get the GUID of the user
             Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
-            bool userIsAdmin = User.IsInRole("Admin");
+            bool userIsAdmin = User.IsInRole("admin");
             
             // Get the tag
             Tag? tag = await resourceManager.GetTagAsync(id);
@@ -330,16 +330,15 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             }
             
             // Get the resource-tag relations
-            // TODO: Abel is going to make methods to get relations, so f.e.
-            // here we'd need something like "tagRelations = await resourceManager.GetResourcesRelatedToTags().ToListAsync();"
-            
-            List<ResourceTagRelation> tagRelations = new();
-            
+            ResourceTagRelation[]? tagRelations = await resourceManager
+                .GetAllResourceTagRelationsAsync(
+                    predicate: r => r.TagId == Guid.Parse(id));
+                        
             // Check if the user has permission to delete this tag
-            if (!userIsAdmin && (tag.CreatedBy != userId || tagRelations.Count == 0)) 
+            if (!userIsAdmin && (tag.CreatedBy != userId || tagRelations.Length != 0)) 
             {
                 Log.Warning("User {UserId} attempted to delete {TagId} without permissions.", userId, id);
-                return Forbid();
+                return StatusCode(403, new { message = "User cannot delete this tag." });
             }
             
             if (await resourceManager.DeleteTagAsync(id))
@@ -397,8 +396,8 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         {
             // Get the GUID of the user
             Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
-            bool userIsAdmin = User.IsInRole("Admin");
-            
+            bool userIsAdmin = User.IsInRole("admin");
+                        
             // Get the tag
             Tag? tag = await resourceManager.GetTagAsync(id);
             
@@ -409,16 +408,15 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             }
             
             // Get the resource-tag relations
-            // TODO: Abel is going to make methods to get relations, so f.e.
-            // here we'd need something like "tagRelations = await resourceManager.GetResourcesRelatedToTags().ToListAsync();"
-            
-            List<ResourceTagRelation> tagRelations = new();
+            var tagRelations = await resourceManager
+                .GetAllResourceTagRelationsAsync(
+                    predicate: r => r.TagId == Guid.Parse(id));
             
             // Check if the user has permission to delete this tag
-            if (!userIsAdmin && (tag.CreatedBy != userId || tagRelations.Count == 0)) 
+            if (!userIsAdmin && (tag.CreatedBy != userId || tagRelations.Length != 0)) 
             {
                 Log.Warning("User {UserId} attempted to edit {TagId} without permissions.", userId, id);
-                return Forbid();
+                return StatusCode(403, new { message = "User cannot edit this tag." });
             }
         
             if (await resourceManager.TagExistsAsync(t => t.Name == newName))
