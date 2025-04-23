@@ -13,6 +13,8 @@ namespace KnowledgeBank.Data
             if (targetOrganisationIds.Length == 0) return;
 
             if (relations.Length != targetOrganisationIds.Length) throw new Exception("Relations and target organisation IDs array should be the same size");
+            
+            bool startedTransaction = await BeginTransaction();
 
             // Create entries
             OrganisationRelationship[] relationships = new OrganisationRelationship[targetOrganisationIds.Length];
@@ -30,7 +32,7 @@ namespace KnowledgeBank.Data
             // Add to database
             await database.OrganisationRelationships.AddRangeAsync(relationships);
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
         }
 
         public async Task AddOrganisationRelationshipRangeAsync(string sourceOrganisationId, string?[] relations, Guid[] targetOrganisationIds)
@@ -89,6 +91,8 @@ namespace KnowledgeBank.Data
             if (organisationIds.Length == 0) return;
 
             if (roles.Length != organisationIds.Length) throw new Exception("Roles array and organisationIds array should be the same size.");
+            
+            bool startedTransaction = await BeginTransaction();
 
             // Create entries
             PersonOrganisationRelation[] relations = new PersonOrganisationRelation[organisationIds.Length];
@@ -106,7 +110,7 @@ namespace KnowledgeBank.Data
             // Add to database
             await database.PersonOrganisationRelations.AddRangeAsync(relations);
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
         }
 
         public async Task AddPersonToOrganisationRangeAsync(string personId, string?[] roles, Guid[] organisationIds)
@@ -166,6 +170,8 @@ namespace KnowledgeBank.Data
 
             if (relations.Length != targetPersonIds.Length) throw new Exception("Relations and target person array should be the same length.");
 
+            bool startedTransaction = await BeginTransaction();
+
             // Create entries
             PersonRelationship[] relationships = new PersonRelationship[targetPersonIds.Length];
 
@@ -182,7 +188,7 @@ namespace KnowledgeBank.Data
             // Add to database
             await database.PersonRelationships.AddRangeAsync(relationships);
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
         }
 
         public async Task AddPersonRelationshipRangeAsync(string sourcePersonId, string?[] relations, Guid[] targetPersonIds)
@@ -238,6 +244,8 @@ namespace KnowledgeBank.Data
         {
             if (personIds.Length == 0) return;
 
+            bool startedTransaction = await BeginTransaction();
+
             // Create entry
             ResourceAuthorRelation[] relations = new ResourceAuthorRelation[personIds.Length];
 
@@ -253,7 +261,7 @@ namespace KnowledgeBank.Data
             // Add to database
             await database.ResourceAuthorRelations.AddRangeAsync(relations);
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
         }
 
         public async Task AddAuthorToResourceRangeAsync(Guid resourceId, string[] personIds)
@@ -303,6 +311,8 @@ namespace KnowledgeBank.Data
 
             if (organisationIds.Length != roles.Length) return;
 
+            bool startedTransaction = await BeginTransaction();
+
             // Create entry
             ResourceOrganisationRelation[] relations = new ResourceOrganisationRelation[organisationIds.Length];
 
@@ -319,7 +329,7 @@ namespace KnowledgeBank.Data
             // Add to database
             await database.ResourceOrganisationRelations.AddRangeAsync(relations);
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
         }
 
         public async Task AddOrganisationToResourceRangeAsync(Guid resourceId, string[] organisationIds, string?[] roles)
@@ -377,6 +387,8 @@ namespace KnowledgeBank.Data
         {
             if (regionIds.Length == 0) return;
 
+            bool startedTransaction = await BeginTransaction();
+
             // Create entry
             ResourceRegionRelation[] relations = new ResourceRegionRelation[regionIds.Length];
 
@@ -392,7 +404,7 @@ namespace KnowledgeBank.Data
             // Add to database
             await database.ResourceRegionRelations.AddRangeAsync(relations);
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
         }
 
         public async Task AddRegionToResourceRangeAsync(Guid resourceId, string[] regionIds)
@@ -426,6 +438,8 @@ namespace KnowledgeBank.Data
         {
             if (sourceUrls.Length == 0) return;
 
+            bool startedTransaction = await BeginTransaction();
+
             // Create source entries
             ResourceSourceRelation[] sources = new ResourceSourceRelation[sourceUrls.Length];
 
@@ -441,7 +455,7 @@ namespace KnowledgeBank.Data
             // Add to database
             await database.ResourceSourceRelations.AddRangeAsync(sources);
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
         }
 
         public async Task AddSourceToResourceRangeAsync(string resourceId, string[] sourceUrls)
@@ -464,6 +478,8 @@ namespace KnowledgeBank.Data
 
             if (organisationIds.Length != roles.Length) throw new Exception("The role and organisation ID arrays should be the same size!");
 
+            bool startedTransaction = await BeginTransaction();
+
             // Create entry
             ResourceRelatedOrganisationRelation[] relations = new ResourceRelatedOrganisationRelation[organisationIds.Length];
 
@@ -480,7 +496,7 @@ namespace KnowledgeBank.Data
             // Add to database
             await database.ResourceRelatedOrganisationRelations.AddRangeAsync(relations);
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
         }
 
         public async Task AddRelatedOrganisationToResourceRangeAsync(Guid resourceId, string[] organisationIds, string?[] roles)
@@ -540,6 +556,8 @@ namespace KnowledgeBank.Data
 
             if (personIds.Length != roles.Length) throw new Exception("The person ID and role arrays should be the same size.");
 
+            bool startedTransaction = await BeginTransaction();
+
             // Create entry
             ResourceRelatedPersonRelation[] relations = new ResourceRelatedPersonRelation[personIds.Length];
 
@@ -556,7 +574,7 @@ namespace KnowledgeBank.Data
             // Add to database
             await database.ResourceRelatedPersonRelations.AddRangeAsync(relations);
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
         }
 
         public async Task AddRelatedPersonToResourceRangeAsync(Guid resourceId, string[] personIds, string?[] roles)
@@ -614,6 +632,8 @@ namespace KnowledgeBank.Data
         {
             if (urls.Length == 0) return;
 
+            bool startedTransaction = await BeginTransaction();
+
             // Create entries
             ResourceRelatedSourceRelation[] relations = new ResourceRelatedSourceRelation[urls.Length];
 
@@ -629,7 +649,7 @@ namespace KnowledgeBank.Data
             // Add to database
             await database.ResourceRelatedSourceRelations.AddRangeAsync(relations);
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
         }
 
         public async Task AddRelatedSourceToResourceRangeAsync(string resourceId, string[] urls)
@@ -651,6 +671,8 @@ namespace KnowledgeBank.Data
         {
             if (tagIds.Length == 0) return;
 
+            bool startedTransaction = await BeginTransaction();
+
             ResourceTagRelation[] tagRelations = new ResourceTagRelation[tagIds.Length];
 
             for (int i = 0; i < tagIds.Length; i++)
@@ -664,7 +686,7 @@ namespace KnowledgeBank.Data
 
             await database.ResourceTagRelations.AddRangeAsync(tagRelations);
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
         }
 
         public async Task AddTagToResourceRangeAsync(Guid resourceId, string[] tagIds)
@@ -695,13 +717,15 @@ namespace KnowledgeBank.Data
 
         public async Task AddResourceTypeToResourceAsync(Guid resourceId, Guid resourceTypeId)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             Resource? resource = await GetResourceAsync(resourceId);
 
             if (resource == null) return;
 
             resource.TypeId = resourceTypeId;
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
         }
 
         public async Task AddResourceTypeToResourceAsync(Guid resourceId, string resourceTypeId)
@@ -720,13 +744,15 @@ namespace KnowledgeBank.Data
         public async Task AddAudioMetadataToResourceAsync(Guid resourceId)
         {
             if (await GetAudioMetadataAsync(resourceId) != null) return;
+            
+            bool startedTransaction = await BeginTransaction();
 
             await database.AudioMetadata.AddAsync(new()
             {
                 ResourceId = resourceId
             });
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
         }
 
         public async Task AddAudioMetadataToResourceAsync(string resourceId)
@@ -739,13 +765,15 @@ namespace KnowledgeBank.Data
         public async Task AddVideoMetadataToResourceAsync(Guid resourceId)
         {
             if (await GetVideoMetadataAsync(resourceId) != null) return;
+            
+            bool startedTransaction = await BeginTransaction();
 
             await database.VideoMetadata.AddAsync(new()
             {
                 ResourceId = resourceId
             });
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
         }
 
         public async Task AddVideoMetadataToResourceAsync(string resourceId)
@@ -758,13 +786,15 @@ namespace KnowledgeBank.Data
         public async Task AddDocumentMetadataToResourceAsync(Guid resourceId)
         {
             if (await GetDocumentMetadataAsync(resourceId) != null) return;
+            
+            bool startedTransaction = await BeginTransaction();
 
             await database.DocumentMetadata.AddAsync(new()
             {
                 ResourceId = resourceId
             });
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
         }
 
         public async Task AddDocumentMetadataToResourceAsync(string resourceId)
@@ -777,6 +807,8 @@ namespace KnowledgeBank.Data
         public async Task AddWebsiteMetadataToResourceAsync(Guid resourceId, string url)
         {
             if (await GetWebsiteMetadataAsync(resourceId) != null) return;
+            
+            bool startedTransaction = await BeginTransaction();
 
             await database.WebsiteMetadata.AddAsync(new()
             {
@@ -784,7 +816,7 @@ namespace KnowledgeBank.Data
                 Url = url
             });
 
-            await database.SaveChangesAsync();
+            if (startedTransaction) await Commit();
         }
 
         public async Task AddWebsiteMetadataToResourceAsync(string resourceId, string url)
