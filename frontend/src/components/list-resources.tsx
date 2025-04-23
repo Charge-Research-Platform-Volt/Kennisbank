@@ -68,7 +68,7 @@ export default function ListResources({ data }: { data: ResourcePageWithTagsResp
   }, [rightSidebarOpen]);
 
   return (
-    <div className="h-[calc(100vh-6rem)] w-full">
+    <div className="h-[calc(100vh-4rem)] w-full">
       <AgGridReact
         suppressMovableColumns={true}
         suppressCellFocus={true}
