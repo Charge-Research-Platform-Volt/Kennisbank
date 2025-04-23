@@ -6,6 +6,7 @@ using KnowledgeBank.Data;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
 
 namespace backend.Tests.Integration;
 
@@ -42,6 +43,14 @@ public class TagControllerTests : TestBase
         _resourceManager = new ResourceManager(Context);
         _controller = new TagsController(_resourceManager);
         SetControllerUser(_regularUser); // Default to regular user
+    }
+    
+    protected override async Task SeedTestDatabase (DatabaseContext context)
+    {
+        // Enable extension for text-search-vectors
+        await context.Database.ExecuteSqlRawAsync("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
+        await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""resource-vectors"" ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
+        await DatabaseSeeder.SeedTemplate(context);
     }
 
     // Switches between users
@@ -161,8 +170,341 @@ public class TagControllerTests : TestBase
     }
 
     #endregion
-
     
+    #region GetAllStandardizedPaged Tests
+
+    [Test]
+    [Description("GetAllStandardizedPaged returns correct page of standardized tags")]
+    public async Task GetAllStandardizedPaged_ReturnsCorrectPage()
+    {
+        // Add 15 standardized tags
+        for (int i = 1; i <= 15; i++)
+        {
+            await _resourceManager.CreateTagAsync(new TagCreateDto { Name = $"standard tag {i:D2}", CreatedBy = _adminUserId.ToString() }, isStandardized: true);
+        }
+        // Add some non-standardized tags
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag1", CreatedBy = _adminUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag2", CreatedBy = _adminUserId.ToString() });
+
+        // Get second page with 5 items per page
+        OkObjectResult? result = await _controller.GetAllStandardizedPaged(2, 5) as OkObjectResult;
+        Assert.That(result, Is.Not.Null);
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        // Assert
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        Assert.That(tags.Length, Is.EqualTo(5));
+        Assert.That(tags[0].Name, Is.EqualTo("standard tag 06"));
+        Assert.That(tags[4].Name, Is.EqualTo("standard tag 10"));
+    }
+
+    #endregion
+    
+    #region GetAllUser Tests
+
+    [Test]
+    [Description("GetAllUser returns only non-standardized tags")]
+    public async Task GetAllUser_ReturnsOnlyUserTags()
+    {
+        // Add some standardized and non-standardized tags
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "std1", CreatedBy = _adminUserId.ToString() }, isStandardized: true);
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag1", CreatedBy = _adminUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag2", CreatedBy = _adminUserId.ToString() });
+
+        // Get all user tags
+        OkObjectResult? result = await _controller.GetAllUser() as OkObjectResult;
+        Assert.That(result, Is.Not.Null);
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        
+        // Assert
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        Assert.That(tags.Length, Is.EqualTo(2));
+        Assert.That(tags.Select(t => t.Name), Does.Contain("tag1"));
+        Assert.That(tags.Select(t => t.Name), Does.Contain("tag2"));
+        Assert.That(tags.Select(t => t.Name), Does.Not.Contain("std1"));
+    }
+
+    #endregion
+    
+    #region GetAllUserPaged Tests
+    
+    [Test]
+    [Description("GetAllUserPaged returns correct page of user tags")]
+    public async Task GetAllUserPaged_ReturnsCorrectPage()
+    {
+        // Add 12 user tags
+        for (int i = 1; i <= 12; i++)
+        {
+            await _resourceManager.CreateTagAsync(new TagCreateDto { Name = $"tag {i:D2}", CreatedBy = _adminUserId.ToString() });
+        }
+        // Add some standardized tags
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "std1", CreatedBy = _adminUserId.ToString() }, true);
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "std2", CreatedBy = _adminUserId.ToString() }, true);
+
+        // Get second page with 5 items per page
+        OkObjectResult? result = await _controller.GetAllUserPaged(2, 5) as OkObjectResult;
+        Assert.That(result, Is.Not.Null);
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        
+        // Assert
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        Assert.That(tags.Length, Is.EqualTo(5));
+        Assert.That(tags[0].Name, Is.EqualTo("tag 06"));
+        Assert.That(tags[4].Name, Is.EqualTo("tag 10"));
+    }
+
+    #endregion
+    
+    #region AddStandardTag Tests
+
+    [Test]
+    [Description("AddStandardTag returns Ok when admin adds a valid tag")]
+    public async Task AddStandardTag_ReturnsOk_WhenAdminAddsValidTag()
+    {
+        // Set user to admin
+        SetControllerUser(_adminUser);
+
+        // Add a standard tag
+        OkObjectResult? result = await _controller.AddStandardTag(new TagCreateDto { Name = "std1", CreatedBy = _adminUserId.ToString() }) as OkObjectResult;
+        Assert.That(result, Is.Not.Null);
+
+        // Assert
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        Tag[]? tags = await _resourceManager.GetAllTagsAsync(predicate: t => t.IsStandardized);
+        
+        Assert.That(tags.Length, Is.EqualTo(1));
+        Assert.That(tags[0].Name, Is.EqualTo("std1"));
+        Assert.That(tags[0].IsStandardized, Is.True);
+    }
+
+    [Test]
+    [Description("AddStandardTag returns BadRequest when name is empty")]
+    public async Task AddStandardTag_ReturnsBadRequest_WhenNameIsEmpty()
+    {
+        // Set user to admin
+        SetControllerUser(_adminUser);
+
+        // Try to add a standard tag with empty name
+        BadRequestObjectResult? result = await _controller.AddStandardTag(new TagCreateDto { Name = "", CreatedBy = _regularUserId.ToString() }) as BadRequestObjectResult;
+        Assert.That(result, Is.Not.Null);
+
+        // Assert
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        var tags = await _resourceManager.GetAllTagsAsync();
+        Assert.That(tags.Length, Is.EqualTo(0));
+    }
+
+    [Test]
+    [Description("AddStandardTag returns Conflict when tag already exists")]
+    public async Task AddStandardTag_ReturnsConflict_WhenTagAlreadyExists()
+    {
+        // Set user to admin
+        SetControllerUser(_adminUser);
+
+        // Add a tag first
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "duplicate", CreatedBy = _regularUserId.ToString() });
+
+        // Try to add the same tag again
+        ObjectResult? result = await _controller.AddStandardTag(new TagCreateDto { Name = "duplicate" }) as ObjectResult;
+        Assert.That(result, Is.Not.Null);
+
+        // Assert
+        Assert.That(result.StatusCode, Is.EqualTo(409));
+        var tags = await _resourceManager.GetAllTagsAsync();
+        Assert.That(tags.Length, Is.EqualTo(1));
+    }
+
+    #endregion
+    
+    #region AddTag Tests
+
+    [TestCase("test1")]
+    [TestCase("bla1")]
+    [Description("Simple test for adding tags")]
+    public async Task AddTag_ReturnsOk_WithValidName(string input)
+    {
+        // Add tag
+        ObjectResult? addResponse = await _controller.AddTag(new TagCreateDto { Name = input }) as ObjectResult;
+        Assert.That(addResponse, Is.Not.Null);
+        
+        // Retrieve all tags
+        Tag[] allTags = await _resourceManager.GetAllTagsAsync();
+
+        // Check that statuscode is correct, count of tags is 1 and the name is correct
+        Assert.That(addResponse.StatusCode, Is.EqualTo(200));
+        Assert.That(allTags.Count(tag => tag.Name == input), Is.EqualTo(1));
+        Assert.That(allTags.FirstOrDefault(tag => tag.Name == input)?.Name, Is.EqualTo(input));
+    }
+    
+    [TestCase("")]
+    [Description("Simple test for adding tags")]
+    public async Task AddTag_ReturnsBadRequest_WithInvalidName(string input)
+    {
+        // Add tag
+        BadRequestObjectResult addResponse = (BadRequestObjectResult)await _controller.AddTag(new TagCreateDto { Name = input });
+        
+        // Retrieve all tags
+        Tag[] allTags = await _resourceManager.GetAllTagsAsync();
+
+        // Check that statuscode is correct, count of tags is 0
+        Assert.That(addResponse.StatusCode, Is.EqualTo(400));
+        Assert.That(allTags.Count(tag => tag.Name == input), Is.EqualTo(0));
+    }
+    
+    [Test]
+    [Description("AddTag returns Conflict when tag already exists")]
+    public async Task AddTag_ReturnsConflict_WhenTagAlreadyExists()
+    {
+        // Add a tag first
+        await _controller.AddTag(new TagCreateDto { Name = "duplicate" });
+
+        // Try to add the same tag again
+        ObjectResult? result = await _controller.AddTag(new TagCreateDto { Name = "duplicate" }) as ObjectResult;
+        Assert.That(result, Is.Not.Null);
+
+        // Assert
+        Assert.That(result.StatusCode, Is.EqualTo(409));
+        var tags = await _resourceManager.GetAllTagsAsync();
+        Assert.That(tags.Length, Is.EqualTo(1));
+    }
+    
+    #endregion
+
+    #region DeleteTag Tests
+
+    [TestCase("test")]
+    [TestCase("adfjlkasejfiajdfkasdjfaseifajbl")]
+    [Description("Simple test for deleting tags")]
+    public async Task DeleteTag_ReturnsOk_WhenIdFound(string input)
+    {
+        // Add the tag
+        await _controller.AddTag(new TagCreateDto{Name = input});
+        // Retrieve all tags
+        Tag[] allTags = await _resourceManager.GetAllTagsAsync();
+        // Find the added tag
+        string? addedTagId = allTags.FirstOrDefault(tag => tag.Name == input)?.Id.ToString();
+        
+        // Make sure the added tag has been found
+        Assert.That(addedTagId, Is.Not.Null);
+        
+        // Now we delete and test if the database is empty again
+        OkObjectResult delResponse = (OkObjectResult)await _controller.DeleteTag(addedTagId);
+
+        Assert.That(delResponse.StatusCode, Is.EqualTo(200));
+        Assert.That(Context.Tags.Count(), Is.EqualTo(0));
+    }
+
+    [TestCase("cd34f056-c81a-4906-9f38-315233e83126")]
+    [Description("Returns 404 if the tag doesn't exist in the database")]
+    public async Task DeleteTag_ReturnsNotFound_WhenTagDoesNotExist(string input)
+    {
+        // Try to delete tag in an empty database => should fail
+        NotFoundObjectResult failedDelResponse = (NotFoundObjectResult)await _controller.DeleteTag(input);
+
+        // Assert that error code is 404 (tag not found)
+        Assert.That(failedDelResponse.StatusCode, Is.EqualTo(404));
+    }
+
+    [Test]
+    [Description("DeleteTag returns Forbidden when user tries to delete tag assigned to resources")]
+    public async Task DeleteTag_ReturnsForbidden_WhenDeletingTagAssignedToResources()
+    {
+        // Add a tag
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "test-tag", CreatedBy = _regularUserId.ToString() });
+        Tag? tag = (await _resourceManager.GetAllTagsAsync(predicate: t => t.Name == "test-tag")).First();
+        
+        ResourceType resourceType = await Context.ResourceTypes.FirstAsync();
+
+        // Add a resource
+        ResourceCreateDto testDto = new() 
+        {
+            Title = "Test Resource", 
+            TypeId = resourceType.Id.ToString(),
+            LanguageCode = "??",
+            PublicationDate = DateTime.UtcNow
+        };
+
+        await _resourceManager.CreateResourceAsync(testDto);
+        
+        // Find the resource 
+        Resource? testResource = await _resourceManager.GetResourceAsync(predicate: r => r.Title == testDto.Title);
+        Assert.That(testResource, Is.Not.Null);
+
+        // Add resource tag relation
+        await _resourceManager.AddTagToResourceAsync(testResource.Id, tag.Id);
+        
+        // Try to delete the tag
+        ObjectResult? deleteResult = await _controller.DeleteTag(tag.Id.ToString()) as ObjectResult;
+        Assert.That(deleteResult, Is.Not.Null);
+        
+        // Assert
+        Assert.That(deleteResult.StatusCode, Is.EqualTo(403));
+        Assert.That((await _resourceManager.GetAllTagsAsync()).Length, Is.EqualTo(1));
+    }
+
+    [Test]
+    [Description("DeleteTag returns OK when admin deletes tag assigned to resources")]
+    public async Task DeleteTag_ReturnsOk_WhenAdminDeletesTagAssignedToResources()
+    {
+        // Add a tag
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "test-tag", CreatedBy = _adminUserId.ToString() });
+        Tag? tag = (await _resourceManager.GetAllTagsAsync(predicate: t => t.Name == "test-tag")).First();
+        
+        ResourceType resourceType = await Context.ResourceTypes.FirstAsync();
+
+        // Add a resource
+        ResourceCreateDto testDto = new() 
+        {
+            Title = "Test Resource", 
+            TypeId = resourceType.Id.ToString(),
+            LanguageCode = "??",
+            PublicationDate = DateTime.UtcNow
+        };
+
+        await _resourceManager.CreateResourceAsync(testDto);
+        
+        // Find the resource 
+        Resource? testResource = await _resourceManager.GetResourceAsync(predicate: r => r.Title == testDto.Title);
+        Assert.That(testResource, Is.Not.Null);
+
+        // Add resource tag relation
+        await _resourceManager.AddTagToResourceAsync(testResource.Id, tag.Id);
+        
+        // Delete the tag as admin
+        SetControllerUser(_adminUser);
+        OkObjectResult? deleteResult = await _controller.DeleteTag(tag.Id.ToString()) as OkObjectResult;
+        Assert.That(deleteResult, Is.Not.Null);
+        
+        // Assert
+        Assert.That(deleteResult.StatusCode, Is.EqualTo(200));
+        Assert.That((await _resourceManager.GetAllTagsAsync()).Length, Is.EqualTo(0));
+    }
+
+    #endregion
+
+    // [TestCase("original", "new")]
+    // [TestCase("1", "2")]
+    // [Description("Tests if you can successfully change the name of a tag")]
+    // public async Task ChangeTagTest(string orgName, string newName)
+    // {
+    //     // Add tag as before and get the GUID
+    //     await _controller.AddTag(orgName);
+    //     string addedTagGUID = Context.Tags.First().Id.ToString();
+
+    //     // Change tag name to new name and check if the database contains 1 element
+    //     OkObjectResult changeResponse = (await _controller.ChangeTagName(addedTagGUID, newName)) as OkObjectResult;
+    //     Assert.That(changeResponse.StatusCode, Is.EqualTo(200));
+    //     Assert.That(Context.Tags.Count(), Is.EqualTo(1));
+
+    //     // Fetch changed tag and double check if the tag is correctly changed
+    //     OkObjectResult allTags = _controller.Get() as OkObjectResult;
+    //     List<Tag> tagList = allTags.Value as List<Tag>;
+
+    //     Assert.That(tagList.Count, Is.EqualTo(1));
+    //     Assert.That(tagList[0].Name, Is.EqualTo(newName));
+    // }    
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
