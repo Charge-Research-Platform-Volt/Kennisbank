@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useLayoutEffect, useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogOverlay, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogOverlay, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import Search from "@/icons/search-icon";
 import { VisuallyHidden } from "radix-ui";
 import { Input } from "./ui/input";
@@ -20,7 +20,7 @@ import { Button } from "./ui/button";
  *
  * @returns QuickSearch bar in the top left corner of the screen. Users can then quickly search through the archive and open files / visit websites.
  */
-export default function QuickSearch() {
+export default function QuickSearch({ minimize = false }: { minimize?: boolean }) {
   const { isOpen, setIsOpen } = useQuickSearch();
   const [shortcut, setShortcut] = useState("Cmd + K");
   const [searchResults, setSearchResults] = useState<ResourceResponse[]>([]);
@@ -70,13 +70,15 @@ export default function QuickSearch() {
   return (
     <>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <Button onClick={() => setIsOpen(!isOpen)} variant="outline" className="m-0 flex w-full items-center justify-between p-2">
-          <div className="flex items-center gap-2">
-            <Search className="h-4 w-4" />
-            Search
-          </div>
-          <Kbd>{shortcut}</Kbd>
-        </Button>
+        <DialogTrigger asChild>
+          <Button variant="outline" className={`m-0 flex w-full items-center justify-between overflow-hidden p-2 transition-all duration-200 ${!minimize && "w-9"}`}>
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              Search
+            </div>
+            <Kbd>{shortcut}</Kbd>
+          </Button>
+        </DialogTrigger>
 
         <DialogOverlay />
         <DialogContent className="h-full max-h-[450px] w-full content-start gap-2 p-1 sm:max-w-[650px]">

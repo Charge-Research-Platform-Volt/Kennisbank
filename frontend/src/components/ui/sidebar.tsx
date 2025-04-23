@@ -51,7 +51,11 @@ export function Sidebar({
         )}
         {...props}
       >
-        <aside data-sidebar="sidebar" data-slot="sidebar-inner" className={cn("bg-sidebar flex h-full w-full flex-col", "overflow-x-hidden", "overflow-x-auto", className)}>
+        <aside
+          data-sidebar="sidebar"
+          data-slot="sidebar-inner"
+          className={cn("bg-sidebar flex h-full w-full flex-col", "overflow-x-hidden", "overflow-x-auto", "transition-all duration-200", className)}
+        >
           {children}
         </aside>
       </div>
