@@ -1,5 +1,5 @@
 "use client";
-import { createContext, Dispatch, SetStateAction, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { usePathname } from "next/navigation";
 
@@ -22,8 +22,6 @@ type SidebarContextType = {
   rightSidebarOpen: boolean;
   setRightSidebarOpen: (open: boolean) => void;
   toggleRightSidebar: (document: ResourceWithTagsResponse | null) => void;
-  onCloseClicked: () => void;
-  setOnCloseClicked: Dispatch<SetStateAction<() => void>>;
 };
 
 // This context is used to manage the state of the sidebar
@@ -31,7 +29,7 @@ const SidebarContent = createContext<SidebarContextType | undefined>(undefined);
 
 // This hook is used to access the sidebar context
 export const useSidebar = () => {
-  const context : SidebarContextType | undefined = useContext(SidebarContent);
+  const context: SidebarContextType | undefined = useContext(SidebarContent);
 
   if (!context) throw new Error("useSidebar must be used within a SidebarProvider");
 
@@ -39,21 +37,24 @@ export const useSidebar = () => {
 };
 
 // This component provides the sidebar context to its children
-export const SidebarProvider = ({ children }: { children: React.ReactNode }) => {
-  const [onCloseClicked, setOnCloseClicked] = useState<(() => void)>(() => {});
-
-  const pathname : string = usePathname();
+export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSidebarDefaultState: boolean; children: React.ReactNode }) => {
+  const pathname: string = usePathname();
 
   // State for the selected document
   const [selectedDocument, setSelectedDocument] = useState<ResourceWithTagsResponse | null>(null);
 
-  // State and functions for the left sidebar
-  const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
+  // - State and functions for the left sidebar
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState<boolean>(leftSidebarDefaultState);
   const leftSidebarState = leftSidebarOpen ? "expanded" : "collapsed";
-  const toggleLeftSidebar = () => setLeftSidebarOpen((prev) => !prev);
+  const toggleLeftSidebar = () => {
+    setLeftSidebarOpen((prev) => !prev);
 
-  // State and functions for the right sidebar
-  const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
+    // set cookie for left sidebar state
+    document.cookie = `leftSidebar:state=${!leftSidebarOpen}; path=/; max-age=31536000; SameSite=None; Secure`;
+  };
+
+  // - State and functions for the right sidebar
+  const [rightSidebarOpen, setRightSidebarOpen] = useState<boolean>(false);
   const rightSidebarState = rightSidebarOpen ? "expanded" : "collapsed";
   const toggleRightSidebar = (document: ResourceWithTagsResponse | null) => {
     if (document) setSelectedDocument(document);
@@ -71,7 +72,6 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
 
   useHotkeys("esc", () => {
     setRightSidebarOpen(false);
-    onCloseClicked?.();
   });
 
   return (
@@ -91,8 +91,6 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
         rightSidebarOpen,
         setRightSidebarOpen,
         toggleRightSidebar,
-        onCloseClicked,
-        setOnCloseClicked,
       }}
     >
       {children}
@@ -100,9 +98,6 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
   );
 };
 
-
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-
