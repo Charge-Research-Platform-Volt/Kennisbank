@@ -1,6 +1,5 @@
 ﻿using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.VisualBasic;
 using System.Linq.Expressions;
 
 namespace KnowledgeBank.Data
@@ -21,7 +20,7 @@ namespace KnowledgeBank.Data
                     query = query.OrderBy(orderBy);
             }
 
-            foreach (var includeProperty in includeProperties)
+            foreach (string includeProperty in includeProperties)
             {
                 query = query.Include(includeProperty);
             }
@@ -32,9 +31,9 @@ namespace KnowledgeBank.Data
         protected async Task<T?> GetAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate, params string[] includeProperties) where T : class
         { return await GetAsync(dbSet, predicate, null, false, includeProperties); }
 
-        protected async Task<T[]> GetAllAsync<T>(DbSet<T> dbSet, Expression<Func<T, object>>? orderBy = null, bool orderDescending = false, Expression<Func<T, bool>>? predicate = null, params string[] includeProperties) where T : class
+        private IQueryable<T> getAllQuery<T>(DbSet<T> dbSet, Expression<Func<T, object>>? orderBy = null, bool orderDescending = false, Expression<Func<T, bool>>? predicate = null, params string[] includeProperties) where T : class 
         {
-            IQueryable<T> query = dbSet.AsQueryable();
+            IQueryable<T> query = dbSet.AsQueryable().AsNoTracking();
 
             if (predicate != null)
                 query = query.Where(predicate);
@@ -47,22 +46,19 @@ namespace KnowledgeBank.Data
                     query = query.OrderBy(orderBy);
             }
 
-            foreach (var includeProperty in includeProperties)
+            foreach (string includeProperty in includeProperties)
             {
                 query = query.Include(includeProperty);
             }
-
-            return await query.AsNoTracking().ToArrayAsync();
+            
+            return query;
         }
-
-        protected async Task<T[]> GetAllAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>>? predicate = null, params string[] includeProperties) where T : class
-        { return await GetAllAsync(dbSet, null, false, predicate, includeProperties); }
-
-        protected async Task<T[]> GetAllAsync<T>(DbSet<T> dbSet, Expression<Func<T, object>>? orderBy = null, bool orderDescending = false, params string[] includeProperties) where T : class
-        { return await GetAllAsync(dbSet, orderBy, orderDescending, null, includeProperties); }
-
-        protected async Task<T[]> GetAllAsync<T>(DbSet<T> dbSet, params string[] includeProperties) where T : class
-        { return await GetAllAsync(dbSet, null, false, null, includeProperties); }
+    
+        protected async Task<T[]> GetAllAsync<T>(DbSet<T> dbSet, Expression<Func<T, object>>? orderBy = null, bool orderDescending = false, Expression<Func<T, bool>>? predicate = null, params string[] includeProperties) where T : class
+        { return await getAllQuery(dbSet, orderBy, orderDescending, predicate, includeProperties).ToArrayAsync(); }
+        
+        protected async Task<TResult[]> GetAllAsync<TSet, TResult>(DbSet<TSet> dbSet, Expression<Func<TSet, TResult>> projection, Expression<Func<TSet, object>>? orderBy = null, bool orderDescending = false, Expression<Func<TSet, bool>>? predicate = null, params string[] includeProperties) where TSet : class
+        { return await getAllQuery(dbSet, orderBy, orderDescending, predicate, includeProperties).Select(projection).ToArrayAsync(); }
 
         protected async Task<T[]> GetPageAsync<T>(DbSet<T> dbSet, int pageIndex = 1, int pageSize = 100, Expression<Func<T, object>>? orderBy = null, bool orderDescending = false, Expression<Func<T, bool>>? predicate = null, params string[] includeProperties) where T : class
         {
@@ -72,41 +68,43 @@ namespace KnowledgeBank.Data
             // Calculate how many records we need to skip
             int skip = (pageIndex - 1) * pageSize;
 
-            IQueryable<T> query = dbSet.AsQueryable();
+            IQueryable<T> query = getAllQuery(dbSet, orderBy, orderDescending, predicate, includeProperties);
 
-            if (predicate != null)
-                query = query.Where(predicate);
+            return await query.Skip(skip).Take(pageSize).ToArrayAsync();
+        }
+        
+        protected async Task<TResult[]> GetPageAsync<TSet, TResult>(DbSet<TSet> dbSet, Expression<Func<TSet, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<TSet, object>>? orderBy = null, bool orderDescending = false, Expression<Func<TSet, bool>>? predicate = null, params string[] includeProperties) where TSet : class
+        {
+            // Return empty for invalid inpt
+            if (pageIndex < 1 || pageSize < 1) return [];
 
-            if (orderBy != null)
-            {
-                if (orderDescending)
-                    query = query.OrderByDescending(orderBy);
-                else
-                    query = query.OrderBy(orderBy);
-            }
+            // Calculate how many records we need to skip
+            int skip = (pageIndex - 1) * pageSize;
 
-            foreach (var includeProperty in includeProperties)
-            {
-                query = query.Include(includeProperty);
-            }
+            IQueryable<TSet> query = getAllQuery(dbSet, orderBy, orderDescending, predicate, includeProperties);
 
-            return await query.Skip(skip).Take(pageSize).AsNoTracking().ToArrayAsync();
+            return await query.Skip(skip).Take(pageSize).Select(projection).ToArrayAsync();
         }
 
-        protected async Task<T[]> GetPageAsync<T>(DbSet<T> dbSet, int pageIndex = 1, int pageSize = 100, Expression<Func<T, bool>>? predicate = null, params string[] includeProperties) where T : class
-        { return await GetPageAsync(dbSet, pageIndex, pageSize, null, false, predicate, includeProperties); }
+        protected async Task<TResult> GetPropertyAsync<TSet, TResult>(DbSet<TSet> dbSet, Expression<Func<TSet, bool>> predicate, Expression<Func<TSet, TResult>> selector, Expression<Func<TSet, object>>? orderBy = null, bool orderDescending = false) where TSet : class
+        { 
+            IQueryable<TSet> query = dbSet.Where(predicate);
+            
+            if (orderBy != null) 
+                query = orderDescending ? query.OrderByDescending(orderBy) : query.OrderBy(orderBy);
+            
+            return await query.Select(selector).FirstAsync();
+        }
 
-        protected async Task<T[]> GetPageAsync<T>(DbSet<T> dbSet, int pageIndex = 1, int pageSize = 100, Expression<Func<T, object>>? orderBy = null, bool orderDescending = false, params string[] includeProperties) where T : class
-        { return await GetPageAsync(dbSet, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties); }
-
-        protected async Task<T[]> GetPageAsync<T>(DbSet<T> dbSet, int pageIndex = 1, int pageSize = 100, params string[] includeProperties) where T : class
-        { return await GetPageAsync(dbSet, pageIndex, pageSize, null, false, null, includeProperties); }
-
-        protected async Task<TResult> GetPropertyAsync<TSet, TResult>(DbSet<TSet> dbSet, Expression<Func<TSet, bool>> predicate, Expression<Func<TSet, TResult>> selector) where TSet : class
-        { return await dbSet.Where(predicate).Select(selector).FirstAsync(); }
-
-        protected async Task<TResult?> GetPropertyOrDefaultAsync<TSet, TResult>(DbSet<TSet> dbSet, Expression<Func<TSet, bool>> predicate, Expression<Func<TSet, TResult>> selector) where TSet : class
-        { return await dbSet.Where(predicate).Select(selector).FirstOrDefaultAsync(); }
+        protected async Task<TResult?> GetPropertyOrDefaultAsync<TSet, TResult>(DbSet<TSet> dbSet, Expression<Func<TSet, bool>> predicate, Expression<Func<TSet, TResult>> selector, Expression<Func<TSet, object>>? orderBy = null, bool orderDescending = false) where TSet : class
+        { 
+            IQueryable<TSet> query = dbSet.Where(predicate);
+            
+            if (orderBy != null) 
+                query = orderDescending ? query.OrderByDescending(orderBy) : query.OrderBy(orderBy);
+            
+            return await query.Select(selector).FirstOrDefaultAsync();
+        }
 
 
 
@@ -192,24 +190,79 @@ namespace KnowledgeBank.Data
 
         public async Task<Resource[]> GetResourcePageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.Resources, pageIndex, pageSize, resourceDefaultOrderBy, resourceDefaultOrderDescending, null, includeProperties); }
+        
+        // Multiple with projection
+        public async Task<TResult[]> GetAllResourcesAsync<TResult>(Expression<Func<Resource, TResult>> projection, Expression<Func<Resource, object>>? orderBy = null, bool orderDescending = resourceDefaultOrderDescending, Expression<Func<Resource, bool>>? predicate = null)
+        {
+            orderBy ??= resourceDefaultOrderBy;
+            return await GetAllAsync(database.Resources, projection, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetAllResourcesAsync<TResult>(Expression<Func<Resource, TResult>> projection, Expression<Func<Resource, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetAllAsync(database.Resources, projection, resourceDefaultOrderBy, resourceDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetAllResourcesAsync<TResult>(Expression<Func<Resource, TResult>> projection, Expression<Func<Resource, object>>? orderBy = null, bool orderDescending = resourceDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= resourceDefaultOrderBy;
+            return await GetAllAsync(database.Resources, projection, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetAllResourcesAsync<TResult>(Expression<Func<Resource, TResult>> projection, params string[] includeProperties)
+        { return await GetAllAsync(database.Resources, projection, resourceDefaultOrderBy, resourceDefaultOrderDescending, null, includeProperties); }
+
+        public async Task<TResult[]> GetResourcePageAsync<TResult>(Expression<Func<Resource, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Resource, object>>? orderBy = null, bool orderDescending = resourceDefaultOrderDescending, Expression<Func<Resource, bool>>? predicate = null)
+        {
+            orderBy ??= resourceDefaultOrderBy;
+            return await GetPageAsync(database.Resources, projection, pageIndex, pageSize, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetResourcePageAsync<TResult>(Expression<Func<Resource, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Resource, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetPageAsync(database.Resources, projection, pageIndex, pageSize, resourceDefaultOrderBy, resourceDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetResourcePageAsync<TResult>(Expression<Func<Resource, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Resource, object>>? orderBy = null, bool orderDescending = resourceDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= resourceDefaultOrderBy;
+            return await GetPageAsync(database.Resources, projection, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetResourcePageAsync<TResult>(Expression<Func<Resource, TResult>> projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
+        { return await GetPageAsync(database.Resources, projection, pageIndex, pageSize, resourceDefaultOrderBy, resourceDefaultOrderDescending, null, includeProperties); }    
 
 
         // Properties
 
-        public async Task<T> GetResourcePropertyAsync<T>(Guid resourceId, Expression<Func<Resource, T>> selector)
-        { return await GetPropertyAsync(database.Resources, r => r.Id == resourceId, selector); }
+        public async Task<T> GetResourcePropertyAsync<T>(Guid resourceId, Expression<Func<Resource, T>> selector, Expression<Func<Resource, object>>? orderBy = null, bool orderDescending = resourceDefaultOrderDescending)
+        { 
+            orderBy ??= resourceDefaultOrderBy;
+            return await GetPropertyAsync(database.Resources, r => r.Id == resourceId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T> GetResourcePropertyAsync<T>(string resourceId, Expression<Func<Resource, T>> selector)
-        { return await GetResourcePropertyAsync(Guid.Parse(resourceId), selector); }
+        public async Task<T> GetResourcePropertyAsync<T>(string resourceId, Expression<Func<Resource, T>> selector, Expression<Func<Resource, object>>? orderBy = null, bool orderDescending = resourceDefaultOrderDescending)
+        { return await GetResourcePropertyAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
+        
+        public async Task<T?> GetResourcePropertyAsync<T>(Expression<Func<Resource, bool>> predicate, Expression<Func<Resource, T>> selector, Expression<Func<Resource, object>>? orderBy = null, bool orderDescending = resourceDefaultOrderDescending)
+        {
+            orderBy ??= resourceDefaultOrderBy;
+            return await GetPropertyAsync(database.Resources, predicate, selector, orderBy, orderDescending);
+        }
 
 
 
 
-        public async Task<T?> GetResourcePropertyOrDefaultAsync<T>(Guid resourceId, Expression<Func<Resource, T>> selector)
-        { return await GetPropertyOrDefaultAsync(database.Resources, r => r.Id == resourceId, selector); }
+        public async Task<T?> GetResourcePropertyOrDefaultAsync<T>(Guid resourceId, Expression<Func<Resource, T>> selector, Expression<Func<Resource, object>>? orderBy = null, bool orderDescending = resourceDefaultOrderDescending)
+        { 
+            orderBy ??= resourceDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.Resources, r => r.Id == resourceId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T?> GetResourcePropertyOrDefaultAsync<T>(string resourceId, Expression<Func<Resource, T>> selector)
-        { return await GetResourcePropertyOrDefaultAsync(Guid.Parse(resourceId), selector); }
+        public async Task<T?> GetResourcePropertyOrDefaultAsync<T>(string resourceId, Expression<Func<Resource, T>> selector, Expression<Func<Resource, object>>? orderBy = null, bool orderDescending = resourceDefaultOrderDescending)
+        { return await GetResourcePropertyOrDefaultAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
+        
+        public async Task<T?> GetResourcePropertyOrDefaultAsync<T>(Expression<Func<Resource, bool>> predicate, Expression<Func<Resource, T>> selector, Expression<Func<Resource, object>>? orderBy = null, bool orderDescending = resourceDefaultOrderDescending)
+        {
+            orderBy ??= resourceDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.Resources, predicate, selector, orderBy, orderDescending);
+        }
 
         #endregion
 
@@ -289,23 +342,77 @@ namespace KnowledgeBank.Data
         public async Task<Person[]> GetPersonPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.Persons, pageIndex, pageSize, personDefaultOrderBy, personDefaultOrderDescending, null, includeProperties); }
 
+        
+        // Multiple with projection
+        public async Task<TResult[]> GetAllPersonsAsync<TResult>(Expression<Func<Person, TResult>> projection, Expression<Func<Person, object>>? orderBy = null, bool orderDescending = personDefaultOrderDescending, Expression<Func<Person, bool>>? predicate = null)
+        {
+            orderBy ??= personDefaultOrderBy;
+            return await GetAllAsync(database.Persons, projection, orderBy, orderDescending, predicate);
+        }
 
+        public async Task<TResult[]> GetAllPersonsAsync<TResult>(Expression<Func<Person, TResult>> projection, Expression<Func<Person, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetAllAsync(database.Persons, projection, personDefaultOrderBy, personDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetAllPersonsAsync<TResult>(Expression<Func<Person, TResult>> projection, Expression<Func<Person, object>>? orderBy = null, bool orderDescending = personDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= personDefaultOrderBy;
+            return await GetAllAsync(database.Persons, projection, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetAllPersonsAsync<TResult>(Expression<Func<Person, TResult>> projection, params string[] includeProperties)
+        { return await GetAllAsync(database.Persons, projection, personDefaultOrderBy, personDefaultOrderDescending, null, includeProperties); }
+
+        public async Task<TResult[]> GetPersonPageAsync<TResult>(Expression<Func<Person, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Person, object>>? orderBy = null, bool orderDescending = personDefaultOrderDescending, Expression<Func<Person, bool>>? predicate = null)
+        {
+            orderBy ??= personDefaultOrderBy;
+            return await GetPageAsync(database.Persons, projection, pageIndex, pageSize, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetPersonPageAsync<TResult>(Expression<Func<Person, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Person, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetPageAsync(database.Persons, projection, pageIndex, pageSize, personDefaultOrderBy, personDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetPersonPageAsync<TResult>(Expression<Func<Person, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Person, object>>? orderBy = null, bool orderDescending = personDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= personDefaultOrderBy;
+            return await GetPageAsync(database.Persons, projection, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetPersonPageAsync<TResult>(Expression<Func<Person, TResult>> projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
+        { return await GetPageAsync(database.Persons, projection, pageIndex, pageSize, personDefaultOrderBy, personDefaultOrderDescending, null, includeProperties); }
 
         // Property
 
-        public async Task<T> GetPersonPropertyAsync<T>(Guid personId, Expression<Func<Person, T>> selector)
-        { return await GetPropertyAsync(database.Persons, p => p.Id == personId, selector); }
+        public async Task<T> GetPersonPropertyAsync<T>(Guid personId, Expression<Func<Person, T>> selector, Expression<Func<Person, object>>? orderBy = null, bool orderDescending = personDefaultOrderDescending)
+        { 
+            orderBy ??= personDefaultOrderBy;
+            return await GetPropertyAsync(database.Persons, p => p.Id == personId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T> GetPersonPropertyAsync<T>(string personId, Expression<Func<Person, T>> selector)
-        { return await GetPersonPropertyAsync(Guid.Parse(personId), selector); }
+        public async Task<T> GetPersonPropertyAsync<T>(string personId, Expression<Func<Person, T>> selector, Expression<Func<Person, object>>? orderBy = null, bool orderDescending = personDefaultOrderDescending)
+        { return await GetPersonPropertyAsync(Guid.Parse(personId), selector, orderBy, orderDescending); }
+        
+        public async Task<T?> GetPersonPropertyAsync<T>(Expression<Func<Person, bool>> predicate, Expression<Func<Person, T>> selector, Expression<Func<Person, object>>? orderBy = null, bool orderDescending = personDefaultOrderDescending)
+        {
+            orderBy ??= personDefaultOrderBy;
+            return await GetPropertyAsync(database.Persons, predicate, selector, orderBy, orderDescending);
+        }
 
 
 
-        public async Task<T?> GetPersonPropertyOrDefaultAsync<T>(Guid personId, Expression<Func<Person, T>> selector)
-        { return await GetPropertyOrDefaultAsync(database.Persons, p => p.Id == personId, selector); }
+        public async Task<T?> GetPersonPropertyOrDefaultAsync<T>(Guid personId, Expression<Func<Person, T>> selector, Expression<Func<Person, object>>? orderBy = null, bool orderDescending = personDefaultOrderDescending)
+        { 
+            orderBy ??= personDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.Persons, p => p.Id == personId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T?> GetPersonPropertyOrDefaultAsync<T>(string personId, Expression<Func<Person, T>> selector)
-        { return await GetPersonPropertyOrDefaultAsync(Guid.Parse(personId), selector); }
+        public async Task<T?> GetPersonPropertyOrDefaultAsync<T>(string personId, Expression<Func<Person, T>> selector, Expression<Func<Person, object>>? orderBy = null, bool orderDescending = personDefaultOrderDescending)
+        { return await GetPersonPropertyOrDefaultAsync(Guid.Parse(personId), selector, orderBy, orderDescending); }
+        
+        public async Task<T?> GetPersonPropertyOrDefaultAsync<T>(Expression<Func<Person, bool>> predicate, Expression<Func<Person, T>> selector, Expression<Func<Person, object>>? orderBy = null, bool orderDescending = personDefaultOrderDescending)
+        {
+            orderBy ??= personDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.Persons, predicate, selector, orderBy, orderDescending);
+        }
 
         #endregion
 
@@ -381,22 +488,78 @@ namespace KnowledgeBank.Data
         public async Task<Organisation[]> GetOrganisationPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.Organisations, pageIndex, pageSize, organisationDefaultOrderBy, organisationDefaultOrderDescending, null, includeProperties); }
 
+        
+        // Multiple with projection
+        public async Task<TResult[]> GetAllOrganisationsAsync<TResult>(Expression<Func<Organisation, TResult>> projection, Expression<Func<Organisation, object>>? orderBy = null, bool orderDescending = organisationDefaultOrderDescending, Expression<Func<Organisation, bool>>? predicate = null)
+        {
+            orderBy ??= organisationDefaultOrderBy;
+            return await GetAllAsync(database.Organisations, projection, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetAllOrganisationsAsync<TResult>(Expression<Func<Organisation, TResult>> projection, Expression<Func<Organisation, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetAllAsync(database.Organisations, projection, organisationDefaultOrderBy, organisationDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetAllOrganisationsAsync<TResult>(Expression<Func<Organisation, TResult>> projection, Expression<Func<Organisation, object>>? orderBy = null, bool orderDescending = organisationDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= organisationDefaultOrderBy;
+            return await GetAllAsync(database.Organisations, projection, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetAllOrganisationsAsync<TResult>(Expression<Func<Organisation, TResult>> projection, params string[] includeProperties)
+        { return await GetAllAsync(database.Organisations, projection, organisationDefaultOrderBy, organisationDefaultOrderDescending, null, includeProperties); }
+
+        public async Task<TResult[]> GetOrganisationPageAsync<TResult>(Expression<Func<Organisation, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Organisation, object>>? orderBy = null, bool orderDescending = organisationDefaultOrderDescending, Expression<Func<Organisation, bool>>? predicate = null)
+        {
+            orderBy ??= organisationDefaultOrderBy;
+            return await GetPageAsync(database.Organisations, projection, pageIndex, pageSize, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetOrganisationPageAsync<TResult>(Expression<Func<Organisation, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Organisation, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetPageAsync(database.Organisations, projection, pageIndex, pageSize, organisationDefaultOrderBy, organisationDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetOrganisationPageAsync<TResult>(Expression<Func<Organisation, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Organisation, object>>? orderBy = null, bool orderDescending = organisationDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= organisationDefaultOrderBy;
+            return await GetPageAsync(database.Organisations, projection, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetOrganisationPageAsync<TResult>(Expression<Func<Organisation, TResult>> projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
+        { return await GetPageAsync(database.Organisations, projection, pageIndex, pageSize, organisationDefaultOrderBy, organisationDefaultOrderDescending, null, includeProperties); }
+        
 
         // Property
 
-        public async Task<T> GetOrganisationPropertyAsync<T>(Guid organisationId, Expression<Func<Organisation, T>> selector)
-        { return await GetPropertyAsync(database.Organisations, o => o.Id == organisationId, selector); }
+        public async Task<T> GetOrganisationPropertyAsync<T>(Guid organisationId, Expression<Func<Organisation, T>> selector, Expression<Func<Organisation, object>>? orderBy = null, bool orderDescending = organisationDefaultOrderDescending)
+        { 
+            orderBy ??= organisationDefaultOrderBy;
+            return await GetPropertyAsync(database.Organisations, o => o.Id == organisationId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T> GetOrganisationPropertyAsync<T>(string organisationId, Expression<Func<Organisation, T>> selector)
-        { return await GetOrganisationPropertyAsync(Guid.Parse(organisationId), selector); }
+        public async Task<T> GetOrganisationPropertyAsync<T>(string organisationId, Expression<Func<Organisation, T>> selector, Expression<Func<Organisation, object>>? orderBy = null, bool orderDescending = organisationDefaultOrderDescending)
+        { return await GetOrganisationPropertyAsync(Guid.Parse(organisationId), selector, orderBy, orderDescending); }
+        
+        public async Task<T?> GetOrganisationPropertyAsync<T>(Expression<Func<Organisation, bool>> predicate, Expression<Func<Organisation, T>> selector, Expression<Func<Organisation, object>>? orderBy = null, bool orderDescending = organisationDefaultOrderDescending)
+        {
+            orderBy ??= organisationDefaultOrderBy;
+            return await GetPropertyAsync(database.Organisations, predicate, selector, orderBy, orderDescending);
+        }
 
 
 
-        public async Task<T?> GetOrganisationPropertyOrDefaultAsync<T>(Guid organisationId, Expression<Func<Organisation, T>> selector)
-        { return await GetPropertyOrDefaultAsync(database.Organisations, o => o.Id == organisationId, selector); }
+        public async Task<T?> GetOrganisationPropertyOrDefaultAsync<T>(Guid organisationId, Expression<Func<Organisation, T>> selector, Expression<Func<Organisation, object>>? orderBy = null, bool orderDescending = organisationDefaultOrderDescending)
+        {
+            orderBy ??= organisationDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.Organisations, o => o.Id == organisationId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T?> GetOrganisationPropertyOrDefaultAsync<T>(string organisationId, Expression<Func<Organisation, T>> selector)
-        { return await GetOrganisationPropertyOrDefaultAsync(Guid.Parse(organisationId), selector); }
+        public async Task<T?> GetOrganisationPropertyOrDefaultAsync<T>(string organisationId, Expression<Func<Organisation, T>> selector, Expression<Func<Organisation, object>>? orderBy = null, bool orderDescending = organisationDefaultOrderDescending)
+        { return await GetOrganisationPropertyOrDefaultAsync(Guid.Parse(organisationId), selector, orderBy, orderDescending); }
+        
+        public async Task<T?> GetOrganisationPropertyOrDefaultAsync<T>(Expression<Func<Organisation, bool>> predicate, Expression<Func<Organisation, T>> selector, Expression<Func<Organisation, object>>? orderBy = null, bool orderDescending = organisationDefaultOrderDescending)
+        {
+            orderBy ??= organisationDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.Organisations, predicate, selector, orderBy, orderDescending);
+        }
 
         #endregion
 
@@ -472,22 +635,77 @@ namespace KnowledgeBank.Data
         { return await GetPageAsync(database.Regions, pageIndex, pageSize, regionDefaultOrderBy, regionDefaultOrderDescending, null, includeProperties); }
 
 
+        // Multiple with projections
+        public async Task<TResult[]> GetAllRegionsAsync<TResult>(Expression<Func<Region, TResult>> projection, Expression<Func<Region, object>>? orderBy = null, bool orderDescending = regionDefaultOrderDescending, Expression<Func<Region, bool>>? predicate = null)
+        {
+            orderBy ??= regionDefaultOrderBy;
+            return await GetAllAsync(database.Regions, projection, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetAllRegionsAsync<TResult>(Expression<Func<Region, TResult>> projection, Expression<Func<Region, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetAllAsync(database.Regions, projection, regionDefaultOrderBy, regionDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetAllRegionsAsync<TResult>(Expression<Func<Region, TResult>> projection, Expression<Func<Region, object>>? orderBy = null, bool orderDescending = regionDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= regionDefaultOrderBy;
+            return await GetAllAsync(database.Regions, projection, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetAllRegionsAsync<TResult>(Expression<Func<Region, TResult>> projection, params string[] includeProperties)
+        { return await GetAllAsync(database.Regions, projection, regionDefaultOrderBy, regionDefaultOrderDescending, null, includeProperties); }
+
+        public async Task<TResult[]> GetRegionPageAsync<TResult>(Expression<Func<Region, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Region, object>>? orderBy = null, bool orderDescending = regionDefaultOrderDescending, Expression<Func<Region, bool>>? predicate = null)
+        {
+            orderBy ??= regionDefaultOrderBy;
+            return await GetPageAsync(database.Regions, projection, pageIndex, pageSize, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetRegionPageAsync<TResult>(Expression<Func<Region, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Region, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetPageAsync(database.Regions, projection, pageIndex, pageSize, regionDefaultOrderBy, regionDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetRegionPageAsync<TResult>(Expression<Func<Region, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Region, object>>? orderBy = null, bool orderDescending = regionDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= regionDefaultOrderBy;
+            return await GetPageAsync(database.Regions, projection, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetRegionPageAsync<TResult>(Expression<Func<Region, TResult>> projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
+        { return await GetPageAsync(database.Regions, projection, pageIndex, pageSize, regionDefaultOrderBy, regionDefaultOrderDescending, null, includeProperties); }
+        
 
         // Property
 
-        public async Task<T> GetRegionPropertyAsync<T>(Guid regionId, Expression<Func<Region, T>> selector)
-        { return await GetPropertyAsync(database.Regions, r => r.Id == regionId, selector); }
+        public async Task<T> GetRegionPropertyAsync<T>(Guid regionId, Expression<Func<Region, T>> selector, Expression<Func<Region, object>>? orderBy = null, bool orderDescending = regionDefaultOrderDescending)
+        {
+            orderBy ??= regionDefaultOrderBy;
+            return await GetPropertyAsync(database.Regions, r => r.Id == regionId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T> GetRegionPropertyAsync<T>(string regionId, Expression<Func<Region, T>> selector)
-        { return await GetRegionPropertyAsync(Guid.Parse(regionId), selector); }
+        public async Task<T> GetRegionPropertyAsync<T>(string regionId, Expression<Func<Region, T>> selector, Expression<Func<Region, object>>? orderBy = null, bool orderDescending = regionDefaultOrderDescending)
+        { return await GetRegionPropertyAsync(Guid.Parse(regionId), selector, orderBy, orderDescending); }
+        
+        public async Task<T> GetRegionPropertyAsync<T>(Expression<Func<Region, bool>> predicate, Expression<Func<Region, T>> selector, Expression<Func<Region, object>>? orderBy = null, bool orderDescending = regionDefaultOrderDescending)
+        {
+            orderBy ??= regionDefaultOrderBy;
+            return await GetPropertyAsync(database.Regions, predicate, selector, orderBy, orderDescending);
+        }
 
 
 
-        public async Task<T?> GetRegionPropertyOrDefaultAsync<T>(Guid regionId, Expression<Func<Region, T>> selector)
-        { return await GetPropertyOrDefaultAsync(database.Regions, r => r.Id == regionId, selector); }
+        public async Task<T?> GetRegionPropertyOrDefaultAsync<T>(Guid regionId, Expression<Func<Region, T>> selector, Expression<Func<Region, object>>? orderBy = null, bool orderDescending = regionDefaultOrderDescending)
+        {
+            orderBy ??= regionDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.Regions, r => r.Id == regionId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T?> GetRegionPropertyOrDefaultAsync<T>(string regionId, Expression<Func<Region, T>> selector)
-        { return await GetRegionPropertyOrDefaultAsync(Guid.Parse(regionId), selector); }
+        public async Task<T?> GetRegionPropertyOrDefaultAsync<T>(string regionId, Expression<Func<Region, T>> selector, Expression<Func<Region, object>>? orderBy = null, bool orderDescending = regionDefaultOrderDescending)
+        { return await GetRegionPropertyOrDefaultAsync(Guid.Parse(regionId), selector, orderBy, orderDescending); }
+        
+        public async Task<T?> GetRegionPropertyOrDefaultAsync<T>(Expression<Func<Region, bool>> predicate, Expression<Func<Region, T>> selector, Expression<Func<Region, object>>? orderBy = null, bool orderDescending = regionDefaultOrderDescending)
+        {
+            orderBy ??= regionDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.Regions, predicate, selector, orderBy, orderDescending);
+        }
 
         #endregion
 
@@ -565,23 +783,77 @@ namespace KnowledgeBank.Data
         public async Task<AudioMetadata[]> GetAudioMetadataPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.AudioMetadata, pageIndex, pageSize, audioDefaultOrderBy, audioDefaultOrderDescending, null, includeProperties); }
 
+        // Multpile with projection
+        public async Task<TResult[]> GetAllAudioMetadatasAsync<TResult>(Expression<Func<AudioMetadata, TResult>> projection, Expression<Func<AudioMetadata, object>>? orderBy = null, bool orderDescending = audioDefaultOrderDescending, Expression<Func<AudioMetadata, bool>>? predicate = null)
+        {
+            orderBy ??= audioDefaultOrderBy;
+            return await GetAllAsync(database.AudioMetadata, projection, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetAllAudioMetadatasAsync<TResult>(Expression<Func<AudioMetadata, TResult>> projection, Expression<Func<AudioMetadata, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetAllAsync(database.AudioMetadata, projection, audioDefaultOrderBy, audioDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetAllAudioMetadatasAsync<TResult>(Expression<Func<AudioMetadata, TResult>> projection, Expression<Func<AudioMetadata, object>>? orderBy = null, bool orderDescending = audioDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= audioDefaultOrderBy;
+            return await GetAllAsync(database.AudioMetadata, projection, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetAllAudioMetadatasAsync<TResult>(Expression<Func<AudioMetadata, TResult>> projection, params string[] includeProperties)
+        { return await GetAllAsync(database.AudioMetadata, projection, audioDefaultOrderBy, audioDefaultOrderDescending, null, includeProperties); }
+
+        public async Task<TResult[]> GetAudioMetadataPageAsync<TResult>(Expression<Func<AudioMetadata, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<AudioMetadata, object>>? orderBy = null, bool orderDescending = audioDefaultOrderDescending, Expression<Func<AudioMetadata, bool>>? predicate = null)
+        {
+            orderBy ??= audioDefaultOrderBy;
+            return await GetPageAsync(database.AudioMetadata, projection, pageIndex, pageSize, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetAudioMetadataPageAsync<TResult>(Expression<Func<AudioMetadata, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<AudioMetadata, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetPageAsync(database.AudioMetadata, projection, pageIndex, pageSize, audioDefaultOrderBy, audioDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetAudioMetadataPageAsync<TResult>(Expression<Func<AudioMetadata, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<AudioMetadata, object>>? orderBy = null, bool orderDescending = audioDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= audioDefaultOrderBy;
+            return await GetPageAsync(database.AudioMetadata, projection, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetAudioMetadataPageAsync<TResult>(Expression<Func<AudioMetadata, TResult>> projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
+        { return await GetPageAsync(database.AudioMetadata, projection, pageIndex, pageSize, audioDefaultOrderBy, audioDefaultOrderDescending, null, includeProperties); }
 
 
         // Property
 
-        public async Task<T> GetAudioMetadataPropertyAsync<T>(Guid resourceId, Expression<Func<AudioMetadata, T>> selector)
-        { return await GetPropertyAsync(database.AudioMetadata, a => a.ResourceId == resourceId, selector); }
+        public async Task<T> GetAudioMetadataPropertyAsync<T>(Guid resourceId, Expression<Func<AudioMetadata, T>> selector, Expression<Func<AudioMetadata, object>>? orderBy = null, bool orderDescending = audioDefaultOrderDescending)
+        {
+            orderBy ??= audioDefaultOrderBy;
+            return await GetPropertyAsync(database.AudioMetadata, a => a.ResourceId == resourceId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T> GetAudioMetadataPropertyAsync<T>(string resourceId, Expression<Func<AudioMetadata, T>> selector)
-        { return await GetAudioMetadataPropertyAsync(Guid.Parse(resourceId), selector); }
+        public async Task<T> GetAudioMetadataPropertyAsync<T>(string resourceId, Expression<Func<AudioMetadata, T>> selector, Expression<Func<AudioMetadata, object>>? orderBy = null, bool orderDescending = audioDefaultOrderDescending)
+        { return await GetAudioMetadataPropertyAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
+        
+        public async Task<T> GetAudioMetadataPropertyAsync<T>(Expression<Func<AudioMetadata, bool>> predicate, Expression<Func<AudioMetadata, T>> selector, Expression<Func<AudioMetadata, object>>? orderBy = null, bool orderDescending = audioDefaultOrderDescending)
+        {
+            orderBy ??= audioDefaultOrderBy;
+            return await GetPropertyAsync(database.AudioMetadata, predicate, selector, orderBy, orderDescending);
+        }
 
 
 
-        public async Task<T?> GetAudioMetadataPropertyOrDefaultAsync<T>(Guid resourceId, Expression<Func<AudioMetadata, T>> selector)
-        { return await GetPropertyOrDefaultAsync(database.AudioMetadata, a => a.ResourceId == resourceId, selector); }
+        public async Task<T?> GetAudioMetadataPropertyOrDefaultAsync<T>(Guid resourceId, Expression<Func<AudioMetadata, T>> selector, Expression<Func<AudioMetadata, object>>? orderBy = null, bool orderDescending = audioDefaultOrderDescending)
+        { 
+            orderBy ??= audioDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.AudioMetadata, a => a.ResourceId == resourceId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T?> GetAudioMetadataPropertyOrDefaultAsync<T>(string resourceId, Expression<Func<AudioMetadata, T>> selector)
-        { return await GetAudioMetadataPropertyOrDefaultAsync(Guid.Parse(resourceId), selector); }
+        public async Task<T?> GetAudioMetadataPropertyOrDefaultAsync<T>(string resourceId, Expression<Func<AudioMetadata, T>> selector, Expression<Func<AudioMetadata, object>>? orderBy = null, bool orderDescending = audioDefaultOrderDescending)
+        { return await GetAudioMetadataPropertyOrDefaultAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
+        
+        public async Task<T?> GetAudioMetadataPropertyOrDefaultAsync<T>(Expression<Func<AudioMetadata, bool>> predicate, Expression<Func<AudioMetadata, T>> selector, Expression<Func<AudioMetadata, object>>? orderBy = null, bool orderDescending = audioDefaultOrderDescending)
+        {
+            orderBy ??= audioDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.AudioMetadata, predicate, selector, orderBy, orderDescending);
+        }
 
         #endregion
 
@@ -660,23 +932,78 @@ namespace KnowledgeBank.Data
         public async Task<VideoMetadata[]> GetVideoMetadataPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.VideoMetadata, pageIndex, pageSize, videoDefaultOrderBy, videoDefaultOrderDescending, null, includeProperties); }
 
+        
+        // Multiple with projection
+        public async Task<TResult[]> GetAllVideoMetadatasAsync<TResult>(Expression<Func<VideoMetadata, TResult>> projection, Expression<Func<VideoMetadata, object>>? orderBy = null, bool orderDescending = videoDefaultOrderDescending, Expression<Func<VideoMetadata, bool>>? predicate = null)
+        {
+            orderBy ??= videoDefaultOrderBy;
+            return await GetAllAsync(database.VideoMetadata, projection, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetAllVideoMetadatasAsync<TResult>(Expression<Func<VideoMetadata, TResult>> projection, Expression<Func<VideoMetadata, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetAllAsync(database.VideoMetadata, projection, videoDefaultOrderBy, videoDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetAllVideoMetadatasAsync<TResult>(Expression<Func<VideoMetadata, TResult>> projection, Expression<Func<VideoMetadata, object>>? orderBy = null, bool orderDescending = videoDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= videoDefaultOrderBy;
+            return await GetAllAsync(database.VideoMetadata, projection, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetAllVideoMetadatasAsync<TResult>(Expression<Func<VideoMetadata, TResult>> projection, params string[] includeProperties)
+        { return await GetAllAsync(database.VideoMetadata, projection, videoDefaultOrderBy, videoDefaultOrderDescending, null, includeProperties); }
+
+        public async Task<TResult[]> GetVideoMetadataPageAsync<TResult>(Expression<Func<VideoMetadata, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<VideoMetadata, object>>? orderBy = null, bool orderDescending = videoDefaultOrderDescending, Expression<Func<VideoMetadata, bool>>? predicate = null)
+        {
+            orderBy ??= videoDefaultOrderBy;
+            return await GetPageAsync(database.VideoMetadata, projection, pageIndex, pageSize, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetVideoMetadataPageAsync<TResult>(Expression<Func<VideoMetadata, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<VideoMetadata, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetPageAsync(database.VideoMetadata, projection, pageIndex, pageSize, videoDefaultOrderBy, videoDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetVideoMetadataPageAsync<TResult>(Expression<Func<VideoMetadata, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<VideoMetadata, object>>? orderBy = null, bool orderDescending = videoDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= videoDefaultOrderBy;
+            return await GetPageAsync(database.VideoMetadata, projection, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetVideoMetadataPageAsync<TResult>(Expression<Func<VideoMetadata, TResult>> projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
+        { return await GetPageAsync(database.VideoMetadata, projection, pageIndex, pageSize, videoDefaultOrderBy, videoDefaultOrderDescending, null, includeProperties); }
 
 
         // Property
 
-        public async Task<T> GetVideoMetadataPropertyAsync<T>(Guid resourceId, Expression<Func<VideoMetadata, T>> selector)
-        { return await GetPropertyAsync(database.VideoMetadata, v => v.ResourceId == resourceId, selector); }
+        public async Task<T> GetVideoMetadataPropertyAsync<T>(Guid resourceId, Expression<Func<VideoMetadata, T>> selector, Expression<Func<VideoMetadata, object>>? orderBy = null, bool orderDescending = videoDefaultOrderDescending)
+        { 
+            orderBy ??= videoDefaultOrderBy;
+            return await GetPropertyAsync(database.VideoMetadata, v => v.ResourceId == resourceId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T> GetVideoMetadataPropertyAsync<T>(string resourceId, Expression<Func<VideoMetadata, T>> selector)
-        { return await GetVideoMetadataPropertyAsync(Guid.Parse(resourceId), selector); }
+        public async Task<T> GetVideoMetadataPropertyAsync<T>(string resourceId, Expression<Func<VideoMetadata, T>> selector, Expression<Func<VideoMetadata, object>>? orderBy = null, bool orderDescending = videoDefaultOrderDescending)
+        { return await GetVideoMetadataPropertyAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
+        
+        public async Task<T> GetVideoMetadataPropertyAsync<T>(Expression<Func<VideoMetadata, bool>> predicate, Expression<Func<VideoMetadata, T>> selector, Expression<Func<VideoMetadata, object>>? orderBy = null, bool orderDescending = videoDefaultOrderDescending)
+        {
+            orderBy ??= videoDefaultOrderBy;
+            return await GetPropertyAsync(database.VideoMetadata, predicate, selector, orderBy, orderDescending);
+        }
 
 
 
-        public async Task<T?> GetVideoMetadataPropertyOrDefaultAsync<T>(Guid resourceId, Expression<Func<VideoMetadata, T>> selector)
-        { return await GetPropertyOrDefaultAsync(database.VideoMetadata, v => v.ResourceId == resourceId, selector); }
+        public async Task<T?> GetVideoMetadataPropertyOrDefaultAsync<T>(Guid resourceId, Expression<Func<VideoMetadata, T>> selector, Expression<Func<VideoMetadata, object>>? orderBy = null, bool orderDescending = videoDefaultOrderDescending)
+        { 
+            orderBy ??= videoDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.VideoMetadata, v => v.ResourceId == resourceId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T?> GetVideoMetadataPropertyOrDefaultAsync<T>(string resourceId, Expression<Func<VideoMetadata, T>> selector)
-        { return await GetVideoMetadataPropertyOrDefaultAsync(Guid.Parse(resourceId), selector); }
+        public async Task<T?> GetVideoMetadataPropertyOrDefaultAsync<T>(string resourceId, Expression<Func<VideoMetadata, T>> selector, Expression<Func<VideoMetadata, object>>? orderBy = null, bool orderDescending = videoDefaultOrderDescending)
+        { return await GetVideoMetadataPropertyOrDefaultAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
+        
+        public async Task<T?> GetVideoMetadataPropertyOrDefaultAsync<T>(Expression<Func<VideoMetadata, bool>> predicate, Expression<Func<VideoMetadata, T>> selector, Expression<Func<VideoMetadata, object>>? orderBy = null, bool orderDescending = videoDefaultOrderDescending)
+        {
+            orderBy ??= videoDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.VideoMetadata, predicate, selector, orderBy, orderDescending);
+        }
 
         #endregion
 
@@ -753,22 +1080,77 @@ namespace KnowledgeBank.Data
         public async Task<WebsiteMetadata[]> GetWebsiteMetadataPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.WebsiteMetadata, pageIndex, pageSize, websiteDefaultOrderBy, websiteDefaultOrderDescending, null, includeProperties); }
 
+        // Multiple with projection
+        public async Task<TResult[]> GetAllWebsiteMetadatasAsync<TResult>(Expression<Func<WebsiteMetadata, TResult>> projection, Expression<Func<WebsiteMetadata, object>>? orderBy = null, bool orderDescending = websiteDefaultOrderDescending, Expression<Func<WebsiteMetadata, bool>>? predicate = null)
+        {
+            orderBy ??= websiteDefaultOrderBy;
+            return await GetAllAsync(database.WebsiteMetadata, projection, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetAllWebsiteMetadatasAsync<TResult>(Expression<Func<WebsiteMetadata, TResult>> projection, Expression<Func<WebsiteMetadata, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetAllAsync(database.WebsiteMetadata, projection, websiteDefaultOrderBy, websiteDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetAllWebsiteMetadatasAsync<TResult>(Expression<Func<WebsiteMetadata, TResult>> projection, Expression<Func<WebsiteMetadata, object>>? orderBy = null, bool orderDescending = websiteDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= websiteDefaultOrderBy;
+            return await GetAllAsync(database.WebsiteMetadata, projection, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetAllWebsiteMetadatasAsync<TResult>(Expression<Func<WebsiteMetadata, TResult>> projection, params string[] includeProperties)
+        { return await GetAllAsync(database.WebsiteMetadata, projection, websiteDefaultOrderBy, websiteDefaultOrderDescending, null, includeProperties); }
+
+        public async Task<TResult[]> GetWebsiteMetadataPageAsync<TResult>(Expression<Func<WebsiteMetadata, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<WebsiteMetadata, object>>? orderBy = null, bool orderDescending = websiteDefaultOrderDescending, Expression<Func<WebsiteMetadata, bool>>? predicate = null)
+        {
+            orderBy ??= websiteDefaultOrderBy;
+            return await GetPageAsync(database.WebsiteMetadata, projection, pageIndex, pageSize, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetWebsiteMetadataPageAsync<TResult>(Expression<Func<WebsiteMetadata, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<WebsiteMetadata, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetPageAsync(database.WebsiteMetadata, projection, pageIndex, pageSize, websiteDefaultOrderBy, websiteDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetWebsiteMetadataPageAsync<TResult>(Expression<Func<WebsiteMetadata, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<WebsiteMetadata, object>>? orderBy = null, bool orderDescending = websiteDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= websiteDefaultOrderBy;
+            return await GetPageAsync(database.WebsiteMetadata, projection, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetWebsiteMetadataPageAsync<TResult>(Expression<Func<WebsiteMetadata, TResult>> projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
+        { return await GetPageAsync(database.WebsiteMetadata, projection, pageIndex, pageSize, websiteDefaultOrderBy, websiteDefaultOrderDescending, null, includeProperties); }
+
 
         // Property
 
-        public async Task<T> GetWebsiteMetadataPropertyAsync<T>(Guid resourceId, Expression<Func<WebsiteMetadata, T>> selector)
-        { return await GetPropertyAsync(database.WebsiteMetadata, w => w.ResourceId == resourceId, selector); }
+        public async Task<T> GetWebsiteMetadataPropertyAsync<T>(Guid resourceId, Expression<Func<WebsiteMetadata, T>> selector, Expression<Func<WebsiteMetadata, object>>? orderBy = null, bool orderDescending = websiteDefaultOrderDescending)
+        { 
+            orderBy ??= websiteDefaultOrderBy;
+            return await GetPropertyAsync(database.WebsiteMetadata, w => w.ResourceId == resourceId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T> GetWebsiteMetadataPropertyAsync<T>(string resourceId, Expression<Func<WebsiteMetadata, T>> selector)
-        { return await GetWebsiteMetadataPropertyAsync(Guid.Parse(resourceId), selector); }
+        public async Task<T> GetWebsiteMetadataPropertyAsync<T>(string resourceId, Expression<Func<WebsiteMetadata, T>> selector, Expression<Func<WebsiteMetadata, object>>? orderBy = null, bool orderDescending = websiteDefaultOrderDescending)
+        { return await GetWebsiteMetadataPropertyAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
+        
+        public async Task<T> GetWebsiteMetadataPropertyAsync<T>(Expression<Func<WebsiteMetadata, bool>> predicate, Expression<Func<WebsiteMetadata, T>> selector, Expression<Func<WebsiteMetadata, object>>? orderBy = null, bool orderDescending = websiteDefaultOrderDescending)
+        {
+            orderBy ??= websiteDefaultOrderBy;
+            return await GetPropertyAsync(database.WebsiteMetadata, predicate, selector, orderBy, orderDescending);
+        }
 
 
 
-        public async Task<T?> GetWebsiteMetadataPropertyOrDefaultAsync<T>(Guid resourceId, Expression<Func<WebsiteMetadata, T>> selector)
-        { return await GetPropertyOrDefaultAsync(database.WebsiteMetadata, w => w.ResourceId == resourceId, selector); }
+        public async Task<T?> GetWebsiteMetadataPropertyOrDefaultAsync<T>(Guid resourceId, Expression<Func<WebsiteMetadata, T>> selector, Expression<Func<WebsiteMetadata, object>>? orderBy = null, bool orderDescending = websiteDefaultOrderDescending)
+        { 
+            orderBy ??= websiteDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.WebsiteMetadata, w => w.ResourceId == resourceId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T?> GetWebsiteMetadataPropertyOrDefaultAsync<T>(string resourceId, Expression<Func<WebsiteMetadata, T>> selector)
-        { return await GetWebsiteMetadataPropertyOrDefaultAsync(Guid.Parse(resourceId), selector); }
+        public async Task<T?> GetWebsiteMetadataPropertyOrDefaultAsync<T>(string resourceId, Expression<Func<WebsiteMetadata, T>> selector, Expression<Func<WebsiteMetadata, object>>? orderBy = null, bool orderDescending = websiteDefaultOrderDescending)
+        { return await GetWebsiteMetadataPropertyOrDefaultAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
+        
+        public async Task<T?> GetWebsiteMetadataPropertyOrDefaultAsync<T>(Expression<Func<WebsiteMetadata, bool>> predicate, Expression<Func<WebsiteMetadata, T>> selector, Expression<Func<WebsiteMetadata, object>>? orderBy = null, bool orderDescending = websiteDefaultOrderDescending)
+        {
+            orderBy ??= websiteDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.WebsiteMetadata, predicate, selector, orderBy, orderDescending);
+        }
 
         #endregion
 
@@ -846,23 +1228,78 @@ namespace KnowledgeBank.Data
         public async Task<DocumentMetadata[]> GetDocumentMetadataPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.DocumentMetadata, pageIndex, pageSize, documentDefaultOrderBy, documentDefaultOrderDescending, null, includeProperties); }
 
+        
+        // Multiple with projection
+        public async Task<TResult[]> GetAllDocumentMetadataAsync<TResult>(Expression<Func<DocumentMetadata, TResult>> projection, Expression<Func<DocumentMetadata, object>>? orderBy = null, bool orderDescending = documentDefaultOrderDescending, Expression<Func<DocumentMetadata, bool>>? predicate = null)
+        {
+            orderBy ??= documentDefaultOrderBy;
+            return await GetAllAsync(database.DocumentMetadata, projection, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetAllDocumentMetadataAsync<TResult>(Expression<Func<DocumentMetadata, TResult>> projection, Expression<Func<DocumentMetadata, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetAllAsync(database.DocumentMetadata, projection, documentDefaultOrderBy, documentDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetAllDocumentMetadataAsync<TResult>(Expression<Func<DocumentMetadata, TResult>> projection, Expression<Func<DocumentMetadata, object>>? orderBy = null, bool orderDescending = documentDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= documentDefaultOrderBy;
+            return await GetAllAsync(database.DocumentMetadata, projection, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetAllDocumentMetadataAsync<TResult>(Expression<Func<DocumentMetadata, TResult>> projection, params string[] includeProperties)
+        { return await GetAllAsync(database.DocumentMetadata, projection, documentDefaultOrderBy, documentDefaultOrderDescending, null, includeProperties); }
+
+        public async Task<TResult[]> GetDocumentMetadataPageAsync<TResult>(Expression<Func<DocumentMetadata, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<DocumentMetadata, object>>? orderBy = null, bool orderDescending = documentDefaultOrderDescending, Expression<Func<DocumentMetadata, bool>>? predicate = null)
+        {
+            orderBy ??= documentDefaultOrderBy;
+            return await GetPageAsync(database.DocumentMetadata, projection, pageIndex, pageSize, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetDocumentMetadataPageAsync<TResult>(Expression<Func<DocumentMetadata, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<DocumentMetadata, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetPageAsync(database.DocumentMetadata, projection, pageIndex, pageSize, documentDefaultOrderBy, documentDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetDocumentMetadataPageAsync<TResult>(Expression<Func<DocumentMetadata, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<DocumentMetadata, object>>? orderBy = null, bool orderDescending = documentDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= documentDefaultOrderBy;
+            return await GetPageAsync(database.DocumentMetadata, projection, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetDocumentMetadataPageAsync<TResult>(Expression<Func<DocumentMetadata, TResult>> projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
+        { return await GetPageAsync(database.DocumentMetadata, projection, pageIndex, pageSize, documentDefaultOrderBy, documentDefaultOrderDescending, null, includeProperties); }
 
 
         // Property
 
-        public async Task<T> GetDocumentMetadataPropertyAsync<T>(Guid resourceId, Expression<Func<DocumentMetadata, T>> selector)
-        { return await GetPropertyAsync(database.DocumentMetadata, d => d.ResourceId == resourceId, selector); }
+        public async Task<T> GetDocumentMetadataPropertyAsync<T>(Guid resourceId, Expression<Func<DocumentMetadata, T>> selector, Expression<Func<DocumentMetadata, object>>? orderBy = null, bool orderDescending = documentDefaultOrderDescending)
+        { 
+            orderBy ??= documentDefaultOrderBy;
+            return await GetPropertyAsync(database.DocumentMetadata, d => d.ResourceId == resourceId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T> GetDocumentMetadataPropertyAsync<T>(string resourceId, Expression<Func<DocumentMetadata, T>> selector)
-        { return await GetDocumentMetadataPropertyAsync(Guid.Parse(resourceId), selector); }
+        public async Task<T> GetDocumentMetadataPropertyAsync<T>(string resourceId, Expression<Func<DocumentMetadata, T>> selector, Expression<Func<DocumentMetadata, object>>? orderBy = null, bool orderDescending = documentDefaultOrderDescending)
+        { return await GetDocumentMetadataPropertyAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
+        
+        public async Task<T> GetDocumentMetadataPropertyAsync<T>(Expression<Func<DocumentMetadata, bool>> predicate, Expression<Func<DocumentMetadata, T>> selector, Expression<Func<DocumentMetadata, object>>? orderBy = null, bool orderDescending = documentDefaultOrderDescending)
+        {
+            orderBy ??= documentDefaultOrderBy;
+            return await GetPropertyAsync(database.DocumentMetadata, predicate, selector, orderBy, orderDescending);
+        }
 
 
 
-        public async Task<T?> GetDocumentMetadataPropertyOrDefaultAsync<T>(Guid resourceId, Expression<Func<DocumentMetadata, T>> selector)
-        { return await GetPropertyOrDefaultAsync(database.DocumentMetadata, d => d.ResourceId == resourceId, selector); }
+        public async Task<T?> GetDocumentMetadataPropertyOrDefaultAsync<T>(Guid resourceId, Expression<Func<DocumentMetadata, T>> selector, Expression<Func<DocumentMetadata, object>>? orderBy = null, bool orderDescending = documentDefaultOrderDescending)
+        { 
+            orderBy ??= documentDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.DocumentMetadata, d => d.ResourceId == resourceId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T?> GetDocumentMetadataPropertyOrDefaultAsync<T>(string resourceId, Expression<Func<DocumentMetadata, T>> selector)
-        { return await GetDocumentMetadataPropertyOrDefaultAsync(Guid.Parse(resourceId), selector); }
+        public async Task<T?> GetDocumentMetadataPropertyOrDefaultAsync<T>(string resourceId, Expression<Func<DocumentMetadata, T>> selector, Expression<Func<DocumentMetadata, object>>? orderBy = null, bool orderDescending = documentDefaultOrderDescending)
+        { return await GetDocumentMetadataPropertyOrDefaultAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
+        
+        public async Task<T?> GetDocumentMetadataPropertyOrDefaultAsync<T>(Expression<Func<DocumentMetadata, bool>> predicate, Expression<Func<DocumentMetadata, T>> selector, Expression<Func<DocumentMetadata, object>>? orderBy = null, bool orderDescending = documentDefaultOrderDescending)
+        {
+            orderBy ??= documentDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.DocumentMetadata, predicate, selector, orderBy, orderDescending);
+        }
 
         #endregion
 
@@ -940,23 +1377,78 @@ namespace KnowledgeBank.Data
         public async Task<Tag[]> GetTagPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.Tags, pageIndex, pageSize, tagDefaultOrderBy, tagDefaultOrderDescending, null, includeProperties); }
 
+        
+        // Multiple with projection
+        public async Task<TResult[]> GetAllTagsAsync<TResult>(Expression<Func<Tag, TResult>> projection, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending, Expression<Func<Tag, bool>>? predicate = null)
+        {
+            orderBy ??= tagDefaultOrderBy;
+            return await GetAllAsync(database.Tags, projection, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetAllTagsAsync<TResult>(Expression<Func<Tag, TResult>> projection, Expression<Func<Tag, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetAllAsync(database.Tags, projection, tagDefaultOrderBy, tagDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetAllTagsAsync<TResult>(Expression<Func<Tag, TResult>> projection, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= tagDefaultOrderBy;
+            return await GetAllAsync(database.Tags, projection, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetAllTagsAsync<TResult>(Expression<Func<Tag, TResult>> projection, params string[] includeProperties)
+        { return await GetAllAsync(database.Tags, projection, tagDefaultOrderBy, tagDefaultOrderDescending, null, includeProperties); }
+
+        public async Task<TResult[]> GetTagPageAsync<TResult>(Expression<Func<Tag, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending, Expression<Func<Tag, bool>>? predicate = null)
+        {
+            orderBy ??= tagDefaultOrderBy;
+            return await GetPageAsync(database.Tags, projection, pageIndex, pageSize, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetTagPageAsync<TResult>(Expression<Func<Tag, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Tag, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetPageAsync(database.Tags, projection, pageIndex, pageSize, tagDefaultOrderBy, tagDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetTagPageAsync<TResult>(Expression<Func<Tag, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= tagDefaultOrderBy;
+            return await GetPageAsync(database.Tags, projection, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetTagPageAsync<TResult>(Expression<Func<Tag, TResult>> projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
+        { return await GetPageAsync(database.Tags, projection, pageIndex, pageSize, tagDefaultOrderBy, tagDefaultOrderDescending, null, includeProperties); }
 
 
         // Property
 
-        public async Task<T> GetTagPropertyAsync<T>(Guid TagId, Expression<Func<Tag, T>> selector)
-        { return await GetPropertyAsync(database.Tags, t => t.Id == TagId, selector); }
+        public async Task<T> GetTagPropertyAsync<T>(Guid TagId, Expression<Func<Tag, T>> selector, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending)
+        { 
+            orderBy ??= tagDefaultOrderBy;
+            return await GetPropertyAsync(database.Tags, t => t.Id == TagId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T> GetTagPropertyAsync<T>(string TagId, Expression<Func<Tag, T>> selector)
-        { return await GetTagPropertyAsync(Guid.Parse(TagId), selector); }
+        public async Task<T> GetTagPropertyAsync<T>(string TagId, Expression<Func<Tag, T>> selector, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending)
+        { return await GetTagPropertyAsync(Guid.Parse(TagId), selector, orderBy, orderDescending); }
+        
+        public async Task<T> GetTagPropertyAsync<T>(Expression<Func<Tag, bool>> predicate, Expression<Func<Tag, T>> selector, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending)
+        {
+            orderBy ??= tagDefaultOrderBy;
+            return await GetPropertyAsync(database.Tags, predicate, selector, orderBy, orderDescending);
+        }
 
 
 
-        public async Task<T?> GetTagPropertyOrDefaultAsync<T>(Guid TagId, Expression<Func<Tag, T>> selector)
-        { return await GetPropertyOrDefaultAsync(database.Tags, t => t.Id == TagId, selector); }
+        public async Task<T?> GetTagPropertyOrDefaultAsync<T>(Guid TagId, Expression<Func<Tag, T>> selector, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending)
+        { 
+            orderBy ??= tagDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.Tags, t => t.Id == TagId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T?> GetTagPropertyOrDefaultAsync<T>(string TagId, Expression<Func<Tag, T>> selector)
-        { return await GetTagPropertyOrDefaultAsync(Guid.Parse(TagId), selector); }
+        public async Task<T?> GetTagPropertyOrDefaultAsync<T>(string TagId, Expression<Func<Tag, T>> selector, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending)
+        { return await GetTagPropertyOrDefaultAsync(Guid.Parse(TagId), selector, orderBy, orderDescending); }
+        
+        public async Task<T?> GetTagPropertyOrDefaultAsync<T>(Expression<Func<Tag, bool>> predicate, Expression<Func<Tag, T>> selector, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending)
+        {
+            orderBy ??= tagDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.Tags, predicate, selector, orderBy, orderDescending);
+        }
 
         #endregion
 
@@ -1035,25 +1527,88 @@ namespace KnowledgeBank.Data
         public async Task<ResourceType[]> GetResourceTypePageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.ResourceTypes, pageIndex, pageSize, resourceTypeDefaultOrderBy, resourceTypeDefaultOrderDescending, null, includeProperties); }
 
+        
+        // Multiple with projection
+        public async Task<TResult[]> GetAllResourceTypesAsync<TResult>(Expression<Func<ResourceType, TResult>> projection, Expression<Func<ResourceType, object>>? orderBy = null, bool orderDescending = resourceTypeDefaultOrderDescending, Expression<Func<ResourceType, bool>>? predicate = null)
+        {
+            orderBy ??= resourceTypeDefaultOrderBy;
+            return await GetAllAsync(database.ResourceTypes, projection, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetAllResourceTypesAsync<TResult>(Expression<Func<ResourceType, TResult>> projection, Expression<Func<ResourceType, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetAllAsync(database.ResourceTypes, projection, resourceTypeDefaultOrderBy, resourceTypeDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetAllResourceTypesAsync<TResult>(Expression<Func<ResourceType, TResult>> projection, Expression<Func<ResourceType, object>>? orderBy = null, bool orderDescending = resourceTypeDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= resourceTypeDefaultOrderBy;
+            return await GetAllAsync(database.ResourceTypes, projection, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetAllResourceTypesAsync<TResult>(Expression<Func<ResourceType, TResult>> projection, params string[] includeProperties)
+        { return await GetAllAsync(database.ResourceTypes, projection, resourceTypeDefaultOrderBy, resourceTypeDefaultOrderDescending, null, includeProperties); }
+
+        public async Task<TResult[]> GetResourceTypePageAsync<TResult>(Expression<Func<ResourceType, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceType, object>>? orderBy = null, bool orderDescending = resourceTypeDefaultOrderDescending, Expression<Func<ResourceType, bool>>? predicate = null)
+        {
+            orderBy ??= resourceTypeDefaultOrderBy;
+            return await GetPageAsync(database.ResourceTypes, projection, pageIndex, pageSize, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<TResult[]> GetResourceTypePageAsync<TResult>(Expression<Func<ResourceType, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceType, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetPageAsync(database.ResourceTypes, projection, pageIndex, pageSize, resourceTypeDefaultOrderBy, resourceTypeDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<TResult[]> GetResourceTypePageAsync<TResult>(Expression<Func<ResourceType, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceType, object>>? orderBy = null, bool orderDescending = resourceTypeDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= resourceTypeDefaultOrderBy;
+            return await GetPageAsync(database.ResourceTypes, projection, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<TResult[]> GetResourceTypePageAsync<TResult>(Expression<Func<ResourceType, TResult>> projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
+        { return await GetPageAsync(database.ResourceTypes, projection, pageIndex, pageSize, resourceTypeDefaultOrderBy, resourceTypeDefaultOrderDescending, null, includeProperties); }
+
 
 
         // Property
 
-        public async Task<T> GetResourceTypePropertyAsync<T>(Guid resourceTypeId, Expression<Func<ResourceType, T>> selector)
-        { return await GetPropertyAsync(database.ResourceTypes, rt => rt.Id == resourceTypeId, selector); }
+        public async Task<T> GetResourceTypePropertyAsync<T>(Guid resourceTypeId, Expression<Func<ResourceType, T>> selector, Expression<Func<ResourceType, object>>? orderBy = null, bool orderDescending = resourceTypeDefaultOrderDescending)
+        { 
+            orderBy ??= resourceTypeDefaultOrderBy;
+            return await GetPropertyAsync(database.ResourceTypes, rt => rt.Id == resourceTypeId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T> GetResourceTypePropertyAsync<T>(string resourceTypeId, Expression<Func<ResourceType, T>> selector)
-        { return await GetResourceTypePropertyAsync(Guid.Parse(resourceTypeId), selector); }
+        public async Task<T> GetResourceTypePropertyAsync<T>(string resourceTypeId, Expression<Func<ResourceType, T>> selector, Expression<Func<ResourceType, object>>? orderBy = null, bool orderDescending = resourceTypeDefaultOrderDescending)
+        { return await GetResourceTypePropertyAsync(Guid.Parse(resourceTypeId), selector, orderBy, orderDescending); }
+        
+        public async Task<T> GetResourceTypePropertyAsync<T>(Expression<Func<ResourceType, bool>> predicate, Expression<Func<ResourceType, T>> selector, Expression<Func<ResourceType, object>>? orderBy = null, bool orderDescending = resourceTypeDefaultOrderDescending)
+        {
+            orderBy ??= resourceTypeDefaultOrderBy;
+            return await GetPropertyAsync(database.ResourceTypes, predicate, selector, orderBy, orderDescending);
+        }
 
 
 
 
-        public async Task<T?> GetResourceTypePropertyOrDefaultAsync<T>(Guid resourceTypeId, Expression<Func<ResourceType, T>> selector)
-        { return await GetPropertyOrDefaultAsync(database.ResourceTypes, rt => rt.Id == resourceTypeId, selector); }
+        public async Task<T?> GetResourceTypePropertyOrDefaultAsync<T>(Guid resourceTypeId, Expression<Func<ResourceType, T>> selector, Expression<Func<ResourceType, object>>? orderBy = null, bool orderDescending = resourceTypeDefaultOrderDescending)
+        { 
+            orderBy ??= resourceTypeDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.ResourceTypes, rt => rt.Id == resourceTypeId, selector, orderBy, orderDescending);
+        }
 
-        public async Task<T?> GetResourceTypePropertyOrDefaultAsync<T>(string resourceTypeId, Expression<Func<ResourceType, T>> selector)
-        { return await GetResourceTypePropertyOrDefaultAsync(Guid.Parse(resourceTypeId), selector); }
+        public async Task<T?> GetResourceTypePropertyOrDefaultAsync<T>(string resourceTypeId, Expression<Func<ResourceType, T>> selector, Expression<Func<ResourceType, object>>? orderBy = null, bool orderDescending = resourceTypeDefaultOrderDescending)
+        { return await GetResourceTypePropertyOrDefaultAsync(Guid.Parse(resourceTypeId), selector, orderBy, orderDescending); }
+        
+        public async Task<T?> GetResourceTypePropertyOrDefaultAsync<T>(Expression<Func<ResourceType, bool>> predicate, Expression<Func<ResourceType, T>> selector, Expression<Func<ResourceType, object>>? orderBy = null, bool orderDescending = resourceTypeDefaultOrderDescending) 
+        {
+            orderBy ??= resourceTypeDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.ResourceTypes, predicate, selector, orderBy, orderDescending);
+        }
 
         #endregion
     }
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

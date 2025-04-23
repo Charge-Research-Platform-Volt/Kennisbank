@@ -54,23 +54,23 @@ public class SearchControllerTests : TestBase
         await Context.SaveResourceChangesAsync();
 
 
-        var savedFile = await Context.Resources.FirstOrDefaultAsync(f => f.Title == "Integration Test File");
+        Resource? savedFile = await Context.Resources.FirstOrDefaultAsync(f => f.Title == "Integration Test File");
         Assert.That(savedFile, Is.Not.Null, "Test file was not saved in the database");
 
         // Perform a full-text search on the file name
-        var result = await _controller.SearchByTitle("Integration Test", 1, 100);
+        IActionResult result = await _controller.SearchByTitle("Integration Test", 1, 100);
 
         Assert.That(result, Is.Not.Null, "The search result is null");
 
-        var testResult = result as ObjectResult;
+        ObjectResult? testResult = result as ObjectResult;
 
         // Check the result status code
-        var okResult = result as OkObjectResult;
+        OkObjectResult? okResult = result as OkObjectResult;
         Assert.That(okResult, Is.Not.Null);
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
 
         // Assert: Check the results returned from the search
-        var pageResponse = okResult.Value as PageResponse;
+        PageResponse? pageResponse = okResult.Value as PageResponse;
         Assert.That(pageResponse, Is.Not.Null);
         // Should only be one result
         Assert.That(((Resource)pageResponse.Resources.First()).Title, Is.EqualTo("Integration Test File"));
@@ -122,19 +122,19 @@ public class SearchControllerTests : TestBase
         await Context.SaveResourceChangesAsync();
 
         // Perform a full-text search on the file name
-        var result = await _controller.SearchByTitle("Integration Test", 1, 100, filter);
+        IActionResult result = await _controller.SearchByTitle("Integration Test", 1, 100, filter);
 
         Assert.That(result, Is.Not.Null, "The search result is null");
 
-        var testResult = result as ObjectResult;
+        ObjectResult? testResult = result as ObjectResult;
 
         // Check the result status code
-        var okResult = result as OkObjectResult;
+        OkObjectResult? okResult = result as OkObjectResult;
         Assert.That(okResult, Is.Not.Null);
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
 
         // Assert: Check the results returned from the search
-        var pageResponse = okResult.Value as PageResponse;
+        PageResponse? pageResponse = okResult.Value as PageResponse;
         Assert.That(pageResponse, Is.Not.Null);
         // Should only be one result which is the approved test file
         Assert.That(pageResponse.Resources.Count, Is.EqualTo(1));
@@ -208,19 +208,19 @@ public class SearchControllerTests : TestBase
         await Context.SaveChangesAsync();
 
         // Perform a full-text search on the file name
-        var result = await _controller.SearchByTitle("Integration Test", 1, 100, filter);
+        IActionResult result = await _controller.SearchByTitle("Integration Test", 1, 100, filter);
 
         Assert.That(result, Is.Not.Null, "The search result is null");
 
-        var testResult = result as ObjectResult;
+        ObjectResult? testResult = result as ObjectResult;
 
         // Check the result status code
-        var okResult = result as OkObjectResult;
+        OkObjectResult? okResult = result as OkObjectResult;
         Assert.That(okResult, Is.Not.Null);
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
 
         // Assert: Check the results returned from the search
-        var pageResponse = okResult.Value as PageResponse;
+        PageResponse? pageResponse = okResult.Value as PageResponse;
         Assert.That(pageResponse, Is.Not.Null);
         // Should only be one result which is the approved test file
         Assert.That(pageResponse.Resources.Count, Is.EqualTo(1));
@@ -249,15 +249,15 @@ public class SearchControllerTests : TestBase
         await Context.SaveResourceChangesAsync();
 
         // Perform a full-text search on the file name
-        var result = await _controller.FullTextSearch("Ohmega", 1, 10);
+        IActionResult result = await _controller.FullTextSearch("Ohmega", 1, 10);
 
         // Check the result status code
-        var okResult = result as OkObjectResult;
+        OkObjectResult? okResult = result as OkObjectResult;
         Assert.That(okResult, Is.Not.Null);
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
 
         // Assert: Check the results returned from the search
-        var pageResponse = okResult.Value as PageResponse;
+        PageResponse? pageResponse = okResult.Value as PageResponse;
         Assert.That(pageResponse, Is.Not.Null);
         // Should only be one result
         Assert.That(pageResponse.Resources.Count, Is.EqualTo(1));
@@ -285,17 +285,23 @@ public class SearchControllerTests : TestBase
 
 
         // Perform a full-text search on the file name with a query that 
-        var result = await _controller.FullTextSearch("eajfkdjlejifa_ThisQueryShouldFail", 1, 10);
+        IActionResult result = await _controller.FullTextSearch("eajfkdjlejifa_ThisQueryShouldFail", 1, 10);
 
         // Check the result status code
-        var okResult = result as OkObjectResult;
+        OkObjectResult? okResult = result as OkObjectResult;
         Assert.That(okResult, Is.Not.Null);
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
 
         // Assert: Check the results returned from the search
-        var pageResponse = okResult.Value as PageResponse;
+        PageResponse? pageResponse = okResult.Value as PageResponse;
         Assert.That(pageResponse, Is.Not.Null);
         // Should be zero results
         Assert.That(pageResponse.Resources.Count, Is.EqualTo(0));
     }
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

@@ -6,7 +6,7 @@ using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
 using Microsoft.AspNetCore.Authorization;
 
-namespace backend.Controllers
+namespace KnowledgeBank.Controllers
 {
     [ApiController]
     [Route("[controller]")]
@@ -228,3 +228,10 @@ namespace backend.Controllers
         }
     }
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

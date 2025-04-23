@@ -31,7 +31,7 @@ const SidebarContent = createContext<SidebarContextType | undefined>(undefined);
 
 // This hook is used to access the sidebar context
 export const useSidebar = () => {
-  const context = useContext(SidebarContent);
+  const context : SidebarContextType | undefined = useContext(SidebarContent);
 
   if (!context) throw new Error("useSidebar must be used within a SidebarProvider");
 
@@ -42,7 +42,7 @@ export const useSidebar = () => {
 export const SidebarProvider = ({ children }: { children: React.ReactNode }) => {
   const [onCloseClicked, setOnCloseClicked] = useState<(() => void)>(() => {});
 
-  const pathname = usePathname();
+  const pathname : string = usePathname();
 
   // State for the selected document
   const [selectedDocument, setSelectedDocument] = useState<ResourceWithTagsResponse | null>(null);
@@ -99,3 +99,10 @@ export const SidebarProvider = ({ children }: { children: React.ReactNode }) => 
     </SidebarContent.Provider>
   );
 };
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

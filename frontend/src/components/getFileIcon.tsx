@@ -33,3 +33,10 @@ export default function GetFileIcon({ fileType, className }: { fileType: string;
       return <FileIcon size={18} className={cn("flex-shrink-0", className)} />;
   }
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

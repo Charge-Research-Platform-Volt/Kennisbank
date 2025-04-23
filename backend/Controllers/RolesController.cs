@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using KnowledgeBank.Models;
 using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
-using backend.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
@@ -187,3 +186,10 @@ namespace KnowledgeBank.Controllers
         }
     }
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

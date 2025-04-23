@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 import LoginLayout from '@/app/(auth)/layout';
 
@@ -20,3 +20,10 @@ describe('Layout', () => {
     })).toBeTruthy();
   });
 });
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

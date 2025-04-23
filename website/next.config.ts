@@ -5,6 +5,7 @@ const withMDX = createMDX();
 
 const nextConfig: NextConfig = {
 	output: "standalone", //Reduces the size of the output
+	reactStrictMode: true, // Enables React's Strict Mode
 
 	// Disable ESLint during production builds
 	eslint: {
@@ -13,3 +14,9 @@ const nextConfig: NextConfig = {
 };
 
 export default withMDX(nextConfig);
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

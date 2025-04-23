@@ -54,7 +54,7 @@ public class SearchController : ControllerBase
         {
             int skip = (pageIndex - 1) * pageSize;
 
-            var queryBuilder = filter?.ToQueryBuilder(database) ?? database.Resources.AsQueryable();
+            IQueryable<Resource> queryBuilder = filter?.ToQueryBuilder(database) ?? database.Resources.AsQueryable();
 
             Resource[]? items = await queryBuilder
                 .OrderByDescending(f => EF.Functions.TrigramsSimilarity(f.Title, query))
@@ -100,7 +100,7 @@ public class SearchController : ControllerBase
         {
             int skip = (pageIndex - 1) * pageSize;
 
-            var queryBuilder = filter?.ToQueryBuilder(database) ?? database.Resources.AsQueryable();
+            IQueryable<Resource> queryBuilder = filter?.ToQueryBuilder(database) ?? database.Resources.AsQueryable();
 
             Resource[]? items = await queryBuilder
                 .OrderByDescending(f => EF.Functions.TrigramsSimilarity(f.Description ?? "", query))
@@ -145,7 +145,7 @@ public class SearchController : ControllerBase
             int skip = (pageIndex - 1) * pageSize;
             Resource[]? items;
 
-            var queryBuilder = filter?.ToQueryBuilder(database) ?? database.Resources.AsQueryable();
+            IQueryable<Resource> queryBuilder = filter?.ToQueryBuilder(database) ?? database.Resources.AsQueryable();
 
             if (string.IsNullOrEmpty(query))
             {
@@ -169,10 +169,10 @@ public class SearchController : ControllerBase
                 //  in the query and database are stemmed to improve search results.  
 
                 // Converts the user query to a tsvector and compares this to the resource vector
-                var tsQuery = string.Join(" & ", query.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(term => term + ":*"));
-                
+                string tsQuery = string.Join(" & ", query.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(term => term + ":*"));
+
                 // Execute query
-                var itemsFromRawSql = database.Resources
+                IQueryable<Resource> itemsFromRawSql = database.Resources
                     .FromSqlRaw(@"
                         SELECT DISTINCT ON (f.id)
                             f.*,
@@ -190,7 +190,7 @@ public class SearchController : ControllerBase
                     .AsQueryable();
 
                 // save the order
-                var orderedIds = await itemsFromRawSql
+                List<Guid> orderedIds = await itemsFromRawSql
                     .Select(f => f.Id)
                     .ToListAsync();
 
@@ -244,5 +244,12 @@ public class SearchController : ControllerBase
 
     }
 }
+
+
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
 
 
