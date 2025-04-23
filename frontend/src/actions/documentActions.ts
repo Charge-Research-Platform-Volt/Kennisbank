@@ -77,7 +77,7 @@ export const AddDocument = async (
 
         // Send the data to the backend.
         const cookieHeader : ReadonlyRequestCookies = await cookies();
-        const response : Response = await fetch("http://backend:8080/storage/upload", {
+        const response : Response = await fetch(`${process.env.API_URL}/storage/upload`, {
             method: "PUT",
             body: formData,
             credentials: "include",

@@ -112,7 +112,7 @@ export const Login = async (
         }
 
         // Send the data to the backend.
-        const response = await fetch("http://localhost:8080/Auth/login?useCookies=true&useSessionCookies=true", {
+        const response = await fetch("/api/Auth/login?useCookies=true&useSessionCookies=true", {
             method: "POST",
             credentials: "include",
             body: JSON.stringify({
@@ -125,6 +125,7 @@ export const Login = async (
         // Check if the request was successful, if not, return an error.
         if (!response.ok) {
 
+            console.log("BAD!!!!")
             if(response.status === 401) {
                 return {
                     success: false,
@@ -141,6 +142,8 @@ export const Login = async (
                 inputs: rawData,
             };
         }
+
+        console.log("GOOD!!!")
 
         return {
             success: true,

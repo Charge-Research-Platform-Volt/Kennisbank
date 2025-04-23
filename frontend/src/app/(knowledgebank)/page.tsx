@@ -12,7 +12,7 @@ export default async function Home() {
   // fetches all documents
   const result = await FetchWithValidation(
       ResourcePageResponseSchema,
-      "http://backend:8080/Storage/list-paged?pageIndex=1&pageSize=4",
+      `${process.env.API_URL}/Storage/list-paged?pageIndex=1&pageSize=4`,
   );
   let files = result.data?.resources ?? [];
 

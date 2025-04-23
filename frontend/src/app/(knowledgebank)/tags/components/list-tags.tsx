@@ -8,10 +8,10 @@ import { getCurrentUserRole } from "@/lib/auth-server";
 export default async function ListTags() {
     const userRole = await getCurrentUserRole(); 
     const isAdmin = userRole.role === "admin";
-
+ 
     const tagsResult = await FetchWithValidation(
         TagArraySchema,
-        "http://backend:8080/tags/all-tags",
+        `${process.env.API_URL}/tags/all-tags`,
     );
 
     if (!tagsResult.success) {

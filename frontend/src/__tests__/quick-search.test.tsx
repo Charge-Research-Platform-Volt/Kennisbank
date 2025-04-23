@@ -176,7 +176,7 @@ describe("QuickSearch Component test", () => {
 
     // useEffect trigger fetch after dialog opens
     expect(fetch).toHaveBeenCalledTimes(1);
-    expect(fetch).toHaveBeenCalledWith("http://localhost:8080/Search/search-full-text?pageIndex=1&pageSize=10", { credentials: "include", headers: { "Content-Type": "application/json" }, method: "POST" });
+    expect(fetch).toHaveBeenCalledWith("/api/Search/search-full-text?pageIndex=1&pageSize=10", { credentials: "include", headers: { "Content-Type": "application/json" }, method: "POST" });
 
     // Resolve any pending promises
     await act(async () => {
@@ -217,7 +217,7 @@ describe("QuickSearch Component test", () => {
     vi.advanceTimersByTime(300);
 
     expect(fetch).toHaveBeenCalledTimes(2); //One when the dialog is opened and one when the search input is typed
-    expect(fetch).toHaveBeenCalledWith(`http://localhost:8080/Search/search-full-text?query=${query}&pageIndex=1&pageSize=10`, { credentials: "include", headers: { "Content-Type": "application/json" }, method: "POST" });
+    expect(fetch).toHaveBeenCalledWith(`/api/Search/search-full-text?query=${query}&pageIndex=1&pageSize=10`, { credentials: "include", headers: { "Content-Type": "application/json" }, method: "POST" });
 
     // Resolve any pending promises
     await act(async () => {
@@ -272,7 +272,7 @@ describe("QuickSearch Component test", () => {
     userEvent.type(searchInput, query);
 
     vi.advanceTimersByTime(300);
-    expect(fetch).toHaveBeenCalledWith(`http://localhost:8080/Search/search-full-text?query=${query}&pageIndex=1&pageSize=10`, { credentials: "include", headers: { "Content-Type": "application/json" }, method: "POST" });
+    expect(fetch).toHaveBeenCalledWith(`/api/Search/search-full-text?query=${query}&pageIndex=1&pageSize=10`, { credentials: "include", headers: { "Content-Type": "application/json" }, method: "POST" });
 
     await act(async () => {
       await Promise.resolve();

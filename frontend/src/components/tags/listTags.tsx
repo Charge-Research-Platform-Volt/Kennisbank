@@ -8,7 +8,7 @@ import { TagArraySchema } from "@/types/tag.type";
 export default async function ListTags() {
     const result = await FetchWithValidation(
         TagArraySchema,
-        "http://backend:8080/Tag/all-tags",
+        `${process.env.API_URL}/Tag/all-tags`,
       );
     
       if(!result.success) {
