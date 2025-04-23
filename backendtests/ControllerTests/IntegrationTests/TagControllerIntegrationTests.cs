@@ -53,7 +53,7 @@ public class TagControllerTests : TestBase
         await DatabaseSeeder.SeedTemplate(context);
     }
 
-    // Switches between users
+    // Mocks switching between users. Need this because some endpoints manually check user
     private void SetControllerUser(ClaimsPrincipal user)
     {
         _controller.ControllerContext = new ControllerContext
@@ -300,9 +300,6 @@ public class TagControllerTests : TestBase
     [Description("AddStandardTag returns Conflict when tag already exists")]
     public async Task AddStandardTag_ReturnsConflict_WhenTagAlreadyExists()
     {
-        // Set user to admin
-        SetControllerUser(_adminUser);
-
         // Add a tag first
         await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "duplicate", CreatedBy = _regularUserId.ToString() });
 
@@ -481,30 +478,133 @@ public class TagControllerTests : TestBase
         Assert.That(deleteResult.StatusCode, Is.EqualTo(200));
         Assert.That((await _resourceManager.GetAllTagsAsync()).Length, Is.EqualTo(0));
     }
+    
+    [Test]
+    [Description("DeleteTag returns Forbidden when user has not created the tag")]
+    public async Task DeleteTag_ReturnsForbidden_WhenIncorrectUser()
+    {
+        // Add a tag
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "test-tag", CreatedBy = _adminUserId.ToString() });
+        Tag? tag = (await _resourceManager.GetAllTagsAsync(predicate: t => t.Name == "test-tag")).First();
+        
+        // Try to delete tag
+        ObjectResult? result = await _controller.DeleteTag(tag.Id.ToString()) as ObjectResult;
+        Assert.That(result, Is.Not.Null);
+        
+        // Assert
+        Assert.That(result.StatusCode, Is.EqualTo(403));
+        Tag? unchangedTag = await _resourceManager.GetTagAsync(tag.Id.ToString());
+        Assert.That(unchangedTag, Is.Not.Null);
+    }
 
     #endregion
+    
+    #region ChangeTagName Tests
 
-    // [TestCase("original", "new")]
-    // [TestCase("1", "2")]
-    // [Description("Tests if you can successfully change the name of a tag")]
-    // public async Task ChangeTagTest(string orgName, string newName)
-    // {
-    //     // Add tag as before and get the GUID
-    //     await _controller.AddTag(orgName);
-    //     string addedTagGUID = Context.Tags.First().Id.ToString();
+    [Test]
+    [Description("ChangeTagName returns Ok when tag name is changed successfully")]
+    public async Task ChangeTagName_ReturnsOk_WhenNameChangedSuccessfully()
+    {
+        // Add a tag
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "old-name", CreatedBy = _regularUserId.ToString() });
+        Tag? tag = (await _resourceManager.GetAllTagsAsync(predicate: t => t.Name == "old-name")).First();
+        
+        // Change the tag name
+        OkObjectResult? result = await _controller.ChangeTagName(tag.Id.ToString(), "new-name") as OkObjectResult;
+        Assert.That(result, Is.Not.Null);
 
-    //     // Change tag name to new name and check if the database contains 1 element
-    //     OkObjectResult changeResponse = (await _controller.ChangeTagName(addedTagGUID, newName)) as OkObjectResult;
-    //     Assert.That(changeResponse.StatusCode, Is.EqualTo(200));
-    //     Assert.That(Context.Tags.Count(), Is.EqualTo(1));
+        // Assert
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag? updatedTag = await _resourceManager.GetTagAsync(tag.Id.ToString());
+        Assert.That(updatedTag, Is.Not.Null);
 
-    //     // Fetch changed tag and double check if the tag is correctly changed
-    //     OkObjectResult allTags = _controller.Get() as OkObjectResult;
-    //     List<Tag> tagList = allTags.Value as List<Tag>;
+        Assert.That(updatedTag.Name, Is.EqualTo("new-name"));
+    }
 
-    //     Assert.That(tagList.Count, Is.EqualTo(1));
-    //     Assert.That(tagList[0].Name, Is.EqualTo(newName));
-    // }    
+    [Test]
+    [Description("ChangeTagName returns BadRequest when id is empty")]
+    public async Task ChangeTagName_ReturnsBadRequest_WhenIdIsEmpty()
+    {
+        // Try to change tag name with empty id
+        BadRequestObjectResult? result = await _controller.ChangeTagName("", "new-name") as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+    }
+
+    [Test]
+    [Description("ChangeTagName returns BadRequest when new name is empty")]
+    public async Task ChangeTagName_ReturnsBadRequest_WhenNewNameIsEmpty()
+    {
+        // Add a tag
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "old-name", CreatedBy = _adminUserId.ToString() });
+        Tag? tag = (await _resourceManager.GetAllTagsAsync(predicate: t => t.Name == "old-name")).First();
+        
+        // Try to change tag name to empty string
+        BadRequestObjectResult? result = await _controller.ChangeTagName(tag.Id.ToString(), "") as BadRequestObjectResult;
+        Assert.That(result, Is.Not.Null);
+        
+        // Assert
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        Tag? unchangedTag = await _resourceManager.GetTagAsync(tag.Id.ToString());
+        Assert.That(unchangedTag, Is.Not.Null);
+        Assert.That(unchangedTag.Name, Is.EqualTo("old-name"));
+    }
+
+    [Test]
+    [Description("ChangeTagName returns NotFound when tag does not exist")]
+    public async Task ChangeTagName_ReturnsNotFound_WhenTagDoesNotExist()
+    {
+        // Try to change name of non-existent tag
+        NotFoundObjectResult? result = await _controller.ChangeTagName(Guid.NewGuid().ToString(), "new-name") as NotFoundObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(404));
+    }
+
+    [Test]
+    [Description("ChangeTagName returns Conflict when new name already exists")]
+    public async Task ChangeTagName_ReturnsConflict_WhenNewNameAlreadyExists()
+    {
+        // Add two tags
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag1", CreatedBy = _regularUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag2", CreatedBy = _regularUserId.ToString() });
+        Tag? tag1 = (await _resourceManager.GetAllTagsAsync(predicate: t => t.Name == "tag1")).First();
+        
+        // Try to change tag1's name to tag2
+        ObjectResult? result = await _controller.ChangeTagName(tag1.Id.ToString(), "tag2") as ObjectResult;
+        Assert.That(result, Is.Not.Null);
+
+        // Assert
+        Assert.That(result.StatusCode, Is.EqualTo(409));
+        Tag? unchangedTag = await _resourceManager.GetTagAsync(tag1.Id.ToString());
+        Assert.That(unchangedTag, Is.Not.Null);
+        Assert.That(unchangedTag.Name, Is.EqualTo("tag1"));
+    }
+    
+    [Test]
+    [Description("ChangeTagName returns Forbidden when user has not created the tag")]
+    public async Task ChangeTagName_ReturnsForbidden_WhenIncorrectUser()
+    {
+        // Add a tag
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "old-name", CreatedBy = _adminUserId.ToString() });
+        Tag? tag = (await _resourceManager.GetAllTagsAsync(predicate: t => t.Name == "old-name")).First();
+        
+        // Try to change tag name
+        ObjectResult? result = await _controller.ChangeTagName(tag.Id.ToString(), "new-name") as ObjectResult;
+        Assert.That(result, Is.Not.Null);
+        
+        // Assert
+        Assert.That(result.StatusCode, Is.EqualTo(403));
+        Tag? unchangedTag = await _resourceManager.GetTagAsync(tag.Id.ToString());
+        Assert.That(unchangedTag, Is.Not.Null);
+        Assert.That(unchangedTag.Name, Is.EqualTo("old-name"));
+    }
+
+    #endregion
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
