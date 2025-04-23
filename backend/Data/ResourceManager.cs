@@ -1,4 +1,10 @@
-﻿namespace KnowledgeBank.Data
+﻿// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+//
+// Author: Abel Dieterich
+
+namespace KnowledgeBank.Data
 {
     /// <summary>
     /// This class is responsible for all database interactions regarding resources and their metadata.
