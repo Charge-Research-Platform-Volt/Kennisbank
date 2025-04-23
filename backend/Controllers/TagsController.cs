@@ -329,13 +329,11 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                 return NotFound(new { message = "Tag not found."});
             }
             
-            // Get the resource-tag relations
-            ResourceTagRelation[]? tagRelations = await resourceManager
-                .GetAllResourceTagRelationsAsync(
-                    predicate: r => r.TagId == Guid.Parse(id));
+            // Get the resource-tag relations count
+            int relationCount = await resourceManager.ResourceTagRelationCountAsync(predicate: r => r.TagId == Guid.Parse(id));
                         
             // Check if the user has permission to delete this tag
-            if (!userIsAdmin && (tag.CreatedBy != userId || tagRelations.Length != 0)) 
+            if (!userIsAdmin && (tag.CreatedBy != userId || relationCount != 0)) 
             {
                 Log.Warning("User {UserId} attempted to delete {TagId} without permissions.", userId, id);
                 return StatusCode(403, new { message = "User cannot delete this tag." });
@@ -407,13 +405,11 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                 return NotFound(new { message = "Tag not found."});
             }
             
-            // Get the resource-tag relations
-            var tagRelations = await resourceManager
-                .GetAllResourceTagRelationsAsync(
-                    predicate: r => r.TagId == Guid.Parse(id));
+            // Get the resource-tag relations count
+            int relationCount = await resourceManager.ResourceTagRelationCountAsync(predicate: r => r.TagId == Guid.Parse(id));
             
             // Check if the user has permission to delete this tag
-            if (!userIsAdmin && (tag.CreatedBy != userId || tagRelations.Length != 0)) 
+            if (!userIsAdmin && (tag.CreatedBy != userId || relationCount != 0)) 
             {
                 Log.Warning("User {UserId} attempted to edit {TagId} without permissions.", userId, id);
                 return StatusCode(403, new { message = "User cannot edit this tag." });
