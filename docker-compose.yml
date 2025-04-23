@@ -1,0 +1,96 @@
+networks:
+  my_network:
+    name: my_network
+    driver: bridge
+
+services:
+  # Start database
+  database:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_DB=postgres
+    tmpfs:
+      - /var/lib/postgresql/data
+    networks:
+      - my_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Start storage
+  storage:
+    image: mcr.microsoft.com/azure-storage/azurite
+    ports:
+      - "10000:10000"
+    tmpfs:
+      - /data
+    networks:
+      - my_network
+
+  # Start backend with database and storage
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: ${TARGET}
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${STAGE}
+      - CONNECTION_STRING=Host=database;Port=5432;Username=postgres;Password=${DB_PASSWORD:-postgres};Database=postgres;Include Error Detail=true
+      - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://storage:10000/devstoreaccount1;
+    depends_on:
+      database:
+        condition: service_healthy
+      storage:
+        condition: service_started
+    networks:
+      - my_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/status"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 150s
+
+  # Start frontend after backend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: ${TARGET}
+      args:
+       API_URL: ${API_URL}
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=${STAGE}
+      - API_URL=${API_URL}
+      
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - my_network
+
+  # Start website after backend
+  website:
+    build:
+      context: ./website
+      dockerfile: Dockerfile
+      target: ${TARGET}  # Use production target
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=${STAGE}
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - my_network
