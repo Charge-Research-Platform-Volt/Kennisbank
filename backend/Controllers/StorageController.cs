@@ -245,9 +245,9 @@ namespace KnowledgeBank.Controllers
 
             try
             {
-                Guid? resourceId = await resourceManager.HashExistsAsync(hash);
+                Guid resourceId = await resourceManager.GetResourcePropertyOrDefaultAsync(predicate: r => r.Hash == hash, selector: r => r.Id);
 
-                if (resourceId == null)
+                if (resourceId == Guid.Empty)
                     return Ok(new ExistsResponse("File does not exist.", false, ""));
 
                 return Ok(new ExistsResponse("File already exists", true, ((Guid)resourceId).ToString()));

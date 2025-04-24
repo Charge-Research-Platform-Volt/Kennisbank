@@ -397,6 +397,49 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
         
+        #region Exists
+        [EnableCors("AllowFrontend")]
+        [HttpGet("exists")]
+        [SwaggerOperation(Summary = "Check if a resource exists.")]
+        [SwaggerResponse(200, "Response with boolean indicating if resource exists.", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult>Exists([FromQuery] string? hash, [FromQuery] string? url) 
+        {
+            // Check for null
+            if (string.IsNullOrEmpty(hash) && string.IsNullOrEmpty(url))
+                return BadRequest(new ApiResponse(false, "No value given."));
+        
+            try 
+            {
+                // Retrieve the ID of the resource if it already exists
+                Guid resourceId = Guid.Empty;
+            
+                // Handle hash for files
+                if (!string.IsNullOrEmpty(hash)) 
+                    resourceId = await resourceManager.GetResourcePropertyOrDefaultAsync(predicate: r => r.Hash == hash, selector: r => r.Id);
+                
+                // Handle URL for websites
+                else if (!string.IsNullOrEmpty(url)) 
+                    resourceId = await resourceManager.GetWebsiteMetadataPropertyOrDefaultAsync(predicate: m => m.Url == url, selector: m => m.ResourceId);
+
+
+
+                // ID is empty, so no resource was found
+                if (resourceId == Guid.Empty)
+                    return Ok(new ApiResponse(true, "Resource does not exist", new { exists = false, id = "" }));
+
+                // ID was not empty, so resource already exists, return the ID
+                return Ok(new ApiResponse(true, "Resource already exists.", new { exists = true, id = resourceId.ToString() }));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error checking if resource exists.");
+                return StatusCode(500, new ApiResponse(false, "Error checking if resource exists", e.Message));
+            }
+        }
+        #endregion
+        
         
         #region Helper Functions
         // ---------------------------

@@ -22,18 +22,6 @@ namespace KnowledgeBank.Data
 
         #region Resource
 
-        // Hash exists
-
-        public async Task<Guid?> HashExistsAsync(string hash)
-        {
-            if (string.IsNullOrEmpty(hash)) return null;
-
-            if (!await ExistsAsync(database.Resources, resource => resource.Hash == hash))
-                return null;
-
-            return await GetPropertyAsync(database.Resources, resource => resource.Hash == hash, resource => resource.Id);
-        }
-
         // Resource exists
 
         public async Task<bool> ResourceExistsAsync(Guid resourceId)
