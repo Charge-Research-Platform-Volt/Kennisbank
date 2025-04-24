@@ -354,9 +354,10 @@ namespace KnowledgeBank.Controllers
                         foundOneProp = true;
 
                         // Convert the incoming value to the correct type
-                        var typedValue = Converter.ConvertValue(update.Value, prop.PropertyType);
+                        var typedValue = PropertyUpdateUtil.ConvertValue(update.Value, prop.PropertyType);
 
-                        await UpdatePropertyWithReflection(id, prop.Name, typedValue, setType, prop.PropertyType);
+                        // Use reflection to determine type at runtime
+                        await PropertyUpdateUtil.InvokeGenericMethodAsync(this, nameof(UpdateTypedProperty), id, prop.Name, typedValue, setType, prop.PropertyType);
 
                         // Add property to updated list
                         updatedProperties.Add(prop.Name);
@@ -408,14 +409,6 @@ namespace KnowledgeBank.Controllers
             return string.IsNullOrEmpty(id) || !Guid.TryParse(id, out Guid _);
         }
         
-        // Helper method to create a property selector expression
-        private Expression<Func<TSet, TProperty>> CreatePropertySelector<TSet, TProperty>(string propertyName)
-        {
-            ParameterExpression parameter = Expression.Parameter(typeof(TSet), "item");
-            MemberExpression property = Expression.Property(parameter, propertyName);
-            return Expression.Lambda<Func<TSet, TProperty>>(property, parameter);
-        }
-        
         // Helper method to update a typed property
         private async Task UpdateTypedProperty<TSet, TProperty>(string id, string propertyName, TProperty newValue) where TSet : class 
         {
@@ -425,38 +418,23 @@ namespace KnowledgeBank.Controllers
             await (setType switch
             {
                 // If type is Resource
-                Type t when t == typeof(Resource) => resourceManager.UpdateResourceAsync(id, CreatePropertySelector<Resource, TProperty>(propertyName), newValue),
+                Type t when t == typeof(Resource) => resourceManager.UpdateResourceAsync(id, PropertyUpdateUtil.CreatePropertySelector<Resource, TProperty>(propertyName), newValue),
                 
                 // If type is WebsiteMetadata
-                Type t when t == typeof(WebsiteMetadata) => resourceManager.UpdateWebsiteMetadataAsync(id, CreatePropertySelector<WebsiteMetadata, TProperty>(propertyName), newValue),
+                Type t when t == typeof(WebsiteMetadata) => resourceManager.UpdateWebsiteMetadataAsync(id, PropertyUpdateUtil.CreatePropertySelector<WebsiteMetadata, TProperty>(propertyName), newValue),
                 
                 // If type is DocumentMetadata
-                Type t when t == typeof(DocumentMetadata) => resourceManager.UpdateDocumentMetadataAsync(id, CreatePropertySelector<DocumentMetadata, TProperty>(propertyName), newValue),
+                Type t when t == typeof(DocumentMetadata) => resourceManager.UpdateDocumentMetadataAsync(id, PropertyUpdateUtil.CreatePropertySelector<DocumentMetadata, TProperty>(propertyName), newValue),
 
                 // If type is VideoMetadata
-                Type t when t == typeof(VideoMetadata) => resourceManager.UpdateVideoMetadataAsync(id, CreatePropertySelector<VideoMetadata, TProperty>(propertyName), newValue),
+                Type t when t == typeof(VideoMetadata) => resourceManager.UpdateVideoMetadataAsync(id, PropertyUpdateUtil.CreatePropertySelector<VideoMetadata, TProperty>(propertyName), newValue),
 
                 // If type is AudioMetadata
-                Type t when t == typeof(AudioMetadata) => resourceManager.UpdateAudioMetadataAsync(id, CreatePropertySelector<AudioMetadata, TProperty>(propertyName), newValue),
+                Type t when t == typeof(AudioMetadata) => resourceManager.UpdateAudioMetadataAsync(id, PropertyUpdateUtil.CreatePropertySelector<AudioMetadata, TProperty>(propertyName), newValue),
                 
                 // Default
                 _ => throw new ArgumentException($"Unsupported type: {setType.Name}")
             });
-        }
-        
-        // Use a reflection to create the proper version of UpdateTypedProperty and invoke it to update the value with the right type mapping
-        private async Task UpdatePropertyWithReflection(string id, string propertyName, object value, Type setType, Type propertyType)
-        {
-            // Find the UpdateTypedProperty method
-            MethodInfo method = GetType().GetMethod("UpdateTypedProperty", BindingFlags.NonPublic | BindingFlags.Instance) ?? throw new Exception("UpdateTypedProperty method is missing");
-            
-            // Make it generic with the specific types
-            MethodInfo genericMethod = method.MakeGenericMethod(setType, propertyType);
-            
-            // Invoke it and handle possible null return
-            object? result = genericMethod.Invoke(this, [id, propertyName, value]) ?? throw new Exception("Error invoking UpdateTypedProperty");
-
-            await (Task)result;
         }
         
         // Makes a valid filename

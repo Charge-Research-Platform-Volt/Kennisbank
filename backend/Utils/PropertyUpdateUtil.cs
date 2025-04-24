@@ -4,27 +4,31 @@
 //
 // Author: Abel Dieterich
 
+using System.Linq.Expressions;
+using System.Reflection;
+
 namespace KnowledgeBank.Utils 
 {
-    public static class Converter 
+    public static class PropertyUpdateUtil 
     {
+        /// <summary>
+        /// Converts an object to its target type
+        /// </summary>
+        /// <param name="value">The value to be converted</param>
+        /// <param name="targetType">The target type</param>
         public static object ConvertValue(object value, Type targetType)
         {
             // Check for null
             if (value == null)
-            {
                 return targetType.IsValueType ? Activator.CreateInstance(targetType) : null;
-            }
             
             // Handle Nullable<T>
-            Type underlyingType = Nullable.GetUnderlyingType(targetType);
+            Type? underlyingType = Nullable.GetUnderlyingType(targetType);
             if (underlyingType != null)
             {
                 // If value is empty string or "null" and we're converting to nullable, return null
                 if (value is string strValue && (string.IsNullOrEmpty(strValue) || strValue.Equals("null", StringComparison.OrdinalIgnoreCase)))
-                {
                     return null;
-                }
                 
                 // Otherwise convert to the underlying type
                 targetType = underlyingType;
@@ -85,6 +89,7 @@ namespace KnowledgeBank.Utils
                         case System.Text.Json.JsonValueKind.String:
                             // For string-based types, try specialized conversion
                             string stringValue = jsonElement.GetString();
+                            
                             if (targetType == typeof(string))
                                 return stringValue;
                             else if (targetType == typeof(Guid))
@@ -141,6 +146,56 @@ namespace KnowledgeBank.Utils
             
             // Finally, try standard conversion
             return Convert.ChangeType(value, targetType);
+        }
+        
+        /// <summary>
+        /// Invokes a generic method with the specified types using reflection
+        /// </summary>
+        /// <param name="instance">The instance to invoke the method on</param>
+        /// <param name="methodName">Name of the method to invoke</param>
+        /// <param name="id">First parameter to pass to the method</param>
+        /// <param name="propertyName">Second parameter to pass to the method</param>
+        /// <param name="value">Third parameter to pass to the method</param>
+        /// <param name="setType">First generic type parameter</param>
+        /// <param name="propertyType">Second generic type parameter</param>
+        /// <returns>Task representing the async operation</returns>
+        public static async Task InvokeGenericMethodAsync(
+            object instance,
+            string methodName,
+            string id,
+            string propertyName,
+            object value,
+            Type setType,
+            Type propertyType)
+        {
+            // Find the specified method
+            MethodInfo method = instance.GetType().GetMethod(
+                methodName,
+                BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public)
+                ?? throw new Exception($"{methodName} method is missing");
+            
+            // Make it generic with the specific types
+            MethodInfo genericMethod = method.MakeGenericMethod(setType, propertyType);
+            
+            // Invoke it and handle possible null return
+            object? result = genericMethod.Invoke(instance, [id, propertyName, value])
+                ?? throw new Exception($"Error invoking {methodName}");
+
+            await (Task)result;
+        }
+        
+        /// <summary>
+        /// Creates a property selector expression to be used in EF
+        /// </summary>
+        /// <typeparam name="TSet">The type of the set</typeparam>
+        /// <typeparam name="TProperty">The type of the property</typeparam>
+        /// <param name="propertyName">The name of the property</param>
+        /// <returns>An expression that can be used with EF</returns>
+        public static Expression<Func<TSet, TProperty>> CreatePropertySelector<TSet, TProperty>(string propertyName)
+        {
+            ParameterExpression parameter = Expression.Parameter(typeof(TSet), "item");
+            MemberExpression property = Expression.Property(parameter, propertyName);
+            return Expression.Lambda<Func<TSet, TProperty>>(property, parameter);
         }
     }
 }
