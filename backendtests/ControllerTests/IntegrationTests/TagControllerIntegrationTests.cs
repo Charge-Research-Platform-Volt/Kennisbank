@@ -661,6 +661,60 @@ public class TagControllerTests : TestBase
     }
 
     #endregion
+    
+    #region MakeStandardized Tests
+
+    [Test]
+    [Description("MakeStandardized returns Ok when admin standardizes a tag")]
+    public async Task MakeStandardized_ReturnsOk_WhenAdminStandardizesTag()
+    {
+        // Add a tag
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "test-tag", CreatedBy = _adminUserId.ToString() });
+        Tag? tag = (await _resourceManager.GetAllTagsAsync(predicate: t => t.Name == "test-tag")).First();
+        
+        // Standardize the tag as admin
+        SetControllerUser(_adminUser);
+        OkObjectResult? result = await _controller.MakeStandardized(tag.Id.ToString()) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        Tag? standardizedTag = await _resourceManager.GetTagAsync(tag.Id.ToString());
+        Assert.That(standardizedTag, Is.Not.Null);
+        Assert.That(standardizedTag.IsStandardized, Is.True);
+    }
+
+    [Test]
+    [Description("MakeStandardized returns BadRequest when id is empty")]
+    public async Task MakeStandardized_ReturnsBadRequest_WhenIdIsEmpty()
+    {
+        // Set user to admin
+        SetControllerUser(_adminUser);
+        
+        // Try to standardize tag with empty id
+        BadRequestObjectResult? result = await _controller.MakeStandardized("") as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+    }
+
+    [Test]
+    [Description("MakeStandardized returns NotFound when tag does not exist")]
+    public async Task MakeStandardized_ReturnsNotFound_WhenTagDoesNotExist()
+    {
+        // Set user to admin
+        SetControllerUser(_adminUser);
+        
+        // Try to standardize non-existent tag
+        NotFoundObjectResult? result = await _controller.MakeStandardized(Guid.NewGuid().ToString()) as NotFoundObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(404));
+    }
+
+    #endregion
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
