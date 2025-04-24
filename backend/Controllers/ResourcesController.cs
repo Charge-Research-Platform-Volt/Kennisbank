@@ -465,17 +465,63 @@ namespace KnowledgeBank.Controllers
                 
             try 
             {
+                // Retrieve the resource
                 Resource? resource = await resourceManager.GetResourceAsync(id);
 
+                // If null, the resource was not found
                 if (resource == null)
                     return NotFound(new ApiResponse(false, "The resource was not found."));
-
+                
+                // Return the resource
                 return Ok(new ApiResponse(true, "Resource was found.", resource));
             }
             catch (Exception e) 
             {
                 logger.Error(e, "Error retrieving resource info.");
                 return StatusCode(500, new ApiResponse(false, "Error retrieving resource info.", e.Message));
+            }
+        }
+        #endregion
+        
+        #region List
+        [HttpGet("list")]
+        [SwaggerOperation(Summary = "Retrieves a list or page of all resources")]
+        [SwaggerResponse(200, "A list of all the resources in the archive", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> List(int? pageIndex, int? pageSize) 
+        {
+            // Verification
+            if (pageIndex != null && pageIndex < 1)
+                return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1."));
+
+            if (pageSize != null && pageSize < 1)
+                return BadRequest(new ApiResponse(false, "Page size cannot be lower than 1"));
+
+            // Set defaults
+            if (pageIndex != null && pageSize == null) pageSize = 100;
+            if (pageSize != null && pageIndex == null) pageIndex = 1;
+                
+            try 
+            {
+                // All resources to be returned
+                Resource[]? resources = [];
+
+                // No paging requested, list all resources
+                if (pageIndex == null || pageSize == null)
+                    resources = await resourceManager.GetAllResourcesAsync();
+
+                // Paging requested, retrieve resources on that page
+                else
+                    resources = await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize);
+
+                // Return found resources
+                return Ok(new ApiResponse(true, $"Found {resources.Length} resources", resources));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error listing resources.");
+                return StatusCode(500, new ApiResponse(false, "Error listing resources.", e.Message));
             }
         }
         #endregion
