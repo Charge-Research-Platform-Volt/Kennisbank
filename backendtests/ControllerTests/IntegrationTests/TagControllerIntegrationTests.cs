@@ -605,6 +605,62 @@ public class TagControllerTests : TestBase
     }
 
     #endregion
+    
+    #region ApproveTag Tests
+
+    [Test]
+    [Description("ApproveTag returns Ok when admin approves a tag")]
+    public async Task ApproveTag_ReturnsOk_WhenAdminApprovesTag()
+    {
+        // Add a tag
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "test-tag", CreatedBy = _adminUserId.ToString() });
+        Tag? tag = (await _resourceManager.GetAllTagsAsync(predicate: t => t.Name == "test-tag")).First();
+        
+        // Approve the tag as admin
+        SetControllerUser(_adminUser);
+        OkObjectResult? result = await _controller.ApproveTag(tag.Id.ToString()) as OkObjectResult;
+        Assert.That(result, Is.Not.Null);
+        
+        // Assert
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        Tag? approvedTag = await _resourceManager.GetTagAsync(tag.Id.ToString());
+        Assert.That(approvedTag, Is.Not.Null);
+        Assert.That(approvedTag.IsApproved, Is.True);
+        Assert.That(approvedTag.ApprovedBy, Is.EqualTo(_adminUserId));
+        Assert.That(approvedTag.ApprovedOn, Is.Not.Null);
+    }
+
+    [Test]
+    [Description("ApproveTag returns BadRequest when id is empty")]
+    public async Task ApproveTag_ReturnsBadRequest_WhenIdIsEmpty()
+    {
+        // Set user to admin
+        SetControllerUser(_adminUser);
+        
+        // Try to approve tag with empty id
+        BadRequestObjectResult? result = await _controller.ApproveTag("") as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+    }
+
+    [Test]
+    [Description("ApproveTag returns NotFound when tag does not exist")]
+    public async Task ApproveTag_ReturnsNotFound_WhenTagDoesNotExist()
+    {
+        // Set user to admin
+        SetControllerUser(_adminUser);
+        
+        // Try to approve non-existent tag
+        NotFoundObjectResult? result = await _controller.ApproveTag(Guid.NewGuid().ToString()) as NotFoundObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(404));
+    }
+
+    #endregion
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
