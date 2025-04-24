@@ -2,8 +2,9 @@
 
 import { handleOpenFile } from "@/actions/openFileActions";
 import { Button } from "@/components/ui/button";
-import OpenDocumentIcon from "@/icons/file-type-icons/open-document-icon";
+import DownloadIcon from "@/icons/file-type-icons/download-icon";
 import OpenWebsiteIcon from "@/icons/file-type-icons/open-website";
+import ReadDocumentIcon from "@/icons/file-type-icons/read-document-icon";
 import { ResourceResponse } from "@/types/resource.type";
 
 /**
@@ -59,7 +60,7 @@ export default function OpenFileButton({
           onClick={() => handleOpenFile(file)}
           title={buttonText()}
         >
-          {file.fileType == "website" ? <OpenWebsiteIcon className="h-5 w-5" fill="#737373"></OpenWebsiteIcon> : <OpenDocumentIcon className="h-5 w-5" fill="#737373" />}
+          {file.fileType == "website" ? <OpenWebsiteIcon className="h-5 w-5" fill="#737373"></OpenWebsiteIcon> : file.fileType == "pdf" ? <ReadDocumentIcon className="h-5 w-5" fill="#737373" /> : <DownloadIcon className="h-5 w-5" fill="#737373" />}
         </Button>
 
     ) : 

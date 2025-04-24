@@ -1,6 +1,6 @@
 import * as React from "react";
 
-export default function OpenDocumentIcon({ fill = "#000", ...props }: React.SVGProps<SVGSVGElement>) {
+export default function ReadDocumentIcon({ fill = "#000", ...props }: React.SVGProps<SVGSVGElement>) {
   return (
     <svg 
         {...props} 
