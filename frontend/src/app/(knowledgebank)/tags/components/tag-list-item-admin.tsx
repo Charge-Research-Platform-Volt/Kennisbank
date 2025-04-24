@@ -34,13 +34,14 @@ export default function TagListItemAdmin({ tag }: { tag: Tag }) {
 
   const [tagName, setTagName] = useState(tag.name);
   const [originalTagName, setOriginalTagName] = useState(tag.name);
-  const [editting, setEditting] = useState(false);
-  
+  const [editing, setEditing] = useState(false);
+
   // Handle form action responses
   useEffect(() => {
     if (saveTagState.success) {
       toast.success(saveTagState.message);
-      setEditting(false);
+      setEditing(false);
+      setTagName(tagName);
       setOriginalTagName(tagName);
     } else if (saveTagState.message) {
       toast.error(saveTagState.message);
@@ -50,7 +51,7 @@ export default function TagListItemAdmin({ tag }: { tag: Tag }) {
   // Handle edit button click
   const handleEditClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    setEditting(true);
+    setEditing(true);
   };
   
   // Determine which form action to use
@@ -60,7 +61,7 @@ export default function TagListItemAdmin({ tag }: { tag: Tag }) {
   
   return (
     <div className="flex w-full items-center justify-between gap-2">
-      {editting ? (
+      {editing ? (
         <form className="relative w-full" action={formAction}>
           <Input
             type="text"

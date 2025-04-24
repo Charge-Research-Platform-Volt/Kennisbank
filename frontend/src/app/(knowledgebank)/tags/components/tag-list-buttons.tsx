@@ -14,6 +14,7 @@ export function ApproveTagButton({ tag }: { tag: Tag }) {
       actionName="Approving tag"
       actionArg={tag.id}
       successMessage="Tag approved"
+      onSuccessAction={() => window.dispatchEvent(new Event("tagListUpdated"))}
       icon={ApproveTagIcon}
       title="Approve tag"
     />
@@ -27,6 +28,7 @@ export function ConvertTagButton({ tag }: { tag: Tag }) {
       actionName="Convert user tag"
       actionArg={tag.id}
       successMessage="Tag converted"
+      onSuccessAction={() => window.dispatchEvent(new Event("tagListUpdated"))}
       icon={AdminIcon}
       title="Convert to standardized tag"
     />
@@ -41,6 +43,7 @@ export function DeleteTagButton({ tag }: { tag: Tag }) {
         actionName="Deleting tag"
         actionArg={tag.id}
         successMessage="Tag deleted"
+        onSuccessAction={() => window.dispatchEvent(new Event("tagListUpdated"))}
         icon={DeleteIcon}
         title="Delete tag"
       />

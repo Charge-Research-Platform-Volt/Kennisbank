@@ -19,6 +19,7 @@ export default function CreateStandardizedTag() {
   useEffect(() => {
     if (state.success) {
       toast.success(state.message);
+      window.dispatchEvent(new Event("tagListUpdated"));
     } else if (state.message) {
       toast.error(state.message);
     }
@@ -30,7 +31,7 @@ export default function CreateStandardizedTag() {
         <Input
           type="text"
           name="name"
-          placeholder="New tag"
+          placeholder="New standardized tag"
           disabled={isPending}
         />
         <Button

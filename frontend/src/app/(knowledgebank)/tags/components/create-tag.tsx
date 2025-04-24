@@ -19,6 +19,7 @@ export default function CreateUserTag() {
   useEffect(() => {
     if (state.success) {
       toast.success(state.message);
+      window.dispatchEvent(new Event("tagListUpdated"));
     } else if (state.message) {
       toast.error(state.message);
     }

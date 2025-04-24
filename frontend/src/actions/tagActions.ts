@@ -1,7 +1,7 @@
 "use server";
 
 import type { FormResponse } from "@/types/return.type";
-import { TagCreateDto, TagCreateDtoSchema, TagRenameDto } from "@/types/tag.type";
+import { TagArraySchema, TagCreateDto, TagCreateDtoSchema, TagPageResponse, TagRenameDto } from "@/types/tag.type";
 import { revalidatePath } from "next/cache";
 import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 import { cookies } from "next/headers";
@@ -226,6 +226,66 @@ export const MakeStandardized = async (tagId: string): Promise<FormResponse<{ id
     message: data.message,
   };
 };
+
+/**
+ * 
+ * @param pageIndex - The page to fetch
+ * @param query - Query to filter the tags with
+ * @returns - A promise with the tags and the page information
+ */
+export const ListTagsPaged = async (pageIndex: number, searchQuery: string): Promise<TagPageResponse> => {
+  console.log("Getting tags paged:");
+
+  // Send the data to the backend
+  const cookieHeader : ReadonlyRequestCookies = await cookies();
+  const response : Response = await fetch(
+      `http://backend:8080/tags/tag-page?pageIndex=${pageIndex}&pageSize=25&searchQuery=${encodeURIComponent(searchQuery)}`,
+      {
+          method: "GET",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+      },
+  );
+  //parse the data from the response
+  const data = await response.json();
+
+  // Check if the request was succesful, if not, return an error
+  if (!response.ok) {
+      return {
+          success: false,
+          message: data.message,
+      };
+  }
+
+  //validate the data
+  if(!data){
+      return {
+          success: false,
+          message: "No data found",
+      };
+  }
+
+  //validate the tags array
+  const validatedTags = TagArraySchema.safeParse(data.tags);
+  if (!validatedTags.success) {
+      return {
+          success: false,
+          message: validatedTags.error.errors[0].message,
+      };
+  }
+
+  revalidatePath("/tags");
+  
+  // Check if the request was succesful, if not, return an error
+  return {
+      success: true,
+      message: "Tags fetched successfully",
+      tags: validatedTags.data,
+      pageIndex: data.pageIndex,
+      pageSize: data.pageSize,
+      pageCount: data.pageCount,
+  }
+}
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.

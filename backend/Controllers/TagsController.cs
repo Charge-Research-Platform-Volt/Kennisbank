@@ -6,6 +6,7 @@ using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using KnowledgeBank.Responses;
 
 namespace KnowledgeBank.Controllers;
 
@@ -50,11 +51,45 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     [SwaggerOperation(Summary = "List all tags paged.", Description = "List all tags paged.")]
     [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
     [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> GetAllPaged(int pageIndex = 1, int pageSize = 100)
+    public async Task<IActionResult> GetAllPaged(int pageIndex = 1, int pageSize = 100, string? searchQuery = null)
     {
         try
         {
-            return Ok(await resourceManager.GetTagPageAsync(pageIndex, pageSize));
+            if (pageIndex < 1)
+                return BadRequest(new { message = "Page index cannot be lower than 1." });
+
+            if(pageSize < 1)
+                return BadRequest(new { message = "Page size cannot be lower than 1." });
+
+            Tag[] tags;
+            // If there is a query, return the tag page that match that query and the index
+            if(!string.IsNullOrEmpty(searchQuery))
+            {
+                tags = await resourceManager.GetTagPageAsync(
+                    pageIndex: pageIndex, 
+                    pageSize: pageSize, 
+                    predicate: t => t.Name.ToLower().Contains(searchQuery.ToLower())
+                );
+            }
+
+            // Otherwise page normally
+            else
+            {
+                tags = await resourceManager.GetTagPageAsync(
+                    pageIndex: pageIndex,
+                    pageSize: pageSize
+                );
+            }
+
+            // Get the total amount of tags and pages
+            int totalTags = (await resourceManager.GetAllTagsAsync()).Length; 
+            int pageCount = (int)Math.Ceiling((double)totalTags / pageSize);
+            
+            // If no tags are returned, put in the message that no tags are found
+            if(tags == null)
+                return Ok(new TagPageResponse("No tags on this page.", pageIndex, pageSize, pageCount, Array.Empty<Tag>()));
+            
+            return Ok(new TagPageResponse($"{tags.Length} tags found", pageIndex, pageSize, pageCount, tags));
         }
         catch (Exception e)
         {
@@ -444,6 +479,45 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             Log.Error(e, "Error approving tag {TagId}", id);
             return StatusCode(500, "Internal Server Error");
         }
+    }
+
+    [HttpPost("search")]
+    [SwaggerOperation(
+        Summary = "Search for tags by tag name.",
+        Description = "Searches for tag names in database based on what the user types, returns K tags (or less if there are less matching tags)."
+    )]
+    [SwaggerResponse(200, "List of search results", typeof(List<Resource>))]
+    [SwaggerResponse(400, "Invalid search name or number")]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetTopKTags(
+        [FromQuery] string query,
+        [FromQuery] int K = 5
+    )
+    {
+        if(string.IsNullOrEmpty(query))
+            return BadRequest(new { message = "This function should not be called with no input" });
+        if (K < 1)
+            return BadRequest(new { message = "Returned tags cannot be lower than 1." } );
+        try
+        {
+            // return tags that match the search prompt 
+            Tag[]? tags = await resourceManager.GetTagPageAsync(
+                pageIndex: 1,
+                pageSize: K,
+                predicate: t => t.Name.ToUpper().StartsWith(query.ToUpper()), // tags are searched differently, users don't want it to function like a normal search probably, though this is to be discussed
+                orderBy: t => (t.IsApproved ? 0 : 1) + (t.IsStandardized ? 0 : 1) // ascending order
+            );
+
+            return Ok(new { message = "Good fetch", tags });
+        }
+        catch(Exception e)
+        {
+            Log.Error(e, "Error finding tags", query);
+            return StatusCode(500, "Internal Server Error");
+        }
+                // predicate: t => (EF.Functions.TrigramsSimilarity(t.Name ?? "", query) >= 0.2 || t.Name.StartsWith(query)),
+                // orderBy: t => EF.Functions.TrigramsSimilarity(t.Name ?? "", query)
+                // TODO: decide on how to take top k tags
     }
 }
 

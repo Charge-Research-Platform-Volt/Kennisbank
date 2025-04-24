@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import { TagArray, Tag } from "@/types/tag.type";
+//import { fetchTagSearch } from "@/actions/tagActions";
 import { FInput, InputBlock, InputHeader } from "@/components/ui/Popup";
 import { Button } from "@/components/ui/button";
 import AdminTagIcon from "@/icons/tag-icons/admin-tag";
 import ApprovedTagIcon from "@/icons/tag-icons/aproved-tag";
 import { AddUserTag } from "@/actions/tagActions";
 import { toast } from "sonner";
+import { TagResponseSchema } from "@/types/tag.type";
 
 /**
  *
@@ -17,7 +19,7 @@ import { toast } from "sonner";
  *
  * @returns The dropdown box where the user can type and select tags to be added to the document
  */
-export default function TagSelectionDropdown({ tags, onSelectionChangedAction = () => {}, className, createButton = true }: { tags: TagArray, onSelectionChangedAction?: (tagFilters: string[]) => void, className?: string, createButton?: boolean }) {  
+export default function TagSelectionDropdown({ onSelectionChangedAction = () => {}, className, createButton = true }: { onSelectionChangedAction?: (tagFilters: string[]) => void, className?: string, createButton?: boolean }) {  
   const MAX_TAGS: number = 10;
 
   // States containing the inputvalue, tags returned by the input value, and the tags to be added to the document
@@ -104,24 +106,51 @@ export default function TagSelectionDropdown({ tags, onSelectionChangedAction = 
     onSelectionChangedAction(selectedTags); // Call the action passed from the parent component
   }
 
+  /**
+   * 
+   * @param query - The name of the tag it tries to search
+   * @param K  - Max amount of tags to return 
+   * @returns A maximum of K tags that correspond with the query
+   */
+  const fetchTagSearch = async (query?: string, K?: number) => {
+    query = query?.trim();
+  
+    const response = await fetch(`http://localhost:8080/tags/search?${query ? `query=${query}&` : ""}/K=${K ? K : 5}`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json"
+      },
+    });
+    
+    if (!response.ok) {
+      console.log("problem with finding tags");
+      return
+    }
+
+    const data = await response.json();
+    const parsedData = TagResponseSchema.parse(data);
+
+    return parsedData.tags
+  };
 
   // Filters tags to display only those tags that correspond with the input value
-  function filterTags() {
-    const fetchedTags = Object.values(tags); // Gets all values from inserted tags
-
+  async function filterTags() {
     // Ensures we don't add more tags than allowed and we don't render all tags at the start (We want to display filtered tags after at least 1 character is in the input)
     if (inputValue == "" || addedTags.length >= MAX_TAGS) {
       setFilteredTags([]);
       return;
     }
 
-    // Then we filter the tags on uppercase input/tag.name
-    const uppercaseInput: string = inputValue.toUpperCase();
+    // Gets all values from inserted tags and then filters the tags on uppercase name, sorts them on relevance, and returns top k tags
+    const fetchedTags = await fetchTagSearch(inputValue, MAX_TAGS);
 
-    const filtered = fetchedTags.filter((tag) => tag.name.toUpperCase().startsWith(uppercaseInput));
+    // Don't do anything if fetchedTags returns null or undefined
+    if(fetchedTags == null || fetchedTags == undefined)
+      return;
 
     // And we update our state
-    setFilteredTags(filtered.filter((tag) => !addedTags.includes(tag)));
+    setFilteredTags(fetchedTags.filter((tag) => !addedTags.some(addedTag => addedTag.id === tag.id)));
   }
   
 

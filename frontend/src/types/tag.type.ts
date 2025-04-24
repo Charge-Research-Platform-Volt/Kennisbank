@@ -45,13 +45,22 @@ export type TagRenameDto = z.infer<typeof TagRenameDtoSchema>;
  */
 export const TagResponseSchema = z.object({
   message: z.string(),
-  tagId: z.string().uuid().nullable(),
-  tags: z.array(TagArraySchema).nullable(),
+  tags: z.array(TagSchema).nullable(),
 })
 
 export type TagResponse = z.infer<typeof TagResponseSchema>;
 
-
+/**
+ * Tag page response schema
+ */
+export type TagPageResponse = {
+  success: boolean;
+  message: string;
+  pageIndex?: number;
+  pageSize?: number;
+  pageCount?: number;
+  tags?: TagArray;
+}
 
 
 /**

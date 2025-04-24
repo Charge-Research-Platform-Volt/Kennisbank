@@ -11,7 +11,6 @@ import { FormResponse } from "@/types/return.type";
 import { type FileBase, type WebsiteBase } from "@/types/resource.type";
 import { Button } from "@/components/ui/button";
 import { getFileHasher } from "@/utils/fileHashWorker";
-import { TagArray } from "@/types/tag.type";
 import TagSelectionDropdown from "@/components/uploadComponents/TagSelectionDropdown";
 import { InputHeader, InputBlock, FInput, FileInfo, PopupTitle } from "@/components/ui/Popup";
 import New from "@/icons/new";
@@ -33,7 +32,7 @@ const initialFileResourceState: FormResponse<FileBase> = {
  * @param asIcon - Boolean that determines if the button should be rendered with just the icon (which it does when it is folded)
  * @returns An upload button where it is possible to upload files or websites through a popup
  */
-export default function NewButton({ tags, asIcon = false, minimize }: { tags: TagArray; asIcon?: boolean; minimize: boolean }) {
+export default function NewButton({ asIcon = false, minimize }: { asIcon?: boolean; minimize: boolean }) {
   const popupRef = useRef<HTMLDivElement | null>(null); //Ref used to check if user clicks outside of popup
   const [status, setStatus] = useState<UploadStatus>("idle"); //upload status
   const [uploadPopup, setUploadPopup] = useState(false); //bool which determines whether you can see the new popup
@@ -357,7 +356,7 @@ export default function NewButton({ tags, asIcon = false, minimize }: { tags: Ta
 
                     <div className="flex flex-1 flex-col">
                       {/* Add Tags dropdown box*/}
-                      <TagSelectionDropdown className="h-full w-full" tags={tags}></TagSelectionDropdown>
+                      <TagSelectionDropdown className="h-full w-full"></TagSelectionDropdown>
                     </div>
                   </div>
                 </div>
