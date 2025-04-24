@@ -5,7 +5,6 @@ using KnowledgeBank.Controllers;
 using KnowledgeBank.Data;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 
 namespace backend.Tests.Integration;
@@ -93,7 +92,9 @@ public class TagControllerTests : TestBase
     {
         // Get all tags
         OkObjectResult? result = await _controller.GetAll() as OkObjectResult;
+        Assert.That(result, Is.Not.Null);
         Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
 
         // Assert
         Assert.That(result.StatusCode, Is.EqualTo(200));
@@ -292,7 +293,7 @@ public class TagControllerTests : TestBase
 
         // Assert
         Assert.That(result.StatusCode, Is.EqualTo(400));
-        var tags = await _resourceManager.GetAllTagsAsync();
+        Tag[]? tags = await _resourceManager.GetAllTagsAsync();
         Assert.That(tags.Length, Is.EqualTo(0));
     }
 
@@ -309,7 +310,7 @@ public class TagControllerTests : TestBase
 
         // Assert
         Assert.That(result.StatusCode, Is.EqualTo(409));
-        var tags = await _resourceManager.GetAllTagsAsync();
+        Tag[]? tags = await _resourceManager.GetAllTagsAsync();
         Assert.That(tags.Length, Is.EqualTo(1));
     }
 
@@ -363,7 +364,7 @@ public class TagControllerTests : TestBase
 
         // Assert
         Assert.That(result.StatusCode, Is.EqualTo(409));
-        var tags = await _resourceManager.GetAllTagsAsync();
+        Tag[]? tags = await _resourceManager.GetAllTagsAsync();
         Assert.That(tags.Length, Is.EqualTo(1));
     }
     
@@ -708,6 +709,233 @@ public class TagControllerTests : TestBase
         
         // Try to standardize non-existent tag
         NotFoundObjectResult? result = await _controller.MakeStandardized(Guid.NewGuid().ToString()) as NotFoundObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(404));
+    }
+
+    #endregion
+    
+    #region MergeTag Tests
+
+    [Test]
+    [Description("Merge returns Ok when admin successfully merges two tags")]
+    public async Task Merge_ReturnsOk_WhenAdminMergesTags()
+    {
+        // Set user to admin
+        SetControllerUser(_adminUser);
+        
+        // Add two tags
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag1", CreatedBy = _adminUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag2", CreatedBy = _adminUserId.ToString() });
+        
+        Tag? tag1 = (await _resourceManager.GetAllTagsAsync(predicate: t => t.Name == "tag1")).First();
+        Tag? tag2 = (await _resourceManager.GetAllTagsAsync(predicate: t => t.Name == "tag2")).First();
+        
+        // Add a resource
+        ResourceType resourceType = await Context.ResourceTypes.FirstAsync();
+        ResourceCreateDto resourceDto = new()
+        {
+            Title = "Test Resource",
+            TypeId = resourceType.Id.ToString(),
+            LanguageCode = "en",
+            PublicationDate = DateTime.UtcNow
+        };
+        await _resourceManager.CreateResourceAsync(resourceDto);
+        
+        // Find the resource 
+        Resource? resource = await _resourceManager.GetResourceAsync(predicate: r => r.Title == resourceDto.Title);
+        Assert.That(resource, Is.Not.Null);
+        
+        // Associate tag2 with the resource
+        await _resourceManager.AddTagToResourceAsync(resource.Id, tag2.Id);
+        
+        // Merge tag2 into tag1
+        OkObjectResult? result = await _controller.Merge(tag1.Id.ToString(), tag2.Id.ToString()) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        // Check that tag2 is deleted
+        Tag? deletedTag = await _resourceManager.GetTagAsync(tag2.Id.ToString());
+        Assert.That(deletedTag, Is.Null);
+        
+        // Check that tag1 still exists
+        Tag? remainingTag = await _resourceManager.GetTagAsync(tag1.Id.ToString());
+        Assert.That(remainingTag, Is.Not.Null);
+        
+        // Check that the resource now has tag1 instead of tag2
+        ResourceTagRelation[] relations = await _resourceManager.GetAllResourceTagRelationsAsync(
+            predicate: r => r.ResourceId == resource.Id);
+        
+        Assert.That(relations.Length, Is.EqualTo(1));
+        Assert.That(relations[0].TagId, Is.EqualTo(tag1.Id));
+    }
+
+    [Test]
+    [Description("Merge returns Ok when admin merges tags with overlapping resources")]
+    public async Task Merge_ReturnsOk_WhenTagsHaveOverlappingResources()
+    {
+        // Set user to admin
+        SetControllerUser(_adminUser);
+        
+        // Add two tags
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag1", CreatedBy = _adminUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag2", CreatedBy = _adminUserId.ToString() });
+        
+        Tag? tag1 = (await _resourceManager.GetAllTagsAsync(predicate: t => t.Name == "tag1")).First();
+        Tag? tag2 = (await _resourceManager.GetAllTagsAsync(predicate: t => t.Name == "tag2")).First();
+        
+        // Add two resources
+        ResourceType resourceType = await Context.ResourceTypes.FirstAsync();
+        ResourceCreateDto resource1Dto = new()
+        {
+            Title = "Resource 1",
+            TypeId = resourceType.Id.ToString(),
+            LanguageCode = "en",
+            PublicationDate = DateTime.UtcNow
+        };
+        ResourceCreateDto resource2Dto = new()
+        {
+            Title = "Resource 2",
+            TypeId = resourceType.Id.ToString(),
+            LanguageCode = "en",
+            PublicationDate = DateTime.UtcNow
+        };
+        
+        await _resourceManager.CreateResourceAsync(resource1Dto);
+        await _resourceManager.CreateResourceAsync(resource2Dto);
+        
+        // Find the resources
+        Resource? resource1 = await _resourceManager.GetResourceAsync(predicate: r => r.Title == resource1Dto.Title);
+        Resource? resource2 = await _resourceManager.GetResourceAsync(predicate: r => r.Title == resource2Dto.Title);
+        Assert.That(resource1, Is.Not.Null);
+        Assert.That(resource2, Is.Not.Null);
+        
+        // Associate tag1 with resource1
+        await _resourceManager.AddTagToResourceAsync(resource1.Id, tag1.Id);
+        
+        // Associate tag2 with both resources
+        await _resourceManager.AddTagToResourceAsync(resource1.Id, tag2.Id);
+        await _resourceManager.AddTagToResourceAsync(resource2.Id, tag2.Id);
+        
+        // Merge tag2 into tag1
+        OkObjectResult? result = await _controller.Merge(tag1.Id.ToString(), tag2.Id.ToString()) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        // Check that tag2 is deleted
+        Tag? deletedTag = await _resourceManager.GetTagAsync(tag2.Id.ToString());
+        Assert.That(deletedTag, Is.Null);
+        
+        // Check that resource1 still has only one tag1 (no duplicates)
+        ResourceTagRelation[] relations1 = await _resourceManager.GetAllResourceTagRelationsAsync(
+            predicate: r => r.ResourceId == resource1.Id);
+        
+        Assert.That(relations1.Length, Is.EqualTo(1));
+        Assert.That(relations1[0].TagId, Is.EqualTo(tag1.Id));
+        
+        // Check that resource2 now has tag1
+        ResourceTagRelation[] relations2 = await _resourceManager.GetAllResourceTagRelationsAsync(
+            predicate: r => r.ResourceId == resource2.Id);
+        
+        Assert.That(relations2.Length, Is.EqualTo(1));
+        Assert.That(relations2[0].TagId, Is.EqualTo(tag1.Id));
+    }
+
+    [Test]
+    [Description("Merge returns BadRequest when tag IDs are identical")]
+    public async Task Merge_ReturnsBadRequest_WhenTagIdsAreIdentical()
+    {
+        // Set user to admin
+        SetControllerUser(_adminUser);
+        
+        // Add a tag
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag", CreatedBy = _adminUserId.ToString() });
+        Tag? tag = (await _resourceManager.GetAllTagsAsync(predicate: t => t.Name == "tag")).First();
+        
+        // Try to merge tag with itself
+        BadRequestObjectResult? result = await _controller.Merge(tag.Id.ToString(), tag.Id.ToString()) as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+    }
+
+    [TestCase("", "valid-id")]
+    [TestCase("valid-id", "")]
+    [TestCase("", "")]
+    [Description("Merge returns BadRequest when one or both tag IDs are empty")]
+    public async Task Merge_ReturnsBadRequest_WhenTagIdIsEmpty(string id1, string id2)
+    {
+        // Set user to admin
+        SetControllerUser(_adminUser);
+        
+        // Replace "valid-id" with an actual valid GUID if needed
+        if (id1 == "valid-id") id1 = Guid.NewGuid().ToString();
+        if (id2 == "valid-id") id2 = Guid.NewGuid().ToString();
+        
+        // Try to merge with empty ID(s)
+        BadRequestObjectResult? result = await _controller.Merge(id1, id2) as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+    }
+
+    [TestCase("not-a-guid", "00000000-0000-0000-0000-000000000000")]
+    [TestCase("00000000-0000-0000-0000-000000000000", "not-a-guid")]
+    [TestCase("not-a-guid-1", "not-a-guid-2")]
+    [Description("Merge returns BadRequest when one or both tag IDs are not valid GUIDs")]
+    public async Task Merge_ReturnsBadRequest_WhenTagIdIsNotValidGuid(string id1, string id2)
+    {
+        // Set user to admin
+        SetControllerUser(_adminUser);
+        
+        // Try to merge with invalid GUID format
+        BadRequestObjectResult? result = await _controller.Merge(id1, id2) as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+    }
+
+    [Test]
+    [Description("Merge returns NotFound when first tag does not exist")]
+    public async Task Merge_ReturnsNotFound_WhenFirstTagDoesNotExist()
+    {
+        // Set user to admin
+        SetControllerUser(_adminUser);
+        
+        // Add one tag
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag", CreatedBy = _adminUserId.ToString() });
+        Tag? tag = (await _resourceManager.GetAllTagsAsync(predicate: t => t.Name == "tag")).First();
+        
+        // Try to merge non-existent tag with existing tag
+        NotFoundObjectResult? result = await _controller.Merge(Guid.NewGuid().ToString(), tag.Id.ToString()) as NotFoundObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(404));
+    }
+
+    [Test]
+    [Description("Merge returns NotFound when second tag does not exist")]
+    public async Task Merge_ReturnsNotFound_WhenSecondTagDoesNotExist()
+    {
+        // Set user to admin
+        SetControllerUser(_adminUser);
+        
+        // Add one tag
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag", CreatedBy = _adminUserId.ToString() });
+        Tag? tag = (await _resourceManager.GetAllTagsAsync(predicate: t => t.Name == "tag")).First();
+        
+        // Try to merge existing tag with non-existent tag
+        NotFoundObjectResult? result = await _controller.Merge(tag.Id.ToString(), Guid.NewGuid().ToString()) as NotFoundObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
