@@ -526,16 +526,15 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                     predicate: r => r.TagId == tagId2,
                     includeProperties: "Resource");
             
-            // Find resources that already have the first tag to avoid duplicates
-            ResourceTagRelation[]? resourcesWithTag1 = await resourceManager
-                .GetAllResourceTagRelationsAsync(predicate: r => r.TagId == tagId1);
-            
-            HashSet<Guid> existingResourceIds = resourcesWithTag1.Select(r => r.ResourceId).ToHashSet();
-            
             // Add the first tag to resources that don't already have it
             foreach (ResourceTagRelation relation in tagRelations) 
             {
-                if (!existingResourceIds.Contains(relation.ResourceId))
+                // Check if the resource already has the first tag
+                bool hasFirstTag = await resourceManager.ResourceTagRelationExistsAsync(
+                    r => r.ResourceId == relation.ResourceId && r.TagId == tagId1);
+                
+                // If the resource doesn't have the first tag, add it
+                if (!hasFirstTag)
                 {
                     await resourceManager.AddTagToResourceAsync(relation.ResourceId, tagId1);
                 }
