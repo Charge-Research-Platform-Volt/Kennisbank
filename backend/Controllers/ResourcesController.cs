@@ -290,6 +290,11 @@ namespace KnowledgeBank.Controllers
         #endregion
         
         #region Update
+        /// <summary>
+        /// Updates the given resource's properties
+        /// </summary>
+        /// <param name="id">The ID of the resource</param>
+        /// <param name="updates">A dictionary with property names and their new values</param>
         [HttpPatch("update/{id}")]
         [Authorize(Policy = "RequireAdminRole")]
         [SwaggerOperation(Summary = "Updates a resource.")]
@@ -398,6 +403,11 @@ namespace KnowledgeBank.Controllers
         #endregion
         
         #region Exists
+        /// <summary>
+        /// Checks if a resource already exists in the databse
+        /// </summary>
+        /// <param name="hash">(Optional) The hash of the resource</param>
+        /// <param name="url">(Optional) The URL of the resource</param>
         [EnableCors("AllowFrontend")]
         [HttpGet("exists")]
         [SwaggerOperation(Summary = "Check if a resource exists.")]
@@ -436,6 +446,36 @@ namespace KnowledgeBank.Controllers
             {
                 logger.Error(e, "Error checking if resource exists.");
                 return StatusCode(500, new ApiResponse(false, "Error checking if resource exists", e.Message));
+            }
+        }
+        #endregion
+        
+        #region Info
+        [HttpGet("{id}")]
+        [SwaggerOperation(Summary = "Get the information of the resource")]
+        [SwaggerResponse(200, "Resource Information", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Resource Not Found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Info(string id) 
+        {
+            // Check if ID is null or empty
+            if (string.IsNullOrEmpty(id))
+                return BadRequest(new ApiResponse(false, "ID was not given."));
+                
+            try 
+            {
+                Resource? resource = await resourceManager.GetResourceAsync(id);
+
+                if (resource == null)
+                    return NotFound(new ApiResponse(false, "The resource was not found."));
+
+                return Ok(new ApiResponse(true, "Resource was found.", resource));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error retrieving resource info.");
+                return StatusCode(500, new ApiResponse(false, "Error retrieving resource info.", e.Message));
             }
         }
         #endregion
