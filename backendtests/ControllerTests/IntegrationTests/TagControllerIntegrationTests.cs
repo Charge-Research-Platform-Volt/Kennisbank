@@ -62,6 +62,13 @@ public class TagControllerTests : TestBase
     }
     
     #region GetAll Tests
+    
+    // TODO: Tests for:
+    //
+    //      GetAll, GetAllPaged, GetAllStandardizedPaged, GetAllUser, GetAllUserPaged
+    //
+    // Can be removed once frontend works with GetTags instead of the old endpoints
+    // The tests were all rewritten to work with GetTags
 
     [Test]
     [Description("GetAll returns all tags from the database")]
@@ -260,8 +267,582 @@ public class TagControllerTests : TestBase
     
     #region GetTags Tests
     
-    // TODO: Write tests for GetTags. Can reuse (and thus replace) tests for GetAll, GetAllPaged, GetAllStandardizedPaged, GetAllUser, GetAllUserPaged
+    [Test]
+    [Description("GetTags returns all tags when no filters are applied")]
+    public async Task GetTags_NoFilters_ReturnsAllTags()
+    {
+        // Add some tags
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag1", CreatedBy = _regularUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag2", CreatedBy = _regularUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag3", CreatedBy = _regularUserId.ToString() });
+
+        // Call GetTags with no filters
+        TagFilterOptions filterOptions = new TagFilterOptions();
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(3));
+        Assert.That(tags.Select(t => t.Name), Does.Contain("tag1"));
+        Assert.That(tags.Select(t => t.Name), Does.Contain("tag2"));
+        Assert.That(tags.Select(t => t.Name), Does.Contain("tag3"));
+    }
+
+    [Test]
+    [Description("GetTags returns empty array when no tags exist")]
+    public async Task GetTags_NoTags_ReturnsEmptyArray()
+    {
+        // Call GetTags with no filters
+        TagFilterOptions filterOptions = new TagFilterOptions();
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(0));
+    }
+
+    [Test]
+    [Description("GetTags with paging returns correct page of tags")]
+    public async Task GetTags_WithPaging_ReturnsCorrectPage()
+    {
+        // Add 25 tags
+        for (int i = 1; i <= 25; i++)
+        {
+            await _resourceManager.CreateTagAsync(new TagCreateDto { Name = $"tag{i:D2}", CreatedBy = _regularUserId.ToString() });
+        }
+
+        // Request second page with 10 items per page
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            UsePaging = true,
+            PageIndex = 2,
+            PageSize = 10
+        };
+        
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(10));
+        Assert.That(tags[0].Name, Is.EqualTo("tag11"));
+        Assert.That(tags[9].Name, Is.EqualTo("tag20"));
+    }
+
+    [Test]
+    [Description("GetTags with paging returns partial page when not enough items")]
+    public async Task GetTags_WithPaging_ReturnsPartialPage_WhenNotEnoughItems()
+    {
+        // Add 5 tags
+        for (int i = 1; i <= 5; i++)
+        {
+            await _resourceManager.CreateTagAsync(new TagCreateDto { Name = $"tag{i:D2}", CreatedBy = _regularUserId.ToString() });
+        }
+
+        // Request first page with 10 items per page
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            UsePaging = true,
+            PageIndex = 1,
+            PageSize = 10
+        };
+        
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(5));
+    }
+
+    [Test]
+    [Description("GetTags with paging returns empty array for page beyond available items")]
+    public async Task GetTags_WithPaging_ReturnsEmptyArray_WhenPageBeyondAvailableItems()
+    {
+        // Add 5 tags
+        for (int i = 1; i <= 5; i++)
+        {
+            await _resourceManager.CreateTagAsync(new TagCreateDto { Name = $"tag{i:D2}", CreatedBy = _regularUserId.ToString() });
+        }
+
+        // Request third page with 5 items per page (should be empty)
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            UsePaging = true,
+            PageIndex = 3,
+            PageSize = 5
+        };
+        
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(0));
+    }
+
+    [Test]
+    [Description("GetTags with invalid paging parameters returns BadRequest")]
+    public async Task GetTags_WithInvalidPagingParameters_ReturnsBadRequest()
+    {
+        // Test with invalid page index
+        TagFilterOptions filterOptions1 = new TagFilterOptions
+        {
+            UsePaging = true,
+            PageIndex = 0,  // Invalid: less than 1
+            PageSize = 10
+        };
+        
+        BadRequestObjectResult? result1 = await _controller.GetTags(filterOptions1) as BadRequestObjectResult;
+        
+        Assert.That(result1, Is.Not.Null);
+        Assert.That(result1.StatusCode, Is.EqualTo(400));
+        
+        // Test with invalid page size
+        TagFilterOptions filterOptions2 = new TagFilterOptions
+        {
+            UsePaging = true,
+            PageIndex = 1,
+            PageSize = 0   // Invalid: less than 1
+        };
+        
+        BadRequestObjectResult? result2 = await _controller.GetTags(filterOptions2) as BadRequestObjectResult;
+        
+        Assert.That(result2, Is.Not.Null);
+        Assert.That(result2.StatusCode, Is.EqualTo(400));
+    }
+
+    [Test]
+    [Description("GetTags filters by standardized tags")]
+    public async Task GetTags_FilterByStandardized_ReturnsOnlyStandardizedTags()
+    {
+        // Add standardized and non-standardized tags
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "std1", CreatedBy = _adminUserId.ToString() }, isStandardized: true);
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "std2", CreatedBy = _adminUserId.ToString() }, isStandardized: true);
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag1", CreatedBy = _regularUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag2", CreatedBy = _regularUserId.ToString() });
+
+        // Request only standardized tags
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            IsStandardized = true
+        };
+        
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(2));
+        Assert.That(tags.Select(t => t.Name), Does.Contain("std1"));
+        Assert.That(tags.Select(t => t.Name), Does.Contain("std2"));
+        Assert.That(tags.Select(t => t.Name), Does.Not.Contain("tag1"));
+        Assert.That(tags.Select(t => t.Name), Does.Not.Contain("tag2"));
+    }
+
+    [Test]
+    [Description("GetTags filters by user tags (non-standardized)")]
+    public async Task GetTags_FilterByUserTags_ReturnsOnlyUserTags()
+    {
+        // Add standardized and non-standardized tags
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "std1", CreatedBy = _adminUserId.ToString() }, isStandardized: true);
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "std2", CreatedBy = _adminUserId.ToString() }, isStandardized: true);
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag1", CreatedBy = _regularUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag2", CreatedBy = _regularUserId.ToString() });
+
+        // Request only user tags (non-standardized)
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            IsStandardized = false
+        };
+        
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(2));
+        Assert.That(tags.Select(t => t.Name), Does.Contain("tag1"));
+        Assert.That(tags.Select(t => t.Name), Does.Contain("tag2"));
+        Assert.That(tags.Select(t => t.Name), Does.Not.Contain("std1"));
+        Assert.That(tags.Select(t => t.Name), Does.Not.Contain("std2"));
+    }
+
+    [Test]
+    [Description("GetTags filters by user tags with paging")]
+    public async Task GetTags_FilterByUserTagsWithPaging_ReturnsCorrectPage()
+    {
+        // Add 12 user tags
+        for (int i = 1; i <= 12; i++)
+        {
+            await _resourceManager.CreateTagAsync(new TagCreateDto { Name = $"tag{i:D2}", CreatedBy = _regularUserId.ToString() });
+        }
+        
+        // Add some standardized tags
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "std1", CreatedBy = _adminUserId.ToString() }, isStandardized: true);
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "std2", CreatedBy = _adminUserId.ToString() }, isStandardized: true);
+
+        // Request second page of user tags with 5 items per page
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            IsStandardized = false,
+            UsePaging = true,
+            PageIndex = 2,
+            PageSize = 5
+        };
+        
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(5));
+        Assert.That(tags[0].Name, Is.EqualTo("tag06"));
+        Assert.That(tags[4].Name, Is.EqualTo("tag10"));
+    }
+
+    [Test]
+    [Description("GetTags filters by standardized tags with paging")]
+    public async Task GetTags_FilterByStandardizedTagsWithPaging_ReturnsCorrectPage()
+    {
+        // Add 15 standardized tags
+        for (int i = 1; i <= 15; i++)
+        {
+            await _resourceManager.CreateTagAsync(new TagCreateDto { Name = $"standard tag {i:D2}", CreatedBy = _adminUserId.ToString() }, isStandardized: true);
+        }
+        
+        // Add some non-standardized tags
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag1", CreatedBy = _adminUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag2", CreatedBy = _adminUserId.ToString() });
+
+        // Request second page of standardized tags with 5 items per page
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            IsStandardized = true,
+            UsePaging = true,
+            PageIndex = 2,
+            PageSize = 5
+        };
+        
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(5));
+        Assert.That(tags[0].Name, Is.EqualTo("standard tag 06"));
+        Assert.That(tags[4].Name, Is.EqualTo("standard tag 10"));
+    }
     
+    [Test]
+    [Description("GetTags filter by creator user ID returns only creator's tags")]
+    public async Task GetTags_FilterByCreator_ReturnsOnlyCreatorTags()
+    {
+        // Create tags with different creators
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "admin-tag1", CreatedBy = _adminUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "admin-tag2", CreatedBy = _adminUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "user-tag1", CreatedBy = _regularUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "user-tag2", CreatedBy = _regularUserId.ToString() });
+
+        // Request only admin's tags
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            CreatedBy = _adminUserId
+        };
+        
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(2));
+        Assert.That(tags.Select(t => t.Name), Does.Contain("admin-tag1"));
+        Assert.That(tags.Select(t => t.Name), Does.Contain("admin-tag2"));
+        Assert.That(tags.Select(t => t.Name), Does.Not.Contain("user-tag1"));
+        Assert.That(tags.Select(t => t.Name), Does.Not.Contain("user-tag2"));
+    }
+
+    [Test]
+    [Description("GetTags text search filter returns matching tags")]
+    public async Task GetTags_TextSearch_ReturnsMatchingTags()
+    {
+        // Add tags with different names
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "apple", CreatedBy = _regularUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "applesauce", CreatedBy = _regularUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "banana", CreatedBy = _regularUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "cherry", CreatedBy = _regularUserId.ToString() });
+
+        // Search for tags containing "apple"
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            SearchQuery = "apple"
+        };
+        
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(2));
+        Assert.That(tags.Select(t => t.Name), Does.Contain("apple"));
+        Assert.That(tags.Select(t => t.Name), Does.Contain("applesauce"));
+        Assert.That(tags.Select(t => t.Name), Does.Not.Contain("banana"));
+        Assert.That(tags.Select(t => t.Name), Does.Not.Contain("cherry"));
+    }
+
+    [Test]
+    [Description("GetTags returns tags with usage count when requested")]
+    public async Task GetTags_WithUsageCount_ReturnsTagsWithUsageCounts()
+    {
+        ResourceType resourceType = await Context.ResourceTypes.FirstAsync();
+
+        // Add a resource
+        ResourceCreateDto testDto = new() 
+        {
+            Title = "Test Resource", 
+            TypeId = resourceType.Id.ToString(),
+            LanguageCode = "??",
+            PublicationDate = DateTime.UtcNow
+        };
+        Guid resourceId = await _resourceManager.CreateResourceAsync(testDto);
+        
+        // Create two tags
+        Guid tag1Id = await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag1", CreatedBy = _regularUserId.ToString() });
+        Guid tag2Id = await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag2", CreatedBy = _regularUserId.ToString() });
+        
+        // Add tag to resource
+        await _resourceManager.AddTagToResourceAsync(resourceId, tag1Id);
+        
+        ResourceCreateDto testDto2 = new() 
+        {
+            Title = "Test Resource 2", 
+            TypeId = resourceType.Id.ToString(),
+            LanguageCode = "??",
+            PublicationDate = DateTime.UtcNow
+        };
+        Guid resource2Id = await _resourceManager.CreateResourceAsync(testDto2);
+        await _resourceManager.AddTagToResourceAsync(resource2Id, tag2Id);
+        
+        // Get tags with usage count
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            IncludeUsageCount = true
+        };
+        
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(2));
+        
+        Tag tag1 = tags.First(t => t.Name == "tag1");
+        Tag tag2 = tags.First(t => t.Name == "tag2");
+        
+        Assert.That(tag1.UsageCount, Is.EqualTo(1));
+        Assert.That(tag2.UsageCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    [Description("GetTags sorts by specified property")]
+    public async Task GetTags_SortByProperty_ReturnsSortedTags()
+    {
+        // Add tags with different creation dates
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "C-tag", CreatedBy = _regularUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "A-tag", CreatedBy = _regularUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "B-tag", CreatedBy = _regularUserId.ToString() });
+
+        // Sort by name ascending
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            SortBy = "Name",
+            SortDescending = false
+        };
+        
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(3));
+        Assert.That(tags[0].Name, Is.EqualTo("A-tag"));
+        Assert.That(tags[1].Name, Is.EqualTo("B-tag"));
+        Assert.That(tags[2].Name, Is.EqualTo("C-tag"));
+        
+        // Sort by name descending
+        TagFilterOptions filterOptions2 = new TagFilterOptions
+        {
+            SortBy = "Name",
+            SortDescending = true
+        };
+        
+        OkObjectResult? result2 = await _controller.GetTags(filterOptions2) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result2, Is.Not.Null);
+        Assert.That(result2.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags2 = result2.Value as Tag[];
+        Assert.That(tags2, Is.Not.Null);
+        Assert.That(tags2.Length, Is.EqualTo(3));
+        Assert.That(tags2[0].Name, Is.EqualTo("C-tag"));
+        Assert.That(tags2[1].Name, Is.EqualTo("B-tag"));
+        Assert.That(tags2[2].Name, Is.EqualTo("A-tag"));
+    }
+
+    [Test]
+    [Description("GetTags filters by approval status")]
+    public async Task GetTags_FilterByApprovalStatus_ReturnsOnlyApprovedTags()
+    {
+        // Create approved and non-approved tags
+        Guid tag1Id = await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "approved-tag", CreatedBy = _regularUserId.ToString() });
+        Guid tag2Id = await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "unapproved-tag", CreatedBy = _regularUserId.ToString() });
+        
+        // Approve tag1
+        SetControllerUser(_adminUser); // Switch to admin to approve
+        await _controller.ApproveTag(tag1Id.ToString());
+        SetControllerUser(_regularUser); // Switch back to regular user
+        
+        // Get only approved tags
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            IsApproved = true
+        };
+        
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(1));
+        Assert.That(tags[0].Name, Is.EqualTo("approved-tag"));
+    }
+
+    [Test]
+    [Description("GetTags filters by OnlyOwnedByCurrentUser flag")]
+    public async Task GetTags_OnlyOwnedByCurrentUser_ReturnsOnlyUserTags()
+    {
+        // Create tags owned by different users
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "admin-tag", CreatedBy = _adminUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "user-tag", CreatedBy = _regularUserId.ToString() });
+        
+        // Get only current user's tags
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            OnlyOwnedByCurrentUser = true
+        };
+        
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(1));
+        Assert.That(tags[0].Name, Is.EqualTo("user-tag"));
+    }
+
+    [Test]
+    [Description("GetTags filters by creation date range")]
+    public async Task GetTags_FilterByCreationDateRange_ReturnsTagsInRange()
+    {
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "old-tag", CreatedBy = _regularUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "new-tag", CreatedBy = _regularUserId.ToString() });
+        
+        // Filter by creation date - assuming both tags were created now (during test)
+        // We'll use a range that includes both
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            CreatedFromDate = DateTime.UtcNow.AddMinutes(-5),
+            CreatedToDate = DateTime.UtcNow.AddMinutes(5)
+        };
+        
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(2));
+    }
+
+    [Test]
+    [Description("GetTags combines multiple filter criteria")]
+    public async Task GetTags_MultipleFilters_ReturnsMatchingTags()
+    {
+        // Add various tags
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "std-apple", CreatedBy = _adminUserId.ToString() }, isStandardized: true);
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "std-banana", CreatedBy = _adminUserId.ToString() }, isStandardized: true);
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "user-apple", CreatedBy = _regularUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "user-cherry", CreatedBy = _regularUserId.ToString() });
+
+        // Filter for standardized tags containing "apple"
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            IsStandardized = true,
+            SearchQuery = "apple"
+        };
+        
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(1));
+        Assert.That(tags[0].Name, Is.EqualTo("std-apple"));
+    }
+
     #endregion
     
     #region AddStandardTag Tests
