@@ -24,7 +24,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     // ----------- Endpoints:
     
     /// <summary>
-    /// Retrieves tags with advanced filtering and sorting capabilities
+    /// Retrieves tags with advanced filtering, searching, paging and sorting capabilities
     /// </summary>
     /// <returns>
     /// Returns a 200 OK response containing a list of tags.
@@ -110,6 +110,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     /// <returns>
     /// Returns a 200 OK response containing a list of all tags.
     /// </returns>
+    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
     [HttpGet("all-tags")]
     [SwaggerOperation(
             Summary = "List all tags.",
@@ -129,7 +130,8 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             return StatusCode(500, new { message = "Internal server error" });
         }
     }
-
+    
+    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
     [HttpGet("tag-page")]
     [SwaggerOperation(Summary = "List all tags paged.", Description = "List all tags paged.")]
     [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
@@ -153,6 +155,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     /// <returns>
     /// Returns a 200 OK response containing a list of all tags.
     /// </returns>
+    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
     [HttpGet("all-standard-tags")]
     [SwaggerOperation(
             Summary = "List all standardized tags.",
@@ -173,6 +176,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         }
     }
 
+    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
     [HttpGet("standard-tag-page")]
     [SwaggerOperation(Summary = "List all standardized tags paged.", Description = "List all standardized tags paged.")]
     [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
@@ -200,6 +204,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     /// <returns>
     /// Returns a 200 OK response containing a list of all tags.
     /// </returns>
+    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
     [HttpGet("all-user-tags")]
     [SwaggerOperation(
             Summary = "List all user tags.",
@@ -220,6 +225,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         }
     }
 
+    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
     [HttpGet("user-tag-page")]
     [SwaggerOperation(Summary = "List all user tags paged.", Description = "List all user tags paged.")]
     [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
