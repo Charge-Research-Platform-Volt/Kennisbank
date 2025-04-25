@@ -35,6 +35,10 @@ public class Tag
 
     // Navigation properties
     [JsonIgnore] public ICollection<ResourceTagRelation>? ResourceTagRelations { get; set; }
+    
+    // Non-mapped, runtime-only properties used for view logic / API response shaping.
+    [NotMapped]
+    public bool CanEditAndDelete { get; set; } = false;
 }
 
 public class TagCreateDto
