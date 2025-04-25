@@ -7,6 +7,8 @@ using Swashbuckle.AspNetCore.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using System.Linq.Expressions;
+using System.Reflection;
+using KnowledgeBank.Utils;
 
 namespace KnowledgeBank.Controllers;
 
@@ -59,34 +61,38 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                 tags = await resourceManager.GetTagPageAsync(
                     pageIndex: filterOptions.PageIndex,
                     pageSize: filterOptions.PageSize,
-                    predicate: predicate
+                    predicate: predicate,
+                    includeProperties: filterOptions.IncludeUsageCount ? "ResourceTagRelations" : string.Empty
                 );
             }
             else
             {
-                tags = await resourceManager.GetAllTagsAsync(predicate: predicate);
+                tags = await resourceManager.GetAllTagsAsync(
+                    predicate: predicate,
+                    includeProperties: filterOptions.IncludeUsageCount ? "ResourceTagRelations": string.Empty
+                );
             }
 
-            // Handle null result
-            if (tags == null)
+            // Handle empty result
+            if (tags == null || tags.Length == 0)
             {
                 return Ok(Array.Empty<Tag>());
             }
 
-            // Check if tags can be edited/deleted if requested
-            if (filterOptions.IncludeCanEditAndDelete)
+            // Set the UsageCount property for each tag if IncludeUsageCount is true
+            if (filterOptions.IncludeUsageCount)
             {
                 foreach (Tag tag in tags)
                 {
-                    int relationCount = await resourceManager.ResourceTagRelationCountAsync(r => r.TagId == tag.Id);
-                    tag.CanEditAndDelete = relationCount == 0;
+                    // Try to use the navigation property, otherwise set to 0
+                    tag.UsageCount = tag.ResourceTagRelations?.Count ?? 0;
                 }
             }
 
             // Apply sorting if specified
             if (!string.IsNullOrEmpty(filterOptions.SortBy))
             {
-                tags = await ApplySortingAsync(tags, filterOptions.SortBy, filterOptions.SortDescending);
+                tags = PropertyMatcher.SortByProperty(tags, filterOptions.SortBy, filterOptions.SortDescending).ToArray();
             }
 
             return Ok(tags);
@@ -663,7 +669,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         // Filter by creator user ID
         if (options.CreatedBy.HasValue)
         {
-            predicate = AddPredicate(predicate, t => t.CreatedBy == options.CreatedBy);
+            predicate = PredicateBuilder.AddOr(predicate, t => t.CreatedBy == options.CreatedBy);
         }
         
         // Filter to only show current user's tags
@@ -672,206 +678,50 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
             if (userId.HasValue)
             {
-                predicate = AddPredicate(predicate, t => t.CreatedBy == userId);
+                predicate = PredicateBuilder.AddOr(predicate, t => t.CreatedBy == userId);
             }
         }
 
         // Filter by approval status
         if (options.IsApproved.HasValue)
         {
-            predicate = AddPredicate(predicate, t => t.IsApproved == options.IsApproved.Value);
+            predicate = PredicateBuilder.AddOr(predicate, t => t.IsApproved == options.IsApproved.Value);
         }
 
         // Filter by standardization status
         if (options.IsStandardized.HasValue)
         {
-            predicate = AddPredicate(predicate, t => t.IsStandardized == options.IsStandardized.Value);
+            predicate = PredicateBuilder.AddOr(predicate, t => t.IsStandardized == options.IsStandardized.Value);
         }
 
         // Filter by text search
         if (!string.IsNullOrEmpty(options.SearchQuery))
         {
-            var searchTerm = options.SearchQuery.ToLower();
-            predicate = AddPredicate(predicate, t => t.Name.ToLower().Contains(searchTerm));
+            predicate = PredicateBuilder.AddOr(predicate, t => t.Name.ToLower().Contains(options.SearchQuery.ToLower()));
         }
 
         // Filter by creation date range
         if (options.CreatedFromDate.HasValue)
         {
-            predicate = AddPredicate(predicate, t => t.CreatedOn >= options.CreatedFromDate.Value);
+            predicate = PredicateBuilder.AddOr(predicate, t => t.CreatedOn >= options.CreatedFromDate.Value);
         }
 
         if (options.CreatedToDate.HasValue)
         {
-            predicate = AddPredicate(predicate, t => t.CreatedOn <= options.CreatedToDate.Value);
+            predicate = PredicateBuilder.AddOr(predicate, t => t.CreatedOn <= options.CreatedToDate.Value);
         }
 
         // Filter by approval date range
         if (options.ApprovedFromDate.HasValue)
         {
-            predicate = AddPredicate(predicate, t => t.ApprovedOn >= options.ApprovedFromDate.Value);
+            predicate = PredicateBuilder.AddOr(predicate, t => t.ApprovedOn >= options.ApprovedFromDate.Value);
         }
 
         if (options.ApprovedToDate.HasValue)
         {
-            predicate = AddPredicate(predicate, t => t.ApprovedOn <= options.ApprovedToDate.Value);
+            predicate = PredicateBuilder.AddOr(predicate, t => t.ApprovedOn <= options.ApprovedToDate.Value);
         }
-
         return predicate;
-    }
-
-    /// <summary>
-    /// Combines two predicate expressions for <see cref="Tag"/> into a single expression using a logical OR.
-    /// If an existing predicate is provided, the new predicate is merged with it. 
-    /// Otherwise, the new predicate is returned as-is.
-    /// </summary>
-    /// <param name="existingPredicate">
-    /// The existing predicate to extend. Can be <c>null</c>, in which case the <paramref name="newPredicate"/> is returned.
-    /// </param>
-    /// <param name="newPredicate">
-    /// The new predicate to combine with the existing one.
-    /// </param>
-    /// <returns>
-    /// A combined predicate that evaluates to <c>true</c> if either the existing or new predicate evaluates to <c>true</c>.
-    /// </returns>
-    private Expression<Func<Tag, bool>> AddPredicate(Expression<Func<Tag, bool>>? existingPredicate, Expression<Func<Tag, bool>> newPredicate)
-    {
-        if (existingPredicate == null)
-        {
-            return newPredicate;
-        }
-
-        // Parameter for the combined expression
-        ParameterExpression? parameter = Expression.Parameter(typeof(Tag), "t");
-
-        // Replace parameters in both expressions
-        ReplaceExpressionVisitor? leftVisitor = new ReplaceExpressionVisitor(existingPredicate.Parameters[0], parameter);
-        Expression? left = leftVisitor.Visit(existingPredicate.Body) 
-                    ?? throw new InvalidOperationException("Left expression visitor returned null.");
-
-        ReplaceExpressionVisitor? rightVisitor = new ReplaceExpressionVisitor(newPredicate.Parameters[0], parameter);
-        Expression? right = rightVisitor.Visit(newPredicate.Body)
-                    ?? throw new InvalidOperationException("Right expression visitor returned null.");
-
-        // Combine with OR
-        BinaryExpression? combined = Expression.OrElse(left, right);
-
-        return Expression.Lambda<Func<Tag, bool>>(combined, parameter);
-    }
-
-    /// <summary>
-    /// Applies sorting to the tags array
-    /// TODO: not sure if using the switch/cases is the nicest way to do this?
-    /// </summary>
-    private async Task<Tag[]> ApplySortingAsync(Tag[] tags, string sortBy, bool descending)
-    {
-        // Convert sortBy to lowercase for case-insensitive comparison
-        switch (sortBy.ToLower())
-        {
-            case "id":
-                return descending 
-                    ? tags.OrderByDescending(t => t.Id).ToArray() 
-                    : tags.OrderBy(t => t.Id).ToArray();
-                    
-            case "name":
-                return descending 
-                    ? tags.OrderByDescending(t => t.Name).ToArray() 
-                    : tags.OrderBy(t => t.Name).ToArray();
-            
-            case "createdon":
-                return descending 
-                    ? tags.OrderByDescending(t => t.CreatedOn).ToArray() 
-                    : tags.OrderBy(t => t.CreatedOn).ToArray();
-            
-            case "approvedon":
-                return descending 
-                    ? tags.OrderByDescending(t => t.ApprovedOn).ToArray() 
-                    : tags.OrderBy(t => t.ApprovedOn).ToArray();
-            
-            case "usagecount":
-            // Create a dictionary to store usage counts
-            var usageCounts = new Dictionary<Guid, int>();
-            
-            // Get usage count for each tag
-            foreach (var tag in tags)
-            {
-                usageCounts[tag.Id] = await resourceManager.ResourceTagRelationCountAsync(r => r.TagId == tag.Id);
-            }
-            
-            // Sort by usage count
-            return descending 
-                ? tags.OrderByDescending(t => usageCounts[t.Id]).ToArray() 
-                : tags.OrderBy(t => usageCounts[t.Id]).ToArray();
-            
-            default:
-                // Default sort by Name if unknown sort field
-                return tags.OrderBy(t => t.Name).ToArray();
-        }
-    }
-
-    /// <summary>
-    /// An ExpressionVisitor that replaces all occurrences of a specified expression with a new one.
-    /// Useful for parameter substitution in expression trees.
-    /// </summary>
-    private class ReplaceExpressionVisitor : ExpressionVisitor
-    {
-        private readonly Expression _oldValue;
-        private readonly Expression _newValue;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ReplaceExpressionVisitor"/> class.
-        /// </summary>
-        /// <param name="oldValue">The expression to be replaced.</param>
-        /// <param name="newValue">The expression to replace with.</param>
-        public ReplaceExpressionVisitor(Expression oldValue, Expression newValue)
-        {
-            _oldValue = oldValue;
-            _newValue = newValue;
-        }
-        
-        /// <summary>
-        /// Visits an expression and replaces it if it matches the target expression.
-        /// </summary>
-        /// <param name="node">The current expression node being visited.</param>
-        /// <returns>The original node, the replacement node, or a recursively visited version.</returns>
-        public override Expression? Visit(Expression? node)
-        {
-            if (node == null)
-                return null;
-            if (node == _oldValue)
-                return _newValue;
-            return base.Visit(node);
-        }
-    }
-
-
-    /// <summary>
-    /// DTO for tag filtering options
-    /// </summary>
-    public class TagFilterOptions
-    {
-        // Pagination
-        public bool UsePaging { get; set; } = false;
-        public int PageIndex { get; set; } = 1;
-        public int PageSize { get; set; } = 100;
-
-        // Filtering
-        public string? SearchQuery { get; set; }
-        public Guid? CreatedBy { get; set; }
-        public bool OnlyOwnedByCurrentUser { get; set; } = false;
-        public bool? IsApproved { get; set; }
-        public bool? IsStandardized { get; set; }
-        public DateTime? CreatedFromDate { get; set; }
-        public DateTime? CreatedToDate { get; set; }
-        public DateTime? ApprovedFromDate { get; set; }
-        public DateTime? ApprovedToDate { get; set; }
-
-        // Additional processing
-        public bool IncludeCanEditAndDelete { get; set; } = true;
-
-        // Sorting
-        public string? SortBy { get; set; }
-        public bool SortDescending { get; set; } = false;
     }
     
     #endregion
