@@ -1,15 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { TagArray, Tag } from "@/types/tag.type";
-//import { fetchTagSearch } from "@/actions/tagActions";
+import { Tag } from "@/types/tag.type";
 import { FInput, InputBlock, InputHeader } from "@/components/ui/Popup";
 import { Button } from "@/components/ui/button";
 import AdminTagIcon from "@/icons/tag-icons/admin-tag";
 import ApprovedTagIcon from "@/icons/tag-icons/aproved-tag";
 import { AddUserTag } from "@/actions/tagActions";
 import { toast } from "sonner";
-import { TagResponseSchema } from "@/types/tag.type";
+import { fetchTagSearch } from "@/actions/tagActions";
 
 /**
  *
@@ -106,34 +105,6 @@ export default function TagSelectionDropdown({ onSelectionChangedAction = () => 
     onSelectionChangedAction(selectedTags); // Call the action passed from the parent component
   }
 
-  /**
-   * 
-   * @param query - The name of the tag it tries to search
-   * @param K  - Max amount of tags to return 
-   * @returns A maximum of K tags that correspond with the query
-   */
-  const fetchTagSearch = async (query?: string, K?: number) => {
-    query = query?.trim();
-  
-    const response = await fetch(`http://localhost:8080/tags/search?${query ? `query=${query}&` : ""}/K=${K ? K : 5}`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
-    });
-    
-    if (!response.ok) {
-      console.log("problem with finding tags");
-      return
-    }
-
-    const data = await response.json();
-    const parsedData = TagResponseSchema.parse(data);
-
-    return parsedData.tags
-  };
-
   // Filters tags to display only those tags that correspond with the input value
   async function filterTags() {
     // Ensures we don't add more tags than allowed and we don't render all tags at the start (We want to display filtered tags after at least 1 character is in the input)
@@ -161,19 +132,22 @@ export default function TagSelectionDropdown({ onSelectionChangedAction = () => 
   return (
     <div className={className}>
       <div className="relative w-full">
-        <InputBlock data-testid="popup_text" className="block w-full">
+        <InputBlock className="block w-full">
           <div className="flex items-center mt-1">
-            <InputHeader className="">Tags: </InputHeader>
+            <InputHeader className="" data-testid="popup_text">Tags: </InputHeader>
             {createButton ? (
-              <Button onClick={() => setShowCreateTagField(!showCreateTagField)} className="ml-auto cursor-pointer text-sm" type="button">
-                {showCreateTagField ? 'Cancel' : 'Create'}
-              </Button>
+              <div data-testid="popup_text">
+                <Button onClick={() => setShowCreateTagField(!showCreateTagField)} className="ml-auto cursor-pointer text-sm" type="button" data-testid="create_cancel_button">
+                  {showCreateTagField ? 'Cancel' : 'Create'}
+                </Button>
+              </div>
             ) : ''}
           </div>
 
           {showCreateTagField && (
             <div className="mt-1 flex">
               <FInput 
+                data-testid="tag_create_name"
                 className="flex-grow"
                 type="text"
                 placeholder="Enter new tag name"
@@ -189,6 +163,7 @@ export default function TagSelectionDropdown({ onSelectionChangedAction = () => 
                 }}
               />
               <Button 
+                data-testid="tag_add_button"
                 type="button"
                 onClick={handleCreateTag}
                 disabled={!newTagName.trim() || isCreatingTag}

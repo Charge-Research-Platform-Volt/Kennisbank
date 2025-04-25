@@ -1,7 +1,7 @@
 "use server";
 
 import type { FormResponse } from "@/types/return.type";
-import { TagArraySchema, TagCreateDto, TagCreateDtoSchema, TagPageResponse, TagRenameDto } from "@/types/tag.type";
+import { TagArraySchema, TagCreateDto, TagCreateDtoSchema, TagPageResponse, TagRenameDto, TagResponseSchema } from "@/types/tag.type";
 import { revalidatePath } from "next/cache";
 import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 import { cookies } from "next/headers";
@@ -50,6 +50,8 @@ export const AddStandardizedTag = async (prevState: FormResponse<TagCreateDto>, 
 
 export const AddUserTag = async (prevState: FormResponse<TagCreateDto>, formData: FormData): Promise<FormResponse<TagCreateDto>> => {
   console.log("Adding user tag");
+  console.log(prevState)
+  console.log(formData)
 
   const rawData: TagCreateDto = {
     name: formData.get("name") as string,
@@ -286,6 +288,34 @@ export const ListTagsPaged = async (pageIndex: number, searchQuery: string): Pro
       pageCount: data.pageCount,
   }
 }
+
+/**
+ * 
+ * @param query - The name of the tag it tries to search
+ * @param K  - Max amount of tags to return 
+ * @returns A maximum of K tags that correspond with the query
+ */
+export const fetchTagSearch = async (query?: string, K?: number) => {
+  query = query?.trim();
+
+  const response = await fetch(`http://localhost:8080/tags/search?${query ? `query=${query}&` : ""}/K=${K ? K : 5}`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+  });
+  
+  if (!response.ok) {
+    console.log("problem with finding tags");
+    return
+  }
+
+  const data = await response.json();
+  const parsedData = TagResponseSchema.parse(data);
+
+  return parsedData.tags
+};
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
