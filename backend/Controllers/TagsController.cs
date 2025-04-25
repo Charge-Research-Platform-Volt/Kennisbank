@@ -7,7 +7,6 @@ using Swashbuckle.AspNetCore.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using System.Linq.Expressions;
-using System.Reflection;
 using KnowledgeBank.Utils;
 
 namespace KnowledgeBank.Controllers;
