@@ -697,7 +697,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         // Filter by text search
         if (!string.IsNullOrEmpty(options.SearchQuery))
         {
-            predicate = PredicateBuilder.AddOr(predicate, t => t.Name.ToLower().Contains(options.SearchQuery.ToLower()));
+            predicate = PredicateBuilder.AddAnd(predicate, t => t.Name.ToLower().Contains(options.SearchQuery.ToLower()));
         }
 
         // Filter by creation date range
