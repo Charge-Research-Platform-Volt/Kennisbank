@@ -23,6 +23,7 @@ using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Org.BouncyCastle.Asn1.X509.Qualified;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 
 namespace KnowledgeBank.Controllers 
 {
@@ -89,6 +90,10 @@ namespace KnowledgeBank.Controllers
                 // Check if the URL is empty
                 if (string.IsNullOrEmpty(wDto.Url))
                     return BadRequest(new ApiResponse(false, "The URL was empty."));
+
+                // Check if the URL is valid
+                if (!IsValidUrl(wDto.Url))
+                    return BadRequest(new ApiResponse(false, "The URL was invalid."));
             }
 
             logger.Information("Creating resource '{Title}'...", dto.Title);
@@ -171,7 +176,7 @@ namespace KnowledgeBank.Controllers
         public async Task<IActionResult> Download(string id) 
         {
             // Check if the ID is valid
-            if (IsUnvalidId(id))
+            if (!IsValidId(id))
                 return BadRequest(new ApiResponse(false, "Invalid ID."));
                 
             try 
@@ -240,7 +245,7 @@ namespace KnowledgeBank.Controllers
         public async Task<IActionResult> Delete(string id) 
         {
             // Check if the ID is valid
-            if (IsUnvalidId(id))
+            if (!IsValidId(id))
                 return BadRequest(new ApiResponse(false, "Invalid ID."));
                 
             try 
@@ -306,7 +311,7 @@ namespace KnowledgeBank.Controllers
         public async Task<IActionResult> Update(string id, [FromBody] Dictionary<string, object> updates) 
         {
             // Check if the ID is valid
-            if (IsUnvalidId(id))
+            if (!IsValidId(id))
                 return BadRequest(new ApiResponse(false, "Invalid ID."));
 
             // Check if updates are provided
@@ -362,7 +367,7 @@ namespace KnowledgeBank.Controllers
                         var typedValue = PropertyUpdateUtil.ConvertValue(update.Value, prop.PropertyType);
 
                         // Use reflection to determine type at runtime
-                        await PropertyUpdateUtil.InvokeGenericMethodAsync(this, nameof(UpdateTypedProperty), id, prop.Name, typedValue, setType, prop.PropertyType);
+                        await PropertyUpdateUtil.InvokeGenericMethodAsync(this, nameof(UpdateProperty), id, prop.Name, typedValue, setType, prop.PropertyType);
 
                         // Add property to updated list
                         updatedProperties.Add(prop.Name);
@@ -451,7 +456,7 @@ namespace KnowledgeBank.Controllers
         #endregion
         
         #region Info
-        [HttpGet("{id}")]
+        [HttpGet("info/{id}")]
         [SwaggerOperation(Summary = "Get the information of the resource")]
         [SwaggerResponse(200, "Resource Information", typeof(ApiResponse))]
         [SwaggerResponse(404, "Resource Not Found", typeof(ApiResponse))]
@@ -533,13 +538,21 @@ namespace KnowledgeBank.Controllers
         // ---------------------------
         
         // Checks if ID is valid
-        private static bool IsUnvalidId(string id) 
+        private static bool IsValidId(string id) 
         {
-            return string.IsNullOrEmpty(id) || !Guid.TryParse(id, out Guid _);
+            return !string.IsNullOrEmpty(id) && Guid.TryParse(id, out Guid _);
+        }
+
+        // Checks if the URL is valid
+        private static bool IsValidUrl(string url)
+        {
+            // a.io is just about the shortest url there is
+            // every URL needs at least 1 dot to be valid
+            return url.Length > 3 && url.Contains('.');
         }
         
-        // Helper method to update a typed property
-        private async Task UpdateTypedProperty<TSet, TProperty>(string id, string propertyName, TProperty newValue) where TSet : class 
+        // Helper method to update a property
+        private async Task UpdateProperty<TSet, TProperty>(string id, string propertyName, TProperty newValue) where TSet : class 
         {
             Type setType = typeof(TSet);
         
