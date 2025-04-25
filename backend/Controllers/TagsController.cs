@@ -410,7 +410,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             bool userIsAdmin = User.IsInRole("admin");
             
             // Get the tag
-            Tag? tag = await resourceManager.GetTagAsync(id);
+            Tag? tag = await resourceManager.GetTagAsync(id, includeProperties: "ResourceTagRelations");
             
             if (tag == null)
             {
@@ -419,7 +419,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             }
             
             // Get the resource-tag relations count
-            int relationCount = await resourceManager.ResourceTagRelationCountAsync(predicate: r => r.TagId == Guid.Parse(id));
+            int relationCount = tag.ResourceTagRelations?.Count ?? 0;
                         
             // Check if the user has permission to delete this tag
             if (!userIsAdmin && (tag.CreatedBy != userId || relationCount != 0)) 
@@ -486,7 +486,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             bool userIsAdmin = User.IsInRole("admin");
                         
             // Get the tag
-            Tag? tag = await resourceManager.GetTagAsync(id);
+            Tag? tag = await resourceManager.GetTagAsync(id, includeProperties: "ResourceTagRelations");
             
             if (tag == null)
             {
@@ -495,7 +495,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             }
             
             // Get the resource-tag relations count
-            int relationCount = await resourceManager.ResourceTagRelationCountAsync(predicate: r => r.TagId == Guid.Parse(id));
+            int relationCount = tag.ResourceTagRelations?.Count ?? 0;
             
             // Check if the user has permission to delete this tag
             if (!userIsAdmin && (tag.CreatedBy != userId || relationCount != 0)) 
