@@ -6,6 +6,7 @@ using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using System.Linq.Expressions;
 
 namespace KnowledgeBank.Controllers;
 
@@ -19,6 +20,83 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     private readonly ResourceManager resourceManager = resourceManager;
 
     // ----------- Endpoints:
+    
+    /// <summary>
+    /// Retrieves tags with advanced filtering and sorting capabilities
+    /// </summary>
+    /// <returns>
+    /// Returns a 200 OK response containing a list of tags.
+    /// </returns>
+    [HttpGet("tags")]
+    [SwaggerOperation(
+        Summary = "Get tags with advanced filtering and sorting",
+        Description = "Retrieve tags with options for pagination, filtering by multiple properties, and sorting"
+    )]
+    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
+    [SwaggerResponse(400, "Bad request")]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetTags([FromQuery] TagFilterOptions filterOptions)
+    {
+        try
+        {
+            // Validate paging parameters if using paging
+            if (filterOptions.UsePaging)
+            {
+                if (filterOptions.PageIndex < 1)
+                    return BadRequest(new { message = "Page index cannot be lower than 1." });
+
+                if (filterOptions.PageSize < 1)
+                    return BadRequest(new { message = "Page size cannot be lower than 1." });
+            }
+
+            // Build the predicate based on filter parameters
+            Expression<Func<Tag, bool>>? predicate = BuildPredicate(filterOptions);
+
+            // Get filtered tags based on whether we're using paging
+            Tag[]? tags;
+            if (filterOptions.UsePaging)
+            {
+                tags = await resourceManager.GetTagPageAsync(
+                    pageIndex: filterOptions.PageIndex,
+                    pageSize: filterOptions.PageSize,
+                    predicate: predicate
+                );
+            }
+            else
+            {
+                tags = await resourceManager.GetAllTagsAsync(predicate: predicate);
+            }
+
+            // Handle null result
+            if (tags == null)
+            {
+                return Ok(Array.Empty<Tag>());
+            }
+
+            // Check if tags can be edited/deleted if requested
+            if (filterOptions.IncludeCanEditAndDelete)
+            {
+                foreach (Tag tag in tags)
+                {
+                    int relationCount = await resourceManager.ResourceTagRelationCountAsync(r => r.TagId == tag.Id);
+                    tag.CanEditAndDelete = relationCount == 0;
+                }
+            }
+
+            // Apply sorting if specified
+            if (!string.IsNullOrEmpty(filterOptions.SortBy))
+            {
+                tags = await ApplySortingAsync(tags, filterOptions.SortBy, filterOptions.SortDescending);
+            }
+
+            return Ok(tags);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to retrieve tags");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
 
     /// <summary>
     /// Retrieves all tags from the drive.
@@ -561,7 +639,243 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             return StatusCode(500, new { message = "Internal Server Error" });
         }
     }
-}
+    
+    
+    #region Helper Methods
+    
+    /// <summary>
+    /// Constructs a dynamic predicate expression for filtering <see cref="Tag"/> entities based on the specified filter options.
+    /// Each non-null or enabled option in <paramref name="options"/> is translated into a logical condition that is 
+    /// combined with the others using a logical OR.
+    /// </summary>
+    /// <param name="options">
+    /// The filter criteria used to build the predicate, including creator, approval status, date ranges, and text search.
+    /// </param>
+    /// <returns>
+    /// A predicate expression that can be used to filter <see cref="Tag"/> records in a LINQ query,
+    /// or <c>null</c> if no filtering options are provided.
+    /// </returns>
+    private Expression<Func<Tag, bool>>? BuildPredicate(TagFilterOptions options)
+    {
+        // Start with a predicate that matches everything
+        Expression<Func<Tag, bool>>? predicate = null;
+
+        // Filter by creator user ID
+        if (options.CreatedBy.HasValue)
+        {
+            predicate = AddPredicate(predicate, t => t.CreatedBy == options.CreatedBy);
+        }
+        
+        // Filter to only show current user's tags
+        if (options.OnlyOwnedByCurrentUser)
+        {
+            Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
+            if (userId.HasValue)
+            {
+                predicate = AddPredicate(predicate, t => t.CreatedBy == userId);
+            }
+        }
+
+        // Filter by approval status
+        if (options.IsApproved.HasValue)
+        {
+            predicate = AddPredicate(predicate, t => t.IsApproved == options.IsApproved.Value);
+        }
+
+        // Filter by standardization status
+        if (options.IsStandardized.HasValue)
+        {
+            predicate = AddPredicate(predicate, t => t.IsStandardized == options.IsStandardized.Value);
+        }
+
+        // Filter by text search
+        if (!string.IsNullOrEmpty(options.SearchQuery))
+        {
+            var searchTerm = options.SearchQuery.ToLower();
+            predicate = AddPredicate(predicate, t => t.Name.ToLower().Contains(searchTerm));
+        }
+
+        // Filter by creation date range
+        if (options.CreatedFromDate.HasValue)
+        {
+            predicate = AddPredicate(predicate, t => t.CreatedOn >= options.CreatedFromDate.Value);
+        }
+
+        if (options.CreatedToDate.HasValue)
+        {
+            predicate = AddPredicate(predicate, t => t.CreatedOn <= options.CreatedToDate.Value);
+        }
+
+        // Filter by approval date range
+        if (options.ApprovedFromDate.HasValue)
+        {
+            predicate = AddPredicate(predicate, t => t.ApprovedOn >= options.ApprovedFromDate.Value);
+        }
+
+        if (options.ApprovedToDate.HasValue)
+        {
+            predicate = AddPredicate(predicate, t => t.ApprovedOn <= options.ApprovedToDate.Value);
+        }
+
+        return predicate;
+    }
+
+    /// <summary>
+    /// Combines two predicate expressions for <see cref="Tag"/> into a single expression using a logical OR.
+    /// If an existing predicate is provided, the new predicate is merged with it. 
+    /// Otherwise, the new predicate is returned as-is.
+    /// </summary>
+    /// <param name="existingPredicate">
+    /// The existing predicate to extend. Can be <c>null</c>, in which case the <paramref name="newPredicate"/> is returned.
+    /// </param>
+    /// <param name="newPredicate">
+    /// The new predicate to combine with the existing one.
+    /// </param>
+    /// <returns>
+    /// A combined predicate that evaluates to <c>true</c> if either the existing or new predicate evaluates to <c>true</c>.
+    /// </returns>
+    private Expression<Func<Tag, bool>> AddPredicate(Expression<Func<Tag, bool>>? existingPredicate, Expression<Func<Tag, bool>> newPredicate)
+    {
+        if (existingPredicate == null)
+        {
+            return newPredicate;
+        }
+
+        // Parameter for the combined expression
+        ParameterExpression? parameter = Expression.Parameter(typeof(Tag), "t");
+
+        // Replace parameters in both expressions
+        ReplaceExpressionVisitor? leftVisitor = new ReplaceExpressionVisitor(existingPredicate.Parameters[0], parameter);
+        Expression? left = leftVisitor.Visit(existingPredicate.Body) 
+                    ?? throw new InvalidOperationException("Left expression visitor returned null.");
+
+        ReplaceExpressionVisitor? rightVisitor = new ReplaceExpressionVisitor(newPredicate.Parameters[0], parameter);
+        Expression? right = rightVisitor.Visit(newPredicate.Body)
+                    ?? throw new InvalidOperationException("Right expression visitor returned null.");
+
+        // Combine with OR
+        BinaryExpression? combined = Expression.OrElse(left, right);
+
+        return Expression.Lambda<Func<Tag, bool>>(combined, parameter);
+    }
+
+    /// <summary>
+    /// Applies sorting to the tags array
+    /// TODO: not sure if using the switch/cases is the nicest way to do this?
+    /// </summary>
+    private async Task<Tag[]> ApplySortingAsync(Tag[] tags, string sortBy, bool descending)
+    {
+        // Convert sortBy to lowercase for case-insensitive comparison
+        switch (sortBy.ToLower())
+        {
+            case "id":
+                return descending 
+                    ? tags.OrderByDescending(t => t.Id).ToArray() 
+                    : tags.OrderBy(t => t.Id).ToArray();
+                    
+            case "name":
+                return descending 
+                    ? tags.OrderByDescending(t => t.Name).ToArray() 
+                    : tags.OrderBy(t => t.Name).ToArray();
+            
+            case "createdon":
+                return descending 
+                    ? tags.OrderByDescending(t => t.CreatedOn).ToArray() 
+                    : tags.OrderBy(t => t.CreatedOn).ToArray();
+            
+            case "approvedon":
+                return descending 
+                    ? tags.OrderByDescending(t => t.ApprovedOn).ToArray() 
+                    : tags.OrderBy(t => t.ApprovedOn).ToArray();
+            
+            case "usagecount":
+            // Create a dictionary to store usage counts
+            var usageCounts = new Dictionary<Guid, int>();
+            
+            // Get usage count for each tag
+            foreach (var tag in tags)
+            {
+                usageCounts[tag.Id] = await resourceManager.ResourceTagRelationCountAsync(r => r.TagId == tag.Id);
+            }
+            
+            // Sort by usage count
+            return descending 
+                ? tags.OrderByDescending(t => usageCounts[t.Id]).ToArray() 
+                : tags.OrderBy(t => usageCounts[t.Id]).ToArray();
+            
+            default:
+                // Default sort by Name if unknown sort field
+                return tags.OrderBy(t => t.Name).ToArray();
+        }
+    }
+
+    /// <summary>
+    /// An ExpressionVisitor that replaces all occurrences of a specified expression with a new one.
+    /// Useful for parameter substitution in expression trees.
+    /// </summary>
+    private class ReplaceExpressionVisitor : ExpressionVisitor
+    {
+        private readonly Expression _oldValue;
+        private readonly Expression _newValue;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReplaceExpressionVisitor"/> class.
+        /// </summary>
+        /// <param name="oldValue">The expression to be replaced.</param>
+        /// <param name="newValue">The expression to replace with.</param>
+        public ReplaceExpressionVisitor(Expression oldValue, Expression newValue)
+        {
+            _oldValue = oldValue;
+            _newValue = newValue;
+        }
+        
+        /// <summary>
+        /// Visits an expression and replaces it if it matches the target expression.
+        /// </summary>
+        /// <param name="node">The current expression node being visited.</param>
+        /// <returns>The original node, the replacement node, or a recursively visited version.</returns>
+        public override Expression? Visit(Expression? node)
+        {
+            if (node == null)
+                return null;
+            if (node == _oldValue)
+                return _newValue;
+            return base.Visit(node);
+        }
+    }
+
+
+    /// <summary>
+    /// DTO for tag filtering options
+    /// </summary>
+    public class TagFilterOptions
+    {
+        // Pagination
+        public bool UsePaging { get; set; } = false;
+        public int PageIndex { get; set; } = 1;
+        public int PageSize { get; set; } = 100;
+
+        // Filtering
+        public string? SearchQuery { get; set; }
+        public Guid? CreatedBy { get; set; }
+        public bool OnlyOwnedByCurrentUser { get; set; } = false;
+        public bool? IsApproved { get; set; }
+        public bool? IsStandardized { get; set; }
+        public DateTime? CreatedFromDate { get; set; }
+        public DateTime? CreatedToDate { get; set; }
+        public DateTime? ApprovedFromDate { get; set; }
+        public DateTime? ApprovedToDate { get; set; }
+
+        // Additional processing
+        public bool IncludeCanEditAndDelete { get; set; } = true;
+
+        // Sorting
+        public string? SortBy { get; set; }
+        public bool SortDescending { get; set; } = false;
+    }
+    
+    #endregion
+} 
 
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

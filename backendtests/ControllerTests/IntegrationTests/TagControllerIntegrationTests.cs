@@ -258,6 +258,12 @@ public class TagControllerTests : TestBase
 
     #endregion
     
+    #region GetTags Tests
+    
+    // TODO: Write tests for GetTags. Can reuse (and thus replace) tests for GetAll, GetAllPaged, GetAllStandardizedPaged, GetAllUser, GetAllUserPaged
+    
+    #endregion
+    
     #region AddStandardTag Tests
 
     [Test]
