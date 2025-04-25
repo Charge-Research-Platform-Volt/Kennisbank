@@ -16,14 +16,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
-using Org.BouncyCastle.Asn1.X509;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Reflection;
-using System.Linq.Expressions;
-using Microsoft.EntityFrameworkCore.Metadata;
-using Org.BouncyCastle.Asn1.X509.Qualified;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.AspNetCore.Mvc.ApiExplorer;
 
 namespace KnowledgeBank.Controllers 
 {
@@ -92,7 +85,7 @@ namespace KnowledgeBank.Controllers
                     return BadRequest(new ApiResponse(false, "The URL was empty."));
 
                 // Check if the URL is valid
-                if (!IsValidUrl(wDto.Url))
+                if (!ValidityUtil.IsValidUrl(wDto.Url))
                     return BadRequest(new ApiResponse(false, "The URL was invalid."));
             }
 
@@ -176,7 +169,7 @@ namespace KnowledgeBank.Controllers
         public async Task<IActionResult> Download(string id) 
         {
             // Check if the ID is valid
-            if (!IsValidId(id))
+            if (!ValidityUtil.IsValidId(id))
                 return BadRequest(new ApiResponse(false, "Invalid ID."));
                 
             try 
@@ -245,7 +238,7 @@ namespace KnowledgeBank.Controllers
         public async Task<IActionResult> Delete(string id) 
         {
             // Check if the ID is valid
-            if (!IsValidId(id))
+            if (!ValidityUtil.IsValidId(id))
                 return BadRequest(new ApiResponse(false, "Invalid ID."));
                 
             try 
@@ -311,7 +304,7 @@ namespace KnowledgeBank.Controllers
         public async Task<IActionResult> Update(string id, [FromBody] Dictionary<string, object> updates) 
         {
             // Check if the ID is valid
-            if (!IsValidId(id))
+            if (!ValidityUtil.IsValidId(id))
                 return BadRequest(new ApiResponse(false, "Invalid ID."));
 
             // Check if updates are provided
@@ -322,6 +315,7 @@ namespace KnowledgeBank.Controllers
             
             try 
             {
+                // Check if resource exists
                 if (!await resourceManager.ResourceExistsAsync(id))
                     return NotFound(new ApiResponse(false, "The resource does not exist"));
             
@@ -344,7 +338,6 @@ namespace KnowledgeBank.Controllers
                     { videoProperties, typeof(VideoMetadata) }
                 };
 
-                bool foundOneProp = false;
                 List<string> updatedProperties = [];
                 
                 foreach (KeyValuePair<PropertyInfo[], Type> propertyEntry in propertyMap) 
@@ -360,13 +353,10 @@ namespace KnowledgeBank.Controllers
                         // Prop was not found in this set
                         if (prop == null) continue;
 
-                        // Prop was found
-                        foundOneProp = true;
-
                         // Convert the incoming value to the correct type
                         var typedValue = PropertyUpdateUtil.ConvertValue(update.Value, prop.PropertyType);
 
-                        // Use reflection to determine type at runtime
+                        // Use reflection to determine type at runtime and update the property
                         await PropertyUpdateUtil.InvokeGenericMethodAsync(this, nameof(UpdateProperty), id, prop.Name, typedValue, setType, prop.PropertyType);
 
                         // Add property to updated list
@@ -375,8 +365,11 @@ namespace KnowledgeBank.Controllers
                 }
 
                 // No props were found
-                if (!foundOneProp)
+                if (updatedProperties.Count == 0)
+                {
+                    await resourceManager.Rollback();
                     return BadRequest(new ApiResponse(false, "None of the props were found."));
+                }
 
                 // Commit changes to database
                 await resourceManager.Commit();
@@ -409,7 +402,7 @@ namespace KnowledgeBank.Controllers
         
         #region Exists
         /// <summary>
-        /// Checks if a resource already exists in the databse
+        /// Checks if a resource already exists in the database
         /// </summary>
         /// <param name="hash">(Optional) The hash of the resource</param>
         /// <param name="url">(Optional) The URL of the resource</param>
@@ -456,6 +449,10 @@ namespace KnowledgeBank.Controllers
         #endregion
         
         #region Info
+        /// <summary>
+        /// Gets the information of the resource (database row)
+        /// </summary>
+        /// <param name="id">The ID of the resource</param>
         [HttpGet("info/{id}")]
         [SwaggerOperation(Summary = "Get the information of the resource")]
         [SwaggerResponse(200, "Resource Information", typeof(ApiResponse))]
@@ -464,9 +461,9 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
         public async Task<IActionResult> Info(string id) 
         {
-            // Check if ID is null or empty
-            if (string.IsNullOrEmpty(id))
-                return BadRequest(new ApiResponse(false, "ID was not given."));
+            // Check if ID is valid
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "ID is invalid."));
                 
             try 
             {
@@ -489,9 +486,14 @@ namespace KnowledgeBank.Controllers
         #endregion
         
         #region List
+        /// <summary>
+        /// Retrieves a list or page of all resources
+        /// </summary>
+        /// <param name="pageIndex">(Optional) The index of the page</param>
+        /// <param name="pageSize">(Optional) The size of the page</param>
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all resources")]
-        [SwaggerResponse(200, "A list of all the resources in the archive", typeof(ApiResponse))]
+        [SwaggerResponse(200, "A list or page of all the resources in the archive", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
         public async Task<IActionResult> List(int? pageIndex, int? pageSize) 
@@ -536,20 +538,6 @@ namespace KnowledgeBank.Controllers
         // ---------------------------
         // Helper functions
         // ---------------------------
-        
-        // Checks if ID is valid
-        private static bool IsValidId(string id) 
-        {
-            return !string.IsNullOrEmpty(id) && Guid.TryParse(id, out Guid _);
-        }
-
-        // Checks if the URL is valid
-        private static bool IsValidUrl(string url)
-        {
-            // a.io is just about the shortest url there is
-            // every URL needs at least 1 dot to be valid
-            return url.Length > 3 && url.Contains('.');
-        }
         
         // Helper method to update a property
         private async Task UpdateProperty<TSet, TProperty>(string id, string propertyName, TProperty newValue) where TSet : class 
