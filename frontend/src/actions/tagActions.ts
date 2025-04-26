@@ -297,12 +297,13 @@ export const ListTagsPaged = async (pageIndex: number, searchQuery: string): Pro
  */
 export const fetchTagSearch = async (query?: string, K?: number) => {
   query = query?.trim();
-
-  const response = await fetch(`http://localhost:8080/tags/search?${query ? `query=${query}&` : ""}/K=${K ? K : 5}`, {
+  
+  const cookieHeader : ReadonlyRequestCookies = await cookies();
+  const response : Response = await fetch(`http://backend:8080/tags/search?${query ? `query=${query}&` : ""}K=${K ? K : 5}`, {
     method: "POST",
     credentials: "include",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json", Cookie: cookieHeader.toString() || ""
     },
   });
   
