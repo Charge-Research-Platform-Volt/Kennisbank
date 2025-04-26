@@ -9,6 +9,7 @@ import ApprovedTagIcon from "@/icons/tag-icons/aproved-tag";
 import { AddUserTag } from "@/actions/tagActions";
 import { toast } from "sonner";
 import { fetchTagSearch } from "@/actions/tagActions";
+import { MAX_TAG_LENGTH } from "../../../constants";
 
 /**
  *
@@ -161,6 +162,7 @@ export default function TagSelectionDropdown({ onSelectionChangedAction = () => 
                     setNewTagName("");
                   }
                 }}
+                maxLength={50}
               />
               <Button 
                 data-testid="tag_add_button"
@@ -173,7 +175,7 @@ export default function TagSelectionDropdown({ onSelectionChangedAction = () => 
               </Button>
             </div>
           )}
-          <FInput data-testid="input_tags" className="mt-1 w-full" type="string" name="author" placeholder={tagPlaceholder} value={inputValue} onChange={handleInputChange} />
+          <FInput data-testid="input_tags" className="mt-1 w-full" type="string" name="author" placeholder={tagPlaceholder} value={inputValue} onChange={handleInputChange} maxLength={MAX_TAG_LENGTH} />
         </InputBlock>
         <div className={`absolute right-0 left-0 z-10 max-h-50 max-w-full overflow-y-auto bg-white shadow-lg ${filteredTags.length > 0 ? "rounded border" : ""}`}>
           {filteredTags.map((tag) => (

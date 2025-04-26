@@ -11,6 +11,14 @@ export const AddStandardizedTag = async (prevState: FormResponse<TagCreateDto>, 
     name: formData.get("name") as string,
   };
 
+  if(rawData.name.length > 50){
+    return{
+      success: false,
+      message: "Tag is too long",
+      inputs: rawData,
+    }
+  }
+
   // Validate the raw data, if it fails, return an error
   const validatedData = TagCreateDtoSchema.safeParse(rawData);
 
@@ -50,12 +58,18 @@ export const AddStandardizedTag = async (prevState: FormResponse<TagCreateDto>, 
 
 export const AddUserTag = async (prevState: FormResponse<TagCreateDto>, formData: FormData): Promise<FormResponse<TagCreateDto>> => {
   console.log("Adding user tag");
-  console.log(prevState)
-  console.log(formData)
 
   const rawData: TagCreateDto = {
     name: formData.get("name") as string,
   };
+
+  if(rawData.name.length > 50){
+    return{
+      success: false,
+      message: "Tag is too long",
+      inputs: rawData,
+    }
+  }
 
   // Validate the raw data, if it fails, return an error
   const validatedData = TagCreateDtoSchema.safeParse(rawData);
@@ -144,7 +158,7 @@ export const RenameTag = async (prevState: FormResponse<TagRenameDto>, formData:
   console.log("Renaming tag: ", rawData.id, " to ", rawData.newName);
 
   // Send the data to the backend
-  const cookieHeader : ReadonlyRequestCookies = cookies();
+  const cookieHeader : ReadonlyRequestCookies = await cookies();
   const response = await fetch(`http://backend:8080/tags/rename-tag/${encodeURIComponent(rawData.id)}/${encodeURIComponent(rawData.newName)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },

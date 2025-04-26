@@ -1,13 +1,11 @@
-import { expect, test, vi, beforeEach } from 'vitest'
+import { expect, test, vi, beforeEach, describe } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import NewButton from '@/components/sidebar/left-sidebar/sidebar-new-button'
 import { TagArraySchema } from '@/types/tag.type'
 import TagSelectionDropdown from '@/components/uploadComponents/TagSelectionDropdown'
 import { AddUserTag, fetchTagSearch } from '@/actions/tagActions'
-import userEvent from '@testing-library/user-event'
 
-
-// Mock fetchTagSearch once for all tests
+// Mock fetchTagSearch and addusertag once for all tests
 vi.mock('@/actions/tagActions', () => ({
     fetchTagSearch: vi.fn(),
     AddUserTag: vi.fn()
@@ -43,9 +41,9 @@ describe('popup', () => {
         expect(buttonName).toEqual(["New"]); // 1 button
 
         // THE RADIX DROPDOWNMENU USES KEYDOWN INSTEAD OF CLICK EVENT
-        const button = screen.getByTestId('button_text');
+        const button : HTMLElement = screen.getByTestId('button_text');
         fireEvent.keyDown(button, { key: 'Enter' });
-        const componentNames = await screen.queryAllByTestId('button_in');
+        const componentNames : HTMLElement[] = await screen.queryAllByTestId('button_in');
 
         expect(componentNames).toHaveLength(expectedComponents.length); // 3 buttons
 
@@ -55,7 +53,7 @@ describe('popup', () => {
 
         // CLICKS ON UPLOAD NEW DOCUMENT
         fireEvent.click(componentNames[0]);
-        const popupNames = await screen.queryAllByTestId('popup_text');
+        const popupNames : HTMLElement[] = await screen.queryAllByTestId('popup_text');
 
         expect(popupNames).toHaveLength(popUpFileText.length);
 
@@ -67,9 +65,9 @@ describe('popup', () => {
     test('Upload File button works correctly', async() => {
         render(<NewButton minimize={false}/>);
 
-        const button = screen.getByTestId('button_text');
+        const button : HTMLElement = screen.getByTestId('button_text');
         fireEvent.keyDown(button, { key: 'Enter' });
-        const componentNames = await screen.queryAllByTestId('button_in');
+        const componentNames : HTMLElement[] = await screen.queryAllByTestId('button_in');
         fireEvent.click(componentNames[0]);
 
         expect(screen.getByText('Upload File')).toBeInTheDocument();
@@ -78,9 +76,9 @@ describe('popup', () => {
     test('Upload Website button works correctly', async() => {
         render(<NewButton minimize={false}/>);
 
-        const button = screen.getByTestId('button_text');
+        const button : HTMLElement = screen.getByTestId('button_text');
         fireEvent.keyDown(button, { key: 'Enter' });
-        const componentNames = await screen.queryAllByTestId('button_in');
+        const componentNames : HTMLElement[] = await screen.queryAllByTestId('button_in');
         fireEvent.click(componentNames[1]);
 
         popUpWebsiteText.forEach(element => {
@@ -105,12 +103,12 @@ describe('popup', () => {
         });
 
         // GET NEW BUTTONS
-        let displayedTags = await screen.getAllByTestId("select_tag"); // there is only 1
+        let displayedTags : HTMLElement[] = await screen.getAllByTestId("select_tag"); // there is only 1
         expect(displayedTags).toHaveLength(testTags.length);
 
         // ADD TAG
         fireEvent.click(displayedTags[0]);
-        let deleteTags = await screen.getAllByTestId("delete_tag"); // there is only 1
+        let deleteTags : HTMLElement[] = await screen.getAllByTestId("delete_tag"); // there is only 1
         expect(deleteTags).toHaveLength(1);
         fireEvent.click(deleteTags[0]);
         deleteTags = await screen.queryAllByTestId("delete_tag");
@@ -131,8 +129,8 @@ describe('popup', () => {
     fireEvent.click(createButton);
 
     // CHECK IF NEW TAB APPEARS WITH CORRECT TEXT
-    const createField = await screen.getByTestId("tag_create_name");
-    const addButton = await screen.getByTestId("tag_add_button");
+    const createField : HTMLElement = await screen.getByTestId("tag_create_name");
+    const addButton : HTMLElement = await screen.getByTestId("tag_add_button");
     expect(createField).not.toBeNull();
     expect(addButton).not.toBeNull();
 
@@ -146,14 +144,14 @@ describe('popup', () => {
     fireEvent.change(createField, { target: { value: "abctestblablabla" } });
     fireEvent.click(addButton);
 
-    const formData = new FormData();
+    const formData : FormData = new FormData();
     formData.append("name", "abctestblablabla");
-    const prevState = {success: false, message: '', inputs: { name: ''}}
+    const prevState = {success: false, message: '', inputs: { name: ''}} // this is always empty is seems
 
     await waitFor(() => {
         expect(mockedAdd).toHaveBeenCalledWith(
-            expect.objectContaining(prevState), // Argument 1
-            expect.any(FormData) // Argument 2
+            expect.objectContaining(prevState), // Argument 1, previous formstate
+            expect.any(FormData) // Argument 2, which new tag to add
         );
     });
 

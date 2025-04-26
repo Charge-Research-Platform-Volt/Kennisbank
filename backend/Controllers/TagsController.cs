@@ -220,6 +220,11 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             return BadRequest(new { message = "Name is required" });
         }
 
+        if(dto.Name.Length > 50){
+            Log.Error("Tag is too long");
+            return BadRequest(new { message = "Tag is too long" }); 
+        }
+
         // Check if the tag already exists in the UserTags table
         bool userTagExists = await resourceManager.TagExistsAsync(t => t.Name == dto.Name);
 
@@ -281,6 +286,11 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         {
             Log.Error("Name is required");
             return BadRequest(new { message = "Name is required" });
+        }
+
+        if(dto.Name.Length > 50){
+            Log.Error("Tag is too long");
+            return BadRequest(new { message = "Tag is too long" }); 
         }
 
         // Check if the tag already exists in the UserTags table
