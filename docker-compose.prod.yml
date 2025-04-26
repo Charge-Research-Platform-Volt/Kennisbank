@@ -1,56 +1,35 @@
+# Add automatic restarts and logging to all services
+x-productionbase: &productionbase
+  restart: unless-stopped
+  logging:
+    driver: "local"
+    options:
+      max-size: "10m"
+      max-file: "5"
+
 services:
-  # Production database
   database:
     volumes:
       - postgres_data:/var/lib/postgresql/data  # Persistent volume
-    restart: unless-stopped
-    logging:
-      driver: "local"
-      options:
-        max-size: "10m"
-        max-file: "5"
+    <<: *productionbase
 
-  # Production storage
   storage:
     volumes:
       - storage_data:/data  # Persistent volume
-    restart: unless-stopped
-    logging:
-      driver: "local"
-      options:
-        max-size: "10m"
-        max-file: "5"
+    <<: *productionbase
 
-  # Production backend
   backend:
-    healthcheck:
+    healthcheck: # Slightly modify health check
       timeout: 5s
       retries: 3
       start_period: 30s
-    restart: unless-stopped
-    logging:
-      driver: "local"
-      options:
-        max-size: "10m"
-        max-file: "5"
+    <<: *productionbase
 
-  # Production frontend
   frontend:
-    restart: unless-stopped
-    logging:
-      driver: "local"
-      options:
-        max-size: "10m"
-        max-file: "5"
+    <<: *productionbase
   
-  # Production website
   website:
-    restart: unless-stopped
-    logging:
-      driver: "local"
-      options:
-        max-size: "10m"
-        max-file: "5"
+    <<: *productionbase
 
 volumes:
   postgres_data:  # Persistent volume for database

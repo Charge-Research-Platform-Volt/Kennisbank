@@ -1,6 +1,20 @@
-# I have no idea what this is for
+x-jsbase: &jsbase
+  build:
+    no_cache: true
+  environment:
+    - WATCHPACK_POLLING=true
 
 services:
+  # Set up temporary folders for storages
+  database:
+    tmpfs:
+      - /data
+
+  storage:
+    tmpfs:
+      - /data
+
+  # Uncertain what these are for, but these were differences from prod compose
   backend:
     build:
       context: .
@@ -9,18 +23,10 @@ services:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/status || exit 1"]
 
   frontend:
-    build:
-      no_cache: true
-    environment:
-      - API_URL=${API_URL}
-      - NODE_ENV=development
-      - WATCHPACK_POLLING=true
+    <<: *jsbase
 
   website:
-    build:
-      no_cache: true
-    environment:
-      - WATCHPACK_POLLING=true
+    <<: *jsbase
 
 # This program has been developed by students from the bachelor Computer Science at Utrecht
 # University within the Software Project course.
