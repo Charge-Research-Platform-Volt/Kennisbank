@@ -6,6 +6,7 @@
 
 using System.Linq.Expressions;
 using System.Reflection;
+using KnowledgeBank.Data;
 
 namespace KnowledgeBank.Utils 
 {
@@ -196,6 +197,43 @@ namespace KnowledgeBank.Utils
             ParameterExpression parameter = Expression.Parameter(typeof(TSet), "item");
             MemberExpression property = Expression.Property(parameter, propertyName);
             return Expression.Lambda<Func<TSet, TProperty>>(property, parameter);
+        }
+
+        /// <summary>
+        /// Updates the properties of a database entry of the given type with the given ID with the given property names to the given new values
+        /// </summary>
+        /// <param name="instance">The instance where the update method exists</param>
+        /// /// <param name="methodName">The name of the update method in the given instance</param>
+        /// <param name="type">The type of the database entry</param>
+        /// <param name="id">The ID of the databse entry</param>
+        /// <param name="updates">A dictionary of parameter names and their new values</param>
+        /// <returns>A list of successfully updated parameters</returns>
+        public static async Task<List<string>> UpdateProperties(object instance, string methodName, Type type, string id, Dictionary<string, object> updates)
+        {
+            // Get the properties of the type
+            PropertyInfo[] props = type.GetProperties();
+
+            List<string> updatedProperties = [];
+
+            foreach (KeyValuePair<string, object> update in updates)
+            {
+                // Try to find the property
+                PropertyInfo? prop = props.FirstOrDefault(p => string.Equals(p.Name, update.Key, StringComparison.OrdinalIgnoreCase));
+
+                // Prop was not found
+                if (prop == null) continue;
+
+                // Convert the incoming value to the correct type
+                var typedValue = ConvertValue(update.Value, prop.PropertyType);
+
+                // Use reflection to determine type at runtime and update the property
+                await InvokeGenericMethodAsync(instance, methodName, id, prop.Name, typedValue, type, prop.PropertyType);
+
+                // Add property to updated list
+                updatedProperties.Add(prop.Name);
+            }
+
+            return updatedProperties;
         }
     }
 }

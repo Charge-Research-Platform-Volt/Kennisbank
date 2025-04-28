@@ -1,4 +1,4 @@
-// This program has been developed by students from the bachelor Computer Science at Utrecht
+﻿// This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
 //
@@ -15,67 +15,65 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using System.Reflection;
 
-namespace KnowledgeBank.Controllers 
+namespace KnowledgeBank.Controllers
 {
     /// <summary>
-    /// This controller is responsible for handing API calls to manage persons and their metadata.
+    /// This controller is responsible for handing API calls to manage regions and their metadata.
     /// 
     /// Author: Abel Dieterich
     /// </summary>
     /// <param name="resourceManager">The resource manager service for database interactions</param>
     [ApiController] [Route("[controller]")] [Produces("application/json")] [Authorize]
-    public class PersonsController(ResourceManager resourceManager) : ControllerBase
-    {   
-        private readonly Serilog.ILogger logger = Log.ForContext<PersonsController>();
+    public class RegionsController(ResourceManager resourceManager) : Controller
+    {
+        private readonly Serilog.ILogger logger = Log.ForContext<RegionsController>();
 
         #region New
         /// <summary>
-        /// Creates a new person
+        /// Creates a new region
         /// </summary>
         /// <param name="dto">The Data Transfer Object</param>
         [HttpPut("new")]
-        [SwaggerOperation(Summary = "Create a new person in the archive")]
-        [SwaggerResponse(200, "Person was created successfully", typeof(ApiResponse))]
-        [SwaggerResponse(409, "Person already exists", typeof(ApiResponse))]
+        [SwaggerOperation(Summary = "Create a new region in the archive")]
+        [SwaggerResponse(200, "Region was created successfully", typeof(ApiResponse))]
+        [SwaggerResponse(409, "Region already exists", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> New([FromForm] PersonCreateDto dto)
+        public async Task<IActionResult> New([FromForm] RegionCreateDto dto)
         {
             // DTO checks
             if (string.IsNullOrEmpty(dto.Name))
                 return BadRequest(new ApiResponse(false, "No name was given"));
 
-            if (string.IsNullOrEmpty(dto.Occupation))
-                return BadRequest(new ApiResponse(false, "No occupation was given"));
-            
-            logger.Information("Creating person '{Name}'...", dto.Name);
+            logger.Information("Creating region '{Name}'...", dto.Name);
 
             try
             {
-                // Create the person and return the ID
-                Guid id = await resourceManager.CreatePersonAsync(dto);
+                // Create the region and return the ID
+                Guid id = await resourceManager.CreateRegionAsync(dto);
 
-                logger.Information("Person '{Name}' created successfully.", dto.Name);
-                return Ok(new ApiResponse(true, "Person created successfully", new { id }));
+                logger.Information("Region '{Name}' created successfully.", dto.Name);
+                return Ok(new ApiResponse(true, "Region created successfully", new { id }));
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
-                logger.Error(e, "Error creating person '{Name}'.", dto.Name);
-                return StatusCode(500, new ApiResponse(false, "Error creating person", e.Message));
+                logger.Error(e, "Error creating region '{Name}'.", dto.Name);
+                return StatusCode(500, new ApiResponse(false, "Error creating region", e.Message));
             }
+
         }
         #endregion
 
         #region Delete
         /// <summary>
-        /// Deletes a person
+        /// Deletes a region
         /// </summary>
-        /// <param name="id">The ID of the person</param>
+        /// <param name="id">The ID of the region</param>
         [HttpDelete("delete/{id}")]
         [Authorize(Policy = "RequireAdminRole")]
-        [SwaggerOperation(Summary = "Deletes a person")]
-        [SwaggerResponse(200, "Person deleted successfully", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Person not found", typeof(ApiResponse))]
+        [SwaggerOperation(Summary = "Deletes a region")]
+        [SwaggerResponse(200, "Region deleted successfully", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Region not found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
         public async Task<IActionResult> Delete(string id)
@@ -87,38 +85,38 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Delete person
-                logger.Information("Deleting person with ID: {ID}", id);
-                bool found = await resourceManager.DeletePersonAsync(id);
+                logger.Information("Deleting region with ID: {ID}", id);
+                bool found = await resourceManager.DeleteRegionAsync(id);
 
                 if (found)
                 {
-                    logger.Information("Person with ID '{ID}' deleted successfully", id);
-                    return Ok(new ApiResponse(true, "Person deleted successfully"));
+                    logger.Information("Region with ID '{ID}' deleted successfully", id);
+                    return Ok(new ApiResponse(true, "Region deleted successfully"));
                 }
 
-                logger.Information("Person with ID '{ID}' not found.", id);
-                return NotFound(new ApiResponse(false, "Person does not exist"));
+                logger.Information("Region with ID '{ID}' not found", id);
+                return NotFound(new ApiResponse(false, "Region does not exist"));
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error deleting person with ID {ID}", id);
-                return StatusCode(500, new ApiResponse(false, "Error deleting person"));
+                logger.Error(e, "Error deleting region with ID '{ID}'", id);
+                return StatusCode(500, new ApiResponse(false, "Error deleting region"));
             }
         }
         #endregion
 
         #region Update
         /// <summary>
-        /// Updates a person
+        /// Updates a region
         /// </summary>
-        /// <param name="id">The ID of the person</param>
+        /// <param name="id">The ID of the region</param>
         /// <param name="updates">The dictionary of propertynames to update and their new values</param>
         [HttpPatch("update/{id}")]
         [Authorize(Policy = "RequireAdminRole")]
         [SwaggerOperation(Summary = "Updates a person")]
-        [SwaggerResponse(200, "Person updated", typeof(ApiResponse))]
+        [SwaggerResponse(200, "Region updated", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Person not found", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Region not found", typeof(ApiResponse))]
         [SwaggerResponse(409, "Already exists", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
         public async Task<IActionResult> Update(string id, [FromBody] Dictionary<string, object> updates)
@@ -132,24 +130,24 @@ namespace KnowledgeBank.Controllers
                 return BadRequest(new ApiResponse(false, "No updates were provided."));
 
             logger.Information("Updating person with ID '{ID}'...", id);
-
+            
             try
             {
-                // Check if person exists
-                if (!await resourceManager.PersonExistsAsync(id))
-                    return NotFound(new ApiResponse(false, "The person does not exist"));
+                // Check if region exists
+                if (!await resourceManager.RegionExistsAsync(id))
+                    return NotFound(new ApiResponse(false, "The region does not exist"));
 
                 // Start a database transaction, since we could be doing multiple updates
                 await resourceManager.BeginTransaction();
 
                 // Update the properties
-                List<string> updatedProperties = await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Person), id, updates);
+                List<string> updatedProperties = await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Region), id, updates);
 
                 // No props were found
                 if (updatedProperties.Count == 0)
                 {
                     await resourceManager.Rollback();
-                    return BadRequest(new ApiResponse(false, "None of the props were found."));
+                    return BadRequest(new ApiResponse(false, "None of the props were found"));
                 }
 
                 // Commit changes to database
@@ -161,34 +159,34 @@ namespace KnowledgeBank.Controllers
                 // If all properties were updated
                 if (updatedProperties.Count == updates.Count)
                 {
-                    logger.Information("Successfully updated person with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
-                    return Ok(new ApiResponse(true, $"Person updated successfully.", updatedProperties));
+                    logger.Information("Successfully updated region with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
+                    return Ok(new ApiResponse(true, "Region updated successfully", updatedProperties));
                 }
 
                 // If not all properties were updated
                 else
                 {
-                    logger.Information("Partially updated person with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
-                    return Ok(new ApiResponse(true, $"Person updated partially.", updatedProperties));
+                    logger.Information("Partially updated region with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
+                    return Ok(new ApiResponse(true, "Region updated partially", updatedProperties));
                 }
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error updating person with ID '{ID}'", id);
-                return StatusCode(500, new ApiResponse(false, "Error updating person", e.Message));
+                logger.Error(e, "Error updating region with ID '{ID}'", id);
+                return StatusCode(500, new ApiResponse(false, "Error updating region", e.Message));
             }
         }
         #endregion
 
         #region Exists
         /// <summary>
-        /// Checks if a person already exists in the database
+        /// Checks if a region already exists in the database
         /// </summary>
-        /// <param name="name">The name of the person</param>
+        /// <param name="name">The name of the region</param>
         [EnableCors("AllowFrontend")]
         [HttpGet("exists")]
-        [SwaggerOperation(Summary = "Check if a person exists")]
-        [SwaggerResponse(200, "Response with boolean indicating if person exists.", typeof(ApiResponse))]
+        [SwaggerOperation(Summary = "Check if a region exists")]
+        [SwaggerResponse(200, "Response with boolean indicating if region exists.", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
         public async Task<IActionResult> Exists([FromQuery] string? name)
@@ -199,39 +197,39 @@ namespace KnowledgeBank.Controllers
 
             try
             {
-                // Retrieve the ID of the person if it already exists
-                Guid personId = Guid.Empty;
+                // Retrieve the ID of the region if it already exists
+                Guid regionId = Guid.Empty;
 
                 // Handle name
                 if (!string.IsNullOrEmpty(name))
-                    personId = await resourceManager.GetPersonPropertyOrDefaultAsync(predicate: p => p.Name == name, selector: p => p.Id);
+                    regionId = await resourceManager.GetRegionPropertyOrDefaultAsync(predicate: r => r.Name == name, selector: r => r.Id);
 
 
 
-                // ID is empty, so no person was found
-                if (personId == Guid.Empty)
-                    return Ok(new ApiResponse(true, "Person does not exist", new { exists = false, id = "" }));
+                // ID is empty, so no region was found
+                if (regionId == Guid.Empty)
+                    return Ok(new ApiResponse(true, "Region does not exist", new { exists = false, id = "" }));
 
-                // ID was not empty, so person already exists, return the ID
-                return Ok(new ApiResponse(true, "Person already exists.", new { exists = true, id = personId.ToString() }));
+                // ID was not empty, so region already exists, return the ID
+                return Ok(new ApiResponse(true, "Region already exists.", new { exists = true, id = regionId.ToString() }));
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error while checking if person exists");
-                return StatusCode(500, new ApiResponse(false, "Error while checking if person exists", e.Message));
+                logger.Error(e, "Error while checking if region exists");
+                return StatusCode(500, new ApiResponse(false, "Error while checking if region exists", e.Message));
             }
         }
         #endregion
 
         #region Info
         /// <summary>
-        /// Gets the information of the person (database row)
+        /// Gets the information of the region (database row)
         /// </summary>
-        /// <param name="id">The ID of the person</param>
+        /// <param name="id">The ID of the region</param>
         [HttpGet("info/{id}")]
-        [SwaggerOperation(Summary = "Get the information of the person")]
-        [SwaggerResponse(200, "Person information", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Person Not Found", typeof(ApiResponse))]
+        [SwaggerOperation(Summary = "Get the information of the region")]
+        [SwaggerResponse(200, "Region information", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Region Not Found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
         public async Task<IActionResult> Info(string id)
@@ -242,33 +240,33 @@ namespace KnowledgeBank.Controllers
 
             try
             {
-                // Retrieve the person
-                Person? person = await resourceManager.GetPersonAsync(id);
+                // Retrieve the region
+                Region? region = await resourceManager.GetRegionAsync(id);
 
-                // If null, the person was not found
-                if (person == null)
-                    return NotFound(new ApiResponse(false, "The person does not exist"));
+                // If null, the region was not found
+                if (region == null)
+                    return NotFound(new ApiResponse(false, "The region does not exist"));
 
-                // Return the person
-                return Ok(new ApiResponse(true, "Person was found", person));
+                // Return the region
+                return Ok(new ApiResponse(true, "Region was found", region));
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error retrieving person info.");
-                return StatusCode(500, new ApiResponse(false, "Error retrieving person info.", e.Message));
+                logger.Error(e, "Error retrieving region info.");
+                return StatusCode(500, new ApiResponse(false, "Error retrieving region info", e.Message));
             }
         }
         #endregion
 
         #region List
         /// <summary>
-        /// Retrieves a list or page of all persons
+        /// Retrieves a list or page of all regions
         /// </summary>
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
         [HttpGet("list")]
-        [SwaggerOperation(Summary = "Retrieves a list or page of all persons")]
-        [SwaggerResponse(200, "A list or page of all the persons in the archive", typeof(ApiResponse))]
+        [SwaggerOperation(Summary = "Retrieves a list or page of all regions")]
+        [SwaggerResponse(200, "A list or page of all the regions in the archive", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
         public async Task<IActionResult> List(int? pageIndex, int? pageSize)
@@ -283,31 +281,30 @@ namespace KnowledgeBank.Controllers
             // Set defaults
             if (pageIndex != null && pageSize == null) pageSize = 100;
             if (pageSize != null && pageIndex == null) pageIndex = 1;
-            
+
             try
             {
-                // All persons to be returned
-                Person[] persons = [];
+                // All regions to be returned
+                Region[] regions = [];
 
-                // No paging requested, list all persons
+                // No paging requested, list all regions
                 if (pageIndex == null || pageSize == null)
-                    persons = await resourceManager.GetAllPersonsAsync();
+                    regions = await resourceManager.GetAllRegionsAsync();
 
-                // Paging requested, retrieve persons on that page
+                // Paging requested, retrieve regions on that page
                 else
-                    persons = await resourceManager.GetPersonPageAsync((int)pageIndex, (int)pageSize);
+                    regions = await resourceManager.GetRegionPageAsync((int)pageIndex, (int)pageSize);
 
-                // Return found persons
-                return Ok(new ApiResponse(true, $"Found {persons.Length} persons", persons));
+                // Return found regions
+                return Ok(new ApiResponse(true, $"Found {regions.Length} regions", regions));
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error listing persons.");
-                return StatusCode(500, new ApiResponse(false, "Error listing persons.", e.Message));
+                logger.Error(e, "Error listing regions");
+                return StatusCode(500, new ApiResponse(false, "Error listing regions", e.Message));
             }
         }
         #endregion
-
 
         #region Helper Functions
         // ---------------------------
@@ -317,7 +314,7 @@ namespace KnowledgeBank.Controllers
         // Helper method to update a property
         private async Task UpdateProperty<TSet, TProperty>(string id, string propertyName, TProperty newValue) where TSet : class
         {
-            await resourceManager.UpdatePersonAsync(id, PropertyUpdateUtil.CreatePropertySelector<Person, TProperty>(propertyName), newValue);
+            await resourceManager.UpdateRegionAsync(id, PropertyUpdateUtil.CreatePropertySelector<Region, TProperty>(propertyName), newValue);
         }
         #endregion
     }

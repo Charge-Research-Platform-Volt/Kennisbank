@@ -321,48 +321,15 @@ namespace KnowledgeBank.Controllers
             
                 // Start a database transaction, since we could have multiple updates
                 await resourceManager.BeginTransaction();
-            
-                // Get the properties of the Resource class and the metadata classes
-                PropertyInfo[] resourceProperties = typeof(Resource).GetProperties();
-                PropertyInfo[] websiteProperties = typeof(WebsiteMetadata).GetProperties();
-                PropertyInfo[] documentProperties = typeof(DocumentMetadata).GetProperties();
-                PropertyInfo[] audioProperties = typeof(AudioMetadata).GetProperties();
-                PropertyInfo[] videoProperties = typeof(VideoMetadata).GetProperties();
-                
-                Dictionary<PropertyInfo[], Type> propertyMap = new()
-                {
-                    { resourceProperties, typeof(Resource) },
-                    { websiteProperties, typeof(WebsiteMetadata) },
-                    { documentProperties, typeof(DocumentMetadata) },
-                    { audioProperties, typeof(AudioMetadata) },
-                    { videoProperties, typeof(VideoMetadata) }
-                };
 
                 List<string> updatedProperties = [];
-                
-                foreach (KeyValuePair<PropertyInfo[], Type> propertyEntry in propertyMap) 
-                {
-                    PropertyInfo[] props = propertyEntry.Key;
-                    Type setType = propertyEntry.Value;
 
-                    foreach (KeyValuePair<string, object> update in updates)
-                    {
-                        // Try to find the property
-                        PropertyInfo? prop = props.FirstOrDefault(p => string.Equals(p.Name, update.Key, StringComparison.OrdinalIgnoreCase));
-
-                        // Prop was not found in this set
-                        if (prop == null) continue;
-
-                        // Convert the incoming value to the correct type
-                        var typedValue = PropertyUpdateUtil.ConvertValue(update.Value, prop.PropertyType);
-
-                        // Use reflection to determine type at runtime and update the property
-                        await PropertyUpdateUtil.InvokeGenericMethodAsync(this, nameof(UpdateProperty), id, prop.Name, typedValue, setType, prop.PropertyType);
-
-                        // Add property to updated list
-                        updatedProperties.Add(prop.Name);
-                    }
-                }
+                // Update the properties
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Resource), id, updates));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(WebsiteMetadata), id, updates));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(DocumentMetadata), id, updates));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(AudioMetadata), id, updates));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(VideoMetadata), id, updates));
 
                 // No props were found
                 if (updatedProperties.Count == 0)
@@ -512,7 +479,7 @@ namespace KnowledgeBank.Controllers
             try 
             {
                 // All resources to be returned
-                Resource[]? resources = [];
+                Resource[] resources = [];
 
                 // No paging requested, list all resources
                 if (pageIndex == null || pageSize == null)
