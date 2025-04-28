@@ -23,6 +23,7 @@ export default function ArchivePage() {
   const [endYear, setEndYear] = useState<number | null>(null);
   const [tagFilters, setTagFilters] = useState<string[]>([]);
   const [currentQuery, setCurrentQuery] = useState<string>("");
+  const [refreshKey, setRefreshKey] = useState<number>(0); // Key to trigger re-fetching of data
 
   // Fetch initial files
   useEffect(() => {
@@ -56,6 +57,21 @@ export default function ArchivePage() {
     );
   }
 
+  // Listen for resource list updates
+  useEffect(() => {
+      const handleResourceListUpdated = () => {
+          setRefreshKey((prevKey) => (prevKey) + 1); // increment the refresh key to trigger a re-fetch
+      };
+
+      // Add the event listener to the window object
+      window.addEventListener("resourceListUpdated", handleResourceListUpdated);
+
+      // Cleanup the event listener on component unmount
+      return () => {
+          window.removeEventListener("resourceListUpdated", handleResourceListUpdated);
+      };
+  }, []);
+
   // Respond to search input changes
   // Debounce the search input to avoid too many requests
   const handleSearch = useDebouncedCallback(
@@ -64,6 +80,11 @@ export default function ArchivePage() {
     },
     300,
   );
+
+  // Call the search function when the input changes or when the refresh key changes
+  useEffect(() => {
+    handleSearch(currentQuery, tagFilters, startYear, endYear);
+  }, [currentQuery, tagFilters, startYear, endYear, refreshKey, handleSearch]);
 
   return (
     <>
@@ -74,7 +95,6 @@ export default function ArchivePage() {
             placeholder="Search"
             type="text"
             onChange={(e) => {
-              handleSearch(e.target.value);
               setCurrentQuery(e.target.value);
             }}
           />
@@ -83,11 +103,9 @@ export default function ArchivePage() {
           </div>
           <FilterButton
             onApplyAction={(tagFilters, startDate, endDate) => {
-              console.log("Filter applied:", tagFilters, startDate, endDate);
               setTagFilters(tagFilters);
               setStartYear(startDate);
               setEndYear(endDate);
-              handleSearch(undefined, tagFilters, startDate, endDate);
             }}
           />
         </div>

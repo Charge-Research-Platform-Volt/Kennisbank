@@ -75,6 +75,7 @@ export default function NewButton({ tags, asIcon = false, minimize }: { tags: Ta
   useEffect(() => {
     if (fileState.success) {
       toast.success(fileState.message);
+      window.dispatchEvent(new Event("resourceListUpdated")); // Trigger a refresh event to update the resource list
 
       closeUploadPopup();
     } else if (fileState.message) {
@@ -96,6 +97,7 @@ export default function NewButton({ tags, asIcon = false, minimize }: { tags: Ta
   useEffect(() => {
     if (websiteState.success) {
       toast.success(websiteState.message);
+      window.dispatchEvent(new Event("resourceListUpdated")); // Trigger a refresh event to update the resource list
 
       closeUploadPopup();
     } else if (websiteState.message) {
