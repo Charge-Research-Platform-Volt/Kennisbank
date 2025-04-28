@@ -75,7 +75,14 @@ public class TagFilterOptions
 
     // Sorting
     public string? SortBy { get; set; } = "Name";
-    public bool SortDescending { get; set; } = false;
+    public bool SortDescending { get; set; } = true;
+    
+    // Dynamic weighted sorting
+    /// <summary>
+    /// Comma-separated list of property weight expressions in format "PropertyName:Weight"
+    /// Example: "IsStandardized:2,IsApproved:1,UsageCount:0.5"
+    /// </summary>
+    public string? WeightedSort { get; set; } 
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

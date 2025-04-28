@@ -102,6 +102,110 @@ public static class PropertyMatcher
         DefaultPropertyName = customDefaultPropertyName;
         
         return SortByProperty(collection, propertyName, descending);
+    }   
+    
+    /// <summary>
+    /// Sorts a collection of objects based on a weighted combination of properties specified in a string expression.
+    /// </summary>
+    /// <typeparam name="T">Type of objects in the collection</typeparam>
+    /// <param name="collection">The collection to sort</param>
+    /// <param name="weightedSortExpression">A string containing property-weight pairs, e.g. "PropertyA:2,PropertyB:1"</param>
+    /// <param name="descending">True to sort in descending order (higher scores first), false for ascending</param>
+    /// <returns>The sorted collection</returns>
+    public static IEnumerable<T> SortByWeightedProperties<T>(
+        IEnumerable<T> collection,
+        string weightedSortExpression,
+        bool descending = true)
+    {
+        if (collection == null || !collection.Any())
+            throw new InvalidOperationException("The collection is empty");
+
+        Dictionary<string, double>? weights = ParseWeightedSortExpression(weightedSortExpression);
+        if (!weights.Any())
+            return collection;
+
+        object? sampleItem = collection.First()
+            ?? throw new InvalidOperationException("The collection is empty");
+
+        // Prepare matched properties once per sort operation
+        object? obj = collection.First()
+            ?? throw new InvalidOperationException("The object is null");
+        
+        Dictionary<string, PropertyInfo>? matchedProperties = weights.Keys
+            .ToDictionary(
+                key => key,
+                key => GetMatchingProperty(obj, key),
+                StringComparer.OrdinalIgnoreCase);
+
+        return descending
+            ? collection.OrderByDescending(item => CalculateWeightedScore(item, weights, matchedProperties))
+            : collection.OrderBy(item => CalculateWeightedScore(item, weights, matchedProperties));;
+    }
+    
+    /// <summary>
+    /// Parses a weighted sort expression string into a dictionary of property names and weights.
+    /// </summary>
+    /// <param name="expression">Format: "PropertyName:Weight,PropertyName2:Weight2,..."</param>
+    /// <returns>Dictionary mapping property names to their weights</returns>
+    private static Dictionary<string, double> ParseWeightedSortExpression(string expression)
+    {
+        Dictionary<string, double>? result = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        
+        if (string.IsNullOrWhiteSpace(expression))
+            return result;
+            
+        foreach (string? pair in expression.Split(',', StringSplitOptions.RemoveEmptyEntries))
+        {
+            string[]? parts = pair.Split(':', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 2 && double.TryParse(parts[1], out double weight))
+            {
+                result[parts[0].Trim()] = weight;
+            }
+        }
+        
+        return result;
+    }
+    
+    /// <summary>
+    /// Calculates a weighted score for an object based on its property values and weights.
+    /// </summary>
+    /// <typeparam name="T">Type of the object</typeparam>
+    /// <param name="item">The object to calculate a score for</param>
+    /// <param name="weights">Dictionary mapping property names to their weights</param>
+    /// <param name="matchedProperties">Dictionary mapping property names to the actual property</param>
+    /// <returns>The calculated score</returns>
+    private static double CalculateWeightedScore<T>(
+        T item, 
+        Dictionary<string, double> weights,
+        Dictionary<string, PropertyInfo> matchedProperties)
+    {
+        double score = 0;
+
+        foreach (KeyValuePair<string, double> pair in weights)
+        {
+            if (!matchedProperties.TryGetValue(pair.Key, out PropertyInfo? property))
+                continue;
+
+            object? value = property.GetValue(item);
+            if (value == null)
+                continue;
+
+            if (value is bool boolValue)
+                score += boolValue ? pair.Value : 0;
+            else if (value is int intValue)
+                score += intValue * pair.Value;
+            else if (value is double doubleValue)
+                score += doubleValue * pair.Value;
+            else if (value is float floatValue)
+                score += floatValue * pair.Value;
+            else if (value is decimal decimalValue)
+                score += (double)decimalValue * pair.Value;
+            else if (value is long longValue)
+                score += longValue * pair.Value;
+            // We can add more type handling here if necessary
+        }
+
+        return score;
     }
 }
 
