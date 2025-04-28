@@ -932,8 +932,8 @@ public class TagControllerTests : TestBase
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(2));
         // Both have the same score, so it should order by DefaultPropertyName
-        Assert.That(tags[0].Name, Is.EqualTo("Alpha"));
-        Assert.That(tags[1].Name, Is.EqualTo("Beta"));
+        Assert.That(tags[0].Name, Is.EqualTo("A"));
+        Assert.That(tags[1].Name, Is.EqualTo("B"));
     }
     
     [Test]
