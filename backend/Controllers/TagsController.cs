@@ -588,6 +588,17 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         }
     }
     
+    /// <summary>
+    /// Merges the second tag into the first tag. This is done by 
+    /// finding all the relations of the second tag, and then transferring
+    /// these relations to the first tag. 
+    /// <b>Keep in mind that the second tag is deleted after the relations have been transferred.</b>
+    /// </summary>
+    /// <param name="id1">The id of the first tag.</param>
+    /// <param name="id2">The id of the second tag.</param>
+    /// <returns>
+    /// Returns a 200 OK response.
+    /// </returns>
     [HttpPatch("merge/{id1}/{id2}")]
     [Authorize(Policy = "RequireAdminRole")]
     [SwaggerResponse(200, "Tags merged")]
