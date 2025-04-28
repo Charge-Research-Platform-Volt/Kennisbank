@@ -35,6 +35,10 @@ public class Tag
 
     // Navigation properties
     [JsonIgnore] public ICollection<ResourceTagRelation>? ResourceTagRelations { get; set; }
+    
+    // Non-mapped, runtime-only properties used for view logic / API response shaping.
+    [NotMapped]
+    public int UsageCount { get; set; }
 }
 
 public class TagCreateDto
@@ -43,6 +47,42 @@ public class TagCreateDto
     public bool IsApproved { get; set; } = false;
     public string? ApprovedBy { get; set; }
     public string CreatedBy { get; set; } = "";
+}
+
+/// <summary>
+/// DTO for tag filtering options
+/// </summary>
+public class TagFilterOptions
+{
+    // Pagination
+    public bool UsePaging { get; set; } = false;
+    public int PageIndex { get; set; } = 1;
+    public int PageSize { get; set; } = 100;
+
+    // Filtering
+    public string? SearchQuery { get; set; }
+    public Guid? CreatedBy { get; set; }
+    public bool OnlyOwnedByCurrentUser { get; set; } = false;
+    public bool? IsApproved { get; set; }
+    public bool? IsStandardized { get; set; }
+    public DateTime? CreatedFromDate { get; set; }
+    public DateTime? CreatedToDate { get; set; }
+    public DateTime? ApprovedFromDate { get; set; }
+    public DateTime? ApprovedToDate { get; set; }
+
+    // Additional processing
+    public bool IncludeUsageCount { get; set; } = true;
+
+    // Sorting
+    public string? SortBy { get; set; } = "Name";
+    public bool SortDescending { get; set; } = false;
+    
+    // Dynamic weighted sorting
+    /// <summary>
+    /// Comma-separated list of property weight expressions in format "PropertyName:Weight"
+    /// Example: "IsStandardized:2,IsApproved:1,UsageCount:0.5"
+    /// </summary>
+    public string? WeightedSort { get; set; } 
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
