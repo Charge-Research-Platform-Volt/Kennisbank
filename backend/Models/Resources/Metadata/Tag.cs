@@ -75,7 +75,7 @@ public class TagFilterOptions
 
     // Sorting
     public string? SortBy { get; set; } = "Name";
-    public bool SortDescending { get; set; } = true;
+    public bool SortDescending { get; set; } = false;
     
     // Dynamic weighted sorting
     /// <summary>
