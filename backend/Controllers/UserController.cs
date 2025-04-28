@@ -70,7 +70,7 @@ public class UserController : ControllerBase
     )]
     [SwaggerResponse(200, "Users are loaded succesfully")]
     [SwaggerResponse(500, "Server error")]
-    public async Task<IActionResult> GetUsersPaged(int pageIndex = 1, int pageSize = 100)
+    public async Task<IActionResult> GetUsersPaged(int pageIndex = 1, int pageSize = 100, string? searchQuery = null)
     {
         if (pageIndex < 1)
                 return BadRequest(new StorageResponse("Page index cannot be lower than 1."));
@@ -83,10 +83,21 @@ public class UserController : ControllerBase
             // Calculate how many records we need to skip
             int skip = (pageIndex - 1) * pageSize;
 
-            User[]? users = await database.AppUsers.OrderBy(u => u.Email).Skip(skip).Take(pageSize).ToArrayAsync();
+            // filter based on the search query
+            IQueryable<User> filteredUsers;
+            if(!string.IsNullOrEmpty(searchQuery))
+                filteredUsers = database.AppUsers.Where(u => EF.Functions.ILike(u.Email ?? "", $"%{searchQuery}%"));
+            else
+                filteredUsers = database.AppUsers;
+
+            // Get the users for the current page
+            User[]? users = await filteredUsers.OrderBy(u => u.Email).Skip(skip).Take(pageSize).ToArrayAsync();
+
+            // Calculate total amount of pages
             int totalUsers = await database.AppUsers.CountAsync();
             int pageCount = (int)Math.Ceiling((double)totalUsers / pageSize);
-
+            
+            // Create the response
             UserResponse[]? userResponses = new UserResponse[users.Length];
             for (int i = 0; i < users.Length; i++)
             {
@@ -95,6 +106,7 @@ public class UserController : ControllerBase
                 userResponses[i] = new UserResponse(new Guid(user.Id), user.UserName, user.Email, user.EmailConfirmed, roles[0].ToString());
             }
 
+            // Check if there are no users on this page
             if (users == null)
                 return Ok(new UserPageResponse("No users on this page.", pageIndex, pageSize, pageCount, Array.Empty<UserResponse>()));
 

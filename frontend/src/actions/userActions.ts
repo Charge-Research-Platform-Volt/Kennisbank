@@ -143,13 +143,19 @@ export const SaveUser = async (
     };
 };
 
-export const ListUsersPaged = async (pageIndex: number ): Promise<UserPageResponse> => {
+/**
+ * 
+ * @param pageIndex - The page index to fetch
+ * @param query - The query to search for users
+ * @returns - A promise that resolves to a UserPageResponse object containing the users and pagination information
+ */
+export const ListUsersPaged = async (pageIndex: number, query: string ): Promise<UserPageResponse> => {
     console.log("Getting user page: ");
 
     // Send the data to the backend
     const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response : Response = await fetch(
-        `http://backend:8080/User/list-paged?pageIndex=${pageIndex}&pageSize=50`,
+        `http://backend:8080/User/list-paged?pageIndex=${pageIndex}&pageSize=50&searchQuery=${encodeURIComponent(query)}`,
         {
             method: "GET",
             credentials: "include",

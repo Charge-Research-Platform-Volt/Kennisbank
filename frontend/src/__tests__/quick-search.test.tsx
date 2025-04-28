@@ -4,16 +4,14 @@ import { toast } from "sonner";
 
 // Testing library
 import "@testing-library/jest-dom";
-import { vi, describe, it, expect, beforeEach, afterEach, } from "vitest";
+import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 // Component to test
 import QuickSearch from "@/components/quick-search";
-
+import { QuickSearchProvider } from "@/context/quick-search-provider";
 import * as openFileActions from "@/actions/openFileActions";
-import { QuickSearchProvider } from "@/components/quick-search-context";
-import QuickSearchButton from "@/components/sidebar/left-sidebar/quick-search-button";
 
 // Mock dependencies
 vi.mock("sonner", () => ({
@@ -40,7 +38,8 @@ const mockSearchResults = {
   pageIndex: 1,
   pageSize: 10,
   responseType: "SearchFullTextResponse",
-  resources: [  // Changed from 'files' to 'resources'
+  resources: [
+    // Changed from 'files' to 'resources'
     {
       title: "Document 1",
       id: "doc1",
@@ -53,7 +52,7 @@ const mockSearchResults = {
       license: null,
       note: null,
       creationDate: "2025-01-01",
-      publicationDate: "2025-01-02"
+      publicationDate: "2025-01-02",
     },
     {
       title: "File 1",
@@ -67,14 +66,14 @@ const mockSearchResults = {
       license: null,
       note: null,
       creationDate: "2025-02-01",
-      publicationDate: "2025-02-02"
+      publicationDate: "2025-02-02",
     },
   ],
 };
 
 // Mocking the openFileActions module
 vi.mock("@/actions/openFileActions", () => ({
-  handleOpenFile: vi.fn(), 
+  handleOpenFile: vi.fn(),
 }));
 
 // Types
@@ -122,7 +121,11 @@ describe("QuickSearch Component test", () => {
 
   // Test-1
   it("renders the search button correctly", () => {
-    render(<QuickSearchProvider><QuickSearch /><QuickSearchButton /></QuickSearchProvider>);
+    render(
+      <QuickSearchProvider>
+        <QuickSearch />
+      </QuickSearchProvider>,
+    );
 
     // Check if the buttons are rendered
     expect(screen.getByText("Search")).toBeInTheDocument();
@@ -130,7 +133,11 @@ describe("QuickSearch Component test", () => {
 
   // Test-2
   it("opens the dialog when search button is clicked", async () => {
-    render(<QuickSearchProvider><QuickSearch /><QuickSearchButton /></QuickSearchProvider>);
+    render(
+      <QuickSearchProvider>
+        <QuickSearch />
+      </QuickSearchProvider>,
+    );
 
     const searchButton = screen.getByText("Search");
 
@@ -149,7 +156,11 @@ describe("QuickSearch Component test", () => {
 
   // Test-3
   it("opens the dialog when hotkey is pressed", async () => {
-    render(<QuickSearchProvider><QuickSearch /><QuickSearchButton /></QuickSearchProvider>);
+    render(
+      <QuickSearchProvider>
+        <QuickSearch />
+      </QuickSearchProvider>,
+    );
 
     // Trigger the hotkey
     await act(async () => {
@@ -166,7 +177,11 @@ describe("QuickSearch Component test", () => {
 
   //Test-4
   it("fetches search results when dialog is opened", async () => {
-    render(<QuickSearchProvider><QuickSearch /><QuickSearchButton /></QuickSearchProvider>);
+    render(
+      <QuickSearchProvider>
+        <QuickSearch />
+      </QuickSearchProvider>,
+    );
 
     const searchButton = screen.getByText("Search");
 
@@ -177,7 +192,11 @@ describe("QuickSearch Component test", () => {
 
     // useEffect trigger fetch after dialog opens
     expect(fetch).toHaveBeenCalledTimes(1);
-    expect(fetch).toHaveBeenCalledWith("http://localhost:8080/Search/search-full-text?pageIndex=1&pageSize=10", { credentials: "include", headers: { "Content-Type": "application/json" }, method: "POST" });
+    expect(fetch).toHaveBeenCalledWith("http://localhost:8080/Search/search-full-text?pageIndex=1&pageSize=10", {
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    });
 
     // Resolve any pending promises
     await act(async () => {
@@ -194,14 +213,18 @@ describe("QuickSearch Component test", () => {
     // Test if the buttons triggers the action
     await userEvent.click(screen.getByText("Document 1"));
     expect(openFileActions.handleOpenFile).toHaveBeenCalledWith(mockSearchResults.resources[0]);
-    
+
     await userEvent.click(screen.getByText("File 1"));
     expect(openFileActions.handleOpenFile).toHaveBeenCalledWith(mockSearchResults.resources[1]);
   });
 
   // Test-5
   it("handles search input and triggers search", async () => {
-    render(<QuickSearchProvider><QuickSearch /><QuickSearchButton /></QuickSearchProvider>);
+    render(
+      <QuickSearchProvider>
+        <QuickSearch />
+      </QuickSearchProvider>,
+    );
 
     const searchButton = screen.getByText("Search");
 
@@ -218,7 +241,11 @@ describe("QuickSearch Component test", () => {
     vi.advanceTimersByTime(300);
 
     expect(fetch).toHaveBeenCalledTimes(2); //One when the dialog is opened and one when the search input is typed
-    expect(fetch).toHaveBeenCalledWith(`http://localhost:8080/Search/search-full-text?query=${query}&pageIndex=1&pageSize=10`, { credentials: "include", headers: { "Content-Type": "application/json" }, method: "POST" });
+    expect(fetch).toHaveBeenCalledWith(`http://localhost:8080/Search/search-full-text?query=${query}&pageIndex=1&pageSize=10`, {
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    });
 
     // Resolve any pending promises
     await act(async () => {
@@ -237,7 +264,11 @@ describe("QuickSearch Component test", () => {
 
   // Test-6
   it("unavailable search results", async () => {
-    render(<QuickSearchProvider><QuickSearch /><QuickSearchButton /></QuickSearchProvider>);
+    render(
+      <QuickSearchProvider>
+        <QuickSearch />
+      </QuickSearchProvider>,
+    );
 
     const searchButton = screen.getByText("Search");
 
@@ -273,7 +304,11 @@ describe("QuickSearch Component test", () => {
     userEvent.type(searchInput, query);
 
     vi.advanceTimersByTime(300);
-    expect(fetch).toHaveBeenCalledWith(`http://localhost:8080/Search/search-full-text?query=${query}&pageIndex=1&pageSize=10`, { credentials: "include", headers: { "Content-Type": "application/json" }, method: "POST" });
+    expect(fetch).toHaveBeenCalledWith(`http://localhost:8080/Search/search-full-text?query=${query}&pageIndex=1&pageSize=10`, {
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    });
 
     await act(async () => {
       await Promise.resolve();
@@ -300,7 +335,11 @@ describe("QuickSearch Component test", () => {
       });
     });
 
-    render(<QuickSearchProvider><QuickSearch /><QuickSearchButton /></QuickSearchProvider>);
+    render(
+      <QuickSearchProvider>
+        <QuickSearch />
+      </QuickSearchProvider>,
+    );
 
     const searchButton = screen.getByText("Search");
 
@@ -323,7 +362,11 @@ describe("QuickSearch Component test", () => {
       throw new Error("Network error");
     });
 
-    render(<QuickSearchProvider><QuickSearch /><QuickSearchButton /></QuickSearchProvider>);
+    render(
+      <QuickSearchProvider>
+        <QuickSearch />
+      </QuickSearchProvider>,
+    );
 
     const searchButton = screen.getByText("Search");
 
@@ -341,7 +384,11 @@ describe("QuickSearch Component test", () => {
 
   // Test-9
   it("closes the dialog when clicking outside", async () => {
-    render(<QuickSearchProvider><QuickSearch /><QuickSearchButton /></QuickSearchProvider>);
+    render(
+      <QuickSearchProvider>
+        <QuickSearch />
+      </QuickSearchProvider>,
+    );
 
     const searchButton = screen.getByText("Search");
 
@@ -366,9 +413,6 @@ describe("QuickSearch Component test", () => {
   });
 });
 
-
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-
