@@ -89,14 +89,14 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             }
 
             // Apply weighted sorting if specified
-            if (!string.IsNullOrEmpty(filterOptions.WeightedSort))
+            if (!string.IsNullOrEmpty(filterOptions.WeightedSort) && !string.IsNullOrEmpty(filterOptions.SortBy))
             {
-                tags = PropertyMatcher.SortByWeightedProperties(tags, filterOptions.WeightedSort).ToArray();
+                tags = PropertyMatcher.SortByWeightedProperties(tags, filterOptions.WeightedSort, filterOptions.SortDescending, filterOptions.SortBy).ToArray();
             }
             // Otherwise apply regular sorting if specified
             else if (!string.IsNullOrEmpty(filterOptions.SortBy))
             {
-                tags = PropertyMatcher.SortByProperty(tags, filterOptions.SortBy, filterOptions.SortDescending).ToArray();
+                tags = PropertyMatcher.SortByProperty(tags, filterOptions.SortBy, filterOptions.SortDescending, filterOptions.SortBy).ToArray();
             }
 
             return Ok(tags);

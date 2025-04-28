@@ -842,6 +842,131 @@ public class TagControllerTests : TestBase
         Assert.That(tags.Length, Is.EqualTo(1));
         Assert.That(tags[0].Name, Is.EqualTo("std-apple"));
     }
+    
+    [Test]
+    [Description("GetTags SortByWeightedProperties returns tags in descending order when SortDescending is false")]
+    public async Task GetTags_SortByWeightedProperties_ReturnsCorrectSorting()
+    {
+        // Add tags
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag 1", CreatedBy = _regularUserId.ToString(), IsApproved = true });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag 2", CreatedBy = _regularUserId.ToString(), IsApproved = true });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag 3", CreatedBy = _regularUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag 4", CreatedBy = _regularUserId.ToString() });
+
+        Tag? tag3 = await _resourceManager.GetTagAsync(predicate: t => t.Name == "tag 3");
+        Assert.That(tag3, Is.Not.Null);
+        await _controller.MakeStandardized(tag3.Id.ToString());
+
+        // Sort tags by weighted properties
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            WeightedSort = "IsStandardized:3,IsApproved:2",
+            SortDescending = true
+        };
+        
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(4));
+        Assert.That(tags[0].Name, Is.EqualTo("tag 3"));
+        Assert.That(tags[1].Name, Is.EqualTo("tag 1"));
+        Assert.That(tags[2].Name, Is.EqualTo("tag 2"));
+        Assert.That(tags[3].Name, Is.EqualTo("tag 4"));
+    }
+    
+    [Test]
+    [Description("GetTags SortByWeightedProperties returns tags in ascending order when SortDescending is false")]
+    public async Task GetTags_SortByWeightedProperties_ReturnsCorrectAscendingSorting()
+    {
+        // Arrange
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag A", CreatedBy = _regularUserId.ToString(), IsApproved = true });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag B", CreatedBy = _regularUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "tag C", CreatedBy = _regularUserId.ToString(), IsApproved = true });
+
+        // Act
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            WeightedSort = "IsApproved:5",
+            SortDescending = false
+        };
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(3));
+        Assert.That(tags[0].Name, Is.EqualTo("tag B"));
+        Assert.That(tags[1].Name, Is.EqualTo("tag A")); 
+        Assert.That(tags[2].Name, Is.EqualTo("tag C"));
+    }
+    
+    [Test]
+    [Description("GetTags SortByWeightedProperties secondary sorts by DefaultPropertyName when weighted scores are tied")]
+    public async Task GetTags_SortByWeightedProperties_TieSortsByDefaultPropertyName()
+    {
+        // Arrange
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "A", CreatedBy = _regularUserId.ToString(), IsApproved = true });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "B", CreatedBy = _regularUserId.ToString(), IsApproved = true });
+
+        // Act
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            WeightedSort = "IsApproved:3",
+            SortDescending = true
+        };
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(2));
+        // Both have the same score, so it should order by DefaultPropertyName
+        Assert.That(tags[0].Name, Is.EqualTo("Alpha"));
+        Assert.That(tags[1].Name, Is.EqualTo("Beta"));
+    }
+    
+    [Test]
+    [Description("GetTags SortByWeightedProperties falls back to default property when weighted properties are invalid")]
+    public async Task GetTags_SortByWeightedProperties_InvalidExpression_FallsBackToDefaultSorting()
+    {
+        // Arrange
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "C", CreatedBy = _regularUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "A", CreatedBy = _regularUserId.ToString() });
+        await _resourceManager.CreateTagAsync(new TagCreateDto { Name = "B", CreatedBy = _regularUserId.ToString() });
+
+        // Act
+        TagFilterOptions filterOptions = new TagFilterOptions
+        {
+            // This property should not exist on Tag
+            WeightedSort = "NonExistingProperty:5",
+            SortDescending = false
+        };
+        OkObjectResult? result = await _controller.GetTags(filterOptions) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        Tag[]? tags = result.Value as Tag[];
+        Assert.That(tags, Is.Not.Null);
+        Assert.That(tags.Length, Is.EqualTo(3));
+
+        // Since the weighted property is invalid, it should sort ascending by DefaultPropertyName
+        Assert.That(tags[0].Name, Is.EqualTo("A"));
+        Assert.That(tags[1].Name, Is.EqualTo("B"));
+        Assert.That(tags[2].Name, Is.EqualTo("C"));
+    }
 
     #endregion
     
