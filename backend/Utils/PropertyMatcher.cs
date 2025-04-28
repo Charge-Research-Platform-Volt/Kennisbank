@@ -115,7 +115,7 @@ public static class PropertyMatcher
     public static IEnumerable<T> SortByWeightedProperties<T>(
         IEnumerable<T> collection,
         string weightedSortExpression,
-        bool descending = true)
+        bool descending)
     {
         if (collection == null || !collection.Any())
             throw new InvalidOperationException("The collection is empty");
@@ -136,10 +136,30 @@ public static class PropertyMatcher
                 key => key,
                 key => GetMatchingProperty(obj, key),
                 StringComparer.OrdinalIgnoreCase);
+                
+        PropertyInfo defaultProperty = GetMatchingProperty(obj, DefaultPropertyName);
 
         return descending
             ? collection.OrderByDescending(item => CalculateWeightedScore(item, weights, matchedProperties))
-            : collection.OrderBy(item => CalculateWeightedScore(item, weights, matchedProperties));;
+                .ThenBy(item => defaultProperty.GetValue(item))
+            : collection.OrderBy(item => CalculateWeightedScore(item, weights, matchedProperties))
+                .ThenBy(item => defaultProperty.GetValue(item));
+    }
+    
+    /// <summary>
+    /// Sorts a collection of objects based on a weighted combination of properties specified in a string expression.
+    /// </summary>
+    /// <typeparam name="T">Type of objects in the collection</typeparam>
+    /// <param name="collection">The collection to sort</param>
+    /// <param name="weightedSortExpression">A string containing property-weight pairs, e.g. "PropertyA:2,PropertyB:1"</param>
+    /// <param name="descending">True to sort in descending order (higher scores first), false for ascending</param>
+    /// <param name="customDefaultPropertyName">The custom default property name, matching falls back to this property name if no match found</param>
+    /// <returns>The sorted collection</returns>
+    public static IEnumerable<T> SortByWeightedProperties<T>(IEnumerable<T> collection, string weightedSortExpression, bool descending, string customDefaultPropertyName)
+    {
+        DefaultPropertyName = customDefaultPropertyName;
+        
+        return SortByWeightedProperties(collection, weightedSortExpression, descending);
     }
     
     /// <summary>
