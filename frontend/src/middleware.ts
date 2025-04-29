@@ -7,7 +7,7 @@ export async function middleware(request: NextRequest) {
         console.log(request.nextUrl.pathname)
         console.log(request.nextUrl.pathname.startsWith("/api/Auth/"))
         // Check in backend if logged in
-        const response = await fetch("http://backend:8080/Auth/ping", {
+        const response = await fetch(`${process.env.API_URL}/Auth/ping`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",

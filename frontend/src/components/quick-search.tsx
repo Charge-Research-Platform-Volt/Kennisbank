@@ -38,7 +38,7 @@ export default function QuickSearch({ minimize = false }: { minimize?: boolean }
     query = query?.trim();
 
     try {
-      const response = await fetch(`http://localhost:8080/Search/search-full-text?${query ? `query=${query}&` : ""}pageIndex=1&pageSize=10`, {
+      const response = await fetch(`api/Search/search-full-text?${query ? `query=${query}&` : ""}pageIndex=1&pageSize=10`, {
         method: "POST",
         credentials: "include",
         headers: {

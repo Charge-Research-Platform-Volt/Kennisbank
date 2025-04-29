@@ -42,7 +42,7 @@ export const handleOpenFile = async (file: ResourceResponse) => {
         const website = WebsiteResponseSchema.safeParse(file);
         if(!website.success)
             throw new Error(`Error fetching website`);
-        url = `http://localhost:8080/websiteupload/get-website/${file.id}`;
+        url = `api/websiteupload/get-website/${file.id}`;
 
         try {
             await fetch(url, {

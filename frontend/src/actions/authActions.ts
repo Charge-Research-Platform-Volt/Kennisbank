@@ -52,7 +52,7 @@ export const Register = async (
         }
 
         // Send the data to the backend.
-        const response : Response = await fetch("http://localhost:8080/Auth/signup", {
+        const response : Response = await fetch("api/Auth/signup", {
             method: "POST",
             body: JSON.stringify({
                 email: rawData.email,
@@ -165,7 +165,7 @@ export async function Logout(): Promise<{success: boolean; message: string }>
     {
         console.log("Logging out...");
 
-        const response = await fetch(`http://localhost:8080/auth/logout`, {
+        const response = await fetch(`api/auth/logout`, {
             method: "POST",
             credentials: "include",
             headers: { "Content-Type": "application/json" },

@@ -73,7 +73,7 @@ export default function DateFilterSlider( {className, setStartYearAction, setEnd
     // fetches oldest document from backend
     async function fetchOldest() {
         try{
-            const response = await fetch(`http://localhost:8080/search/get-oldest-document`, {
+            const response = await fetch(`api/search/get-oldest-document`, {
                 credentials: "include",
                 method: "GET",
                 headers: {
