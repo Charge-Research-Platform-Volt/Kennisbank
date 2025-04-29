@@ -86,6 +86,7 @@ services:
     ports:
       - "3000:3000"
     environment:
+      - API_URL=${API_URL}
       - NODE_ENV=production
     depends_on:
       backend:

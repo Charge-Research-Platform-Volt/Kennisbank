@@ -13,8 +13,6 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
-ARG API_URL
-ENV API_URL=${API_URL}
 EXPOSE 3000
 ENV PORT=3000
 # Create custom entrypoint script to run npm install as well to update everything
@@ -37,7 +35,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1 
 ARG API_URL
-ENV API_URL=${API_URL}
 RUN npm run build
 
 
@@ -62,3 +59,7 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 CMD ["node", "server.js"]
+
+# This program has been developed by students from the bachelor Computer Science at Utrecht
+# University within the Software Project course.
+# © Copyright Utrecht University (Department of Information and Computing Sciences)
