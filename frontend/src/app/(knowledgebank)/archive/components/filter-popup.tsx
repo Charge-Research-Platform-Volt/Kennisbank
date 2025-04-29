@@ -40,7 +40,7 @@ export default function FilterPopup({ isVisible, onApplyAction, className }: { i
 
     async function fetchTags() {
         try{
-            const response = await fetch("api/Tags/all-tags", {
+            const response = await fetch("/api/Tags/all-tags", {
                 credentials: "include",
                 method: "GET"
             });
