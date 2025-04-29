@@ -2,9 +2,8 @@
 
 import { handleOpenFile } from "@/actions/openFileActions";
 import { Button } from "@/components/ui/button";
-import OpenDocumentIcon from "@/icons/file-type-icons/open-document-icon";
-import OpenWebsiteIcon from "@/icons/file-type-icons/open-website";
 import { ResourceResponse } from "@/types/resource.type";
+import GetDownloadIcon from "./getDownloadIcon";
 
 /**
  * 
@@ -59,7 +58,7 @@ export default function OpenFileButton({
           onClick={() => handleOpenFile(file)}
           title={buttonText()}
         >
-          {file.fileType == "website" ? <OpenWebsiteIcon className="h-5 w-5" fill="#737373"></OpenWebsiteIcon> : <OpenDocumentIcon className="h-5 w-5" fill="#737373" />}
+          <GetDownloadIcon fileType={file.fileType} className="h-5 w-5" />
         </Button>
 
     ) : 
@@ -67,3 +66,10 @@ export default function OpenFileButton({
         <Button onClick={() => handleOpenFile(file)} className="w-[99.08px]" variant={variant}>{buttonAltText()}</Button>
     );
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

@@ -18,35 +18,29 @@ import { useSidebar } from "@/context/sidebar-provider";
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 /**
- * 
+ *
  * @param data - Data to display in the table, this is a page of the archive, possibly filtered through a search query or other means
  * @returns A table representation of the data
  */
 export default function ListResources({ data }: { data: ResourcePageWithTagsResponse }) {
   // Column definitions
   const columnDefs = useState<ColDef[]>([
-    { field: "title", flex: 3, cellRenderer: Render, resizable: false, minWidth: 200 },
-    { field: "description", flex: 2, resizable: false, minWidth: 200 },
-    { field: "fileType", width: 70, headerName: "Type", resizable: false },
-    { field: "creationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm"), resizable: false },
-    { field: "publicationDate", width: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm"), resizable: false },
-    { field: "", width: 30, cellRenderer: DownloadRenderer, resizable: false },
+    { field: "title", cellRenderer: Render, minWidth: 500, flex: 3, resizable: true },
+    { field: "description", minWidth: 300, flex: 2, resizable: true },
+    { field: "fileType", minWidth: 70, flex: 1, headerName: "Type", resizable: true },
+    { field: "creationDate", minWidth: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm"), resizable: true },
+    { field: "publicationDate", minWidth: 160, valueFormatter: (params) => format(parseISO(params.value), "yyyy-MM-dd HH:mm"), resizable: true },
+    { field: "", minWidth: 30, maxWidth: 50, cellRenderer: DownloadRenderer, resizable: true },
   ])[0];
 
   const gridApiRef = useRef<GridApi | null>(null);
 
-  // deselect the row when the sidebar is closed
-  const onCloseSidebar = () => {
-    gridApiRef.current?.deselectAll();
-  };
-
   // use sidebar context
-  const { rightSidebarOpen, toggleRightSidebar, setOnCloseClicked } = useSidebar();
+  const { rightSidebarOpen, toggleRightSidebar } = useSidebar();
 
   //when grid is ready, set the gridApi and onCloseClicked function
   const onGridReady = (params: GridReadyEvent) => {
     gridApiRef.current = params.api;
-    setOnCloseClicked(() => onCloseSidebar); 
   };
 
   // Row selection
@@ -60,10 +54,9 @@ export default function ListResources({ data }: { data: ResourcePageWithTagsResp
   // if on row clicked, deselect all and select the clicked row (if sidebar was closed)
   const onRowClicked = (e: RowClickedEvent) => {
     // do nothing if the download button is clicked
-    if((e.event?.target as HTMLElement)?.closest(".download-button")) return;
+    if ((e.event?.target as HTMLElement)?.closest(".download-button")) return;
 
-    toggleRightSidebar(e.data)
-
+    toggleRightSidebar(e.data);
     e.node.setSelected(true);
   };
 
@@ -72,12 +65,20 @@ export default function ListResources({ data }: { data: ResourcePageWithTagsResp
     if (!rightSidebarOpen) {
       gridApiRef.current?.deselectAll();
     }
-  }
-  , [rightSidebarOpen]);
+  }, [rightSidebarOpen]);
 
   return (
-    <div className="h-[calc(100vh-6rem)] w-full">
-      <AgGridReact suppressMovableColumns={true} suppressCellFocus={true} rowData={data.resources} columnDefs={columnDefs} theme={tableTheme} onGridReady={onGridReady} rowSelection={rowSelection as RowSelectionOptions} onRowClicked={onRowClicked} />
+    <div className="h-[calc(100vh-4rem)] w-full">
+      <AgGridReact
+        suppressMovableColumns={true}
+        suppressCellFocus={true}
+        rowData={data.resources}
+        columnDefs={columnDefs}
+        theme={tableTheme}
+        onGridReady={onGridReady}
+        rowSelection={rowSelection as RowSelectionOptions}
+        onRowClicked={onRowClicked}
+      />
     </div>
   );
 }
@@ -116,25 +117,14 @@ export function Render(params: { data: { fileType: string }; value: string }) {
  * @returns
  */
 
-/**
- * 
- * @param params - The parameters for rendering the download button
- * @param params.data - Data object containing file information
- * @param params.data.id - The ID of the file (used to construct the download URL)
- * @param params.data.fileType - The type of the file (used to determine the appropriate action)
- * @param params.data.name - The name of the file (used for display purposes)
- * @param params.data.description - The description of the file (not used in this function)
- * @param params.data.hash - The hash of the file (not used in this function)
- * @param params.data.createdAt - The creation date of the file (not used in this function)
- * * @param params.data.updatedAt - The last update date of the file (not used in this function)
- * @returns 
- */
-
 export function DownloadRenderer(params: { data: ResourceResponse }) {
   return (
-    <div className="flex items-center justify-center download-button">
+    <div className="download-button flex items-center justify-center">
       <OpenFileButton file={params.data} asIcon={true} />
     </div>
   );
 }
 
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)

@@ -1,37 +1,55 @@
-﻿using Azure.Core;
-using KnowledgeBank.Data;
-using KnowledgeBank.Models;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.VisualBasic.FileIO;
-using System.Linq;
-using System.Linq.Expressions;
+﻿// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+//
+// Author: Abel Dieterich
 
 namespace KnowledgeBank.Data
 {
-    public partial class ResourceManager
+    /// <summary>
+    /// This class is responsible for all database interactions regarding resources and their metadata.
+    /// 
+    /// Author: Abel Dieterich
+    /// </summary>
+    /// <param name="dbContext">The database context variable</param>
+    public partial class ResourceManager(DatabaseContext dbContext)
     {
-        private readonly DatabaseContext database;
-
-        public ResourceManager(DatabaseContext dbContext)
-        {
-            database = dbContext;
-        }
+        private readonly DatabaseContext database = dbContext;
 
         #region Transaction functions
-
-        public async Task BeginTransaction()
+        
+        /// <summary>
+        /// Starts a database transaction
+        /// </summary>
+        /// <returns>If the transaction was started or not (if false, there was already a transaction running)</returns>
+        public async Task<bool> BeginTransaction()
         {
             // Begin a transaction that can be committed or rolled back later
-            await database.Database.BeginTransactionAsync();
-        }
+            if (database.Database.CurrentTransaction == null) 
+            {
+                await database.Database.BeginTransactionAsync();
+                return true;
+            }
 
+            return false;
+        }
+        
+        /// <summary>
+        /// Commits the current database transaction
+        /// </summary>
         public async Task Commit()
         {
             // Commit changes from transaction to database
-            if (database.Database.CurrentTransaction != null)
+            if (database.Database.CurrentTransaction != null) 
+            {
+                await database.SaveResourceChangesAsync();
                 await database.Database.CurrentTransaction.CommitAsync();
+            }
         }
-
+        
+        /// <summary>
+        /// Rolls back the current database transaction
+        /// </summary>
         public async Task Rollback()
         {
             // Roll back the transaction if one exists
@@ -42,7 +60,8 @@ namespace KnowledgeBank.Data
         #endregion
 
         #region Helper functions
-        private Guid[] StringToGuidArray(string[] strings)
+        // Converts a string array to guid array
+        private static Guid[] StringToGuidArray(string[] strings)
         {
             Guid[] guids = new Guid[strings.Length];
 
@@ -54,15 +73,24 @@ namespace KnowledgeBank.Data
             return guids;
         }
 
-        private TFirst[] FirstsOfTupleArray<TFirst, TSecond>((TFirst, TSecond)[] tuples)
+        // Gets all the first values of a tuple array and outputs it as an array
+        private static TFirst[] FirstsOfTupleArray<TFirst, TSecond>((TFirst, TSecond)[] tuples)
         {
             return tuples.Select(tuple => tuple.Item1).ToArray();
         }
 
-        private TSecond[] SecondsOfTupleArray<TFirst, TSecond>((TFirst, TSecond)[] tuples)
+        // Gets all the second values of a tuple array and outputs it as an array
+        private static TSecond[] SecondsOfTupleArray<TFirst, TSecond>((TFirst, TSecond)[] tuples)
         {
             return tuples.Select(tuple => tuple.Item2).ToArray();
         }
         #endregion
     }
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

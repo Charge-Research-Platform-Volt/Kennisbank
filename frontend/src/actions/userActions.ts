@@ -143,13 +143,19 @@ export const SaveUser = async (
     };
 };
 
-export const ListUsersPaged = async (pageIndex: number ): Promise<UserPageResponse> => {
+/**
+ * 
+ * @param pageIndex - The page index to fetch
+ * @param query - The query to search for users
+ * @returns - A promise that resolves to a UserPageResponse object containing the users and pagination information
+ */
+export const ListUsersPaged = async (pageIndex: number, query: string ): Promise<UserPageResponse> => {
     console.log("Getting user page: ");
 
     // Send the data to the backend
     const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response : Response = await fetch(
-        `${process.env.API_URL}/User/list-paged?pageIndex=${pageIndex}&pageSize=50`,
+        `${process.env.API_URL}/User/list-paged?pageIndex=${pageIndex}&pageSize=50&searchQuery=${encodeURIComponent(query)}`,
         {
             method: "GET",
             credentials: "include",
@@ -198,3 +204,9 @@ export const ListUsersPaged = async (pageIndex: number ): Promise<UserPageRespon
         pageCount: data.pageCount,
     }
 };
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

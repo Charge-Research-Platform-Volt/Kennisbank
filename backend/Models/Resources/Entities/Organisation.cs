@@ -26,9 +26,9 @@ public class Organisation
     public string? EmailAddress { get; set; }
 
     // Navigation properties
-    [JsonIgnore] public ICollection<ResourceOrganisationRelation>? OwnedResources { get; set; }
-    [JsonIgnore] public ICollection<ResourceRelatedOrganisationRelation>? RelatedResources { get; set; }
-    [JsonIgnore] public ICollection<PersonOrganisationRelation>? RelatedPersons { get; set; }
+    [JsonIgnore] public ICollection<ResourceOrganisationRelation>? ResourceOrganisationRelations { get; set; }
+    [JsonIgnore] public ICollection<ResourceRelatedOrganisationRelation>? ResourceRelatedOrganisationRelations { get; set; }
+    [JsonIgnore] public ICollection<PersonOrganisationRelation>? PersonOrganisationRelations { get; set; }
 
     [JsonIgnore][InverseProperty("SourceOrganisation")] public ICollection<OrganisationRelationship>? TargetRelationships { get; set; }
     [JsonIgnore][InverseProperty("TargetOrganisation")] public ICollection<OrganisationRelationship>? SourceRelationships { get; set; }
@@ -43,3 +43,8 @@ public class OrganisationCreateDto
     // Tuple: (OrganisationId, Relation?)
     public (string, string?)[] OrganisationRelations { get; set; } = Array.Empty<(string, string?)>();
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+

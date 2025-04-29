@@ -17,10 +17,16 @@ public class Region
     public required string Name { get; set; }
 
     // Navigation property
-    [JsonIgnore] public ICollection<ResourceRegionRelation>? Resources { get; set; }
+    [JsonIgnore] public ICollection<ResourceRegionRelation>? ResourceRegionRelations { get; set; }
 }
 
 public class RegionCreateDto
 {
     public required string Name { get; set; }
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

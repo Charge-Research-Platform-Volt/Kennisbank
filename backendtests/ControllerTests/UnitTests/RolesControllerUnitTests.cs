@@ -1,6 +1,5 @@
-using backend.Models;
-using KnowledgeBank.Controllers;
 using KnowledgeBank.Models;
+using KnowledgeBank.Controllers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -256,3 +255,9 @@ public class RolesControllerUnitTests
         Assert.That(okResult.Value, Is.EqualTo(users));
     }
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

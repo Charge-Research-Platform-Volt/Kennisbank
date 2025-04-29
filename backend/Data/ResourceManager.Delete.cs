@@ -1,4 +1,9 @@
-﻿using KnowledgeBank.Models;
+﻿// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+//
+// Author: Abel Dieterich
+
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -20,10 +25,10 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> DeleteResourceAsync(Guid id)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             // Delete the resource itself
             int count = await DeleteAsync(database.Resources, resource => resource.Id == id);
-
-            await database.SaveResourceChangesAsync();
 
             // Remove all resource author relations containing this resource
             await RemoveAllResourceAuthorRelationsWithResourceIdAsync(id);
@@ -58,6 +63,8 @@ namespace KnowledgeBank.Data
             // Remove document metadata for this resource
             await DeleteDocumentMetadataAsync(id);
 
+            if (startedTransaction) await Commit();
+
             return count > 0;
         }
 
@@ -68,6 +75,8 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> DeletePersonAsync(Guid id)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             // Delete the person itself
             int count = await DeleteAsync(database.Persons, person => person.Id == id);
 
@@ -82,6 +91,8 @@ namespace KnowledgeBank.Data
 
             // Delete all resource-related_person relations containing this person
             await RemoveRelatedPersonFromAllResourcesAsync(id);
+            
+            if (startedTransaction) await Commit();
 
             return count > 0;
         }
@@ -93,6 +104,8 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> DeleteOrganisationAsync(Guid id)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             // Delete the organisation itself
             int count = await DeleteAsync(database.Organisations, organisation => organisation.Id == id);
 
@@ -107,6 +120,8 @@ namespace KnowledgeBank.Data
 
             // Delete all resource-organisation relations containing this organisation
             await RemoveRelatedOrganisationFromAllResourcesAsync(id);
+            
+            if (startedTransaction) await Commit();
 
             return count > 0;
         }
@@ -118,11 +133,15 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> DeleteRegionAsync(Guid id)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             // Delete the region itself
             int count = await DeleteAsync(database.Regions, region => region.Id == id);
 
             // Delete region from all resources
             await RemoveRegionFromAllResourcesAsync(id);
+            
+            if (startedTransaction) await Commit();
 
             return count > 0;
         }
@@ -134,8 +153,12 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> DeleteAudioMetadataAsync(Guid resourceId)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             // Delete the metadata itself
             int count = await DeleteAsync(database.AudioMetadata, metadata => metadata.ResourceId == resourceId);
+            
+            if (startedTransaction) await Commit();
 
             return count > 0;
         }
@@ -147,7 +170,11 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> DeleteVideoMetadataAsync(Guid resourceId)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             int count = await DeleteAsync(database.VideoMetadata, metadata => metadata.ResourceId == resourceId);
+            
+            if (startedTransaction) await Commit();
 
             return count > 0;
         }
@@ -159,7 +186,11 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> DeleteWebsiteMetadataAsync(Guid resourceId)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             int count = await DeleteAsync(database.WebsiteMetadata, metadata => metadata.ResourceId == resourceId);
+            
+            if (startedTransaction) await Commit();
 
             return count > 0;
         }
@@ -171,7 +202,11 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> DeleteDocumentMetadataAsync(Guid resourceId)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             int count = await DeleteAsync(database.DocumentMetadata, metadata => metadata.ResourceId == resourceId);
+            
+            if (startedTransaction) await Commit();
 
             return count > 0;
         }
@@ -183,10 +218,14 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> DeleteTagAsync(Guid id)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             int count = await DeleteAsync(database.Tags, tag => tag.Id == id);
 
             // Remove all resource-tag relations containing this tag
             await RemoveTagFromAllResourcesAsync(id);
+            
+            if (startedTransaction) await Commit();
 
             return count > 0;
         }
@@ -198,10 +237,14 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> DeleteResourceTypeAsync(Guid id)
         {
+            bool startedTransaction = await BeginTransaction();
+        
             int count = await DeleteAsync(database.ResourceTypes, type => type.Id == id);
 
             // Set the type of all resources with this type to unknown
             count += await UpdatePropertyAsync(database.Resources, i => i.TypeId == id, i => i.TypeId, Guid.Parse(DatabaseSeeder.UnknownResourceTypeId));
+
+            if (startedTransaction) await Commit();
 
             return count > 0;
         }
@@ -210,3 +253,10 @@ namespace KnowledgeBank.Data
         { return await DeleteResourceTypeAsync(Guid.Parse(id)); }
     }
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

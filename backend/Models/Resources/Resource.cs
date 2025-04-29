@@ -65,18 +65,18 @@ public class Resource
     [JsonIgnore] public VideoMetadata? VideoMetadata { get; set; }
 
     // Navigation property for Resource Type (1:1)
-    [JsonIgnore] public ResourceType? Type { get; set; }
+    [JsonIgnore] public ResourceType? ResourceType { get; set; }
     #endregion
 
     #region Relation navigation properties
     // Navigation properties for the relations a object can have (1:m)
-    [JsonIgnore] public ICollection<ResourceAuthorRelation>? Authors { get; set; }
-    [JsonIgnore] public ICollection<ResourceOrganisationRelation>? Organisations { get; set; }
-    [JsonIgnore] public ICollection<ResourceRegionRelation>? Regions { get; set; }
-    [JsonIgnore] public ICollection<ResourceRelatedOrganisationRelation>? RelatedOrganisations { get; set; }
-    [JsonIgnore] public ICollection<ResourceRelatedSourceRelation>? RelatedSources { get; set; }
-    [JsonIgnore] public ICollection<ResourceSourceRelation>? Sources { get; set; }
-    [JsonIgnore] public ICollection<ResourceTagRelation>? TagRelations { get; set; }
+    [JsonIgnore] public ICollection<ResourceAuthorRelation>? ResourceAuthorRelations { get; set; }
+    [JsonIgnore] public ICollection<ResourceOrganisationRelation>? ResourceOrganisationRelations { get; set; }
+    [JsonIgnore] public ICollection<ResourceRegionRelation>? ResourceRegionRelations { get; set; }
+    [JsonIgnore] public ICollection<ResourceRelatedOrganisationRelation>? ResourceRelatedOrganisationRelations { get; set; }
+    [JsonIgnore] public ICollection<ResourceRelatedSourceRelation>? ResourceRelatedSourceRelations { get; set; }
+    [JsonIgnore] public ICollection<ResourceSourceRelation>? ResourceSourceRelations { get; set; }
+    [JsonIgnore] public ICollection<ResourceTagRelation>? ResourceTagRelations { get; set; }
 
     #endregion
 }
@@ -114,3 +114,9 @@ public class ResourceRenameDto
     public required string Id { get; set; }
     public required string Title { get; set; }
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

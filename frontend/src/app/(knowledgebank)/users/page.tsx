@@ -5,8 +5,7 @@ import InvitationCard from "./components/invitation-card";
 export default async function UsersPage() {   
   return (
     <PageRoleGuard requiredRole="admin">
-      <div className="p-4">
-        <h1 className="mb-4">Users:</h1>
+      <div className="p-4 w-full">
         <div className="h-full w-full flex">
           <div className="flex h-full w-full">
             { /* Users list */ }
@@ -25,3 +24,9 @@ export default async function UsersPage() {
     </PageRoleGuard>
   );
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

@@ -1,0 +1,60 @@
+---
+title: DtoGenerator
+---
+import { CollapsibleInherited } from "@/components/collapsible"
+import { TypeTable } from "@/components/type_table"
+import { CSharpType } from "@/components/csharp_type"
+
+
+Namespace: <a href='../Data'>KnowledgeBank.Data</a>  
+Assembly: backend.dll  
+
+Provides methods to generate DTOs from models with support for nested relations.
+
+```csharp
+public static class DtoGenerator
+```
+
+#### Inheritance
+
+<a href='https://learn.microsoft.com/dotnet/api/system.object' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='object' /></a> ← <a href='' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DtoGenerator' /></a>
+
+
+
+<CollapsibleInherited title='Show Inherited Members (7)'>
+[object.Equals\(object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\)), 
+[object.Equals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\-system\-object\)), 
+[object.GetHashCode\(\)](https://learn.microsoft.com/dotnet/api/system.object.gethashcode), 
+[object.GetType\(\)](https://learn.microsoft.com/dotnet/api/system.object.gettype), 
+[object.MemberwiseClone\(\)](https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone), 
+[object.ReferenceEquals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.referenceequals), 
+[object.ToString\(\)](https://learn.microsoft.com/dotnet/api/system.object.tostring)
+</CollapsibleInherited>
+
+---
+## Methods
+
+---
+###  ToDto\<T\>\(T, bool, params string\[\]\)
+
+Converts an entity to a DTO, including specified properties.
+
+```csharp
+public static object ToDto<T>(T entity, bool useCamelCase = true, params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+`entity` T
+The entity instance
+<TypeTable types={[{"name":"useCamelCase","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":""},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Relations to include in the DTO (supports dot notation like \"Authors.Person\")"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"object","links":["https://learn.microsoft.com/dotnet/api/system.object"],"description":"An object representing the DTO"}]} />
+
+---
+#### Type Parameters
+
+`T` 
+
+The entity type
+

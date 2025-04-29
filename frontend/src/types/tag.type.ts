@@ -69,3 +69,9 @@ export const TagRelationSchema = z.object({
 export type TagRelation = z.infer<typeof TagRelationSchema>;
 
 export const TagRelationArraySchema = z.array(TagRelationSchema);
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

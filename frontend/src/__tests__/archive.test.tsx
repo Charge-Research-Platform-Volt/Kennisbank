@@ -109,7 +109,7 @@ describe("Rendering fetch results", () => {
 
     await awaitDebouncedChange(() => fireEvent.change(searchInput, { target: { value: "error" } }));
 
-    expect(getByText("An error occurred while fetching search results.")).toBeInTheDocument();
+    await waitFor(() => expect(getByText("An error occurred while fetching search results.")).toBeInTheDocument());
   });
 
   test("renders different documents when search is changed", async () => {
@@ -186,30 +186,30 @@ describe("Rendering fetch results", () => {
 
     await awaitDebouncedChange(() => filterButtonApplyMock(["tag1"], null, null), 2);
 
-    expect(queryByText(title1)).not.toBeInTheDocument();
+    await waitFor(() => expect(queryByText(title1)).not.toBeInTheDocument());
     expect(getByText(title2)).toBeInTheDocument();
     expect(getByText(title3)).toBeInTheDocument();
     expect(getByText(title4)).toBeInTheDocument();
 
     await awaitDebouncedChange(() => filterButtonApplyMock(["tag1"], 2025, null), 3);
 
-    expect(queryByText(title1)).not.toBeInTheDocument();
-    expect(queryByText(title2)).not.toBeInTheDocument();
+    await waitFor(() => expect(queryByText(title1)).not.toBeInTheDocument());
+    await waitFor(() => expect(queryByText(title2)).not.toBeInTheDocument());
     expect(getByText(title3)).toBeInTheDocument();
     expect(getByText(title4)).toBeInTheDocument();
 
     await awaitDebouncedChange(() => filterButtonApplyMock(["tag1"], 2025, 2027), 4);
 
-    expect(queryByText(title1)).not.toBeInTheDocument();
-    expect(queryByText(title2)).not.toBeInTheDocument();
-    expect(queryByText(title3)).not.toBeInTheDocument();
+    await waitFor(() => expect(queryByText(title1)).not.toBeInTheDocument());
+    await waitFor(() => expect(queryByText(title2)).not.toBeInTheDocument());
+    await waitFor(() => expect(queryByText(title3)).not.toBeInTheDocument());
     expect(getByText(title4)).toBeInTheDocument();
   });
 });
 
 // Make a change that has to be "debounced", aka time has to pass since the last change before the change is confirmed
 async function awaitDebouncedChange(action: () => void, fetchTimes: number = -1) {
-  await act(async () => {
+    await act(async () => {
     vi.useFakeTimers();
     action();
     // Although 300 somewhat a magic number here, its based on the debounce timer set on the archive page
@@ -236,3 +236,10 @@ async function awaitFetchResolve(times: number = -1) {
 function getCompareString(dateString: string) {
   return new Date(dateString).toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" });
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

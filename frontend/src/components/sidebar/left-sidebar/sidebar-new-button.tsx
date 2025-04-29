@@ -28,18 +28,19 @@ const initialFileResourceState: FormResponse<FileBase> = {
   message: "",
 };
 /**
- * 
+ *
  * @param tags - The tags fetched from the left-sidebar server component
+ * @param asIcon - Boolean that determines if the button should be rendered with just the icon (which it does when it is folded)
  * @returns An upload button where it is possible to upload files or websites through a popup
  */
-export default function NewButton({ tags }: { tags: TagArray }) {
+export default function NewButton({ tags, asIcon = false, minimize }: { tags: TagArray; asIcon?: boolean; minimize: boolean }) {
   const popupRef = useRef<HTMLDivElement | null>(null); //Ref used to check if user clicks outside of popup
   const [status, setStatus] = useState<UploadStatus>("idle"); //upload status
   const [uploadPopup, setUploadPopup] = useState(false); //bool which determines whether you can see the new popup
   const [newFile, setNewFile] = useState<File | null>(null); //File for file upload
   const [newWebsite, setNewWebsite] = useState<string | null>(null); // Website for website upload
   const [fileHash, setFileHash] = useState<string>(""); // Hash of the file
-  const [newUploadType, setUploadType] = useState<uploadType>("File") // Sets upload type of popup
+  const [newUploadType, setUploadType] = useState<uploadType>("File"); // Sets upload type of popup
   const [isDuplicate, setIsDuplicate] = useState<boolean>(false); // If file already exists in storage
   const setDupeId = useState<string>("")[1]; // The ID of the file if it already exists in archive
 
@@ -74,17 +75,18 @@ export default function NewButton({ tags }: { tags: TagArray }) {
   useEffect(() => {
     if (fileState.success) {
       toast.success(fileState.message);
+      window.dispatchEvent(new Event("resourceListUpdated")); // Trigger a refresh event to update the resource list
 
       closeUploadPopup();
     } else if (fileState.message) {
       toast.error(fileState.message);
-      setStatus("error")
+      setStatus("error");
     } else if (fileState.errors) {
       // Get all error arrays from the error object
-      Object.values(fileState.errors).forEach(errorsArray => {
+      Object.values(fileState.errors).forEach((errorsArray) => {
         // Each property might be an array of error messages or undefined
         if (errorsArray) {
-          errorsArray.forEach(errorMsg => {
+          errorsArray.forEach((errorMsg) => {
             toast.error(errorMsg);
           });
         }
@@ -95,16 +97,17 @@ export default function NewButton({ tags }: { tags: TagArray }) {
   useEffect(() => {
     if (websiteState.success) {
       toast.success(websiteState.message);
+      window.dispatchEvent(new Event("resourceListUpdated")); // Trigger a refresh event to update the resource list
 
       closeUploadPopup();
     } else if (websiteState.message) {
       toast.error(websiteState.message);
     } else if (websiteState.errors) {
       // Get all error arrays from the error object
-      Object.values(websiteState.errors).forEach(errorsArray => {
+      Object.values(websiteState.errors).forEach((errorsArray) => {
         // Each property might be an array of error messages or undefined
         if (errorsArray) {
-          errorsArray.forEach(errorMsg => {
+          errorsArray.forEach((errorMsg) => {
             toast.error(errorMsg);
           });
         }
@@ -125,7 +128,7 @@ export default function NewButton({ tags }: { tags: TagArray }) {
   };
 
   const changeTab = (newTab: uploadType) => {
-    if(newTab === newUploadType){
+    if (newTab === newUploadType) {
       return;
     }
     setUploadPopup(true);
@@ -137,8 +140,8 @@ export default function NewButton({ tags }: { tags: TagArray }) {
     setDescription("");
     setTitle("");
     setStatus("idle");
-    setUploadType(newTab);  // Changes upload tab
-  }
+    setUploadType(newTab); // Changes upload tab
+  };
 
   const closeUploadPopup = () => {
     //When the popup closes values are reset
@@ -202,7 +205,7 @@ export default function NewButton({ tags }: { tags: TagArray }) {
       return;
     }
 
-    if(newUploadType === "Website" && newWebsite == null){
+    if (newUploadType === "Website" && newWebsite == null) {
       toast.error("Please input a URL!");
     }
 
@@ -210,10 +213,10 @@ export default function NewButton({ tags }: { tags: TagArray }) {
 
     try {
       startTransition(async () => {
-        if(newUploadType === "File"){
+        if (newUploadType === "File") {
           await fileAction(formData);
         }
-        if(newUploadType === "Website"){
+        if (newUploadType === "Website") {
           await websiteAction(formData);
         }
       });
@@ -229,12 +232,18 @@ export default function NewButton({ tags }: { tags: TagArray }) {
         {/* Purple New button */}
         <DropdownMenuTrigger
           ref={newButtonRef}
-          className="font-face bg-purple text-md active:bg-purple flex h-9 w-full cursor-pointer items-center gap-1 rounded-md pl-3 text-left text-white hover:bg-[#6f2aaf]"
+          asChild
+          // className={`bg-purple active:bg-purple w-full cursor-pointer p-2 text-white hover:bg-[#6f2aaf] ${asIcon ? "mb-[2vh] rounded rounded-l-none rounded-r-lg transition" : "font-face text-md flex h-9 items-center rounded-md text-left"}`}
         >
-          <New className="h-5 w-5" />
-          <div data-testid="button_text" className="pb-0.5">
-            New
-          </div>
+          {/* If asIcon is true, only show icon */}
+          <Button variant="default" className={`flex w-full items-center justify-start overflow-hidden p-2 transition-all duration-200 ${!minimize && "w-9"}`}>
+            <New className="h-4 w-4" />
+            {asIcon ? null : (
+              <div data-testid="button_text" className="pb-0.5">
+                New
+              </div>
+            )}
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent style={{ width: newButtonWidth }}>
           {/* Upload file item in popup */}
@@ -246,17 +255,16 @@ export default function NewButton({ tags }: { tags: TagArray }) {
           <DropdownMenuItem data-testid="button_in" className="cursor-pointer" onClick={() => clickNew("Website")}>
             <label className="inline-block cursor-pointer">Upload New Website</label>
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
+          {/* <DropdownMenuSeparator /> */}
           {/* New project item in popup */}
-          <DropdownMenuItem data-testid="button_in" className="cursor-pointer">
+          {/* <DropdownMenuItem data-testid="button_in" className="cursor-pointer">
             <label className="inline-block cursor-pointer">Create New Project</label>
-          </DropdownMenuItem>
+          </DropdownMenuItem> */}
         </DropdownMenuContent>
       </DropdownMenu>
 
       {uploadPopup && (
         <div className="popupContainer">
-
           <div ref={popupRef} className="popup h-full min-h-160 min-w-130 p-5">
             <form
               className="h-full max-h-[100%]"
@@ -269,16 +277,16 @@ export default function NewButton({ tags }: { tags: TagArray }) {
               <div className="flex h-full w-full flex-col justify-between">
                 <div className="flex-1 justify-start">
                   <div className="flex-1 justify-start">
-                  <div className="mb-2">
-                    <PopupTitle data-testid="popup_text">Upload {newUploadType}</PopupTitle>
+                    <div className="mb-2">
+                      <PopupTitle data-testid="popup_text">Upload {newUploadType}</PopupTitle>
                     </div>
                     <div>
                       {/* Label is what you see however you click the input, only applicable if the user uploads a file */}
                       {newUploadType === "File" && (
                         <div className="mt-5 mb-2 flex w-40">
                           <label htmlFor="file-Picker" className="labelCSS flex h-full w-full min-w-40 cursor-pointer items-center justify-center rounded-xl bg-[#E5E5E5] font-bold hover:bg-[#c9c2c2]">
-                          {status === "checking" ? "Checking file..." : "Upload New File"}
-                            </label>
+                            {status === "checking" ? "Checking file..." : "Upload New File"}
+                          </label>
                           <input
                             id="file-Picker"
                             name="file"
@@ -288,36 +296,38 @@ export default function NewButton({ tags }: { tags: TagArray }) {
                             className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                             disabled={status === "checking" || status === "uploading"}
                           />
-                        </div>)}
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Information on uploaded file, only applicable if the user uploads a file */}
                   {newUploadType == "File" && (
-                  <div>
-                    <div className="flex">
-                      <FileInfo>
-                        Type: {newFile && newFile.type} {!newFile && "-"}
-                      </FileInfo>
-                      <FileInfo>
-                        Size: {newFile && (newFile.size / 1024).toFixed(2)} {!newFile && "-"} KB
-                      </FileInfo>
-                      <FileInfo>
-                        Hash: {fileHash && `${fileHash.substring(0, 10)}...`} {!fileHash && "-"}
-                      </FileInfo>
-                      {isDuplicate && <p className="font-bold text-red-500">Duplicate file detected!</p>}
+                    <div>
+                      <div className="flex">
+                        <FileInfo>
+                          Type: {newFile && newFile.type} {!newFile && "-"}
+                        </FileInfo>
+                        <FileInfo>
+                          Size: {newFile && (newFile.size / 1024).toFixed(2)} {!newFile && "-"} KB
+                        </FileInfo>
+                        <FileInfo>
+                          Hash: {fileHash && `${fileHash.substring(0, 10)}...`} {!fileHash && "-"}
+                        </FileInfo>
+                        {isDuplicate && <p className="font-bold text-red-500">Duplicate file detected!</p>}
+                      </div>
                     </div>
-                  </div>)}
+                  )}
 
                   {/* InputBlock for uploading websites */}
                   {newUploadType === "Website" && (
-                      <div>
-                        <InputBlock className="justify-start">
-                          <InputHeader>Website URL: </InputHeader>
-                          <FInput className="w-full" type="string" placeholder="Enter URL" name="url" onChange={(e) => setNewWebsite(e.target.value.trim())} />
-                        </InputBlock>
-                      </div>
-                      )}
+                    <div>
+                      <InputBlock className="justify-start">
+                        <InputHeader>Website URL: </InputHeader>
+                        <FInput className="w-full" type="string" placeholder="Enter URL" name="url" onChange={(e) => setNewWebsite(e.target.value.trim())} />
+                      </InputBlock>
+                    </div>
+                  )}
                   {/* Document title entry */}
                   <InputBlock data-testid="popup_text" className="justify-start">
                     <InputHeader>Document Title: </InputHeader>
@@ -335,7 +345,7 @@ export default function NewButton({ tags }: { tags: TagArray }) {
                           placeholder="Enter description"
                           maxLength={512}
                           className="h-40 w-full resize-none bg-slate-200 pl-2"
-                          value = {description}
+                          value={description}
                           onChange={(e) => setDescription(e.target.value.trimStart())}
                         />
                       </InputBlock>
@@ -376,3 +386,7 @@ export default function NewButton({ tags }: { tags: TagArray }) {
     </div>
   );
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)

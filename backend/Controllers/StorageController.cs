@@ -300,7 +300,7 @@ namespace KnowledgeBank.Controllers
         {
             try
             {
-                Resource[]? items = await resourceManager.GetAllResourcesAsync(includeProperties: [ "TagRelations.Tag" ]);
+                Resource[]? items = await resourceManager.GetAllResourcesAsync(includeProperties: [ "ResourceTagRelations.Tag" ]);
 
                 if (items == null)
                     return Ok(new PageResponse("No files in database.", 0, 0, Array.Empty<Resource>()));
@@ -308,7 +308,7 @@ namespace KnowledgeBank.Controllers
                 object[] dtos = new object[items.Length];
                 for (int i = 0; i < items.Length; i++)
                 {
-                    dtos[i] = DtoGenerator.ToDto(items[i], includeProperties: [ "TagRelations.Tag" ]);
+                    dtos[i] = DtoGenerator.ToDto(items[i], includeProperties: [ "ResourceTagRelations.Tag" ]);
                 }
 
                 return Ok(new PageResponse($"{items.Length} files found.", 0, 0, dtos));
@@ -406,3 +406,10 @@ namespace KnowledgeBank.Controllers
         }
     }
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

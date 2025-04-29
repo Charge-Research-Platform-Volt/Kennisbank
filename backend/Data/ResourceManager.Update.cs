@@ -1,7 +1,12 @@
-﻿using KnowledgeBank.Models;
+﻿// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+//
+// Author: Abel Dieterich
+
+using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
-using System.Net.Sockets;
 
 namespace KnowledgeBank.Data
 {
@@ -12,7 +17,10 @@ namespace KnowledgeBank.Data
 
         protected async Task<int> UpdatePropertyAsync<T, TProperty>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate, Expression<Func<T, TProperty>> propertySelector, TProperty newValue) where T : class
         {
-            return await dbSet.Where(predicate).ExecuteUpdateAsync(s => s.SetProperty(e => EF.Property<TProperty>(e, GetPropertyName(propertySelector)), _ => newValue));
+            bool startedTransaction = await BeginTransaction();
+            int count = await dbSet.Where(predicate).ExecuteUpdateAsync(s => s.SetProperty(e => EF.Property<TProperty>(e, GetPropertyName(propertySelector)), _ => newValue));
+            if (startedTransaction) await Commit();
+            return count;
         }
 
         #endregion
@@ -267,69 +275,12 @@ namespace KnowledgeBank.Data
         { return await UpdateRoleInResourceRelatedPersonRelationAsync(Guid.Parse(resourceId), Guid.Parse(personId), newRole); }
 
         #endregion
-
-        #region Resource Tag
-
-        // Approve
-
-        public async Task<bool> ApproveTagOnResourceAsync(Guid tagId, Guid resourceId, Guid adminId)
-        {
-                    await UpdatePropertyAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.IsApproved, true);
-                    await UpdatePropertyAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.ApprovedBy, adminId);
-            return  await UpdatePropertyAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.ApprovedOn, DateTime.UtcNow) > 0;
-        }
-
-        public async Task<bool> ApproveTagOnResourceAsync(Guid tagId, Guid resourceId, string adminId)
-        { return await ApproveTagOnResourceAsync(tagId, resourceId, Guid.Parse(adminId)); }
-
-        public async Task<bool> ApproveTagOnResourceAsync(Guid tagId, string resourceId, Guid adminId)
-        { return await ApproveTagOnResourceAsync(tagId, Guid.Parse(resourceId), adminId); }
-
-        public async Task<bool> ApproveTagOnResourceAsync(string tagId, Guid resourceId, Guid adminId)
-        { return await ApproveTagOnResourceAsync(Guid.Parse(tagId), resourceId, adminId); }
-
-        public async Task<bool> ApproveTagOnResourceAsync(string tagId, string resourceId, Guid adminId)
-        { return await ApproveTagOnResourceAsync(Guid.Parse(tagId), Guid.Parse(resourceId), adminId); }
-
-        public async Task<bool> ApproveTagOnResourceAsync(Guid tagId, string resourceId, string adminId)
-        { return await ApproveTagOnResourceAsync(tagId, Guid.Parse(resourceId), Guid.Parse(adminId)); }
-
-        public async Task<bool> ApproveTagOnResourceAsync(string tagId, Guid resourceId, string adminId)
-        { return await ApproveTagOnResourceAsync(Guid.Parse(tagId), resourceId, Guid.Parse(adminId)); }
-
-        public async Task<bool> ApproveTagOnResourceAsync(string tagId, string resourceId, string adminId)
-        { return await ApproveTagOnResourceAsync(Guid.Parse(tagId), Guid.Parse(resourceId), Guid.Parse(adminId)); }
-
-        // Unapprove
-
-        public async Task<bool> UnapproveTagOnResourceAsync(Guid tagId, Guid resourceId, Guid adminId)
-        {
-                    await UpdatePropertyAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.IsApproved, false);
-                    await UpdatePropertyAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.ApprovedBy, null);
-            return  await UpdatePropertyAsync(database.ResourceTagRelations, relation => relation.ResourceId == resourceId && relation.TagId == tagId, tag => tag.ApprovedOn, null) > 0;
-        }
-
-        public async Task<bool> UnapproveTagOnResourceAsync(Guid tagId, Guid resourceId, string adminId)
-        { return await UnapproveTagOnResourceAsync(tagId, resourceId, Guid.Parse(adminId)); }
-
-        public async Task<bool> UnapproveTagOnResourceAsync(Guid tagId, string resourceId, Guid adminId)
-        { return await UnapproveTagOnResourceAsync(tagId, Guid.Parse(resourceId), adminId); }
-
-        public async Task<bool> UnapproveTagOnResourceAsync(string tagId, Guid resourceId, Guid adminId)
-        { return await UnapproveTagOnResourceAsync(Guid.Parse(tagId), resourceId, adminId); }
-
-        public async Task<bool> UnapproveTagOnResourceAsync(string tagId, string resourceId, Guid adminId)
-        { return await UnapproveTagOnResourceAsync(Guid.Parse(tagId), Guid.Parse(resourceId), adminId); }
-
-        public async Task<bool> UnapproveTagOnResourceAsync(Guid tagId, string resourceId, string adminId)
-        { return await UnapproveTagOnResourceAsync(tagId, Guid.Parse(resourceId), Guid.Parse(adminId)); }
-
-        public async Task<bool> UnapproveTagOnResourceAsync(string tagId, Guid resourceId, string adminId)
-        { return await UnapproveTagOnResourceAsync(Guid.Parse(tagId), resourceId, Guid.Parse(adminId)); }
-
-        public async Task<bool> UnapproveTagOnResourceAsync(string tagId, string resourceId, string adminId)
-        { return await UnapproveTagOnResourceAsync(Guid.Parse(tagId), Guid.Parse(resourceId), Guid.Parse(adminId)); }
-
-        #endregion
     }
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

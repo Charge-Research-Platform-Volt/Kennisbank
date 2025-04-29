@@ -77,9 +77,6 @@ namespace KnowledgeBank.Data
             modelBuilder.Entity<ResourceRelatedSourceRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.Url });
 
-            modelBuilder.Entity<ResourceResourceTypeRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.ResourceTypeId });
-
             modelBuilder.Entity<OrganisationRelationship>()
                 .HasOne(or => or.SourceOrganisation)
                 .WithMany(o => o.TargetRelationships)
@@ -141,7 +138,7 @@ namespace KnowledgeBank.Data
             {
                 await Database.ExecuteSqlInterpolatedAsync($@"
                     INSERT INTO ""resource-vectors"" (id, ""resource-id"", vector)
-                    VALUES (gen_random_uuid(), {resource.Id}, to_tsvector('english', {resource.Title} || ' ' || {resource.Description}))
+                    VALUES (gen_random_uuid(), {resource.Id}, to_tsvector('english', {resource.Title} || ' ' || {resource.Description ?? ""}))
                     ON CONFLICT (""resource-id"") 
                     DO UPDATE SET vector = EXCLUDED.vector;");
             }
@@ -149,3 +146,9 @@ namespace KnowledgeBank.Data
         }
     }
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

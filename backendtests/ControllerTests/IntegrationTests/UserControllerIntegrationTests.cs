@@ -80,6 +80,37 @@ public class UserControllerTests : TestBase
         Assert.Fail("Expected UserPageResponse, but got a different type.");
     }
 
+        [Test]
+    public async Task GetUsersPagedWithSearch_ReturnsResults_WhenDataExists()
+    {
+        // Arrange
+        User testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
+        User otherUser = new User { Id = Guid.NewGuid().ToString(), UserName = "otheruser", Email = "otheruser@example.com" };
+        Context.AppUsers.Add(testUser);
+        Context.AppUsers.Add(otherUser);
+        await Context.SaveChangesAsync();
+        _userManagerMock.Setup(m => m.GetRolesAsync(It.IsAny<User>())).ReturnsAsync((User user) => {
+            return user.Email == "admin@admin.nl" ? new List<string> { "admin" } : new List<string> { "user" };
+        });
+
+        // Act
+        IActionResult result = await _controller.GetUsersPaged(1, 10, "test");
+
+        // Assert
+        OkObjectResult? okResult = result as OkObjectResult;
+        Assert.That(okResult, Is.Not.Null);
+        Assert.That(okResult.StatusCode, Is.EqualTo(200));
+
+        if(okResult.Value is UserPageResponse response)
+        {
+            Assert.That(response.Users.Length, Is.GreaterThan(0));
+            Assert.That(response.PageCount, Is.EqualTo(1));
+            return;
+        }
+        
+        Assert.Fail("Expected UserPageResponse, but got a different type.");
+    }
+
     [Test]
     public async Task Delete_RemovesUser_WhenSuccessful()
     {
@@ -98,3 +129,10 @@ public class UserControllerTests : TestBase
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
     }
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

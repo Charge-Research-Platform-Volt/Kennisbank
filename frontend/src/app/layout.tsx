@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TabletSmartphone } from "lucide-react";
 import { Inter } from "next/font/google";
 import { SidebarProvider } from "@/context/sidebar-provider";
+import { cookies } from "next/headers";
 //import LeftSidebarServer from "@/components/left-sidebar/left-sidebar-server";
 
 // Metadata
@@ -20,10 +21,17 @@ const inter = Inter({
 });
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // Get the state of the right sidebar from cookies
+  const leftSidebar = (await cookies()).get("leftSidebar:state");
+  let leftSidebarDefault = true;
+  if (leftSidebar) {
+    leftSidebarDefault = leftSidebar.value === "true";
+  }
+
   return (
     <html className={inter.className} lang="en">
       <body className="flex h-screen w-screen overflow-hidden">
-        <SidebarProvider>{children}</SidebarProvider>
+        <SidebarProvider leftSidebarDefaultState={leftSidebarDefault}>{children}</SidebarProvider>
         <Toaster />
 
         {/* Mobile device warning */}
@@ -35,3 +43,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     </html>
   );
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)

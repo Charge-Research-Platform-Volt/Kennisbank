@@ -81,10 +81,10 @@ public class ResourceManagerCreateTests : TestBase
 
         // Assert
         Resource? resource = await Context.Resources
-            .Include(r => r.TagRelations)
-            .Include(r => r.Authors)
-            .Include(r => r.Organisations)
-            .Include(r => r.Regions)
+            .Include(r => r.ResourceTagRelations)
+            .Include(r => r.ResourceAuthorRelations)
+            .Include(r => r.ResourceOrganisationRelations)
+            .Include(r => r.ResourceRegionRelations)
             .FirstOrDefaultAsync(r => r.Id == resourceId);
 
         // Properties that were set
@@ -94,10 +94,10 @@ public class ResourceManagerCreateTests : TestBase
         Assert.That(resource.TypeId, Is.EqualTo(resourceType.Id));
 
         // Properties that were not set
-        Assert.That(resource.TagRelations, Is.Empty);
-        Assert.That(resource.Authors, Is.Empty);
-        Assert.That(resource.Organisations, Is.Empty);
-        Assert.That(resource.Regions, Is.Empty);
+        Assert.That(resource.ResourceTagRelations, Is.Empty);
+        Assert.That(resource.ResourceAuthorRelations, Is.Empty);
+        Assert.That(resource.ResourceOrganisationRelations, Is.Empty);
+        Assert.That(resource.ResourceRegionRelations, Is.Empty);
     }
 
     [Test]
@@ -146,12 +146,12 @@ public class ResourceManagerCreateTests : TestBase
 
         // Assert
         Resource? resource = await Context.Resources
-            .Include(r => r.TagRelations)
+            .Include(r => r.ResourceTagRelations)
             .FirstOrDefaultAsync(r => r.Id == resourceId);
 
         Assert.That(resource, Is.Not.Null);
-        Assert.That(resource.TagRelations, Has.Count.EqualTo(1));
-        Assert.That(resource.TagRelations.First().TagId, Is.EqualTo(testTagId));
+        Assert.That(resource.ResourceTagRelations, Has.Count.EqualTo(1));
+        Assert.That(resource.ResourceTagRelations.First().TagId, Is.EqualTo(testTagId));
     }
 
     [Test]
@@ -204,16 +204,22 @@ public class ResourceManagerCreateTests : TestBase
 
         // Assert
         Resource? resource = await Context.Resources
-            .Include(r => r.TagRelations)
-            .Include(r => r.Authors)
-            .Include(r => r.Organisations)
-            .Include(r => r.Regions)
+            .Include(r => r.ResourceTagRelations)
+            .Include(r => r.ResourceAuthorRelations)
+            .Include(r => r.ResourceOrganisationRelations)
+            .Include(r => r.ResourceRegionRelations)
             .FirstAsync(r => r.Id == resourceId);
 
 
-        Assert.That(resource.TagRelations.Any(t => t.TagId == testTagId));
-        Assert.That(resource.Authors.Any(a => a.PersonId == testPersonId));
-        Assert.That(resource.Organisations.Any(o => o.OrganisationId == testOrganisationId));
-        Assert.That(resource.Regions.Any(r => r.RegionId == testRegionId));
+        Assert.That(resource.ResourceTagRelations.Any(t => t.TagId == testTagId));
+        Assert.That(resource.ResourceAuthorRelations.Any(a => a.PersonId == testPersonId));
+        Assert.That(resource.ResourceOrganisationRelations.Any(o => o.OrganisationId == testOrganisationId));
+        Assert.That(resource.ResourceRegionRelations.Any(r => r.RegionId == testRegionId));
     }
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

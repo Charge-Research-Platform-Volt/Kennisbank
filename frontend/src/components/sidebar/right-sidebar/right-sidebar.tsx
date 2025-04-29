@@ -9,28 +9,31 @@ import Divider from "../divider";
 import Kbd from "@/components/kbd";
 
 /**
- * 
+ *
  * @returns The right sidebar visible when clicked on an item in the archive. Displays useful information such as metadata and related files (soon).
  */
 export default function RightSidebar() {
-  const { selectedDocument, toggleRightSidebar, onCloseClicked } = useSidebar();
+  const { selectedDocument, toggleRightSidebar } = useSidebar();
 
   return (
-    <Sidebar side="right" width="300px">
+    <Sidebar side="right" width="400px" collapsible="offcanvas">
       {selectedDocument ? (
         <>
-          <div className="flex items-center justify-between p-2">
-            <OpenFileButton file={selectedDocument} variant="outline" />
-            <Button onClick={() => {
-              toggleRightSidebar(null);
-              onCloseClicked?.();
-            }} variant="outline">
-              Close
-              <Kbd>ESC</Kbd>
-            </Button>
+          <div className="bg-sidebar sticky top-0 z-10 mb-6">
+            <div className="flex items-center justify-between p-2">
+              <OpenFileButton file={selectedDocument} variant="outline" />
+              <Button
+                onClick={() => {
+                  toggleRightSidebar(null);
+                }}
+                variant="outline"
+              >
+                Close
+                <Kbd>ESC</Kbd>
+              </Button>
+            </div>
+            <Divider className="px-2" />
           </div>
-
-          <Divider className="mb-6 px-2" />
 
           <h2 className="mb-6 px-2 text-xl font-semibold">{selectedDocument.title}</h2>
 
@@ -41,20 +44,24 @@ export default function RightSidebar() {
               <>
                 <Divider name="tags" />
                 <div className="flex flex-wrap gap-2">
-                  {selectedDocument.tagRelations.map((tagRelation) => tagRelation.tag && (
-                    <span key={tagRelation.tag.id} className="rounded-md bg-gray-200 px-2 py-1 text-xs font-medium">
-                      {tagRelation.tag.name}
-                    </span>
-                  ))}
+                  {selectedDocument.tagRelations.map(
+                    (tagRelation) =>
+                      tagRelation.tag && (
+                        <span key={tagRelation.tag.id} className="rounded-md bg-gray-200 px-2 py-1 text-xs font-medium">
+                          {tagRelation.tag.name}
+                        </span>
+                      ),
+                  )}
                 </div>
               </>
             )}
           </div>
 
-          <Divider className="px-2" />
-
-          <div data-slot="sidebar-footer" data-sidebar="footer" className={"flex flex-col gap-1 p-2 text-xs font-medium text-gray-500"}>
-            <p>Created At: {selectedDocument.creationDate ? new Date(selectedDocument.creationDate).toLocaleString() : "Not available"}</p>
+          <div className="bg-sidebar sticky bottom-0 z-10">
+            <Divider className="px-2" />
+            <div data-slot="sidebar-footer" data-sidebar="footer" className={"flex flex-col gap-1 p-2 text-xs font-medium text-gray-500"}>
+              <p>Created At: {selectedDocument.creationDate ? new Date(selectedDocument.creationDate).toLocaleString() : "Not available"}</p>
+            </div>
           </div>
         </>
       ) : (
@@ -72,3 +79,7 @@ export function NoDocumentSelected() {
     </div>
   );
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
