@@ -5,14 +5,14 @@ import Image from "next/image";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 /**
- * 
+ *
  * @param asIcon - Boolean indicating whether or not to render the account details on the rest of the button (email and name)
  * @param handleLogoutAction - Action to log out
  * @param userEmail - Email of the user
  * @param userRole - Current role of the user
  * @returns The profile dropdown, which consists of a clickable profile picture, able to take the user to their profile or log out.
  */
-export default function ProfileDropdown({ isIcon = false, handleLogoutAction, userEmail = "", userRole = "" }: { isIcon?: boolean; handleLogoutAction: () => void; userEmail?: string; userRole?: string, }) {
+export default function ProfileDropdown({ handleLogoutAction, userEmail = "", userRole = "", minimize }: { handleLogoutAction: () => void; userEmail?: string; userRole?: string; minimize: boolean }) {
   const [profileButtonWidth, setProfileButtonWidth] = useState(0);
   const profileButtonRef = React.useRef<HTMLButtonElement>(null);
 
@@ -24,34 +24,31 @@ export default function ProfileDropdown({ isIcon = false, handleLogoutAction, us
 
   return (
     <DropdownMenu>
-        { /* Trigger button (profile photo and if not asIcon: username+email) */ }
-        <DropdownMenuTrigger
-            ref={profileButtonRef}
-            className={`font-face text-md flex h-auto w-full cursor-pointer items-center gap-1 rounded-xl bg-transparent p-2 pb-0 text-left text-black shadow-none outline-none hover:bg-gray-200 data-[state=closed]:ring-0 ${isIcon ? "rounded-l-none" : ""}`}
-        >
-            { /* Profile photo */ }
-            <Image src={`/img/default-profile-picture.svg`} alt="Help" width={24} height={24} className={`${isIcon ? "" : "mr-2"}`} />
-            
-            { /* Username + email */ }
-            {!isIcon && (
-                <div>
-                    <p className="text-sm">{"Charge " + String(userRole).charAt(0).toUpperCase() + String(userRole).slice(1)}</p>
-                    <p className="text-sm text-gray-500">{userEmail}</p>
-                </div>
-            )}
-        </DropdownMenuTrigger>
+      {/* Trigger button (profile photo and if not asIcon: username+email) */}
+      <DropdownMenuTrigger
+        ref={profileButtonRef}
+        className={`font-face text-md data-[state=closed]:ring-0, flex w-full cursor-pointer items-center gap-2 rounded-md p-2 text-black outline-none hover:bg-gray-200 ${minimize && "w-9"} overflow-hidden transition-all duration-200`}
+      >
+        {/* Profile photo */}
+        <Image src={`/img/default-profile-picture.svg`} alt="Profile Picture" width={35} height={35} />
 
-    
-        { /* Dropdown menu */ }
-        <DropdownMenuContent side="top" style={{ width: profileButtonWidth }}>
-            {/* <DropdownMenuItem className="cursor-pointer">
+        {/* Username + email */}
+        <div className="flex flex-col items-start justify-center">
+          <p className="text-sm">{"Charge " + String(userRole).charAt(0).toUpperCase() + String(userRole).slice(1)}</p>
+          <p className="text-sm text-gray-500">{userEmail}</p>
+        </div>
+      </DropdownMenuTrigger>
+
+      {/* Dropdown menu */}
+      <DropdownMenuContent side="top" style={{ width: profileButtonWidth }}>
+        {/* <DropdownMenuItem className="cursor-pointer">
                 Profile
             </DropdownMenuItem>
             <DropdownMenuSeparator /> */}
-            <DropdownMenuItem onClick={handleLogoutAction} className="cursor-pointer">
-                Log out
-            </DropdownMenuItem>
-        </DropdownMenuContent>
+        <DropdownMenuItem onClick={handleLogoutAction} className="cursor-pointer">
+          Log out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
     </DropdownMenu>
   );
 }

@@ -14,7 +14,7 @@ type filterDto = {
   tagFilters: string[];
   startDate?: Date;
   endDate?: Date;
-}
+};
 
 export default function ArchivePage() {
   // State for search results, is null when no fetch has been completed yet, a string when an error occurs, or the fetch response.
@@ -23,6 +23,7 @@ export default function ArchivePage() {
   const [endYear, setEndYear] = useState<number | null>(null);
   const [tagFilters, setTagFilters] = useState<string[]>([]);
   const [currentQuery, setCurrentQuery] = useState<string>("");
+  const [refreshKey, setRefreshKey] = useState<number>(0); // Key to trigger re-fetching of data
 
   // Fetch initial files
   useEffect(() => {
@@ -52,43 +53,65 @@ export default function ArchivePage() {
         tagFilters: tags,
         startDate: start ? new Date(start, 0, 1) : undefined,
         endDate: end ? new Date(end, 11, 31, 23, 59, 59, 999) : undefined,
-      }
+      },
     );
   }
 
+  // Listen for resource list updates
+  useEffect(() => {
+      const handleResourceListUpdated = () => {
+          setRefreshKey((prevKey) => (prevKey) + 1); // increment the refresh key to trigger a re-fetch
+      };
+
+      // Add the event listener to the window object
+      window.addEventListener("resourceListUpdated", handleResourceListUpdated);
+
+      // Cleanup the event listener on component unmount
+      return () => {
+          window.removeEventListener("resourceListUpdated", handleResourceListUpdated);
+      };
+  }, []);
+
   // Respond to search input changes
   // Debounce the search input to avoid too many requests
-  const handleSearch = useDebouncedCallback(async (query: string | undefined = undefined, tags: string[] | undefined = undefined, start: number | null | undefined = undefined, end: number | null | undefined = undefined) => {
-    fetchQuery(query, tags, start, end);
-  }, 300);
+  const handleSearch = useDebouncedCallback(
+    async (query: string | undefined = undefined, tags: string[] | undefined = undefined, start: number | null | undefined = undefined, end: number | null | undefined = undefined) => {
+      fetchQuery(query, tags, start, end);
+    },
+    300,
+  );
+
+  // Call the search function when the input changes or when the refresh key changes
+  useEffect(() => {
+    handleSearch(currentQuery, tagFilters, startYear, endYear);
+  }, [currentQuery, tagFilters, startYear, endYear, refreshKey, handleSearch]);
 
   return (
     <>
-      <div className="py-2 *:not-first:mt-2">
+      <div className="*:not-first:mt-2">
         <div className="relative w-full">
           <Input
             className="peer h-10 ps-9"
             placeholder="Search"
             type="text"
             onChange={(e) => {
-              handleSearch(e.target.value);
               setCurrentQuery(e.target.value);
             }}
           />
           <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
             <Search className="h-4 w-4" aria-hidden="true" fill="currentColor" />
           </div>
-          <FilterButton onApplyAction={(tagFilters, startDate, endDate) => {
-            console.log("Filter applied:", tagFilters, startDate, endDate);
-            setTagFilters(tagFilters);
-            setStartYear(startDate);
-            setEndYear(endDate);
-            handleSearch(undefined, tagFilters, startDate, endDate);
-          }} />
+          <FilterButton
+            onApplyAction={(tagFilters, startDate, endDate) => {
+              setTagFilters(tagFilters);
+              setStartYear(startDate);
+              setEndYear(endDate);
+            }}
+          />
         </div>
       </div>
 
-      <div className="flex py-2">
+      <div className="flex pt-2">
         {typeof searchResults === "string" || searchResults instanceof String ? (
           <p className="flex items-center gap-3 p-3">
             <OctagonAlert size={16} /> {searchResults}
@@ -109,9 +132,9 @@ export default function ArchivePage() {
     errorMessage: string,
     onError: () => void = () => {
       toast.error(errorMessage);
-      setSearchResults(errorMessage); 
+      setSearchResults(errorMessage);
     },
-    filter?: filterDto
+    filter?: filterDto,
   ) {
     try {
       const response = await fetch(url, {
@@ -120,7 +143,7 @@ export default function ArchivePage() {
         headers: {
           "Content-Type": "application/json",
         },
-        ...(filter ? { body: JSON.stringify(filter) } : {})
+        ...(filter ? { body: JSON.stringify(filter) } : {}),
       });
 
       if (response.ok) {
@@ -137,9 +160,6 @@ export default function ArchivePage() {
   }
 }
 
-
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

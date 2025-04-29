@@ -182,9 +182,46 @@ describe('UsersList', () => {
       fireEvent.click(nextButton);
     })
     
-    await waitFor(() => expect(vi.mocked(ListUsersPaged)).toHaveBeenCalledWith(2));
+    await waitFor(() => expect(vi.mocked(ListUsersPaged)).toHaveBeenCalledWith(2, ""));
+  });
+
+  it('Searches correctly', async () => {
+    // Mocking a successful response with multiple pages
+    vi.mocked(ListUsersPaged).mockImplementation(async (_page, searchQuery) => {
+      {
+        const users = [
+          { id: crypto.randomUUID(), email: 'user1@example.com', username: 'user1@example.com', role: 'user', emailConfirmed: true },
+          { id: crypto.randomUUID(), email: 'user2@example.com', username: 'user2@example.com', role: 'user', emailConfirmed: true },
+        ];
+
+        const filteredUsers = users.filter(user => user.email.includes(searchQuery));
+        return {
+          success: true,
+          message: 'Users fetched successfully',
+          users: filteredUsers,
+          pageCount: 3
+        };
+      }
+    });
+
+    render(<UsersList />);
+    
+    await waitFor(() => expect(screen.getByText('user1@example.com')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('user2@example.com')).toBeTruthy());
+    
+    const searchBar = screen.getByPlaceholderText('Search');
+    await act(() => {
+      fireEvent.change(searchBar, { target: { value: 'user1' } });
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    await waitFor(() => expect(vi.mocked(ListUsersPaged)).toHaveBeenCalledWith(1, "user1"));
+    await waitFor(() => expect(screen.getByText('user1@example.com')).toBeTruthy());
+    await waitFor(() => expect(screen.queryByText('user2@example.com')).not.toBeInTheDocument());
   });
 });
+
 
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

@@ -17,7 +17,7 @@ public class Region
     public required string Name { get; set; }
 
     // Navigation property
-    [JsonIgnore] public ICollection<ResourceRegionRelation>? Resources { get; set; }
+    [JsonIgnore] public ICollection<ResourceRegionRelation>? ResourceRegionRelations { get; set; }
 }
 
 public class RegionCreateDto
