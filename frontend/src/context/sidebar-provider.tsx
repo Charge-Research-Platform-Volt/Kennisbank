@@ -67,7 +67,9 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
   };
 
   useEffect(() => {
-    setRightSidebarOpen(false);
+    if (pathname !== "/archive") {
+      setRightSidebarOpen(false);
+    }
   }, [pathname]);
 
   useHotkeys("esc", () => {

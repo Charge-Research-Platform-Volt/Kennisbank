@@ -6,7 +6,8 @@ using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
-using KnowledgeBank.Responses;
+using System.Linq.Expressions;
+using KnowledgeBank.Utils;
 
 namespace KnowledgeBank.Controllers;
 
@@ -20,6 +21,92 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     private readonly ResourceManager resourceManager = resourceManager;
 
     // ----------- Endpoints:
+    
+    /// <summary>
+    /// Retrieves tags with advanced filtering, searching, paging and sorting capabilities
+    /// </summary>
+    /// <returns>
+    /// Returns a 200 OK response containing a list of tags.
+    /// </returns>
+    [HttpGet("tags")]
+    [SwaggerOperation(
+        Summary = "Get tags with advanced filtering and sorting",
+        Description = "Retrieve tags with options for pagination, filtering by multiple properties, and sorting"
+    )]
+    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
+    [SwaggerResponse(400, "Bad request")]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetTags([FromQuery] TagFilterOptions filterOptions)
+    {
+        try
+        {
+            // Validate paging parameters if using paging
+            if (filterOptions.UsePaging)
+            {
+                if (filterOptions.PageIndex < 1)
+                    return BadRequest(new { message = "Page index cannot be lower than 1." });
+
+                if (filterOptions.PageSize < 1)
+                    return BadRequest(new { message = "Page size cannot be lower than 1." });
+            }
+
+            // Build the predicate based on filter parameters
+            Expression<Func<Tag, bool>>? predicate = BuildPredicate(filterOptions);
+
+            // Get filtered tags based on whether we're using paging
+            Tag[]? tags;
+            if (filterOptions.UsePaging)
+            {
+                tags = await resourceManager.GetTagPageAsync(
+                    pageIndex: filterOptions.PageIndex,
+                    pageSize: filterOptions.PageSize,
+                    predicate: predicate,
+                    includeProperties: filterOptions.IncludeUsageCount ? "ResourceTagRelations" : string.Empty
+                );
+            }
+            else
+            {
+                tags = await resourceManager.GetAllTagsAsync(
+                    predicate: predicate,
+                    includeProperties: filterOptions.IncludeUsageCount ? "ResourceTagRelations": string.Empty
+                );
+            }
+
+            // Handle empty result
+            if (tags == null || tags.Length == 0)
+            {
+                return Ok(Array.Empty<Tag>());
+            }
+
+            // Set the UsageCount property for each tag if IncludeUsageCount is true
+            if (filterOptions.IncludeUsageCount)
+            {
+                foreach (Tag tag in tags)
+                {
+                    // Try to use the navigation property, otherwise set to 0
+                    tag.UsageCount = tag.ResourceTagRelations?.Count ?? 0;
+                }
+            }
+
+            // Apply weighted sorting if specified
+            if (!string.IsNullOrEmpty(filterOptions.WeightedSort) && !string.IsNullOrEmpty(filterOptions.SortBy))
+            {
+                tags = PropertyMatcher.SortByWeightedProperties(tags, filterOptions.WeightedSort, filterOptions.SortDescending, filterOptions.SortBy).ToArray();
+            }
+            // Otherwise apply regular sorting if specified
+            else if (!string.IsNullOrEmpty(filterOptions.SortBy))
+            {
+                tags = PropertyMatcher.SortByProperty(tags, filterOptions.SortBy, filterOptions.SortDescending, filterOptions.SortBy).ToArray();
+            }
+
+            return Ok(tags);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to retrieve tags");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
 
     /// <summary>
     /// Retrieves all tags from the drive.
@@ -27,6 +114,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     /// <returns>
     /// Returns a 200 OK response containing a list of all tags.
     /// </returns>
+    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
     [HttpGet("all-tags")]
     [SwaggerOperation(
             Summary = "List all tags.",
@@ -46,7 +134,8 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             return StatusCode(500, new { message = "Internal server error" });
         }
     }
-
+    
+    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
     [HttpGet("tag-page")]
     [SwaggerOperation(Summary = "List all tags paged.", Description = "List all tags paged.")]
     [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
@@ -104,6 +193,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     /// <returns>
     /// Returns a 200 OK response containing a list of all tags.
     /// </returns>
+    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
     [HttpGet("all-standard-tags")]
     [SwaggerOperation(
             Summary = "List all standardized tags.",
@@ -115,7 +205,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     {
         try
         {
-            return Ok(await resourceManager.GetAllTagsAsync(t => t.IsStandardized));
+            return Ok(await resourceManager.GetAllTagsAsync(predicate: t => t.IsStandardized));
         }
         catch (Exception e)
         {
@@ -124,6 +214,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         }
     }
 
+    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
     [HttpGet("standard-tag-page")]
     [SwaggerOperation(Summary = "List all standardized tags paged.", Description = "List all standardized tags paged.")]
     [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
@@ -151,6 +242,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     /// <returns>
     /// Returns a 200 OK response containing a list of all tags.
     /// </returns>
+    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
     [HttpGet("all-user-tags")]
     [SwaggerOperation(
             Summary = "List all user tags.",
@@ -162,7 +254,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     {
         try
         {
-            return Ok(await resourceManager.GetAllTagsAsync(t => !t.IsStandardized));
+            return Ok(await resourceManager.GetAllTagsAsync(predicate: t => !t.IsStandardized));
         }
         catch (Exception e)
         {
@@ -171,6 +263,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         }
     }
 
+    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
     [HttpGet("user-tag-page")]
     [SwaggerOperation(Summary = "List all user tags paged.", Description = "List all user tags paged.")]
     [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
@@ -195,7 +288,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     /// <summary>
     /// Adds a new standard tag to the tag list.
     /// </summary>
-    /// <param name="tagName">The name of the tag to add.</param>
+    /// <param name="dto">The DTO for tag creation.</param>
     /// <returns>
     /// Returns a 200 OK response containing the added tag.
     /// </returns>
@@ -336,15 +429,16 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     /// <param name="id">The id of the tag to delete.</param>
     /// <returns>
     /// Returns a 200 OK response containing the deleted tag.
-    // </returns>
+    /// </returns>
     [HttpDelete("delete-tag/{id}")]
-    [Authorize(Policy = "RequireAdminRole")]
+    [Authorize]
     [SwaggerOperation(
-            Summary = "Delete standard tag.",
-            Description = "Lets and admin delete a tag from the list of standardized tags."
+            Summary = "Deletes a tag.",
+            Description = "Lets admins delete any tag, and users delete their own tags if not assigned to resources."
         )]
     [SwaggerResponse(200, "Tag deleted")]
     [SwaggerResponse(400, "Bad request")]
+    [SwaggerResponse(403, "Forbidden - User cannot delete this tag")]
     [SwaggerResponse(404, "Tag not found")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> DeleteTag(string id)
@@ -359,12 +453,35 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                 Log.Error("Id is required");
                 return BadRequest(new { message = "Id is required" });
             }
-
+            
+            // Get the GUID of the user
+            Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
+            bool userIsAdmin = User.IsInRole("admin");
+            
+            // Get the tag
+            Tag? tag = await resourceManager.GetTagAsync(id, includeProperties: "ResourceTagRelations");
+            
+            if (tag == null)
+            {
+                Log.Error("Tag not found.");
+                return NotFound(new { message = "Tag not found."});
+            }
+            
+            // Get the resource-tag relations count
+            int relationCount = tag.ResourceTagRelations?.Count ?? 0;
+                        
+            // Check if the user has permission to delete this tag
+            if (!userIsAdmin && (tag.CreatedBy != userId || relationCount != 0)) 
+            {
+                Log.Warning("User {UserId} attempted to delete {TagId} without permissions.", userId, id);
+                return StatusCode(403, new { message = "User cannot delete this tag." });
+            }
+            
             if (await resourceManager.DeleteTagAsync(id))
                 return Ok(new { message = "Tag deleted." });
-
-            Log.Error("Tag not found.");
-            return NotFound(new { message = "Tag not found." });
+                
+            Log.Error("Failed to delete tag.");
+            return StatusCode(500, "Internal server error.");
         }
         catch (Exception e)
         {
@@ -380,15 +497,16 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     /// <param name="newName">The new name of the tag.</param>
     /// <returns>
     /// Returns a 200 OK response.
-    // </returns>
+    /// </returns>
     [HttpPatch("rename-tag/{id}/{newName}")]
-    [Authorize(Policy = "RequireAdminRole")]
+    [Authorize]
     [SwaggerOperation(
             Summary = "Change tag name.",
-            Description = "Lets an admin change the name of a tag."
+            Description = "Lets admins change the name of any tag, and users their own tags if not assigned to resources."
         )]
     [SwaggerResponse(200, "Tag name changed")]
     [SwaggerResponse(400, "Bad request")]
+    [SwaggerResponse(403, "Forbidden - User cannot edit this tag")]
     [SwaggerResponse(404, "Tag not found")]
     [SwaggerResponse(409, "Tag already exists")]
     [SwaggerResponse(500, "Internal server error")]
@@ -412,6 +530,29 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         //Change tag name
         try
         {
+            // Get the GUID of the user
+            Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
+            bool userIsAdmin = User.IsInRole("admin");
+                        
+            // Get the tag
+            Tag? tag = await resourceManager.GetTagAsync(id, includeProperties: "ResourceTagRelations");
+            
+            if (tag == null)
+            {
+                Log.Error("Tag not found.");
+                return NotFound(new { message = "Tag not found."});
+            }
+            
+            // Get the resource-tag relations count
+            int relationCount = tag.ResourceTagRelations?.Count ?? 0;
+            
+            // Check if the user has permission to delete this tag
+            if (!userIsAdmin && (tag.CreatedBy != userId || relationCount != 0)) 
+            {
+                Log.Warning("User {UserId} attempted to edit {TagId} without permissions.", userId, id);
+                return StatusCode(403, new { message = "User cannot edit this tag." });
+            }
+        
             if (await resourceManager.TagExistsAsync(t => t.Name == newName))
             {
                 Log.Error("Tag already exists in UserTags table.");
@@ -490,46 +631,166 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             return StatusCode(500, "Internal Server Error");
         }
     }
-
-    [HttpPost("search")]
-    [SwaggerOperation(
-        Summary = "Search for tags by tag name.",
-        Description = "Searches for tag names in database based on what the user types, returns K tags (or less if there are less matching tags)."
-    )]
-    [SwaggerResponse(200, "List of search results", typeof(List<Resource>))]
-    [SwaggerResponse(400, "Invalid search name or number")]
+    
+    /// <summary>
+    /// Merges the second tag into the first tag. This is done by 
+    /// finding all the relations of the second tag, and then transferring
+    /// these relations to the first tag. 
+    /// <b>Keep in mind that the second tag is deleted after the relations have been transferred.</b>
+    /// </summary>
+    /// <param name="id1">The id of the first tag.</param>
+    /// <param name="id2">The id of the second tag.</param>
+    /// <returns>
+    /// Returns a 200 OK response.
+    /// </returns>
+    [HttpPatch("merge/{id1}/{id2}")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerResponse(200, "Tags merged")]
+    [SwaggerResponse(400, "Bad request")]
+    [SwaggerResponse(404, "Tag(s) not found")]
     [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> GetTopKTags(
-        [FromQuery] string query,
-        [FromQuery] int K = 5
-    )
+    public async Task<IActionResult> Merge(string id1, string id2) 
     {
-        if(string.IsNullOrEmpty(query))
-            return BadRequest(new { message = "This function should not be called with no input" });
-        if (K < 1)
-            return BadRequest(new { message = "Returned tags cannot be lower than 1." } );
-        try
+        // Validate input parameters
+        if (string.IsNullOrEmpty(id1) || string.IsNullOrEmpty(id2)) 
+            return BadRequest(new { message = "IDs are required." });
+            
+        if (id1 == id2)
+            return BadRequest(new { message = "Cannot merge a tag with itself." });
+            
+        if (!Guid.TryParse(id1, out Guid tagId1) || !Guid.TryParse(id2, out Guid tagId2))
+            return BadRequest(new { message = "Invalid tag ID format." });
+        
+        try 
         {
-            // return tags that match the search prompt 
-            Tag[]? tags = await resourceManager.GetTagPageAsync(
-                pageIndex: 1,
-                pageSize: K,
-                predicate: t => t.Name.ToUpper().StartsWith(query.ToUpper()), // tags are searched differently, users don't want it to function like a normal search probably, though this is to be discussed
-                orderBy: t => (t.IsApproved ? 0 : 1) + (t.IsStandardized ? 0 : 1) // ascending order
-            );
+            // Check if both tags exist
+            if (!await resourceManager.TagExistsAsync(id1) || !await resourceManager.TagExistsAsync(id2)) 
+                return NotFound(new { message = "One or both tags were not found." });
 
-            return Ok(new { message = "Good fetch", tags });
+            await resourceManager.BeginTransaction();
+            
+            // Get all resources related to the second tag
+            ResourceTagRelation[]? tagRelations = await resourceManager
+                .GetAllResourceTagRelationsAsync(
+                    predicate: r => r.TagId == tagId2,
+                    includeProperties: "Resource");
+            
+            // Add the first tag to resources that don't already have it
+            foreach (ResourceTagRelation relation in tagRelations) 
+            {
+                // Check if the resource already has the first tag
+                bool hasFirstTag = await resourceManager.ResourceTagRelationExistsAsync(
+                    r => r.ResourceId == relation.ResourceId && r.TagId == tagId1);
+                
+                // If the resource doesn't have the first tag, add it
+                if (!hasFirstTag)
+                {
+                    await resourceManager.AddTagToResourceAsync(relation.ResourceId, tagId1);
+                }
+            }
+            
+            // Delete the second tag
+            if (!await resourceManager.DeleteTagAsync(id2))
+            {
+                await resourceManager.Rollback();
+                Log.Error("Failed to delete tag {TagId2} during merge", id2);
+                return StatusCode(500, new { message = "Failed to delete old tag during merge." });
+            }
+            
+            // Commit the changes made
+            await resourceManager.Commit();
+            return Ok(new { message = "Tags merged successfully." });
         }
-        catch(Exception e)
+        catch (Exception e) 
         {
-            Log.Error(e, "Error finding tags", query);
-            return StatusCode(500, "Internal Server Error");
+            // Rollback if there was an error
+            await resourceManager.Rollback();
+        
+            Log.Error(e, "Error merging tags {TagId1} and {TagId2}", id1, id2);
+            return StatusCode(500, new { message = "Internal Server Error" });
         }
-                // predicate: t => (EF.Functions.TrigramsSimilarity(t.Name ?? "", query) >= 0.2 || t.Name.StartsWith(query)),
-                // orderBy: t => EF.Functions.TrigramsSimilarity(t.Name ?? "", query)
-                // TODO: decide on how to take top k tags
     }
-}
+    
+    
+    #region Helper Methods
+    
+    /// <summary>
+    /// Constructs a dynamic predicate expression for filtering <see cref="Tag"/> entities based on the specified filter options.
+    /// Each non-null or enabled option in <paramref name="options"/> is translated into a logical condition that is 
+    /// combined with the others using a logical OR.
+    /// </summary>
+    /// <param name="options">
+    /// The filter criteria used to build the predicate, including creator, approval status, date ranges, and text search.
+    /// </param>
+    /// <returns>
+    /// A predicate expression that can be used to filter <see cref="Tag"/> records in a LINQ query,
+    /// or <c>null</c> if no filtering options are provided.
+    /// </returns>
+    private Expression<Func<Tag, bool>>? BuildPredicate(TagFilterOptions options)
+    {
+        // Start with a predicate that matches everything
+        Expression<Func<Tag, bool>>? predicate = null;
+
+        // Filter by creator user ID
+        if (options.CreatedBy.HasValue)
+        {
+            predicate = PredicateBuilder.AddOr(predicate, t => t.CreatedBy == options.CreatedBy);
+        }
+        
+        // Filter to only show current user's tags
+        if (options.OnlyOwnedByCurrentUser)
+        {
+            Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
+            if (userId.HasValue)
+            {
+                predicate = PredicateBuilder.AddOr(predicate, t => t.CreatedBy == userId);
+            }
+        }
+
+        // Filter by approval status
+        if (options.IsApproved.HasValue)
+        {
+            predicate = PredicateBuilder.AddOr(predicate, t => t.IsApproved == options.IsApproved.Value);
+        }
+
+        // Filter by standardization status
+        if (options.IsStandardized.HasValue)
+        {
+            predicate = PredicateBuilder.AddOr(predicate, t => t.IsStandardized == options.IsStandardized.Value);
+        }
+
+        // Filter by text search
+        if (!string.IsNullOrEmpty(options.SearchQuery))
+        {
+            predicate = PredicateBuilder.AddAnd(predicate, t => t.Name.ToLower().Contains(options.SearchQuery.ToLower()));
+        }
+
+        // Filter by creation date range
+        if (options.CreatedFromDate.HasValue)
+        {
+            predicate = PredicateBuilder.AddOr(predicate, t => t.CreatedOn >= options.CreatedFromDate.Value);
+        }
+
+        if (options.CreatedToDate.HasValue)
+        {
+            predicate = PredicateBuilder.AddOr(predicate, t => t.CreatedOn <= options.CreatedToDate.Value);
+        }
+
+        // Filter by approval date range
+        if (options.ApprovedFromDate.HasValue)
+        {
+            predicate = PredicateBuilder.AddOr(predicate, t => t.ApprovedOn >= options.ApprovedFromDate.Value);
+        }
+
+        if (options.ApprovedToDate.HasValue)
+        {
+            predicate = PredicateBuilder.AddOr(predicate, t => t.ApprovedOn <= options.ApprovedToDate.Value);
+        }
+        return predicate;
+    }
+    
+    #endregion
+} 
 
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
