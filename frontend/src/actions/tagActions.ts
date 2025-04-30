@@ -251,6 +251,7 @@ export const MakeStandardized = async (tagId: string): Promise<FormResponse<{ id
  */
 export const ListTagsPaged = async (pageIndex: number, searchQuery: string): Promise<TagPageResponse> => {
   console.log("Getting tags paged:");
+  
   const tagFilterOptions : TagFilterOptions = {
     usePaging: true,
     pageIndex: pageIndex,
@@ -260,8 +261,6 @@ export const ListTagsPaged = async (pageIndex: number, searchQuery: string): Pro
     includeUsageCount: true,
     sortDescending: false,
   }
-
-  console.log(JSON.stringify(tagFilterOptions))
 
   // Send the data to the backend
   const cookieHeader : ReadonlyRequestCookies = await cookies();
