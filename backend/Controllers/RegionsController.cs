@@ -24,7 +24,7 @@ namespace KnowledgeBank.Controllers
     /// </summary>
     /// <param name="resourceManager">The resource manager service for database interactions</param>
     [ApiController] [Route("[controller]")] [Produces("application/json")] [Authorize]
-    public class RegionsController(ResourceManager resourceManager) : Controller
+    public class RegionsController(ResourceManager resourceManager) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<RegionsController>();
 
