@@ -18,7 +18,7 @@ export const handleOpenFile = async (file: ResourceResponse) => {
 
     // Anything but a website at the moment we'll just open from the storage
     if(file.fileType != "website"){
-        url = `http://localhost:8080/storage/download/${file.id}`;
+        url = `/api/storage/download/${file.id}`;
         try {
             const response : Response = await fetch(url, {
                 method: 'GET',
@@ -26,7 +26,8 @@ export const handleOpenFile = async (file: ResourceResponse) => {
             });
           
             if (!response.ok) {
-                throw new Error(`Error getting file: ${response.statusText}`);
+                console.error(`Error getting file: ${response.statusText}`);
+                return;
             }
 
             const blob : Blob = await response.blob();
@@ -40,9 +41,11 @@ export const handleOpenFile = async (file: ResourceResponse) => {
     // If it is a website, get the url of the archive file and go to that website
     else{
         const website = WebsiteResponseSchema.safeParse(file);
-        if(!website.success)
-            throw new Error(`Error fetching website`);
-        url = `http://localhost:8080/websiteupload/get-website/${file.id}`;
+        if(!website.success){
+            console.error(`Error fetching website`);
+            return;
+        }
+        url = `/api/websiteupload/get-website/${file.id}`;
 
         try {
             await fetch(url, {
@@ -52,7 +55,8 @@ export const handleOpenFile = async (file: ResourceResponse) => {
             {
                 if(!response.ok)
                     {
-                        throw new Error(`Error getting website: ${response.statusText}`)
+                        console.error(`Error getting website: ${response.statusText}`);
+                        return;
                     }
                 else {
                     return response.json()
