@@ -120,7 +120,7 @@ export default function NewResource({ persons }: NewResourceProps)
                         <FormItem>
                             <FormLabel>Authors</FormLabel>
                             <FormControl>
-                                <MultiSelectCombobox options={persons} onChange={onAuthorsChange} />
+                                <MultiSelectCombobox options={persons} onChange={onAuthorsChange} createNew={() => console.log("new") } />
                             </FormControl>
                         </FormItem>
                     )} />

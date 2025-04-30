@@ -20,10 +20,11 @@ interface MultiSelectComboboxProps
     placeholder?: string
     emptyMessage?: string
     onChange?: (values: string[]) => void
-    className?: string
+    className?: string,
+    createNew?: () => void
 }
 
-export function MultiSelectCombobox({ options, placeholder = "Select items...", emptyMessage = "No item found.", onChange, className}: MultiSelectComboboxProps) {
+export function MultiSelectCombobox({ options, placeholder = "Select items...", emptyMessage = "No item found.", onChange, className, createNew}: MultiSelectComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const [selected, setSelected] = React.useState<string[]>([])
   const [searchValue, setSearchValue] = React.useState("")
@@ -164,8 +165,15 @@ export function MultiSelectCombobox({ options, placeholder = "Select items...", 
             </CommandGroup>
           </CommandList>
           
-          <hr></hr>
-          <Button variant="ghost">Create New</Button>
+          {
+            createNew ?
+            (
+                <div className="w-full">
+                    <hr></hr>
+                    <Button variant="ghost" onClick={createNew} className="w-full">Create New</Button>
+                </div>
+            ) : ""
+          }
         </Command>
       </PopoverContent>
     </Popover>
