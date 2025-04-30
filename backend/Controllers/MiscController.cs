@@ -7,6 +7,7 @@ using Swashbuckle.AspNetCore.Annotations;
 namespace KnowledgeBank.controllers;
 
 [ApiController]
+[Obsolete]
 [Route("[controller]")]
 [Produces("application/json")]
 public class MiscController(ResourceManager resourceManager) : ControllerBase

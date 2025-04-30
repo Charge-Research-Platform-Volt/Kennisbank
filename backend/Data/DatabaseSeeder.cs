@@ -7,7 +7,6 @@ namespace KnowledgeBank.Data
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         public const string UnknownResourceTypeId = "0cc285a8-0f07-11f0-a0a6-5600051f1387";
         private static DatabaseContext database;
-        private static string[] TypeNames = ["pdf", "word", "Audio", "Video", "Org", "Person", "Website"];
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
         /// <summary>
@@ -18,21 +17,11 @@ namespace KnowledgeBank.Data
         private static async Task SeedData(DatabaseContext database)
         {
             // Seed data (this part is common between both Seed and SeedTemplate methods)
-            // Add all possible filetypes
             if (!await database.ResourceTypes.AnyAsync(rt => rt.Id == new Guid(UnknownResourceTypeId)))
                 {
                     // Add the unknown resource type if it doesn't exist
                     await database.ResourceTypes.AddAsync(new() { Id = new Guid(UnknownResourceTypeId), Name = "Unknown" });
                 }
-            for(int i = 0; i < TypeNames.Length; i++)
-            {
-                Guid newGUID = Guid.NewGuid();
-                if (!await database.ResourceTypes.AnyAsync(rt => rt.Id == newGUID))
-                {
-                    // Add the unknown resource type if it doesn't exist
-                    await database.ResourceTypes.AddAsync(new() { Id = newGUID, Name = TypeNames[i] });
-                }
-            }
 
             // Save changes
             await database.SaveChangesAsync();

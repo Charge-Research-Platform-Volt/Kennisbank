@@ -95,13 +95,12 @@ namespace KnowledgeBank.Data
             string extension = Path.GetExtension(path);
             string fileType = Filetype.ConvertExtensionToFiletype(extension);
             
-            ResourceType resourceType = await resourceManager.GetResourceTypeAsync(predicate: t => t.Name == fileType);
             ResourceCreateDto dto = new()
             {
                 Title = title,
                 Description = description,
                 LanguageCode = "??",
-                TypeId = resourceType.Id.ToString(),
+                TypeId = DatabaseSeeder.UnknownResourceTypeId,
                 PublicationDate = randomDay,
             };
 
@@ -121,7 +120,7 @@ namespace KnowledgeBank.Data
                 {
                     await resourceManager.Rollback();
                 }
-                await resourceManager.UpdateResourceAsync(id, r => r.FileType, resourceType.Name);
+                await resourceManager.UpdateResourceAsync(id, r => r.FileType, fileType);
             }
             catch (Exception e)
             {
