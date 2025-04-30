@@ -5,12 +5,11 @@ namespace KnowledgeBank.Responses;
 public struct TagPageResponse
 {
     public string Message { get; }
-    public int PageIndex { get; }
-    public int PageSize { get; }
-    public int PageCount { get; }
     public Tag[] Tags { get; }
-
-    public TagPageResponse(string message, int pageIndex, int pageSize, int pageCount, Tag[] tags)
+    public int? PageSize { get; } = null;
+    public int? PageIndex { get; } = null;
+    public int? PageCount { get; } = null;
+    public TagPageResponse(string message,  Tag[] tags, int? pageIndex = null, int? pageSize = null, int? pageCount = null)
     {
         this.Message = message;
         this.PageIndex = pageIndex;

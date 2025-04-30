@@ -8,13 +8,14 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using System.Linq.Expressions;
 using KnowledgeBank.Utils;
+using KnowledgeBank.Responses;
 
 namespace KnowledgeBank.Controllers;
 
 [ApiController]
 [Route("[controller]")]
 [Produces("application/json")]
-[Authorize] 
+[Authorize]
 public class TagsController(ResourceManager resourceManager) : ControllerBase
 {
     // Database context
@@ -28,7 +29,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     /// <returns>
     /// Returns a 200 OK response containing a list of tags.
     /// </returns>
-    [HttpGet("tags")]
+    [HttpPost("tags")]
     [SwaggerOperation(
         Summary = "Get tags with advanced filtering and sorting",
         Description = "Retrieve tags with options for pagination, filtering by multiple properties, and sorting"
@@ -36,7 +37,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> GetTags([FromQuery] TagFilterOptions filterOptions)
+    public async Task<IActionResult> GetTags([FromBody] TagFilterOptions filterOptions)
     {
         try
         {
@@ -75,8 +76,10 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             // Handle empty result
             if (tags == null || tags.Length == 0)
             {
-                return Ok(Array.Empty<Tag>());
-            }
+                if(filterOptions.UsePaging && filterOptions.PageIndex > 1)
+                    return BadRequest(new { message = "The page index is invalid." });
+                else
+                    return Ok(new TagPageResponse("No tags found.", new Tag[0]));            }
 
             // Set the UsageCount property for each tag if IncludeUsageCount is true
             if (filterOptions.IncludeUsageCount)
@@ -99,7 +102,15 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                 tags = PropertyMatcher.SortByProperty(tags, filterOptions.SortBy, filterOptions.SortDescending, filterOptions.SortBy).ToArray();
             }
 
-            return Ok(tags);
+            if(filterOptions.UsePaging)
+            {
+                // calculate the total number of tags
+                int totalCount = await resourceManager.TagCountAsync(predicate);
+                int pageCount = (int)Math.Ceiling((double)totalCount/filterOptions.PageSize);
+                return Ok(new TagPageResponse($"{tags.Length} tags found.", tags, filterOptions.PageIndex, filterOptions.PageSize, pageCount));
+            }
+            return Ok(new TagPageResponse($"{tags.Length} tags found.", tags));
+
         }
         catch (Exception e)
         {
@@ -176,9 +187,9 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             
             // If no tags are returned, put in the message that no tags are found
             if(tags == null)
-                return Ok(new TagPageResponse("No tags on this page.", pageIndex, pageSize, pageCount, Array.Empty<Tag>()));
+                return Ok(new TagPageResponse("No tags on this page.", Array.Empty<Tag>(), pageIndex, pageSize, pageCount));
             
-            return Ok(new TagPageResponse($"{tags.Length} tags found", pageIndex, pageSize, pageCount, tags));
+            return Ok(new TagPageResponse($"{tags.Length} tags found", tags, pageIndex, pageSize, pageCount));
         }
         catch (Exception e)
         {

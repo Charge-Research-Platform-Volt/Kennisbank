@@ -117,12 +117,14 @@ export default function TagSelectionDropdown({ onSelectionChangedAction = () => 
     // Gets all values from inserted tags and then filters the tags on uppercase name, sorts them on relevance, and returns top k tags
     const fetchedTags = await fetchTagSearch(inputValue, MAX_TAGS);
 
+    console.log(fetchedTags)
+
     // Don't do anything if fetchedTags returns null or undefined
-    if(fetchedTags == null || fetchedTags == undefined)
+    if(fetchedTags == null || fetchedTags == undefined || fetchedTags.tags == null || fetchedTags.tags == undefined)
       return;
 
     // And we update our state
-    setFilteredTags(fetchedTags.filter((tag) => !addedTags.some(addedTag => addedTag.id === tag.id)));
+    setFilteredTags(fetchedTags.tags.filter((tag) => !addedTags.some(addedTag => addedTag.id === tag.id)));
   }
   
 
