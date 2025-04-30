@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/context/sidebar-provider";
 import Link from "next/link";
 import HideMenu from "@/icons/menu/hide-menu";
-import NewButton from "./sidebar-new-button";
+import New from "@/icons/new";
 import QuickSearch from "@/components/quick-search";
 import SidebarPart from "./sidebar-part";
 import Divider from "../divider";
@@ -76,7 +76,15 @@ export default function LeftSidebarClient({
 
       {/* Menu items */}
       <nav className="mb-10 flex flex-col gap-2">
-        <NewButton data-testid="sidebar" tags={tags} minimize={open} />
+        {/* New button */}
+        <Link href="/new">
+          <Button variant="default" className={`flex w-full items-center justify-start overflow-hidden p-2 transition-all duration-200 ${!open && "w-9"}`} data-testid="sidebar_new">
+            <New className="h-4 w-4" />
+            <div data-testid="button_text" className={`pb-0.5 ml-2 ${!open && "hidden"}`}>
+              New
+            </div>
+          </Button>
+        </Link>
 
         {/* Search bar */}
         <QuickSearch data-testid="sidebar" minimize={open} />

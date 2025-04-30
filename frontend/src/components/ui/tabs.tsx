@@ -38,11 +38,61 @@ function TabsTrigger({
   className,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+  const triggerRef = React.useRef<HTMLButtonElement>(null)
+  const [showDivider, setShowDivider] = React.useState(true)
+  
+  React.useEffect(() => {
+    if (!triggerRef.current) return
+    
+    const updateDivider = () => {
+      const trigger = triggerRef.current
+      if (!trigger) return
+      
+      // Hide divider if this tab is active
+      const isActive = trigger.getAttribute('data-state') === 'active'
+      
+      // Hide divider if this is the last tab
+      const parent = trigger.parentElement
+      const children = parent?.children || []
+      const isLast = [...children].indexOf(trigger) === children.length - 1
+      
+      // Hide divider if next tab is active
+      const nextSibling = trigger.nextElementSibling
+      const isNextActive = nextSibling?.getAttribute('data-state') === 'active'
+      
+      // Only show divider if:
+      // 1. Not active itself
+      // 2. Not the last tab
+      // 3. Next tab is not active
+      setShowDivider(!isActive && !isLast && !isNextActive)
+    }
+    
+    // Initial check
+    updateDivider()
+    
+    // Set up mutation observer to detect state changes
+    const observer = new MutationObserver(updateDivider)
+    
+    observer.observe(triggerRef.current.parentElement as Node, {
+      attributes: true,
+      attributeFilter: ['data-state'],
+      childList: false,
+      subtree: true
+    })
+    
+    return () => observer.disconnect()
+  }, [])
+  
   return (
     <TabsPrimitive.Trigger
+      ref={triggerRef}
       data-slot="tabs-trigger"
       className={cn(
         "data-[state=active]:bg-background dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex h-[calc(100%)] flex-1 items-center justify-center gap-1.5 border rounded-sm border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 cursor-pointer",
+        
+        // Only add divider styling when showDivider is true
+        showDivider && "relative after:content-[''] after:absolute after:right-0 after:top-1/2 after:-translate-y-1/2 after:h-2/3 after:w-px after:bg-muted-foreground/30",
+        
         className
       )}
       {...props}
