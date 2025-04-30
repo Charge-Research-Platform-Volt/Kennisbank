@@ -40,6 +40,11 @@ public abstract class TestBaseBlob : TestBase
     {
         await base.OnGlobalSetUp();
         
+        // Determine the host based on runtime environment
+        string storageHost = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true" 
+            ? "storage"    // To run test in CI/CD
+            : "localhost"; // To run test locally
+        
         // Initialize default container name
         DefaultContainerName = "text";
         
@@ -50,7 +55,7 @@ public abstract class TestBaseBlob : TestBase
                 // Configure Azurite blob storage emulator connection string
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    { "AZURE_STORAGE_CONNECTION_STRING", "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://localhost:10000/devstoreaccount1;" }
+                    { "AZURE_STORAGE_CONNECTION_STRING", $"DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://{storageHost}:10000/devstoreaccount1;" }
                 });
             })
             .ConfigureServices(services =>
