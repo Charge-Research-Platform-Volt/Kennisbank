@@ -22,9 +22,7 @@ namespace KnowledgeBank.Data
             if (startedTransaction) await Commit();
             return count;
         }
-
-        #endregion
-
+        
         private string GetPropertyName<T, TProperty>(Expression<Func<T, TProperty>> propertyExpression)
         {
             if (propertyExpression.Body is MemberExpression memberExpression)
@@ -33,6 +31,8 @@ namespace KnowledgeBank.Data
             }
             throw new ArgumentException("Expression must be a property access expression.", nameof(propertyExpression));
         }
+
+        #endregion
 
         // --------------------------------
 
