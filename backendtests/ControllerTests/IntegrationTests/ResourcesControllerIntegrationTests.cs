@@ -1,0 +1,936 @@
+using Microsoft.AspNetCore.Mvc;
+using backend.Tests.Infrastructure;
+using KnowledgeBank.Models;
+using KnowledgeBank.Controllers;
+using KnowledgeBank.Data;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using KnowledgeBank.Responses;
+using System.Text;
+
+namespace backend.Tests.Integration;
+
+[TestFixture]
+[Category("IntegrationTest")]
+public class ResourcesControllerTests : TestBaseBlob
+{
+    private ResourcesController _controller;
+    private ResourceManager _resourceManager;
+    private Guid _existingResourceId;
+    private Guid _existingFileResourceId;
+    private Guid _existingWebsiteResourceId;
+
+    [SetUp]
+    public void SetupController()
+    { 
+        _resourceManager = new ResourceManager(Context);
+        _controller = new ResourcesController(_resourceManager, BlobService);
+    }
+    
+    protected override async Task SeedTestDatabase (DatabaseContext context)
+    {
+        // Enable extension for text-search-vectors
+        await context.Database.ExecuteSqlRawAsync("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
+        await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""resource-vectors"" ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
+        await DatabaseSeeder.SeedTemplate(context);
+        
+        // Also seed the blob storage
+        Resource fileResource = new Resource
+        {
+            Id = Guid.NewGuid(),
+            Title = "Existing File Resource",
+            FileType = "text",
+            Hash = "testhash123",
+            CreationDate = DateTime.UtcNow,
+            PublicationDate = DateTime.UtcNow,
+            TypeId = Guid.Parse(DatabaseSeeder.UnknownResourceTypeId),
+            LanguageCode = "en"
+        };
+        
+        Resource websiteResource = new Resource
+        {
+            Id = Guid.NewGuid(),
+            Title = "Existing Website Resource",
+            FileType = "website",
+            CreationDate = DateTime.UtcNow,
+            PublicationDate = DateTime.UtcNow,
+            TypeId = Guid.Parse(DatabaseSeeder.UnknownResourceTypeId),
+            LanguageCode = "en"
+        };
+        
+        await context.Resources.AddAsync(fileResource);
+        await context.Resources.AddAsync(websiteResource);
+        
+        WebsiteMetadata websiteMetadata = new WebsiteMetadata
+        {
+            ResourceId = websiteResource.Id,
+            Url = "https://example.com"
+        };
+        
+        await context.WebsiteMetadata.AddAsync(websiteMetadata);
+        await context.SaveChangesAsync();
+        
+        _existingResourceId = fileResource.Id;
+        _existingFileResourceId = fileResource.Id;
+        _existingWebsiteResourceId = websiteResource.Id;
+        
+        // Upload a test file to blob storage
+        MemoryStream fileStream = new MemoryStream(Encoding.UTF8.GetBytes("This is test content"));
+        Dictionary<string, string> metadata = new Dictionary<string, string> { { "extension", ".txt" } };
+        await BlobService.UploadBlobAsync("text", _existingFileResourceId.ToString(), metadata, fileStream);
+        UploadedBlobs.Add(_existingFileResourceId.ToString());
+    }
+
+    #region New Website Tests
+    
+    [Test]
+    [Description("New creates a new website resource successfully")]
+    public async Task New_ValidWebsiteResource_CreatesResourceSuccessfully()
+    {
+        // Arrange
+        WebsiteCreateDto dto = new WebsiteCreateDto
+        {
+            Title = "Test Website",
+            TypeId = "0cc285a8-0f07-11f0-a0a6-5600051f1387",
+            LanguageCode = "en",
+            PublicationDate = DateTime.UtcNow,
+            Url = "https://www.example.com"
+        };
+
+        // Act
+        ObjectResult? result = await _controller.New(dto) as ObjectResult;                
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Resource created successfully."));
+        Assert.That(response.Data, Is.Not.Null);
+        
+        // Verify the resource exists in the database
+        Guid resourceId = (Guid)response.Data;
+        bool exists = await _resourceManager.ResourceExistsAsync(resourceId.ToString());
+        Assert.That(exists, Is.True);
+    }
+    
+    [Test]
+    [Description("New fails when creating a website resource with invalid URL")]
+    public async Task New_InvalidWebsiteUrl_ReturnsBadRequest()
+    {
+        // Arrange
+        WebsiteCreateDto dto = new WebsiteCreateDto
+        {
+            Title = "Invalid Website",
+            TypeId = DatabaseSeeder.UnknownResourceTypeId,
+            LanguageCode = "en",
+            PublicationDate = DateTime.UtcNow,
+            Url = "not-a-valid-url"
+        };
+
+        // Act
+        BadRequestObjectResult? result = await _controller.New(dto) as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("The URL was invalid."));
+    }
+    
+    [Test]
+    [Description("New fails when creating a website resource with missing URL")]
+    public async Task New_MissingWebsiteUrl_ReturnsBadRequest()
+    {
+        // Arrange
+        WebsiteCreateDto dto = new WebsiteCreateDto
+        {
+            Title = "Website Missing URL",
+            TypeId = DatabaseSeeder.UnknownResourceTypeId,
+            LanguageCode = "en",
+            PublicationDate = DateTime.UtcNow,
+            Url = ""
+        };
+
+        // Act
+        BadRequestObjectResult? result = await _controller.New(dto) as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("The URL was empty."));
+    }
+    
+    [Test]
+    [Description("New fails when creating a resource with missing required fields")]
+    public async Task New_MissingRequiredFields_ReturnsBadRequest()
+    {
+        // Arrange - Missing title
+        WebsiteCreateDto dto = new WebsiteCreateDto
+        {
+            Title = "",
+            TypeId = DatabaseSeeder.UnknownResourceTypeId,
+            LanguageCode = "en",
+            PublicationDate = DateTime.UtcNow,
+            Url = "https://example.com"
+        };
+
+        // Act
+        BadRequestObjectResult? result = await _controller.New(dto) as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("No name was provided."));
+    }
+    
+    #endregion
+        
+    #region New File Tests
+    
+    [Test]
+    [Description("New creates a new file resource successfully")]
+    public async Task New_ValidFileResource_CreatesResourceSuccessfully()
+    {
+        // Arrange
+        string fileName = "test-file.txt";
+        MemoryStream fileStream = new MemoryStream(Encoding.UTF8.GetBytes("This is a test file"));
+        
+        FileResourceCreateDto dto = new FileResourceCreateDto
+        {
+            File = new FormFile(fileStream, 0, fileStream.Length, "file", fileName),
+            Title = "Test File",
+            TypeId = DatabaseSeeder.UnknownResourceTypeId,
+            LanguageCode = "en",
+            PublicationDate = DateTime.UtcNow,
+        };
+
+        // Act
+        OkObjectResult? result = await _controller.New(dto) as OkObjectResult;        
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Resource created successfully."));
+        Assert.That(response.Data, Is.Not.Null);
+        
+        // Verify the resource exists in the database
+        Guid resourceId = (Guid)response.Data;
+        bool existsInDatabase = await _resourceManager.ResourceExistsAsync(resourceId.ToString());
+        
+        BLOB_STATUSCODE existsInBlob = await BlobService.BlobExistsAsync("text", resourceId.ToString());
+        UploadedBlobs.Add(resourceId.ToString());
+
+        Assert.That(existsInDatabase, Is.True);
+        Assert.That(existsInBlob, Is.EqualTo(BLOB_STATUSCODE.OK));
+    }
+    
+    [Test]
+    [Description("New fails when creating a file resource with no file")]
+    public async Task New_NoFile_ReturnsBadRequest()
+    {
+        // Arrange
+        FileResourceCreateDto dto = new FileResourceCreateDto
+        {
+            File = null,
+            Title = "Test File No File",
+            TypeId = DatabaseSeeder.UnknownResourceTypeId,
+            LanguageCode = "en",
+            PublicationDate = DateTime.UtcNow,
+        };
+
+        // Act
+        BadRequestObjectResult? result = await _controller.New(dto) as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("No file was uploaded."));
+    }
+    
+    [Test]
+    [Description("New fails when creating a file resource with empty file")]
+    public async Task New_EmptyFile_ReturnsBadRequest()
+    {
+        // Arrange
+        string fileName = "empty-file.txt";
+        MemoryStream fileStream = new MemoryStream(new byte[0]);
+        
+        FileResourceCreateDto dto = new FileResourceCreateDto
+        {
+            File = new FormFile(fileStream, 0, fileStream.Length, "file", fileName),
+            Title = "Test Empty File",
+            TypeId = DatabaseSeeder.UnknownResourceTypeId,
+            LanguageCode = "en",
+            PublicationDate = DateTime.UtcNow,
+        };
+
+        // Act
+        BadRequestObjectResult? result = await _controller.New(dto) as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("The uploaded file was empty."));
+    }
+    
+    [Test]
+    [Description("New fails when creating a file resource with unsupported file type")]
+    public async Task New_UnsupportedFileType_ReturnsBadRequest()
+    {
+        // Arrange
+        string fileName = "test-file.nonexistingfiletype";
+        MemoryStream fileStream = new MemoryStream(Encoding.UTF8.GetBytes("This is test content"));
+        
+        FileResourceCreateDto dto = new FileResourceCreateDto
+        {
+            File = new FormFile(fileStream, 0, fileStream.Length, "file", fileName),
+            Title = "Test Unsupported File",
+            TypeId = DatabaseSeeder.UnknownResourceTypeId,
+            LanguageCode = "en",
+            PublicationDate = DateTime.UtcNow,
+        };
+
+
+        // Act
+        BadRequestObjectResult? result = await _controller.New(dto) as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Filetype is not supported."));
+    }
+    
+    #endregion
+    
+    #region Download Tests
+    
+    [Test]
+    [Description("Download returns the file successfully")]
+    public async Task Download_ExistingFileResource_ReturnsFile()
+    {
+        // Arrange
+        string resourceId = _existingFileResourceId.ToString();
+        
+        // Act
+        FileStreamResult? result = await _controller.Download(resourceId) as FileStreamResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        //Assert.That(result.ContentType, Is.EqualTo("application/octet-stream"));
+        Assert.That(result.FileDownloadName, Does.EndWith(".txt"));
+        
+        // Check file content
+        MemoryStream memoryStream = new MemoryStream();
+        await result.FileStream.CopyToAsync(memoryStream);
+        string content = Encoding.UTF8.GetString(memoryStream.ToArray());
+        Assert.That(content, Is.EqualTo("This is test content"));
+    }
+    
+    [Test]
+    [Description("Download fails with invalid ID")]
+    public async Task Download_InvalidId_ReturnsBadRequest()
+    {
+        // Arrange
+        string invalidId = "not-a-valid-guid";
+        
+        // Act
+        BadRequestObjectResult? result = await _controller.Download(invalidId) as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Invalid ID."));
+    }
+    
+    [Test]
+    [Description("Download fails with non-existent resource")]
+    public async Task Download_NonExistentResource_ReturnsNotFound()
+    {
+        // Arrange
+        string nonExistentId = Guid.NewGuid().ToString();
+        
+        // Act
+        NotFoundObjectResult? result = await _controller.Download(nonExistentId) as NotFoundObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(404));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Does.Contain("does not exist"));
+    }
+    
+    [Test]
+    [Description("Download fails when trying to download a website resource")]
+    public async Task Download_WebsiteResource_ReturnsBadRequest()
+    {
+        // Arrange
+        string websiteResourceId = _existingWebsiteResourceId.ToString();
+        
+        // Act
+        BadRequestObjectResult? result = await _controller.Download(websiteResourceId) as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Cannot download website."));
+    }
+    
+    #endregion
+    
+    #region Delete Tests
+    
+    [Test]
+    [Description("Delete removes a file resource successfully")]
+    public async Task Delete_ExistingFileResource_DeletesResource()
+    {
+        // Arrange
+        // Create a file resource to delete (so we don't affect other tests)
+        string fileName = "file-to-delete.txt";
+        MemoryStream fileStream = new MemoryStream(Encoding.UTF8.GetBytes("This file will be deleted"));
+        
+        FileResourceCreateDto dto = new FileResourceCreateDto
+        {
+            File = new FormFile(fileStream, 0, fileStream.Length, "file", fileName),
+            Title = "Delete Test File",
+            TypeId = DatabaseSeeder.UnknownResourceTypeId,
+            LanguageCode = "en",
+            PublicationDate = DateTime.UtcNow,
+        };
+        
+        OkObjectResult? createResult = await _controller.New(dto) as OkObjectResult;
+        Assert.That(createResult, Is.Not.Null);
+        ApiResponse? createResponse = createResult.Value as ApiResponse;
+        Assert.That(createResponse, Is.Not.Null);
+        Assert.That(createResponse.Data, Is.Not.Null);        
+        Guid resourceId = (Guid)createResponse.Data;
+        string resourceIdStr = resourceId.ToString();
+        UploadedBlobs.Add(resourceIdStr); // To ensure cleanup even if test fails
+        
+        // Act
+        OkObjectResult? result = await _controller.Delete(resourceIdStr) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Resource deleted successfully."));
+        
+        // Verify resource no longer exists
+        bool existsInDatabase = await _resourceManager.ResourceExistsAsync(resourceIdStr);
+        BLOB_STATUSCODE existsInBlob = await BlobService.BlobExistsAsync("text", resourceIdStr);
+        
+        Assert.That(existsInDatabase, Is.False);
+        Assert.That(existsInBlob, Is.EqualTo(BLOB_STATUSCODE.NOTFOUND));
+    }
+    
+    [Test]
+    [Description("Delete fails with invalid ID")]
+    public async Task Delete_InvalidId_ReturnsBadRequest()
+    {
+        // Arrange
+        string invalidId = "not-a-valid-guid";
+        
+        // Act
+        BadRequestObjectResult? result = await _controller.Delete(invalidId) as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Invalid ID."));
+    }
+    
+    [Test]
+    [Description("Delete fails with non-existent resource")]
+    public async Task Delete_NonExistentResource_ReturnsNotFound()
+    {
+        // Arrange
+        string nonExistentId = Guid.NewGuid().ToString();
+        
+        // Act
+        NotFoundObjectResult? result = await _controller.Delete(nonExistentId) as NotFoundObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(404));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Does.Contain("does not exist"));
+    }
+    
+    [Test]
+    [Description("Delete removes a website resource successfully")]
+    public async Task Delete_ExistingWebsiteResource_DeletesResource()
+    {
+        // Arrange
+        // Create a website resource to delete
+        WebsiteCreateDto dto = new WebsiteCreateDto
+        {
+            Title = "Website To Delete",
+            TypeId = DatabaseSeeder.UnknownResourceTypeId,
+            LanguageCode = "en",
+            PublicationDate = DateTime.UtcNow,
+            Url = "https://example.org/delete-me"
+        };
+        
+        OkObjectResult? createResult = await _controller.New(dto) as OkObjectResult;
+        Assert.That(createResult, Is.Not.Null);
+        ApiResponse? createResponse = createResult.Value as ApiResponse;
+        Assert.That(createResponse, Is.Not.Null);
+        Assert.That(createResponse.Data, Is.Not.Null);
+        Guid resourceId = (Guid)createResponse.Data;
+        string resourceIdStr = resourceId.ToString();
+        
+        // Act
+        OkObjectResult? result = await _controller.Delete(resourceIdStr) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Resource deleted successfully."));
+        
+        // Verify resource no longer exists
+        bool existsInDatabase = await _resourceManager.ResourceExistsAsync(resourceIdStr);
+        Assert.That(existsInDatabase, Is.False);
+    }
+    
+    #endregion
+    
+    #region Update Tests
+    
+    [Test]
+    [Description("Update modifies resource properties successfully")]
+    public async Task Update_ValidProperties_UpdatesResourceSuccessfully()
+    {
+        // Arrange
+        string resourceId = _existingFileResourceId.ToString();
+        Dictionary<string, object> updates = new Dictionary<string, object>
+        {
+            { "Title", "Updated Title" }
+        };
+        
+        // Act
+        OkObjectResult? result = await _controller.Update(resourceId, updates) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Resource updated successfully."));
+        
+        // Verify the title was updated
+        string updatedTitle = await _resourceManager.GetResourcePropertyAsync(resourceId, r => r.Title);
+        Assert.That(updatedTitle, Is.EqualTo("Updated Title"));
+    }
+    
+    [Test]
+    [Description("Update fails with invalid ID")]
+    public async Task Update_InvalidId_ReturnsBadRequest()
+    {
+        // Arrange
+        string invalidId = "not-a-valid-guid";
+        Dictionary<string, object> updates = new Dictionary<string, object>
+        {
+            { "Title", "Updated Title" }
+        };
+        
+        // Act
+        BadRequestObjectResult? result = await _controller.Update(invalidId, updates) as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Invalid ID."));
+    }
+    
+    [Test]
+    [Description("Update fails with non-existent resource")]
+    public async Task Update_NonExistentResource_ReturnsNotFound()
+    {
+        // Arrange
+        string nonExistentId = Guid.NewGuid().ToString();
+        Dictionary<string, object> updates = new Dictionary<string, object>
+        {
+            { "Title", "Updated Title" }
+        };
+        
+        // Act
+        NotFoundObjectResult? result = await _controller.Update(nonExistentId, updates) as NotFoundObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(404));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("The resource does not exist"));
+    }
+    
+    [Test]
+    [Description("Update fails with empty updates")]
+    public async Task Update_EmptyUpdates_ReturnsBadRequest()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        Dictionary<string, object> updates = new Dictionary<string, object>();
+        
+        // Act
+        BadRequestObjectResult? result = await _controller.Update(resourceId, updates) as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("No updates were provided."));
+    }
+    
+    [Test]
+    [Description("Update fails with non-existent properties")]
+    public async Task Update_NonExistentProperties_ReturnsBadRequest()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        Dictionary<string, object> updates = new Dictionary<string, object>
+        {
+            { "NonExistentProperty", "Some Value" }
+        };
+        
+        // Act
+        BadRequestObjectResult? result = await _controller.Update(resourceId, updates) as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("None of the props were found."));
+    }
+    
+    [Test]
+    [Description("Update partially updates properties")]
+    public async Task Update_MixedValidAndInvalidProperties_UpdatesPartially()
+    {
+        // Arrange
+        string resourceId = _existingFileResourceId.ToString();
+        Dictionary<string, object> updates = new Dictionary<string, object>
+        {
+            { "Title", "Partially Updated Title" },
+            { "NonExistentProperty", "Some Value" }
+        };
+        
+        // Act
+        OkObjectResult? result = await _controller.Update(resourceId, updates) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Resource updated partially."));
+        
+        // Verify that valid property was updated
+        string updatedTitle = await _resourceManager.GetResourcePropertyAsync(resourceId, r => r.Title);
+        Assert.That(updatedTitle, Is.EqualTo("Partially Updated Title"));
+    }
+    
+    #endregion
+    
+    #region Exists Tests
+    
+    [Test]
+    [Description("Exists returns true for hash of existing file resource")]
+    public async Task Exists_ExistingFileHash_ReturnsTrue()
+    {
+        // Arrange
+        string hash = "testhash123"; // Hash from the seeded resource
+        
+        // Act
+        OkObjectResult? result = await _controller.Exists(hash, null) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Resource already exists."));
+        Assert.That(response.Data, Is.Not.Null);
+    }
+    
+    [Test]
+    [Description("Exists returns true for URL of existing website resource")]
+    public async Task Exists_ExistingWebsiteUrl_ReturnsTrue()
+    {
+        // Arrange
+        string url = "https://example.com"; // URL from the seeded resource
+        
+        // Act
+        OkObjectResult? result = await _controller.Exists(null, url) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Resource already exists."));
+        Assert.That(response.Data, Is.Not.Null);
+    }
+    
+    [Test]
+    [Description("Exists returns false for non-existent hash")]
+    public async Task Exists_NonExistentHash_ReturnsFalse()
+    {
+        // Arrange
+        string hash = "nonexistenthash";
+        
+        // Act
+        OkObjectResult? result = await _controller.Exists(hash, null) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Resource does not exist"));
+        Assert.That(response.Data, Is.Not.Null);
+    }
+    
+    #endregion
+    
+    #region Info Tests
+
+    [Test]
+    [Description("Info returns resource details for valid ID")]
+    public async Task Info_ValidId_ReturnsResourceDetails()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        
+        // Act
+        OkObjectResult? result = await _controller.Info(resourceId) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Resource was found."));
+        
+        // Verify the returned resource
+        Resource? resource = response.Data as Resource;
+        Assert.That(resource, Is.Not.Null);
+        Assert.That(resource.Id.ToString(), Is.EqualTo(resourceId));
+    }
+
+    [Test]
+    [Description("Info returns BadRequest for invalid ID")]
+    public async Task Info_InvalidId_ReturnsBadRequest()
+    {
+        // Arrange
+        string invalidId = "not-a-valid-guid";
+        
+        // Act
+        BadRequestObjectResult? result = await _controller.Info(invalidId) as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("ID is invalid."));
+    }
+
+    [Test]
+    [Description("Info returns NotFound for non-existent resource")]
+    public async Task Info_NonExistentResource_ReturnsNotFound()
+    {
+        // Arrange
+        string nonExistentId = Guid.NewGuid().ToString();
+        
+        // Act
+        NotFoundObjectResult? result = await _controller.Info(nonExistentId) as NotFoundObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(404));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("The resource was not found."));
+    }
+
+    #endregion
+
+    #region List Tests
+
+    [Test]
+    [Description("List returns all resources when no paging parameters are provided")]
+    public async Task List_NoPagingParameters_ReturnsAllResources()
+    {
+        // Arrange
+        int expectedResourceCount = 2;
+        
+        // Act
+        OkObjectResult? result = await _controller.List(null, null) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo($"Found {expectedResourceCount} resources"));
+        
+        Resource[]? resources = response.Data as Resource[];
+        Assert.That(resources, Is.Not.Null);
+        Assert.That(resources.Length, Is.EqualTo(expectedResourceCount));
+    }
+
+    [Test]
+    [Description("List returns paged resources when paging parameters are provided")]
+    public async Task List_WithPagingParameters_ReturnsPagedResources()
+    {
+        // Arrange
+        int pageIndex = 1;
+        int pageSize = 2;
+        
+        // Act
+        OkObjectResult? result = await _controller.List(pageIndex, pageSize) as OkObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        
+        Resource[]? resources = response.Data as Resource[];
+        Assert.That(resources, Is.Not.Null);
+        Assert.That(resources.Length, Is.LessThanOrEqualTo(pageSize));
+    }
+
+
+    [Test]
+    [Description("List returns BadRequest for invalid pageIndex")]
+    public async Task List_InvalidPageIndex_ReturnsBadRequest()
+    {
+        // Arrange
+        int invalidPageIndex = 0;
+        int pageSize = 10;
+        
+        // Act
+        BadRequestObjectResult? result = await _controller.List(invalidPageIndex, pageSize) as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Page index cannot be lower than 1."));
+    }
+
+    [Test]
+    [Description("List returns BadRequest for invalid pageSize")]
+    public async Task List_InvalidPageSize_ReturnsBadRequest()
+    {
+        // Arrange
+        int pageIndex = 1;
+        int invalidPageSize = 0;
+        
+        // Act
+        BadRequestObjectResult? result = await _controller.List(pageIndex, invalidPageSize) as BadRequestObjectResult;
+        
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Page size cannot be lower than 1"));
+    }
+    #endregion
+
+}
