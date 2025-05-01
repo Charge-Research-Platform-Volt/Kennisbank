@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { X } from "lucide-react"
+import PopupIcon from "@/icons/popup-icon"
   
 
 interface AddListDialogProps extends Omit<React.ComponentPropsWithoutRef<typeof Button>, 'onChange'> 
@@ -80,7 +81,16 @@ export function AddListDialog({title, placeholder, inputPlaceholder, emptyText, 
     return (
         <Dialog>
             <DialogTrigger>
-                <Input value={list.length > 0 ? list.map(parseForList ? parseForList : (item) => item).join('; ') : ""} placeholder={placeholder} readOnly={true} className="caret-transparent cursor-pointer" onClick={() => console.log("Click")} tabIndex={-1} />
+                <div className="relative w-full cursor-pointer">
+                    <Input 
+                        value={list.length > 0 ? list.map(parseForList ? parseForList : (item) => item).join('; ') : ""} 
+                        placeholder={placeholder} 
+                        readOnly={true} 
+                        className="caret-transparent pr-10 cursor-pointer"
+                        tabIndex={-1} 
+                    />
+                    <PopupIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                </div>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
