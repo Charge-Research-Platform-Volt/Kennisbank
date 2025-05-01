@@ -10,6 +10,8 @@ using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Diagnostics;
+using KnowledgeBank.BackgroundServices;
+using KnowledgeBank.Services;
 
 namespace KnowledgeBank
 {
@@ -29,7 +31,7 @@ namespace KnowledgeBank
             {
                 foreach (string roleName in RoleInitializer.roleNames)
                 {
-                    options.AddPolicy($"Require{ char.ToUpper(roleName[0]) + roleName.Substring(1) }Role", policy => policy.RequireRole(roleName));
+                    options.AddPolicy($"Require{char.ToUpper(roleName[0]) + roleName.Substring(1)}Role", policy => policy.RequireRole(roleName));
                 }
 
                 // This line terminates the handler on first failure, when more information is required, set this to true.
@@ -37,16 +39,23 @@ namespace KnowledgeBank
                 // authorization scenarios. This setting only affects the authorization middleware, not the controllers.
                 options.InvokeHandlersAfterFailure = false;
             });
-            //
+
             // Add this line after the code below to enable authentication with JWT tokens: .AddBearerToken(IdentityConstants.BearerScheme);
             builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
-            
+
             builder.Services.AddIdentityCore<User>()
                             .AddRoles<IdentityRole>()
                             .AddEntityFrameworkStores<DatabaseContext>()
                             .AddApiEndpoints();
 
+            // Background services
+            builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
+            builder.Services.AddHostedService<QueuedHostedService>();
 
+            // Add text extraction service
+            builder.Services.AddScoped<ITextExtractionService, TextExtractionService>();
+
+            // Swagger
             builder.Services.AddOpenApi();
             builder.Services.AddSwaggerGen(ConfigureSwagger);
 
@@ -92,7 +101,7 @@ namespace KnowledgeBank
             {
                 await RoleInitializer.InitializeAsync(app.Services);
                 await DatabaseSeeder.Seed(app.Services);
-                
+
                 if (app.Environment.IsDevelopment())
                 {
                     // Seed test data only in development environment:
@@ -109,7 +118,7 @@ namespace KnowledgeBank
 
             app.MapGroup("Auth").MapIdentityApi<User>().WithTags("Auth").WithOpenApi(ConfigureIdentityApiOptions).AddEndpointFilter(async (efiContext, next) =>
             {
-                if(HideEndpointFilter.PathsToHide.Any(p => p == efiContext.HttpContext.Request.Path))
+                if (HideEndpointFilter.PathsToHide.Any(p => p == efiContext.HttpContext.Request.Path))
                     return Results.Forbid();
                 return await next(efiContext);
             });
@@ -146,6 +155,7 @@ namespace KnowledgeBank
             c.SwaggerEndpoint("/swagger/v1/swagger.json", "Version-1");
             c.RoutePrefix = "docs";
             c.DocumentTitle = "KnowledgeBank API";
+            c.DocExpansion(DocExpansion.None);
         }
 
 

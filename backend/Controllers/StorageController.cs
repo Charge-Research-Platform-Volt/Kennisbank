@@ -10,6 +10,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using System.Text.Json;
+using KnowledgeBank.BackgroundServices;
+using KnowledgeBank.Services;
 
 namespace KnowledgeBank.Controllers
 {
@@ -17,11 +19,14 @@ namespace KnowledgeBank.Controllers
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class StorageController(IAzureBlobService blobService, ResourceManager resourceManager) : ControllerBase
+    public class StorageController(IAzureBlobService blobService, ResourceManager resourceManager, IBackgroundTaskQueue taskQueue, ITextExtractionService textExtractionService) : ControllerBase
     {
         private readonly IAzureBlobService blobService = blobService;
         private readonly Serilog.ILogger logger = Log.ForContext<StorageController>();
         private readonly ResourceManager resourceManager = resourceManager;
+        private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
+        private readonly ITextExtractionService _textExtractionService = textExtractionService;
+
 
         [HttpPut("upload")]
         [SwaggerOperation(
@@ -80,6 +85,19 @@ namespace KnowledgeBank.Controllers
                         await resourceManager.Commit();
 
                         logger.Information("File '{FileName}' added successfully", dto.File.FileName);
+
+                        // If the file is a PDF, queue it for text extraction (This will not block the request and will be done in the background)
+                        if (fileType.Equals("pdf", StringComparison.OrdinalIgnoreCase))
+                        {
+                            logger.Information("Queueing PDF {Id} for text extraction", id);
+
+                            _taskQueue.QueueBackgroundWorkItem(async token =>
+                            {
+                                await _textExtractionService.ProcessDocumentAsync(id.ToString(), fileType);
+                            });
+                        }
+
+
                         return Ok(new FileUploadResult(id.ToString(), fileType, dto.File.Length));
 
                     case BLOB_STATUSCODE.NOTFOUND:
@@ -105,11 +123,16 @@ namespace KnowledgeBank.Controllers
             }
         }
 
+
+        // private async Task ExtractFileContentAsync()
+        // {
+        //     logger.Information("Extracting file content...");
+        //     await Task.Delay(120000);
+        //     logger.Information("File content extracted successfully.");
+        // }
+
         [HttpGet("download/{id}")]
-        [SwaggerOperation(
-            Summary = "Download a file from storage.",
-            Description = "Downloads a given blob from the given container in the Azure Blob Storage."
-        )]
+        [SwaggerOperation(Summary = "Download a file from storage.", Description = "Downloads a given blob from the given container in the Azure Blob Storage.")]
         [SwaggerResponse(200, "File found and returned")]
         [SwaggerResponse(404, "File not found", typeof(StorageResponse))]
         [SwaggerResponse(400, "Invalid location.", typeof(StorageResponse))]
@@ -300,15 +323,15 @@ namespace KnowledgeBank.Controllers
         {
             try
             {
-                Resource[]? items = await resourceManager.GetAllResourcesAsync(includeProperties: [ "ResourceTagRelations.Tag" ]);
+                Resource[]? items = await resourceManager.GetAllResourcesAsync(includeProperties: ["ResourceTagRelations.Tag"]);
 
                 if (items == null)
                     return Ok(new PageResponse("No files in database.", 0, 0, Array.Empty<Resource>()));
-                
+
                 object[] dtos = new object[items.Length];
                 for (int i = 0; i < items.Length; i++)
                 {
-                    dtos[i] = DtoGenerator.ToDto(items[i], includeProperties: [ "ResourceTagRelations.Tag" ]);
+                    dtos[i] = DtoGenerator.ToDto(items[i], includeProperties: ["ResourceTagRelations.Tag"]);
                 }
 
                 return Ok(new PageResponse($"{items.Length} files found.", 0, 0, dtos));
