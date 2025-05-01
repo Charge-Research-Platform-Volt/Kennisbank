@@ -63,7 +63,6 @@ export type TagPageResponse = {
   tags?: TagArray;
 }
 
-
 /**
  * Tag relation response schema
  */

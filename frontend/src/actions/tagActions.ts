@@ -320,7 +320,7 @@ export const ListTagsPaged = async (pageIndex: number, searchQuery: string): Pro
  * @param K  - Max amount of tags to return 
  * @returns A maximum of K tags that correspond with the query
  */
-export const fetchTagSearch = async (searchQuery?: string, K?: number) => {
+export const fetchTagSearch = async (searchQuery?: string, K?: number): Promise<TagPageResponse> => {
   searchQuery = searchQuery?.trim();
 
   const tagFilterOptions : TagFilterOptions = {
@@ -347,7 +347,10 @@ export const fetchTagSearch = async (searchQuery?: string, K?: number) => {
 
   if (!response.ok) {
     console.log("problem with finding tags");
-    return
+    return {
+      success: false,
+      message: "problem with fetching tags",
+    }
   }
 
   const data = await response.json();
