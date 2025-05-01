@@ -2,6 +2,10 @@
 /storage
 /storage/*
 
+/ollama_data/*
+/qdrant_data/*
+
+
 # File created using '.gitignore Generator' for Visual Studio Code: https://bit.ly/vscode-gig
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,visualstudio,react,macos,dotnetcore,csharp,aspnetcore,database
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,visualstudio,react,macos,dotnetcore,csharp,aspnetcore,database
