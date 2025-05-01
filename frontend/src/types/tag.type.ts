@@ -13,6 +13,7 @@ export const TagSchema = z.object({
   createdBy: z.string().uuid().min(1, { message: "CreatedBy is required" }),
   createdOn: z.string(),
   usageCount: z.number().int().min(0).optional(),
+  canEditAndDelete: z.boolean(),
 });
 
 export const TagArraySchema = z.array(TagSchema);
@@ -96,6 +97,7 @@ export const TagFilterOptionsSchema = z.object({
   sortBy: z.string().optional(),
   sortDescending: z.boolean().optional(),
   weightedSort: z.string().optional(),
+  includeCanEditAndDelete: z.boolean().optional(),
 })
 
 export type TagFilterOptions = z.infer<typeof TagFilterOptionsSchema>;

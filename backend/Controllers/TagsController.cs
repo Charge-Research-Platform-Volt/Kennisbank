@@ -90,6 +90,21 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                     tag.UsageCount = tag.ResourceTagRelations?.Count ?? 0;
                 }
             }
+            
+            // Set the CanEditAndDelete property for each tag if IncludeCanEditAndDelete is true
+            if (filterOptions.IncludeCanEditAndDelete)
+            {
+                // Get the GUID of the user
+                Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
+                if (userId != null)
+                {
+                    foreach (Tag tag in tags) 
+                    {
+                        // If tag is created by current user and is not assigned to any resource, set to true
+                        tag.CanEditAndDelete = (tag.CreatedBy == userId && tag.UsageCount == 0) ? true : false;
+                    }
+                }
+            }
 
             // Apply weighted sorting if specified
             if (!string.IsNullOrEmpty(filterOptions.WeightedSort) && !string.IsNullOrEmpty(filterOptions.SortBy))

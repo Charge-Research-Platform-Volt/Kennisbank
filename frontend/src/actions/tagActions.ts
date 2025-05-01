@@ -302,6 +302,7 @@ export const ListTagsPaged = async (pageIndex: number, searchQuery: string): Pro
     searchQuery: searchQuery,
     onlyOwnedByCurrentUser: false,
     includeUsageCount: true,
+    includeCanEditAndDelete: true,
     sortDescending: false,
   }
 
@@ -373,6 +374,7 @@ export const fetchTagSearch = async (searchQuery?: string, K?: number): Promise<
     searchQuery: searchQuery,
     onlyOwnedByCurrentUser: false,
     includeUsageCount: true,
+    includeCanEditAndDelete: true,
     sortDescending: true,
     weightedSort: "IsStandardized:2,IsApproved:1,UsageCount:0.5",
   }
