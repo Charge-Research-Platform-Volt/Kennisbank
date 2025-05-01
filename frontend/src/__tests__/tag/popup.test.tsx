@@ -20,7 +20,8 @@ const testTags = TagArraySchema.parse([
         approvedOn: null,
         approvedBy: null,
         createdBy: "3b542bc8-9b38-4c40-926d-dcd46c576fdf", // Must be a valid UUID
-        createdOn: "2024-01-01T12:00:00Z"
+        createdOn: "2024-01-01T12:00:00Z",
+        usageCount: 0
     }
 ]);
 
@@ -88,7 +89,7 @@ describe('popup', () => {
 
     test('The tag selection dropdown works as expected', async() => {
 
-        const mockedSearch = vi.mocked(fetchTagSearch).mockResolvedValue(testTags);
+        const mockedSearch = vi.mocked(fetchTagSearch).mockResolvedValue({ message: "1 tag found.", success: true, pageIndex: 1, pageSize: 10, pageCount: 1, tags: testTags });
 
         // RENDER DROPDOWNBOX
         render(<TagSelectionDropdown className="test"></TagSelectionDropdown>);
