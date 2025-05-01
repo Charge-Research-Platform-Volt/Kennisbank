@@ -10,6 +10,7 @@ export default function TagListItem({ tag }: { tag: Tag}) {
       <div className="relative w-full shadow rounded-md px-3 py-1">
         <div className="flex">
           <p>{tag.name}</p>
+          <p>{tag.usageCount}</p>
           {tag.isStandardized ? (<AdminIcon className="h-5 w-5 ml-2" />) : tag.isApproved ? (<ApprovedTag className="h-5 w-5 ml-2" />) : "" }
         </div>
       </div>

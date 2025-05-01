@@ -58,7 +58,7 @@ export default function TagListItemAdmin({ tag }: { tag: Tag }) {
   const formAction = saveTagAction;
   const isSaving : boolean = savingTagIsPending;
   const tagId : string = tag.id;
-  
+  // TODO: create circle around usage count
   return (
     <div className="flex w-full items-center justify-between gap-2">
       {editing ? (
@@ -94,21 +94,34 @@ export default function TagListItemAdmin({ tag }: { tag: Tag }) {
         </form>
       ) : (
         <form className="relative w-full shadow rounded-md px-3 py-1" action={formAction}>
-          <div className="flex">
-            <p>{tagName}</p>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              <p>{tagName}</p>
+              <div className="italic ml-2">
+                {tag.usageCount == undefined ? <div></div> : 
 
-            {
-              tag.isStandardized ?
-              ( <AdminIcon className="h-5 w-5 ml-2" />) :
-              tag.isApproved ?
-              ( <ApprovedTagIcon className="h-5 w-5 ml-2" />) :
-              ""
-            }
+                <div>
+                  {tag.usageCount > 99 ? <p>99<sup>+</sup></p> : <p>{tag.usageCount}</p>}
+                </div>
+
+                }
+              </div>
+            </div>
+
+            <div className="flex items-center">
+              {
+                tag.isStandardized ?
+                ( <AdminIcon className="h-5 w-5 ml-2" />) :
+                tag.isApproved ?
+                ( <ApprovedTagIcon className="h-5 w-5 ml-2" />) :
+                ""
+              }
+            </div>
           </div>
           <div className="absolute inset-y-0 right-2 flex items-center justify-center">
             <TagActionButtons 
               tag={tag}
-              onEditClick={handleEditClick} 
+              onEditClick={handleEditClick}
             />
           </div>
           <Input
