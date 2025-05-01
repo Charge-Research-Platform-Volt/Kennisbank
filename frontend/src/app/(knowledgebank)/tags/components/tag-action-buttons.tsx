@@ -3,11 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/types/tag.type";
 import EditIcon from "@/icons/edit-icon";
-import { ApproveTagButton, DeleteTagButton, ConvertTagButton } from "./tag-list-buttons";
-
+import { ApproveTagButton, DeleteTagButton, ConvertTagButton, MergeTagButton } from "./tag-list-buttons";
 interface TagActionButtonsProps {
   tag: Tag;
   onEditClick: (e: React.MouseEvent) => void;
+  userRole: string;
 }
 
 /**
@@ -21,7 +21,7 @@ interface TagActionButtonsProps {
  * @param {TagActionButtonsProps} props - The component props
  * @returns {ReactElement} - The rendered action buttons
  */
-export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
+export function TagActionButtons({ tag, onEditClick, userRole }: TagActionButtonsProps) {
   // Common Edit Button that appears for all tag types
   const EditButton = () => (
     <Button
@@ -38,10 +38,16 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
   // If unapproved user tag 
   if (!tag.isStandardized && !tag.isApproved) {
     return (
-      <div className="flex">
-        <ApproveTagButton tag={tag} />
-        <EditButton />
-        <DeleteTagButton tag={tag} />
+      <div>
+      {
+        userRole == "admin" &&
+        <div className="flex">
+          <ApproveTagButton tag={tag} />
+          <MergeTagButton tag={tag}/>
+          <EditButton />
+          <DeleteTagButton tag={tag} />
+        </div>
+      }
       </div>
     );
   }
@@ -49,10 +55,16 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
   // If approved user tag
   if (!tag.isStandardized && tag.isApproved) {
     return (
-      <div className="flex">
-        <ConvertTagButton tag={tag} />
-        <EditButton />
-        <DeleteTagButton tag={tag} />
+      <div>
+        {
+          userRole == "admin" && 
+          <div className="flex">
+            <ConvertTagButton tag={tag} />
+            <MergeTagButton tag={tag}/>
+            <EditButton />
+            <DeleteTagButton tag={tag} />
+          </div> 
+        }
       </div>
     );
   }
@@ -60,9 +72,15 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
   // If standardized tag
   if (tag) {
     return (
-      <div className="flex">
-        <EditButton />
-        <DeleteTagButton tag={tag} />
+      <div>
+        {
+          userRole == "admin" &&
+          <div className="flex">
+            <MergeTagButton tag={tag}/>
+            <EditButton />
+            <DeleteTagButton tag={tag} />
+          </div>
+        }
       </div>
     );
   }

@@ -3,7 +3,6 @@ import React from "react";
 import { useEffect, useState, useRef } from "react";
 import { TagArray } from "@/types/tag.type";
 import TagListItem from "./tag-list-item";
-import TagListItemAdmin from "./tag-list-item-admin";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ListTagsPaged } from "@/actions/tagActions";
 import { toast } from "sonner";
@@ -142,9 +141,7 @@ export default function ListTags({userRole} : {userRole : string}) {
                     {tags.map((tag) => (
                         <div key={tag.id} className="mb-2 flex justify-between items-center w-full">
                             {
-                                userRole === "admin" ?
-                                ( <TagListItemAdmin key={tag.id} tag={tag} /> ) :
-                                ( <TagListItem key={tag.id} tag={tag} />)
+                                <TagListItem key={tag.id} tag={tag} userRole={userRole}/>
                             }
                         </div>
                     ))}
