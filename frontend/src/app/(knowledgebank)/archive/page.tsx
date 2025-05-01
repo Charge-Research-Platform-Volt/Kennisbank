@@ -150,12 +150,10 @@ export default function ArchivePage() {
         const data = await response.json();
         onSuccess(data);
       } else {
-        console.log("XXX-XXX")
         console.error(response.body);
         onError();
       }
     } catch (e) {
-      console.log("XXX-XXX")
       console.error(e);
       onError();
     }

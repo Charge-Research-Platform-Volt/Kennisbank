@@ -3,9 +3,6 @@ import type { NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
     try {
-        console.log(request.headers.get("cookie"))
-        console.log(request.nextUrl.pathname)
-        console.log(request.nextUrl.pathname.startsWith("/api/Auth/"))
         // Check in backend if logged in
         const response = await fetch(`${process.env.API_URL}/Auth/ping`, {
             method: "GET",
