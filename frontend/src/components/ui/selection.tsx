@@ -109,7 +109,7 @@ export function Selection({
                     className={cn(
                         "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
                         error ? "border-destructive" : "border-input",
-                        "cursor-pointer relative",
+                        "cursor-pointer relative caret-transparent",
                         className
                     )}
                     role="combobox"
@@ -118,12 +118,10 @@ export function Selection({
                     tabIndex={-1}
                 >
                     <input 
-                        readOnly
+                        readOnly={true}
                         placeholder={placeholder}
                         value={getDisplayText()}
-                        className={cn(
-                            "w-full bg-transparent border-0 outline-none placeholder:text-muted-foreground cursor-pointer truncate",
-                        )}
+                        className="w-full bg-transparent border-0 outline-none placeholder:text-muted-foreground cursor-pointer truncate caret-transparant"
                         onClick={(e) => e.preventDefault()}
                         tabIndex={-1}
                     />

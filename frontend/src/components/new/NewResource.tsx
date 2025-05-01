@@ -10,8 +10,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Selection } from "@/components/ui/selection"
 import { LanguageCodes } from "@/lists/languageCodes"
-import { MultiSelectCombobox } from "@/components/ui/multiselect-combobox"
 import { SelectOption } from "@/components/ui/selection"
+import { AddListDialog } from "@/components/ui/add-list-dialog"
 
 const resourceCreateFormSchema = z.object(
 {
@@ -22,7 +22,7 @@ const resourceCreateFormSchema = z.object(
     publicationCode: z.string().optional(),
     publicationDate: z.string().date("Please select a date"),
     license: z.string().optional(),
-    sources: z.string().array().optional(), //.min(1, { message: "Please add a source" }),
+    sources: z.string().array().optional(),
     note: z.string().optional(),
     tags: z.string().array().min(1, { message: "Please add a tag" }),
     authors: z.string().array().min(1, { message: "Please add an author" }),
@@ -47,8 +47,8 @@ export default function NewResource({ persons, resourceTypes, tags }: NewResourc
             typeId: "",
             languageCode: "",
             publicationDate: "",
-            sources: [],
-            tags: []
+            tags: [],
+            sources: []
         },
     });
     
@@ -160,9 +160,8 @@ export default function NewResource({ persons, resourceTypes, tags }: NewResourc
                         <FormItem>
                             <FormLabel>Sources</FormLabel>
                             <FormControl>
-                                <MultiSelectCombobox options={[ { value: "source", label: "source" } ]} onChange={(val) => console.log(val)} />
+                                <AddListDialog title="Add sources to resource" placeholder="Add sources..." inputPlaceholder="Paste URL here..." emptyText="No sources have been added yet." validateInput={(item) => URL.canParse(item) } parseForList={(item) => new URL(item).hostname} />
                             </FormControl>
-                            <FormMessage />
                         </FormItem>
                     )} />
                     
@@ -177,10 +176,10 @@ export default function NewResource({ persons, resourceTypes, tags }: NewResourc
                         </FormItem>
                     )} />
                     
-                    {/* Note */}
+                    {/* Notes */}
                     <FormField control={form.control} name="note" render={({field}) => (
                         <FormItem>
-                            <FormLabel>Note <code>(Optional)</code></FormLabel>
+                            <FormLabel>Notes <code>(Optional)</code></FormLabel>
                             <FormControl>
                                 <Textarea placeholder="Additional notes about this resource" rows={10} { ... field } />
                             </FormControl>
