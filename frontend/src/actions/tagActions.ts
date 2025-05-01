@@ -142,7 +142,7 @@ export const RenameTag = async (prevState: FormResponse<TagRenameDto>, formData:
   console.log("Renaming tag: ", rawData.id, " to ", rawData.newName);
 
   // Send the data to the backend
-  const cookieHeader : ReadonlyRequestCookies = cookies();
+  const cookieHeader : ReadonlyRequestCookies = await cookies();
   const response = await fetch(`http://backend:8080/tags/rename-tag/${encodeURIComponent(rawData.id)}/${encodeURIComponent(rawData.newName)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },

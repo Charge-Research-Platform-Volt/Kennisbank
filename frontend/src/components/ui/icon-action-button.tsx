@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useTransition } from "react";
+import { JSX, SVGProps, useTransition } from "react";
 import { toast } from "sonner";
 import { ReactElement } from "react";
 
@@ -22,7 +22,7 @@ interface ActionButtonProps<T> {
   // Message to show on success
   successMessage?: string;
   // Icon component to render
-  icon: React.ComponentType<unknown>;
+  icon: ({ fill, ...props }: SVGProps<SVGSVGElement>) => JSX.Element;
   // Title for the button
   title: string;
   // Optional className for styling

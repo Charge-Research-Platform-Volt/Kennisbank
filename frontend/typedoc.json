@@ -1,0 +1,6 @@
+{
+    "entryPoints": ["src"],
+    "out": "../website/public/docs/Frontend"],
+    "tsconfig": "tsconfig.json",
+    "entryPointStrategy": "expand",
+  }

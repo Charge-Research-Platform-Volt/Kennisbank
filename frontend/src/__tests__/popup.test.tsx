@@ -21,9 +21,9 @@ const expectedComponents : string[] = ['Upload New Document', 'Upload New Websit
 const popUpFileText : string[] = ['Tags:', 'Upload File', 'Document Title:', 'Description:', 'Author Name:', 'Upload'];
 const popUpWebsiteText: string[] = ['Upload Website', 'Website URL:'];
 
-describe('popup', () =>
-    test('There are buttons that work correctly and render components with correct names', async() =>{
-        render(<NewButton tags={testTags} />);
+describe('popup', () => {
+    test('There are buttons that work correctly and render components with correct names', async() => {
+        render(<NewButton tags={testTags} minimize={false} />);
         const buttonName = await screen.queryAllByTestId("button_text").map(elem => elem.textContent ?? '');
         expect(buttonName).toEqual(["New"]); // 1 button
 
@@ -47,10 +47,10 @@ describe('popup', () =>
         popUpFileText.forEach(element => {
             expect(screen.getByText(element)).toBeInTheDocument();
         });
-    }),
+    });
 
     test('Upload File button works correctly', async() => {
-        render(<NewButton tags={testTags}/>);
+        render(<NewButton tags={testTags} minimize={false} />);
 
         const button = screen.getByTestId('button_text');
         fireEvent.keyDown(button, { key: 'Enter' });
@@ -58,10 +58,10 @@ describe('popup', () =>
         fireEvent.click(componentNames[0]);
 
         expect(screen.getByText('Upload File')).toBeInTheDocument();
-    }),
+    });
 
     test('Upload Website button works correctly', async() => {
-        render(<NewButton tags={testTags}/>);
+        render(<NewButton tags={testTags} minimize={false}/>);
 
         const button = screen.getByTestId('button_text');
         fireEvent.keyDown(button, { key: 'Enter' });
@@ -71,30 +71,30 @@ describe('popup', () =>
         popUpWebsiteText.forEach(element => {
             expect(screen.getByText(element)).toBeInTheDocument();
         });
-    }),
+    });
 
     test('The tag selection dropdown works as expected', async() => {
         render(<TagSelectionDropdown tags={testTags} className="test"></TagSelectionDropdown>);
         const inputTags = await screen.getByTestId("input_tags");
 
-    // SIMULATE INPUT
-    fireEvent.change(inputTags, { target: { value: "b" } });
+        // SIMULATE INPUT
+        fireEvent.change(inputTags, { target: { value: "b" } });
 
         // GET NEW BUTTONS
         let displayedTags = await screen.getAllByTestId("select_tag"); // there is only 1
         expect(displayedTags).toHaveLength(testTags.length);
 
-    // ADD TAG
-    fireEvent.click(displayedTags[0]);
-    let deleteTags = await screen.getAllByTestId("delete_tag"); // there is only 1
-    expect(deleteTags).toHaveLength(1);
-    fireEvent.click(deleteTags[0]);
-    deleteTags = await screen.queryAllByTestId("delete_tag");
-    displayedTags = await screen.queryAllByTestId("select_tag");
-    expect(deleteTags).toEqual([]);
-    expect(displayedTags).toEqual([]);
-  }),
-);
+        // ADD TAG
+        fireEvent.click(displayedTags[0]);
+        let deleteTags = await screen.getAllByTestId("delete_tag"); // there is only 1
+        expect(deleteTags).toHaveLength(1);
+        fireEvent.click(deleteTags[0]);
+        deleteTags = await screen.queryAllByTestId("delete_tag");
+        displayedTags = await screen.queryAllByTestId("select_tag");
+        expect(deleteTags).toEqual([]);
+        expect(displayedTags).toEqual([]);
+    });
+});
 
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
