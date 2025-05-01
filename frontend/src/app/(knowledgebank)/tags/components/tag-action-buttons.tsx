@@ -24,16 +24,28 @@ interface TagActionButtonsProps {
 export function TagActionButtons({ tag, onEditClick, userRole }: TagActionButtonsProps) {
   // Common Edit Button that appears for all tag types
   const EditButton = () => (
-    <Button
-      className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
-      variant="default"
-      type="button"
-      title="Edit tag"
-      onClick={onEditClick}
-    >
-      <EditIcon className="h-5 w-5" fill="#737373" />
-    </Button>
+    tag.canEditAndDelete && userRole != "admin" ? (
+      <Button
+        className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
+        variant="default"
+        type="button"
+        title="Edit tag"
+        onClick={onEditClick}
+      >
+        <EditIcon className="h-5 w-5" fill="#737373" />
+      </Button>
+    ) : null
   );
+
+  // If the current user is not admin
+  if (userRole != "admin") {
+    return (
+        <div className="flex">
+          <EditButton />
+          <DeleteTagButton tag={tag} userRole={userRole} />
+        </div>
+    )
+  }
 
   // If unapproved user tag 
   if (!tag.isStandardized && !tag.isApproved) {
@@ -45,7 +57,7 @@ export function TagActionButtons({ tag, onEditClick, userRole }: TagActionButton
           <ApproveTagButton tag={tag} />
           <MergeTagButton tag={tag}/>
           <EditButton />
-          <DeleteTagButton tag={tag} />
+          <DeleteTagButton tag={tag} userRole={userRole} />
         </div>
       }
       </div>
@@ -62,7 +74,7 @@ export function TagActionButtons({ tag, onEditClick, userRole }: TagActionButton
             <ConvertTagButton tag={tag} />
             <MergeTagButton tag={tag}/>
             <EditButton />
-            <DeleteTagButton tag={tag} />
+            <DeleteTagButton tag={tag} userRole={userRole} />
           </div> 
         }
       </div>
@@ -78,7 +90,7 @@ export function TagActionButtons({ tag, onEditClick, userRole }: TagActionButton
           <div className="flex">
             <MergeTagButton tag={tag}/>
             <EditButton />
-            <DeleteTagButton tag={tag} />
+            <DeleteTagButton tag={tag} userRole={userRole} />
           </div>
         }
       </div>

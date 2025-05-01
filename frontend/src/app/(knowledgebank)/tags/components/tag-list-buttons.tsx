@@ -31,7 +31,7 @@ export function MergeTagButton({tag} : {tag: Tag}){
       successMessage="Tag converted"
       onSuccessAction={() => window.dispatchEvent(new Event("tagListUpdated"))}
       icon={<Merge/>}
-      title="Convert to standardized tag"
+      title="Merge tag into another tag"
     />
   );
 }
@@ -50,8 +50,8 @@ export function ConvertTagButton({ tag }: { tag: Tag }) {
   );
 }
 
-export function DeleteTagButton({ tag }: { tag: Tag }) {
-  if (tag) {
+export function DeleteTagButton({ tag, userRole }: { tag: Tag, userRole: string }) {
+  if (tag && tag.canEditAndDelete || userRole == "admin") {
     return (
       <ActionButton<string>
         action={DeleteTag}
