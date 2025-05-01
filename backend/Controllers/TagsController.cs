@@ -100,8 +100,9 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                 {
                     foreach (Tag tag in tags) 
                     {
-                        // If tag is created by current user and is not assigned to any resource, set to true
-                        tag.CanEditAndDelete = (tag.CreatedBy == userId && tag.UsageCount == 0) ? true : false;
+                        tag.CanEditAndDelete = (tag.CreatedBy == userId && tag.UsageCount == 0 && !tag.IsApproved && !tag.IsStandardized) 
+                            ? true 
+                            : false;
                     }
                 }
             }
