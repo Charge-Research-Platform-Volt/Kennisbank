@@ -37,10 +37,26 @@ export function TagActionButtons({ tag, onEditClick, userRole }: TagActionButton
     ) : null
   );
 
+  // Usage Count styled as an icon-like element
+  const UsageCount = () => (
+    <Button
+      className="bg-transparent cursor-default shadow-none text-muted-foreground"
+      variant="default"
+      type="button"
+      title={`Usage count: ${tag.usageCount || 0}`}
+      disabled
+    >
+      <span className="h-5 w-5 flex items-center justify-center font-bold">
+        {tag.usageCount || 0}
+      </span>
+    </Button>
+  );
+
   // If the current user is not admin
   if (userRole != "admin") {
     return (
         <div className="flex">
+          <UsageCount />
           <EditButton />
           <DeleteTagButton tag={tag} userRole={userRole} />
         </div>
@@ -54,6 +70,7 @@ export function TagActionButtons({ tag, onEditClick, userRole }: TagActionButton
       {
         userRole == "admin" &&
         <div className="flex">
+          <UsageCount />
           <ApproveTagButton tag={tag} />
           <MergeTagButton tag={tag}/>
           <EditButton />
@@ -71,6 +88,7 @@ export function TagActionButtons({ tag, onEditClick, userRole }: TagActionButton
         {
           userRole == "admin" && 
           <div className="flex">
+            <UsageCount />
             <ConvertTagButton tag={tag} />
             <MergeTagButton tag={tag}/>
             <EditButton />
@@ -88,6 +106,7 @@ export function TagActionButtons({ tag, onEditClick, userRole }: TagActionButton
         {
           userRole == "admin" &&
           <div className="flex">
+            <UsageCount />
             <MergeTagButton tag={tag}/>
             <EditButton />
             <DeleteTagButton tag={tag} userRole={userRole} />

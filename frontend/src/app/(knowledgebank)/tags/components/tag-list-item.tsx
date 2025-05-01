@@ -105,7 +105,7 @@ export default function TagListItem({ tag, userRole }: { tag: Tag, userRole: str
                   <ApprovedTagIcon className="h-5 w-5 ml-2" />
                 ) : ""}
               </div>
-              <div className="italic ml-2">
+              {/* <div className="italic ml-2">
                 {tag.usageCount == undefined ? <div></div> : 
 
                 <div>
@@ -113,15 +113,15 @@ export default function TagListItem({ tag, userRole }: { tag: Tag, userRole: str
                 </div>
 
                 }
-              </div>
+              </div> */}
             </div>
 
             <div className="flex items-center">
-                <TagActionButtons
-                  tag={tag}
-                  onEditClick={handleEditClick}
-                  userRole={userRole}
-                />
+              <TagActionButtons
+                tag={tag}
+                onEditClick={handleEditClick}
+                userRole={userRole}
+              />
             </div>
           </div>
           <Input
