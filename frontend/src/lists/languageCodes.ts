@@ -1,102 +1,6 @@
-"use client"
-
-import * as React from "react"
-import { Check, ChevronsUpDown } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Control, FieldPath, UseFormSetValue } from "react-hook-form"
-
-export function LanguageSelection() 
-{
-    const [open, setOpen] = React.useState(false);
-    const [value, setValue] = React.useState("");
-    
-    return (
-        <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between">
-                    { value ? languages.find((language) => language.value === value)?.label : "Select language..." }
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full p-0">
-                <Command>
-                    <CommandInput placeholder="Search language..." />
-                    <CommandList>
-                        <CommandEmpty>No language found.</CommandEmpty>
-                        <CommandGroup>
-                            {
-                                languages.map((language) => (
-                                    <CommandItem key={language.value} value={language.value} onSelect={(currentValue) => { setValue(currentValue === value ? "" : currentValue); setOpen(false)}}>
-                                        {language.label}
-                                        <Check className={cn("mr-2 h-4 w-4", value === language.value ? "opacity-100" : "opacity-0")} />
-                                    </CommandItem>
-                                ))
-                            }
-                        </CommandGroup>
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-        </Popover>
-    );
-}
-
-interface LanguageSelectionFormFieldProps<T extends object>
-{
-    control: Control<T>;
-    name: FieldPath<T>;
-    setValue?: UseFormSetValue<T>;
-    label?: string;
-    placeholder?: string;
-}
-
-export function LanguageSelectionForm<T extends object>({ control, name, setValue, label = "Language", placeholder = "Select language..."}: LanguageSelectionFormFieldProps<T>) 
-{
-    const [open, setOpen] = React.useState(false);
-
-    return (
-        <FormField control={control} name={name} render={({field}) => (
-            <FormItem className="flex flex-col">
-                <FormLabel>{label}</FormLabel>
-                <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger asChild>
-                        <FormControl>
-                            <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")} >
-                                { field.value ? languages.find((language) => language.value === field.value)?.label : placeholder }
-                                <ChevronsUpDown className="opacity-50" />
-                            </Button>
-                        </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                        <Command>
-                            <CommandInput placeholder="Search language..." />
-                            <CommandList>
-                                <CommandEmpty>No language found.</CommandEmpty>
-                                <CommandGroup>
-                                    {
-                                        languages.map((language) => (
-                                            <CommandItem key={language.value} value={language.label} onSelect={() => { setValue ? setValue(name, language.value as any) : field.onChange(language); setOpen(false) }}>
-                                                {language.label}
-                                                <Check className={cn("ml-auto", field.value === language.value ? "opacity-100" : "opacity-0")} />
-                                            </CommandItem>
-                                        ))
-                                    }
-                                </CommandGroup>
-                            </CommandList>
-                        </Command>
-                    </PopoverContent>
-                </Popover>
-                <FormMessage />
-            </FormItem>
-        )} />
-    );
-}
 
 // All languages and their codes from the ISO 639-1 list
-const languages = [
+export const LanguageCodes = [
     { value: "ab", label: "Abkhazian" },
     { value: "aa", label: "Afar" },
     { value: "af", label: "Afrikaans" },
@@ -280,4 +184,4 @@ const languages = [
     { value: "yo", label: "Yoruba" },
     { value: "za", label: "Zhuang" },
     { value: "zu", label: "Zulu" }
-  ];
+];

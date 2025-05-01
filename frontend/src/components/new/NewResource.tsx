@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { LanguageSelectionForm } from "@/components/new/LanguageSelection"
+import { Selection } from "@/components/ui/selection"
+import { LanguageCodes } from "@/lists/languageCodes"
 import { MultiSelectCombobox } from "@/components/ui/multiselect-combobox"
-import { MultiselectOption } from "@/components/ui/multiselect-combobox"
+import { SelectOption } from "@/components/ui/selection"
 
 const resourceCreateFormSchema = z.object(
 {
@@ -21,18 +22,20 @@ const resourceCreateFormSchema = z.object(
     publicationCode: z.string().optional(),
     publicationDate: z.string().date("Please select a date"),
     license: z.string().optional(),
-    sources: z.string().array().optional(),
+    sources: z.string().array().optional(), //.min(1, { message: "Please add a source" }),
     note: z.string().optional(),
-    tags: z.string().array().optional(),
-    authors: z.string().array().optional(),
+    tags: z.string().array().min(1, { message: "Please add a tag" }),
+    authors: z.string().array().min(1, { message: "Please add an author" }),
 });
 
 interface NewResourceProps 
 {
-    persons: MultiselectOption[];
+    persons: SelectOption[];
+    resourceTypes: SelectOption[];
+    tags: SelectOption[];
 }
 
-export default function NewResource({ persons }: NewResourceProps) 
+export default function NewResource({ persons, resourceTypes, tags }: NewResourceProps) 
 {
     // Define the form
     const form = useForm<z.infer<typeof resourceCreateFormSchema>>(
@@ -44,6 +47,8 @@ export default function NewResource({ persons }: NewResourceProps)
             typeId: "",
             languageCode: "",
             publicationDate: "",
+            sources: [],
+            tags: []
         },
     });
     
@@ -51,11 +56,6 @@ export default function NewResource({ persons }: NewResourceProps)
     function onSubmit(values: z.infer<typeof resourceCreateFormSchema>) 
     {
         console.log(values);
-    }
-    
-    function onAuthorsChange(values: string[]) 
-    {
-        form.setValue("authors", values);
     }
 
     return (
@@ -90,9 +90,6 @@ export default function NewResource({ persons }: NewResourceProps)
                     )} />
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Language Code */}
-                        <LanguageSelectionForm control={form.control} name="languageCode" setValue={form.setValue}/>
-                        
                         {/* Publication date */}
                         <FormField control={form.control} name="publicationDate" render={({field}) => (
                             <FormItem>
@@ -103,24 +100,89 @@ export default function NewResource({ persons }: NewResourceProps)
                                 <FormMessage />
                             </FormItem>
                         )} />
+                        
+                        {/* Publication code */}
+                        <FormField control={form.control} name="publicationCode" render={({field}) => (
+                            <FormItem>
+                                <FormLabel>Publication Code <code>(Optional)</code></FormLabel>
+                                <FormControl>
+                                    <Input placeholder="The publication code (DOI / ISBN / ISSN / etc.)" { ... field} />
+                                </FormControl>
+                            </FormItem>
+                        )} />
+                        
+                        {/* Language Code */}
+                        <FormField control={form.control} name="languageCode" render={({field}) => (
+                            <FormItem>
+                                <FormLabel>Language Code</FormLabel>
+                                <FormControl>
+                                    <Selection placeholder="Select Language..." options={LanguageCodes} { ... field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        
+                        {/* Type */}
+                        <FormField control={form.control} name="typeId" render={({field}) => (
+                            <FormItem>
+                                <FormLabel>Type</FormLabel>
+                                <FormControl>
+                                    <Selection placeholder="Select Type..." options={resourceTypes} { ... field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
                     </div>
-                    
-                    {/* Publication code */}
-                    <FormField control={form.control} name="publicationCode" render={({field}) => (
-                        <FormItem>
-                            <FormLabel>Publication Code <code>(Optional)</code></FormLabel>
-                            <FormControl>
-                                <Input placeholder="The publication code (DOI / ISBN / ISSN / etc.)" />
-                            </FormControl>
-                        </FormItem>
-                    )} />
                     
                     {/* Authors */}
                     <FormField control={form.control} name="authors" render={({field}) => (
                         <FormItem>
                             <FormLabel>Authors</FormLabel>
                             <FormControl>
-                                <MultiSelectCombobox options={persons} onChange={onAuthorsChange} createNew={() => console.log("new") } />
+                                <Selection placeholder="Select authors..." options={persons} multiSelect={true} { ... field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    
+                    {/* Licence */}
+                    <FormField control={form.control} name="license" render={({field}) => (
+                        <FormItem>
+                            <FormLabel>Licence <code>(Optional)</code></FormLabel>
+                            <FormControl>
+                                <Input placeholder="The license of the resource" { ... field} />
+                            </FormControl>
+                        </FormItem>
+                    )} />
+                    
+                    {/* Sources */}
+                    <FormField control={form.control} name="sources" render={({field}) => (
+                        <FormItem>
+                            <FormLabel>Sources</FormLabel>
+                            <FormControl>
+                                <MultiSelectCombobox options={[ { value: "source", label: "source" } ]} onChange={(val) => console.log(val)} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    
+                    {/* Tags */}
+                    <FormField control={form.control} name="tags" render={({field}) => (
+                        <FormItem>
+                            <FormLabel>Tags</FormLabel>
+                            <FormControl>
+                                <Selection placeholder="Select tags..." options={tags} multiSelect={true} { ... field } />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    
+                    {/* Note */}
+                    <FormField control={form.control} name="note" render={({field}) => (
+                        <FormItem>
+                            <FormLabel>Note <code>(Optional)</code></FormLabel>
+                            <FormControl>
+                                <Textarea placeholder="Additional notes about this resource" rows={10} { ... field } />
                             </FormControl>
                         </FormItem>
                     )} />

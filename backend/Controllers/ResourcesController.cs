@@ -500,6 +500,32 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
         
+        #region Types Fetch
+        /// <summary>
+        /// Retrieves a list of all resource types
+        /// </summary>
+        [HttpGet("types/list")]
+        [SwaggerOperation(Summary = "Retrieves a list of all resource types")]
+        [SwaggerResponse(200, "A list of all the resource types", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> TypesFetch() 
+        {
+            try 
+            {
+                // Fetch the resource types
+                ResourceType[] types = await resourceManager.GetAllResourceTypesAsync();
+                
+                // Return the resource types
+                return Ok(new ApiResponse(true, $"Found {types.Length} resource types", types));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error listing resource types");
+                return StatusCode(500, new ApiResponse(false, "Error listing resource types", e.Message));
+            }
+        }
+        #endregion
+        
         
         #region Helper Functions
         // ---------------------------
