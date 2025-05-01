@@ -7,7 +7,6 @@ export const handleOpenFile = async (file: ResourceResponse) => {
     // If the website is of the form www.input.nl or similar, put https:// before it so it doesn't use the
     // knowledgebank host as its base
     function makeValid(input:string):string {
-        console.log(input)
         const validBeginLink : [string, string] = ["https://", "http://"];
         for(const element of validBeginLink) {
             if(input.startsWith(element))
@@ -18,7 +17,7 @@ export const handleOpenFile = async (file: ResourceResponse) => {
 
     // Anything but a website at the moment we'll just open from the storage
     if(file.fileType != "website"){
-        url = `/api/storage/download/${file.id}`;
+        url = `http://localhost:8080/storage/download/${file.id}`;
         try {
             const response : Response = await fetch(url, {
                 method: 'GET',
@@ -45,7 +44,7 @@ export const handleOpenFile = async (file: ResourceResponse) => {
             console.error(`Error fetching website`);
             return;
         }
-        url = `/api/websiteupload/get-website/${file.id}`;
+        url = `http://localhost:8080/websiteupload/get-website/${file.id}`;
 
         try {
             await fetch(url, {
