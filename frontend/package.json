@@ -44,6 +44,8 @@
     "sonner": "^2.0.1",
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7",
+    "typedoc": "^0.25.13",
+    "typedoc-plugin-markdown": "^4.0.0-next.60",
     "use-debounce": "^10.0.4",
     "zod": "^3.24.2"
   },
@@ -68,7 +70,6 @@
     "prettier-plugin-tailwindcss": "^0.6.11",
     "tailwindcss": "^4.0.9",
     "tw-animate-css": "^1.2.4",
-    "typedoc": "^0.28.3",
     "typescript": "^5",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.1.1"

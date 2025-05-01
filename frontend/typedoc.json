@@ -1,6 +1,7 @@
 {
     "entryPoints": ["src"],
-    "out": "../website/public/docs/Frontend"],
+    "out": "../website/typedoc-files",
     "tsconfig": "tsconfig.json",
     "entryPointStrategy": "expand",
+    "readme": "none",
   }
