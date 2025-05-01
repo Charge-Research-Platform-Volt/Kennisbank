@@ -243,6 +243,49 @@ export const MakeStandardized = async (tagId: string): Promise<FormResponse<{ id
   };
 };
 
+export const MergeTag = async (formData: FormData): Promise<FormResponse<{ tagId1: string; tagId2: string }>> => {
+  const tagId1 = formData.get("tagId1") as string;
+  const tagId2 = formData.get("tagId2") as string;
+
+  if (!tagId1 || !tagId2 || tagId1 === tagId2) {
+    return {
+      success: false,
+      message: "Invalid source or target tag ID.",
+    };
+  }
+
+  console.log("Merging tag", tagId2, "into", tagId1);
+
+  const cookieHeader = await cookies();
+  const response = await fetch(
+    `http://backend:8080/tags/merge-tag/${encodeURIComponent(tagId1)}/${encodeURIComponent(tagId2)}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: cookieHeader.toString() || "",
+      },
+      credentials: "include",
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    return {
+      success: false,
+      message: data.message || "Failed to merge tags.",
+    };
+  }
+
+  revalidatePath("/tags", "layout");
+
+  return {
+    success: true,
+    message: data.message || "Tags merged successfully.",
+  };
+};
+
 /**
  * 
  * @param pageIndex - The page to fetch
