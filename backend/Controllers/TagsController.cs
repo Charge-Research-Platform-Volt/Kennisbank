@@ -280,12 +280,12 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         }
 
         // Check if the tag already exists in the UserTags table
-        bool userTagExists = await resourceManager.TagExistsAsync(t => t.Name == dto.Name);
+        bool tagExists = await resourceManager.TagExistsAsync(t => t.Name == dto.Name);
 
-        if (userTagExists)
+        if (tagExists)
         {
-            Log.Error("Tag already exists in UserTags table.");
-            return Conflict(new { message = "Tag already exists in the user tags list, try converting it instead." });
+            Log.Error("Tag already exists.");
+            return Conflict(new { message = "Tag already exists." });
         }
 
         // Add the tag
@@ -343,12 +343,12 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         }
 
         // Check if the tag already exists in the UserTags table
-        bool userTagExists = await resourceManager.TagExistsAsync(t => t.Name == dto.Name);
+        bool tagExists = await resourceManager.TagExistsAsync(t => t.Name == dto.Name);
 
-        if (userTagExists)
+        if (tagExists)
         {
-            Log.Error("Tag already exists in UserTags table.");
-            return Conflict(new { message = "Tag already exists in the user tags list, try converting it instead." });
+            Log.Error("Tag already exists..");
+            return Conflict(new { message = "Tag already exists." });
         }
 
         // Add the tag
@@ -511,8 +511,8 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         
             if (await resourceManager.TagExistsAsync(t => t.Name == newName))
             {
-                Log.Error("Tag already exists in UserTags table.");
-                return Conflict(new { message = "Tag already exists in the user tags list, try converting the user tag instead." });
+                Log.Error("Tag already exists.");
+                return Conflict(new { message = "Tag already exists." });
             }
 
             if (!await resourceManager.UpdateTagAsync(id, t => t.Name, newName))
