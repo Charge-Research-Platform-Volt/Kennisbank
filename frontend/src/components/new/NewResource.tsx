@@ -7,11 +7,19 @@ import { useForm } from "react-hook-form"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Selection } from "@/components/ui/selection"
 import { LanguageCodes } from "@/lists/languageCodes"
 import { SelectOption } from "@/components/ui/selection"
 import { AddListDialog } from "@/components/ui/add-list-dialog"
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"
+import { FileInput } from "@/components/ui/file-input"
+
+// Define upload types
+const UploadTypeEnum = z.enum(["document", "website", "audio", "video"])
+
+// Define constants
+const urlDefault = "http://no.url/"
 
 const resourceCreateFormSchema = z.object(
 {
@@ -24,19 +32,29 @@ const resourceCreateFormSchema = z.object(
     license: z.string().optional(),
     sources: z.string().array().optional(),
     note: z.string().optional(),
-    tags: z.string().array().min(1, { message: "Please add a tag" }),
-    authors: z.string().array().min(1, { message: "Please add an author" }),
+    tags: z.string().uuid().array().min(1, { message: "Please add a tag" }),
+    authors: z.string().uuid().array().min(1, { message: "Please add an author" }),
+    organisations: z.string().uuid().array().optional(),
+    regions: z.string().uuid().array().optional(),
+    uploadType: UploadTypeEnum,
+    url: z.string().min(1, "URL is required").url("Invalid URL"),
+    file: z.any().refine(val => val !== undefined, { message: "File is required" }),
 });
 
 interface NewResourceProps 
 {
     persons: SelectOption[];
+    organisations: SelectOption[];
     resourceTypes: SelectOption[];
     tags: SelectOption[];
+    regions: SelectOption[];
 }
 
-export default function NewResource({ persons, resourceTypes, tags }: NewResourceProps) 
+export default function NewResource({ persons, organisations, resourceTypes, tags, regions }: NewResourceProps) 
 {
+    // React states
+    const [uploadType, setUploadType] = React.useState<z.infer<typeof UploadTypeEnum>>("document");
+    
     // Define the form
     const form = useForm<z.infer<typeof resourceCreateFormSchema>>(
     {
@@ -48,9 +66,21 @@ export default function NewResource({ persons, resourceTypes, tags }: NewResourc
             languageCode: "",
             publicationDate: "",
             tags: [],
-            sources: []
+            sources: [],
+            uploadType: "document",
+            url: urlDefault,
         },
     });
+    
+    // Effect for uploadType
+    React.useEffect(() => 
+    {
+        // When website, set url to nothing, else to a valid url
+        form.setValue("url", uploadType === "website" ? "" : urlDefault);
+        
+        form.setValue("file", undefined);
+        form.clearErrors("file");
+    }, [uploadType]);
     
     // Function to be called when form is submitted
     function onSubmit(values: z.infer<typeof resourceCreateFormSchema>) 
@@ -68,6 +98,47 @@ export default function NewResource({ persons, resourceTypes, tags }: NewResourc
             
             <Form { ... form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <Select onValueChange={(value) => setUploadType(value as z.infer<typeof UploadTypeEnum>)} value={uploadType}>
+                            <SelectTrigger className="sm:w-35">
+                                <SelectValue placeholder="Upload type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="document">Document</SelectItem>
+                                <SelectItem value="website">Website</SelectItem>
+                                <SelectItem value="audio">Audio</SelectItem>
+                                <SelectItem value="video">Video</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <div className="flex-1">
+                            {
+                                uploadType === "website" &&
+                                <FormField control={form.control} name="url" render={({field}) => (
+                                    <FormItem>
+                                        <FormControl>
+                                            <Input placeholder="Paste URL to website..." { ... field } />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                
+                            }
+                            
+                            {
+                                uploadType !== "website" &&   
+                                <FormField control={form.control} name="file" render={({field}) => (
+                                    <FormItem>
+                                        <FormControl>
+                                            <FileInput placeholder="Select file..." onChange={(e) => field.onChange(e.target.files?.[0] || undefined)} onBlur={field.onBlur} name={field.name} ref={field.ref} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            }
+                        </div>
+                    </div>
+                    
                     {/* Title input */}
                     <FormField control={form.control} name="title" render={({field}) => (
                         <FormItem>
@@ -145,12 +216,12 @@ export default function NewResource({ persons, resourceTypes, tags }: NewResourc
                         </FormItem>
                     )} />
                     
-                    {/* Licence */}
-                    <FormField control={form.control} name="license" render={({field}) => (
+                    {/* Organisation of Origin */}
+                    <FormField control={form.control} name="organisations" render={({field}) => (
                         <FormItem>
-                            <FormLabel>Licence <code>(Optional)</code></FormLabel>
+                            <FormLabel>Organisations of Origin <code>(Optional)</code></FormLabel>
                             <FormControl>
-                                <Input placeholder="The license of the resource" { ... field} />
+                                <Selection placeholder="Select organisations..." options={organisations} multiSelect={true} { ... field } />
                             </FormControl>
                         </FormItem>
                     )} />
@@ -160,7 +231,7 @@ export default function NewResource({ persons, resourceTypes, tags }: NewResourc
                         <FormItem>
                             <FormLabel>Sources</FormLabel>
                             <FormControl>
-                                <AddListDialog title="Add sources to resource" placeholder="Add sources..." inputPlaceholder="Paste URL here..." emptyText="No sources have been added yet." validateInput={(item) => URL.canParse(item) } parseForList={(item) => new URL(item).hostname} />
+                                <AddListDialog title="Add sources to resource" placeholder="Add sources..." inputPlaceholder="Paste URL here..." emptyText="No sources have been added yet." validateInput={(item) => URL.canParse(item) } parseForList={(item) => new URL(item).hostname} { ... field } />
                             </FormControl>
                         </FormItem>
                     )} />
@@ -173,6 +244,26 @@ export default function NewResource({ persons, resourceTypes, tags }: NewResourc
                                 <Selection placeholder="Select tags..." options={tags} multiSelect={true} { ... field } />
                             </FormControl>
                             <FormMessage />
+                        </FormItem>
+                    )} />
+                    
+                    {/* Licence */}
+                    <FormField control={form.control} name="license" render={({field}) => (
+                        <FormItem>
+                            <FormLabel>Licence <code>(Optional)</code></FormLabel>
+                            <FormControl>
+                                <Input placeholder="The license of the resource" { ... field} />
+                            </FormControl>
+                        </FormItem>
+                    )} />
+                    
+                    {/* Geographic regions */}
+                    <FormField control={form.control} name="regions" render={({field}) => (
+                        <FormItem>
+                            <FormLabel>Geographic Regions <code>(Optional)</code></FormLabel>
+                            <FormControl>
+                                <Selection placeholder="Select regions..." options={regions} multiSelect={true} { ... field } />
+                            </FormControl>
                         </FormItem>
                     )} />
                     
