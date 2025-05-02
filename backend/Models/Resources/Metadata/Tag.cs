@@ -60,15 +60,15 @@ public class TagFilterOptions
     public int PageSize { get; set; } = 100;
 
     // Filtering
-    public string? SearchQuery { get; set; }
-    public Guid? CreatedBy { get; set; }
+    public string? SearchQuery { get; set; } = null;
+    public Guid? CreatedBy { get; set; } = null;
     public bool OnlyOwnedByCurrentUser { get; set; } = false;
-    public bool? IsApproved { get; set; }
-    public bool? IsStandardized { get; set; }
-    public DateTime? CreatedFromDate { get; set; }
-    public DateTime? CreatedToDate { get; set; }
-    public DateTime? ApprovedFromDate { get; set; }
-    public DateTime? ApprovedToDate { get; set; }
+    public bool? IsApproved { get; set; } = null;
+    public bool? IsStandardized { get; set; } = null;
+    public DateTime? CreatedFromDate { get; set; } = null;
+    public DateTime? CreatedToDate { get; set; } = null;
+    public DateTime? ApprovedFromDate { get; set; } = null;
+    public DateTime? ApprovedToDate { get; set; } = null;
 
     // Additional processing
     public bool IncludeUsageCount { get; set; } = true;
@@ -82,7 +82,7 @@ public class TagFilterOptions
     /// Comma-separated list of property weight expressions in format "PropertyName:Weight"
     /// Example: "IsStandardized:2,IsApproved:1,UsageCount:0.5"
     /// </summary>
-    public string? WeightedSort { get; set; } 
+    public string? WeightedSort { get; set; } = null;
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

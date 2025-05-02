@@ -12,6 +12,7 @@ export const TagSchema = z.object({
   approvedBy: z.string().uuid().nullable(),
   createdBy: z.string().uuid().min(1, { message: "CreatedBy is required" }),
   createdOn: z.string(),
+  usageCount: z.number().int().min(0).optional(),
 });
 
 export const TagArraySchema = z.array(TagSchema);
@@ -45,14 +46,22 @@ export type TagRenameDto = z.infer<typeof TagRenameDtoSchema>;
  */
 export const TagResponseSchema = z.object({
   message: z.string(),
-  tagId: z.string().uuid().nullable(),
-  tags: z.array(TagArraySchema).nullable(),
+  tags: z.array(TagSchema).nullable(),
 })
 
 export type TagResponse = z.infer<typeof TagResponseSchema>;
 
-
-
+/**
+ * Tag page response schema
+ */
+export type TagPageResponse = {
+  success: boolean;
+  message: string;
+  pageIndex?: number;
+  pageSize?: number;
+  pageCount?: number;
+  tags?: TagArray;
+}
 
 /**
  * Tag relation response schema
@@ -65,6 +74,31 @@ export const TagRelationSchema = z.object({
   approvedBy: z.string().uuid().nullable(),
   tag: TagSchema.nullable()
 })
+
+
+/**
+ * This is used to fetch tags in the backend with filter options
+ */
+export const TagFilterOptionsSchema = z.object({
+  usePaging: z.boolean().optional(),
+  pageIndex: z.number().int().min(1).optional(),
+  pageSize: z.number().int().min(1).optional(),
+  searchQuery: z.string().optional(),
+  createdBy: z.string().uuid().optional(),
+  onlyOwnedByCurrentUser: z.boolean().optional(),
+  isApproved: z.boolean().optional(),
+  isStandardized: z.boolean().optional(),
+  createdFromDate: z.date().optional(),
+  createdToDate: z.date().optional(),
+  approvedFromDate: z.date().optional(),
+  approvedToDate: z.date().optional(),
+  includeUsageCount: z.boolean().optional(),
+  sortBy: z.string().optional(),
+  sortDescending: z.boolean().optional(),
+  weightedSort: z.string().optional(),
+})
+
+export type TagFilterOptions = z.infer<typeof TagFilterOptionsSchema>;
 
 export type TagRelation = z.infer<typeof TagRelationSchema>;
 

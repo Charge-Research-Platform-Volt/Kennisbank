@@ -4,9 +4,8 @@ namespace KnowledgeBank.Data
 {
     public static class DatabaseSeeder
     {
-        public const string UnknownResourceTypeId = "0cc285a8-0f07-11f0-a0a6-5600051f1387";
-
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+        public const string UnknownResourceTypeId = "0cc285a8-0f07-11f0-a0a6-5600051f1387";
         private static DatabaseContext database;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
@@ -19,10 +18,10 @@ namespace KnowledgeBank.Data
         {
             // Seed data (this part is common between both Seed and SeedTemplate methods)
             if (!await database.ResourceTypes.AnyAsync(rt => rt.Id == new Guid(UnknownResourceTypeId)))
-            {
-                // Add the unknown resource type if it doesn't exist
-                await database.ResourceTypes.AddAsync(new() { Id = new Guid(UnknownResourceTypeId), Name = "Unknown" });
-            }
+                {
+                    // Add the unknown resource type if it doesn't exist
+                    await database.ResourceTypes.AddAsync(new() { Id = new Guid(UnknownResourceTypeId), Name = "Unknown" });
+                }
 
             // Save changes
             await database.SaveChangesAsync();

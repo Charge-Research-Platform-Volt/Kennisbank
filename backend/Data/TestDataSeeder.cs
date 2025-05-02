@@ -91,7 +91,10 @@ namespace KnowledgeBank.Data
 
             if (await resourceManager.ResourceExistsAsync(r => r.Title == title)) return;
             DateTime randomDay = new DateTime(1960, 1, 1, 10, 0, 0, 0).AddDays(random.Next(0,22000)).ToUniversalTime(); //DateTime.ParseExact("1960-01-01T12:00:00Z", "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
-
+            
+            string extension = Path.GetExtension(path);
+            string fileType = Filetype.ConvertExtensionToFiletype(extension);
+            
             ResourceCreateDto dto = new()
             {
                 Title = title,
@@ -101,14 +104,9 @@ namespace KnowledgeBank.Data
                 PublicationDate = randomDay,
             };
 
-            string extension = Path.GetExtension(path);
-
-            string fileType = Filetype.ConvertExtensionToFiletype(extension);
-
             await resourceManager.BeginTransaction();
 
             Guid id = await resourceManager.CreateResourceAsync(dto);
-            await resourceManager.UpdateResourceAsync(id, r => r.FileType, fileType);
 
             try
             {
@@ -122,6 +120,7 @@ namespace KnowledgeBank.Data
                 {
                     await resourceManager.Rollback();
                 }
+                await resourceManager.UpdateResourceAsync(id, r => r.FileType, fileType);
             }
             catch (Exception e)
             {
