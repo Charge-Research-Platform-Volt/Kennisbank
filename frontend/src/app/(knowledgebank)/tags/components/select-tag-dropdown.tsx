@@ -11,75 +11,76 @@ import { MAX_TAG_LENGTH } from "@/../constants";
 
 /**
  *
- * @param tags - Tags fetched from root
- * @param className - Styling fetched from parent
- * @param createButton - Whether or not the create button should be added
+ * @param onChangeAction - Which function to call in another component when a value is changed
+ * @param className - Optional styling
+ * @param standardTag - Default value
  *
- * @returns The dropdown box where the user can type and select tags to be added to the document
+ * @returns The dropdown box where the user can type and select a tag to be merged
  */
 export default function SelectTagDropdown({ onChangeAction = () => {}, className, standardTag = null}: { onChangeAction?: (selectedTag : string | null) => void, className?: string, standardTag?: Tag | null }) {  
 
-  // States containing the inputvalue, tags returned by the input value, and the tags to be added to the document
+  // States containing the input value, tags returned by the input value, and the tag to be merged
   const [filteredTags, setFilteredTags] = useState<Tag[]>([]);
   const [inputValue, setInputValue] = useState<string>("");
-  const [addedTag, updateTag] = useState<Tag | null>(standardTag);
+  const [selectedTag, updateTag] = useState<Tag | null>(standardTag);
 
   // Update the input value when the user types a character
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value);
   };
 
-  // Adds new tags to the array
+  // Change the selected tag
   const addTags = (event: React.MouseEvent<HTMLButtonElement>) => {
     // Cannot add more than 1 tag
-    if(addedTag != null){
+    if(selectedTag != null){
       return;
     }
 
-    // Get the tag name from the button text.
+    // Get the tag name from the button text
     const button = event.currentTarget;
     const tagName = button.textContent;
 
-    // Find the corresponding tag object from filteredTags.
-    const selectedTag = filteredTags.find((tag) => tag.name === tagName);
+    // Find the corresponding tag object from filteredTags
+    const tagToAdd = filteredTags.find((tag) => tag.name === tagName);
 
-    // As long as the selectedTag exists (it should), add to the Tag array and clear input/filtered tags.
-    if (selectedTag) {
-      updateTag(selectedTag);
-      handleTagSelectionChange(selectedTag); // Call the action passed from the parent component
+    // As long as the selectedTag exists (it should), update the added tag, call the parent function, reset the input value and stop fetching tags
+    if (tagToAdd) {
+      updateTag(tagToAdd);
+      handleTagSelectionChange(tagToAdd); // Call the action passed from the parent component
       setInputValue("");
       setFilteredTags([]);
     }
   };
 
-  // Deletes tags from the tag list
+  // Deletes a selected tag
   const deleteTags = (event: React.MouseEvent<HTMLButtonElement>) => {
-    // Same as above, but here we filter out the tag with the same name
+    // Check if the tag to be deleted matches the selected tag
     const button = event.currentTarget;
 
-    if (addedTag != null && addedTag.id == button.name) {
+    if (selectedTag != null && selectedTag.id == button.name) {
       updateTag(null);
       handleTagSelectionChange(null); // Call the action passed from the parent component
     }
   };
 
-  function handleTagSelectionChange(selectedTag: Tag | null) {
-    if(selectedTag == undefined || selectedTag == null){
+  function handleTagSelectionChange(SelectedTag: Tag | null) {
+    // On deletion set the selected tag to null
+    if(SelectedTag == undefined || SelectedTag == null){
       onChangeAction(null);
       return;
     }
-    onChangeAction(selectedTag.id); // Set the selected tag from the parent component. Since max tags is always 1 we can safely take the first element.
+    onChangeAction(SelectedTag.id); // Set the selected tag from the parent component
   }
 
   // Filters tags to display only those tags that correspond with the input value
   async function filterTags() {
     // Ensures we don't add more tags than allowed and we don't render all tags at the start (We want to display filtered tags after at least 1 character is in the input)
-    if (inputValue == "" || addedTag != null) {
+    if (inputValue == "" || selectedTag != null) {
       setFilteredTags([]);
       return;
     }
 
-    // Gets all values from inserted tags and then filters the tags on uppercase name, sorts them on relevance, and returns top k tags
+    // Gets all values from inserted tags and then filters the tags on uppercase name, sorts them on relevance, and returns top 5 tags
     const fetchedTags = await fetchTagSearch(inputValue, 5);
 
     // Don't do anything if fetchedTags returns null or undefined
@@ -88,23 +89,22 @@ export default function SelectTagDropdown({ onChangeAction = () => {}, className
 
     // And we update our state
     setFilteredTags(fetchedTags.tags);
-
   }
   
 
   useEffect(() => {
     filterTags();
-  }, [inputValue]); // Run update when inputValue changes
+  }, [inputValue]); // Run update on filter when inputValue changes
 
   useEffect(() => {
     updateTag(standardTag)
-  }, [standardTag])
+  }, [standardTag]) // Run update on the current selectedTag when we reset the standard tag in the parent component
 
   return (
     <div className={className}>
       <div className="relative w-full">
         <InputBlock className="block w-full">
-          <FInput data-testid="input_tags" className="mt-1 w-full" type="string" name="author" placeholder={"Search tags"} value={inputValue} onChange={handleInputChange} maxLength={MAX_TAG_LENGTH} hidden={addedTag != null}/>
+          <FInput data-testid="input_tags" className="mt-1 w-full" type="string" name="author" placeholder={"Search tags"} value={inputValue} onChange={handleInputChange} maxLength={MAX_TAG_LENGTH} hidden={selectedTag != null}/>
         </InputBlock>
         <div className={`absolute right-0 left-0 z-10 max-h-50 max-w-full overflow-y-auto bg-white shadow-lg ${filteredTags.length > 0 ? "rounded border" : ""}`}>
           {filteredTags.map((tag) => (
@@ -114,14 +114,15 @@ export default function SelectTagDropdown({ onChangeAction = () => {}, className
             ))}
         </div>
       </div>
+
       <div className="mt-1 h-50 max-h-50 w-[20vh] overflow-y-auto border gap-4">
-        {addedTag && (
-          <div key={addedTag.id} className="flex w-full p-2 text-left transition-colors duration-200 justify-between items-center">
+        {selectedTag && (
+          <div key={selectedTag.id} className="flex w-full p-2 text-left transition-colors duration-200 justify-between items-center">
             <div className="flex items-center gap-2">
-              <p>{addedTag.name}</p>
-              {addedTag.isStandardized ? <AdminTagIcon className="h-4 w-4"/> : addedTag.isApproved ? <ApprovedTagIcon className="h-4 w-4" /> : "" }
+              <p>{selectedTag.name}</p>
+              {selectedTag.isStandardized ? <AdminTagIcon className="h-4 w-4"/> : selectedTag.isApproved ? <ApprovedTagIcon className="h-4 w-4" /> : "" }
             </div>
-            <Button data-testid="delete_tag" onClick={deleteTags} name={addedTag.id} className="ml-2 cursor-pointer" type="button">
+            <Button data-testid="delete_tag" onClick={deleteTags} name={selectedTag.id} className="ml-2 cursor-pointer" type="button">
               Delete
             </Button>
           </div>

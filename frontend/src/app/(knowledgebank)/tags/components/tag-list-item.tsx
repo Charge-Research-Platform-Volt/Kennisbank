@@ -20,15 +20,15 @@ const initialStateTag: FormResponse<TagRenameDto> = {
 };
 
 /**
- * TagListItemAdmin - Component for displaying and managing tags in the admin interface
+ * TagListItem - Component for displaying and managing tags in the interface
  * 
  * This component handles both standardized tags and user tags, providing:
  * - Tag display with appropriate icons
  * - Inline editing functionality
  * - Action buttons based on tag type and state
  * 
- * @param {Object} props - Component props
  * @param {Tag} [props.tag] - Tag object
+ * @param {string} [userRole] - Role that conditionally renders items available for the user, Admins can manage tags for example
  * @returns {ReactElement} The rendered tag list item
  */
 export default function TagListItem({ tag, userRole }: { tag: Tag, userRole: string}) {
@@ -61,7 +61,6 @@ export default function TagListItem({ tag, userRole }: { tag: Tag, userRole: str
   const formAction = saveTagAction;
   const isSaving : boolean = savingTagIsPending;
   const tagId : string = tag.id;
-  // TODO: create circle around usage count, link mergebutton to mergeaction
   return (
     <div className="flex w-full items-center justify-between gap-2">
       {editing ? (
@@ -107,15 +106,6 @@ export default function TagListItem({ tag, userRole }: { tag: Tag, userRole: str
                   <ApprovedTagIcon className="h-5 w-5 ml-2" />
                 ) : ""}
               </div>
-              {/* <div className="italic ml-2">
-                {tag.usageCount == undefined ? <div></div> : 
-
-                <div>
-                  {tag.usageCount > 99 ? <p>99<sup>+</sup></p> : <p>{tag.usageCount}</p>}
-                </div>
-
-                }
-              </div> */}
             </div>
 
             <div className="flex items-center">

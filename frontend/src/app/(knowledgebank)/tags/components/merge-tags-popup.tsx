@@ -98,13 +98,13 @@ export function TagMergeButton({tag} : {tag:Tag}){
                     {
                         isOpen && (
                             <div ref={mergeButtonRef} className="fixed bg-[#fefefe] top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-[50vh] w-[60vh] border rounded shadow-md">
-                                <div className="flex flex-col gap-10 mt-7 ">
-                                    <PopupTitle className="flex justify-center">Merge</PopupTitle>
-                                    <div className="flex justify-center gap-4">
+                                <div className="flex flex-col gap-4 mt-7 justify-between items-center">
+                                    <PopupTitle className="flex">Merge tags: </PopupTitle>
+                                    <div className="flex gap-4">
                                         <SelectTagDropdown standardTag={standardTag} onChangeAction={setTag1}></SelectTagDropdown>
                                         <SelectTagDropdown standardTag={emptyTag} onChangeAction={setTag2}></SelectTagDropdown>
                                     </div>
-                                    <Button onClick={mergeTags} disabled={isMerging || tag1 == null || tag2 == null}>{isMerging ? "Merging" : "Merge"}</Button>
+                                    <Button onClick={mergeTags} disabled={isMerging || tag1 == null || tag2 == null} className="w-1/4">{isMerging ? "Merging" : "Merge"}</Button>
                                 </div>
                             </div>
                         )
@@ -114,3 +114,7 @@ export function TagMergeButton({tag} : {tag:Tag}){
             </div>
     )
 };
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
