@@ -41,7 +41,7 @@ export default function TagListItem({ tag, userRole }: { tag: Tag, userRole: str
   // Handle form action responses
   useEffect(() => {
     // Only display the save tag message if you actually edit the tag
-    if (saveTagState.success && saveTagState?.message == "Tag name changed.") {
+    if (saveTagState.success) {
       toast.success(saveTagState.message);
       setEditing(false);
       setTagName(tagName);
@@ -95,7 +95,7 @@ export default function TagListItem({ tag, userRole }: { tag: Tag, userRole: str
           />
         </form>
       ) : (
-        <form className="relative w-full shadow rounded-md px-3 py-1" action={formAction}>
+        <div className="relative w-full shadow rounded-md px-3 py-1">
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               <p>{tagName}</p>
@@ -122,7 +122,7 @@ export default function TagListItem({ tag, userRole }: { tag: Tag, userRole: str
             name="id"
             value={tagId}
           />
-        </form>
+        </div>
       )}
     </div>
   );

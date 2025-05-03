@@ -10,12 +10,13 @@ import { PopupTitle } from "@/components/ui/Popup";
 /**
  * 
  * @param tag - The tag from the tag-list-item used for filling in the left dropdownbox with a standard value
+ * @param extraTag - Tag to be used in the second dropdown box, for now only used in testing
  * @returns An icon in the tag-list-item which when pressed, shows a popup the user can select another tag with to merge
  */
-export function TagMergeButton({tag} : {tag:Tag}){
-    const [isOpen, setIsOpen] = useState(false); // Whether or not to display the popup
+export function TagMergeButton({tag, extraTag = null} : {tag:Tag; extraTag?: Tag | null}){
     const [tag1, setTag1] = useState<string | null>(tag.id); // Selected tag in the left dropdown
-    const [tag2, setTag2] = useState<string | null>(null); // Selected tag in the right dropdown
+    const [tag2, setTag2] = useState<string | null>(extraTag ? extraTag.id : null); // Selected tag in the right dropdown
+    const [isOpen, setIsOpen] = useState(false); // Whether or not to display the popup
     const [isMerging, setIsMerging] = useState<boolean>(false); // Whether the tags are currently merging or not
     const mergeButtonRef = useRef<HTMLDivElement>(null); // Ref that looks if you click outside the popup
     const [standardTag, resetStandard] = useState<Tag | null>(tag); // This is used to reset the tag in the right dropdown in the popup when you close it
@@ -91,6 +92,7 @@ export function TagMergeButton({tag} : {tag:Tag}){
                         type="button"
                         onClick={() => setIsOpen(!isOpen)}
                         disabled={isOpen}
+                        data-testid="open"
                     >
                         <Merge className= "h-5 w-5" fill= "#737373" />
                 </Button>
@@ -104,7 +106,7 @@ export function TagMergeButton({tag} : {tag:Tag}){
                                         <SelectTagDropdown standardTag={standardTag} onChangeAction={setTag1}></SelectTagDropdown>
                                         <SelectTagDropdown standardTag={emptyTag} onChangeAction={setTag2}></SelectTagDropdown>
                                     </div>
-                                    <Button onClick={mergeTags} disabled={isMerging || tag1 == null || tag2 == null} className="w-1/4">{isMerging ? "Merging" : "Merge"}</Button>
+                                    <Button onClick={mergeTags} disabled={isMerging || tag1 == null || tag2 == null} className="w-1/4" data-testid="merge">{isMerging ? "Merging" : "Merge"}</Button>
                                 </div>
                             </div>
                         )
