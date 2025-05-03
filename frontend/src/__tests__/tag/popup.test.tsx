@@ -21,7 +21,8 @@ const testTags = TagArraySchema.parse([
         approvedBy: null,
         createdBy: "3b542bc8-9b38-4c40-926d-dcd46c576fdf", // Must be a valid UUID
         createdOn: "2024-01-01T12:00:00Z",
-        usageCount: 0
+        usageCount: 0,
+        canEditAndDelete: true,
     }
 ]);
 
