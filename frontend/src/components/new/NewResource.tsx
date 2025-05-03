@@ -21,12 +21,14 @@ import { AlertCircle } from "lucide-react"
 import { ApiResponseSchema } from "@/types/apiResponse.type"
 import { UploadNewResource } from "@/actions/uploadActions"
 import { useRouter } from "next/navigation"
+import { RequiredAstrix } from "../ui/required-astrix"
 
 // Define upload types
 const UploadTypeEnum = z.enum(["document", "website", "audio", "video"])
 
 // Define constants
 const urlDefault = "http://no.url/"
+const fileDefault = new File([""], "placeholder.txt", { type: "text/plain" });
 
 export const resourceCreateFormSchema = z.object(
 {
@@ -45,7 +47,7 @@ export const resourceCreateFormSchema = z.object(
     regions: z.string().uuid().array().optional(),
     uploadType: UploadTypeEnum,
     url: z.string().min(1, "URL is required").url("Invalid URL"),
-    file: z.any().refine(val => val !== undefined, { message: "File is required" }),
+    file: z.any().refine(val => val !== undefined , { message: "File is required" }),
     hash: z.string().optional(),
     accessedOn: z.string().date("Invalid Date").optional(),
     abstract: z.string().optional(),
@@ -90,17 +92,21 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
             uploadType: "document",
             url: urlDefault,
             hash: "",
+            file: fileDefault,
         },
     });
     
     // Effect for uploadType
     React.useEffect(() => 
     {
+        // Update the upload type in the form
+        form.setValue("uploadType", uploadType);
+    
         // When website, set url to nothing, else to a valid url
         form.setValue("url", uploadType === "website" ? "" : urlDefault);
         
         // Clear file on switch
-        form.setValue("file", undefined);
+        form.setValue("file", uploadType === "website" ? fileDefault : undefined);
         form.clearErrors("file");
         
         // Clear the duplicate ID, since we clear the fields
@@ -148,7 +154,7 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
         setIsChecking(true);
         
         const urlSafeUrl = encodeURIComponent(url);
-        const response = await fetch("http://localhost:8080/resources/exists?url=" + urlSafeUrl);
+        const response = await fetch("http://localhost:8080/resources/exists?url=" + urlSafeUrl, { credentials: "include" });
         
         if (response.ok) 
         {
@@ -237,7 +243,7 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
                     {/* Duplicate file alert */}
                     <Alert variant="destructive" className="border-destructive" hidden={duplicateId === ""}>
                         <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Duplicate File</AlertTitle>
+                        <AlertTitle>Duplicate Resource</AlertTitle>
                         <AlertDescription>
                             This resource already exists! It has ID: {duplicateId}
                         </AlertDescription>
@@ -246,7 +252,7 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
                     {/* Title input */}
                     <FormField control={form.control} name="title" render={({field}) => (
                         <FormItem>
-                            <FormLabel>Title</FormLabel>
+                            <FormLabel>Title <RequiredAstrix /></FormLabel>
                             <FormControl>
                                 <Input placeholder="The title of the resource" { ... field} />
                             </FormControl>
@@ -268,7 +274,7 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
                         {/* Publication date */}
                         <FormField control={form.control} name="publicationDate" render={({field}) => (
                             <FormItem>
-                                <FormLabel>Publication Date</FormLabel>
+                                <FormLabel>Publication Date <RequiredAstrix /></FormLabel>
                                 <FormControl>
                                     <Input type="date" { ... field} />
                                 </FormControl>
@@ -289,7 +295,7 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
                         {/* Language Code */}
                         <FormField control={form.control} name="languageCode" render={({field}) => (
                             <FormItem>
-                                <FormLabel>Language Code</FormLabel>
+                                <FormLabel>Language Code <RequiredAstrix /></FormLabel>
                                 <FormControl>
                                     <Selection placeholder="Select Language..." options={LanguageCodes} { ... field} />
                                 </FormControl>
@@ -300,7 +306,7 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
                         {/* Type */}
                         <FormField control={form.control} name="typeId" render={({field}) => (
                             <FormItem>
-                                <FormLabel>Type</FormLabel>
+                                <FormLabel>Type <RequiredAstrix /></FormLabel>
                                 <FormControl>
                                     <Selection placeholder="Select Type..." options={resourceTypes} { ... field} />
                                 </FormControl>
@@ -312,7 +318,7 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
                     {/* Authors */}
                     <FormField control={form.control} name="authors" render={({field}) => (
                         <FormItem>
-                            <FormLabel>Authors</FormLabel>
+                            <FormLabel>Authors <RequiredAstrix /></FormLabel>
                             <FormControl>
                                 <Selection placeholder="Select authors..." options={persons} multiSelect={true} { ... field} />
                             </FormControl>
@@ -333,7 +339,7 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
                     {/* Sources */}
                     <FormField control={form.control} name="sources" render={({field}) => (
                         <FormItem>
-                            <FormLabel>Sources</FormLabel>
+                            <FormLabel>Sources <code>(Optional)</code></FormLabel>
                             <FormControl>
                                 <AddListDialog title="Add sources to resource" placeholder="Add sources..." inputPlaceholder="Paste URL here..." emptyText="No sources have been added yet." validateInput={(item) => URL.canParse(item) } parseForList={(item) => new URL(item).hostname} { ... field } />
                             </FormControl>
@@ -343,7 +349,7 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
                     {/* Tags */}
                     <FormField control={form.control} name="tags" render={({field}) => (
                         <FormItem>
-                            <FormLabel>Tags</FormLabel>
+                            <FormLabel>Tags <RequiredAstrix /></FormLabel>
                             <FormControl>
                                 <Selection placeholder="Select tags..." options={tags} multiSelect={true} { ... field } />
                             </FormControl>

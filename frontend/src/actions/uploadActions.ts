@@ -39,6 +39,7 @@ export async function UploadNewResource(values: z.infer<typeof resourceCreateFor
     // Create the appropiate DTO based on the uploadType
     if (values.uploadType === "website") 
     {
+        console.log(values.url);
         dto =
         {
             ...baseResourceDto,
@@ -85,7 +86,9 @@ export async function UploadNewResource(values: z.infer<typeof resourceCreateFor
     // Create formdata
     const formData = new FormData();
     
-    if (values.file) formData.append("file", values.file);
+    if (values.file && values.uploadType !== "website")
+        formData.append("file", values.file);
+    
     formData.append("uploadType", values.uploadType);
     formData.append("dto", JSON.stringify(dto));
     

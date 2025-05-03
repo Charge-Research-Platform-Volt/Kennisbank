@@ -39,6 +39,8 @@ namespace KnowledgeBank.Data
             // Derive filetype when it is a file resource
             if (dto is FileResourceCreateDto fDto)
             {
+                if (fDto.File == null) throw new Exception("File cannot be null!");
+            
                 resource.FileType = Filetype.ConvertExtensionToFiletype(Path.GetExtension(fDto.File.FileName));
                 Log.Debug("Creating file resource with filetype {FileType}", resource.FileType);
                 resource.Hash = fDto.Hash;

@@ -89,14 +89,14 @@ namespace KnowledgeBank.Controllers
             }
             
             // Checks for website
-            if (dto is WebsiteCreateDto wDto) 
+            if (dto is WebsiteCreateDto _wDto) 
             {
                 // Check if the URL is empty
-                if (string.IsNullOrEmpty(wDto.Url))
+                if (string.IsNullOrEmpty(_wDto.Url))
                     return BadRequest(new ApiResponse(false, "The URL was empty."));
 
                 // Check if the URL is valid
-                if (!ValidityUtil.IsValidUrl(wDto.Url))
+                if (!ValidityUtil.IsValidUrl(_wDto.Url))
                     return BadRequest(new ApiResponse(false, "The URL was invalid."));
             }
 
@@ -108,14 +108,21 @@ namespace KnowledgeBank.Controllers
                 await resourceManager.BeginTransaction();
 
                 // Create the resource in the database and retrieve the ID
-                Guid id = await resourceManager.CreateResourceAsync(dto);
+                Guid id = uploadDto.UploadType switch 
+                {
+                    "website" => await resourceManager.CreateWebsiteAsync((WebsiteCreateDto)dto),
+                    "document" => await resourceManager.CreateDocumentAsync((DocumentCreateDto)dto),
+                    "audio" => await resourceManager.CreateAudioAsync((AudioCreateDto)dto),
+                    "video" => await resourceManager.CreateVideoAsync((VideoCreateDto)dto),
+                    _ => await resourceManager.CreateResourceAsync(dto)
+                };
                 
                 // If the resource is a file, upload it to storage
                 if (dto is FileResourceCreateDto fDto) 
                 {
                     // Check if file was empty
-                if (fDto.File == null)
-                    return BadRequest(new ApiResponse(false, "No file was uploaded."));
+                    if (fDto.File == null)
+                        return BadRequest(new ApiResponse(false, "No file was uploaded."));
                 
                     // Get the extension and filetype
                     string extension = Path.GetExtension(fDto.File.FileName);
