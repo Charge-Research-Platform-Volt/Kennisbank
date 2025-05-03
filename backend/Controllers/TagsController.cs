@@ -679,6 +679,8 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     public async Task<IActionResult> Merge(string id1, string id2) 
     {
         // Validate input parameters
+        Log.Debug(id1);
+        Log.Debug(id2);
         if (string.IsNullOrEmpty(id1) || string.IsNullOrEmpty(id2)) 
             return BadRequest(new { message = "IDs are required." });
             

@@ -247,6 +247,7 @@ export const MergeTag = async (formData: FormData): Promise<FormResponse<{ tagId
   const tagId1 = formData.get("tagId1") as string;
   const tagId2 = formData.get("tagId2") as string;
 
+
   if (!tagId1 || !tagId2 || tagId1 === tagId2) {
     return {
       success: false,
@@ -258,7 +259,7 @@ export const MergeTag = async (formData: FormData): Promise<FormResponse<{ tagId
 
   const cookieHeader = await cookies();
   const response = await fetch(
-    `http://backend:8080/tags/merge-tag/${encodeURIComponent(tagId1)}/${encodeURIComponent(tagId2)}`,
+    `http://backend:8080/tags/merge/${encodeURIComponent(tagId1)}/${encodeURIComponent(tagId2)}`,
     {
       method: "PATCH",
       headers: {
@@ -279,7 +280,6 @@ export const MergeTag = async (formData: FormData): Promise<FormResponse<{ tagId
   }
 
   revalidatePath("/tags", "layout");
-
   return {
     success: true,
     message: data.message || "Tags merged successfully.",

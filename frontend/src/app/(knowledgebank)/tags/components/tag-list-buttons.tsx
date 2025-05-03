@@ -6,7 +6,6 @@ import { Tag } from "@/types/tag.type";
 import { DeleteTag, ApproveTag, MakeStandardized } from "@/actions/tagActions";
 import AdminIcon from "@/icons/tag-icons/admin-tag";
 import DeleteIcon from "@/icons/delete-icon";
-import { Merge } from "lucide-react";
 
 export function ApproveTagButton({ tag }: { tag: Tag }) {
   return (
@@ -18,20 +17,6 @@ export function ApproveTagButton({ tag }: { tag: Tag }) {
       onSuccessAction={() => window.dispatchEvent(new Event("tagListUpdated"))}
       icon={<ApproveTagIcon className= "h-5 w-5" fill= "#737373" />}
       title="Approve tag"
-    />
-  );
-}
-
-export function MergeTagButton({tag} : {tag: Tag}){
-  return (
-    <ActionButton<string>
-      action={ApproveTag}
-      actionName="Merge tags"
-      actionArg={tag.id}
-      successMessage="Tag converted"
-      onSuccessAction={() => window.dispatchEvent(new Event("tagListUpdated"))}
-      icon={<Merge/>}
-      title="Merge tag into another tag"
     />
   );
 }
@@ -75,3 +60,22 @@ export function DeleteTagButton({ tag, userRole }: { tag: Tag, userRole: string 
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
 
 
+//     <Button
+// className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
+// variant="default"
+// type="button"
+// onClick={handleAction}
+// disabled={isPending}
+// title={title}
+// >
+// {Icon}
+// </Button>
+// <ActionButton<string>
+//   action={TagMergePopup}
+//   actionName="Merge tags"
+//   actionArg={tag.id}
+//   successMessage="Tag merge"
+//   onSuccessAction={() => window.dispatchEvent(new Event("tagListUpdated"))}
+//   icon={<Merge/>}
+//   title="Merge tag into another tag"
+// />

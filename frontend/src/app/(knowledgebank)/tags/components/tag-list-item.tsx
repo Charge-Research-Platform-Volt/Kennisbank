@@ -11,6 +11,7 @@ import SaveIcon from "@/icons/save-icon";
 import ApprovedTagIcon from "@/icons/tag-icons/aproved-tag";
 import AdminIcon from "@/icons/tag-icons/admin-tag";
 import { TagActionButtons } from "./tag-action-buttons";
+import { TagMergeButton } from "./merge-tags-popup";
 
 
 const initialStateTag: FormResponse<TagRenameDto> = {
@@ -39,7 +40,8 @@ export default function TagListItem({ tag, userRole }: { tag: Tag, userRole: str
 
   // Handle form action responses
   useEffect(() => {
-    if (saveTagState.success) {
+    // Only display the save tag message if you actually edit the tag
+    if (saveTagState.success && saveTagState?.message == "Tag name changed.") {
       toast.success(saveTagState.message);
       setEditing(false);
       setTagName(tagName);
@@ -117,6 +119,7 @@ export default function TagListItem({ tag, userRole }: { tag: Tag, userRole: str
             </div>
 
             <div className="flex items-center">
+              <TagMergeButton tag={tag}></TagMergeButton>
               <TagActionButtons
                 tag={tag}
                 onEditClick={handleEditClick}

@@ -9,18 +9,15 @@ import { useEffect, useState } from "react";
 export default function FilterPopup({ isVisible, onApplyAction, className }: { isVisible: boolean, onApplyAction: (tagFilters: string[], startDate: number, endDate: number) => void, className?: string }) {
     const [error, setError] = useState(false);
 
-    const [tags, setTags] = useState([]);
-
     const [startYear, setStartYear] = useState<number>(0);
     const [endYear, setEndYear] = useState<number>(0);
     const [tagFilters, setTagFilters] = useState<string[]>([]);
 
     useEffect(() => {
             setTagFilters([]);
-            fetchTags();
         }
     , []);
-    
+
     return (
         <>
             <div hidden={!isVisible} className={`z-50 flex-1 bg-white p-2 border-2 border-gray-100 rounded-sm ${className}`}>
@@ -28,37 +25,15 @@ export default function FilterPopup({ isVisible, onApplyAction, className }: { i
                     <>
                         <InputHeader>Published between:</InputHeader>
                         <DateFilterSlider setStartYearAction={setStartYear} setEndYearAction={setEndYear} className="w-[450px] mt-[10px]" />
-                        <TagSelectionDropdown onSelectionChangedAction={setTagFilters} createButton={false} tags={tags} />
+                        <TagSelectionDropdown onSelectionChangedAction={setTagFilters} createButton={false} />
                         <div className="flex justify-end mt-[10px]">
                             <Button onClick={() => onApplyAction(tagFilters, startYear, endYear)}>Apply</Button>
                         </div>
                     </>
                 ) : (<p>Something went wrong, please reload the site</p>)}
             </div>
-        </>        
+        </>
     );
-
-    async function fetchTags() {
-        try{
-            const response = await fetch("http://localhost:8080/Tags/all-tags", {
-                credentials: "include",
-                method: "GET"
-            });
-    
-            if(!response.ok){
-                console.error("Error fetching tags:", response.statusText);
-                setError(true);
-                return;
-            }
-
-            setTags(await response.json());
-        }
-        catch(error) {
-            console.error("Error fetching tags:", error);
-            setError(true);
-        }
-    
-    }
 }
 
 

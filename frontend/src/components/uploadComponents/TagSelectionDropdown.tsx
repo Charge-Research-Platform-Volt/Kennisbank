@@ -19,8 +19,7 @@ import { MAX_TAG_LENGTH } from "../../../constants";
  *
  * @returns The dropdown box where the user can type and select tags to be added to the document
  */
-export default function TagSelectionDropdown({ onSelectionChangedAction = () => {}, className, createButton = true }: { onSelectionChangedAction?: (tagFilters: string[]) => void, className?: string, createButton?: boolean }) {  
-  const MAX_TAGS: number = 10;
+export default function TagSelectionDropdown({ onSelectionChangedAction = () => {}, className, createButton = true, standardTags = [], MAX_TAGS = 10}: { onSelectionChangedAction?: (tagFilters: string[]) => void, className?: string, createButton?: boolean, standardTags?: Tag[], MAX_TAGS?: number }) {  
 
   // States containing the inputvalue, tags returned by the input value, and the tags to be added to the document
   const [filteredTags, setFilteredTags] = useState<Tag[]>([]);
