@@ -80,7 +80,6 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
             description: "",
             typeId: "",
             languageCode: "",
-            publicationDate: new Date().toISOString().split('T')[0],
             publicationCode: "",
             license: "",
             note: "",
