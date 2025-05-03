@@ -17,6 +17,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using System.Reflection;
+using System.Text.Json;
 
 namespace KnowledgeBank.Controllers 
 {
@@ -36,15 +37,25 @@ namespace KnowledgeBank.Controllers
         /// <summary>
         /// Creates a new resource
         /// </summary>
-        /// <param name="dto">The Data Transfer Object</param>
+        /// <param name="uploadDto">The Data Transfer Object</param>
         [HttpPut("new")]
         [SwaggerOperation(Summary = "Create a new resource in the archive.")]
         [SwaggerResponse(200, "Resource was created successfully", typeof(ApiResponse))]
         [SwaggerResponse(409, "Resource already exists", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> New([FromForm] ResourceCreateDto dto) 
+        public async Task<IActionResult> New([FromForm] ResourceUploadDto uploadDto) 
         {
+            ResourceCreateDto? dto = null;
+            
+            if (uploadDto.UploadType == "website")
+                dto = JsonSerializer.Deserialize<WebsiteCreateDto>(uploadDto.Dto);
+            else if (uploadDto.File != null)
+                dto = DeserializeWithFile(uploadDto.UploadType, uploadDto.Dto, uploadDto.File);
+
+            if (dto == null)
+                return BadRequest(new ApiResponse(false, "Invalid DTO sent"));
+        
             // Check if there is a title
             if (string.IsNullOrEmpty(dto.Title))
                 return BadRequest(new ApiResponse(false, "No name was provided."));
@@ -102,6 +113,10 @@ namespace KnowledgeBank.Controllers
                 // If the resource is a file, upload it to storage
                 if (dto is FileResourceCreateDto fDto) 
                 {
+                    // Check if file was empty
+                if (fDto.File == null)
+                    return BadRequest(new ApiResponse(false, "No file was uploaded."));
+                
                     // Get the extension and filetype
                     string extension = Path.GetExtension(fDto.File.FileName);
                     string fileType = Filetype.ConvertExtensionToFiletype(extension);
@@ -531,6 +546,28 @@ namespace KnowledgeBank.Controllers
         // ---------------------------
         // Helper functions
         // ---------------------------
+        
+        // Helper function to add file to dto
+        private FileResourceCreateDto? DeserializeWithFile(string uploadType, string jsonDto, IFormFile file) 
+        {
+            return uploadType switch
+            {
+                "document" => DeserializeAndAssignFile<DocumentCreateDto>(jsonDto, file),
+                "audio" => DeserializeAndAssignFile<AudioCreateDto>(jsonDto, file),
+                "video" => DeserializeAndAssignFile<VideoCreateDto>(jsonDto, file),
+                _ => DeserializeAndAssignFile<FileResourceCreateDto>(jsonDto, file)
+            };
+        }
+        
+        private T? DeserializeAndAssignFile<T>(string jsonDto, IFormFile file) where T : FileResourceCreateDto 
+        {
+            T? dto = JsonSerializer.Deserialize<T>(jsonDto);
+            
+            if (dto != null)
+                dto.File = file;
+
+            return dto;
+        }
         
         // Helper method to update a property
         private async Task UpdateProperty<TSet, TProperty>(string id, string propertyName, TProperty newValue) where TSet : class 

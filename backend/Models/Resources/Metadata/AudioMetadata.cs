@@ -23,7 +23,7 @@ public class AudioMetadata
 
 public class AudioCreateDto : FileResourceCreateDto
 {
-    public required string URL { get; set; }
+    //public required string URL { get; set; }
     public ulong? Length { get; set; }
 }
 

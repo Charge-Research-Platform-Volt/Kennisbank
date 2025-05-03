@@ -5,7 +5,7 @@ const ApiResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
   errors: z.array(z.string()).nullable().optional(),
-  data: z.any().nullable().optional()
+  body: z.any().nullable().optional()
 });
 
 // Type inference - this creates a TypeScript type from the schema

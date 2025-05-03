@@ -14,6 +14,13 @@ import { SelectOption } from "@/components/ui/selection"
 import { AddListDialog } from "@/components/ui/add-list-dialog"
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select"
 import { FileInput } from "@/components/ui/file-input"
+import { getFileHasher } from "@/utils/fileHashWorker"
+import { toast } from "sonner"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircle } from "lucide-react"
+import { ApiResponseSchema } from "@/types/apiResponse.type"
+import { UploadNewResource } from "@/actions/uploadActions"
+import { useRouter } from "next/navigation"
 
 // Define upload types
 const UploadTypeEnum = z.enum(["document", "website", "audio", "video"])
@@ -21,7 +28,7 @@ const UploadTypeEnum = z.enum(["document", "website", "audio", "video"])
 // Define constants
 const urlDefault = "http://no.url/"
 
-const resourceCreateFormSchema = z.object(
+export const resourceCreateFormSchema = z.object(
 {
     title: z.string().min(1, { message: "Title is required" }),
     description: z.string().optional(),
@@ -39,6 +46,10 @@ const resourceCreateFormSchema = z.object(
     uploadType: UploadTypeEnum,
     url: z.string().min(1, "URL is required").url("Invalid URL"),
     file: z.any().refine(val => val !== undefined, { message: "File is required" }),
+    hash: z.string().optional(),
+    accessedOn: z.string().date("Invalid Date").optional(),
+    abstract: z.string().optional(),
+    length: z.number().optional(),
 });
 
 interface NewResourceProps 
@@ -54,21 +65,31 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
 {
     // React states
     const [uploadType, setUploadType] = React.useState<z.infer<typeof UploadTypeEnum>>("document");
+    const [isChecking, setIsChecking] = React.useState<boolean>(false);
+    const [duplicateId, setDuplicateId] = React.useState<string>("");
+    
+    const router = useRouter();
     
     // Define the form
-    const form = useForm<z.infer<typeof resourceCreateFormSchema>>(
-    {
+    const form = useForm<z.infer<typeof resourceCreateFormSchema>>({
         resolver: zodResolver(resourceCreateFormSchema),
-        defaultValues:
-        {
+        defaultValues: {
             title: "",
+            description: "",
             typeId: "",
             languageCode: "",
-            publicationDate: "",
+            publicationDate: new Date().toISOString().split('T')[0],
+            publicationCode: "",
+            license: "",
+            note: "",
             tags: [],
+            authors: [],
+            organisations: [],
+            regions: [],
             sources: [],
             uploadType: "document",
             url: urlDefault,
+            hash: "",
         },
     });
     
@@ -78,14 +99,88 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
         // When website, set url to nothing, else to a valid url
         form.setValue("url", uploadType === "website" ? "" : urlDefault);
         
+        // Clear file on switch
         form.setValue("file", undefined);
         form.clearErrors("file");
-    }, [uploadType]);
+        
+        // Clear the duplicate ID, since we clear the fields
+        setDuplicateId("");
+        setIsChecking(false);
+    }, [form, uploadType]);
+    
+    // Handle file changing
+    async function onFileChange(file: File | undefined) 
+    {
+        // Set the value in the form
+        form.setValue("file", file);
+        
+        // Reset values
+        setDuplicateId("");
+        setIsChecking(false);
+    
+        // Do nothing else if there is no file
+        if (!file) return;
+        
+        setIsChecking(true);
+        
+        const fileHasher = getFileHasher();
+        const result = await fileHasher.checkDuplicate(file);
+        
+        setDuplicateId(result.isDuplicate ? result.id : "");
+        form.setValue("hash", result.hash);
+        
+        // Display a toast
+        if (result.isDuplicate)
+            toast.warning("This file already exists!");
+        
+        setIsChecking(false);
+    }
+    
+    // Handle website url changing
+    async function onWebsiteUrlChange(url: string) 
+    {
+        // Set the value in the form
+        form.setValue("url", url);
+        
+        // Do nothing if empty
+        if (!url) return;
+        
+        setIsChecking(true);
+        
+        const urlSafeUrl = encodeURIComponent(url);
+        const response = await fetch("http://localhost:8080/resources/exists?url=" + urlSafeUrl);
+        
+        if (response.ok) 
+        {
+            const rawData = await response.json();
+            
+            try 
+            {
+                const existsResponse = ApiResponseSchema.parse(rawData);
+                
+                if (existsResponse.body.exists)
+                    setDuplicateId(existsResponse.body.id);
+            }
+            catch (error: unknown)
+            {
+                throw new Error(`Invalid response format: ${String(error)}`);
+            }
+        }
+        else 
+        {
+            throw new Error(`Server error: ${response.status}`);
+        }
+        
+        setIsChecking(false);
+    }
     
     // Function to be called when form is submitted
-    function onSubmit(values: z.infer<typeof resourceCreateFormSchema>) 
+    async function onSubmit(values: z.infer<typeof resourceCreateFormSchema>) 
     {
-        console.log(values);
+        const id: string = await UploadNewResource(values);
+        toast.info(`Resource uploaded succesfully with ID '${id}'`);
+        
+        router.push('/');
     }
 
     return (
@@ -117,7 +212,7 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
                                 <FormField control={form.control} name="url" render={({field}) => (
                                     <FormItem>
                                         <FormControl>
-                                            <Input placeholder="Paste URL to website..." { ... field } />
+                                            <Input placeholder="Paste URL to website..." { ... field } onBlur={(e) => onWebsiteUrlChange(e.target.value)} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -130,7 +225,7 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
                                 <FormField control={form.control} name="file" render={({field}) => (
                                     <FormItem>
                                         <FormControl>
-                                            <FileInput placeholder="Select file..." onChange={(e) => field.onChange(e.target.files?.[0] || undefined)} onBlur={field.onBlur} name={field.name} ref={field.ref} />
+                                            <FileInput placeholder="Select file..." onChange={(e) => onFileChange(e.target.files?.[0] || undefined)} onBlur={field.onBlur} name={field.name} ref={field.ref} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -138,6 +233,15 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
                             }
                         </div>
                     </div>
+                    
+                    {/* Duplicate file alert */}
+                    <Alert variant="destructive" className="border-destructive" hidden={duplicateId === ""}>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Duplicate File</AlertTitle>
+                        <AlertDescription>
+                            This resource already exists! It has ID: {duplicateId}
+                        </AlertDescription>
+                    </Alert>
                     
                     {/* Title input */}
                     <FormField control={form.control} name="title" render={({field}) => (
@@ -278,7 +382,7 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
                     )} />
                     
                     {/* Submit button */}
-                    <Button type="submit" className="w-full">Submit</Button>
+                    <Button type="submit" className="w-full" disabled={isChecking || duplicateId !== ""}>Submit</Button>
                 </form>
             </Form>
         </div>

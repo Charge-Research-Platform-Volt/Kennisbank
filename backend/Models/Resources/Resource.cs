@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+using Org.BouncyCastle.Asn1.X509.Qualified;
 
 namespace KnowledgeBank.Models;
 
@@ -105,8 +106,15 @@ public class ResourceCreateDto // Data Transfer Object (DTO)
 
 public class FileResourceCreateDto : ResourceCreateDto
 {
-    public required IFormFile File { get; set; }
     public string? Hash { get; set; } = null;
+    public IFormFile? File { get; set; }
+}
+
+public class ResourceUploadDto 
+{
+    public required string Dto { get; set; }
+    public required string UploadType { get; set; }
+    public IFormFile? File { get; set; }
 }
 
 public class ResourceRenameDto

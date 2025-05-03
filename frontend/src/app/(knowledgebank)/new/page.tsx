@@ -18,7 +18,7 @@ export default async function NewPage()
     const personsFetch = await FetchWithValidation(ApiResponseSchema, "http://backend:8080/persons/list");
     
     // If fetch failed or API indicates failure, redirect to error page
-    if (!personsFetch.success || (personsFetch.data && !personsFetch.data.success && !PersonArraySchema.safeParse(personsFetch.data.data).success))
+    if (!personsFetch.success || (personsFetch.data && !personsFetch.data.success && !PersonArraySchema.safeParse(personsFetch.data.body).success))
     {
         // Throw error to trigger error boundary
         const errorMessage = personsFetch.data?.message || 
@@ -30,7 +30,7 @@ export default async function NewPage()
     }
     
     // Convert the personFetch to a options list
-    const persons: Person[] = personsFetch.data.data;
+    const persons: Person[] = personsFetch.data.body;
     const personsOptions: SelectOption[] = [];
     persons.forEach((person: Person) => personsOptions.push({ value: person.id, label: person.name } as SelectOption));
     
@@ -39,7 +39,7 @@ export default async function NewPage()
     const organisationFetch = await FetchWithValidation(ApiResponseSchema, "http://backend:8080/organisations/list");
     
     // If fetch failed or API indicates failure, redirect to error page
-    if (!organisationFetch.success || (organisationFetch.data && !organisationFetch.data.success && !OrganisationArraySchema.safeParse(organisationFetch.data.data).success)) 
+    if (!organisationFetch.success || (organisationFetch.data && !organisationFetch.data.success && !OrganisationArraySchema.safeParse(organisationFetch.data.body).success)) 
     {
         // Throw error to trigger error boundary
         const errorMessage =    organisationFetch.data?.message ||
@@ -51,7 +51,7 @@ export default async function NewPage()
     }
     
     // Convert the organisationFetch to a options list
-    const organisations: Organisation[] = organisationFetch.data.data;
+    const organisations: Organisation[] = organisationFetch.data.body;
     const organisationOptions: SelectOption[] = [];
     organisations.forEach((organisation: Organisation) => organisationOptions.push({ value: organisation.id, label: organisation.name } as SelectOption));
     
@@ -61,7 +61,7 @@ export default async function NewPage()
     const typesFetch = await FetchWithValidation(ApiResponseSchema, "http://backend:8080/resources/types/list");
     
     // If fetch failed or API indicates failure, redirect to error page
-    if (!typesFetch.success || (typesFetch.data && !typesFetch.data.success && !ResourceTypeArraySchema.safeParse(typesFetch.data.data).success)) 
+    if (!typesFetch.success || (typesFetch.data && !typesFetch.data.success && !ResourceTypeArraySchema.safeParse(typesFetch.data.body).success)) 
     {
         // Throw error to trigger error boundary
         const errorMessage =    typesFetch.data?.message ||
@@ -73,7 +73,7 @@ export default async function NewPage()
     }
     
     // Convert the typesFetch to a options list
-    const resourceTypes: ResourceType[] = typesFetch.data.data;
+    const resourceTypes: ResourceType[] = typesFetch.data.body;
     const typesOptions: SelectOption[] = [];
     resourceTypes.forEach((type: ResourceType) => typesOptions.push({ value: type.id, label: type.name } as SelectOption));
     
@@ -104,7 +104,7 @@ export default async function NewPage()
     const regionsFetch = await FetchWithValidation(ApiResponseSchema, "http://backend:8080/regions/list");
     
     // If fetch failed or API indicates failure, redirect to error page
-    if (!regionsFetch.success || (regionsFetch.data && !regionsFetch.data.success && !RegionArraySchema.safeParse(regionsFetch.data.data).success)) 
+    if (!regionsFetch.success || (regionsFetch.data && !regionsFetch.data.success && !RegionArraySchema.safeParse(regionsFetch.data.body).success)) 
     {
         // Throw error to trigger error boundary
         const errorMessage =    regionsFetch.data?.message ||
@@ -117,7 +117,7 @@ export default async function NewPage()
     }
     
     // Convert the regionsFetch to a options list
-    const regions: Region[] = regionsFetch.data.data;
+    const regions: Region[] = regionsFetch.data.body;
     const regionOptions: SelectOption[] = [];
     regions.forEach((region: Region) => regionOptions.push({ value: region.id, label: region.name } as SelectOption));
 

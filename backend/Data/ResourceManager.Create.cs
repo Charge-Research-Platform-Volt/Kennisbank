@@ -128,7 +128,7 @@ namespace KnowledgeBank.Data
             }
 
             // URL is required in audio, so add it to sources
-            await AddSourceToResourceAsync(resourceId, dto.URL);
+            // await AddSourceToResourceAsync(resourceId, dto.URL);
 
             if (startedTransaction) await Commit();
 
