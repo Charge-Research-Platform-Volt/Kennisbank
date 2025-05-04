@@ -45,7 +45,7 @@ export const resourceCreateFormSchema = z.object(
     note: z.string().optional(),
     tags: z.string().uuid().array().min(1, { message: "Please add a tag" }),
     authors: z.string().uuid().array().min(1, { message: "Please add an author" }),
-    organisations: z.string().uuid().array().optional(),
+    organisations: z.array(RelatedEntrySchema).optional(),
     regions: z.string().uuid().array().optional(),
     uploadType: UploadTypeEnum,
     url: z.string().min(1, "URL is required").url("Invalid URL"),
@@ -343,7 +343,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                         <FormItem>
                             <FormLabel>Organisations of Origin <code>(Optional)</code></FormLabel>
                             <FormControl>
-                                <Selection placeholder="Select organisations..." options={organisations} multiSelect={true} { ... field } />
+                                <AddRelationsDialog title="Add Roles" placeholder="Select organisations..." buttonText="Define roles" options={organisations} emptyText="No organisations selected yet." { ... field} />
                             </FormControl>
                         </FormItem>
                     )} />

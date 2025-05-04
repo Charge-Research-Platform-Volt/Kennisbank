@@ -13,6 +13,7 @@ import { RelatedEntry } from "@/types/uploadTypes"
 interface AddRelationsDialogProps {
     title: string;
     placeholder: string;
+    buttonText?: string;
     options: SelectOption[];
     emptyText?: string;
     onChange?: (value: RelatedEntry[]) => void;
@@ -24,7 +25,7 @@ interface AddRelationsDialogProps {
     ref?: React.Ref<unknown>;
 }
 
-export function AddRelationsDialog({title, placeholder, options, emptyText, onChange}: AddRelationsDialogProps) 
+export function AddRelationsDialog({title, placeholder, buttonText, options, emptyText, onChange}: AddRelationsDialogProps) 
 {
     const [list, setList] = React.useState<RelatedEntry[]>([]);
     
@@ -56,7 +57,7 @@ export function AddRelationsDialog({title, placeholder, options, emptyText, onCh
             
             <Dialog>
                 <DialogTrigger asChild>
-                    <Button className="sm:w-40" type="button">Define Relations</Button>
+                    <Button className="sm:w-40" type="button">{buttonText ? buttonText : "Define Relations"}</Button>
                 </DialogTrigger>
                 <DialogContent>
                     <DialogHeader>

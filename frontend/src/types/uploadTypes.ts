@@ -21,7 +21,7 @@ export const ResourceCreateDtoSchema = z.object(
    Note: z.string().optional(),
    Tags: z.string().uuid("Please provide valid tag IDs").array(),
    Authors: z.string().uuid("Please provide valid person IDs").array(),
-   Organisations: z.string().uuid("Please provide valid organisation IDs").array().optional(),
+   Organisations: z.array(RelatedEntrySchema).optional(),
    Regions: z.string().uuid("Please provide valid region IDs").array().optional(),
    RelatedPersons: z.array(RelatedEntrySchema).optional(),
    RelatedOrganisations: z.array(RelatedEntrySchema).optional(),
