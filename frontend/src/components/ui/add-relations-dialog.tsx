@@ -57,7 +57,7 @@ export function AddRelationsDialog({title, placeholder, buttonText, options, emp
             
             <Dialog>
                 <DialogTrigger asChild>
-                    <Button className="sm:w-40" type="button">{buttonText ? buttonText : "Define Relations"}</Button>
+                    <Button className="sm:w-40 h-full" type="button">{buttonText ? buttonText : "Define Relations"}</Button>
                 </DialogTrigger>
                 <DialogContent>
                     <DialogHeader>
