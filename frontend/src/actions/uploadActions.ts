@@ -31,6 +31,8 @@ export async function UploadNewResource(values: z.infer<typeof resourceCreateFor
         Authors: values.authors,
         Organisations: values.organisations,
         Regions: values.regions,
+        RelatedOrganisations: values.relatedOrganisations,
+        RelatedPersons: values.relatedPersons,
     };
     
     let dto;

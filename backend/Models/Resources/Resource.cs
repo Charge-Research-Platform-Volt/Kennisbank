@@ -81,6 +81,13 @@ public class Resource
 
     #endregion
 }
+
+public class RelatedEntry 
+{
+    public required string Id { get; set; }
+    public string? Relation { get; set; }
+}
+
 public class ResourceCreateDto // Data Transfer Object (DTO)
 {
     public required string Title { get; set; }
@@ -95,12 +102,12 @@ public class ResourceCreateDto // Data Transfer Object (DTO)
     public string[] Tags { get; set; } = [];
     public string[] Authors { get; set; } = [];
     // Tuple: (OrganisationId, role?)
-    public (string, string?)[] Organisations { get; set; } = [];
+    public RelatedEntry[] Organisations { get; set; } = [];
     public string[] Regions { get; set; } = [];
     // Tuple: (OrganisationId, role?)
-    public (string, string?)[] RelatedOrganisations { get; set; } = [];
+    public RelatedEntry[] RelatedOrganisations { get; set; } = [];
     // Tuple: (PersonId, role?)
-    public (string, string?)[] RelatedPersons { get; set; } = [];
+    public RelatedEntry[] RelatedPersons { get; set; } = [];
     public string[] RelatedSources { get; set; } = [];
 }
 

@@ -1,5 +1,13 @@
 import { z } from "zod"
 
+export const RelatedEntrySchema = z.object(
+    {
+        Id: z.string().uuid("Invalid UUID").min(1, "Please provide an ID"),
+        Relation: z.string().optional(),
+    })
+    
+    export type RelatedEntry = z.infer<typeof RelatedEntrySchema>;
+
 export const ResourceCreateDtoSchema = z.object(
 {
    Title: z.string().min(1, "Title is required"),
@@ -15,8 +23,8 @@ export const ResourceCreateDtoSchema = z.object(
    Authors: z.string().uuid("Please provide valid person IDs").array(),
    Organisations: z.string().uuid("Please provide valid organisation IDs").array().optional(),
    Regions: z.string().uuid("Please provide valid region IDs").array().optional(),
-   RelatedOrganisations: z.string().uuid("Please provide valid organisation IDs").array().optional(),
-   RelatedPersons: z.string().uuid("Please provide valid person IDs").array().optional(),
+   RelatedPersons: z.array(RelatedEntrySchema).optional(),
+   RelatedOrganisations: z.array(RelatedEntrySchema).optional(),
    RelatedSources: z.string().array().optional(),
 });
 

@@ -21,7 +21,9 @@ import { AlertCircle } from "lucide-react"
 import { ApiResponseSchema } from "@/types/apiResponse.type"
 import { UploadNewResource } from "@/actions/uploadActions"
 import { useRouter } from "next/navigation"
-import { RequiredAstrix } from "../ui/required-astrix"
+import { RequiredAstrix } from "@/components/ui/required-astrix"
+import { AddRelationsDialog } from "@/components/ui/add-relations-dialog"
+import { RelatedEntrySchema } from "@/types/uploadTypes"
 
 // Define upload types
 const UploadTypeEnum = z.enum(["document", "website", "audio", "video"])
@@ -52,23 +54,31 @@ export const resourceCreateFormSchema = z.object(
     accessedOn: z.string().date("Invalid Date").optional(),
     abstract: z.string().optional(),
     length: z.number().optional(),
+    relatedPersons: z.array(RelatedEntrySchema).optional(),
+    relatedOrganisations: z.array(RelatedEntrySchema).optional(),
 });
 
 interface NewResourceProps 
 {
-    persons: SelectOption[];
-    organisations: SelectOption[];
-    resourceTypes: SelectOption[];
-    tags: SelectOption[];
-    regions: SelectOption[];
+    personOptions: SelectOption[];
+    organisationOptions: SelectOption[];
+    resourceTypeOptions: SelectOption[];
+    tagOptions: SelectOption[];
+    regionOptions: SelectOption[];
 }
 
-export default function NewResource({ persons, organisations, resourceTypes, tags, regions }: NewResourceProps) 
+export default function NewResource({ personOptions, organisationOptions, resourceTypeOptions, tagOptions, regionOptions }: NewResourceProps) 
 {
     // React states
     const [uploadType, setUploadType] = React.useState<z.infer<typeof UploadTypeEnum>>("document");
     const [isChecking, setIsChecking] = React.useState<boolean>(false);
     const [duplicateId, setDuplicateId] = React.useState<string>("");
+    
+    const [persons, setPersons] = React.useState<SelectOption[]>(personOptions);
+    const [organisations, setOrganisations] = React.useState<SelectOption[]>(organisationOptions);
+    const [resourceTypes, setResourceTypes] = React.useState<SelectOption[]>(resourceTypeOptions);
+    const [tags, setTags] = React.useState<SelectOption[]>(tagOptions);
+    const [regions, setRegions] = React.useState<SelectOption[]>(regionOptions);
     
     const router = useRouter();
     
@@ -80,6 +90,7 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
             description: "",
             typeId: "",
             languageCode: "",
+            publicationDate: "",
             publicationCode: "",
             license: "",
             note: "",
@@ -92,6 +103,8 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
             url: urlDefault,
             hash: "",
             file: fileDefault,
+            relatedOrganisations: [],
+            relatedPersons: [],
         },
     });
     
@@ -372,6 +385,16 @@ export default function NewResource({ persons, organisations, resourceTypes, tag
                             <FormLabel>Geographic Regions <code>(Optional)</code></FormLabel>
                             <FormControl>
                                 <Selection placeholder="Select regions..." options={regions} multiSelect={true} { ... field } />
+                            </FormControl>
+                        </FormItem>
+                    )} />
+                    
+                    {/* Related Persons */}
+                    <FormField control={form.control} name="relatedPersons" render={({field}) => (
+                        <FormItem>
+                            <FormLabel>Related Persons</FormLabel>
+                            <FormControl>
+                                <AddRelationsDialog title="Define Relations" placeholder="Add related persons..." options={persons} emptyText="No persons selected yet." { ... field } />
                             </FormControl>
                         </FormItem>
                     )} />

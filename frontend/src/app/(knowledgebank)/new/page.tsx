@@ -130,7 +130,7 @@ export default async function NewPage()
                 <TabsTrigger value="person">Person</TabsTrigger>
                 <TabsTrigger value="organisation">Organisation</TabsTrigger>
             </TabsList>
-            <TabsContent value="resource"><NewResource persons={personsOptions} organisations={organisationOptions} resourceTypes={typesOptions} tags={tagOptions} regions={regionOptions} /></TabsContent>
+            <TabsContent value="resource"><NewResource personOptions={personsOptions} organisationOptions={organisationOptions} resourceTypeOptions={typesOptions} tagOptions={tagOptions} regionOptions={regionOptions} /></TabsContent>
             <TabsContent value="person"><NewPerson /></TabsContent>
             <TabsContent value="organisation"><NewOrganisation /></TabsContent>
         </Tabs>

@@ -60,16 +60,16 @@ namespace KnowledgeBank.Data
             await AddAuthorToResourceRangeAsync(resourceId, dto.Authors);
 
             // Add direct organisation relations to database
-            await AddOrganisationToResourceRangeAsync(resourceId, FirstsOfTupleArray(dto.Organisations), SecondsOfTupleArray(dto.Organisations));
+            await AddOrganisationToResourceRangeAsync(resourceId, dto.Organisations.Select((entry) => entry.Id).ToArray(), dto.Organisations.Select((entry) => entry.Relation).ToArray());
 
             // Add region relations to database
             await AddRegionToResourceRangeAsync(resourceId, dto.Regions);
 
             // Add indirect related organisation relations to database
-            await AddRelatedOrganisationToResourceRangeAsync(resourceId, FirstsOfTupleArray(dto.RelatedOrganisations), SecondsOfTupleArray(dto.RelatedOrganisations));
+            await AddRelatedOrganisationToResourceRangeAsync(resourceId, dto.RelatedOrganisations.Select((entry) => entry.Id).ToArray(), dto.RelatedOrganisations.Select((entry) => entry.Relation).ToArray());
 
             // Add non-author related person relations to database
-            await AddRelatedPersonToResourceRangeAsync(resourceId, FirstsOfTupleArray(dto.RelatedPersons), SecondsOfTupleArray(dto.RelatedPersons));
+            await AddRelatedPersonToResourceRangeAsync(resourceId, dto.RelatedPersons.Select((entry) => entry.Id).ToArray(), dto.RelatedPersons.Select((entry) => entry.Relation).ToArray());
 
             // Add all sources to database
             await AddSourceToResourceRangeAsync(resourceId, dto.Sources);
@@ -211,10 +211,10 @@ namespace KnowledgeBank.Data
             await database.Persons.AddAsync(person);
 
             // Add organisation relations if present
-            await AddPersonToOrganisationRangeAsync(personId, SecondsOfTupleArray(dto.OrganisationRelations), FirstsOfTupleArray(dto.OrganisationRelations));
+            await AddPersonToOrganisationRangeAsync(personId, dto.OrganisationRelations.Select((entry) => entry.Relation).ToArray(), dto.OrganisationRelations.Select((entry) => entry.Id).ToArray());
 
             // Add person relations if present
-            await AddPersonRelationshipRangeAsync(personId, SecondsOfTupleArray(dto.PersonRelations), FirstsOfTupleArray(dto.PersonRelations));
+            await AddPersonRelationshipRangeAsync(personId, dto.PersonRelations.Select((entry) => entry.Relation).ToArray(), dto.PersonRelations.Select((entry) => entry.Id).ToArray());
 
             if (startedTransaction) await Commit();
 
@@ -244,7 +244,7 @@ namespace KnowledgeBank.Data
             await database.Organisations.AddAsync(organisation);
 
             // Add organisation relations if present
-            await AddOrganisationRelationshipRangeAsync(organisationId, SecondsOfTupleArray(dto.OrganisationRelations), FirstsOfTupleArray(dto.OrganisationRelations));
+            await AddOrganisationRelationshipRangeAsync(organisationId, dto.OrganisationRelations.Select((entry) => entry.Relation).ToArray(), dto.OrganisationRelations.Select((entry) => entry.Id).ToArray());
 
             if (startedTransaction) await Commit();
 
