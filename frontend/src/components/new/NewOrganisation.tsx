@@ -1,6 +1,185 @@
-export default function NewOrganisation() 
+"use client"
+
+import * as React from "react"
+import { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { SelectOption } from "@/components/ui/selection"
+import { toast } from "sonner"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircle } from "lucide-react"
+import { ApiResponseSchema } from "@/types/apiResponse.type"
+import { UploadNewOrganisation } from "@/actions/uploadActions"
+import { useRouter } from "next/navigation"
+import { RequiredAstrix } from "@/components/ui/required-astrix"
+import { AddRelationsDialog } from "@/components/ui/add-relations-dialog"
+import { OrganisationCreateDto, OrganisationCreateDtoSchema } from "@/types/uploadTypes"
+
+interface NewOrganisationProps 
 {
+    organisationOptions: SelectOption[];
+    onCreate?: (id: string) => void
+}
+
+export default function NewOrganisation({ organisationOptions, onCreate}: NewOrganisationProps) 
+{
+    // React states
+    const [isChecking, setIsChecking] = React.useState<boolean>(false);
+    const [duplicateId, setDuplicateId] = React.useState<string>("");
+    
+    const [organisations, setOrganisations] = React.useState<SelectOption[]>(organisationOptions);
+    
+    const router = useRouter();
+    
+    // Define the form
+    const form = useForm<z.infer<typeof OrganisationCreateDtoSchema>>(
+    {
+        resolver: zodResolver(OrganisationCreateDtoSchema),
+        defaultValues: 
+        {
+            Name: "",
+            Description: "",
+            Website: "",
+            EmailAddress: "",
+            OrganisationRelations: [],
+        },
+    });
+    
+    // Handle name changing
+    async function onNameChange(name: string) 
+    {
+        // Set the value in the form
+        form.setValue("Name", name);
+        
+        // Do nothing if empty
+        if (!name) return;
+        
+        setIsChecking(true);
+        
+        const urlSafeName = encodeURIComponent(name);
+        const response = await fetch("http://localhost:8080/organisations/exists?name=" + urlSafeName, { credentials: "include" });
+        
+        if (response.ok) 
+        {
+            const rawData = await response.json();
+            
+            try 
+            {
+                const existsResponse = ApiResponseSchema.parse(rawData);
+                
+                if (existsResponse.body.exists)
+                    setDuplicateId(existsResponse.body.id);
+                else
+                    setDuplicateId("");
+            }
+            catch (error: unknown) 
+            {
+                throw new Error(`Invalid response format: ${String(error)}`);
+            }
+        }
+        else 
+        {
+            throw new Error(`Server error: ${response.status}`);
+        }
+        
+        setIsChecking(false);
+    }
+    
+    // Function to be called when the form is submitted
+    async function onSubmit(dto: OrganisationCreateDto) 
+    {
+        // Disable the submit button
+        setIsChecking(true);
+    
+        const id = await UploadNewOrganisation(dto)
+        toast.info(`Organisation created successfully with ID '${id}'`);
+        
+        if (onCreate)
+            onCreate(id);
+        else
+            router.push('/');
+    }
+
     return (
-        <h1>New organisation!</h1>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl mt-5">
+            <h1 className="text-2xl tracking-tight text-gray-900 dark:text-gray-100 md:text-3xl lg:text-4xl mb-2">
+                Create a new organisation
+            </h1>
+            
+            <hr className="mb-4" />
+            
+            <Form { ... form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    {/* Name */}
+                    <FormField control={form.control} name="Name" render={({field}) => (
+                        <FormItem>
+                            <FormLabel>Name <RequiredAstrix /></FormLabel>
+                            <FormControl>
+                                <Input placeholder="The name of the organisation" { ... field } onBlur={(e) => onNameChange(e.target.value)} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    
+                    {/* Duplicate organisation alert */}
+                    <Alert variant="destructive" className="border-destructive" hidden={duplicateId === ""}>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Duplicate Organisation</AlertTitle>
+                        <AlertDescription>
+                            This organisation already exists! It has ID: {duplicateId}
+                        </AlertDescription>
+                    </Alert>
+                    
+                    {/* Description */}
+                    <FormField control={form.control} name="Description" render={({field}) => (
+                        <FormItem>
+                            <FormLabel>Description <code>(Optional)</code></FormLabel>
+                            <FormControl>
+                                <Textarea placeholder="A short description of the organisation" rows={5} { ... field} />
+                            </FormControl>
+                        </FormItem>
+                    )} />
+                    
+                    {/* Website */}
+                    <FormField control={form.control} name="Website" render={({field}) => (
+                        <FormItem>
+                            <FormLabel>Website <code>(Optional)</code></FormLabel>
+                            <FormControl>
+                                <Input placeholder="The website of the organisation" { ... field } />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    
+                    {/* Email */}
+                    <FormField control={form.control} name="EmailAddress" render={({field}) => (
+                        <FormItem>
+                            <FormLabel>Email Address <code>(Optional)</code></FormLabel>
+                            <FormControl>
+                                <Input type="email" placeholder="The email address of the organisation" { ... field } />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    
+                    {/* Related Organisations */}
+                    <FormField control={form.control} name="OrganisationRelations" render={({field}) => (
+                        <FormItem>
+                            <FormLabel>Related Organisations</FormLabel>
+                            <FormControl>
+                                <AddRelationsDialog title="Define Relations" placeholder="Add related organisations..." options={organisations} emptyText="No organisations selected yet..." { ... field } />
+                            </FormControl>
+                        </FormItem>
+                    )} />
+                    
+                    {/* Submit button */}
+                    <Button type="submit" className="w-full" disabled={isChecking || duplicateId !== ""}>Submit</Button>
+                </form>
+            </Form>
+        </div>
     );
 }

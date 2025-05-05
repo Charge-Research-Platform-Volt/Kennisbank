@@ -317,7 +317,7 @@ namespace KnowledgeBank.Data
 
         // --- Resource Type
 
-        public async Task<Guid> CreateResourceType(ResourceTypeCreateDto dto)
+        public async Task<Guid> CreateResourceTypeAsync(ResourceTypeCreateDto dto)
         {
             bool startedTransaction = await BeginTransaction();
         

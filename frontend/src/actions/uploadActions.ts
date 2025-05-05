@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { ResourceCreateDto, WebsiteCreateDto, DocumentCreateDto, VideoCreateDto, AudioCreateDto, FileResourceCreateDto } from "@/types/uploadTypes"
+import { ResourceCreateDto, WebsiteCreateDto, DocumentCreateDto, VideoCreateDto, AudioCreateDto, FileResourceCreateDto, PersonCreateDto, OrganisationCreateDto } from "@/types/uploadTypes"
 import { resourceCreateFormSchema } from "@/components/new/NewResource"
 import { ApiResponse } from "@/types/apiResponse.type";
 
@@ -110,5 +110,53 @@ export async function UploadNewResource(values: z.infer<typeof resourceCreateFor
     if (!result.success)
         throw new Error(`Upload failed: ${result.errors?.join(', ') || result.message}`);
         
+    return result.body;
+}
+
+export async function UploadNewPerson(dto: PersonCreateDto): Promise<string> 
+{
+    const endPoint = "http://localhost:8080/persons/new";
+
+    // Send the request
+    const response = await fetch(endPoint,
+    {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dto),
+    });
+    
+    if (!response.ok)
+        throw new Error(`Upload failed: ${response.status}`);
+        
+    const result: ApiResponse = await response.json();
+    
+    if (!result.success)
+        throw new Error(`Upload failed: ${result.errors?.join(', ') || result.message}`);
+        
+    return result.body;
+}
+
+export async function UploadNewOrganisation(dto: OrganisationCreateDto): Promise<string> 
+{
+    const endPoint = "http://localhost:8080/organisations/new";
+    
+    // Send the request
+    const response = await fetch(endPoint,
+    {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dto),
+    });
+    
+    if (!response.ok)
+        throw new Error(`Upload failed: ${response.status}`);
+        
+    const result: ApiResponse = await response.json();
+    
+    if (!result.success)
+        throw new Error(`Upload failed: ${result.errors?.join(', ') || result.message}`);
+
     return result.body;
 }

@@ -124,15 +124,15 @@ export default async function NewPage()
 
 
     return (
-        <Tabs defaultValue="resource" className="w-full">
+        <Tabs defaultValue="organisation" className="w-full">
             <TabsList>
                 <TabsTrigger value="resource">Resource</TabsTrigger>
                 <TabsTrigger value="person">Person</TabsTrigger>
                 <TabsTrigger value="organisation">Organisation</TabsTrigger>
             </TabsList>
             <TabsContent value="resource"><NewResource personOptions={personsOptions} organisationOptions={organisationOptions} resourceTypeOptions={typesOptions} tagOptions={tagOptions} regionOptions={regionOptions} /></TabsContent>
-            <TabsContent value="person"><NewPerson /></TabsContent>
-            <TabsContent value="organisation"><NewOrganisation /></TabsContent>
+            <TabsContent value="person"><NewPerson personOptions={personsOptions} organisationOptions={organisationOptions} /></TabsContent>
+            <TabsContent value="organisation"><NewOrganisation organisationOptions={organisationOptions} /></TabsContent>
         </Tabs>
     );
 }

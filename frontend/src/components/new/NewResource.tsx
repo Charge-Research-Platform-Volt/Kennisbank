@@ -80,6 +80,8 @@ export default function NewResource({ personOptions, organisationOptions, resour
     const [tags, setTags] = React.useState<SelectOption[]>(tagOptions);
     const [regions, setRegions] = React.useState<SelectOption[]>(regionOptions);
     
+    const [resourceType, setResourceType] = React.useState<string>();
+    
     const router = useRouter();
     
     // Define the form
@@ -125,6 +127,18 @@ export default function NewResource({ personOptions, organisationOptions, resour
         setDuplicateId("");
         setIsChecking(false);
     }, [form, uploadType]);
+    
+    // Keep track of the type ID
+    const typeId = form.watch("typeId");
+    
+    // Effect for resourceType
+    React.useEffect(() => 
+    {
+       // Find the selected resource type from resourceTypes array
+        const selectedType = resourceTypes.find(type => type.value === typeId);
+        
+        setResourceType(selectedType?.label || ""); 
+    }, [typeId, resourceTypes]);
     
     // Handle file changing
     async function onFileChange(file: File | undefined) 
@@ -178,6 +192,8 @@ export default function NewResource({ personOptions, organisationOptions, resour
                 
                 if (existsResponse.body.exists)
                     setDuplicateId(existsResponse.body.id);
+                else
+                    setDuplicateId("");
             }
             catch (error: unknown)
             {
@@ -195,6 +211,9 @@ export default function NewResource({ personOptions, organisationOptions, resour
     // Function to be called when form is submitted
     async function onSubmit(values: z.infer<typeof resourceCreateFormSchema>) 
     {
+        // Disable the submit button
+        setIsChecking(true);
+    
         const id: string = await UploadNewResource(values);
         toast.info(`Resource uploaded succesfully with ID '${id}'`);
         
@@ -207,7 +226,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                 Create a new resource
             </h1>
             
-            <hr className="mb-4"></hr>
+            <hr className="mb-4" />
             
             <Form { ... form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -326,6 +345,21 @@ export default function NewResource({ personOptions, organisationOptions, resour
                             </FormItem>
                         )} />
                     </div>
+                    
+                    {/* Abstract */}
+                    {
+                        resourceType === "Scientific Article" && 
+                        (
+                            <FormField control={form.control} name={"abstract"} render={({field}) => (
+                                <FormItem>
+                                    <FormLabel>Abstract <RequiredAstrix /></FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder="The abstract of the scientific article" rows={5} { ... field} />
+                                    </FormControl>
+                                </FormItem>
+                            )} />
+                        )
+                    }
                     
                     {/* Authors */}
                     <FormField control={form.control} name="authors" render={({field}) => (

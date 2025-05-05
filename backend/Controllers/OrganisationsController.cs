@@ -43,7 +43,7 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(409, "Organisation already exists", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> New([FromForm] OrganisationCreateDto dto)
+        public async Task<IActionResult> New([FromBody] OrganisationCreateDto dto)
         {
             // DTO checks
             if (string.IsNullOrEmpty(dto.Name))
@@ -57,7 +57,7 @@ namespace KnowledgeBank.Controllers
                 Guid id = await resourceManager.CreateOrganisationAsync(dto);
 
                 logger.Information("Organisation '{Name}' created successfully.", dto.Name);
-                return Ok(new ApiResponse(true, "Organisation created successfully", new { id }));
+                return Ok(new ApiResponse(true, "Organisation created successfully", id));
             }
             catch (Exception e)
             {

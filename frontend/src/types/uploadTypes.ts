@@ -1,12 +1,12 @@
 import { z } from "zod"
 
 export const RelatedEntrySchema = z.object(
-    {
-        Id: z.string().uuid("Invalid UUID").min(1, "Please provide an ID"),
-        Relation: z.string().optional(),
-    })
-    
-    export type RelatedEntry = z.infer<typeof RelatedEntrySchema>;
+{
+    Id: z.string().uuid("Invalid UUID").min(1, "Please provide an ID"),
+    Relation: z.string().optional(),
+})
+
+export type RelatedEntry = z.infer<typeof RelatedEntrySchema>;
 
 export const ResourceCreateDtoSchema = z.object(
 {
@@ -65,3 +65,31 @@ export const DocumentCreateDtoSchema = FileResourceCreateDtoSchema.extend(
 });
 
 export type DocumentCreateDto = z.infer<typeof DocumentCreateDtoSchema>;
+
+
+
+export const PersonCreateDtoSchema = z.object(
+{
+    Name: z.string().min(1, "Name is required"),
+    Occupation: z.string().min(1, "Occupation is required"),
+    Description: z.string().optional(),
+    EmailAddress: z.string().email("Invalid e-mail address").or(z.literal("")).optional(),
+    Linkedin: z.string().url("Invalid URL").or(z.literal("")).optional(),
+    OrganisationRelations: z.array(RelatedEntrySchema),
+    PersonRelations: z.array(RelatedEntrySchema),
+});
+
+export type PersonCreateDto = z.infer<typeof PersonCreateDtoSchema>;
+
+
+
+export const OrganisationCreateDtoSchema = z.object(
+{
+    Name: z.string().min(1, "Name is required"),
+    Description: z.string().optional(),
+    Website: z.string().optional(),
+    EmailAddress: z.string().email("Invalid e-mail address").or(z.literal("")).optional(),
+    OrganisationRelations: z.array(RelatedEntrySchema),
+});
+
+export type OrganisationCreateDto = z.infer<typeof OrganisationCreateDtoSchema>;

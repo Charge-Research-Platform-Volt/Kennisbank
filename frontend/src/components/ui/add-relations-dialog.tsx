@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SelectOption, Selection } from "./selection"
 import { RelatedEntry } from "@/types/uploadTypes"
+import { toast } from "sonner"
   
 // Remove the extension of button props to avoid the type conflict
 interface AddRelationsDialogProps {
@@ -27,7 +28,16 @@ interface AddRelationsDialogProps {
 
 export function AddRelationsDialog({title, placeholder, buttonText, options, emptyText, onChange}: AddRelationsDialogProps) 
 {
+    const [open, setOpen] = React.useState<boolean>(false);
     const [list, setList] = React.useState<RelatedEntry[]>([]);
+    
+    React.useEffect(() => 
+    {
+        if (!open) 
+        {
+            toast.info("Relations saved.")
+        }
+    }, [open]);
     
     function handleSelectionChange(value: string | string[])
     {
@@ -55,7 +65,7 @@ export function AddRelationsDialog({title, placeholder, buttonText, options, emp
         <div className="flex flex-col sm:flex-row gap-2">
             <Selection placeholder={placeholder} options={options} onChange={handleSelectionChange} multiSelect={true} />
             
-            <Dialog>
+            <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
                     <Button className="sm:w-40 h-full" type="button">{buttonText ? buttonText : "Define Relations"}</Button>
                 </DialogTrigger>
