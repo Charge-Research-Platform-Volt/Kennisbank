@@ -14,7 +14,7 @@ import { Users } from "lucide-react";
  * @returns Left side bar made from server component
  */
 export default async function LeftSidebarServer() {
-  const userEmail = await FetchWithValidation(z.object({ email: z.string() }), "http://backend:8080/auth/ping");
+  const userEmail = await FetchWithValidation(z.object({ email: z.string() }), `${process.env.API_URL}/auth/ping`);
 
   if (!userEmail.success) {
     console.log("Failed to fetch user email");
@@ -22,7 +22,7 @@ export default async function LeftSidebarServer() {
     return <h1>ERROR</h1>;
   }
 
-  const userRole = await FetchWithValidation(z.object({ role: z.string(), isAuthenticated: z.boolean() }), "http://backend:8080/roles/current");
+  const userRole = await FetchWithValidation(z.object({ role: z.string(), isAuthenticated: z.boolean() }), `${process.env.API_URL}/roles/current`);
 
   if (!userRole.success) {
     console.log("Failed to fetch user role");

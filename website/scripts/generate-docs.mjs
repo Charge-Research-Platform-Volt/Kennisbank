@@ -3,7 +3,7 @@ import { rimrafSync } from "rimraf";
 import fs from "node:fs/promises";
 
 const out = "./content/docs/(api)";
-const swaggerURL = "http://backend:8080/swagger/v1/swagger.json";
+const swaggerURL = `${process.env.API_URL}/swagger/v1/swagger.json`;
 const swaggerFilePath = "./swagger.json";
 
 // Fetch Swagger JSON from the API endpoint, with delay because the API may not be ready yet.
@@ -66,7 +66,7 @@ async function main() {
 
     if (!success) {
         console.error(
-            "Failed to fetch Swagger JSON. Make sure the API is running at http://backend:8080",
+            `Failed to fetch Swagger JSON. Make sure the API is running at ${process.env.API_URL}`,
         );
         process.exit(1);
     }

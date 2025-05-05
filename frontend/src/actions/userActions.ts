@@ -22,7 +22,7 @@ export const DeleteUser = async (user: User ): Promise<FormResponse<User>> => {
     // Send the data to the backend
     const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response : Response = await fetch(
-        `http://backend:8080/User/delete?userId=${encodeURIComponent(user.id)}`,
+        `${process.env.API_URL}/User/delete?userId=${encodeURIComponent(user.id)}`,
         {
             method: "DELETE",
             credentials: "include",
@@ -74,7 +74,7 @@ export const SaveUser = async (
         // Send the data to the backend
         const cookieHeader : ReadonlyRequestCookies = await cookies();
         const response : Response = await fetch(
-            `http://backend:8080/User/update-mail`,
+            `${process.env.API_URL}/User/update-mail`,
             {
                 method: "PATCH",
                 credentials: "include",
@@ -107,7 +107,7 @@ export const SaveUser = async (
         // Send the data to the backend
         const cookieHeader : ReadonlyRequestCookies = await cookies();
         const response : Response = await fetch(
-            `http://backend:8080/Roles/assign`,
+            `${process.env.API_URL}/Roles/assign`,
             {
                 method: "PATCH",
                 credentials: "include",
@@ -155,7 +155,7 @@ export const ListUsersPaged = async (pageIndex: number, query: string ): Promise
     // Send the data to the backend
     const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response : Response = await fetch(
-        `http://backend:8080/User/list-paged?pageIndex=${pageIndex}&pageSize=50&searchQuery=${encodeURIComponent(query)}`,
+        `${process.env.API_URL}/User/list-paged?pageIndex=${pageIndex}&pageSize=50&searchQuery=${encodeURIComponent(query)}`,
         {
             method: "GET",
             credentials: "include",
