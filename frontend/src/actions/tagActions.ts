@@ -32,7 +32,7 @@ export const AddStandardizedTag = async (prevState: FormResponse<TagCreateDto>, 
 
   // Send the data to the backend
   const cookieHeader : ReadonlyRequestCookies = await cookies();
-  const response : Response = await fetch(`http://backend:8080/tags/add-standard-tag`, {
+  const response : Response = await fetch(`${process.env.API_URL}/tags/add-standard-tag`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
     credentials: "include",
@@ -86,7 +86,7 @@ export const AddUserTag = async (prevState: FormResponse<TagCreateDto>, formData
 
   // Send the data to the backend
   const cookieHeader : ReadonlyRequestCookies = await cookies();
-  const response : Response = await fetch(`http://backend:8080/tags/add-user-tag`, {
+  const response : Response = await fetch(`${process.env.API_URL}/tags/add-user-tag`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
     credentials: "include",
@@ -119,7 +119,7 @@ export const DeleteTag = async (tagId: string): Promise<FormResponse<{id: string
 
   // Send the data to the backend
   const cookieHeader = await cookies();
-  const response = await fetch(`http://backend:8080/tags/delete-tag/${encodeURIComponent(tagId)}`, {
+  const response = await fetch(`${process.env.API_URL}/tags/delete-tag/${encodeURIComponent(tagId)}`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
     credentials: "include",
@@ -159,7 +159,7 @@ export const RenameTag = async (prevState: FormResponse<TagRenameDto>, formData:
 
   // Send the data to the backend
   const cookieHeader : ReadonlyRequestCookies = await cookies();
-  const response = await fetch(`http://backend:8080/tags/rename-tag/${encodeURIComponent(rawData.id)}/${encodeURIComponent(rawData.newName)}`, {
+  const response = await fetch(`${process.env.API_URL}/tags/rename-tag/${encodeURIComponent(rawData.id)}/${encodeURIComponent(rawData.newName)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
     credentials: "include",
@@ -188,7 +188,7 @@ export const ApproveTag = async (tagId: string): Promise<FormResponse<{id: strin
 
   const cookieHeader = await cookies();
   const response = await fetch(
-    `http://backend:8080/tags/approve-tag/${encodeURIComponent(tagId)}`,
+    `${process.env.API_URL}/tags/approve-tag/${encodeURIComponent(tagId)}`,
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
@@ -218,7 +218,7 @@ export const MakeStandardized = async (tagId: string): Promise<FormResponse<{ id
 
   const cookieHeader : ReadonlyRequestCookies = await cookies();
   const response = await fetch(
-    `http://backend:8080/tags/make-standardized/${encodeURIComponent(tagId)}`,
+    `${process.env.API_URL}/tags/make-standardized/${encodeURIComponent(tagId)}`,
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
@@ -265,7 +265,7 @@ export const ListTagsPaged = async (pageIndex: number, searchQuery: string): Pro
   // Send the data to the backend
   const cookieHeader : ReadonlyRequestCookies = await cookies();
   const response : Response = await fetch(
-      `http://backend:8080/Tags/tags`,
+      `${process.env.API_URL}/Tags/tags`,
       {
           method: "POST",
           credentials: "include",
@@ -336,7 +336,7 @@ export const fetchTagSearch = async (searchQuery?: string, K?: number): Promise<
 
   const cookieHeader : ReadonlyRequestCookies = await cookies();
   const response : Response = await fetch(
-      `http://backend:8080/Tags/tags`,
+      `${process.env.API_URL}/Tags/tags`,
       {
           method: "POST",
           credentials: "include",

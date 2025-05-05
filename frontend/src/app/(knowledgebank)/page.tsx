@@ -9,7 +9,7 @@ import SearchButton from "../_components/search-button";
 
 export default async function Home() {
   // fetches all documents
-  const result = await FetchWithValidation(ResourcePageResponseSchema, "http://backend:8080/Storage/list-paged?pageIndex=1&pageSize=4");
+  const result = await FetchWithValidation(ResourcePageResponseSchema, `${process.env.API_URL}/Storage/list-paged?pageIndex=1&pageSize=4`);
   let files = result.data?.resources ?? [];
 
   // only display first 4 files, needs to be updated to display recently opened files

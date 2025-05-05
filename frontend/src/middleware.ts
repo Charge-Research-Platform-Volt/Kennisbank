@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 export async function middleware(request: NextRequest) {
     try {
         // Check in backend if logged in
-        const response = await fetch("http://backend:8080/Auth/ping", {
+        const response = await fetch(`${process.env.API_URL}/Auth/ping`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -22,6 +22,9 @@ export async function middleware(request: NextRequest) {
                     
             return NextResponse.redirect(new URL("/", request.url));
         }
+
+        // One exception, so the client can call the api to create cookies
+        if (pathname.startsWith("/api/Auth/")) { return NextResponse.next() }
 
         // If not logged in, redirect to login page
         if (!response.ok) {
