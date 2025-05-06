@@ -31,7 +31,7 @@ export function ExceptionTable({ exceptions }:{ exceptions: ExceptionItem[] }) {
                 <TableRow key={exception.type}>
                     <TableCell>
                         <a href={exception.link} target={exception.link.startsWith('http') ? '_blank' : '_self'} className="no-underline text-inherit hover:text-inherit">
-                            <CSharpType type={exception.type} />
+                            <CSharpType type={exception.type} links={[exception.link]} />
                         </a>
                     </TableCell>
                     { !includeDescription ? "" : (<TableCell>{exception.description}</TableCell>) }
