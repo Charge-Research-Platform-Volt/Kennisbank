@@ -64,10 +64,10 @@ public class RegionsControllerTests : TestBase
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Region created successfully"));
-        Assert.That(response.Data, Is.Not.Null);
+        Assert.That(response.Body, Is.Not.Null);
         
         // Deserialize the response's data, extract ID
-        JObject? json = JObject.FromObject(response.Data);
+        JObject? json = JObject.FromObject(response.Body);
         Guid regionId = Guid.Parse(json["id"].ToString());
         
         bool exists = await _resourceManager.RegionExistsAsync(regionId.ToString());
@@ -116,10 +116,10 @@ public class RegionsControllerTests : TestBase
         Assert.That(createResult, Is.Not.Null);
         ApiResponse? createResponse = createResult.Value as ApiResponse;
         Assert.That(createResponse, Is.Not.Null);
-        Assert.That(createResponse.Data, Is.Not.Null);
+        Assert.That(createResponse.Body, Is.Not.Null);
         
         // Deserialize the response's data
-        JObject? json = JObject.FromObject(createResponse.Data);
+        JObject? json = JObject.FromObject(createResponse.Body);
         Guid regionId = Guid.Parse(json["id"].ToString());
         string regionIdStr = regionId.ToString();
         
@@ -358,10 +358,10 @@ public class RegionsControllerTests : TestBase
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Region already exists."));
-        Assert.That(response.Data, Is.Not.Null);
+        Assert.That(response.Body, Is.Not.Null);
         
         // Deserialize the response's data, extract ID
-        JObject? json = JObject.FromObject(response.Data);
+        JObject? json = JObject.FromObject(response.Body);
         Guid regionId = Guid.Parse(json["id"].ToString());
         
         // Check the response data
@@ -386,10 +386,10 @@ public class RegionsControllerTests : TestBase
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Region does not exist"));
-        Assert.That(response.Data, Is.Not.Null);
+        Assert.That(response.Body, Is.Not.Null);
 
         // Deserialize the response's data, extract ID
-        JObject? json = JObject.FromObject(response.Data);
+        JObject? json = JObject.FromObject(response.Body);
         string regionId = json["id"].ToString();
         
         // Check the response data
@@ -440,7 +440,7 @@ public class RegionsControllerTests : TestBase
         Assert.That(response.Message, Is.EqualTo("Region was found"));
         
         // Verify the returned region
-        Region? region = response.Data as Region;
+        Region? region = response.Body as Region;
         Assert.That(region, Is.Not.Null);
         Assert.That(region.Id.ToString(), Is.EqualTo(regionId));
         Assert.That(region.Name, Is.EqualTo("Test Region"));
@@ -508,7 +508,7 @@ public class RegionsControllerTests : TestBase
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Does.Contain("Found"));
         
-        Region[]? regions = response.Data as Region[];
+        Region[]? regions = response.Body as Region[];
         Assert.That(regions, Is.Not.Null);
         Assert.That(regions.Length, Is.GreaterThanOrEqualTo(1)); // At least our seeded region
     }
@@ -541,7 +541,7 @@ public class RegionsControllerTests : TestBase
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.True);
         
-        Region[]? regions = response.Data as Region[];
+        Region[]? regions = response.Body as Region[];
         Assert.That(regions, Is.Not.Null);
         Assert.That(regions.Length, Is.LessThanOrEqualTo(pageSize));
     }

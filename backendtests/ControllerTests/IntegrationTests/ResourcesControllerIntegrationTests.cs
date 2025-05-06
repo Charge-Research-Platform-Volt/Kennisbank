@@ -108,10 +108,10 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Resource created successfully."));
-        Assert.That(response.Data, Is.Not.Null);
+        Assert.That(response.Body, Is.Not.Null);
         
         // Verify the resource exists in the database
-        Guid resourceId = (Guid)response.Data;
+        Guid resourceId = (Guid)response.Body;
         bool exists = await _resourceManager.ResourceExistsAsync(resourceId.ToString());
         Assert.That(exists, Is.True);
     }
@@ -229,10 +229,10 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Resource created successfully."));
-        Assert.That(response.Data, Is.Not.Null);
+        Assert.That(response.Body, Is.Not.Null);
         
         // Verify the resource exists in the database
-        Guid resourceId = (Guid)response.Data;
+        Guid resourceId = (Guid)response.Body;
         bool existsInDatabase = await _resourceManager.ResourceExistsAsync(resourceId.ToString());
         
         BLOB_STATUSCODE existsInBlob = await BlobService.BlobExistsAsync("text", resourceId.ToString());
@@ -442,8 +442,8 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(createResult, Is.Not.Null);
         ApiResponse? createResponse = createResult.Value as ApiResponse;
         Assert.That(createResponse, Is.Not.Null);
-        Assert.That(createResponse.Data, Is.Not.Null);        
-        Guid resourceId = (Guid)createResponse.Data;
+        Assert.That(createResponse.Body, Is.Not.Null);        
+        Guid resourceId = (Guid)createResponse.Body;
         string resourceIdStr = resourceId.ToString();
         UploadedBlobs.Add(resourceIdStr); // To ensure cleanup even if test fails
         
@@ -526,8 +526,8 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(createResult, Is.Not.Null);
         ApiResponse? createResponse = createResult.Value as ApiResponse;
         Assert.That(createResponse, Is.Not.Null);
-        Assert.That(createResponse.Data, Is.Not.Null);
-        Guid resourceId = (Guid)createResponse.Data;
+        Assert.That(createResponse.Body, Is.Not.Null);
+        Guid resourceId = (Guid)createResponse.Body;
         string resourceIdStr = resourceId.ToString();
         
         // Act
@@ -723,7 +723,7 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Resource already exists."));
-        Assert.That(response.Data, Is.Not.Null);
+        Assert.That(response.Body, Is.Not.Null);
     }
     
     [Test]
@@ -744,7 +744,7 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Resource already exists."));
-        Assert.That(response.Data, Is.Not.Null);
+        Assert.That(response.Body, Is.Not.Null);
     }
     
     [Test]
@@ -765,7 +765,7 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Resource does not exist"));
-        Assert.That(response.Data, Is.Not.Null);
+        Assert.That(response.Body, Is.Not.Null);
     }
     
     #endregion
@@ -792,7 +792,7 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(response.Message, Is.EqualTo("Resource was found."));
         
         // Verify the returned resource
-        Resource? resource = response.Data as Resource;
+        Resource? resource = response.Body as Resource;
         Assert.That(resource, Is.Not.Null);
         Assert.That(resource.Id.ToString(), Is.EqualTo(resourceId));
     }
@@ -860,7 +860,7 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo($"Found {expectedResourceCount} resources"));
         
-        Resource[]? resources = response.Data as Resource[];
+        Resource[]? resources = response.Body as Resource[];
         Assert.That(resources, Is.Not.Null);
         Assert.That(resources.Length, Is.EqualTo(expectedResourceCount));
     }
@@ -884,7 +884,7 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.True);
         
-        Resource[]? resources = response.Data as Resource[];
+        Resource[]? resources = response.Body as Resource[];
         Assert.That(resources, Is.Not.Null);
         Assert.That(resources.Length, Is.LessThanOrEqualTo(pageSize));
     }

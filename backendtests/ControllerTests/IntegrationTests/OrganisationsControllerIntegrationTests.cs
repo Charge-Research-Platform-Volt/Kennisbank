@@ -68,10 +68,10 @@ public class OrganisationsControllerTests : TestBase
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Organisation created successfully"));
-        Assert.That(response.Data, Is.Not.Null);
+        Assert.That(response.Body, Is.Not.Null);
         
         // Deserialize the response's data, extract ID
-        JObject? json = JObject.FromObject(response.Data);
+        JObject? json = JObject.FromObject(response.Body);
         Guid organisationId = Guid.Parse(json["id"].ToString());
         
         bool exists = await _resourceManager.OrganisationExistsAsync(organisationId.ToString());
@@ -124,10 +124,10 @@ public class OrganisationsControllerTests : TestBase
         Assert.That(createResult, Is.Not.Null);
         ApiResponse? createResponse = createResult.Value as ApiResponse;
         Assert.That(createResponse, Is.Not.Null);
-        Assert.That(createResponse.Data, Is.Not.Null);
+        Assert.That(createResponse.Body, Is.Not.Null);
         
         // Deserialize the response's data
-        JObject? json = JObject.FromObject(createResponse.Data);
+        JObject? json = JObject.FromObject(createResponse.Body);
         Guid organisationId = Guid.Parse(json["id"].ToString());
         string organisationIdStr = organisationId.ToString();
         
@@ -366,10 +366,10 @@ public class OrganisationsControllerTests : TestBase
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Person already exists"));
-        Assert.That(response.Data, Is.Not.Null);
+        Assert.That(response.Body, Is.Not.Null);
         
         // Deserialize the response's data, extract ID
-        JObject? json = JObject.FromObject(response.Data);
+        JObject? json = JObject.FromObject(response.Body);
         Guid organisationId = Guid.Parse(json["id"].ToString());
         
         // Check the response data
@@ -394,10 +394,10 @@ public class OrganisationsControllerTests : TestBase
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Person does not exist"));
-        Assert.That(response.Data, Is.Not.Null);
+        Assert.That(response.Body, Is.Not.Null);
 
         // Deserialize the response's data, extract ID
-        JObject? json = JObject.FromObject(response.Data);
+        JObject? json = JObject.FromObject(response.Body);
         string organisationId = json["id"].ToString();
         
         // Check the response data
@@ -448,7 +448,7 @@ public class OrganisationsControllerTests : TestBase
         Assert.That(response.Message, Is.EqualTo("Organisation was found"));
         
         // Verify the returned organisation
-        Organisation? organisation = response.Data as Organisation;
+        Organisation? organisation = response.Body as Organisation;
         Assert.That(organisation, Is.Not.Null);
         Assert.That(organisation.Id.ToString(), Is.EqualTo(organisationId));
         Assert.That(organisation.Name, Is.EqualTo("Test Organisation"));
@@ -516,7 +516,7 @@ public class OrganisationsControllerTests : TestBase
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Does.Contain("Found"));
         
-        Organisation[]? organisations = response.Data as Organisation[];
+        Organisation[]? organisations = response.Body as Organisation[];
         Assert.That(organisations, Is.Not.Null);
         Assert.That(organisations.Length, Is.GreaterThanOrEqualTo(1)); // At least our seeded organisation
     }
@@ -551,7 +551,7 @@ public class OrganisationsControllerTests : TestBase
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.True);
         
-        Organisation[]? organisations = response.Data as Organisation[];
+        Organisation[]? organisations = response.Body as Organisation[];
         Assert.That(organisations, Is.Not.Null);
         Assert.That(organisations.Length, Is.LessThanOrEqualTo(pageSize));
     }
