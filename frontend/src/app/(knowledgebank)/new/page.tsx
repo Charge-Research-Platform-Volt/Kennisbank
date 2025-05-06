@@ -7,7 +7,7 @@ import { ApiResponseSchema } from "@/types/apiResponse.type"
 import { Person, PersonArraySchema } from "@/types/person.type"
 import { Organisation, OrganisationArraySchema } from "@/types/organisation.type";
 import { ResourceType, ResourceTypeArraySchema } from "@/types/resourceType.type"
-import { Tag, TagPageResponseSchema } from "@/types/tag.type"
+import { Tag, TagArraySchema, TagPageResponseSchema } from "@/types/tag.type"
 import { Region, RegionArraySchema } from "@/types/region.type"
 import { SelectOption } from "@/components/ui/selection";
 
@@ -77,16 +77,13 @@ export default async function NewPage()
     
     
     // Fetch tags
-    const tagsFetch = await FetchWithValidation(TagPageResponseSchema, "http://backend:8080/tags/tags");
-    
-    console.log(tagsFetch);
-    console.log(tagsFetch.data);
+    const tagsFetch = await FetchWithValidation(ApiResponseSchema, "http://backend:8080/tags/all-tags");
     
     // If fetch failed or API indicates failure, redirect to error page
-    if (!tagsFetch.success) 
+    if (!tagsFetch.success || (tagsFetch.data && !tagsFetch.data.success && !TagArraySchema.safeParse(tagsFetch.data.body).success)) 
     {
         // Throw error to trigger error boundary
-        const errorMessage =    tagsFetch.error.message ||
+        const errorMessage =    tagsFetch.data?.message ||
                                 "Failed to fetch tags";
                                 
         // This will trigger the nearest error.js boundary
@@ -94,7 +91,7 @@ export default async function NewPage()
     }
     
     // Conver the tagsFetch to a options list
-    const tags: Tag[] = tagsFetch.data.tags ? tagsFetch.data.tags : [];
+    const tags: Tag[] = tagsFetch.data.body;
     const tagOptions: SelectOption[] = [];
     tags.forEach((tag: Tag) => tagOptions.push({ value: tag.id, label: tag.name } as SelectOption));
     
@@ -123,7 +120,7 @@ export default async function NewPage()
 
 
     return (
-        <Tabs defaultValue="organisation" className="w-full">
+        <Tabs defaultValue="resource" className="w-full">
             <TabsList>
                 <TabsTrigger value="resource">Resource</TabsTrigger>
                 <TabsTrigger value="person">Person</TabsTrigger>

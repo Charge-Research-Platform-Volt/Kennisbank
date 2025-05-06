@@ -225,13 +225,17 @@ export default function NewResource({ personOptions, organisationOptions, resour
     
     function onTagCreation(id: string, name: string) 
     {
-        const newTags = [...tags, { value: id, label: name} as SelectOption]
+        const newTags = [...tags, { value: id, label: name } as SelectOption]
         setTags(newTags);
+        const newSelected = [...form.getValues("tags"), id]
+        form.setValue("tags", newSelected);
+        
+        setCreateTagOpen(false);
     }
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl mt-5">
-            <CreateTagDialog open={createTagOpen} onCreate={onTagCreation} />
+            <CreateTagDialog open={createTagOpen} onOpenChange={setCreateTagOpen} onCreate={onTagCreation} />
         
             <h1 className="text-2xl tracking-tight text-gray-900 dark:text-gray-100 md:text-3xl lg:text-4xl mb-2">
                 Create a new resource
@@ -408,7 +412,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                         <FormItem>
                             <FormLabel>Tags <RequiredAstrix /></FormLabel>
                             <FormControl>
-                                <Selection placeholder="Select tags..." options={tags} multiSelect={true} hasCreateButton={true} { ... field } />
+                                <Selection placeholder="Select tags..." options={tags} multiSelect={true} hasCreateButton={true} onCreateButton={() => setCreateTagOpen(true)} { ... field } />
                             </FormControl>
                             <FormMessage />
                         </FormItem>

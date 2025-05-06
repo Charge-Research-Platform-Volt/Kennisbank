@@ -83,7 +83,7 @@ public class TagControllerTests : TestBase
         // Get all tags
         OkObjectResult? result = await _controller.GetAll() as OkObjectResult;
         Assert.That(result, Is.Not.Null);
-        Tag[]? tags = result.Value as Tag[];
+        Tag[]? tags = ((ApiResponse)result.Value).Body as Tag[];
         Assert.That(tags, Is.Not.Null);
         
         // Assert

@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { InputHeader } from "@/components/ui/Popup";
 import TagSelectionDropdown from "@/components/uploadComponents/TagSelectionDropdown";
 import { useEffect, useState } from "react";
+import { Tag } from "@/types/tag.type";
 
 export default function FilterPopup({ isVisible, onApplyAction, className }: { isVisible: boolean, onApplyAction: (tagFilters: string[], startDate: number, endDate: number) => void, className?: string }) {
     const [error, setError] = useState(false);
 
-    const [tags, setTags] = useState([]);
+    const [tags, setTags] = useState<Tag[]>([]);
 
     const [startYear, setStartYear] = useState<number>(0);
     const [endYear, setEndYear] = useState<number>(0);
@@ -51,7 +52,7 @@ export default function FilterPopup({ isVisible, onApplyAction, className }: { i
                 return;
             }
 
-            setTags(await response.json());
+            setTags((await response.json()).body);
         }
         catch(error) {
             console.error("Error fetching tags:", error);

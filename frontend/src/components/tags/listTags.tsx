@@ -1,5 +1,5 @@
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
-import { TagArraySchema } from "@/types/tag.type";
+import { ApiResponseSchema } from "@/types/apiResponse.type";
 
 /**
  * 
@@ -7,7 +7,7 @@ import { TagArraySchema } from "@/types/tag.type";
  */
 export default async function ListTags() {
     const result = await FetchWithValidation(
-        TagArraySchema,
+        ApiResponseSchema,
         `${process.env.API_URL}/Tag/all-tags`,
       );
     
@@ -15,7 +15,7 @@ export default async function ListTags() {
         throw new Error("Data validation failed");
       }
     
-    return result
+    return result.data.body
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

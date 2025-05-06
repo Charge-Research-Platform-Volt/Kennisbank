@@ -79,7 +79,8 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                 if(filterOptions.UsePaging && filterOptions.PageIndex > 1)
                     return BadRequest(new { message = "The page index is invalid." });
                 else
-                    return Ok(new TagPageResponse("No tags found.", new Tag[0]));            }
+                    return Ok(new TagPageResponse("No tags found.", new Tag[0]));
+            }
 
             // Set the UsageCount property for each tag if IncludeUsageCount is true
             if (filterOptions.IncludeUsageCount)
@@ -137,7 +138,8 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     {
         try
         {
-            return Ok(await resourceManager.GetAllTagsAsync());
+            Tag[] tags = await resourceManager.GetAllTagsAsync();
+            return Ok(new ApiResponse(true, $"{tags.Length} tags found", tags));
         }
         catch (Exception e)
         {

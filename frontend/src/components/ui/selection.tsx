@@ -18,6 +18,7 @@ interface SelectionProps extends Omit<React.ComponentPropsWithoutRef<typeof Butt
 {
     placeholder: string;
     options: SelectOption[];
+    value?: string | string[];
     onChange?: (value: string | string[]) => void;
     multiSelect?: boolean;
     hasCreateButton?: boolean;
@@ -26,7 +27,8 @@ interface SelectionProps extends Omit<React.ComponentPropsWithoutRef<typeof Butt
 
 export function Selection({
     placeholder, 
-    options, 
+    options,
+    value: externalValue,
     onChange,
     multiSelect = false,
     hasCreateButton = false,
@@ -37,7 +39,12 @@ export function Selection({
     const { error } = useFormField();
 
     const [open, setOpen] = React.useState(false);
-    const [value, setValue] = React.useState<string | string[]>(multiSelect ? [] : "");
+    const [value, setValue] = React.useState<string | string[]>(externalValue ? externalValue : multiSelect ? [] : "");
+    
+    React.useEffect(() => 
+    {
+        if (externalValue) setValue(externalValue);
+    }, [externalValue]);
     
     function handleOnSelect(currentLabel: string) 
     {
@@ -156,7 +163,7 @@ export function Selection({
                                 hasCreateButton && (
                                     <CommandItem>
                                         <hr />
-                                        <Button type="button" variant="ghost">Create new</Button>
+                                        <Button type="button" variant="ghost" onClick={onCreateButton}>Create new</Button>
                                     </CommandItem>
                                 )
                             }

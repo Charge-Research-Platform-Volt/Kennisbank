@@ -16,35 +16,52 @@ interface CreateTagDialogProps
 
 export default function CreateTagDialog({open = false, onOpenChange, onCreate}: CreateTagDialogProps) 
 {
-    const [isOpen, setIsOpen] = React.useState<boolean>(open);
     const [input, setInput] = React.useState<string>("");
+    const [isUploading, setIsUploading] = React.useState<boolean>(false);
     
     React.useEffect(() => 
     {
         if (onOpenChange) onOpenChange(open);
     
-        if (isOpen) 
+        if (open) 
+        {
             setInput("");
-    }, [isOpen]);
+            setIsUploading(false);
+        }setInput("");
+    }, [open]);
     
     async function onSubmit() 
     {
+        setIsUploading(true);
+    
         const id: string = await UploadNewTag({ name: input } as TagCreateDto);
         
         if (onCreate) onCreate(id, input);
+        
+        open = false;
+    }
+    
+    function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) 
+    {
+        // Check if enter is pressed
+        if (e.key === 'Enter') 
+        {
+            e.preventDefault();
+            onSubmit();
+        }
     }
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Create New Tag</DialogTitle>
                 </DialogHeader>
                 
-                <Input placeholder="Tag name..." value={input} onChange={(e) => setInput(e.target.value)} />
+                <Input placeholder="Tag name..." value={input} onChange={(e) => setInput(e.target.value)} disabled={isUploading} onKeyDown={handleKeyDown} />
                 
                 <DialogFooter className="sm:justify-center">
-                    <Button type="button" onClick={onSubmit}>Create</Button>
+                    <Button type="button" onClick={onSubmit} disabled={isUploading}>Create</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
