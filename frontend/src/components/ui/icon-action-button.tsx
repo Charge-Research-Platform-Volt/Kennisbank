@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useTransition } from "react";
+import { JSX, useTransition } from "react";
 import { toast } from "sonner";
 import { ReactElement } from "react";
 
@@ -22,7 +22,7 @@ interface ActionButtonProps<T> {
   // Message to show on success
   successMessage?: string;
   // Icon component to render
-  icon: React.ComponentType<unknown>;
+  icon: JSX.Element;
   // Title for the button
   title: string;
   // Optional className for styling
@@ -64,7 +64,6 @@ interface ActionButtonProps<T> {
   icon: Icon,
   title,
   className = "bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground",
-  iconProps = { className: "h-5 w-5", fill: "#737373" },
   onSuccessAction = () => {},
 }: ActionButtonProps<T>): ReactElement {
   const [isPending, startTransition] = useTransition();
@@ -92,7 +91,7 @@ interface ActionButtonProps<T> {
       disabled={isPending}
       title={title}
     >
-      <Icon {...iconProps} />
+      {Icon}
     </Button>
   );
 }
