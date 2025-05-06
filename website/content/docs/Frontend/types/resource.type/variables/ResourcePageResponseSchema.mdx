@@ -1,0 +1,38 @@
+---
+title: ResourcePageResponseSchema
+sidebar_position: 1
+---
+
+[frontend](../../../README) • Docs
+
+***
+
+# Variable: ResourcePageResponseSchema
+
+> `const` **ResourcePageResponseSchema**: `ZodObject`\<`object`, `"strip"`, `ZodTypeAny`, `object`, `object`\>
+
+## Type declaration
+
+### message
+
+> **message**: `ZodString`
+
+### pageIndex
+
+> **pageIndex**: `ZodNumber`
+
+### pageSize
+
+> **pageSize**: `ZodNumber`
+
+### resources
+
+> **resources**: `ZodArray`\<`ZodUnion`\<[`ZodObject`\<`extendShape`\<`object`, `object`\>, `"strip"`, `ZodTypeAny`, `object`, `object`\>, `ZodObject`\<`extendShape`\<`object`, `object`\>, `"strip"`, `ZodTypeAny`, `object`, `object`\>]\>, `"many"`\> = `ResourceResponseArraySchema`
+
+### responseType
+
+> **responseType**: `ZodString`
+
+## Source
+
+src/types/resource.type.ts:62
