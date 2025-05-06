@@ -1,5 +1,6 @@
 using System.Text;
 using KnowledgeBank.Data;
+using Microsoft.SemanticKernel.Embeddings;
 using Microsoft.SemanticKernel.Text;
 using Serilog;
 using UglyToad.PdfPig;
@@ -7,7 +8,7 @@ using UglyToad.PdfPig.Content;
 
 namespace KnowledgeBank.Services;
 
-#pragma warning disable SKEXP0050
+#pragma warning disable SKEXP0050, SKEXP0001
 // 'Microsoft.SemanticKernel.Text.TextChunker' is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.SKEXP0050
 
 
@@ -20,14 +21,14 @@ public interface ITextExtractionService
 public class TextExtractionService : ITextExtractionService
 {
     private readonly IAzureBlobService _blobService;
-    private readonly ResourceManager _resourceManager;
     private readonly Serilog.ILogger _logger;
+    private readonly ISemanticKernel _semanticKernel;
 
-    public TextExtractionService(IAzureBlobService blobService, ResourceManager resourceManager)
+    public TextExtractionService(IAzureBlobService blobService, ResourceManager resourceManager, ISemanticKernel semanticKernel)
     {
         _blobService = blobService;
-        _resourceManager = resourceManager;
         _logger = Log.ForContext<TextExtractionService>();
+        _semanticKernel = semanticKernel;
     }
 
     public Task<string> ExtractTextFromPdfAsync(Stream pdfStream)
@@ -82,13 +83,18 @@ public class TextExtractionService : ITextExtractionService
             string extractedText = await ExtractTextFromPdfAsync(blobResponse.Value.FileStream);
 
             // Chuck the extracted text
-            List<string> data = TextChunker.SplitPlainTextLines(extractedText, maxTokensPerLine: 200);
+            List<string> data = TextChunker.SplitPlainTextLines(extractedText, maxTokensPerLine: 100);
 
             // Print the chunks
             foreach (var chunk in data)
             {
                 _logger.Information("Chunk: {Chunk}", chunk);
             }
+
+            var embeddingGenerator = _semanticKernel.Kernel.GetRequiredService<ITextEmbeddingGenerationService>();
+            var embeddings = await embeddingGenerator.GenerateEmbeddingsAsync(data);
+
+            Console.WriteLine($"Generated {embeddings.Count} embeddings for the provided text");
 
             _logger.Information("Successfully extracted text from PDF document with ID: {Id}", id);
         }

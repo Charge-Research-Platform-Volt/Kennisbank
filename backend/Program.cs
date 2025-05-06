@@ -48,6 +48,10 @@ namespace KnowledgeBank
                             .AddEntityFrameworkStores<DatabaseContext>()
                             .AddApiEndpoints();
 
+
+            // Semantic Kernel
+            builder.Services.AddSingleton<ISemanticKernel, SemanticKernel>();
+
             // Background services
             builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
             builder.Services.AddHostedService<QueuedHostedService>();

@@ -19,7 +19,11 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.2" />
     <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="9.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.2" />
+    <PackageReference Include="Microsoft.Extensions.AI.Ollama" Version="9.4.3-preview.1.25230.7" />
+    <PackageReference Include="Microsoft.Extensions.VectorData.Abstractions" Version="9.0.0-preview.1.25229.1" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.47.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Ollama" Version="1.48.0-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Qdrant" Version="1.48.0-preview" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.2">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
