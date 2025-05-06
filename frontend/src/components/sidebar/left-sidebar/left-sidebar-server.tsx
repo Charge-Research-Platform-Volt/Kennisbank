@@ -1,7 +1,6 @@
 import React from "react";
 import LeftSidebarClient from "./left-sidebar-client";
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
-import { TagArraySchema } from "@/types/tag.type";
 import { z } from "zod";
 import Help from "@/icons/help";
 import { SidebarItem } from "@/types/sidebar";
@@ -15,15 +14,7 @@ import { Users } from "lucide-react";
  * @returns Left side bar made from server component
  */
 export default async function LeftSidebarServer() {
-  const tagsResult = await FetchWithValidation(TagArraySchema, "http://backend:8080/tags/all-tags");
-
-  if (!tagsResult.success) {
-    console.log("Failed to fetch tags");
-    console.log(tagsResult);
-    return <h1>ERROR</h1>;
-  }
-
-  const userEmail = await FetchWithValidation(z.object({ email: z.string() }), "http://backend:8080/auth/ping");
+  const userEmail = await FetchWithValidation(z.object({ email: z.string() }), `${process.env.API_URL}/auth/ping`);
 
   if (!userEmail.success) {
     console.log("Failed to fetch user email");
@@ -31,7 +22,7 @@ export default async function LeftSidebarServer() {
     return <h1>ERROR</h1>;
   }
 
-  const userRole = await FetchWithValidation(z.object({ role: z.string(), isAuthenticated: z.boolean() }), "http://backend:8080/roles/current");
+  const userRole = await FetchWithValidation(z.object({ role: z.string(), isAuthenticated: z.boolean() }), `${process.env.API_URL}/roles/current`);
 
   if (!userRole.success) {
     console.log("Failed to fetch user role");
@@ -69,7 +60,7 @@ export default async function LeftSidebarServer() {
     });
   }
 
-  return <LeftSidebarClient tags={tagsResult.data} userEmail={userEmail.data.email} userRole={userRole.data.role} menuItems={menuItems} projects={projects} bottomMenuItems={bottomMenuItems} />;
+  return <LeftSidebarClient userEmail={userEmail.data.email} userRole={userRole.data.role} menuItems={menuItems} projects={projects} bottomMenuItems={bottomMenuItems} />;
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

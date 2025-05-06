@@ -1,8 +1,5 @@
 import { ExistsResponseSchema } from "@/types/storage.type";
 
-const BACKEND_API_URL = "http://localhost:8080/";
-const BACKEND_API_EXIST_ROUTE = "storage/exists/";
-
 /**
  * Calculates SHA-256 hash of a file on the client browser
  * using a web worker to prevent blocking the UI
@@ -87,7 +84,7 @@ export function createFileHasher() {
 
     // Ask backend if the file already exists
     const urlSafeHash = encodeURIComponent(hash);
-    const response = await fetch(BACKEND_API_URL + BACKEND_API_EXIST_ROUTE + urlSafeHash, { credentials: "include" });
+    const response = await fetch(`/api/storage/exists/${urlSafeHash}`, { credentials: "include" });
 
     // Parse response data and return
     if (response.ok) {

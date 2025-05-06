@@ -28,7 +28,7 @@ export default function ArchivePage() {
   // Fetch initial files
   useEffect(() => {
     fetchFiles(
-      "http://localhost:8080/Storage/list-all",
+      "/api/Storage/list-all",
       "GET",
       (response) => {
         if (searchResults === null) setSearchResults(response);
@@ -42,7 +42,7 @@ export default function ArchivePage() {
     query = query.trim();
 
     fetchFiles(
-      `http://localhost:8080/Search/search-full-text?${`query=${query}&`}pageIndex=1&pageSize=100`,
+      `/api/Search/search-full-text?${`query=${query}&`}pageIndex=1&pageSize=100`,
       "POST",
       (response) => {
         setSearchResults(response);

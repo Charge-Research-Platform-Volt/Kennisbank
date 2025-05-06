@@ -57,7 +57,7 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
     );
   }
   
-  // Ifstandardized tag
+  // If standardized tag
   if (tag) {
     return (
       <div className="flex">
