@@ -9,7 +9,7 @@ import ApprovedTagIcon from "@/icons/tag-icons/aproved-tag";
 import { AddUserTag } from "@/actions/tagActions";
 import { toast } from "sonner";
 import { fetchTagSearch } from "@/actions/tagActions";
-import { MAX_TAG_LENGTH } from "../../../constants";
+import { MAX_TAG_LENGTH } from "@/../constants";
 
 /**
  *

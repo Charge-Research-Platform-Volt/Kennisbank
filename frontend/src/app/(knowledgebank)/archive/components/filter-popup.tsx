@@ -35,6 +35,28 @@ export default function FilterPopup({ isVisible, onApplyAction, className }: { i
             </div>
         </>
     );
+
+    async function fetchTags() {
+        try{
+            const response = await fetch("/api/Tags/all-tags", {
+                credentials: "include",
+                method: "GET"
+            });
+    
+            if(!response.ok){
+                console.error("Error fetching tags:", response.statusText);
+                setError(true);
+                return;
+            }
+
+            setTags(await response.json());
+        }
+        catch(error) {
+            console.error("Error fetching tags:", error);
+            setError(true);
+        }
+    
+    }
 }
 
 

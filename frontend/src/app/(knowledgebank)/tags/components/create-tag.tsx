@@ -7,7 +7,7 @@ import { Tag } from "@/types/tag.type";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AddUserTag } from "@/actions/tagActions";
-import { MAX_TAG_LENGTH } from "../../../../../constants";
+import { MAX_TAG_LENGTH } from "@/../constants";
 
 const initialState: FormResponse<Tag> = {
   success: false,
