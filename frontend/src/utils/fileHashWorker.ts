@@ -1,6 +1,6 @@
 import { ApiResponseSchema } from "@/types/apiResponse.type";
 
-const BACKEND_API_URL = "http://localhost:8080/";
+const BACKEND_API_URL = "/api/";
 const BACKEND_API_EXIST_ROUTE = "resources/exists?hash=";
 
 /**
@@ -87,7 +87,7 @@ export function createFileHasher() {
 
     // Ask backend if the file already exists
     const urlSafeHash = encodeURIComponent(hash);
-    const response = await fetch(BACKEND_API_URL + BACKEND_API_EXIST_ROUTE + urlSafeHash, { credentials: "include" });
+    const response = await fetch(BACKEND_API_URL + BACKEND_API_EXIST_ROUTE + urlSafeHash, { credentials: "include" })
 
     // Parse response data and return
     if (response.ok) {

@@ -1,9 +1,12 @@
 import { ContentRoleGuard } from "@/components/auth/RoleGuard";
 import CreateStandardizedTag from "./components/create-standardized-tag";
 import CreateUserTag from "./components/create-tag";
-import ListTags from "./components/list-tags";
+import ListTags from "./components/tag-list";
+import { getCurrentUserRole } from "@/lib/auth-server";
 
 export default async function StandardizedTagsPage() {
+    const userRole = (await getCurrentUserRole()).role;
+
     return (
         <div className="flex">
             <div className="flex-1 p6 p-4 w-full">
@@ -20,7 +23,7 @@ export default async function StandardizedTagsPage() {
                     </ContentRoleGuard>
                 </div>
                 
-                <ListTags />
+                <ListTags userRole={userRole}/>
             </div>
         </div>
     )

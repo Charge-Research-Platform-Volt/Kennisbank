@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import type { TagArray } from "@/types/tag.type";
 import type { SidebarItem } from "@/types/sidebar";
 import { Logout } from "@/actions/authActions";
 import { Sidebar } from "@/components/ui/sidebar";
@@ -18,7 +17,6 @@ import { cn } from "@/lib/utils";
 
 /**
  *
- * @param tags - All tags fetched from backend
  * @param userEmail - Email of the user
  * @param userRole - Role of the user (admin or user currently)
  * @param open - Boolean determining whether the side bar is open or folded
@@ -29,14 +27,12 @@ import { cn } from "@/lib/utils";
  * @returns The left side bar
  */
 export default function LeftSidebarClient({
-  tags,
   userEmail,
   userRole,
   menuItems,
   projects,
   bottomMenuItems,
 }: {
-  tags: TagArray;
   userEmail: string;
   userRole: string;
   menuItems: SidebarItem[];

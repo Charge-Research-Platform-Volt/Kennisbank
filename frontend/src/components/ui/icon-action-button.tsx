@@ -29,6 +29,8 @@ interface ActionButtonProps<T> {
   className?: string;
   // Props to pass to the icon component
   iconProps?: Record<string, unknown>;
+  // Optional callback for success
+  onSuccessAction?: () => void;
 }
 
 /**
@@ -62,7 +64,8 @@ interface ActionButtonProps<T> {
   icon: Icon,
   title,
   className = "bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground",
-  iconProps = { className: "h-5 w-5", fill: "#737373" }
+  iconProps = { className: "h-5 w-5", fill: "#737373" },
+  onSuccessAction = () => {},
 }: ActionButtonProps<T>): ReactElement {
   const [isPending, startTransition] = useTransition();
 
@@ -70,6 +73,7 @@ interface ActionButtonProps<T> {
     startTransition(async () => {
       const result = await action(actionArg);
       if (result && result.success) {
+        onSuccessAction();
         toast.success(successMessage);
       } else if (result && result.message) {
         toast.error(result.message);

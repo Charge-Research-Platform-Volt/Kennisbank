@@ -74,6 +74,7 @@ services:
     ports:
       - "3000:3000"
     environment:
+      - API_URL=${API_URL}
       - NODE_ENV=development
       - WATCHPACK_POLLING=true
     volumes:
@@ -96,6 +97,7 @@ services:
     ports:
       - "3001:3001"
     environment:
+      - API_URL=${API_URL}
       - NODE_ENV=development
       - WATCHPACK_POLLING=true
     volumes:

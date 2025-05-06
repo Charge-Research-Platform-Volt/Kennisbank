@@ -226,7 +226,6 @@ public class SearchController : ControllerBase
         try
         {
             // Get the oldest document from the resources table
-            // TODO: change created_at to published_at when metadata is merged
             Resource[]? items = await database.Resources
             .OrderBy(f => f.PublicationDate)
             .Take(1)

@@ -28,7 +28,7 @@ namespace KnowledgeBank.Controllers
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class OrganisationsController(ResourceManager resourceManager) : Controller
+    public class OrganisationsController(ResourceManager resourceManager) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<OrganisationsController>();
 
