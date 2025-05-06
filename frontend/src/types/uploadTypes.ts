@@ -93,3 +93,21 @@ export const OrganisationCreateDtoSchema = z.object(
 });
 
 export type OrganisationCreateDto = z.infer<typeof OrganisationCreateDtoSchema>;
+
+
+
+export const ResourceTypeCreateDtoSchema = z.object(
+{
+    Name: z.string().min(1, "Name is required"),
+});
+    
+export type ResourceTypeCreateDto = z.infer<typeof ResourceTypeCreateDtoSchema>;
+
+
+
+export const RegionCreateDtoSchema = z.object(
+{
+    Name: z.string().min(1, "Name is required"),
+});
+
+export type RegionCreateDto = z.infer<typeof RegionCreateDtoSchema>;

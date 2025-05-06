@@ -4,17 +4,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import React from "react";
-import { UploadNewTag } from "@/actions/uploadActions";
-import { TagCreateDto } from "@/types/tag.type";
 
-interface CreateTagDialogProps 
+interface CreateDialogProps 
 {
     open?: boolean;
+    title?: string;
+    placeholder?: string;
     onOpenChange?: (open: boolean) => void;
-    onCreate?: (id: string, name: string) => void;
+    onCreate?: (name: string) => void;
 }
 
-export default function CreateTagDialog({open = false, onOpenChange, onCreate}: CreateTagDialogProps) 
+export default function CreateDialog({open = false, title = "Create New", placeholder = "Name...", onOpenChange, onCreate}: CreateDialogProps) 
 {
     const [input, setInput] = React.useState<string>("");
     const [isUploading, setIsUploading] = React.useState<boolean>(false);
@@ -33,10 +33,8 @@ export default function CreateTagDialog({open = false, onOpenChange, onCreate}: 
     async function onSubmit() 
     {
         setIsUploading(true);
-    
-        const id: string = await UploadNewTag({ name: input } as TagCreateDto);
-        
-        if (onCreate) onCreate(id, input);
+            
+        if (onCreate) onCreate(input);
         
         open = false;
     }
@@ -55,10 +53,10 @@ export default function CreateTagDialog({open = false, onOpenChange, onCreate}: 
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Create New Tag</DialogTitle>
+                    <DialogTitle>{title}</DialogTitle>
                 </DialogHeader>
                 
-                <Input placeholder="Tag name..." value={input} onChange={(e) => setInput(e.target.value)} disabled={isUploading} onKeyDown={handleKeyDown} />
+                <Input placeholder={placeholder} value={input} onChange={(e) => setInput(e.target.value)} disabled={isUploading} onKeyDown={handleKeyDown} />
                 
                 <DialogFooter className="sm:justify-center">
                     <Button type="button" onClick={onSubmit} disabled={isUploading}>Create</Button>

@@ -391,12 +391,12 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         if (string.IsNullOrEmpty(dto.Name))
         {
             Log.Error("Name is required");
-            return BadRequest(new { message = "Name is required" });
+            return BadRequest(new ApiResponse(false, "Name is required"));
         }
 
         if(dto.Name.Length > 50){
             Log.Error("Tag is too long");
-            return BadRequest(new { message = "Tag is too long" }); 
+            return BadRequest(new ApiResponse(false, "Tag is too long")); 
         }
 
         // Check if the tag already exists in the UserTags table
@@ -405,7 +405,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         if (tagExists)
         {
             Log.Error("Tag already exists..");
-            return Conflict(new { message = "Tag already exists." });
+            return Conflict(new ApiResponse(false, "Tag already exists."));
         }
 
         // Add the tag
@@ -420,19 +420,19 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
 
             // Adding the tag was successful
             Log.Information("New tag added to tag list.");
-            return Ok(new { message = "Tag added successfully.", tagId });
+            return Ok(new ApiResponse(true, "Tag added successfully.", tagId));
         }
         catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
         {
             // The tag already exists
             Log.Error(e, "Tag already exists.");
-            return Conflict(new { message = "Tag already exists." });
+            return Conflict(new ApiResponse(false, "Tag already exists."));
         }
         catch (Exception e)
         {
             // Something else went wrong
             Log.Error(e, "Failed to add tag.");
-            return StatusCode(500, new { message = "Internal server error" });
+            return StatusCode(500, new ApiResponse(false, "Internal server error"));
         }
     }
 

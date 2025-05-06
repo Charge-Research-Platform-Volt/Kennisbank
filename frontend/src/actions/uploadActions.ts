@@ -3,6 +3,7 @@ import { ResourceCreateDto, WebsiteCreateDto, DocumentCreateDto, VideoCreateDto,
 import { resourceCreateFormSchema } from "@/components/new/NewResource"
 import { ApiResponse } from "@/types/apiResponse.type";
 import { TagCreateDto } from "@/types/tag.type";
+import { ResourceTypeCreateDto, RegionCreateDto } from "@/types/uploadTypes";
 
 export async function UploadNewResource(values: z.infer<typeof resourceCreateFormSchema>): Promise<string> 
 {
@@ -37,7 +38,7 @@ export async function UploadNewResource(values: z.infer<typeof resourceCreateFor
     };
     
     let dto;
-    const endPoint = "http://localhost:8080/resources/new";
+    const endPoint = "/api/resources/new";
     
     // Create the appropiate DTO based on the uploadType
     if (values.uploadType === "website") 
@@ -106,18 +107,16 @@ export async function UploadNewResource(values: z.infer<typeof resourceCreateFor
     const result: ApiResponse = await response.json();
     
     if (!response.ok)
-        throw new Error(`Upload failed: ${response.status} ${result.message}: ${result.errors?.join(', ')}`);
+        throw new Error(`Upload failed: ${response.status} ${result.message}`);
     
     if (!result.success)
-        throw new Error(`Upload failed: ${result.errors?.join(', ') || result.message}`);
+        throw new Error(`Upload failed: ${result.message}`);
         
     return result.body;
 }
 
-export async function UploadNewPerson(dto: PersonCreateDto): Promise<string> 
+export async function UploadWithDto(endPoint: string, dto: unknown): Promise<string> 
 {
-    const endPoint = "http://localhost:8080/persons/new";
-
     // Send the request
     const response = await fetch(endPoint,
     {
@@ -128,57 +127,12 @@ export async function UploadNewPerson(dto: PersonCreateDto): Promise<string>
     });
     
     const result: ApiResponse = await response.json();
-    
-    if (!response.ok)
-        throw new Error(`Upload failed: ${response.status} ${result.message}: ${result.errors?.join(', ')}`);
-    
-    if (!result.success)
-        throw new Error(`Upload failed: ${result.errors?.join(', ') || result.message}`);
-        
-    return result.body;
-}
-
-export async function UploadNewOrganisation(dto: OrganisationCreateDto): Promise<string> 
-{
-    const endPoint = "http://localhost:8080/organisations/new";
-    
-    // Send the request
-    const response = await fetch(endPoint,
-    {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dto),
-    });
-    
-    const result: ApiResponse = await response.json();
-    
-    if (!response.ok)
-        throw new Error(`Upload failed: ${response.status} ${result.message}: ${result.errors?.join(', ')}`);
-            
-    if (!result.success)
-        throw new Error(`Upload failed: ${result.errors?.join(', ') || result.message}`);
-
-    return result.body;
-}
-
-export async function UploadNewTag(dto: TagCreateDto): Promise<string> 
-{
-    const endPoint = "http://localhost:8080/tags/add-user-tag";
-    
-    // Send the request
-    const response = await fetch(endPoint,
-    {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dto),
-    });
-    
-    const result = await response.json();
     
     if (!response.ok)
         throw new Error(`Upload failed: ${response.status} ${result.message}`);
-    
-    return result.tagId;
+        
+    if (!result.success)
+        throw new Error(`Upload failed: ${result.message}`);
+        
+    return result.body;
 }

@@ -53,7 +53,7 @@ namespace KnowledgeBank.Controllers
                 Guid id = await resourceManager.CreateRegionAsync(dto);
 
                 logger.Information("Region '{Name}' created successfully.", dto.Name);
-                return Ok(new ApiResponse(true, "Region created successfully", new { id }));
+                return Ok(new ApiResponse(true, "Region created successfully", id ));
             }
             catch (Exception e)
             {

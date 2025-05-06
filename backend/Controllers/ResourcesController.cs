@@ -16,7 +16,6 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
-using System.Reflection;
 using System.Text.Json;
 
 namespace KnowledgeBank.Controllers 
@@ -518,6 +517,45 @@ namespace KnowledgeBank.Controllers
             {
                 logger.Error(e, "Error listing resources.");
                 return StatusCode(500, new ApiResponse(false, "Error listing resources.", e.Message));
+            }
+        }
+        #endregion
+        
+        #region Types New
+        /// <summary>
+        /// Creates a new resource type
+        /// </summary>m
+        [HttpPut("types/new")]
+        [SwaggerOperation(Summary = "Creates a new resource type")]
+        [SwaggerResponse(200, "Resource type created successfully", typeof(ApiResponse))]
+        [SwaggerResponse(409, "Resource type already exists", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> TypesNew([FromBody] ResourceTypeCreateDto dto) 
+        {
+            // Validation
+            if (string.IsNullOrEmpty(dto.Name))
+                return BadRequest(new ApiResponse(false, "Invalid name"));
+                
+            try 
+            {
+                // Check if resource type already exists
+                if (await resourceManager.ResourceTypeExistsAsync(rt => rt.Name == dto.Name))
+                    return Conflict(new ApiResponse(false, "Resource type already exists"));
+
+                logger.Information("Creating resource type with name '{Name}'", dto.Name);
+            
+                // Create resource type and return ID
+                Guid id = await resourceManager.CreateResourceTypeAsync(dto);
+
+                logger.Information("Resource type with name '{Name}' created successfully", dto.Name);
+                
+                return Ok(new ApiResponse(true, "Resource type created successfully", id));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error creating resource type.");
+                return StatusCode(500, new ApiResponse(false, "Error creating resource type.", e.Message));
             }
         }
         #endregion

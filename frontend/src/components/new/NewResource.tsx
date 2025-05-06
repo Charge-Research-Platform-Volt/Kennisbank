@@ -3,7 +3,7 @@
 import * as React from "react"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { FormProvider, useForm } from "react-hook-form"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -19,12 +19,13 @@ import { toast } from "sonner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { ApiResponseSchema } from "@/types/apiResponse.type"
-import { UploadNewResource } from "@/actions/uploadActions"
+import { UploadNewResource, UploadWithDto } from "@/actions/uploadActions"
 import { useRouter } from "next/navigation"
 import { RequiredAstrix } from "@/components/ui/required-astrix"
 import { AddRelationsDialog } from "@/components/ui/add-relations-dialog"
-import { RelatedEntrySchema } from "@/types/uploadTypes"
-import CreateTagDialog from "./CreateTagDialog"
+import { RegionCreateDto, RelatedEntrySchema, ResourceTypeCreateDto } from "@/types/uploadTypes"
+import CreateDialog from "./CreateDialog"
+import { TagCreateDto } from "@/types/tag.type"
 
 // Define upload types
 const UploadTypeEnum = z.enum(["document", "website", "audio", "video"])
@@ -47,7 +48,7 @@ export const resourceCreateFormSchema = z.object(
     tags: z.string().uuid().array().min(1, { message: "Please add a tag" }),
     authors: z.string().uuid().array().min(1, { message: "Please add an author" }),
     organisations: z.array(RelatedEntrySchema).optional(),
-    regions: z.string().uuid().array().optional(),
+    regions: z.string().uuid().array(),
     uploadType: UploadTypeEnum,
     url: z.string().min(1, "URL is required").url("Invalid URL"),
     file: z.any().refine(val => val !== undefined , { message: "File is required" }),
@@ -84,6 +85,8 @@ export default function NewResource({ personOptions, organisationOptions, resour
     const [resourceType, setResourceType] = React.useState<string>("");
     
     const [createTagOpen, setCreateTagOpen] = React.useState<boolean>(false);
+    const [createRegionOpen, setCreateRegionOpen] = React.useState<boolean>(false);
+    const [createResourceTypeOpen, setCreateResourceTypeOpen] = React.useState<boolean>(false);
     
     const router = useRouter();
     
@@ -223,8 +226,11 @@ export default function NewResource({ personOptions, organisationOptions, resour
         router.push('/');
     }
     
-    function onTagCreation(id: string, name: string) 
+    // Handle tag creation
+    async function onTagCreation(name: string) 
     {
+        const id: string = await UploadWithDto("/api/tags/add-user-tag", { name: name } as TagCreateDto);
+    
         const newTags = [...tags, { value: id, label: name } as SelectOption]
         setTags(newTags);
         const newSelected = [...form.getValues("tags"), id]
@@ -232,10 +238,38 @@ export default function NewResource({ personOptions, organisationOptions, resour
         
         setCreateTagOpen(false);
     }
+    
+    // Handle resource type creation
+    async function onResourceTypeCreation(name: string) 
+    {
+        const id: string = await UploadWithDto("/api/resources/types/new", { Name: name } as ResourceTypeCreateDto);
+    
+        const newResourceTypes = [...resourceTypes, { value: id, label: name } as SelectOption]
+        setResourceTypes(newResourceTypes);
+        form.setValue("typeId", id);
+        
+        setCreateResourceTypeOpen(false);
+    }
+    
+    // Handle region creation
+    async function onRegionCreation(name: string) 
+    {
+        const id: string = await UploadWithDto("/api/regions/new", { Name: name } as RegionCreateDto);
+        
+        const newRegions = [...regions, { value: id, label: name } as SelectOption];
+        setRegions(newRegions);
+        const newSelected = [...form.getValues("regions"), id];
+        form.setValue("regions", newSelected);
+        
+        setCreateRegionOpen(false);
+    }
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl mt-5">
-            <CreateTagDialog open={createTagOpen} onOpenChange={setCreateTagOpen} onCreate={onTagCreation} />
+            {/* Create dialogs */}
+            <CreateDialog open={createTagOpen} title="Create New Tag" placeholder="Tag name..." onOpenChange={setCreateTagOpen} onCreate={onTagCreation} />
+            <CreateDialog open={createResourceTypeOpen} title="Create New Resource Type" placeholder="Resource type name..." onOpenChange={setCreateResourceTypeOpen} onCreate={onResourceTypeCreation} />
+            <CreateDialog open={createRegionOpen} title="Create New Region" placeholder="Region name..." onOpenChange={setCreateRegionOpen} onCreate={onRegionCreation} />
         
             <h1 className="text-2xl tracking-tight text-gray-900 dark:text-gray-100 md:text-3xl lg:text-4xl mb-2">
                 Create a new resource
@@ -354,7 +388,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                             <FormItem>
                                 <FormLabel>Type <RequiredAstrix /></FormLabel>
                                 <FormControl>
-                                    <Selection placeholder="Select Type..." options={resourceTypes} { ... field} />
+                                    <Selection placeholder="Select Type..." options={resourceTypes} hasCreateButton={true} onCreateButton={() => setCreateResourceTypeOpen(true)} { ... field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -433,7 +467,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                         <FormItem>
                             <FormLabel>Geographic Regions <code>(Optional)</code></FormLabel>
                             <FormControl>
-                                <Selection placeholder="Select regions..." options={regions} multiSelect={true} { ... field } />
+                                <Selection placeholder="Select regions..." options={regions} multiSelect={true} hasCreateButton={true} onCreateButton={() => setCreateRegionOpen(true)} { ... field } />
                             </FormControl>
                         </FormItem>
                     )} />

@@ -10,7 +10,6 @@ import { SelectOption, Selection } from "./selection"
 import { RelatedEntry } from "@/types/uploadTypes"
 import { toast } from "sonner"
   
-// Remove the extension of button props to avoid the type conflict
 interface AddRelationsDialogProps {
     title: string;
     placeholder: string;
@@ -19,7 +18,6 @@ interface AddRelationsDialogProps {
     emptyText?: string;
     onChange?: (value: RelatedEntry[]) => void;
     value?: RelatedEntry[];
-    // Add missing props from react-hook-form
     onBlur?: () => void;
     name?: string;
     disabled?: boolean;
@@ -29,15 +27,17 @@ interface AddRelationsDialogProps {
 export function AddRelationsDialog({title, placeholder, buttonText, options, emptyText, onChange}: AddRelationsDialogProps) 
 {
     const [open, setOpen] = React.useState<boolean>(false);
+    const [hasOpened, setHasOpened] = React.useState<boolean>(false);
     const [list, setList] = React.useState<RelatedEntry[]>([]);
     
     React.useEffect(() => 
     {
-        if (!open) 
-        {
-            toast.info("Relations saved.")
-        }
-    }, [open]);
+        if (open)
+            setHasOpened(true);
+    
+        if (!open && hasOpened) 
+            toast.info("Relations saved.");
+    }, [open, hasOpened]);
     
     function handleSelectionChange(value: string | string[])
     {

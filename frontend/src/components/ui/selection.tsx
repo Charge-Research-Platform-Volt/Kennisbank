@@ -159,15 +159,30 @@ export function Selection({
                                     );
                                 })
                             }
-                            {
-                                hasCreateButton && (
-                                    <CommandItem>
-                                        <hr />
-                                        <Button type="button" variant="ghost" onClick={onCreateButton}>Create new</Button>
-                                    </CommandItem>
-                                )
-                            }
                         </CommandGroup>
+                        
+                         {/* Create button section with fixed HR and text alignment */}
+                         {hasCreateButton && (
+                            <>
+                                <div className="px-2 py-1">
+                                    <hr className="my-2 border-t border-gray-200" />
+                                    <div className="w-full flex justify-center">
+                                        <Button 
+                                            type="button" 
+                                            variant="ghost" 
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setOpen(false);
+                                                if (onCreateButton) onCreateButton();
+                                            }}
+                                            className="w-full"
+                                        >
+                                            Create new
+                                        </Button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </CommandList>
                 </Command>
             </PopoverContent>
