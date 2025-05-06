@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation"
 import { RequiredAstrix } from "@/components/ui/required-astrix"
 import { AddRelationsDialog } from "@/components/ui/add-relations-dialog"
 import { RelatedEntrySchema } from "@/types/uploadTypes"
+import CreateTagDialog from "./CreateTagDialog"
 
 // Define upload types
 const UploadTypeEnum = z.enum(["document", "website", "audio", "video"])
@@ -80,7 +81,9 @@ export default function NewResource({ personOptions, organisationOptions, resour
     const [tags, setTags] = React.useState<SelectOption[]>(tagOptions);
     const [regions, setRegions] = React.useState<SelectOption[]>(regionOptions);
     
-    const [resourceType, setResourceType] = React.useState<string>();
+    const [resourceType, setResourceType] = React.useState<string>("");
+    
+    const [createTagOpen, setCreateTagOpen] = React.useState<boolean>(false);
     
     const router = useRouter();
     
@@ -219,9 +222,17 @@ export default function NewResource({ personOptions, organisationOptions, resour
         
         router.push('/');
     }
+    
+    function onTagCreation(id: string, name: string) 
+    {
+        const newTags = [...tags, { value: id, label: name} as SelectOption]
+        setTags(newTags);
+    }
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl mt-5">
+            <CreateTagDialog open={createTagOpen} onCreate={onTagCreation} />
+        
             <h1 className="text-2xl tracking-tight text-gray-900 dark:text-gray-100 md:text-3xl lg:text-4xl mb-2">
                 Create a new resource
             </h1>
@@ -397,7 +408,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                         <FormItem>
                             <FormLabel>Tags <RequiredAstrix /></FormLabel>
                             <FormControl>
-                                <Selection placeholder="Select tags..." options={tags} multiSelect={true} { ... field } />
+                                <Selection placeholder="Select tags..." options={tags} multiSelect={true} hasCreateButton={true} { ... field } />
                             </FormControl>
                             <FormMessage />
                         </FormItem>

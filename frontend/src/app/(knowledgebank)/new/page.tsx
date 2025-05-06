@@ -7,7 +7,7 @@ import { ApiResponseSchema } from "@/types/apiResponse.type"
 import { Person, PersonArraySchema } from "@/types/person.type"
 import { Organisation, OrganisationArraySchema } from "@/types/organisation.type";
 import { ResourceType, ResourceTypeArraySchema } from "@/types/resourceType.type"
-import { Tag, TagArraySchema } from "@/types/tag.type"
+import { Tag, TagPageResponseSchema } from "@/types/tag.type"
 import { Region, RegionArraySchema } from "@/types/region.type"
 import { SelectOption } from "@/components/ui/selection";
 
@@ -22,7 +22,6 @@ export default async function NewPage()
     {
         // Throw error to trigger error boundary
         const errorMessage = personsFetch.data?.message || 
-                            personsFetch.data?.errors?.join(', ') || 
                             "Failed to fetch persons";
         
         // This will trigger the nearest error.js boundary
@@ -43,7 +42,6 @@ export default async function NewPage()
     {
         // Throw error to trigger error boundary
         const errorMessage =    organisationFetch.data?.message ||
-                                organisationFetch.data?.errors?.join(", ") ||
                                 "Failed to fetch organisations";
                                 
         // This will trigger the nearest error.js boundary
@@ -65,7 +63,6 @@ export default async function NewPage()
     {
         // Throw error to trigger error boundary
         const errorMessage =    typesFetch.data?.message ||
-                                typesFetch.data?.errors?.join(', ') ||
                                 "Failed to fetch resource types";
                                 
         // This will trigger the nearest error.js boundary
@@ -80,7 +77,10 @@ export default async function NewPage()
     
     
     // Fetch tags
-    const tagsFetch = await FetchWithValidation(TagArraySchema, "http://backend:8080/tags/tags");
+    const tagsFetch = await FetchWithValidation(TagPageResponseSchema, "http://backend:8080/tags/tags");
+    
+    console.log(tagsFetch);
+    console.log(tagsFetch.data);
     
     // If fetch failed or API indicates failure, redirect to error page
     if (!tagsFetch.success) 
@@ -94,7 +94,7 @@ export default async function NewPage()
     }
     
     // Conver the tagsFetch to a options list
-    const tags: Tag[] = tagsFetch.data;
+    const tags: Tag[] = tagsFetch.data.tags ? tagsFetch.data.tags : [];
     const tagOptions: SelectOption[] = [];
     tags.forEach((tag: Tag) => tagOptions.push({ value: tag.id, label: tag.name } as SelectOption));
     
@@ -108,7 +108,6 @@ export default async function NewPage()
     {
         // Throw error to trigger error boundary
         const errorMessage =    regionsFetch.data?.message ||
-                                regionsFetch.data?.errors?.join(', ') ||
                                 regionsFetch.error?.message ||
                                 "Failed to fetch regions";
                                 

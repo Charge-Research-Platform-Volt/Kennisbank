@@ -4,7 +4,6 @@ import { z } from 'zod';
 const ApiResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
-  errors: z.array(z.string()).nullable().optional(),
   body: z.any().nullable().optional()
 });
 

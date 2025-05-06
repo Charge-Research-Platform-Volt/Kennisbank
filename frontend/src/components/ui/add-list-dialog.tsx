@@ -102,7 +102,7 @@ export function AddListDialog({title, placeholder, inputPlaceholder, emptyText, 
                     <Button className="sm:w-24" type="button" onClick={handleAddItem}>Add</Button>
                 </div>
                 
-                <hr></hr>
+                <hr />
                 
                 {
                     list.length > 0 ?

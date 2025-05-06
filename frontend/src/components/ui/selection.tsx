@@ -20,6 +20,8 @@ interface SelectionProps extends Omit<React.ComponentPropsWithoutRef<typeof Butt
     options: SelectOption[];
     onChange?: (value: string | string[]) => void;
     multiSelect?: boolean;
+    hasCreateButton?: boolean;
+    onCreateButton?: () => void;
 }
 
 export function Selection({
@@ -27,6 +29,8 @@ export function Selection({
     options, 
     onChange,
     multiSelect = false,
+    hasCreateButton = false,
+    onCreateButton,
     className
 }: SelectionProps) 
 {
@@ -147,6 +151,14 @@ export function Selection({
                                         </CommandItem> 
                                     );
                                 })
+                            }
+                            {
+                                hasCreateButton && (
+                                    <CommandItem>
+                                        <hr />
+                                        <Button type="button" variant="ghost">Create new</Button>
+                                    </CommandItem>
+                                )
                             }
                         </CommandGroup>
                     </CommandList>

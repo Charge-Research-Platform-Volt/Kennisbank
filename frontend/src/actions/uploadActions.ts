@@ -2,6 +2,7 @@ import { z } from "zod"
 import { ResourceCreateDto, WebsiteCreateDto, DocumentCreateDto, VideoCreateDto, AudioCreateDto, FileResourceCreateDto, PersonCreateDto, OrganisationCreateDto } from "@/types/uploadTypes"
 import { resourceCreateFormSchema } from "@/components/new/NewResource"
 import { ApiResponse } from "@/types/apiResponse.type";
+import { TagCreateDto } from "@/types/tag.type";
 
 export async function UploadNewResource(values: z.infer<typeof resourceCreateFormSchema>): Promise<string> 
 {
@@ -102,10 +103,10 @@ export async function UploadNewResource(values: z.infer<typeof resourceCreateFor
         body: formData,
     });
     
-    if (!response.ok)
-        throw new Error(`Upload failed: ${response.status}`);
-        
     const result: ApiResponse = await response.json();
+    
+    if (!response.ok)
+        throw new Error(`Upload failed: ${response.status} ${result.message}: ${result.errors?.join(', ')}`);
     
     if (!result.success)
         throw new Error(`Upload failed: ${result.errors?.join(', ') || result.message}`);
@@ -126,10 +127,10 @@ export async function UploadNewPerson(dto: PersonCreateDto): Promise<string>
         body: JSON.stringify(dto),
     });
     
-    if (!response.ok)
-        throw new Error(`Upload failed: ${response.status}`);
-        
     const result: ApiResponse = await response.json();
+    
+    if (!response.ok)
+        throw new Error(`Upload failed: ${response.status} ${result.message}: ${result.errors?.join(', ')}`);
     
     if (!result.success)
         throw new Error(`Upload failed: ${result.errors?.join(', ') || result.message}`);
@@ -150,13 +151,34 @@ export async function UploadNewOrganisation(dto: OrganisationCreateDto): Promise
         body: JSON.stringify(dto),
     });
     
-    if (!response.ok)
-        throw new Error(`Upload failed: ${response.status}`);
-        
     const result: ApiResponse = await response.json();
     
+    if (!response.ok)
+        throw new Error(`Upload failed: ${response.status} ${result.message}: ${result.errors?.join(', ')}`);
+            
     if (!result.success)
         throw new Error(`Upload failed: ${result.errors?.join(', ') || result.message}`);
 
     return result.body;
+}
+
+export async function UploadNewTag(dto: TagCreateDto): Promise<string> 
+{
+    const endPoint = "http://localhost:8080/tags/add-user-tag";
+    
+    // Send the request
+    const response = await fetch(endPoint,
+    {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dto),
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok)
+        throw new Error(`Upload failed: ${response.status} ${result.message}`);
+    
+    return result.tagId;
 }
