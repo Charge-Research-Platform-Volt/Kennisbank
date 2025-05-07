@@ -1,6 +1,9 @@
 using System.Text;
 using KnowledgeBank.Data;
+using Microsoft.Extensions.VectorData;
+using Microsoft.SemanticKernel.Connectors.Qdrant;
 using Microsoft.SemanticKernel.Embeddings;
+using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Text;
 using Serilog;
 using UglyToad.PdfPig;
@@ -71,6 +74,7 @@ public class TextExtractionService : ITextExtractionService
         {
             _logger.Information("Processing PDF document with ID: {Id}", id);
 
+
             // Download the blob
             var blobResponse = await _blobService.DownloadBlobAsync(fileType, id);
             if (blobResponse == null)
@@ -79,11 +83,14 @@ public class TextExtractionService : ITextExtractionService
                 return;
             }
 
+
             // Extract text from the PDF
             string extractedText = await ExtractTextFromPdfAsync(blobResponse.Value.FileStream);
 
+
             // Chuck the extracted text
             List<string> data = TextChunker.SplitPlainTextLines(extractedText, maxTokensPerLine: 100);
+
 
             // Print the chunks
             foreach (var chunk in data)
@@ -91,10 +98,29 @@ public class TextExtractionService : ITextExtractionService
                 _logger.Information("Chunk: {Chunk}", chunk);
             }
 
-            var embeddingGenerator = _semanticKernel.Kernel.GetRequiredService<ITextEmbeddingGenerationService>();
-            var embeddings = await embeddingGenerator.GenerateEmbeddingsAsync(data);
+
+            // Generate embeddings
+            ITextEmbeddingGenerationService embeddingGenerator = _semanticKernel.Kernel.GetRequiredService<ITextEmbeddingGenerationService>();
+            IList<ReadOnlyMemory<float>> embeddings = await embeddingGenerator.GenerateEmbeddingsAsync(data);
 
             Console.WriteLine($"Generated {embeddings.Count} embeddings for the provided text");
+
+            var vectorStore = _semanticKernel.Kernel.Services.GetRequiredService<QdrantVectorStore>();
+            var collection = vectorStore.GetCollection<Guid, Resource>("pdf-embeddings");
+            await collection.CreateCollectionIfNotExistsAsync();
+
+            // Store the embeddings in the database
+            ISemanticTextMemory memory = _semanticKernel.Kernel.GetRequiredService<ISemanticTextMemory>();
+
+            foreach (var chunk in data)
+            {
+                var embedding = embeddings[data.IndexOf(chunk)];
+                await memory.SaveInformationAsync(collection: "pdf-embeddings", text: chunk, id: id);
+            }
+
+            Console.WriteLine($"Stored {data.Count} chunks in the database with ID: {id}");
+
+
 
             _logger.Information("Successfully extracted text from PDF document with ID: {Id}", id);
         }
@@ -103,4 +129,13 @@ public class TextExtractionService : ITextExtractionService
             _logger.Error(ex, "Error processing PDF document with ID: {Id}", id);
         }
     }
+
+
+}
+
+
+public class Resource
+{
+    [VectorStoreRecordKey]
+    public Guid Id { get; set; }
 }
