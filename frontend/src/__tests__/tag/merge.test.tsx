@@ -57,6 +57,7 @@ describe('merge popup', () =>{
         fireEvent.click(mergeButton);
 
         screen.debug(undefined, Infinity)
+        console.log(mergeButton)
 
         // EXPECT THE MERGE ACTION TO HAVE BEEN CALLED ONCE
         await waitFor(() => expect(MergeTag).toHaveBeenCalledTimes(1));

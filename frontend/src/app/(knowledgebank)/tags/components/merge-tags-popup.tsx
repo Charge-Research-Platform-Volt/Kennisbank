@@ -68,7 +68,7 @@ export function TagMergeButton({tag, extraTag = null} : {tag:Tag; extraTag?: Tag
             if (!isOpen) {
                 setIsMerging(false);
                 setTag1(tag.id);
-                setTag2(null);
+                setTag2(extraTag ? extraTag.id : null);
                 resetEmpty(null);
                 resetStandard(tag);
             }
