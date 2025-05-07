@@ -1,7 +1,7 @@
 "use server";
 
 import type { FormResponse } from "@/types/return.type";
-import { TagCreateDto, TagCreateDtoSchema, TagRenameDto } from "@/types/tag.type";
+import { TagArraySchema, TagCreateDto, TagCreateDtoSchema, TagFilterOptions, TagPageResponse, TagRenameDto } from "@/types/tag.type";
 import { revalidatePath } from "next/cache";
 import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 import { cookies } from "next/headers";
@@ -10,6 +10,14 @@ export const AddStandardizedTag = async (prevState: FormResponse<TagCreateDto>, 
   const rawData: TagCreateDto = {
     name: formData.get("name") as string,
   };
+
+  if(rawData.name.length > 50){
+    return{
+      success: false,
+      message: "Tag is too long",
+      inputs: rawData,
+    }
+  }
 
   // Validate the raw data, if it fails, return an error
   const validatedData = TagCreateDtoSchema.safeParse(rawData);
@@ -24,7 +32,7 @@ export const AddStandardizedTag = async (prevState: FormResponse<TagCreateDto>, 
 
   // Send the data to the backend
   const cookieHeader : ReadonlyRequestCookies = await cookies();
-  const response : Response = await fetch(`http://backend:8080/tags/add-standard-tag`, {
+  const response : Response = await fetch(`${process.env.API_URL}/tags/add-standard-tag`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
     credentials: "include",
@@ -55,6 +63,14 @@ export const AddUserTag = async (prevState: FormResponse<TagCreateDto>, formData
     name: formData.get("name") as string,
   };
 
+  if(rawData.name.length > 50){
+    return{
+      success: false,
+      message: "Tag is too long",
+      inputs: rawData,
+    }
+  }
+
   // Validate the raw data, if it fails, return an error
   const validatedData = TagCreateDtoSchema.safeParse(rawData);
 
@@ -70,7 +86,7 @@ export const AddUserTag = async (prevState: FormResponse<TagCreateDto>, formData
 
   // Send the data to the backend
   const cookieHeader : ReadonlyRequestCookies = await cookies();
-  const response : Response = await fetch(`http://backend:8080/tags/add-user-tag`, {
+  const response : Response = await fetch(`${process.env.API_URL}/tags/add-user-tag`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
     credentials: "include",
@@ -103,7 +119,7 @@ export const DeleteTag = async (tagId: string): Promise<FormResponse<{id: string
 
   // Send the data to the backend
   const cookieHeader = await cookies();
-  const response = await fetch(`http://backend:8080/tags/delete-tag/${encodeURIComponent(tagId)}`, {
+  const response = await fetch(`${process.env.API_URL}/tags/delete-tag/${encodeURIComponent(tagId)}`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
     credentials: "include",
@@ -143,7 +159,7 @@ export const RenameTag = async (prevState: FormResponse<TagRenameDto>, formData:
 
   // Send the data to the backend
   const cookieHeader : ReadonlyRequestCookies = await cookies();
-  const response = await fetch(`http://backend:8080/tags/rename-tag/${encodeURIComponent(rawData.id)}/${encodeURIComponent(rawData.newName)}`, {
+  const response = await fetch(`${process.env.API_URL}/tags/rename-tag/${encodeURIComponent(rawData.id)}/${encodeURIComponent(rawData.newName)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
     credentials: "include",
@@ -172,7 +188,7 @@ export const ApproveTag = async (tagId: string): Promise<FormResponse<{id: strin
 
   const cookieHeader = await cookies();
   const response = await fetch(
-    `http://backend:8080/tags/approve-tag/${encodeURIComponent(tagId)}`,
+    `${process.env.API_URL}/tags/approve-tag/${encodeURIComponent(tagId)}`,
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
@@ -202,7 +218,7 @@ export const MakeStandardized = async (tagId: string): Promise<FormResponse<{ id
 
   const cookieHeader : ReadonlyRequestCookies = await cookies();
   const response = await fetch(
-    `http://backend:8080/tags/make-standardized/${encodeURIComponent(tagId)}`,
+    `${process.env.API_URL}/tags/make-standardized/${encodeURIComponent(tagId)}`,
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
@@ -225,6 +241,147 @@ export const MakeStandardized = async (tagId: string): Promise<FormResponse<{ id
     success: true,
     message: data.message,
   };
+};
+
+/**
+ * 
+ * @param pageIndex - The page to fetch
+ * @param query - Query to filter the tags with
+ * @returns - A promise with the tags and the page information
+ */
+export const ListTagsPaged = async (pageIndex: number, searchQuery: string): Promise<TagPageResponse> => {
+  console.log("Getting tags paged:");
+  
+  const tagFilterOptions : TagFilterOptions = {
+    usePaging: true,
+    pageIndex: pageIndex,
+    pageSize: 50,
+    searchQuery: searchQuery,
+    onlyOwnedByCurrentUser: false,
+    includeUsageCount: true,
+    sortDescending: false,
+  }
+
+  // Send the data to the backend
+  const cookieHeader : ReadonlyRequestCookies = await cookies();
+  const response : Response = await fetch(
+      `${process.env.API_URL}/Tags/tags`,
+      {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+          body: JSON.stringify(tagFilterOptions),
+      },
+  );
+  //parse the data from the response
+  const data = await response.json();
+
+  // Check if the request was succesful, if not, return an error
+  if (!response.ok) {
+      return {
+          success: false,
+          message: data.message,
+      };
+  }
+
+  //validate the data
+  if(!data){
+      return {
+          success: false,
+          message: "No data found",
+      };
+  }
+
+  //validate the tags array
+  const validatedTags = TagArraySchema.safeParse(data.tags);
+  if (!validatedTags.success) {
+      return {
+          success: false,
+          message: validatedTags.error.errors[0].message,
+      };
+  }
+
+  revalidatePath("/tags");
+  
+  // Check if the request was succesful, if not, return an error
+  return {
+      success: true,
+      message: "Tags fetched successfully",
+      tags: validatedTags.data,
+      pageIndex: data.pageIndex,
+      pageSize: data.pageSize,
+      pageCount: data.pageCount,
+  }
+}
+
+/**
+ * 
+ * @param searchQuery - The name of the tag it tries to search
+ * @param K  - Max amount of tags to return 
+ * @returns A maximum of K tags that correspond with the query
+ */
+export const fetchTagSearch = async (searchQuery?: string, K?: number): Promise<TagPageResponse> => {
+  searchQuery = searchQuery?.trim();
+
+  const tagFilterOptions : TagFilterOptions = {
+    usePaging: true,
+    pageIndex: 1,
+    pageSize: K,
+    searchQuery: searchQuery,
+    onlyOwnedByCurrentUser: false,
+    includeUsageCount: true,
+    sortDescending: true,
+    weightedSort: "IsStandardized:2,IsApproved:1,UsageCount:0.5",
+  }
+
+  const cookieHeader : ReadonlyRequestCookies = await cookies();
+  const response : Response = await fetch(
+      `${process.env.API_URL}/Tags/tags`,
+      {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+          body: JSON.stringify(tagFilterOptions),
+      },
+  );
+
+  if (!response.ok) {
+    console.log("problem with finding tags");
+    return {
+      success: false,
+      message: "problem with fetching tags",
+    }
+  }
+
+  const data = await response.json();
+  //validate the data
+  if(!data){
+    return {
+        success: false,
+        message: "No data found",
+    };
+  }
+
+  //validate the tags array
+  const validatedTags = TagArraySchema.safeParse(data.tags);
+  if (!validatedTags.success) {
+      return {
+          success: false,
+          message: validatedTags.error.errors[0].message,
+      };
+  }
+
+  revalidatePath("/tags");
+
+  // Check if the request was succesful, if not, return an error
+  return {
+      success: true,
+      message: "Tags fetched successfully",
+      tags: validatedTags.data,
+      pageIndex: data.pageIndex,
+      pageSize: data.pageSize,
+      pageCount: data.pageCount,
+  }
 };
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

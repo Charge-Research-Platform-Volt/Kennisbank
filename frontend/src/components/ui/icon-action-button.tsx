@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { JSX, SVGProps, useTransition } from "react";
+import { JSX, useTransition } from "react";
 import { toast } from "sonner";
 import { ReactElement } from "react";
 
@@ -22,13 +22,15 @@ interface ActionButtonProps<T> {
   // Message to show on success
   successMessage?: string;
   // Icon component to render
-  icon: ({ fill, ...props }: SVGProps<SVGSVGElement>) => JSX.Element;
+  icon: JSX.Element;
   // Title for the button
   title: string;
   // Optional className for styling
   className?: string;
   // Props to pass to the icon component
   iconProps?: Record<string, unknown>;
+  // Optional callback for success
+  onSuccessAction?: () => void;
 }
 
 /**
@@ -62,7 +64,7 @@ interface ActionButtonProps<T> {
   icon: Icon,
   title,
   className = "bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground",
-  iconProps = { className: "h-5 w-5", fill: "#737373" }
+  onSuccessAction = () => {},
 }: ActionButtonProps<T>): ReactElement {
   const [isPending, startTransition] = useTransition();
 
@@ -70,6 +72,7 @@ interface ActionButtonProps<T> {
     startTransition(async () => {
       const result = await action(actionArg);
       if (result && result.success) {
+        onSuccessAction();
         toast.success(successMessage);
       } else if (result && result.message) {
         toast.error(result.message);
@@ -88,7 +91,7 @@ interface ActionButtonProps<T> {
       disabled={isPending}
       title={title}
     >
-      <Icon {...iconProps} />
+      {Icon}
     </Button>
   );
 }

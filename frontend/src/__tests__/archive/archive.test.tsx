@@ -121,7 +121,7 @@ describe("Rendering fetch results", () => {
         if (input.includes("list-all")) {
           return newDataResponsePromise([testFile]);
         } else if (input.includes("search-full-text")) {
-          return newDataResponsePromise(files.filter((file) => file.title.toLowerCase().includes(new URL(input).searchParams.get("query")!.toLowerCase())));
+          return newDataResponsePromise(files.filter((file) => file.title.toLowerCase().includes(new URL(input, "http://base").searchParams.get("query")!.toLowerCase())));
         }
       }
       throw new Error("Unexpected fetch call");
@@ -164,7 +164,7 @@ describe("Rendering fetch results", () => {
           return newDataResponsePromise(
               files.filter(
                 (file) =>
-                  file.title.toLowerCase().includes(new URL(input).searchParams.get("query")!.toLowerCase()) &&
+                  file.title.toLowerCase().includes(new URL(input, "http://base").searchParams.get("query")!.toLowerCase()) &&
                   (filter.tagFilters.length > 0 ? file.title.toLowerCase().includes("tagged") : true) &&
                   (filter.startDate ? new Date(file.publicationDate) >= new Date(filter.startDate) : true) &&
                   (filter.endDate ? new Date(file.publicationDate) <= new Date(filter.endDate) : true),

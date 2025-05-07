@@ -28,7 +28,7 @@ export default function FilterPopup({ isVisible, onApplyAction, className }: { i
                     <>
                         <InputHeader>Published between:</InputHeader>
                         <DateFilterSlider setStartYearAction={setStartYear} setEndYearAction={setEndYear} className="w-[450px] mt-[10px]" />
-                        <TagSelectionDropdown onSelectionChangedAction={setTagFilters} createButton={false} tags={tags} />
+                        <TagSelectionDropdown onSelectionChangedAction={setTagFilters} createButton={false} />
                         <div className="flex justify-end mt-[10px]">
                             <Button onClick={() => onApplyAction(tagFilters, startYear, endYear)}>Apply</Button>
                         </div>
@@ -40,7 +40,7 @@ export default function FilterPopup({ isVisible, onApplyAction, className }: { i
 
     async function fetchTags() {
         try{
-            const response = await fetch("http://localhost:8080/Tags/all-tags", {
+            const response = await fetch("/api/Tags/all-tags", {
                 credentials: "include",
                 method: "GET"
             });
