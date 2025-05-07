@@ -14,6 +14,7 @@ namespace KnowledgeBank.Services;
 public interface ISemanticKernel
 {
     Kernel Kernel { get; }
+    // QdrantVectorStore VectorStore { get; }
 }
 
 
@@ -21,54 +22,55 @@ public interface ISemanticKernel
 public class SemanticKernel : ISemanticKernel
 {
     private readonly Kernel _kernel;
-    // public ISemanticTextMemory _memory;
+    // private readonly QdrantVectorStore _vectorStore;
 
-    // private readonly string _embeddingModelName;
-    // private readonly Serilog.ILogger _logger;
-
-    // public ISemanticTextMemory Memory => _memory;
+    // public readonly ISemanticTextMemory _memory;
+    private readonly Serilog.ILogger _logger;
 
 
     public SemanticKernel()
     {
-        // _logger = Log.ForContext<SemanticKernel>();
+        _logger = Log.ForContext<SemanticKernel>();
+        _logger.Information("Initializing Semantic Kernel with Ollama and Qdrant");
 
+        // Create Kernel builder
         IKernelBuilder builder = Kernel.CreateBuilder();
+
+        // Add Ollama text embedding generation
         builder.AddOllamaTextEmbeddingGeneration(endpoint: new Uri("http://ollama:11434/"), modelId: "paraphrase-multilingual:latest");
+
+        // Add Ollama chat completion
         builder.AddOllamaChatCompletion("gemma3:12b", new Uri("http://qdrant:11434"));
+
+        builder.Services.AddQdrantVectorStore("localhost", 6333);
+
+        // QdrantClient qdrantClient = new QdrantClient("localhost", 6333);
+        // _vectorStore = new QdrantVectorStore(qdrantClient);
+
+        // builder.Services.AddSingleton<IMemoryStore>(_vectorStore);
+
+        // Build the kernel
         _kernel = builder.Build();
 
-
-        // QdrantClient qdrantClient = new QdrantClient("http://localhost", 6333);
-        // QdrantVectorStore qdrantVectorStore = new QdrantVectorStore(qdrantClient);
+        // ---
 
 
-        // var embeddingGeneration = _kernel.GetRequiredService<ITextEmbeddingGenerationService>();
-        // _memory = new SemanticTextMemory(
-        //        new MemoryBuilder()
-        //            .WithTextEmbeddingGeneration(embeddingGeneration)
-        //            .WithVectorStore(qdrantVectorStore)
-        //            .Build()
-        //    );
+        // Create Qdrant client
+        // QdrantClient qdrantClient = new QdrantClient("localhost", 6333);
+
+        // Create vector store using Qdrant
+        // QdrantVectorStore vectorStore = new QdrantVectorStore(qdrantClient);
+
+        // Get the embedding service from the kernel
+        // Ix embeddingGenerator = _kernel.GetRequiredService<ITextEmbeddingGenerationService>();
+
+        // Create and initialize semantic text memory
+        // _memory = new SemanticTextMemory(vectorStore, embeddingGenerator);
 
 
 
-
-        // _kernel = builder.Build();
-
-
-        // _logger.Information("Initializing Semantic Kernel with Ollama endpoint: {OllamaEndpoint} and Qdrant endpoint: {QdrantEndpoint}", ollamaEndpoint, qdrantEndpoint);
+        _logger.Information("Semantic Kernel successfully initialized with Ollama and Qdrant");
     }
     public Kernel Kernel => _kernel;
-
-
-    // public SemanticKernel(IKernelConfig kernelConfig)
-    // {
-    //     _kernel = new KernelBuilder()
-    //         .WithMemory(kernelConfig.Memory)
-    //         .WithAIService(kernelConfig.AIService)
-    //         .WithSkillCollection(kernelConfig.SkillCollection)
-    //         .Build();
-    // }
-
+    // public QdrantVectorStore VectorStore => _vectorStore;
 }
