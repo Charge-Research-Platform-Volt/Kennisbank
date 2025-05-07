@@ -83,6 +83,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       target: production  # Use production target
+      args: 
+        API_URL: ${API_URL}
     ports:
       - "3000:3000"
     environment:
