@@ -1,12 +1,20 @@
 import { Button } from "@/components/ui/button";
 import SelectTagDropdown from "./select-tag-dropdown";
 import { Tag } from "@/types/tag.type";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { MergeTag } from "@/actions/tagActions";
 import { Merge } from "lucide-react";
 import { toast } from "sonner";
-import { PopupTitle } from "@/components/ui/Popup";
-
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+  } from "@/components/ui/dialog"
+  import { Label } from "@/components/ui/label";
 /**
  * 
  * @param tag - The tag from the tag-list-item used for filling in the left dropdownbox with a standard value
@@ -18,7 +26,6 @@ export function TagMergeButton({tag, extraTag = null} : {tag:Tag; extraTag?: Tag
     const [tag2, setTag2] = useState<string | null>(extraTag ? extraTag.id : null); // Selected tag in the right dropdown
     const [isOpen, setIsOpen] = useState(false); // Whether or not to display the popup
     const [isMerging, setIsMerging] = useState<boolean>(false); // Whether the tags are currently merging or not
-    const mergeButtonRef = useRef<HTMLDivElement>(null); // Ref that looks if you click outside the popup
     const [standardTag, resetStandard] = useState<Tag | null>(tag); // This is used to reset the tag in the right dropdown in the popup when you close it
     const [emptyTag, resetEmpty] = useState<Tag | null>(null); // Same as above, but for the right dropdown
 
@@ -26,8 +33,8 @@ export function TagMergeButton({tag, extraTag = null} : {tag:Tag; extraTag?: Tag
     const mergeTags = async () => {
         // Don't merge if one or the other tag is empty
         if(tag1 == null || tag2 == null){
-             toast.error("tag(s) empty");
-             return;
+            toast.error("tag(s) empty");
+            return;
         }
 
         // Don't merge if both tags are the same
@@ -48,7 +55,7 @@ export function TagMergeButton({tag, extraTag = null} : {tag:Tag; extraTag?: Tag
             // If we are successful, close the popup and reload the tag page
             if(result.success){
                 toast.success(result.message);
-                closeMergePopup();
+                setIsOpen(false);
                 window.dispatchEvent(new Event("tagListUpdated"));
             }
             else{
@@ -56,64 +63,52 @@ export function TagMergeButton({tag, extraTag = null} : {tag:Tag; extraTag?: Tag
             }
         }
 
-        // Used to determine if we can close the popup
-        const closePopup = (e: MouseEvent) => {
-            if (mergeButtonRef.current && !mergeButtonRef.current.contains(e.target as Node)) {
-              closeMergePopup(); // When the mouse is clicked outside of the popup, the popup closes
-            }
-        };
-
-        // Closes the popup
-        const closeMergePopup = () => {
-            //When the popup closes values are reset
-            setIsOpen(false);
-            setIsMerging(false);
-            setTag1(tag.id);
-            setTag2(null);
-            resetEmpty(null);
-            resetStandard(tag);
-        };
-
+        // Reset state after closing
         useEffect(() => {
-            //event listener on mouse used to close popup whenever a mouseclick occurs outside the popup
-            if (isOpen) {
-                document.addEventListener("mousedown", closePopup);
+            if (!isOpen) {
+                setIsMerging(false);
+                setTag1(tag.id);
+                setTag2(null);
+                resetEmpty(null);
+                resetStandard(tag);
             }
-            return () => {
-                document.removeEventListener("mousedown", closePopup);
-            };
         }, [isOpen]);
 
     return(
-            <div>
-                <Button
-                        className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
-                        variant="default"
-                        type="button"
-                        onClick={() => setIsOpen(!isOpen)}
-                        disabled={isOpen}
-                        data-testid="open"
-                    >
+        <>
+            <Dialog open={isOpen} onOpenChange={setIsOpen} modal>
+                <DialogTrigger asChild>
+                    <Button variant="outline" data-testid="open">
                         <Merge className= "h-5 w-5" fill= "#737373" />
-                </Button>
-                <div className="fixed h-[100vh] w-[100vh]">
-                    {
-                        isOpen && (
-                            <div ref={mergeButtonRef} className="fixed bg-[#fefefe] top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-[50vh] w-[60vh] border rounded shadow-md">
-                                <div className="flex flex-col gap-4 mt-7 justify-between items-center">
-                                    <PopupTitle className="flex">Merge tags: </PopupTitle>
-                                    <div className="flex gap-4">
-                                        <SelectTagDropdown standardTag={standardTag} onChangeAction={setTag1}></SelectTagDropdown>
-                                        <SelectTagDropdown standardTag={emptyTag} onChangeAction={setTag2}></SelectTagDropdown>
-                                    </div>
-                                    <Button onClick={mergeTags} disabled={isMerging || tag1 == null || tag2 == null} className="w-1/4" data-testid="merge">{isMerging ? "Merging" : "Merge"}</Button>
-                                </div>
-                            </div>
-                        )
-                    }
-
-                </div>
-            </div>
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                    <DialogTitle>Merge Tags</DialogTitle>
+                    <DialogDescription>
+                        Choose tags to merge
+                    </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="first tag" className="text-right">
+                        First Tag
+                        </Label>
+                        <SelectTagDropdown standardTag={standardTag} onChangeAction={setTag1}></SelectTagDropdown>
+                        </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="second tag" className="text-right">
+                        Second Tag
+                        </Label>
+                        <SelectTagDropdown standardTag={extraTag || emptyTag} onChangeAction={setTag2}></SelectTagDropdown>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                    <Button onClick={mergeTags} disabled={isMerging || tag1 == null || tag2 == null} className="w-1/4" data-testid="merge">{isMerging ? "Merging" : "Merge"}</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     )
 };
 

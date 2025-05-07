@@ -1,5 +1,5 @@
 import { expect, test, vi, beforeEach, describe } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MergeTag } from '@/actions/tagActions';
 import { TagMergeButton } from '@/app/(knowledgebank)/tags/components/merge-tags-popup';
 import { TagArraySchema } from '@/types/tag.type';
@@ -52,13 +52,15 @@ describe('merge popup', () =>{
         const openButton = await screen.getByTestId("open");
         fireEvent.click(openButton);
 
-
         // VALUES ARE SET SO JUST MERGE
         const mergeButton = await screen.getByTestId("merge");
         fireEvent.click(mergeButton);
 
+        screen.debug(undefined, Infinity)
+
         // EXPECT THE MERGE ACTION TO HAVE BEEN CALLED ONCE
-        expect(MergeTag).toHaveBeenCalledOnce();
+        await waitFor(() => expect(MergeTag).toHaveBeenCalledTimes(1));
+        //expect(MergeTag).toHaveBeenCalledOnce();
     });
 })
 
