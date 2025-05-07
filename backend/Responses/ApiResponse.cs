@@ -13,8 +13,7 @@ public class ApiResponse
 {
     public bool Success { get; set; }
     public string Message { get; set; }
-    public string[]? Errors { get; set; }
-    public object? Data { get; set; }
+    public object? Body { get; set; }
     
     public ApiResponse(bool success, string message) 
     {
@@ -22,17 +21,10 @@ public class ApiResponse
         this.Message = message;
     }
     
-    public ApiResponse(bool success, string message, params string[] errors) 
+    public ApiResponse(bool success, string message, object body) 
     {
         this.Success = success;
         this.Message = message;
-        this.Errors = errors;
-    }
-    
-    public ApiResponse(bool success, string message, object data) 
-    {
-        this.Success = success;
-        this.Message = message;
-        this.Data = data;
+        this.Body = body;
     }
 }
