@@ -53,7 +53,7 @@ async function convertMarkdownToMdx(srcDir, destDir) {
 
       // Fix links to point to the correct file if it is an index file (as an index file hasn't his name in the path already)
       if(destName === "index.mdx") {
-        content = content.replace(/\(([^()\/]+\/)/g, `(./${title}/$1`) // Add title to links
+        content = content.replace(/\(([^()\/]+\/)/g, `(./${rawName}/$1`) // Add title to links
       }
 
       const destPath = path.join(destDir, destName)
