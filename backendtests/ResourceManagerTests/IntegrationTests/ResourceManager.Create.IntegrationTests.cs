@@ -195,7 +195,7 @@ public class ResourceManagerCreateTests : TestBase
             PublicationDate = DateTime.UtcNow,
             Tags = [testTagId.ToString()],
             Authors = [testPersonId.ToString()],
-            Organisations = [(testOrganisationId.ToString(), "boss")],
+            Organisations = [new RelatedEntry { Id = testOrganisationId.ToString(), Relation = "boss" }],
             Regions = [testRegionId.ToString()]
         };
 
