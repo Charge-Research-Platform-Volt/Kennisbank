@@ -30,6 +30,7 @@ export function ConvertTagButton({ tag }: { tag: Tag }) {
       successMessage="Tag converted"
       onSuccessAction={() => window.dispatchEvent(new Event("tagListUpdated"))}
       icon={<AdminIcon className= "h-5 w-5" fill= "#737373"/>}
+      icon={<AdminIcon className= "h-5 w-5" fill= "#737373"/>}
       title="Convert to standardized tag"
     />
   );
@@ -44,6 +45,7 @@ export function DeleteTagButton({ tag, userRole }: { tag: Tag, userRole: string 
         actionArg={tag.id}
         successMessage="Tag deleted"
         onSuccessAction={() => window.dispatchEvent(new Event("tagListUpdated"))}
+        icon={<DeleteIcon className= "h-5 w-5" fill= "#737373"/>}
         icon={<DeleteIcon className= "h-5 w-5" fill= "#737373"/>}
         title="Delete tag"
       />
