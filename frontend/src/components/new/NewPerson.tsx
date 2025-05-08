@@ -13,7 +13,7 @@ import { toast } from "sonner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { ApiResponseSchema } from "@/types/apiResponse.type"
-import { UploadNewPerson } from "@/actions/uploadActions"
+import { UploadWithDto } from "@/actions/uploadActions"
 import { useRouter } from "next/navigation"
 import { RequiredAstrix } from "@/components/ui/required-astrix"
 import { AddRelationsDialog } from "@/components/ui/add-relations-dialog"
@@ -23,10 +23,11 @@ interface NewPersonProps
 {
     personOptions: SelectOption[];
     organisationOptions: SelectOption[];
-    onCreate?: (id: string) => void
+    onCreate?: (id: string, name: string) => void;
+    container?: HTMLElement | null;
 }
 
-export default function NewPerson({ personOptions, organisationOptions, onCreate }: NewPersonProps) 
+export default function NewPerson({ personOptions, organisationOptions, onCreate, container = null }: NewPersonProps) 
 {
     // React states
     const [isChecking, setIsChecking] = React.useState<boolean>(false);
@@ -99,11 +100,11 @@ export default function NewPerson({ personOptions, organisationOptions, onCreate
         // Disable the submit button
         setIsChecking(true);
     
-        const id = await UploadNewPerson(dto);
+        const id = await UploadWithDto("/api/persons/new", dto);
         toast.info(`Person created successfully with ID '${id}'`);
         
         if (onCreate)
-            onCreate(id);
+            onCreate(id, dto.Name);
         else
             router.push('/');
     }
@@ -185,7 +186,7 @@ export default function NewPerson({ personOptions, organisationOptions, onCreate
                         <FormItem>
                             <FormLabel>Related Persons</FormLabel>
                             <FormControl>
-                                <AddRelationsDialog title="Define Relations" placeholder="Add related persons..." options={persons} emptyText="No persons selected yet..." { ... field } />
+                                <AddRelationsDialog title="Define Relations" placeholder="Add related persons..." options={persons} emptyText="No persons selected yet..." container={container} { ... field } />
                             </FormControl>
                         </FormItem>
                     )} />
@@ -195,7 +196,7 @@ export default function NewPerson({ personOptions, organisationOptions, onCreate
                         <FormItem>
                             <FormLabel>Related Organisations</FormLabel>
                             <FormControl>
-                                <AddRelationsDialog title="Define Relations" placeholder="Add related organisations..." options={organisations} emptyText="No organisations selected yet..." { ... field } />
+                                <AddRelationsDialog title="Define Relations" placeholder="Add related organisations..." options={organisations} emptyText="No organisations selected yet..." container={container} { ... field } />
                             </FormControl>
                         </FormItem>
                     )} />

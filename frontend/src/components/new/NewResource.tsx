@@ -3,7 +3,7 @@
 import * as React from "react"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { FormProvider, useForm } from "react-hook-form"
+import { useForm } from "react-hook-form"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -23,9 +23,13 @@ import { UploadNewResource, UploadWithDto } from "@/actions/uploadActions"
 import { useRouter } from "next/navigation"
 import { RequiredAstrix } from "@/components/ui/required-astrix"
 import { AddRelationsDialog } from "@/components/ui/add-relations-dialog"
-import { RegionCreateDto, RelatedEntrySchema, ResourceTypeCreateDto } from "@/types/uploadTypes"
+import { RegionCreateDto, RelatedEntry, RelatedEntrySchema, ResourceTypeCreateDto } from "@/types/uploadTypes"
 import CreateDialog from "./CreateDialog"
 import { TagCreateDto } from "@/types/tag.type"
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
+import NewPerson from "@/components/new/NewPerson"
+import NewOrganisation from "./NewOrganisation"
+import { useDrawerRerender } from "@/utils/useDrawerRerenderer"
 
 // Define upload types
 const UploadTypeEnum = z.enum(["document", "website", "audio", "video"])
@@ -47,7 +51,7 @@ export const resourceCreateFormSchema = z.object(
     note: z.string().optional(),
     tags: z.string().uuid().array().min(1, { message: "Please add a tag" }),
     authors: z.string().uuid().array().min(1, { message: "Please add an author" }),
-    organisations: z.array(RelatedEntrySchema).optional(),
+    organisations: z.array(RelatedEntrySchema),
     regions: z.string().uuid().array(),
     uploadType: UploadTypeEnum,
     url: z.string().min(1, "URL is required").url("Invalid URL"),
@@ -56,8 +60,8 @@ export const resourceCreateFormSchema = z.object(
     accessedOn: z.string().date("Invalid Date").optional(),
     abstract: z.string().optional(),
     length: z.number().optional(),
-    relatedPersons: z.array(RelatedEntrySchema).optional(),
-    relatedOrganisations: z.array(RelatedEntrySchema).optional(),
+    relatedPersons: z.array(RelatedEntrySchema),
+    relatedOrganisations: z.array(RelatedEntrySchema),
 });
 
 interface NewResourceProps 
@@ -87,8 +91,17 @@ export default function NewResource({ personOptions, organisationOptions, resour
     const [createTagOpen, setCreateTagOpen] = React.useState<boolean>(false);
     const [createRegionOpen, setCreateRegionOpen] = React.useState<boolean>(false);
     const [createResourceTypeOpen, setCreateResourceTypeOpen] = React.useState<boolean>(false);
+    const [createPersonOpen, setCreatePersonOpen] = React.useState<boolean>(false);
+    const [createOrganisationOpen, setCreateOrganisationOpen] = React.useState<boolean>(false);
+    
+    const [isRelated, setIsRelated] = React.useState<boolean>(false);
+    
+    const personDrawerRef = React.useRef<HTMLDivElement>(null);
+    const organisationDrawerRef = React.useRef<HTMLDivElement>(null);
     
     const router = useRouter();
+    
+    useDrawerRerender([createPersonOpen, createOrganisationOpen]);
     
     // Define the form
     const form = useForm<z.infer<typeof resourceCreateFormSchema>>({
@@ -263,6 +276,38 @@ export default function NewResource({ personOptions, organisationOptions, resour
         
         setCreateRegionOpen(false);
     }
+    
+    // Handle person creation
+    async function onPersonCreation(id: string, name: string) 
+    {
+        const newPersons = [...persons, { value: id, label: name } as SelectOption];
+        setPersons(newPersons);
+        
+        if (isRelated) 
+        {
+            const newSelected = [...form.getValues("relatedPersons"), { Id: id, Relation: ""} as RelatedEntry]
+            form.setValue("relatedPersons", newSelected);
+        }
+        else 
+        {
+            const newSelected = [...form.getValues("authors"), id];
+            form.setValue("authors", newSelected);
+        }
+        
+        setCreatePersonOpen(false);
+    }
+    
+    // Handle organisation creation
+    async function onOrganisationCreation(id: string, name: string) 
+    {
+        const newOrganisations = [...organisations, { value: id, label: name } as SelectOption];
+        setOrganisations(newOrganisations);
+        
+        const newSelected = [...form.getValues(isRelated ? "relatedOrganisations" : "organisations"), { Id: id, Relation: "" } as RelatedEntry]
+        form.setValue(isRelated ? "relatedOrganisations" : "organisations", newSelected);
+        
+        setCreateOrganisationOpen(false);
+    }
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl mt-5">
@@ -270,7 +315,30 @@ export default function NewResource({ personOptions, organisationOptions, resour
             <CreateDialog open={createTagOpen} title="Create New Tag" placeholder="Tag name..." onOpenChange={setCreateTagOpen} onCreate={onTagCreation} />
             <CreateDialog open={createResourceTypeOpen} title="Create New Resource Type" placeholder="Resource type name..." onOpenChange={setCreateResourceTypeOpen} onCreate={onResourceTypeCreation} />
             <CreateDialog open={createRegionOpen} title="Create New Region" placeholder="Region name..." onOpenChange={setCreateRegionOpen} onCreate={onRegionCreation} />
-        
+            
+            {/* Create drawers */}
+            <Drawer open={createPersonOpen} onOpenChange={setCreatePersonOpen}>
+                <DrawerContent className="flex flex-col max-h-[90vh]" ref={personDrawerRef} forceMount>
+                    <DrawerHeader hidden={true}>
+                        <DrawerTitle>Create a new person</DrawerTitle>
+                    </DrawerHeader>
+                    <div className="flex-1 overflow-y-auto p-4">
+                        <NewPerson personOptions={persons} organisationOptions={organisations} onCreate={onPersonCreation} container={personDrawerRef.current} />
+                    </div>
+                </DrawerContent>
+            </Drawer>
+            
+            <Drawer open={createOrganisationOpen} onOpenChange={setCreateOrganisationOpen}>
+                <DrawerContent className="flex flex-col max-h-[90vh]" ref={organisationDrawerRef}>
+                    <DrawerHeader hidden={true}>
+                        <DrawerTitle>Create a new organisation</DrawerTitle>
+                    </DrawerHeader>
+                    <div className="flex-1 overflow-y-auto p-4">
+                        <NewOrganisation organisationOptions={organisations} onCreate={onOrganisationCreation} container={organisationDrawerRef.current} />
+                    </div>
+                </DrawerContent>
+            </Drawer>
+            
             <h1 className="text-2xl tracking-tight text-gray-900 dark:text-gray-100 md:text-3xl lg:text-4xl mb-2">
                 Create a new resource
             </h1>
@@ -415,7 +483,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                         <FormItem>
                             <FormLabel>Authors <RequiredAstrix /></FormLabel>
                             <FormControl>
-                                <Selection placeholder="Select authors..." options={persons} multiSelect={true} { ... field} />
+                                <Selection placeholder="Select authors..." options={persons} multiSelect={true} hasCreateButton={true} onCreateButton={() => { setIsRelated(false); setCreatePersonOpen(true); }} { ... field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -426,7 +494,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                         <FormItem>
                             <FormLabel>Organisations of Origin <code>(Optional)</code></FormLabel>
                             <FormControl>
-                                <AddRelationsDialog title="Add Roles" placeholder="Select organisations..." buttonText="Define roles" options={organisations} emptyText="No organisations selected yet." { ... field} />
+                                <AddRelationsDialog title="Add Roles" placeholder="Select organisations..." buttonText="Define roles" toastText="Roles saved" options={organisations} emptyText="No organisations selected yet." hasCreateButton={true} onCreateButton={() => { setIsRelated(false); setCreateOrganisationOpen(true); }} { ... field} />
                             </FormControl>
                         </FormItem>
                     )} />
@@ -477,7 +545,17 @@ export default function NewResource({ personOptions, organisationOptions, resour
                         <FormItem>
                             <FormLabel>Related Persons</FormLabel>
                             <FormControl>
-                                <AddRelationsDialog title="Define Relations" placeholder="Add related persons..." options={persons} emptyText="No persons selected yet." { ... field } />
+                                <AddRelationsDialog title="Define Relations" placeholder="Add related persons..." options={persons} emptyText="No persons selected yet." hasCreateButton={true} onCreateButton={() => { setIsRelated(true); setCreatePersonOpen(true); }} { ... field } />
+                            </FormControl>
+                        </FormItem>
+                    )} />
+                    
+                    {/* Related Organisations */}
+                    <FormField control={form.control} name="relatedOrganisations" render={({field}) => (
+                        <FormItem>
+                            <FormLabel>Related Organisations</FormLabel>
+                            <FormControl>
+                                <AddRelationsDialog title="Define Relations" placeholder="Add related organisations..." options={organisations} emptyText="No organisations selected yet." hasCreateButton={true} onCreateButton={() => { setIsRelated(true); setCreateOrganisationOpen(true); }} { ... field } />
                             </FormControl>
                         </FormItem>
                     )} />

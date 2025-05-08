@@ -13,7 +13,7 @@ import { toast } from "sonner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { ApiResponseSchema } from "@/types/apiResponse.type"
-import { UploadNewOrganisation } from "@/actions/uploadActions"
+import { UploadWithDto } from "@/actions/uploadActions"
 import { useRouter } from "next/navigation"
 import { RequiredAstrix } from "@/components/ui/required-astrix"
 import { AddRelationsDialog } from "@/components/ui/add-relations-dialog"
@@ -22,10 +22,11 @@ import { OrganisationCreateDto, OrganisationCreateDtoSchema } from "@/types/uplo
 interface NewOrganisationProps 
 {
     organisationOptions: SelectOption[];
-    onCreate?: (id: string) => void
+    onCreate?: (id: string, name: string) => void;
+    container?: HTMLElement | null;
 }
 
-export default function NewOrganisation({ organisationOptions, onCreate}: NewOrganisationProps) 
+export default function NewOrganisation({ organisationOptions, onCreate, container = null}: NewOrganisationProps) 
 {
     // React states
     const [isChecking, setIsChecking] = React.useState<boolean>(false);
@@ -95,11 +96,11 @@ export default function NewOrganisation({ organisationOptions, onCreate}: NewOrg
         // Disable the submit button
         setIsChecking(true);
     
-        const id = await UploadNewOrganisation(dto)
+        const id = await UploadWithDto("/api/organisations/new", dto)
         toast.info(`Organisation created successfully with ID '${id}'`);
         
         if (onCreate)
-            onCreate(id);
+            onCreate(id, dto.Name);
         else
             router.push('/');
     }
@@ -171,7 +172,7 @@ export default function NewOrganisation({ organisationOptions, onCreate}: NewOrg
                         <FormItem>
                             <FormLabel>Related Organisations</FormLabel>
                             <FormControl>
-                                <AddRelationsDialog title="Define Relations" placeholder="Add related organisations..." options={organisations} emptyText="No organisations selected yet..." { ... field } />
+                                <AddRelationsDialog title="Define Relations" placeholder="Add related organisations..." options={organisations} emptyText="No organisations selected yet..." container={container} { ... field } />
                             </FormControl>
                         </FormItem>
                     )} />

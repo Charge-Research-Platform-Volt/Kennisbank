@@ -23,6 +23,7 @@ interface SelectionProps extends Omit<React.ComponentPropsWithoutRef<typeof Butt
     multiSelect?: boolean;
     hasCreateButton?: boolean;
     onCreateButton?: () => void;
+    container?: HTMLElement | null;
 }
 
 export function Selection({
@@ -33,7 +34,8 @@ export function Selection({
     multiSelect = false,
     hasCreateButton = false,
     onCreateButton,
-    className
+    className,
+    container = null
 }: SelectionProps) 
 {
     const { error } = useFormField();
@@ -139,7 +141,7 @@ export function Selection({
                     <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50 ml-2 self-center" />
                 </div>
             </PopoverTrigger>
-            <PopoverContent className="w-full p-0">
+            <PopoverContent className="w-full p-0" container={container} forceMount>
                 <Command>
                     <CommandInput placeholder="Search..." />
                     <CommandList>

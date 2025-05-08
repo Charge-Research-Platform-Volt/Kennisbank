@@ -16,19 +16,28 @@ interface AddRelationsDialogProps {
     buttonText?: string;
     options: SelectOption[];
     emptyText?: string;
+    toastText?: string;
+    hasCreateButton?: boolean;
+    onCreateButton?: () => void;
     onChange?: (value: RelatedEntry[]) => void;
     value?: RelatedEntry[];
     onBlur?: () => void;
     name?: string;
     disabled?: boolean;
     ref?: React.Ref<unknown>;
+    container?: HTMLElement | null;
 }
 
-export function AddRelationsDialog({title, placeholder, buttonText, options, emptyText, onChange}: AddRelationsDialogProps) 
+export function AddRelationsDialog({title, placeholder, buttonText, toastText, options, emptyText, onChange, hasCreateButton, onCreateButton, value, container = null}: AddRelationsDialogProps) 
 {
     const [open, setOpen] = React.useState<boolean>(false);
     const [hasOpened, setHasOpened] = React.useState<boolean>(false);
-    const [list, setList] = React.useState<RelatedEntry[]>([]);
+    const [list, setList] = React.useState<RelatedEntry[]>(value ? value : []);
+    
+    React.useEffect(() => 
+    {
+        if (value) setList(value);
+    }, [value]);
     
     React.useEffect(() => 
     {
@@ -36,7 +45,7 @@ export function AddRelationsDialog({title, placeholder, buttonText, options, emp
             setHasOpened(true);
     
         if (!open && hasOpened) 
-            toast.info("Relations saved.");
+            toast.info(toastText ? toastText : "Relations saved");
     }, [open, hasOpened]);
     
     function handleSelectionChange(value: string | string[])
@@ -63,7 +72,7 @@ export function AddRelationsDialog({title, placeholder, buttonText, options, emp
 
     return (
         <div className="flex flex-col sm:flex-row gap-2">
-            <Selection placeholder={placeholder} options={options} onChange={handleSelectionChange} multiSelect={true} />
+            <Selection placeholder={placeholder} options={options} onChange={handleSelectionChange} multiSelect={true} hasCreateButton={hasCreateButton} onCreateButton={onCreateButton} value={list.map((item) => item.Id)} container={container} />
             
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
