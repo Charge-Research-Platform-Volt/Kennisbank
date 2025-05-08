@@ -22,11 +22,10 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/components/ui/popoverWithoutPortal"
 /**
  *
  * @param onChangeAction - Which function to call in another component when a value is changed
- * @param className - Optional styling
  * @param standardTag - Default value
  *
  * @returns The dropdown box where the user can type and select a tag to be merged
@@ -39,7 +38,7 @@ export default function SelectTagDropdown({ onChangeAction = () => {}, standardT
   const [inputValue, setInputValue] = useState<string>("");
   const [selectedTag, updateTag] = useState<Tag | null>(standardTag);
 
-  // truncates a string to the length specified minus 3 characters used for adding "..."
+  // Truncates a string to the length specified minus 3 characters used for adding "..."
   function truncateString(toShorten : string, len : number){
     if(toShorten.length <= len)
       return toShorten
@@ -112,7 +111,7 @@ export default function SelectTagDropdown({ onChangeAction = () => {}, standardT
 
   useEffect(() => {
     filterTags();
-  }, [inputValue]); // Run update on filter when inputValue changes
+  }, [inputValue]); // Run update on filter when the inputValue changes
 
   useEffect(() => {
     updateTag(standardTag)
@@ -120,7 +119,7 @@ export default function SelectTagDropdown({ onChangeAction = () => {}, standardT
 
   return (
     <>
-    {/* button that triggers popup */}
+    {/* Button that triggers popup to select a tag*/}
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
@@ -134,12 +133,14 @@ export default function SelectTagDropdown({ onChangeAction = () => {}, standardT
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-    {/* popup itself where you can search for tags */}
+    {/* Popup itself where you can search for tags */}
     <PopoverContent className="w-[200px] p-0">
       <Command>
+          {/* Searchbox */}
           <CommandInput placeholder="Search for tags..." onValueChange={handleInputChange} disabled={selectedTag !== null}/>
           <CommandList>
             <CommandEmpty>No tags.</CommandEmpty>
+            {/* Fetched tags after typing */}
             <CommandGroup>
               {filteredTags.map((tag) => (
                 <CommandItem
@@ -158,6 +159,7 @@ export default function SelectTagDropdown({ onChangeAction = () => {}, standardT
                 </CommandItem>
               ))}
             </CommandGroup>
+            {/* Displaying selected tag and the delete button */}
             <CommandGroup>
               {
                 selectedTag &&

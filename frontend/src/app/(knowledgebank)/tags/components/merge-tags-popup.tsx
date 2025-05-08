@@ -23,7 +23,7 @@ import {
  */
 export function TagMergeButton({tag, extraTag = null} : {tag:Tag; extraTag?: Tag | null}){
     const [tag1, setTag1] = useState<string | null>(tag.id); // Selected tag in the left dropdown
-    const [tag2, setTag2] = useState<string | null>(extraTag ? extraTag.id : null); // Selected tag in the right dropdown
+    const [tag2, setTag2] = useState<string | null>(extraTag ? extraTag.id : null); // Selected tag in the right dropdown, always starts out with null except in tests
     const [isOpen, setIsOpen] = useState(false); // Whether or not to display the popup
     const [isMerging, setIsMerging] = useState<boolean>(false); // Whether the tags are currently merging or not
     const [standardTag, resetStandard] = useState<Tag | null>(tag); // This is used to reset the tag in the right dropdown in the popup when you close it
@@ -72,39 +72,44 @@ export function TagMergeButton({tag, extraTag = null} : {tag:Tag; extraTag?: Tag
                 resetEmpty(null);
                 resetStandard(tag);
             }
-        }, [isOpen]);
+        }, [isOpen, extraTag, tag]);
 
     return(
         <>
+            {/* Popup for merging tags */}
             <Dialog open={isOpen} onOpenChange={setIsOpen} modal>
+                {/* Button for triggering popup */}
                 <DialogTrigger asChild>
                     <Button variant="outline" data-testid="open">
                         <Merge className= "h-5 w-5" fill= "#737373" />
                     </Button>
                 </DialogTrigger>
+                {/* Popup itself */}
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                    <DialogTitle>Merge Tags</DialogTitle>
-                    <DialogDescription>
-                        Choose tags to merge
-                    </DialogDescription>
+                        <DialogTitle>Merge Tags</DialogTitle>
+                            <DialogDescription>
+                                Choose tags to merge
+                            </DialogDescription>
                     </DialogHeader>
+                    {/* Dropdownboxes where you can select 2 tags to merge */}
                     <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="first tag" className="text-right">
-                        First Tag
-                        </Label>
-                        <SelectTagDropdown standardTag={standardTag} onChangeAction={setTag1}></SelectTagDropdown>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="first tag" className="text-right">
+                                First Tag
+                            </Label>
+                            <SelectTagDropdown standardTag={standardTag} onChangeAction={setTag1}></SelectTagDropdown>
                         </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="second tag" className="text-right">
-                        Second Tag
-                        </Label>
-                        <SelectTagDropdown standardTag={extraTag || emptyTag} onChangeAction={setTag2}></SelectTagDropdown>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="second tag" className="text-right">
+                                Second Tag
+                            </Label>
+                            <SelectTagDropdown standardTag={extraTag || emptyTag} onChangeAction={setTag2}></SelectTagDropdown>
                         </div>
                     </div>
+                    {/* Merge button */}
                     <DialogFooter>
-                    <Button onClick={mergeTags} disabled={isMerging || tag1 == null || tag2 == null} className="w-1/4" data-testid="merge">{isMerging ? "Merging" : "Merge"}</Button>
+                        <Button onClick={mergeTags} disabled={isMerging || tag1 == null || tag2 == null} className="w-1/4" data-testid="merge">{isMerging ? "Merging" : "Merge"}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

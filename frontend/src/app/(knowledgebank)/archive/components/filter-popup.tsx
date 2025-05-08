@@ -33,43 +33,34 @@ export default function FilterPopup({ onApplyAction, className }: { onApplyActio
     return (
         <DialogContent className={className}>
             <DialogHeader>
-            <DialogTitle>Filter</DialogTitle>
-                <DialogDescription>
-                    Choose filters to filter resources on
-                    </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="first tag" className="text-right">
-                                Published Between:
-                                </Label>
-                                    <DateFilterSlider setStartYearAction={setStartYear} setEndYearAction={setEndYear} className="w-[450px] mt-[10px]" />
-                                </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="second tag" className="text-right">
-                                Tags:
-                                </Label>
-                                    <TagSelectionDropdown onSelectionChangedAction={setTagFilters} createButton={false} />
-                                </div>
-                        </div>
-                        <DialogFooter>
+                <DialogTitle>Filter</DialogTitle>
+                    <DialogDescription>
+                        Choose filters to filter resources on
+                        </DialogDescription>
+                            </DialogHeader>
+                            {/* Items for filtering */}
+                            <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="first tag" className="text-right">
+                                    Published Between:
+                                    </Label>
+                                        <DateFilterSlider setStartYearAction={setStartYear} setEndYearAction={setEndYear} className="w-[450px] mt-[10px]" />
+                                    </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="second tag" className="text-right">
+                                    Tags:
+                                    </Label>
+                                        <TagSelectionDropdown onSelectionChangedAction={setTagFilters} createButton={false} />
+                                    </div>
+                            </div>
+            {/* Button to apply filter */}
+            <DialogFooter>
                 <Button onClick={() => onApplyAction(tagFilters, startYear, endYear)}>Apply</Button>
             </DialogFooter>
         </DialogContent>
 
     );
 }
-
-        {/*<>
-            <div hidden={!isVisible} className={`z-50 flex-1 bg-white p-2 border-2 border-gray-100 rounded-sm ${className}`}>
-                <InputHeader>Published between:</InputHeader>
-                <DateFilterSlider setStartYearAction={setStartYear} setEndYearAction={setEndYear} className="w-[450px] mt-[10px]" />
-                <TagSelectionDropdown onSelectionChangedAction={setTagFilters} createButton={false} />
-                <div className="flex justify-end mt-[10px]">
-                    <Button onClick={() => onApplyAction(tagFilters, startYear, endYear)}>Apply</Button>
-                </div>
-            </div>
-        </>*/}
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)

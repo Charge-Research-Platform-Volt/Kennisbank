@@ -8,7 +8,11 @@ import {
   Dialog,
   DialogTrigger,
 } from "@/components/ui/dialog"
-
+/**
+ * 
+ * @param onApplyAction - Action given to the child component that updates the state in the parent component of this one
+ * @returns A button which opens a popup to filter when pressed
+ */
 export default function FilterButton({onApplyAction}: {onApplyAction: (tagFilters: string[], startDate: number, endDate: number) => void}) {
   const [isOpen, setIsOpen] = useState(false);
   const filterButtonRef = useRef<HTMLDivElement>(null);
@@ -17,7 +21,9 @@ export default function FilterButton({onApplyAction}: {onApplyAction: (tagFilter
     <>
       <div ref={filterButtonRef} className="absolute inset-y-0 right-2 flex items-center justify-center ">
         <>
+          {/* Popup for filtering */}
           <Dialog open={isOpen} onOpenChange={setIsOpen} modal>
+              {/* Button to trigger the filter popup */}
               <DialogTrigger asChild>
                   <Button variant="outline" data-testid="open">
                     <Filter className="h-6 w-4" aria-hidden="true" fill="currentColor" />
