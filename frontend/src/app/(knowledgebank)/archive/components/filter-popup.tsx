@@ -2,18 +2,25 @@
 
 import DateFilterSlider from "@/components/filter-documents/date-filter-slider";
 import { Button } from "@/components/ui/button";
-import { InputHeader } from "@/components/ui/Popup";
 import TagSelectionDropdown from "@/components/uploadComponents/TagSelectionDropdown";
 import { useEffect, useState } from "react";
+import {
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+
+import { Label } from "@/components/ui/label";
 
 /**
  * 
- * @param [isVisible] - Whether to show the popup or not
  * @param onApplyAction - Function to execute when the filter is applied
  * @param [className] - Styling from parent
  * @returns A popup where users can filter on date and tags
  */
-export default function FilterPopup({ isVisible, onApplyAction, className }: { isVisible: boolean, onApplyAction: (tagFilters: string[], startDate: number, endDate: number) => void, className?: string }) {
+export default function FilterPopup({ onApplyAction, className }: { onApplyAction: (tagFilters: string[], startDate: number, endDate: number) => void, className?: string }) {
     const [startYear, setStartYear] = useState<number>(0); // State containing the start date to filter on
     const [endYear, setEndYear] = useState<number>(0); // State containing the end date to filter on
     const [tagFilters, setTagFilters] = useState<string[]>([]); // State containing the tags to filter on
@@ -24,7 +31,36 @@ export default function FilterPopup({ isVisible, onApplyAction, className }: { i
     , []);
 
     return (
-        <>
+        <DialogContent className={className}>
+            <DialogHeader>
+            <DialogTitle>Filter</DialogTitle>
+                <DialogDescription>
+                    Choose filters to filter resources on
+                    </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="first tag" className="text-right">
+                                Published Between:
+                                </Label>
+                                    <DateFilterSlider setStartYearAction={setStartYear} setEndYearAction={setEndYear} className="w-[450px] mt-[10px]" />
+                                </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="second tag" className="text-right">
+                                Tags:
+                                </Label>
+                                    <TagSelectionDropdown onSelectionChangedAction={setTagFilters} createButton={false} />
+                                </div>
+                        </div>
+                        <DialogFooter>
+                <Button onClick={() => onApplyAction(tagFilters, startYear, endYear)}>Apply</Button>
+            </DialogFooter>
+        </DialogContent>
+
+    );
+}
+
+        {/*<>
             <div hidden={!isVisible} className={`z-50 flex-1 bg-white p-2 border-2 border-gray-100 rounded-sm ${className}`}>
                 <InputHeader>Published between:</InputHeader>
                 <DateFilterSlider setStartYearAction={setStartYear} setEndYearAction={setEndYear} className="w-[450px] mt-[10px]" />
@@ -33,11 +69,7 @@ export default function FilterPopup({ isVisible, onApplyAction, className }: { i
                     <Button onClick={() => onApplyAction(tagFilters, startYear, endYear)}>Apply</Button>
                 </div>
             </div>
-        </>
-    );
-}
-
-
+        </>*/}
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)

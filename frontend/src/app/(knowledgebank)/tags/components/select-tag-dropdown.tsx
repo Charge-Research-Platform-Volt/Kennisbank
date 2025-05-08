@@ -137,7 +137,7 @@ export default function SelectTagDropdown({ onChangeAction = () => {}, standardT
     {/* popup itself where you can search for tags */}
     <PopoverContent className="w-[200px] p-0">
       <Command>
-          <CommandInput placeholder="Search for tags..." onValueChange={handleInputChange} disabled={selectedTag === null}/>
+          <CommandInput placeholder="Search for tags..." onValueChange={handleInputChange} disabled={selectedTag !== null}/>
           <CommandList>
             <CommandEmpty>No tags.</CommandEmpty>
             <CommandGroup>
