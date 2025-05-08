@@ -26,7 +26,7 @@ public class RegionsControllerTests : TestBase
     
     protected override async Task SeedTestDatabase (DatabaseContext context)
     {
-        await DatabaseSeeder.SeedTemplate(context);
+        await DatabaseSeeder.SeedTemplate(context, _resourceManager);
         
         // Create a test region
         Region testRegion = new Region

@@ -50,7 +50,7 @@ public class TagControllerTests : TestBase
         // Enable extension for text-search-vectors
         await context.Database.ExecuteSqlRawAsync("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
         await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""resource-vectors"" ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
-        await DatabaseSeeder.SeedTemplate(context);
+        await DatabaseSeeder.SeedTemplate(context, _resourceManager);
     }
 
     // Mocks switching between users. Need this because some endpoints manually check user

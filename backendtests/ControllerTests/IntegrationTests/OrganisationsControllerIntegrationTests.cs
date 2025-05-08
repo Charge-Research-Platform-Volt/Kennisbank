@@ -26,7 +26,7 @@ public class OrganisationsControllerTests : TestBase
     
     protected override async Task SeedTestDatabase (DatabaseContext context)
     {
-        await DatabaseSeeder.SeedTemplate(context);
+        await DatabaseSeeder.SeedTemplate(context, _resourceManager);
         
         // Create a test organisation
         Organisation testOrganisation = new Organisation
