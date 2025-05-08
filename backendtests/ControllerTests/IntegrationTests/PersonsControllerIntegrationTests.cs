@@ -68,10 +68,10 @@ public class PersonsControllerTests : TestBase
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Person created successfully"));
-        Assert.That(response.Data, Is.Not.Null);
+        Assert.That(response.Body, Is.Not.Null);
         
         // Deserialize the response's data, extract ID
-        JObject? json = JObject.FromObject(response.Data);
+        JObject? json = JObject.FromObject(response.Body);
         Guid personId = Guid.Parse(json["id"].ToString());
         
         bool exists = await _resourceManager.PersonExistsAsync(personId.ToString());
@@ -124,10 +124,10 @@ public class PersonsControllerTests : TestBase
         Assert.That(createResult, Is.Not.Null);
         ApiResponse? createResponse = createResult.Value as ApiResponse;
         Assert.That(createResponse, Is.Not.Null);
-        Assert.That(createResponse.Data, Is.Not.Null);
+        Assert.That(createResponse.Body, Is.Not.Null);
         
         // Deserialize the response's data
-        JObject? json = JObject.FromObject(createResponse.Data);
+        JObject? json = JObject.FromObject(createResponse.Body);
         Guid personId = Guid.Parse(json["id"].ToString());
         string personIdStr = personId.ToString();
         
@@ -366,10 +366,10 @@ public class PersonsControllerTests : TestBase
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Person already exists."));
-        Assert.That(response.Data, Is.Not.Null);
+        Assert.That(response.Body, Is.Not.Null);
         
         // Deserialize the response's data, extract ID
-        JObject? json = JObject.FromObject(response.Data);
+        JObject? json = JObject.FromObject(response.Body);
         Guid personId = Guid.Parse(json["id"].ToString());
         
         // Check the response data
@@ -394,10 +394,10 @@ public class PersonsControllerTests : TestBase
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Person does not exist"));
-        Assert.That(response.Data, Is.Not.Null);
+        Assert.That(response.Body, Is.Not.Null);
 
         // Deserialize the response's data, extract ID
-        JObject? json = JObject.FromObject(response.Data);
+        JObject? json = JObject.FromObject(response.Body);
         string personId = json["id"].ToString();
         
         // Check the response data
@@ -448,7 +448,7 @@ public class PersonsControllerTests : TestBase
         Assert.That(response.Message, Is.EqualTo("Person was found"));
         
         // Verify the returned person
-        Person? person = response.Data as Person;
+        Person? person = response.Body as Person;
         Assert.That(person, Is.Not.Null);
         Assert.That(person.Id.ToString(), Is.EqualTo(personId));
         Assert.That(person.Name, Is.EqualTo("Test Person"));
@@ -516,7 +516,7 @@ public class PersonsControllerTests : TestBase
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Does.Contain("Found"));
         
-        Person[]? persons = response.Data as Person[];
+        Person[]? persons = response.Body as Person[];
         Assert.That(persons, Is.Not.Null);
         Assert.That(persons.Length, Is.GreaterThanOrEqualTo(1)); // At least our seeded person
     }
@@ -551,7 +551,7 @@ public class PersonsControllerTests : TestBase
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.True);
         
-        Person[]? persons = response.Data as Person[];
+        Person[]? persons = response.Body as Person[];
         Assert.That(persons, Is.Not.Null);
         Assert.That(persons.Length, Is.LessThanOrEqualTo(pageSize));
     }
