@@ -28,7 +28,7 @@ public class WebsiteUploadControllerTests : TestBase
     protected override async Task SeedTestDatabase (DatabaseContext context)
     {
         // Enable extension for text-search-vectors
-        await DatabaseSeeder.SeedTemplate(context, _resourceManager);
+        await DatabaseSeeder.SeedTemplate(context);
     }
 
     [TestCase("test", false)]

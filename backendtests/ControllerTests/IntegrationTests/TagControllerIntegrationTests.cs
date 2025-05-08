@@ -50,7 +50,7 @@ public class TagControllerTests : TestBase
         // Enable extension for text-search-vectors
         await context.Database.ExecuteSqlRawAsync("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
         await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""resource-vectors"" ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
-        await DatabaseSeeder.SeedTemplate(context, _resourceManager);
+        await DatabaseSeeder.SeedTemplate(context);
     }
 
     // Mocks switching between users. Need this because some endpoints manually check user
@@ -101,7 +101,7 @@ public class TagControllerTests : TestBase
         // Get all tags
         OkObjectResult? result = await _controller.GetAll() as OkObjectResult;
         Assert.That(result, Is.Not.Null);
-        Tag[]? tags = result.Value as Tag[];
+        Tag[]? tags = ((ApiResponse)result.Value).Body as Tag[];
         Assert.That(tags, Is.Not.Null);
 
         // Assert

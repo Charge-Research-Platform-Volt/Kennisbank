@@ -33,7 +33,7 @@ public class ResourcesControllerTests : TestBaseBlob
         // Enable extension for text-search-vectors
         await context.Database.ExecuteSqlRawAsync("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
         await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""resource-vectors"" ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
-        await DatabaseSeeder.SeedTemplate(context, _resourceManager);
+        await DatabaseSeeder.SeedTemplate(context);
         
         // Also seed the blob storage
         Resource fileResource = new Resource
@@ -285,10 +285,12 @@ public class ResourcesControllerTests : TestBaseBlob
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
         };
+
+        string sDto = JsonSerializer.Serialize(dto, new JsonSerializerOptions { WriteIndented = true });
         
         ResourceUploadDto uDto = new ResourceUploadDto
         {
-            Dto = JsonSerializer.Serialize(dto),
+            Dto = sDto,
             UploadType = "document",
             File = null
         };
@@ -303,7 +305,7 @@ public class ResourcesControllerTests : TestBaseBlob
         ApiResponse? response = result.Value as ApiResponse;
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.False);
-        Assert.That(response.Message, Is.EqualTo("No file was uploaded."));
+        Assert.That(response.Message, Is.EqualTo("Invalid DTO sent"));
     }
     
     [Test]

@@ -17,6 +17,7 @@ interface AddRelationsDialogProps {
     options: SelectOption[];
     emptyText?: string;
     toastText?: string;
+    inputPlaceholder?: string;
     hasCreateButton?: boolean;
     onCreateButton?: () => void;
     onChange?: (value: RelatedEntry[]) => void;
@@ -28,7 +29,7 @@ interface AddRelationsDialogProps {
     container?: HTMLElement | null;
 }
 
-export function AddRelationsDialog({title, placeholder, buttonText, toastText, options, emptyText, onChange, hasCreateButton, onCreateButton, value, container = null}: AddRelationsDialogProps) 
+export function AddRelationsDialog({title, placeholder, inputPlaceholder, buttonText, toastText, options, emptyText, onChange, hasCreateButton, onCreateButton, value, container = null}: AddRelationsDialogProps) 
 {
     const [open, setOpen] = React.useState<boolean>(false);
     const [hasOpened, setHasOpened] = React.useState<boolean>(false);
@@ -95,7 +96,7 @@ export function AddRelationsDialog({title, placeholder, buttonText, toastText, o
                                                 {options.find((option) => option.value === item.Id)?.label || item.Id}
                                             </TableCell>
                                             <TableCell className="truncate max-w-xs cursor-default">
-                                                <Input placeholder="Enter relation..." value={item.Relation || ""} onChange={(e) => handleRelationDefinition(item.Id, e.target.value)} autoFocus={false} />
+                                                <Input placeholder={inputPlaceholder ? inputPlaceholder : "Enter relation..."} value={item.Relation || ""} onChange={(e) => handleRelationDefinition(item.Id, e.target.value)} autoFocus={false} />
                                             </TableCell>
                                         </TableRow>
                                     ))}

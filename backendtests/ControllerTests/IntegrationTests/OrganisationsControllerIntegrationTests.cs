@@ -26,7 +26,7 @@ public class OrganisationsControllerTests : TestBase
     
     protected override async Task SeedTestDatabase (DatabaseContext context)
     {
-        await DatabaseSeeder.SeedTemplate(context, _resourceManager);
+        await DatabaseSeeder.SeedTemplate(context);
         
         // Create a test organisation
         Organisation testOrganisation = new Organisation
@@ -69,10 +69,9 @@ public class OrganisationsControllerTests : TestBase
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Organisation created successfully"));
         Assert.That(response.Body, Is.Not.Null);
-        
+
         // Deserialize the response's data, extract ID
-        JObject? json = JObject.FromObject(response.Body);
-        Guid organisationId = Guid.Parse(json["id"].ToString());
+        Guid organisationId = (Guid)response.Body;
         
         bool exists = await _resourceManager.OrganisationExistsAsync(organisationId.ToString());
         Assert.That(exists, Is.True);
@@ -125,10 +124,9 @@ public class OrganisationsControllerTests : TestBase
         ApiResponse? createResponse = createResult.Value as ApiResponse;
         Assert.That(createResponse, Is.Not.Null);
         Assert.That(createResponse.Body, Is.Not.Null);
-        
+
         // Deserialize the response's data
-        JObject? json = JObject.FromObject(createResponse.Body);
-        Guid organisationId = Guid.Parse(json["id"].ToString());
+        Guid organisationId = (Guid)createResponse.Body;
         string organisationIdStr = organisationId.ToString();
         
         // Act

@@ -494,7 +494,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                         <FormItem>
                             <FormLabel>Organisations of Origin <code>(Optional)</code></FormLabel>
                             <FormControl>
-                                <AddRelationsDialog title="Add Roles" placeholder="Select organisations..." buttonText="Define roles" toastText="Roles saved" options={organisations} emptyText="No organisations selected yet." hasCreateButton={true} onCreateButton={() => { setIsRelated(false); setCreateOrganisationOpen(true); }} { ... field} />
+                                <AddRelationsDialog title="Add Roles" placeholder="Select organisations..." inputPlaceholder="Enter role..." buttonText="Define Roles" toastText="Roles saved" options={organisations} emptyText="No organisations selected yet." hasCreateButton={true} onCreateButton={() => { setIsRelated(false); setCreateOrganisationOpen(true); }} { ... field} />
                             </FormControl>
                         </FormItem>
                     )} />
@@ -545,7 +545,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                         <FormItem>
                             <FormLabel>Related Persons</FormLabel>
                             <FormControl>
-                                <AddRelationsDialog title="Define Relations" placeholder="Add related persons..." options={persons} emptyText="No persons selected yet." hasCreateButton={true} onCreateButton={() => { setIsRelated(true); setCreatePersonOpen(true); }} { ... field } />
+                                <AddRelationsDialog title="Add Roles" placeholder="Add related persons..." inputPlaceholder="Enter role..." buttonText="Define Roles" toastText="Roles saved" options={persons} emptyText="No persons selected yet." hasCreateButton={true} onCreateButton={() => { setIsRelated(true); setCreatePersonOpen(true); }} { ... field } />
                             </FormControl>
                         </FormItem>
                     )} />
@@ -555,7 +555,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                         <FormItem>
                             <FormLabel>Related Organisations</FormLabel>
                             <FormControl>
-                                <AddRelationsDialog title="Define Relations" placeholder="Add related organisations..." options={organisations} emptyText="No organisations selected yet." hasCreateButton={true} onCreateButton={() => { setIsRelated(true); setCreateOrganisationOpen(true); }} { ... field } />
+                                <AddRelationsDialog title="Add Roles" placeholder="Add related organisations..." inputPlaceholder="Enter role..." buttonText="Define Roles" toastText="Roles saved" options={organisations} emptyText="No organisations selected yet." hasCreateButton={true} onCreateButton={() => { setIsRelated(true); setCreateOrganisationOpen(true); }} { ... field } />
                             </FormControl>
                         </FormItem>
                     )} />

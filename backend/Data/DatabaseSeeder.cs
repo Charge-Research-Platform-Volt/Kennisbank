@@ -51,10 +51,10 @@ namespace KnowledgeBank.Data
         /// </summary>
         /// <param name="database">Database to be seeded with a template</param>
         /// <returns></returns>
-        public static async Task SeedTemplate(DatabaseContext database, ResourceManager resourceManager)
+        public static async Task SeedTemplate(DatabaseContext database)
         {
             DatabaseSeeder.database = database;
-            DatabaseSeeder.resourceManager = resourceManager;
+            DatabaseSeeder.resourceManager = new ResourceManager(database);
         
             // Call the common seed logic for the template database
             await SeedData();

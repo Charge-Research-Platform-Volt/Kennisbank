@@ -13,9 +13,9 @@ namespace backend.Tests.Integration;
 [Category("IntegrationTest")]
 public class ResourceManagerCreateTests : TestBase
 {
-    private ResourceManager _resourceManager;
     private UserManager<User> _userManager;
     private Mock<IAzureBlobService> _mockBlobService;
+    private ResourceManager resourceManager;
 
     private string testUserId;
 
@@ -49,7 +49,7 @@ public class ResourceManagerCreateTests : TestBase
         testUserId = Context.Users.FirstOrDefault(u => u.UserName == "admin").Id;
 
         _mockBlobService = new Mock<IAzureBlobService>();
-        _resourceManager = new ResourceManager(Context);
+        resourceManager = new ResourceManager(Context);
     }
 
     protected override async Task SeedTestDatabase (DatabaseContext context)
@@ -57,7 +57,7 @@ public class ResourceManagerCreateTests : TestBase
         // Enable extension for text-search-vectors
         await context.Database.ExecuteSqlRawAsync("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
         await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""resource-vectors"" ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
-        await DatabaseSeeder.SeedTemplate(context, _resourceManager);
+        await DatabaseSeeder.SeedTemplate(context);
     }
 
 
@@ -77,7 +77,7 @@ public class ResourceManagerCreateTests : TestBase
         };
 
         // Act
-        Guid resourceId = await _resourceManager.CreateResourceAsync(dto);
+        Guid resourceId = await resourceManager.CreateResourceAsync(dto);
 
         // Assert
         Resource? resource = await Context.Resources
@@ -114,7 +114,7 @@ public class ResourceManagerCreateTests : TestBase
         };
 
         // Act + Assert
-        Assert.ThrowsAsync<FormatException>(() => _resourceManager.CreateResourceAsync(dto));
+        Assert.ThrowsAsync<FormatException>(() => resourceManager.CreateResourceAsync(dto));
     }
 
     [Test]
@@ -127,7 +127,7 @@ public class ResourceManagerCreateTests : TestBase
             CreatedBy = testUserId,
         };
 
-        Guid testTagId = await _resourceManager.CreateTagAsync(testTagDto);
+        Guid testTagId = await resourceManager.CreateTagAsync(testTagDto);
 
         ResourceType resourceType = await Context.ResourceTypes.FirstAsync();
 
@@ -142,7 +142,7 @@ public class ResourceManagerCreateTests : TestBase
         };
 
         // Act
-        Guid resourceId = await _resourceManager.CreateResourceAsync(dto);
+        Guid resourceId = await resourceManager.CreateResourceAsync(dto);
 
         // Assert
         Resource? resource = await Context.Resources
@@ -163,26 +163,26 @@ public class ResourceManagerCreateTests : TestBase
             Name = "Tag1",
             CreatedBy = testUserId
         };
-        Guid testTagId = await _resourceManager.CreateTagAsync(testTagDto);
+        Guid testTagId = await resourceManager.CreateTagAsync(testTagDto);
 
         PersonCreateDto testPersonDto = new PersonCreateDto
         {
             Name = "Test Name",
             Occupation = "Test Occupation"
         };
-        Guid testPersonId = await _resourceManager.CreatePersonAsync(testPersonDto);
+        Guid testPersonId = await resourceManager.CreatePersonAsync(testPersonDto);
 
         OrganisationCreateDto testOrganisationDto = new OrganisationCreateDto
         {
             Name = "Utrecht University"
         };
-        Guid testOrganisationId = await _resourceManager.CreateOrganisationAsync(testOrganisationDto);
+        Guid testOrganisationId = await resourceManager.CreateOrganisationAsync(testOrganisationDto);
 
         RegionCreateDto testRegionDto = new RegionCreateDto
         {
             Name = "Utrecht"
         };
-        Guid testRegionId = await _resourceManager.CreateRegionAsync(testRegionDto);
+        Guid testRegionId = await resourceManager.CreateRegionAsync(testRegionDto);
 
         ResourceType? type = await Context.ResourceTypes.FirstAsync();
 
@@ -200,7 +200,7 @@ public class ResourceManagerCreateTests : TestBase
         };
 
         // Act
-        Guid resourceId = await _resourceManager.CreateResourceAsync(dto);
+        Guid resourceId = await resourceManager.CreateResourceAsync(dto);
 
         // Assert
         Resource? resource = await Context.Resources
