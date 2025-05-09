@@ -75,9 +75,10 @@ interface NewResourceProps
     tagOptions: SelectOption[];
     regionOptions: SelectOption[];
     useUnsavedDialog?: boolean;
+    returnUrl?: string;
 }
 
-export default function NewResource({ personOptions, organisationOptions, resourceTypeOptions, tagOptions, regionOptions, useUnsavedDialog = true }: NewResourceProps) 
+export default function NewResource({ personOptions, organisationOptions, resourceTypeOptions, tagOptions, regionOptions, useUnsavedDialog = true, returnUrl = '/' }: NewResourceProps) 
 {
     // React states
     const [uploadType, setUploadType] = React.useState<z.infer<typeof UploadTypeEnum>>("document");
@@ -229,7 +230,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
         setIsChecking(true);
         
         const urlSafeUrl = encodeURIComponent(url);
-        const response = await fetch("http://localhost:8080/resources/exists?url=" + urlSafeUrl, { credentials: "include" });
+        const response = await fetch("/api/resources/exists?url=" + urlSafeUrl, { credentials: "include" });
         
         if (response.ok) 
         {
@@ -268,7 +269,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
         const id: string = await UploadNewResource(values);
         toast.info(`Resource uploaded succesfully with ID '${id}'`);
         
-        router.push('/');
+        router.push(returnUrl);
     }
     
     // Function to be called when invalid form is submitted

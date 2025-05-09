@@ -14,6 +14,7 @@ import SidebarPart from "./sidebar-part";
 import Divider from "../divider";
 import ProfileDropdown from "./profile-dropdown";
 import { cn } from "@/lib/utils";
+import { usePathname, useSearchParams } from "next/navigation";
 
 /**
  *
@@ -40,6 +41,8 @@ export default function LeftSidebarClient({
   bottomMenuItems: SidebarItem[];
 }) {
   const { toggleLeftSidebar, leftSidebarOpen: open } = useSidebar();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const handleLogout = async () => {
     const result = await Logout();
@@ -48,6 +51,8 @@ export default function LeftSidebarClient({
     else console.error(result.message);
   };
 
+  const currentUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
+  
   return (
     <Sidebar side="left" width="300px" collapsible="icon" className={`${open ? "p-2" : "px-1.5 pt-2"}`}>
       {/* Header */}
@@ -73,7 +78,7 @@ export default function LeftSidebarClient({
       {/* Menu items */}
       <nav className="mb-10 flex flex-col gap-2">
         {/* New button */}
-        <Link href="/new">
+        <Link href={`/new?returnUrl=${encodeURIComponent(currentUrl)}`}>
           <Button variant="default" className={`flex w-full items-center justify-start overflow-hidden p-2 transition-all duration-200 ${!open && "w-9"}`} data-testid="sidebar_new">
             <New className="h-4 w-4" />
             <div data-testid="button_text" className={`pb-0.5 ml-2 ${!open && "hidden"}`}>

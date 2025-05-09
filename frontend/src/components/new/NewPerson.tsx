@@ -33,9 +33,10 @@ interface NewPersonProps
     updatePersons?: (organisations: SelectOption[]) => void;
     updateOrganisations?: (organisations: SelectOption[]) => void;
     useUnsavedDialog?: boolean;
+    returnUrl?: string;
 }
 
-export default function NewPerson({ personOptions, organisationOptions, onCreate, container = null, updatePersons, updateOrganisations, useUnsavedDialog = true }: NewPersonProps) 
+export default function NewPerson({ personOptions, organisationOptions, onCreate, container = null, updatePersons, updateOrganisations, useUnsavedDialog = true, returnUrl = '/' }: NewPersonProps) 
 {
     // React states
     const [isChecking, setIsChecking] = React.useState<boolean>(false);
@@ -140,7 +141,7 @@ export default function NewPerson({ personOptions, organisationOptions, onCreate
         if (onCreate)
             onCreate(id, dto.Name);
         else
-            router.push('/');
+            router.push(returnUrl);
     }
     
     // Handle person creation

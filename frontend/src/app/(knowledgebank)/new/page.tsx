@@ -8,15 +8,21 @@ import { ApiResponseSchema } from "@/types/apiResponse.type"
 import { Person, PersonArraySchema } from "@/types/person.type"
 import { Organisation, OrganisationArraySchema } from "@/types/organisation.type";
 import { ResourceType, ResourceTypeArraySchema } from "@/types/resourceType.type"
-import { Tag, TagArraySchema, TagPageResponseSchema } from "@/types/tag.type"
+import { Tag, TagArraySchema } from "@/types/tag.type"
 import { Region, RegionArraySchema } from "@/types/region.type"
 import { SelectOption } from "@/components/ui/selection";
 
-
-export default async function NewPage() 
+interface NewPageProps 
 {
+  searchParams: { [key: string]: string | string[] | undefined };
+}
+
+export default async function NewPage({ searchParams }: NewPageProps) 
+{
+    const returnUrl = typeof searchParams.returnUrl === 'string' ? searchParams.returnUrl : '/';
+    
     // Fetch persons
-    const personsFetch = await FetchWithValidation(ApiResponseSchema, "http://backend:8080/persons/list");
+    const personsFetch = await FetchWithValidation(ApiResponseSchema, `${process.env.API_URL}/persons/list`);
     
     // If fetch failed or API indicates failure, redirect to error page
     if (!personsFetch.success || (personsFetch.data && !personsFetch.data.success && !PersonArraySchema.safeParse(personsFetch.data.body).success))
@@ -36,7 +42,7 @@ export default async function NewPage()
     
     
     // Fetch organisations
-    const organisationFetch = await FetchWithValidation(ApiResponseSchema, "http://backend:8080/organisations/list");
+    const organisationFetch = await FetchWithValidation(ApiResponseSchema, `${process.env.API_URL}/organisations/list`);
     
     // If fetch failed or API indicates failure, redirect to error page
     if (!organisationFetch.success || (organisationFetch.data && !organisationFetch.data.success && !OrganisationArraySchema.safeParse(organisationFetch.data.body).success)) 
@@ -57,7 +63,7 @@ export default async function NewPage()
     
     
     // Fetch resource types
-    const typesFetch = await FetchWithValidation(ApiResponseSchema, "http://backend:8080/resources/types/list");
+    const typesFetch = await FetchWithValidation(ApiResponseSchema, `${process.env.API_URL}/resources/types/list`);
     
     // If fetch failed or API indicates failure, redirect to error page
     if (!typesFetch.success || (typesFetch.data && !typesFetch.data.success && !ResourceTypeArraySchema.safeParse(typesFetch.data.body).success)) 
@@ -78,7 +84,7 @@ export default async function NewPage()
     
     
     // Fetch tags
-    const tagsFetch = await FetchWithValidation(ApiResponseSchema, "http://backend:8080/tags/all-tags");
+    const tagsFetch = await FetchWithValidation(ApiResponseSchema, `${process.env.API_URL}/tags/all-tags`);
     
     // If fetch failed or API indicates failure, redirect to error page
     if (!tagsFetch.success || (tagsFetch.data && !tagsFetch.data.success && !TagArraySchema.safeParse(tagsFetch.data.body).success)) 
@@ -99,7 +105,7 @@ export default async function NewPage()
     
     
     // Fetch regions
-    const regionsFetch = await FetchWithValidation(ApiResponseSchema, "http://backend:8080/regions/list");
+    const regionsFetch = await FetchWithValidation(ApiResponseSchema, `${process.env.API_URL}/regions/list`);
     
     // If fetch failed or API indicates failure, redirect to error page
     if (!regionsFetch.success || (regionsFetch.data && !regionsFetch.data.success && !RegionArraySchema.safeParse(regionsFetch.data.body).success)) 
@@ -127,9 +133,9 @@ export default async function NewPage()
                 <FormTabsTrigger value="person">Person</FormTabsTrigger>
                 <FormTabsTrigger value="organisation">Organisation</FormTabsTrigger>
             </TabsList>
-            <TabsContent value="resource"><NewResource personOptions={personsOptions} organisationOptions={organisationOptions} resourceTypeOptions={typesOptions} tagOptions={tagOptions} regionOptions={regionOptions} /></TabsContent>
-            <TabsContent value="person"><NewPerson personOptions={personsOptions} organisationOptions={organisationOptions} /></TabsContent>
-            <TabsContent value="organisation"><NewOrganisation organisationOptions={organisationOptions} /></TabsContent>
+            <TabsContent value="resource"><NewResource personOptions={personsOptions} organisationOptions={organisationOptions} resourceTypeOptions={typesOptions} tagOptions={tagOptions} regionOptions={regionOptions} returnUrl={returnUrl} /></TabsContent>
+            <TabsContent value="person"><NewPerson personOptions={personsOptions} organisationOptions={organisationOptions} returnUrl={returnUrl} /></TabsContent>
+            <TabsContent value="organisation"><NewOrganisation organisationOptions={organisationOptions} returnUrl={returnUrl} /></TabsContent>
         </FormTabs>
     );
 }

@@ -30,9 +30,10 @@ interface NewOrganisationProps
     container?: HTMLElement | null;
     updateOrganisations?: (organisations: SelectOption[]) => void;
     useUnsavedDialog?: boolean;
+    returnUrl?: string;
 }
 
-export default function NewOrganisation({ organisationOptions, onCreate, container = null, updateOrganisations, useUnsavedDialog = true }: NewOrganisationProps) 
+export default function NewOrganisation({ organisationOptions, onCreate, container = null, updateOrganisations, useUnsavedDialog = true, returnUrl = '/' }: NewOrganisationProps) 
 {
     // React states
     const [isChecking, setIsChecking] = React.useState<boolean>(false);
@@ -131,7 +132,7 @@ export default function NewOrganisation({ organisationOptions, onCreate, contain
         if (onCreate)
             onCreate(id, dto.Name);
         else
-            router.push('/');
+            router.push(returnUrl);
     }
     
     // Handle organisation creation
