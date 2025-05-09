@@ -5,9 +5,7 @@ import { TagMergeButton } from '@/app/(knowledgebank)/tags/components/merge-tags
 import { TagArraySchema } from '@/types/tag.type';
 import React from 'react';
 
-// RENDERING THE TAG PAGE DOES NOT WORK DUE TO COOKIE / AUTH STUFF, SAME WITH LISTTAGS
-
-// Mock fetchTagSearch once for all tests
+// Mock MergeTag once for all tests
 vi.mock('@/actions/tagActions', () => ({
   MergeTag: vi.fn().mockResolvedValue({ success: true, message: 'Tags merged successfully.' }),
 }));
@@ -58,7 +56,6 @@ describe('merge popup', () =>{
 
         // EXPECT THE MERGE ACTION TO HAVE BEEN CALLED ONCE
         await waitFor(() => expect(MergeTag).toHaveBeenCalledTimes(1));
-        //expect(MergeTag).toHaveBeenCalledOnce();
     });
 })
 
