@@ -212,6 +212,8 @@ export default function NewResource({ personOptions, organisationOptions, resour
         if (result.isDuplicate)
             toast.warning("This file already exists!");
         
+        form.trigger("file");
+        
         setIsChecking(false);
     }
     
@@ -252,6 +254,8 @@ export default function NewResource({ personOptions, organisationOptions, resour
             throw new Error(`Server error: ${response.status}`);
         }
         
+        form.trigger("url");
+        
         setIsChecking(false);
     }
     
@@ -284,6 +288,8 @@ export default function NewResource({ personOptions, organisationOptions, resour
         const newSelected = [...form.getValues("tags"), id]
         form.setValue("tags", newSelected);
         
+        form.trigger("tags");
+        
         setCreateTagOpen(false);
     }
     
@@ -295,6 +301,8 @@ export default function NewResource({ personOptions, organisationOptions, resour
         const newResourceTypes = [...resourceTypes, { value: id, label: name } as SelectOption]
         setResourceTypes(newResourceTypes);
         form.setValue("typeId", id);
+        
+        form.trigger("typeId")
         
         setCreateResourceTypeOpen(false);
     }
@@ -309,6 +317,8 @@ export default function NewResource({ personOptions, organisationOptions, resour
         const newSelected = [...form.getValues("regions"), id];
         form.setValue("regions", newSelected);
         
+        form.trigger("regions");
+        
         setCreateRegionOpen(false);
     }
     
@@ -322,11 +332,13 @@ export default function NewResource({ personOptions, organisationOptions, resour
         {
             const newSelected = [...form.getValues("relatedPersons"), { Id: id, Relation: ""} as RelatedEntry]
             form.setValue("relatedPersons", newSelected);
+            form.trigger("relatedPersons");
         }
         else 
         {
             const newSelected = [...form.getValues("authors"), id];
             form.setValue("authors", newSelected);
+            form.trigger("authors");
         }
         
         setCreatePersonOpen(false);
@@ -340,6 +352,8 @@ export default function NewResource({ personOptions, organisationOptions, resour
         
         const newSelected = [...form.getValues(isRelated ? "relatedOrganisations" : "organisations"), { Id: id, Relation: "" } as RelatedEntry]
         form.setValue(isRelated ? "relatedOrganisations" : "organisations", newSelected);
+        
+        form.trigger(isRelated ? "relatedOrganisations" : "organisations")
         
         setCreateOrganisationOpen(false);
     }

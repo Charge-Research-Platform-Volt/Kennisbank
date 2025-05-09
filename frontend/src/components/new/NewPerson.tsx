@@ -152,6 +152,8 @@ export default function NewPerson({ personOptions, organisationOptions, onCreate
         const newSelected = [...form.getValues("PersonRelations"), { Id: id, Relation: "" } as RelatedEntry];
         form.setValue("PersonRelations", newSelected);
         
+        form.trigger("PersonRelations");
+        
         setCreatePersonOpen(false);
     }
     
@@ -163,6 +165,8 @@ export default function NewPerson({ personOptions, organisationOptions, onCreate
         
         const newSelected = [...form.getValues("OrganisationRelations"), { Id: id, Relation: "" } as RelatedEntry];
         form.setValue("OrganisationRelations", newSelected);
+        
+        form.trigger("OrganisationRelations");
         
         setCreateOrganisationOpen(false);
     }

@@ -143,6 +143,8 @@ export default function NewOrganisation({ organisationOptions, onCreate, contain
         const newSelected = [...form.getValues("OrganisationRelations"), { Id: id, Relation: "" } as RelatedEntry];
         form.setValue("OrganisationRelations", newSelected);
         
+        form.trigger("OrganisationRelations");
+        
         setCreateOrganisationOpen(false);
     }
 
