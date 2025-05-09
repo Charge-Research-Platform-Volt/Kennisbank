@@ -26,7 +26,7 @@ import { AddRelationsDialog } from "@/components/ui/add-relations-dialog"
 import { RegionCreateDto, RelatedEntry, RelatedEntrySchema, ResourceTypeCreateDto } from "@/types/uploadTypes"
 import CreateDialog from "./CreateDialog"
 import { TagCreateDto } from "@/types/tag.type"
-import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import NewPerson from "@/components/new/NewPerson"
 import NewOrganisation from "./NewOrganisation"
 import { useDrawerRerender } from "@/utils/useDrawerRerenderer"
@@ -323,7 +323,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                         <DrawerTitle>Create a new person</DrawerTitle>
                     </DrawerHeader>
                     <div className="flex-1 overflow-y-auto p-4">
-                        <NewPerson personOptions={persons} organisationOptions={organisations} onCreate={onPersonCreation} container={personDrawerRef.current} />
+                        <NewPerson personOptions={persons} organisationOptions={organisations} onCreate={onPersonCreation} container={personDrawerRef.current} updatePersons={setPersons} updateOrganisations={setOrganisations} />
                     </div>
                 </DrawerContent>
             </Drawer>
@@ -334,7 +334,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                         <DrawerTitle>Create a new organisation</DrawerTitle>
                     </DrawerHeader>
                     <div className="flex-1 overflow-y-auto p-4">
-                        <NewOrganisation organisationOptions={organisations} onCreate={onOrganisationCreation} container={organisationDrawerRef.current} />
+                        <NewOrganisation organisationOptions={organisations} onCreate={onOrganisationCreation} container={organisationDrawerRef.current} updateOrganisations={setOrganisations} />
                     </div>
                 </DrawerContent>
             </Drawer>

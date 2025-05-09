@@ -17,16 +17,19 @@ import { UploadWithDto } from "@/actions/uploadActions"
 import { useRouter } from "next/navigation"
 import { RequiredAstrix } from "@/components/ui/required-astrix"
 import { AddRelationsDialog } from "@/components/ui/add-relations-dialog"
-import { OrganisationCreateDto, OrganisationCreateDtoSchema } from "@/types/uploadTypes"
+import { OrganisationCreateDto, OrganisationCreateDtoSchema, RelatedEntry } from "@/types/uploadTypes"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
+import { useDrawerRerender } from "@/utils/useDrawerRerenderer"
 
 interface NewOrganisationProps 
 {
     organisationOptions: SelectOption[];
     onCreate?: (id: string, name: string) => void;
     container?: HTMLElement | null;
+    updateOrganisations?: (organisations: SelectOption[]) => void;
 }
 
-export default function NewOrganisation({ organisationOptions, onCreate, container = null}: NewOrganisationProps) 
+export default function NewOrganisation({ organisationOptions, onCreate, container = null, updateOrganisations}: NewOrganisationProps) 
 {
     // React states
     const [isChecking, setIsChecking] = React.useState<boolean>(false);
@@ -34,7 +37,16 @@ export default function NewOrganisation({ organisationOptions, onCreate, contain
     
     const [organisations, setOrganisations] = React.useState<SelectOption[]>(organisationOptions);
     
+    const [createOrganisationOpen, setCreateOrganisationOpen] = React.useState<boolean>(false);
+    
+    const organisationDrawerRef = React.useRef<HTMLDivElement>(null);
+    
     const router = useRouter();
+    
+    useDrawerRerender([createOrganisationOpen]);
+    
+    // Effect to do upstream synchronization of organisations
+    React.useEffect(() => { if (updateOrganisations) updateOrganisations(organisations); }, [organisations])
     
     // Define the form
     const form = useForm<z.infer<typeof OrganisationCreateDtoSchema>>(
@@ -104,9 +116,33 @@ export default function NewOrganisation({ organisationOptions, onCreate, contain
         else
             router.push('/');
     }
+    
+    // Handle organisation creation
+    async function onOrganisationCreation(id: string, name: string) 
+    {
+        const newOrganisations = [...organisations, { value: id, label: name } as SelectOption];
+        setOrganisations(newOrganisations);
+        
+        const newSelected = [...form.getValues("OrganisationRelations"), { Id: id, Relation: "" } as RelatedEntry];
+        form.setValue("OrganisationRelations", newSelected);
+        
+        setCreateOrganisationOpen(false);
+    }
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl mt-5">
+            {/* Create drawers */}
+            <Drawer open={createOrganisationOpen} onOpenChange={setCreateOrganisationOpen}>
+                <DrawerContent className="flex flex-col max-h-[90vh]" ref={organisationDrawerRef} forceMount>
+                    <DrawerHeader hidden={true}>
+                        <DrawerTitle>Create a new organisation</DrawerTitle>
+                    </DrawerHeader>
+                    <div className="flex-1 overflow-y-auto p-4">
+                        <NewOrganisation organisationOptions={organisations} onCreate={onOrganisationCreation} container={organisationDrawerRef.current} updateOrganisations={setOrganisations} />
+                    </div>
+                </DrawerContent>
+            </Drawer>
+            
             <h1 className="text-2xl tracking-tight text-gray-900 dark:text-gray-100 md:text-3xl lg:text-4xl mb-2">
                 Create a new organisation
             </h1>
@@ -172,7 +208,7 @@ export default function NewOrganisation({ organisationOptions, onCreate, contain
                         <FormItem>
                             <FormLabel>Related Organisations</FormLabel>
                             <FormControl>
-                                <AddRelationsDialog title="Define Relations" placeholder="Add related organisations..." options={organisations} emptyText="No organisations selected yet..." container={container} { ... field } />
+                                <AddRelationsDialog title="Define Relations" placeholder="Add related organisations..." options={organisations} emptyText="No organisations selected yet..." container={container} hasCreateButton={true} onCreateButton={() => setCreateOrganisationOpen(true)} { ... field } />
                             </FormControl>
                         </FormItem>
                     )} />

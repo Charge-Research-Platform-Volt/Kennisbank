@@ -43,10 +43,35 @@ export function Selection({
     const [open, setOpen] = React.useState(false);
     const [value, setValue] = React.useState<string | string[]>(externalValue ? externalValue : multiSelect ? [] : "");
     
+    const [selectedValues, setSelectedValues] = React.useState<SelectOption[]>([]);
+    const [unselectedValues, setUnselectedValues] = React.useState<SelectOption[]>(options);
+    
     React.useEffect(() => 
     {
         if (externalValue) setValue(externalValue);
     }, [externalValue]);
+    
+    React.useEffect(() => 
+    {
+        if (open) 
+        {
+            const selected: SelectOption[] = [];
+            const unselected: SelectOption[] = [];
+        
+            options.map((option) => 
+            {
+                const isSelected = multiSelect && Array.isArray(value) ? value.includes(option.value) : value === option.value;
+                
+                if (isSelected)
+                    selected.push(option);
+                else
+                    unselected.push(option);
+            });
+            
+            setSelectedValues(selected);
+            setUnselectedValues(unselected);
+        }
+    }, [open])
     
     function handleOnSelect(currentLabel: string) 
     {
@@ -148,9 +173,9 @@ export function Selection({
                         <CommandEmpty>Nothing found.</CommandEmpty>
                         <CommandGroup>
                             {
-                                options.map((option) => {
+                                selectedValues.map((option) => {
                                     const isSelected = multiSelect && Array.isArray(value) ? value.includes(option.value) : value === option.value;
-                                    
+                                
                                     return (
                                         <CommandItem key={option.label} value={option.label} onSelect={handleOnSelect}>
                                             <div className="flex items-center justify-between w-full">
@@ -158,6 +183,21 @@ export function Selection({
                                                 <Check className={cn("ml-2 h-4 w-4", isSelected ? "opacity-100" : "opacity-0")} />
                                             </div>
                                         </CommandItem> 
+                                    );
+                                })
+                            }
+                            {
+                                unselectedValues.map((option) => 
+                                {
+                                    const isSelected = multiSelect && Array.isArray(value) ? value.includes(option.value) : value === option.value;
+                                
+                                    return (
+                                        <CommandItem key={option.label} value={option.label} onSelect={handleOnSelect}>
+                                            <div className="flex items-center justify-between w-full">
+                                                {option.label}
+                                                <Check className={cn("ml-2 h-4 w-4", isSelected ? "opacity-100" : "opacity-0")} />
+                                            </div>
+                                        </CommandItem>
                                     );
                                 })
                             }

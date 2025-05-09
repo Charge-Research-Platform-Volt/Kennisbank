@@ -17,7 +17,10 @@ import { UploadWithDto } from "@/actions/uploadActions"
 import { useRouter } from "next/navigation"
 import { RequiredAstrix } from "@/components/ui/required-astrix"
 import { AddRelationsDialog } from "@/components/ui/add-relations-dialog"
-import { PersonCreateDto, PersonCreateDtoSchema } from "@/types/uploadTypes"
+import { PersonCreateDto, PersonCreateDtoSchema, RelatedEntry } from "@/types/uploadTypes"
+import NewOrganisation from "@/components/new/NewOrganisation"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
+import { useDrawerRerender } from "@/utils/useDrawerRerenderer"
 
 interface NewPersonProps 
 {
@@ -25,9 +28,11 @@ interface NewPersonProps
     organisationOptions: SelectOption[];
     onCreate?: (id: string, name: string) => void;
     container?: HTMLElement | null;
+    updatePersons?: (organisations: SelectOption[]) => void;
+    updateOrganisations?: (organisations: SelectOption[]) => void;
 }
 
-export default function NewPerson({ personOptions, organisationOptions, onCreate, container = null }: NewPersonProps) 
+export default function NewPerson({ personOptions, organisationOptions, onCreate, container = null, updatePersons, updateOrganisations }: NewPersonProps) 
 {
     // React states
     const [isChecking, setIsChecking] = React.useState<boolean>(false);
@@ -36,7 +41,19 @@ export default function NewPerson({ personOptions, organisationOptions, onCreate
     const [persons, setPersons] = React.useState<SelectOption[]>(personOptions);
     const [organisations, setOrganisations] = React.useState<SelectOption[]>(organisationOptions);
     
+    const [createPersonOpen, setCreatePersonOpen] = React.useState<boolean>(false);
+    const [createOrganisationOpen, setCreateOrganisationOpen] = React.useState<boolean>(false);
+    
+    const personDrawerRef = React.useRef<HTMLDivElement>(null);
+    const organisationDrawerRef = React.useRef<HTMLDivElement>(null);
+    
     const router = useRouter();
+    
+    useDrawerRerender([createPersonOpen, createOrganisationOpen]);
+    
+    // Effects to do upstream synchronization of the persons and organisations list
+    React.useEffect(() => { if (updatePersons) updatePersons(persons) }, [persons]);
+    React.useEffect(() => { if (updateOrganisations) updateOrganisations(organisations) }, [organisations]);
     
     // Define the form
     const form = useForm<z.infer<typeof PersonCreateDtoSchema>>(
@@ -108,9 +125,56 @@ export default function NewPerson({ personOptions, organisationOptions, onCreate
         else
             router.push('/');
     }
+    
+    // Handle person creation
+    async function onPersonCreation(id: string, name: string) 
+    {
+        const newPersons = [...persons, { value: id, label: name } as SelectOption];
+        setPersons(newPersons);
+        
+        const newSelected = [...form.getValues("PersonRelations"), { Id: id, Relation: "" } as RelatedEntry];
+        form.setValue("PersonRelations", newSelected);
+        
+        setCreatePersonOpen(false);
+    }
+    
+    // Handle organisation creation
+    async function onOrganisationCreation(id: string, name: string) 
+    {
+        const newOrganisations = [...organisations, { value: id, label: name } as SelectOption];
+        setOrganisations(newOrganisations);
+        
+        const newSelected = [...form.getValues("OrganisationRelations"), { Id: id, Relation: "" } as RelatedEntry];
+        form.setValue("OrganisationRelations", newSelected);
+        
+        setCreateOrganisationOpen(false);
+    }
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl mt-5">
+            {/* Create drawers */}
+            <Drawer open={createPersonOpen} onOpenChange={setCreatePersonOpen}>
+                <DrawerContent className="flex flex-col max-h-[90vh]" ref={personDrawerRef} forceMount>
+                    <DrawerHeader hidden={true}>
+                        <DrawerTitle>Create a new person</DrawerTitle>
+                    </DrawerHeader>
+                    <div className="flex-1 overflow-y-auto p-4">
+                        <NewPerson personOptions={persons} organisationOptions={organisations} onCreate={onPersonCreation} container={personDrawerRef.current} updatePersons={setPersons} updateOrganisations={setOrganisations} />
+                    </div>
+                </DrawerContent>
+            </Drawer>
+            
+            <Drawer open={createOrganisationOpen} onOpenChange={setCreateOrganisationOpen}>
+                <DrawerContent className="flex flex-col max-h-[90vh]" ref={organisationDrawerRef} forceMount>
+                    <DrawerHeader hidden={true}>
+                        <DrawerTitle>Create a new organisation</DrawerTitle>
+                    </DrawerHeader>
+                    <div className="flex-1 overflow-y-auto p-4">
+                        <NewOrganisation organisationOptions={organisations} onCreate={onOrganisationCreation} container={organisationDrawerRef.current} updateOrganisations={setOrganisations} />
+                    </div>
+                </DrawerContent>
+            </Drawer>
+            
             <h1 className="text-2xl tracking-tight text-gray-900 dark:text-gray-100 md:text-3xl lg:text-4xl mb-2">
                 Create a new person
             </h1>
@@ -186,7 +250,7 @@ export default function NewPerson({ personOptions, organisationOptions, onCreate
                         <FormItem>
                             <FormLabel>Related Persons</FormLabel>
                             <FormControl>
-                                <AddRelationsDialog title="Define Relations" placeholder="Add related persons..." options={persons} emptyText="No persons selected yet..." container={container} { ... field } />
+                                <AddRelationsDialog title="Define Relations" placeholder="Add related persons..." options={persons} emptyText="No persons selected yet..." container={container} hasCreateButton={true} onCreateButton={() => setCreatePersonOpen(true)} { ... field } />
                             </FormControl>
                         </FormItem>
                     )} />
@@ -196,7 +260,7 @@ export default function NewPerson({ personOptions, organisationOptions, onCreate
                         <FormItem>
                             <FormLabel>Related Organisations</FormLabel>
                             <FormControl>
-                                <AddRelationsDialog title="Define Relations" placeholder="Add related organisations..." options={organisations} emptyText="No organisations selected yet..." container={container} { ... field } />
+                                <AddRelationsDialog title="Define Relations" placeholder="Add related organisations..." options={organisations} emptyText="No organisations selected yet..." container={container} hasCreateButton={true} onCreateButton={() => setCreateOrganisationOpen(true)} { ... field } />
                             </FormControl>
                         </FormItem>
                     )} />
