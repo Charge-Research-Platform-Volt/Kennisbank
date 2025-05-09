@@ -20,6 +20,8 @@ import { AddRelationsDialog } from "@/components/ui/add-relations-dialog"
 import { OrganisationCreateDto, OrganisationCreateDtoSchema, RelatedEntry } from "@/types/uploadTypes"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { useDrawerRerender } from "@/utils/useDrawerRerenderer"
+import { useFormHasValues } from "@/hooks/useFormNonDefaultValues"
+import { useTabsContext } from "@/context/tabs-context"
 
 interface NewOrganisationProps 
 {
@@ -27,9 +29,10 @@ interface NewOrganisationProps
     onCreate?: (id: string, name: string) => void;
     container?: HTMLElement | null;
     updateOrganisations?: (organisations: SelectOption[]) => void;
+    useUnsavedDialog?: boolean;
 }
 
-export default function NewOrganisation({ organisationOptions, onCreate, container = null, updateOrganisations}: NewOrganisationProps) 
+export default function NewOrganisation({ organisationOptions, onCreate, container = null, updateOrganisations, useUnsavedDialog = true }: NewOrganisationProps) 
 {
     // React states
     const [isChecking, setIsChecking] = React.useState<boolean>(false);
@@ -61,6 +64,20 @@ export default function NewOrganisation({ organisationOptions, onCreate, contain
             OrganisationRelations: [],
         },
     });
+    
+    if (useUnsavedDialog) 
+    {
+        // Use formHasValues hook to detect if any fields are filled in the form
+        // Use the tabsContext hook to display a dialog when some fields are filled
+        // And the user tries to navigate
+        const formHasValues = useFormHasValues(form);
+        const { setFormChanged } = useTabsContext();
+
+        // Use an effect to call the tabsContext function
+        React.useEffect(() => {
+            setFormChanged(formHasValues);
+        }, [formHasValues]);
+    }
     
     // Handle name changing
     async function onNameChange(name: string) 
@@ -138,7 +155,7 @@ export default function NewOrganisation({ organisationOptions, onCreate, contain
                         <DrawerTitle>Create a new organisation</DrawerTitle>
                     </DrawerHeader>
                     <div className="flex-1 overflow-y-auto p-4">
-                        <NewOrganisation organisationOptions={organisations} onCreate={onOrganisationCreation} container={organisationDrawerRef.current} updateOrganisations={setOrganisations} />
+                        <NewOrganisation organisationOptions={organisations} onCreate={onOrganisationCreation} container={organisationDrawerRef.current} updateOrganisations={setOrganisations} useUnsavedDialog={false} />
                     </div>
                 </DrawerContent>
             </Drawer>

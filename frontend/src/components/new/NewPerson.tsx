@@ -21,6 +21,8 @@ import { PersonCreateDto, PersonCreateDtoSchema, RelatedEntry } from "@/types/up
 import NewOrganisation from "@/components/new/NewOrganisation"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { useDrawerRerender } from "@/utils/useDrawerRerenderer"
+import { useFormHasValues } from "@/hooks/useFormNonDefaultValues"
+import { useTabsContext } from "@/context/tabs-context"
 
 interface NewPersonProps 
 {
@@ -30,9 +32,10 @@ interface NewPersonProps
     container?: HTMLElement | null;
     updatePersons?: (organisations: SelectOption[]) => void;
     updateOrganisations?: (organisations: SelectOption[]) => void;
+    useUnsavedDialog?: boolean;
 }
 
-export default function NewPerson({ personOptions, organisationOptions, onCreate, container = null, updatePersons, updateOrganisations }: NewPersonProps) 
+export default function NewPerson({ personOptions, organisationOptions, onCreate, container = null, updatePersons, updateOrganisations, useUnsavedDialog = true }: NewPersonProps) 
 {
     // React states
     const [isChecking, setIsChecking] = React.useState<boolean>(false);
@@ -70,6 +73,20 @@ export default function NewPerson({ personOptions, organisationOptions, onCreate
             PersonRelations: [],
         },
     });
+    
+    if (useUnsavedDialog) 
+    {
+        // Use formHasValues hook to detect if any fields are filled in the form
+        // Use the tabsContext hook to display a dialog when some fields are filled
+        // And the user tries to navigate
+        const formHasValues = useFormHasValues(form);
+        const { setFormChanged } = useTabsContext();
+
+        // Use an effect to call the tabsContext function
+        React.useEffect(() => {
+            setFormChanged(formHasValues);
+        }, [formHasValues]);
+    }
     
     // Handle name changing
     async function onNameChange(name: string) 
@@ -159,7 +176,7 @@ export default function NewPerson({ personOptions, organisationOptions, onCreate
                         <DrawerTitle>Create a new person</DrawerTitle>
                     </DrawerHeader>
                     <div className="flex-1 overflow-y-auto p-4">
-                        <NewPerson personOptions={persons} organisationOptions={organisations} onCreate={onPersonCreation} container={personDrawerRef.current} updatePersons={setPersons} updateOrganisations={setOrganisations} />
+                        <NewPerson personOptions={persons} organisationOptions={organisations} onCreate={onPersonCreation} container={personDrawerRef.current} updatePersons={setPersons} updateOrganisations={setOrganisations} useUnsavedDialog={false} />
                     </div>
                 </DrawerContent>
             </Drawer>
@@ -170,7 +187,7 @@ export default function NewPerson({ personOptions, organisationOptions, onCreate
                         <DrawerTitle>Create a new organisation</DrawerTitle>
                     </DrawerHeader>
                     <div className="flex-1 overflow-y-auto p-4">
-                        <NewOrganisation organisationOptions={organisations} onCreate={onOrganisationCreation} container={organisationDrawerRef.current} updateOrganisations={setOrganisations} />
+                        <NewOrganisation organisationOptions={organisations} onCreate={onOrganisationCreation} container={organisationDrawerRef.current} updateOrganisations={setOrganisations} useUnsavedDialog={false} />
                     </div>
                 </DrawerContent>
             </Drawer>

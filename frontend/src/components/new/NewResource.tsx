@@ -30,6 +30,9 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/u
 import NewPerson from "@/components/new/NewPerson"
 import NewOrganisation from "./NewOrganisation"
 import { useDrawerRerender } from "@/utils/useDrawerRerenderer"
+import { useTabsContext } from "@/context/tabs-context"
+import { useFormHasValues } from "@/hooks/useFormNonDefaultValues"
+import { getRandomValues } from "crypto"
 
 // Define upload types
 const UploadTypeEnum = z.enum(["document", "website", "audio", "video"])
@@ -71,9 +74,10 @@ interface NewResourceProps
     resourceTypeOptions: SelectOption[];
     tagOptions: SelectOption[];
     regionOptions: SelectOption[];
+    useUnsavedDialog?: boolean;
 }
 
-export default function NewResource({ personOptions, organisationOptions, resourceTypeOptions, tagOptions, regionOptions }: NewResourceProps) 
+export default function NewResource({ personOptions, organisationOptions, resourceTypeOptions, tagOptions, regionOptions, useUnsavedDialog = true }: NewResourceProps) 
 {
     // React states
     const [uploadType, setUploadType] = React.useState<z.infer<typeof UploadTypeEnum>>("document");
@@ -128,6 +132,30 @@ export default function NewResource({ personOptions, organisationOptions, resour
             relatedPersons: [],
         },
     });
+    
+    const formConfig = {
+        ignoredFields: ['uploadType', 'hash'],
+        placeholders: {
+            url: urlDefault,
+            file: fileDefault,
+            title: "",
+            description: ""
+        }
+    };
+
+    if (useUnsavedDialog) 
+    {
+        // Use formHasValues hook to detect if any fields are filled in the form
+        // Use the tabsContext hook to display a dialog when some fields are filled
+        // And the user tries to navigate
+        const formHasValues = useFormHasValues(form, formConfig);
+        const { setFormChanged } = useTabsContext();
+
+        // Use an effect to call the tabsContext function
+        React.useEffect(() => {
+            setFormChanged(formHasValues);
+        }, [formHasValues]);
+    }
     
     // Effect for uploadType
     React.useEffect(() => 
@@ -330,7 +358,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                         <DrawerTitle>Create a new person</DrawerTitle>
                     </DrawerHeader>
                     <div className="flex-1 overflow-y-auto p-4">
-                        <NewPerson personOptions={persons} organisationOptions={organisations} onCreate={onPersonCreation} container={personDrawerRef.current} updatePersons={setPersons} updateOrganisations={setOrganisations} />
+                        <NewPerson personOptions={persons} organisationOptions={organisations} onCreate={onPersonCreation} container={personDrawerRef.current} updatePersons={setPersons} updateOrganisations={setOrganisations} useUnsavedDialog={false} />
                     </div>
                 </DrawerContent>
             </Drawer>
@@ -341,7 +369,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                         <DrawerTitle>Create a new organisation</DrawerTitle>
                     </DrawerHeader>
                     <div className="flex-1 overflow-y-auto p-4">
-                        <NewOrganisation organisationOptions={organisations} onCreate={onOrganisationCreation} container={organisationDrawerRef.current} updateOrganisations={setOrganisations} />
+                        <NewOrganisation organisationOptions={organisations} onCreate={onOrganisationCreation} container={organisationDrawerRef.current} updateOrganisations={setOrganisations} useUnsavedDialog={false} />
                     </div>
                 </DrawerContent>
             </Drawer>

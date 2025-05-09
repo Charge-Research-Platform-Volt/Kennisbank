@@ -1,4 +1,5 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { FormTabs, FormTabsTrigger } from "@/components/ui/form-tabs"
+import { TabsContent, TabsList } from "@/components/ui/tabs"
 import NewResource from "@/components/new/NewResource"
 import NewPerson from "@/components/new/NewPerson"
 import NewOrganisation from "@/components/new/NewOrganisation";
@@ -120,15 +121,15 @@ export default async function NewPage()
 
 
     return (
-        <Tabs defaultValue="resource" className="w-full">
+        <FormTabs defaultValue="resource" className="w-full">
             <TabsList>
-                <TabsTrigger value="resource">Resource</TabsTrigger>
-                <TabsTrigger value="person">Person</TabsTrigger>
-                <TabsTrigger value="organisation">Organisation</TabsTrigger>
+                <FormTabsTrigger value="resource">Resource</FormTabsTrigger>
+                <FormTabsTrigger value="person">Person</FormTabsTrigger>
+                <FormTabsTrigger value="organisation">Organisation</FormTabsTrigger>
             </TabsList>
             <TabsContent value="resource"><NewResource personOptions={personsOptions} organisationOptions={organisationOptions} resourceTypeOptions={typesOptions} tagOptions={tagOptions} regionOptions={regionOptions} /></TabsContent>
             <TabsContent value="person"><NewPerson personOptions={personsOptions} organisationOptions={organisationOptions} /></TabsContent>
             <TabsContent value="organisation"><NewOrganisation organisationOptions={organisationOptions} /></TabsContent>
-        </Tabs>
+        </FormTabs>
     );
 }
