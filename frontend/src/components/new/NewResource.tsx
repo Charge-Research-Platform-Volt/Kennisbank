@@ -32,10 +32,9 @@ import NewOrganisation from "./NewOrganisation"
 import { useDrawerRerender } from "@/utils/useDrawerRerenderer"
 import { useTabsContext } from "@/context/tabs-context"
 import { useFormHasValues } from "@/hooks/useFormNonDefaultValues"
-import { getRandomValues } from "crypto"
 
 // Define upload types
-const UploadTypeEnum = z.enum(["document", "website", "audio", "video"])
+export const UploadTypeEnum = z.enum(["document", "website", "audio", "video"])
 
 // Define constants
 const urlDefault = "http://no.url/"
