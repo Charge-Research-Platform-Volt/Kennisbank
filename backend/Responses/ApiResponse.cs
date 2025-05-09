@@ -21,10 +21,10 @@ public class ApiResponse
         this.Message = message;
     }
     
-    public ApiResponse(bool success, string message, object data) 
+    public ApiResponse(bool success, string message, object body) 
     {
         this.Success = success;
         this.Message = message;
-        this.Body = data;
+        this.Body = body;
     }
 }

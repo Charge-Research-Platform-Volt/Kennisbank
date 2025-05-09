@@ -65,6 +65,7 @@ public class RegionsControllerTests : TestBase
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Region created successfully"));
         Assert.That(response.Body, Is.Not.Null);
+        Assert.That(response.Body, Is.Not.Null);
         
         // Deserialize the response's data, extract ID
         Guid regionId = (Guid)response.Body;

@@ -29,7 +29,7 @@ export default function FilterPopup({ isVisible, onApplyAction, className }: { i
                     <>
                         <InputHeader>Published between:</InputHeader>
                         <DateFilterSlider setStartYearAction={setStartYear} setEndYearAction={setEndYear} className="w-[450px] mt-[10px]" />
-                        <TagSelectionDropdown onSelectionChangedAction={setTagFilters} createButton={false} tags={tags} />
+                        <TagSelectionDropdown onSelectionChangedAction={setTagFilters} createButton={false} />
                         <div className="flex justify-end mt-[10px]">
                             <Button onClick={() => onApplyAction(tagFilters, startYear, endYear)}>Apply</Button>
                         </div>

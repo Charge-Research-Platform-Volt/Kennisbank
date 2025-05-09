@@ -7,7 +7,7 @@
         "build": "next build",
         "start": "next start",
         "lint": "next lint",
-        "build:docs": "node ./scripts/generate-docs.mjs"
+        "build:docs": "node ./scripts/generate-docs.mjs && node ./scripts/generate-frontend-docs.mjs"
     },
     "dependencies": {
         "@radix-ui/react-collapsible": "^1.1.4",
@@ -27,7 +27,8 @@
         "rimraf": "^6.0.1",
         "shiki": "^3.1.0",
         "tailwind-merge": "^3.0.2",
-        "tailwindcss-animate": "^1.0.7"
+        "tailwindcss-animate": "^1.0.7",
+        "typedoc-plugin-markdown": "^4.0.0-next.60"
     },
     "devDependencies": {
         "@eslint/eslintrc": "^3",
