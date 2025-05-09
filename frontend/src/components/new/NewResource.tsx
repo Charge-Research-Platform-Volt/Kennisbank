@@ -228,7 +228,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
     }
     
     // Function to be called when form is submitted
-    async function onSubmit(values: z.infer<typeof resourceCreateFormSchema>) 
+    async function onValidSubmit(values: z.infer<typeof resourceCreateFormSchema>) 
     {
         // Disable the submit button
         setIsChecking(true);
@@ -237,6 +237,13 @@ export default function NewResource({ personOptions, organisationOptions, resour
         toast.info(`Resource uploaded succesfully with ID '${id}'`);
         
         router.push('/');
+    }
+    
+    // Function to be called when invalid form is submitted
+    async function onInvalidSubmit() 
+    {
+        // Show a toast
+        toast.error("Some fields require attention");
     }
     
     // Handle tag creation
@@ -346,7 +353,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
             <hr className="mb-4" />
             
             <Form { ... form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <form onSubmit={form.handleSubmit(onValidSubmit, onInvalidSubmit)} className="space-y-6">
                     
                     <div className="flex flex-col sm:flex-row gap-2">
                         <Select onValueChange={(value) => setUploadType(value as z.infer<typeof UploadTypeEnum>)} value={uploadType}>
