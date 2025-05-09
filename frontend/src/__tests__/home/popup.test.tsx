@@ -7,7 +7,7 @@ import { AddUserTag, fetchTagSearch } from '@/actions/tagActions'
 
 // Mock fetchTagSearch and addusertag once for all tests
 vi.mock('@/actions/tagActions', () => ({
-    fetchTagSearch: vi.fn(),
+    fetchTagSearch: vi.fn(() => Promise.resolve(testTags)),
     AddUserTag: vi.fn()
   }));
 
@@ -90,7 +90,7 @@ describe('popup', () => {
 
     test('The tag selection dropdown works as expected', async() => {
 
-        const mockedSearch = vi.mocked(fetchTagSearch).mockResolvedValue({ message: "1 tag found.", success: true, pageIndex: 1, pageSize: 10, pageCount: 1, tags: testTags });
+        const mockedSearch = vi.mocked(fetchTagSearch).mockResolvedValue({ message: "1 tag found.", success: true, body: {pageIndex: 1, pageSize: 10, pageCount: 1, tags: testTags }});
 
         // RENDER DROPDOWNBOX
         render(<TagSelectionDropdown className="test"></TagSelectionDropdown>);

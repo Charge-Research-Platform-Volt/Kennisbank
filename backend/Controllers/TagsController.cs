@@ -45,10 +45,10 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             if (filterOptions.UsePaging)
             {
                 if (filterOptions.PageIndex < 1)
-                    return BadRequest(new { message = "Page index cannot be lower than 1." });
+                    return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1."));
 
                 if (filterOptions.PageSize < 1)
-                    return BadRequest(new { message = "Page size cannot be lower than 1." });
+                    return BadRequest(new ApiResponse(false, "PAge size cannot be lower than 1."));
             }
 
             // Build the predicate based on filter parameters
@@ -77,9 +77,11 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             if (tags == null || tags.Length == 0)
             {
                 if(filterOptions.UsePaging && filterOptions.PageIndex > 1)
-                    return BadRequest(new { message = "The page index is invalid." });
-                else
-                    return Ok(new TagPageResponse("No tags found.", new Tag[0]));            }
+                    return BadRequest(new ApiResponse(false, "The page index is invalid"));
+                else{
+                    Log.Debug("test");
+                    return Ok(new ApiResponse(true, "No tags found", new TagPageResponse([])));            }
+                }
 
             // Set the UsageCount property for each tag if IncludeUsageCount is true
             if (filterOptions.IncludeUsageCount)
@@ -90,7 +92,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                     tag.UsageCount = tag.ResourceTagRelations?.Count ?? 0;
                 }
             }
-            
+
             // Set the CanEditAndDelete property for each tag if IncludeCanEditAndDelete is true
             if (filterOptions.IncludeCanEditAndDelete)
             {
@@ -123,192 +125,15 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                 // calculate the total number of tags
                 int totalCount = await resourceManager.TagCountAsync(predicate);
                 int pageCount = (int)Math.Ceiling((double)totalCount/filterOptions.PageSize);
-                return Ok(new TagPageResponse($"{tags.Length} tags found.", tags, filterOptions.PageIndex, filterOptions.PageSize, pageCount));
+                return Ok(new ApiResponse(true, $"{tags.Length} tags found.", new TagPageResponse(tags, filterOptions.PageIndex, filterOptions.PageSize, pageCount)));
             }
-            return Ok(new TagPageResponse($"{tags.Length} tags found.", tags));
+            return Ok(new ApiResponse(true, $"{tags.Length} tags found.", new TagPageResponse(tags)));
 
         }
         catch (Exception e)
         {
             Log.Error(e, "Failed to retrieve tags");
-            return StatusCode(500, new { message = "Internal server error" });
-        }
-    }
-
-    /// <summary>
-    /// Retrieves all tags from the drive.
-    /// </summary>
-    /// <returns>
-    /// Returns a 200 OK response containing a list of all tags.
-    /// </returns>
-    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
-    [HttpGet("all-tags")]
-    [SwaggerOperation(
-            Summary = "List all tags.",
-            Description = "List all tags."
-        )]
-    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
-    [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> GetAll()
-    {
-        try
-        {
-            return Ok(await resourceManager.GetAllTagsAsync());
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "Failed to retrieve tags");
-            return StatusCode(500, new { message = "Internal server error" });
-        }
-    }
-    
-    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
-    [HttpGet("tag-page")]
-    [SwaggerOperation(Summary = "List all tags paged.", Description = "List all tags paged.")]
-    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
-    [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> GetAllPaged(int pageIndex = 1, int pageSize = 100, string? searchQuery = null)
-    {
-        try
-        {
-            if (pageIndex < 1)
-                return BadRequest(new { message = "Page index cannot be lower than 1." });
-
-            if(pageSize < 1)
-                return BadRequest(new { message = "Page size cannot be lower than 1." });
-
-            Tag[] tags;
-            // If there is a query, return the tag page that match that query and the index
-            if(!string.IsNullOrEmpty(searchQuery))
-            {
-                tags = await resourceManager.GetTagPageAsync(
-                    pageIndex: pageIndex, 
-                    pageSize: pageSize, 
-                    predicate: t => t.Name.ToLower().Contains(searchQuery.ToLower())
-                );
-            }
-
-            // Otherwise page normally
-            else
-            {
-                tags = await resourceManager.GetTagPageAsync(
-                    pageIndex: pageIndex,
-                    pageSize: pageSize
-                );
-            }
-
-            // Get the total amount of tags and pages
-            int totalTags = (await resourceManager.GetAllTagsAsync()).Length; 
-            int pageCount = (int)Math.Ceiling((double)totalTags / pageSize);
-            
-            // If no tags are returned, put in the message that no tags are found
-            if(tags == null)
-                return Ok(new TagPageResponse("No tags on this page.", Array.Empty<Tag>(), pageIndex, pageSize, pageCount));
-            
-            return Ok(new TagPageResponse($"{tags.Length} tags found", tags, pageIndex, pageSize, pageCount));
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "Failed to retrieve tag page");
-            return StatusCode(500, new { message = "Internal server error" });
-        }
-    }
-
-    /// <summary>
-    /// Retrieves all standardized tags from the drive.
-    /// </summary>
-    /// <returns>
-    /// Returns a 200 OK response containing a list of all tags.
-    /// </returns>
-    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
-    [HttpGet("all-standard-tags")]
-    [SwaggerOperation(
-            Summary = "List all standardized tags.",
-            Description = "List all standardizedtags."
-        )]
-    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
-    [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> GetAllStandardized()
-    {
-        try
-        {
-            return Ok(await resourceManager.GetAllTagsAsync(predicate: t => t.IsStandardized));
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "Failed to retrieve tags");
-            return StatusCode(500, new { message = "Internal server error" });
-        }
-    }
-
-    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
-    [HttpGet("standard-tag-page")]
-    [SwaggerOperation(Summary = "List all standardized tags paged.", Description = "List all standardized tags paged.")]
-    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
-    [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> GetAllStandardizedPaged(int pageIndex = 1, int pageSize = 100)
-    {
-        try
-        {
-            return Ok(await resourceManager.GetTagPageAsync(
-                pageIndex: pageIndex,
-                pageSize: pageSize,
-                predicate: t => t.IsStandardized
-            ));
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "Failed to retrieve standardized tag page");
-            return StatusCode(500, new { message = "Internal server error" });
-        }
-    }
-
-    /// <summary>
-    /// Retrieves all standardized tags from the drive.
-    /// </summary>
-    /// <returns>
-    /// Returns a 200 OK response containing a list of all tags.
-    /// </returns>
-    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
-    [HttpGet("all-user-tags")]
-    [SwaggerOperation(
-            Summary = "List all user tags.",
-            Description = "List all user tags."
-        )]
-    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
-    [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> GetAllUser()
-    {
-        try
-        {
-            return Ok(await resourceManager.GetAllTagsAsync(predicate: t => !t.IsStandardized));
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "Failed to retrieve user tags");
-            return StatusCode(500, new { message = "Internal server error" });
-        }
-    }
-
-    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
-    [HttpGet("user-tag-page")]
-    [SwaggerOperation(Summary = "List all user tags paged.", Description = "List all user tags paged.")]
-    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
-    [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> GetAllUserPaged(int pageIndex = 1, int pageSize = 100)
-    {
-        try
-        {
-            return Ok(await resourceManager.GetTagPageAsync(
-                pageIndex: pageIndex,
-                pageSize: pageSize,
-                predicate: t => !t.IsStandardized
-            ));
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "Failed to retrieve standardized tag page");
-            return StatusCode(500, new { message = "Internal server error" });
+            return StatusCode(500, new ApiResponse(false, "Internal server error"));
         }
     }
 
@@ -337,12 +162,12 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         if (string.IsNullOrEmpty(dto.Name))
         {
             Log.Error("Name is required");
-            return BadRequest(new { message = "Name is required" });
+            return BadRequest(new ApiResponse(false, "Name is required"));
         }
 
         if(dto.Name.Length > 50){
             Log.Error("Tag is too long");
-            return BadRequest(new { message = "Tag is too long" }); 
+            return BadRequest(new ApiResponse(false, "Tag is too long" )); 
         }
 
         // Check if the tag already exists in the UserTags table
@@ -351,7 +176,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         if (tagExists)
         {
             Log.Error("Tag already exists.");
-            return Conflict(new { message = "Tag already exists." });
+            return Conflict(new ApiResponse(false, "Tag already exists." ));
         }
 
         // Add the tag
@@ -366,19 +191,19 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
 
             // Adding the tag was successful
             Log.Information("New tag added to tag list.");
-            return Ok(new { message = "Tag added successfully.", tagId });
+            return Ok(new ApiResponse(true, "Tag added successfully.", tagId ));
         }
         catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
         {
             // The tag already exists
             Log.Error(e, "Tag already exists.");
-            return Conflict(new { message = "Tag already exists." });
+            return Conflict(new ApiResponse(false, "Tag already exists."));
         }
         catch (Exception e)
         {
             // Something else went wrong
             Log.Error(e, "Failed to add tag.");
-            return StatusCode(500, new { message = "Internal server error" });
+            return StatusCode(500, new ApiResponse(false, "Internal server error"));
         }
     }
 
@@ -405,12 +230,12 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         if (string.IsNullOrEmpty(dto.Name))
         {
             Log.Error("Name is required");
-            return BadRequest(new { message = "Name is required" });
+            return BadRequest(new ApiResponse(false, "Name is required"));
         }
 
         if(dto.Name.Length > 50){
             Log.Error("Tag is too long");
-            return BadRequest(new { message = "Tag is too long" }); 
+            return BadRequest(new ApiResponse(false, "Tag is too long")); 
         }
 
         // Check if the tag already exists in the UserTags table
@@ -419,7 +244,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         if (tagExists)
         {
             Log.Error("Tag already exists..");
-            return Conflict(new { message = "Tag already exists." });
+            return Conflict(new ApiResponse(false, "Tag already exists."));
         }
 
         // Add the tag
@@ -434,19 +259,19 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
 
             // Adding the tag was successful
             Log.Information("New tag added to tag list.");
-            return Ok(new { message = "Tag added successfully.", tagId });
+            return Ok(new ApiResponse(true, "Tag added successfully.", tagId));
         }
         catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
         {
             // The tag already exists
             Log.Error(e, "Tag already exists.");
-            return Conflict(new { message = "Tag already exists." });
+            return Conflict(new ApiResponse(false, "Tag already exists."));
         }
         catch (Exception e)
         {
             // Something else went wrong
             Log.Error(e, "Failed to add tag.");
-            return StatusCode(500, new { message = "Internal server error" });
+            return StatusCode(500, new ApiResponse(false, "Internal server error"));
         }
     }
 
@@ -478,7 +303,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             if (id == null)
             {
                 Log.Error("Id is required");
-                return BadRequest(new { message = "Id is required" });
+                return BadRequest(new ApiResponse(false, "Id is required"));
             }
             
             // Get the GUID of the user
@@ -491,7 +316,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             if (tag == null)
             {
                 Log.Error("Tag not found.");
-                return NotFound(new { message = "Tag not found."});
+                return NotFound(new ApiResponse(false, "Tag not found."));
             }
             
             // Get the resource-tag relations count
@@ -501,19 +326,19 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             if (!userIsAdmin && (tag.CreatedBy != userId || relationCount != 0)) 
             {
                 Log.Warning("User {UserId} attempted to delete {TagId} without permissions.", userId, id);
-                return StatusCode(403, new { message = "User cannot delete this tag." });
+                return StatusCode(403, new ApiResponse(false, "User cannot delete this tag." ));
             }
             
             if (await resourceManager.DeleteTagAsync(id))
-                return Ok(new { message = "Tag deleted." });
+                return Ok(new ApiResponse(true, "Tag deleted."));
                 
             Log.Error("Failed to delete tag.");
-            return StatusCode(500, "Internal server error.");
+            return StatusCode(500, new ApiResponse(false, "Internal server error."));
         }
         catch (Exception e)
         {
             Log.Error(e, "Error deleting tag {TagId}", id);
-            return StatusCode(500, "Internal server error.");
+            return StatusCode(500, new ApiResponse(false, "Internal server error."));
         }
     }
 
@@ -545,13 +370,13 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         if (string.IsNullOrEmpty(id))
         {
             Log.Error("Id is required");
-            return BadRequest(new { message = "Id is required" });
+            return BadRequest(new ApiResponse(false, "Id is required"));
         }
 
         if (string.IsNullOrEmpty(newName))
         {
             Log.Error("New name is required");
-            return BadRequest(new { message = "New name is required" });
+            return BadRequest(new ApiResponse(false, "New name is required"));
         }
 
         //Change tag name
@@ -567,7 +392,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             if (tag == null)
             {
                 Log.Error("Tag not found.");
-                return NotFound(new { message = "Tag not found."});
+                return NotFound(new ApiResponse(false, "Tag not found."));
             }
             
             // Get the resource-tag relations count
@@ -577,28 +402,28 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             if (!userIsAdmin && (tag.CreatedBy != userId || relationCount != 0)) 
             {
                 Log.Warning("User {UserId} attempted to edit {TagId} without permissions.", userId, id);
-                return StatusCode(403, new { message = "User cannot edit this tag." });
+                return StatusCode(403, new ApiResponse(false, "User cannot edit this tag."));
             }
         
             if (await resourceManager.TagExistsAsync(t => t.Name == newName))
             {
                 Log.Error("Tag already exists.");
-                return Conflict(new { message = "Tag already exists." });
+                return Conflict(new ApiResponse(false, "Tag already exists."));
             }
 
             if (!await resourceManager.UpdateTagAsync(id, t => t.Name, newName))
             {
                 Log.Error("Tag not found.");
-                return NotFound(new { message = "Tag not found." });
+                return NotFound(new ApiResponse(false, "Tag not found." ));
             }
 
-            return Ok(new { message = "Tag name changed." });
+            return Ok(new ApiResponse(true, "Tag name changed."));
         }
         catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
         {
             // The tag already exists
             Log.Error(e, "Tag already exists.");
-            return Conflict(new { message = "New tag name already exists." });
+            return Conflict(new ApiResponse(false, "New tag name already exists."));
         }
     }
 
@@ -610,12 +435,14 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> ApproveTag(string id)
     {
-        if (string.IsNullOrEmpty(id)) return BadRequest(new { message = "ID is required." });
+        if (string.IsNullOrEmpty(id))
+            return BadRequest(new ApiResponse(false, "ID is required."));
 
         try
         {
             // Check if tag exists
-            if (!await resourceManager.TagExistsAsync(id)) return NotFound(new { message = "Tag was not found." });
+            if (!await resourceManager.TagExistsAsync(id))
+                return NotFound(new ApiResponse(false, "Tag was not found." ));
 
             await resourceManager.UpdateTagAsync(id, t => t.IsApproved, true);
             await resourceManager.UpdateTagAsync(id, t => t.ApprovedOn, DateTime.UtcNow);
@@ -624,12 +451,12 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             if (userId != null)
                 await resourceManager.UpdateTagAsync(id, t => t.ApprovedBy, Guid.Parse(userId));
 
-            return Ok(new { message = "Tag was approved" });
+            return Ok(new ApiResponse(true, "Tag was approved"));
         }
         catch (Exception e)
         {
             Log.Error(e, "Error approving tag {TagId}", id);
-            return StatusCode(500, "Internal Server Error");
+            return StatusCode(500, new ApiResponse(false, "Internal Server Error"));
         }
     }
 
@@ -641,21 +468,23 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> MakeStandardized(string id)
     {
-        if (string.IsNullOrEmpty(id)) return BadRequest(new { message = "ID is required." });
+        if (string.IsNullOrEmpty(id))
+            return BadRequest(new ApiResponse(false, "ID is required." ));
 
         try
         {
             // Check if tag exists
-            if (!await resourceManager.TagExistsAsync(id)) return NotFound(new { message = "Tag was not found." });
+            if (!await resourceManager.TagExistsAsync(id))
+                return NotFound(new ApiResponse(false, "Tag was not found." ));
 
             await resourceManager.UpdateTagAsync(id, t => t.IsStandardized, true);
 
-            return Ok(new { message = "Tag was standardized" });
+            return Ok(new ApiResponse(true, "Tag was standardized"));
         }
         catch (Exception e)
         {
             Log.Error(e, "Error approving tag {TagId}", id);
-            return StatusCode(500, "Internal Server Error");
+            return StatusCode(500, new ApiResponse(false, "Internal Server Error"));
         }
     }
     
@@ -679,22 +508,20 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     public async Task<IActionResult> Merge(string id1, string id2) 
     {
         // Validate input parameters
-        Log.Debug(id1);
-        Log.Debug(id2);
         if (string.IsNullOrEmpty(id1) || string.IsNullOrEmpty(id2)) 
-            return BadRequest(new { message = "IDs are required." });
+            return BadRequest(new ApiResponse(false, "IDs are required." ));
             
         if (id1 == id2)
-            return BadRequest(new { message = "Cannot merge a tag with itself." });
+            return BadRequest(new ApiResponse(false, "Cannot merge a tag with itself." ));
             
         if (!Guid.TryParse(id1, out Guid tagId1) || !Guid.TryParse(id2, out Guid tagId2))
-            return BadRequest(new { message = "Invalid tag ID format." });
+            return BadRequest(new ApiResponse(false, "Invalid tag ID format." ));
         
         try 
         {
             // Check if both tags exist
             if (!await resourceManager.TagExistsAsync(id1) || !await resourceManager.TagExistsAsync(id2)) 
-                return NotFound(new { message = "One or both tags were not found." });
+                return NotFound(new ApiResponse(false, "One or both tags were not found." ));
 
             await resourceManager.BeginTransaction();
             
@@ -723,12 +550,12 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             {
                 await resourceManager.Rollback();
                 Log.Error("Failed to delete tag {TagId2} during merge", id2);
-                return StatusCode(500, new { message = "Failed to delete old tag during merge." });
+                return StatusCode(500, new ApiResponse(false, "Failed to delete old tag during merge."));
             }
             
             // Commit the changes made
             await resourceManager.Commit();
-            return Ok(new { message = "Tags merged successfully." });
+            return Ok(new ApiResponse(true, "Tags merged successfully."));
         }
         catch (Exception e) 
         {
@@ -736,10 +563,9 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             await resourceManager.Rollback();
         
             Log.Error(e, "Error merging tags {TagId1} and {TagId2}", id1, id2);
-            return StatusCode(500, new { message = "Internal Server Error" });
+            return StatusCode(500, new ApiResponse(false, "Internal Server Error"));
         }
     }
-    
     
     #region Helper Methods
     
@@ -818,6 +644,186 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         return predicate;
     }
     
+    #endregion
+
+    #region Obsolete methods
+
+    /// <summary>
+    /// Retrieves all tags from the drive.
+    /// </summary>
+    /// <returns>
+    /// Returns a 200 OK response containing a list of all tags.
+    /// </returns>
+    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
+    [HttpGet("all-tags")]
+    [SwaggerOperation(
+            Summary = "List all tags.",
+            Description = "List all tags."
+        )]
+    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetAll()
+    {
+        try
+        {
+            return Ok(new ApiResponse(true, "Tags found", await resourceManager.GetAllTagsAsync()));
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to retrieve tags");
+            return StatusCode(500, new ApiResponse(false, "Internal server error"));
+        }
+    }
+    
+    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
+    [HttpGet("tag-page")]
+    [SwaggerOperation(Summary = "List all tags paged.", Description = "List all tags paged.")]
+    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetAllPaged(int pageIndex = 1, int pageSize = 100, string? searchQuery = null)
+    {
+        try
+        {
+            if (pageIndex < 1)
+                return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1." ));
+
+            if(pageSize < 1)
+                return BadRequest(new ApiResponse(false, "Page size cannot be lower than 1." ));
+
+            Tag[] tags;
+            // If there is a query, return the tag page that match that query and the index
+            if(!string.IsNullOrEmpty(searchQuery))
+            {
+                tags = await resourceManager.GetTagPageAsync(
+                    pageIndex: pageIndex, 
+                    pageSize: pageSize, 
+                    predicate: t => t.Name.ToLower().Contains(searchQuery.ToLower())
+                );
+            }
+
+            // Otherwise page normally
+            else
+            {
+                tags = await resourceManager.GetTagPageAsync(
+                    pageIndex: pageIndex,
+                    pageSize: pageSize
+                );
+            }
+
+            // Get the total amount of tags and pages
+            int totalTags = (await resourceManager.GetAllTagsAsync()).Length; 
+            int pageCount = (int)Math.Ceiling((double)totalTags / pageSize);
+            
+            // If no tags are returned, put in the message that no tags are found
+            if(tags == null)
+                return Ok(new ApiResponse(true, "no tags found", new TagPageResponse(Array.Empty<Tag>(), pageIndex, pageSize, pageCount)));
+            
+            return Ok(new ApiResponse(true, "Tags found", new TagPageResponse(tags, pageIndex, pageSize, pageCount)));
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to retrieve tag page");
+            return StatusCode(500, new ApiResponse(false, "Internal server error"));
+        }
+    }
+
+    /// <summary>
+    /// Retrieves all standardized tags from the drive.
+    /// </summary>
+    /// <returns>
+    /// Returns a 200 OK response containing a list of all tags.
+    /// </returns>
+    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
+    [HttpGet("all-standard-tags")]
+    [SwaggerOperation(
+            Summary = "List all standardized tags.",
+            Description = "List all standardizedtags."
+        )]
+    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetAllStandardized()
+    {
+        try
+        {
+            return Ok(new ApiResponse(true, "Standardized tags found", await resourceManager.GetAllTagsAsync(predicate: t => t.IsStandardized)));
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to retrieve tags");
+            return StatusCode(500, new ApiResponse(false, "Internal server error"));
+        }
+    }
+
+    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
+    [HttpGet("standard-tag-page")]
+    [SwaggerOperation(Summary = "List all standardized tags paged.", Description = "List all standardized tags paged.")]
+    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetAllStandardizedPaged(int pageIndex = 1, int pageSize = 100)
+    {
+        try
+        {
+            return Ok(new ApiResponse(true, "Standardized tags found", await resourceManager.GetTagPageAsync(
+                pageIndex: pageIndex,
+                pageSize: pageSize,
+                predicate: t => t.IsStandardized
+            )));
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to retrieve standardized tag page");
+            return StatusCode(500, new ApiResponse(false, "Internal server error" ));
+        }
+    }
+
+    /// <summary>
+    /// Retrieves all standardized tags from the drive.
+    /// </summary>
+    /// <returns>
+    /// Returns a 200 OK response containing a list of all tags.
+    /// </returns>
+    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
+    [HttpGet("all-user-tags")]
+    [SwaggerOperation(
+            Summary = "List all user tags.",
+            Description = "List all user tags."
+        )]
+    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetAllUser()
+    {
+        try
+        {
+            return Ok(new ApiResponse(true, "User tags found", await resourceManager.GetAllTagsAsync(predicate: t => !t.IsStandardized)));
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to retrieve user tags");
+            return StatusCode(500, new ApiResponse(false, "Internal server error"));
+        }
+    }
+
+    [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
+    [HttpGet("user-tag-page")]
+    [SwaggerOperation(Summary = "List all user tags paged.", Description = "List all user tags paged.")]
+    [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetAllUserPaged(int pageIndex = 1, int pageSize = 100)
+    {
+        try
+        {
+            return Ok(new ApiResponse(true, "User tags found", await resourceManager.GetTagPageAsync(
+                pageIndex: pageIndex,
+                pageSize: pageSize,
+                predicate: t => !t.IsStandardized
+            )));
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to retrieve standardized tag page");
+            return StatusCode(500, new ApiResponse(false, "Internal server error" ));
+        }
+    }
     #endregion
 } 
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Tag } from "@/types/tag.type";
+import { Tag, TagArraySchema } from "@/types/tag.type";
 import { FInput, InputBlock, InputHeader } from "@/components/ui/Popup";
 import { Button } from "@/components/ui/button";
 import AdminTagIcon from "@/icons/tag-icons/admin-tag";
@@ -114,14 +114,14 @@ export default function TagSelectionDropdown({ onSelectionChangedAction = () => 
     }
 
     // Gets all values from inserted tags and then filters the tags on uppercase name, sorts them on relevance, and returns top k tags
-    const fetchedTags = await fetchTagSearch(inputValue, MAX_TAGS);
+    const fetchedTags = TagArraySchema.parse((await fetchTagSearch(inputValue, MAX_TAGS)).body['tags']);
 
     // Don't do anything if fetchedTags returns null or undefined
-    if(fetchedTags == null || fetchedTags == undefined || fetchedTags.tags == null || fetchedTags.tags == undefined)
+    if(fetchedTags == null || fetchedTags == undefined)
       return;
 
     // And we update our state
-    setFilteredTags(fetchedTags.tags.filter((tag) => !addedTags.some(addedTag => addedTag.id === tag.id)));
+    setFilteredTags(fetchedTags.filter((tag) => !addedTags.some(addedTag => addedTag.id === tag.id)));
   }
   
 

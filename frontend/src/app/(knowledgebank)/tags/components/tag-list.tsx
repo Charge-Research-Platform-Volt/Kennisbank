@@ -62,8 +62,8 @@ export default function ListTags({userRole} : {userRole : string}) {
                
                // only update the state if this is the latest fetch
                if(fetches.current === fetchAmount) {
-                   setTags(response.tags || []);
-                   setPageCount(response.pageCount || 0);
+                   setTags(response.body['tags'] || []);
+                   setPageCount(response.body['pageCount'] || 0);
                    setIsLoading(false);
                }
 

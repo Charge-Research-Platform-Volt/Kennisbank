@@ -1,33 +1,22 @@
 "use server";
 
+import { ApiResponse, ApiResponseSchema } from "@/types/apiResponse.type";
 import type { FormResponse } from "@/types/return.type";
-import { TagArraySchema, TagCreateDto, TagCreateDtoSchema, TagFilterOptions, TagPageResponse, TagRenameDto } from "@/types/tag.type";
+import { TagCreateDto, TagFilterOptions, TagRenameDto } from "@/types/tag.type";
 import { revalidatePath } from "next/cache";
 import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 import { cookies } from "next/headers";
 
-export const AddStandardizedTag = async (prevState: FormResponse<TagCreateDto>, formData: FormData): Promise<FormResponse<TagCreateDto>> => {
-  const rawData: TagCreateDto = {
+export const AddStandardizedTag = async (prevState: FormResponse<TagCreateDto>, formData: FormData): Promise<ApiResponse> => {
+  const rawFormData: TagCreateDto = {
     name: formData.get("name") as string,
   };
 
-  if(rawData.name.length > 50){
+  if(rawFormData.name.length > 50){
     return{
       success: false,
       message: "Tag is too long",
-      inputs: rawData,
     }
-  }
-
-  // Validate the raw data, if it fails, return an error
-  const validatedData = TagCreateDtoSchema.safeParse(rawData);
-
-  if (!validatedData.success) {
-    return {
-      success: false,
-      message: validatedData.error.errors[0].message,
-      inputs: rawData,
-    };
   }
 
   // Send the data to the backend
@@ -36,50 +25,29 @@ export const AddStandardizedTag = async (prevState: FormResponse<TagCreateDto>, 
     method: "PUT",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
     credentials: "include",
-    body: JSON.stringify(rawData),
+    body: JSON.stringify(rawFormData),
   });
-  const data = await response.json();
+  const rawData = await response.json();
+  const data = ApiResponseSchema.parse(rawData);
 
-  // Check if the request was successful, if not, return an error
-  if (!response.ok) {
-    return {
-      success: false,
-      message: data.message,
-    };
-  }
 
   // Revalidate the cache for the standardizedtags page
   revalidatePath("/tags", "layout");
-  return {
-    success: true,
-    message: data.message,
-  };
+  return data
 };
 
-export const AddUserTag = async (prevState: FormResponse<TagCreateDto>, formData: FormData): Promise<FormResponse<TagCreateDto>> => {
+export const AddUserTag = async (prevState: FormResponse<TagCreateDto>, formData: FormData): Promise<ApiResponse> => {
   console.log("Adding user tag");
 
-  const rawData: TagCreateDto = {
+  const rawFormData: TagCreateDto = {
     name: formData.get("name") as string,
   };
 
-  if(rawData.name.length > 50){
+  if(rawFormData.name.length > 50){
     return{
       success: false,
       message: "Tag is too long",
-      inputs: rawData,
     }
-  }
-
-  // Validate the raw data, if it fails, return an error
-  const validatedData = TagCreateDtoSchema.safeParse(rawData);
-
-  if (!validatedData.success) {
-    return {
-      success: false,
-      message: validatedData.error.errors[0].message,
-      inputs: rawData,
-    };
   }
 
   console.log("Input validated");
@@ -90,31 +58,20 @@ export const AddUserTag = async (prevState: FormResponse<TagCreateDto>, formData
     method: "PUT",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
     credentials: "include",
-    body: JSON.stringify(rawData),
+    body: JSON.stringify(rawFormData),
   });
 
-  const data = await response.json();
-
-  // Check if the request was successful, if not, return an error
-  if (!response.ok) {
-    console.log("Error in response: ", data.message);
-    return {
-      success: false,
-      message: data.message,
-    };
-  }
+  const rawData = await response.json();
+  const data = ApiResponseSchema.parse(rawData);
   
   console.log("Tag created");
 
   // Revalidate the cache for the standardizedtags page
   revalidatePath("/tags", "layout");
-  return {
-    success: true,
-    message: data.message,
-  };
+  return data
 };
 
-export const DeleteTag = async (tagId: string): Promise<FormResponse<{id: string}>> => {
+export const DeleteTag = async (tagId: string): Promise<ApiResponse> => {
   console.log("Deleting tag: ", tagId);
 
   // Send the data to the backend
@@ -124,25 +81,15 @@ export const DeleteTag = async (tagId: string): Promise<FormResponse<{id: string
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
     credentials: "include",
   });
-  const data = await response.json();
-
-  // Check if the request was successful, if not, return an error
-  if (!response.ok) {
-    return {
-      success: false,
-      message: data.message,
-    };
-  }
+  const rawData = await response.json();
+  const data = ApiResponseSchema.parse(rawData);
 
   // Revalidate the cache for the standardizedtags page
   revalidatePath("/tags", "layout");
-  return {
-    success: true,
-    message: data.message,
-  };
+  return data
 };
 
-export const RenameTag = async (prevState: FormResponse<TagRenameDto>, formData: FormData): Promise<FormResponse<TagRenameDto>> => {
+export const RenameTag = async (prevState: FormResponse<TagRenameDto>, formData: FormData): Promise<ApiResponse> => {
   if(formData.get("name") == formData.get("originalTagName")) {
     return {
       success: true,
@@ -150,40 +97,30 @@ export const RenameTag = async (prevState: FormResponse<TagRenameDto>, formData:
     };
   }
 
-  const rawData: TagRenameDto = {
+  const rawFormData: TagRenameDto = {
     newName: formData.get("name") as string,
     id: formData.get("id") as string,
   };
 
-  console.log("Renaming tag: ", rawData.id, " to ", rawData.newName);
+  console.log("Renaming tag: ", rawFormData.id, " to ", rawFormData.newName);
 
   // Send the data to the backend
   const cookieHeader : ReadonlyRequestCookies = await cookies();
-  const response = await fetch(`${process.env.API_URL}/tags/rename-tag/${encodeURIComponent(rawData.id)}/${encodeURIComponent(rawData.newName)}`, {
+  const response = await fetch(`${process.env.API_URL}/tags/rename-tag/${encodeURIComponent(rawFormData.id)}/${encodeURIComponent(rawFormData.newName)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
     credentials: "include",
   });
-  
-  const data = await response.json();
 
-  // Check if the request was successful, if not, return an error
-  if (!response.ok) {
-    return {
-      success: false,
-      message: data.message,
-    };
-  }
+  const rawData = await response.json();
+  const data = ApiResponseSchema.parse(rawData);
 
   // Revalidate the cache for the standardizedtags page
   revalidatePath("/tags", "layout");
-  return {
-    success: true,
-    message: data.message,
-  };
+  return data
 };
 
-export const ApproveTag = async (tagId: string): Promise<FormResponse<{id: string}>> => {
+export const ApproveTag = async (tagId: string): Promise<ApiResponse> => {
   console.log("Approving user tag: ", tagId);
 
   const cookieHeader = await cookies();
@@ -196,24 +133,15 @@ export const ApproveTag = async (tagId: string): Promise<FormResponse<{id: strin
     }
   );
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    return {
-      success: false,
-      message: data.message,
-    };
-  }
+  const rawData = await response.json();
+  const data = ApiResponseSchema.parse(rawData);
 
   revalidatePath("/tags");
 
-  return {
-    success: true,
-    message: data.message,
-  };
+  return data
 };
 
-export const MakeStandardized = async (tagId: string): Promise<FormResponse<{ id: string }>> => {
+export const MakeStandardized = async (tagId: string): Promise<ApiResponse> => {
   console.log("Making tag standardized: ", tagId);
 
   const cookieHeader : ReadonlyRequestCookies = await cookies();
@@ -226,24 +154,15 @@ export const MakeStandardized = async (tagId: string): Promise<FormResponse<{ id
     }
   );
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    return {
-      success: false,
-      message: data.message,
-    };
-  }
+  const rawData = await response.json();
+  const data = ApiResponseSchema.parse(rawData);
 
   revalidatePath("/tags");
 
-  return {
-    success: true,
-    message: data.message,
-  };
+  return data
 };
 
-export const MergeTag = async (formData: FormData): Promise<FormResponse<{ tagId1: string; tagId2: string }>> => {
+export const MergeTag = async (formData: FormData): Promise<ApiResponse> => {
   const tagId1 = formData.get("tagId1") as string;
   const tagId2 = formData.get("tagId2") as string;
 
@@ -270,20 +189,11 @@ export const MergeTag = async (formData: FormData): Promise<FormResponse<{ tagId
     }
   );
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    return {
-      success: false,
-      message: data.message || "Failed to merge tags.",
-    };
-  }
+  const rawData = await response.json();
+  const data = ApiResponseSchema.parse(rawData);
 
   revalidatePath("/tags", "layout");
-  return {
-    success: true,
-    message: data.message || "Tags merged successfully.",
-  };
+  return data
 };
 
 /**
@@ -292,7 +202,7 @@ export const MergeTag = async (formData: FormData): Promise<FormResponse<{ tagId
  * @param query - Query to filter the tags with
  * @returns - A promise with the tags and the page information
  */
-export const ListTagsPaged = async (pageIndex: number, searchQuery: string): Promise<TagPageResponse> => {
+export const ListTagsPaged = async (pageIndex: number, searchQuery: string): Promise<ApiResponse> => {
   console.log("Getting tags paged:");
   
   const tagFilterOptions : TagFilterOptions = {
@@ -308,7 +218,7 @@ export const ListTagsPaged = async (pageIndex: number, searchQuery: string): Pro
 
   // Send the data to the backend
   const cookieHeader : ReadonlyRequestCookies = await cookies();
-  const response : Response = await fetch(
+  const response = await fetch(
       `${process.env.API_URL}/Tags/tags`,
       {
           method: "POST",
@@ -317,54 +227,29 @@ export const ListTagsPaged = async (pageIndex: number, searchQuery: string): Pro
           body: JSON.stringify(tagFilterOptions),
       },
   );
+
   //parse the data from the response
-  const data = await response.json();
+  const rawData = await response.json();
+  const data = ApiResponseSchema.parse(rawData);
 
   // Check if the request was succesful, if not, return an error
   if (!response.ok) {
-      return {
-          success: false,
-          message: data.message,
-      };
-  }
-
-  //validate the data
-  if(!data){
-      return {
-          success: false,
-          message: "No data found",
-      };
-  }
-
-  //validate the tags array
-  const validatedTags = TagArraySchema.safeParse(data.tags);
-  if (!validatedTags.success) {
-      return {
-          success: false,
-          message: validatedTags.error.errors[0].message,
-      };
+    throw new Error("Problem with finding tags");
   }
 
   revalidatePath("/tags");
-  
   // Check if the request was succesful, if not, return an error
-  return {
-      success: true,
-      message: "Tags fetched successfully",
-      tags: validatedTags.data,
-      pageIndex: data.pageIndex,
-      pageSize: data.pageSize,
-      pageCount: data.pageCount,
-  }
+  return data
 }
 
 /**
  * 
  * @param searchQuery - The name of the tag it tries to search
- * @param K  - Max amount of tags to return 
+ * @param K  - Max amount of tags to return
  * @returns A maximum of K tags that correspond with the query
  */
-export const fetchTagSearch = async (searchQuery?: string, K?: number): Promise<TagPageResponse> => {
+export const fetchTagSearch = async (searchQuery?: string, K?: number): Promise<ApiResponse> => {
+  console.log("Fetching tags");
   searchQuery = searchQuery?.trim();
 
   const tagFilterOptions : TagFilterOptions = {
@@ -380,7 +265,7 @@ export const fetchTagSearch = async (searchQuery?: string, K?: number): Promise<
   }
 
   const cookieHeader : ReadonlyRequestCookies = await cookies();
-  const response : Response = await fetch(
+  const response = await fetch(
       `${process.env.API_URL}/Tags/tags`,
       {
           method: "POST",
@@ -391,42 +276,16 @@ export const fetchTagSearch = async (searchQuery?: string, K?: number): Promise<
   );
 
   if (!response.ok) {
-    console.log("problem with finding tags");
-    return {
-      success: false,
-      message: "problem with fetching tags",
-    }
+    throw new Error("Problem with finding tags");
   }
 
-  const data = await response.json();
-  //validate the data
-  if(!data){
-    return {
-        success: false,
-        message: "No data found",
-    };
-  }
-
-  //validate the tags array
-  const validatedTags = TagArraySchema.safeParse(data.tags);
-  if (!validatedTags.success) {
-      return {
-          success: false,
-          message: validatedTags.error.errors[0].message,
-      };
-  }
+  const rawData = await response.json();
+  const data = ApiResponseSchema.parse(rawData);
 
   revalidatePath("/tags");
 
   // Check if the request was succesful, if not, return an error
-  return {
-      success: true,
-      message: "Tags fetched successfully",
-      tags: validatedTags.data,
-      pageIndex: data.pageIndex,
-      pageSize: data.pageSize,
-      pageCount: data.pageCount,
-  }
+  return data;
 };
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
