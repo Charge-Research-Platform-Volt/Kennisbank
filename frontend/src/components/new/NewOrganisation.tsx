@@ -33,6 +33,14 @@ interface NewOrganisationProps
     returnUrl?: string;
 }
 
+/**
+ * @summary Form component that allows for uploading organisations to the database
+ * @param organisationOptions The complete list of all organisations in the database
+ * @param onCreate This function is called after a successfull upload
+ * @param updateOrganisations This function is called when the collection of organisations changes
+ * @param useUnsavedDialog Determines if there should be an UnsavedDialog whenever any field is filled and the user tries to navigate
+ * @param returnUrl The URL to where the user will be sent after upload
+ */
 export default function NewOrganisation({ organisationOptions, onCreate, container = null, updateOrganisations, useUnsavedDialog = true, returnUrl = '/' }: NewOrganisationProps) 
 {
     // React states

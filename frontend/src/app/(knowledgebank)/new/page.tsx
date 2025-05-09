@@ -17,6 +17,10 @@ interface NewPageProps
   searchParams: { [key: string]: string | string[] | undefined };
 }
 
+/**
+ * @summary A page where you can upload any kind entity to our database
+ * @param searchParams The parameters given in the URL
+ */
 export default async function NewPage({ searchParams }: NewPageProps) 
 {
     const returnUrl = typeof searchParams.returnUrl === 'string' ? searchParams.returnUrl : '/';

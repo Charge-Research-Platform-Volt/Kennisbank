@@ -22,6 +22,16 @@ interface AddListDialogProps extends Omit<React.ComponentPropsWithoutRef<typeof 
     parseForList?: (value: string) => string;
 }
 
+/**
+ * @summary A dialog to add multiple items
+ * @param title The title of the dialog
+ * @param placeholder The placeholder of the dialog trigger
+ * @param inputPlaceholder The placeholder of the input in the dialog
+ * @param emptyText The text displayed in the dialog when nothing has been added yet
+ * @param onChange Function to be called when the set changes
+ * @param validateInput Function to be used to validate the input
+ * @param parseForList Function that parses all items in the set to a nice display format to be displayed in the dialog trigger
+ */
 export function AddListDialog({title, placeholder, inputPlaceholder, emptyText, onChange, validateInput, parseForList}: AddListDialogProps) 
 {
     const [list, setList] = React.useState<string[]>([]);

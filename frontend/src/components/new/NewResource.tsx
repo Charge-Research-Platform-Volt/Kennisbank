@@ -78,6 +78,16 @@ interface NewResourceProps
     returnUrl?: string;
 }
 
+/**
+ * @summary Form component that allows for uploading resources of any type to the database
+ * @param personOptions The complete list of persons in the database
+ * @param organisationOptions The complete list of organisations in the database
+ * @param resourceTypeOptions The complete list of resource types in the database
+ * @param tagOptions The complete list of tags in the database
+ * @param regionOptions The complete list of regions in the database
+ * @param useUnsavedDialog Determines if there should be a dialog when some fields are filled and the user tries to navigate
+ * @param returnUrl The URL the user will be sent to after uploading
+ */
 export default function NewResource({ personOptions, organisationOptions, resourceTypeOptions, tagOptions, regionOptions, useUnsavedDialog = true, returnUrl = '/' }: NewResourceProps) 
 {
     // React states

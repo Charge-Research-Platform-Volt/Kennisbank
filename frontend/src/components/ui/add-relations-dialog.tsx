@@ -29,6 +29,21 @@ interface AddRelationsDialogProps {
     container?: HTMLElement | null;
 }
 
+/**
+ * @summary A dialog to define relations for the given options
+ * @param title The title of the dialog
+ * @param placeholder The placeholder for the selection
+ * @param inputPlaceholder The placeholder for the input inside the dialog
+ * @param buttonText The text to show in the button that is the dialog trigger
+ * @param toastText The text to show in the toast to confirm that everything has been saved
+ * @param options The complete list of all possible options that can be selected
+ * @param emptyText The text to display in the dialog when nothing has been selected yet
+ * @param onChange The function to be called when the selection is changed
+ * @param hasCreateButton Determines if there is a create button in the selection to create a new option
+ * @param onCreateButton Function to be called when the create button is pressed
+ * @param value The value of the selection
+ * @param container The container in which the selection should be rendered. This has to be defined in dialogs or drawers to properly render popovers 
+ */
 export function AddRelationsDialog({title, placeholder, inputPlaceholder, buttonText, toastText, options, emptyText, onChange, hasCreateButton, onCreateButton, value, container = null}: AddRelationsDialogProps) 
 {
     const [open, setOpen] = React.useState<boolean>(false);

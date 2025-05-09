@@ -8,6 +8,13 @@ interface UnsavedDialogProps
     onCancel?: () => void;
 }
 
+/**
+ * @summary Simple dialog that asks for confirmation to leave page when there are unsaved changes.
+ * @param open Determines if the dialog is open
+ * @param onOpenChange This function is called when the open state changes.
+ * @param onConfirmation This function is called when the confirm button is pressed
+ * @param onCancel This function is called when the cancel button is pressed
+ */
 export default function UnsavedDialog({ open, onOpenChange, onConfirmation, onCancel }: UnsavedDialogProps) 
 {
     return (

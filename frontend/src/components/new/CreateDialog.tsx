@@ -14,6 +14,15 @@ interface CreateDialogProps
     onCreate?: (name: string) => void;
 }
 
+/**
+ * @summary Simple dialog with a single input field to use to create new resources.
+ * @param open Determines if the dialog is open
+ * @param onOpenChange This function is called when the open state changes
+ * @param title The title of the dialog
+ * @param placeholder The placeholder for the input field in the dialog
+ * @param onCreate This function is called when the create button is clicked
+ * @returns 
+ */
 export default function CreateDialog({open = false, title = "Create New", placeholder = "Name...", onOpenChange, onCreate}: CreateDialogProps) 
 {
     const [input, setInput] = React.useState<string>("");

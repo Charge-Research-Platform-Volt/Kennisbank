@@ -9,7 +9,9 @@ interface FileInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement
   onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
 }
 
-// File Input Component with Drop Support
+/**
+ * @summary File input component with drag and drop support
+ */
 const FileInput = forwardRef<HTMLInputElement, FileInputProps>(({ 
   className,
   buttonText = "Choose file",

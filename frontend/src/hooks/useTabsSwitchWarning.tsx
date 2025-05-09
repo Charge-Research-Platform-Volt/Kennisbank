@@ -21,8 +21,8 @@ interface UseTabSwitchWarningProps {
 }
 
 /**
- * A hook that provides tab switching functionality with unsaved changes protection.
- * Returns an object with a requestTabChange function and a dialog element.
+ * @summary A hook that provides tab switching functionality with unsaved changes protection.
+ * @returns An object with a requestTabChange function and a dialog element.
  */
 export function useTabSwitchWarning({
   hasNonDefaultValues,

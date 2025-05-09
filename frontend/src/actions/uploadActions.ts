@@ -2,10 +2,13 @@ import { z } from "zod"
 import { ResourceCreateDto, WebsiteCreateDto, DocumentCreateDto, VideoCreateDto, AudioCreateDto, FileResourceCreateDto, PersonCreateDto, OrganisationCreateDto } from "@/types/uploadTypes"
 import { resourceCreateFormSchema } from "@/components/new/NewResource"
 import { ApiResponse } from "@/types/apiResponse.type";
-import { TagCreateDto } from "@/types/tag.type";
-import { ResourceTypeCreateDto, RegionCreateDto } from "@/types/uploadTypes";
 
-export async function UploadNewResource(values: z.infer<typeof resourceCreateFormSchema>): Promise<string> 
+/**
+ * @summary Uploads a new resource to the databse
+ * @param form The form of the NewResource page
+ * @returns The ID of the new resource
+ */
+export async function UploadNewResource(form: z.infer<typeof resourceCreateFormSchema>): Promise<string> 
 {
     // Helper function to convert dates to UTC ISO strings
     const convertToUTCDate = (dateValue: string): string => {
@@ -20,35 +23,35 @@ export async function UploadNewResource(values: z.infer<typeof resourceCreateFor
     // Base resource schema that is common to all types
     const baseResourceDto: ResourceCreateDto =
     {
-        Title: values.title,
-        Description: values.description,
-        TypeId: values.typeId,
-        LanguageCode: values.languageCode,
-        PublicationCode: values.publicationCode,
-        PublicationDate: convertToUTCDate(values.publicationDate),
-        License: values.license,
-        Sources: values.sources,
-        Note: values.note,
-        Tags: values.tags,
-        Authors: values.authors,
-        Organisations: values.organisations,
-        Regions: values.regions,
-        RelatedOrganisations: values.relatedOrganisations,
-        RelatedPersons: values.relatedPersons,
+        Title: form.title,
+        Description: form.description,
+        TypeId: form.typeId,
+        LanguageCode: form.languageCode,
+        PublicationCode: form.publicationCode,
+        PublicationDate: convertToUTCDate(form.publicationDate),
+        License: form.license,
+        Sources: form.sources,
+        Note: form.note,
+        Tags: form.tags,
+        Authors: form.authors,
+        Organisations: form.organisations,
+        Regions: form.regions,
+        RelatedOrganisations: form.relatedOrganisations,
+        RelatedPersons: form.relatedPersons,
     };
     
     let dto;
     const endPoint = "/api/resources/new";
     
     // Create the appropiate DTO based on the uploadType
-    if (values.uploadType === "website") 
+    if (form.uploadType === "website") 
     {
-        console.log(values.url);
+        console.log(form.url);
         dto =
         {
             ...baseResourceDto,
-            Url: values.url,
-            AccessedOn: values.accessedOn ? convertToUTCDate(values.accessedOn) : null,
+            Url: form.url,
+            AccessedOn: form.accessedOn ? convertToUTCDate(form.accessedOn) : null,
         } as WebsiteCreateDto;
     }
     else
@@ -56,17 +59,17 @@ export async function UploadNewResource(values: z.infer<typeof resourceCreateFor
         dto =
         {
             ...baseResourceDto,
-            Hash: values.hash
+            Hash: form.hash
         } as FileResourceCreateDto;
     }
     
-    switch (values.uploadType) 
+    switch (form.uploadType) 
     {
         case "document":
             dto =
             {
                 ...dto,
-                Abstract: values.abstract,
+                Abstract: form.abstract,
             } as DocumentCreateDto;
             break;
             
@@ -74,7 +77,7 @@ export async function UploadNewResource(values: z.infer<typeof resourceCreateFor
             dto =
             {
                 ...baseResourceDto,
-                Length: values.length,
+                Length: form.length,
             } as VideoCreateDto;
             break;
             
@@ -82,7 +85,7 @@ export async function UploadNewResource(values: z.infer<typeof resourceCreateFor
             dto =
             {
                 ...baseResourceDto,
-                Length: values.length,
+                Length: form.length,
             } as AudioCreateDto;
             break;
     }
@@ -90,10 +93,10 @@ export async function UploadNewResource(values: z.infer<typeof resourceCreateFor
     // Create formdata
     const formData = new FormData();
     
-    if (values.file && values.uploadType !== "website")
-        formData.append("file", values.file);
+    if (form.file && form.uploadType !== "website")
+        formData.append("file", form.file);
     
-    formData.append("uploadType", values.uploadType);
+    formData.append("uploadType", form.uploadType);
     formData.append("dto", JSON.stringify(dto));
     
     // Send the request
@@ -115,6 +118,12 @@ export async function UploadNewResource(values: z.infer<typeof resourceCreateFor
     return result.body;
 }
 
+/**
+ * @summary Uploads the given DTO to the given endpoint
+ * @param endPoint The endpoint in the backend
+ * @param dto The DTO to upload
+ * @returns The ID of the newly created entity
+ */
 export async function UploadWithDto(endPoint: string, dto: unknown): Promise<string> 
 {
     // Send the request

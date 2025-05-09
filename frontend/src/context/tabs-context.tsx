@@ -19,7 +19,12 @@ interface TabsProviderProps {
     onTabChange: (tab: string) => void;
 }
 
-// Context provider component
+/**
+ * @summary Provides a context for tabs with forms that require the UnsavedDialog to work.
+ * @param children The children of this component
+ * @param defaultTab The default tab to be opened
+ * @param onTabChange This function is called when a different tab is opened
+ */
 export function TabsProvider({children, defaultTab, onTabChange}: TabsProviderProps) {
     const [activeTab, setActiveTab] = React.useState<string>(defaultTab);
     const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState<boolean>(false);
@@ -62,7 +67,10 @@ export function TabsProvider({children, defaultTab, onTabChange}: TabsProviderPr
     )
 }
 
-// Custom hook to use the tabs context
+/**
+ * @summary Hook that uses the TabsContext
+ * @returns The current TabsContext
+ */
 export function useTabsContext() {
     const context = React.useContext(TabsContext);
     

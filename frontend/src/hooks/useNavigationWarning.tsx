@@ -5,6 +5,11 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useBeforeUnload } from '@/hooks/useBeforeUnload';
 import UnsavedDialog from '@/components/ui/unsaved-dialog';
 
+/**
+ * @summary Hook that checks for navigation changes. Opens the UnsavedDialog when there are unsaved changes.
+ * @param hasUnsavedChanges Determines if there are any unsaved changes.
+ * @returns An UnsavedDialog when there are unsaved changes.
+ */
 export function useNavigationWarning(hasUnsavedChanges: boolean) {
   const router = useRouter();
   const pathname = usePathname();

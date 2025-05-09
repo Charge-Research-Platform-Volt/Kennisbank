@@ -36,6 +36,17 @@ interface NewPersonProps
     returnUrl?: string;
 }
 
+/**
+ * @summary Form component that allows for uploading persons to the database
+ * @param personOptions The complete list of all persons in the databse
+ * @param organisationOptions The complete list of all organisations in the database
+ * @param onCreate This function is called when the person is successfully uploaded to the database
+ * @param container The container in which this component is rendered. Required for some components in order to work properly in dialogs/drawers
+ * @param updatePersons This function is called when the collection of persons is changed
+ * @param updateOrganisations This function is called when the collection of organisations is changed
+ * @param useUnsavedDialog Determines if there should be a UnsavedDialog whenever some fields are filled and the user tries to navigate
+ * @param returnUrl The URL to where the user will be sent after successfull upload
+ */
 export default function NewPerson({ personOptions, organisationOptions, onCreate, container = null, updatePersons, updateOrganisations, useUnsavedDialog = true, returnUrl = '/' }: NewPersonProps) 
 {
     // React states

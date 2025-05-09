@@ -11,6 +11,13 @@ interface FormTabsProps
     children: React.ReactNode;
 }
 
+/**
+ * @summary Custom tab component that uses the TabsProvider that makes it possible to show the Unsaved Dialog on navigation
+ * @param defaultValue The default tab to have selected
+ * @param className The CSS classes to apply
+ * @param children The children within the tabs component
+ * @returns 
+ */
 export function FormTabs({ defaultValue, className, children }: FormTabsProps) 
 {
     const [activeTab, setActiveTab] = React.useState(defaultValue);

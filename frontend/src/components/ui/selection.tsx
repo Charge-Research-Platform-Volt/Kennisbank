@@ -26,6 +26,18 @@ interface SelectionProps extends Omit<React.ComponentPropsWithoutRef<typeof Butt
     container?: HTMLElement | null;
 }
 
+/**
+ * @summary Selection dropdown with built-in search
+ * @param placeholder Placeholder to show when nothing is selected
+ * @param options The options from which the user can select
+ * @param value The value of the selection
+ * @param onChange The function that is called when the value changes
+ * @param multiSelect Determines if the user can select multiple items
+ * @param hasCreateButton Determines if there should be a button to create a new option
+ * @param onCreateButton The function that is called when the create button is pressed
+ * @param className The CSS classnames to apply
+ * @param container The container in which the selection should be rendered. This should be defined if you want to render the selection inside a drawer/dialog portal.
+ */
 export function Selection({
     placeholder, 
     options,
