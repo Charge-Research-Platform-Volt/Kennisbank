@@ -586,6 +586,26 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
         
+        #region Filetype Support fetch
+        [HttpGet("supported_extensions")]
+        [SwaggerOperation(Summary = "Retrieves a dictionary of all supported file extensions per uploadtype")]
+        [SwaggerResponse(200, "A dictionary of all supported file extensions per upload type", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public IActionResult FiletypeSupportFetch() 
+        {
+            try 
+            {
+                // Return the dictionary
+                return Ok(new ApiResponse(true, "Fetch successfull", Filetype.SupportedExtensions));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error fetching supported extensions");
+                return StatusCode(500, new ApiResponse(false, "Error fetching supported extensions", e.Message));
+            }
+        }
+        #endregion
+        
         
         #region Helper Functions
         // ---------------------------

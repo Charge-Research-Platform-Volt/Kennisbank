@@ -23,7 +23,8 @@ interface NewPageProps
  */
 export default async function NewPage({ searchParams }: NewPageProps) 
 {
-    const returnUrl = typeof searchParams.returnUrl === 'string' ? searchParams.returnUrl : '/';
+    const resolvedSearchParams = await searchParams;
+    const returnUrl = typeof resolvedSearchParams.returnUrl === 'string' ? resolvedSearchParams.returnUrl : '/';
     
     // Fetch persons
     const personsFetch = await FetchWithValidation(ApiResponseSchema, `${process.env.API_URL}/persons/list`);
@@ -116,7 +117,6 @@ export default async function NewPage({ searchParams }: NewPageProps)
     {
         // Throw error to trigger error boundary
         const errorMessage =    regionsFetch.data?.message ||
-                                regionsFetch.error?.message ||
                                 "Failed to fetch regions";
                                 
         // This will trigger the nearest error.js boundary
@@ -127,7 +127,21 @@ export default async function NewPage({ searchParams }: NewPageProps)
     const regions: Region[] = regionsFetch.data.body;
     const regionOptions: SelectOption[] = [];
     regions.forEach((region: Region) => regionOptions.push({ value: region.id, label: region.name } as SelectOption));
-
+    
+    
+    
+    // Fetch file extensions
+    const fileExtensionsFetch = await FetchWithValidation(ApiResponseSchema, `${process.env.API_URL}/resources/supported_extensions`);
+    
+    // If fetch failed or API indicates failure, redirect to error page
+    if (!fileExtensionsFetch.success || (fileExtensionsFetch.data && !fileExtensionsFetch.data.success)) 
+    {
+        // Throw error to trigger error boundary
+        const errorMessage = fileExtensionsFetch.data?.message || "Failed to fetch file extensions";
+        
+        // This will trigger the nearest error.js boundary
+        throw new Error(errorMessage);
+    }
 
 
     return (
@@ -137,7 +151,7 @@ export default async function NewPage({ searchParams }: NewPageProps)
                 <FormTabsTrigger value="person">Person</FormTabsTrigger>
                 <FormTabsTrigger value="organisation">Organisation</FormTabsTrigger>
             </TabsList>
-            <TabsContent value="resource"><NewResource personOptions={personsOptions} organisationOptions={organisationOptions} resourceTypeOptions={typesOptions} tagOptions={tagOptions} regionOptions={regionOptions} returnUrl={returnUrl} /></TabsContent>
+            <TabsContent value="resource"><NewResource personOptions={personsOptions} organisationOptions={organisationOptions} resourceTypeOptions={typesOptions} tagOptions={tagOptions} regionOptions={regionOptions} returnUrl={returnUrl} documentExtensions={fileExtensionsFetch.data.body.document} audioExtensions={fileExtensionsFetch.data.body.audio} videoExtensions={fileExtensionsFetch.data.body.video} /></TabsContent>
             <TabsContent value="person"><NewPerson personOptions={personsOptions} organisationOptions={organisationOptions} returnUrl={returnUrl} /></TabsContent>
             <TabsContent value="organisation"><NewOrganisation organisationOptions={organisationOptions} returnUrl={returnUrl} /></TabsContent>
         </FormTabs>

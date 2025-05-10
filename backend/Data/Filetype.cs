@@ -5,21 +5,37 @@
     /// </summary>
     public static class Filetype
     {
-        private static Dictionary<string, string> extToType = new Dictionary<string, string>
+        private struct UploadType 
+        {
+            public const string Document = "document";
+            public const string Audio = "audio";
+            public const string Video = "video";
+        }
+    
+        private static readonly Dictionary<string, string> extToType = new()
         {
             // Powerpoint
-            { "ppt", "powerpoint" },
-            { "pptx", "powerpoint" },
+            { "ppt", UploadType.Document },
+            { "pptx", UploadType.Document },
 
             // Word
-            { "doc", "word" },
-            { "docx", "word" },
+            { "doc", UploadType.Document },
+            { "docx", UploadType.Document },
 
             // PDF
-            { "pdf", "pdf" },
+            { "pdf", UploadType.Document },
 
             // Text
-            { "txt", "text" },
+            { "txt", UploadType.Document },
+            
+            // Audio
+            { "mp3", UploadType.Audio },
+            { "wav", UploadType.Audio },
+            { "ogg", UploadType.Audio },
+            
+            // Video
+            { "mp4", UploadType.Video },
+            { "avi", UploadType.Video },
         };
 
         /// <summary>
@@ -50,6 +66,17 @@
         public static bool Supported(string extension)
         {
             return extToType.ContainsKey(trimExtension(extension));
+        }
+        
+        /// <summary>
+        /// Retrieve the supported extensions
+        /// </summary>
+        public static Dictionary<string, string[]> SupportedExtensions 
+        {
+            get 
+            {
+                return extToType.GroupBy(pair => pair.Value).ToDictionary(group => group.Key, group => group.Select(pair => pair.Key).ToArray());
+            }
         }
     }
 }

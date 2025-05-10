@@ -75,6 +75,9 @@ interface NewResourceProps
     regionOptions: SelectOption[];
     useUnsavedDialog?: boolean;
     returnUrl?: string;
+    documentExtensions?: string[];
+    audioExtensions?: string[];
+    videoExtensions?: string[];
 }
 
 /**
@@ -87,7 +90,7 @@ interface NewResourceProps
  * @param useUnsavedDialog Determines if there should be a dialog when some fields are filled and the user tries to navigate
  * @param returnUrl The URL the user will be sent to after uploading
  */
-export default function NewResource({ personOptions, organisationOptions, resourceTypeOptions, tagOptions, regionOptions, useUnsavedDialog = true, returnUrl = '/' }: NewResourceProps) 
+export default function NewResource({ personOptions, organisationOptions, resourceTypeOptions, tagOptions, regionOptions, useUnsavedDialog = true, returnUrl = '/', documentExtensions = [], audioExtensions = [], videoExtensions = [] }: NewResourceProps) 
 {
     // React states
     const [uploadType, setUploadType] = React.useState<z.infer<typeof UploadTypeEnum>>("document");
@@ -109,6 +112,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
     const [createOrganisationOpen, setCreateOrganisationOpen] = React.useState<boolean>(false);
     
     const [isRelated, setIsRelated] = React.useState<boolean>(false);
+    const [extensions, setExtensions] = React.useState<string[]>(documentExtensions);
     
     const personDrawerRef = React.useRef<HTMLDivElement>(null);
     const organisationDrawerRef = React.useRef<HTMLDivElement>(null);
@@ -183,6 +187,20 @@ export default function NewResource({ personOptions, organisationOptions, resour
         // Clear the duplicate ID, since we clear the fields
         setDuplicateId("");
         setIsChecking(false);
+        
+        // Update the extensions
+        switch (uploadType) 
+        {
+            case "document":
+                setExtensions(documentExtensions);
+                break;
+            case "audio":
+                setExtensions(audioExtensions);
+                break;
+            case "video":
+                setExtensions(videoExtensions);
+                break;
+        }
     }, [form, uploadType]);
     
     // Keep track of the type ID
@@ -438,7 +456,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                                 <FormField control={form.control} name="file" render={({field}) => (
                                     <FormItem>
                                         <FormControl>
-                                            <FileInput placeholder="Select file..." onChange={(e) => onFileChange(e.target.files?.[0] || undefined)} onBlur={field.onBlur} name={field.name} ref={field.ref} />
+                                            <FileInput placeholder="Select file..." onChange={(e) => onFileChange(e.target.files?.[0] || undefined)} onBlur={field.onBlur} name={field.name} ref={field.ref} extensions={extensions} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>

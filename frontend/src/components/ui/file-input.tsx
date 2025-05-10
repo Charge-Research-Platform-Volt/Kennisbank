@@ -6,6 +6,7 @@ interface FileInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement
   buttonText?: string;
   placeholder?: string;
   variant?: 'default' | 'outline' | 'ghost' | 'primary';
+  extensions?: string[];
   onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
 }
 
@@ -17,6 +18,7 @@ const FileInput = forwardRef<HTMLInputElement, FileInputProps>(({
   buttonText = "Choose file",
   placeholder = "No file selected",
   variant = "default",
+  extensions = [],
   onChange,
   ...props
 }, ref) => {
@@ -144,6 +146,7 @@ const FileInput = forwardRef<HTMLInputElement, FileInputProps>(({
         className="sr-only"
         ref={handleInputRef}
         onChange={handleChange}
+        accept={extensions.length > 0 ? extensions.map(ext => '.' + ext).join(',') : undefined }
         {...props}
       />
     </div>
