@@ -50,9 +50,35 @@ export default function LeftSidebarClient({
     if (result.success) window.location.reload();
     else console.error(result.message);
   };
-
-  const currentUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
   
+  const getCleanReturnUrl = () => {
+    // Don't include returnUrl if we're already on the new page
+    if (pathname === '/new') return null;
+    
+    // Strip any existing returnUrl parameters to avoid nesting
+    const baseUrl = pathname.split('?')[0];
+    const cleanParams = new URLSearchParams();
+    
+    // Only copy over non-returnUrl parameters
+    for (const [key, value] of searchParams.entries()) {
+      if (key !== 'returnUrl') {
+        cleanParams.append(key, value);
+      }
+    }
+    
+    const paramString = cleanParams.toString();
+    const cleanUrl = `${baseUrl}${paramString ? `?${paramString}` : ''}`;
+    
+    // Return null (don't add returnUrl param) if the return URL is just the homepage
+    return cleanUrl === '/' ? null : cleanUrl;
+  };
+
+  // Then use this function in your Link
+  const returnUrl = getCleanReturnUrl();
+  const newPageUrl = returnUrl 
+    ? `/new?returnUrl=${encodeURIComponent(returnUrl)}`
+    : '/new';
+    
   return (
     <Sidebar side="left" width="300px" collapsible="icon" className={`${open ? "p-2" : "px-1.5 pt-2"}`}>
       {/* Header */}
@@ -78,7 +104,7 @@ export default function LeftSidebarClient({
       {/* Menu items */}
       <nav className="mb-10 flex flex-col gap-2">
         {/* New button */}
-        <Link href={`/new?returnUrl=${encodeURIComponent(currentUrl)}`}>
+        <Link href={newPageUrl}>
           <Button variant="default" className={`flex w-full items-center justify-start overflow-hidden p-2 transition-all duration-200 ${!open && "w-9"}`} data-testid="sidebar_new">
             <New className="h-4 w-4" />
             <div data-testid="button_text" className={`pb-0.5 ml-2 ${!open && "hidden"}`}>
