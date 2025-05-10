@@ -1,4 +1,4 @@
-overlay2stages:
+stages:
   - build
   - test
   - cleanup
