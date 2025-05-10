@@ -1,5 +1,8 @@
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS base
+ENV PORT=8080
+
 # Build stage - compiles and builds the application
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM base AS build
 WORKDIR /src
 COPY ["*.csproj", "./"]
 RUN dotnet restore
@@ -9,16 +12,17 @@ RUN dotnet publish backend.csproj -c Release -o /app/publish
 
 
 # Development stage - used for local development with hot reload
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS development
+FROM base AS development
+ENV ASPNETCORE_ENVIRONMENT=Development
 WORKDIR /app
-ENV DOTNET_WATCH_RESTART_ON_RUDE_EDIT=true
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-ENTRYPOINT ["dotnet", "watch", "--project", "backend.csproj", "run", "--urls", "http://+:8080"]
-
-
+EXPOSE $PORT
+# Use CMD so we can override it in docker-compose in case we want to run watch mode
+CMD exec dotnet run --project backend.csproj --urls http://+:${PORT}
 
 # CI Runner scope - used for GitLab CI Pipeline runner
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS ci-runner
+FROM base AS ci-runner
+ENV ASPNETCORE_ENVIRONMENT=Development
 WORKDIR /
 COPY backend/*.sln /backend/
 COPY backend/*.csproj /backend/backend.csproj
@@ -30,17 +34,19 @@ COPY backendtests/ /backendtests/
 COPY testdata/ /app/testdata/
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 RUN rm -rf Migrations
-CMD ["dotnet", "run", "--project", "backend.csproj", "--urls", "http://+:8080"]
+EXPOSE $PORT
+ENTRYPOINT exec dotnet run --project backend.csproj --urls http://+:${PORT}
 
 
 # Production stage - Builds and runs the application for production
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS production
+ENV ASPNETCORE_ENVIRONMENT=Production
 WORKDIR /app
 RUN apt-get update && apt-get install -y wget curl && rm -rf /var/lib/apt/lists/*
 RUN rm -rf Migrations
 COPY --from=build /app/publish .
-EXPOSE 8080
-ENTRYPOINT ["dotnet", "backend.dll", "--urls", "http://+:8080"]
+EXPOSE $PORT
+ENTRYPOINT exec dotnet backend.dll --urls http://+:${PORT}
 
 # This program has been developed by students from the bachelor Computer Science at Utrecht
 # University within the Software Project course.

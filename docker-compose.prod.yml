@@ -7,6 +7,12 @@ x-productionbase: &productionbase
       max-size: "10m"
       max-file: "5"
 
+# Default for our images
+x-imagebase: &imagebase
+  build:
+    target: production
+  <<: *productionbase
+
 services:
   database:
     volumes:
@@ -19,17 +25,17 @@ services:
     <<: *productionbase
 
   backend:
+    <<: *imagebase
     healthcheck: # Slightly modify health check
       timeout: 5s
       retries: 3
       start_period: 30s
-    <<: *productionbase
 
   frontend:
-    <<: *productionbase
+    <<: *imagebase
   
   website:
-    <<: *productionbase
+    <<: *imagebase
 
 volumes:
   postgres_data:  # Persistent volume for database

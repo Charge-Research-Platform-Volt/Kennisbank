@@ -1,5 +1,13 @@
+# Target to use for building the images
+x-target: &target
+  target: development
+
+# For the java script end, we have to turn on WATCHPACK_POLLING and turn of the cache,
+# otherwise hot reload does not work on windows
+# Base args for the js code bases
 x-jsbase: &jsbase
   build:
+    <<: *target
     no_cache: true
   environment:
     - WATCHPACK_POLLING=true
@@ -16,14 +24,16 @@ services:
 
   # For our dev environment we need to extend all coded services with volumes for hot reload
   backend:
+    build:
+      <<: *target
+    environment:
+      - DOTNET_WATCH_RESTART_ON_RUDE_EDIT=true # Also restart for outside changes
     volumes:
       - ./backend:/app
       - /app/bin
       - /app/obj
       - ./testdata:/app/testdata
-
-  # Additionally, for the java script end, we have to turn on WATCHPACK_POLLING
-  # and turn of the cache, because otherwise hot reload does not work on windows
+    command: dotnet watch --project backend.csproj run --urls http://+:8080
   frontend:
     <<: *jsbase
     volumes:

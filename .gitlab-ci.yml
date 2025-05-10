@@ -1,123 +1,123 @@
-stages:
-  - build
-  - test
-  - cleanup
+  stages:
+    - build
+    - test
+    - cleanup
 
-variables:
-  COMPOSE_PROJECT_NAME: ${CI_PROJECT_NAME}-${CI_PIPELINE_ID}
-  COMPOSE_COMMAND: docker-compose --env-file .env.ci --env-file .env -f docker-compose.yml -f docker-compose.ci.yml
-  DOCKER_DRIVER: overlay2
-  DOCKER_TLS_CERTDIR: ""
+  variables:
+    COMPOSE_PROJECT_NAME: ${CI_PROJECT_NAME}-${CI_PIPELINE_ID}
+    COMPOSE: docker compose -f docker-compose.yml -f docker-compose.ci.yml
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
 
-# Define default image and service
-default:
-  image: docker:latest
-  services:
-    - docker:dind
+  # Define default image and service
+  default:
+    image: docker:latest
+    services:
+      - docker:dind
 
-# Define reusable templates
-.setup_environment: &setup_environment
-  - docker info
-  - apk add --no-cache docker-compose py3-pip
-  - docker-compose version
-  - docker system prune -f || true
+  # Define reusable templates
+  .setup_environment: &setup_environment
+    - docker info
+    - apk add --no-cache docker compose py3-pip
+    - docker compose version
+    - docker system prune -f || true
 
-.cleanup_environment: &cleanup_environment
-  - docker-compose down -v --remove-orphans || true
+  .cleanup_environment: &cleanup_environment
+    - docker compose down -v --remove-orphans || true
 
-.release_ports: &release_ports
-  - docker ps | grep 5432 && docker stop $(docker ps | grep 5432 | awk '{print $1}') || true
-  - docker ps | grep 10000 && docker stop $(docker ps | grep 10000 | awk '{print $1}') || true
-  - docker ps | grep 8080 && docker stop $(docker ps | grep 8080 | awk '{print $1}') || true
-  - docker ps | grep 8081 && docker stop $(docker ps | grep 8081 | awk '{print $1}') || true
-  - docker ps | grep 3000 && docker stop $(docker ps | grep 3000 | awk '{print $1}') || true
-  - docker ps | grep 3001 && docker stop $(docker ps | grep 3001 | awk '{print $1}') || true
+  .release_ports: &release_ports
+    - docker ps | grep 5432 && docker stop $(docker ps | grep 5432 | awk '{print $1}') || true
+    - docker ps | grep 10000 && docker stop $(docker ps | grep 10000 | awk '{print $1}') || true
+    - docker ps | grep 8080 && docker stop $(docker ps | grep 8080 | awk '{print $1}') || true
+    - docker ps | grep 8081 && docker stop $(docker ps | grep 8081 | awk '{print $1}') || true
+    - docker ps | grep 3000 && docker stop $(docker ps | grep 3000 | awk '{print $1}') || true
+    - docker ps | grep 3001 && docker stop $(docker ps | grep 3001 | awk '{print $1}') || true
 
-.wait_for_database: &wait_for_database
-  - |
-    for i in $(seq 1 30); do
-      if docker-compose exec -T database pg_isready -U postgres; then
-        echo "Database is ready!"
-        break
-      fi
-      echo "Waiting for database... $i/30"
-      sleep 2
-      if [ $i -eq 30 ]; then
-        echo "Database timeout after 60 seconds"
-        exit 1
-      fi
-    done
+  .wait_for_database: &wait_for_database
+    - |
+      for i in $(seq 1 30); do
+        if docker compose exec -T database pg_isready -U postgres; then
+          echo "Database is ready!"
+          break
+        fi
+        echo "Waiting for database... $i/30"
+        sleep 2
+        if [ $i -eq 30 ]; then
+          echo "Database timeout after 60 seconds"
+          exit 1
+        fi
+      done
 
-.wait_for_backend: &wait_for_backend
-  - |
-    for i in $(seq 1 30); do
-      if ${COMPOSE_COMMAND} exec -T backend curl -sf http://localhost:8080/status > /dev/null 2>&1; then
-        echo "Backend is ready!"
-        break
-      fi
-      echo "Waiting for backend... $i/30"
-      sleep 5
-      if [ $i -eq 30 ]; then
-        echo "Backend timeout after 150 seconds"
-        exit 1
-      fi
-    done
+  .wait_for_backend: &wait_for_backend
+    - |
+      for i in $(seq 1 30); do
+        if docker compose exec -T backend curl -sf http://localhost:8080/status > /dev/null 2>&1; then
+          echo "Backend is ready!"
+          break
+        fi
+        echo "Waiting for backend... $i/30"
+        sleep 5
+        if [ $i -eq 30 ]; then
+          echo "Backend timeout after 150 seconds"
+          exit 1
+        fi
+      done
 
-.start_backend: &start_backend
-  - ${COMPOSE_COMMAND} up -d database storage
-  - *wait_for_database
-  - ${COMPOSE_COMMAND} up -d backend
-  - *wait_for_backend
+  .start_backend: &start_backend
+    - ${COMPOSE} up -d database storage
+    - *wait_for_database
+    - ${COMPOSE} up -d backend
+    - *wait_for_backend
 
-.cleanup: &cleanup
-  - docker-compose down -v || true
-  
-# Build all services in the Docker Compose stack
-build:
-  stage: build
-  before_script:
-    - *setup_environment
-    - *cleanup_environment
-  script:
-    - ${COMPOSE_COMMAND} build --no-cache
-  artifacts:
-    expire_in: 1 hour
+  .cleanup: &cleanup
+    - docker compose down -v || true
+    
+  # Build all services in the Docker Compose stack
+  build:
+    stage: build
+    before_script:
+      - *setup_environment
+      - *cleanup_environment
+    script:
+      - ${COMPOSE} build --no-cache
+    artifacts:
+      expire_in: 1 hour
 
-# Test backend using NUnit
-test-backend:
-  stage: test
-  needs: ["build"]
-  before_script:
-    - *setup_environment
-  script:
-    - *start_backend
-    - ${COMPOSE_COMMAND} run --rm backend sh -c 'dotnet build && dotnet test --logger:"console;verbosity=detailed"'
-  after_script:
-    - *cleanup
+  # Test backend using NUnit
+  test-backend:
+    stage: test
+    needs: ["build"]
+    before_script:
+      - *setup_environment
+    script:
+      - *start_backend
+      - APP_ENV=development ${COMPOSE} run --rm backend sh -c 'dotnet build && dotnet test --logger:"console;verbosity=detailed"'
+    after_script:
+      - *cleanup
 
-# Test frontend using VTest
-test-frontend:
-  stage: test
-  needs: ["build"]
-  before_script:
-    - *setup_environment
-  script:
-    # Start the backend service as frontend tests might need it
-    - *start_backend
-    # Run frontend tests
-    - ${COMPOSE_COMMAND} run --rm frontend sh -c "npm install && npm test -- --run"
-  after_script:
-    - *cleanup
+  # Test frontend using VTest
+  test-frontend:
+    stage: test
+    needs: ["build"]
+    before_script:
+      - *setup_environment
+    script:
+      # Start the backend service as frontend tests might need it
+      - *start_backend
+      # Run frontend tests
+      - APP_ENV=development ${COMPOSE} run --rm frontend sh -c "npm install && npm test -- --run"
+    after_script:
+      - *cleanup
 
-# Final cleanup job
-final-cleanup:
-  stage: cleanup
-  when: always
-  script:
-    - docker-compose down -v || true
-    - docker system prune -a -f || true
-    - echo "Cleaned up all resources"
+  # Final cleanup job
+  final-cleanup:
+    stage: cleanup
+    when: always
+    script:
+      - docker-compose down -v || true
+      - docker system prune -a -f || true
+      - echo "Cleaned up all resources"
 
-# This program has been developed by students from the bachelor Computer Science at Utrecht
-# University within the Software Project course.
-# © Copyright Utrecht University (Department of Information and Computing Sciences)
+  # This program has been developed by students from the bachelor Computer Science at Utrecht
+  # University within the Software Project course.
+  # © Copyright Utrecht University (Department of Information and Computing Sciences)

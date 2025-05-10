@@ -1,8 +1,13 @@
+# Target to use for building the images
+x-target: &target
+  target: ci-runner
+
+# Base args for the js code bases
 x-jsbase: &jsbase
   build:
-    no_cache: true
+    <<: *target
   environment:
-    - WATCHPACK_POLLING=true
+    - NODE_ENV=${APP_ENV:-production}
 
 services:
   # Set up temporary folders for storages
@@ -17,10 +22,13 @@ services:
   # Uncertain what these are for, but these were differences from prod compose
   backend:
     build:
+      <<: *target
       context: .
       dockerfile: ./backend/Dockerfile
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/status || exit 1"]
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${APP_ENV:-production}
 
   frontend:
     <<: *jsbase
