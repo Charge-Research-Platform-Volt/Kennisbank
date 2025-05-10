@@ -22,7 +22,7 @@ CMD exec dotnet run --project backend.csproj --urls http://+:${PORT}
 
 # CI Runner scope - used for GitLab CI Pipeline runner
 FROM base AS ci-runner
-ENV ASPNETCORE_ENVIRONMENT=Development
+ENV ASPNETCORE_ENVIRONMENT=Production
 WORKDIR /
 COPY backend/*.sln /backend/
 COPY backend/*.csproj /backend/backend.csproj
@@ -35,7 +35,7 @@ COPY testdata/ /app/testdata/
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 RUN rm -rf Migrations
 EXPOSE $PORT
-ENTRYPOINT exec dotnet run --project backend.csproj --urls http://+:${PORT}
+CMD exec dotnet run --project backend.csproj --urls http://+:${PORT}
 
 
 # Production stage - Builds and runs the application for production

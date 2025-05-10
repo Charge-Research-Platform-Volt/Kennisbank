@@ -7,7 +7,7 @@ x-jsbase: &jsbase
   build:
     <<: *target
   environment:
-    - NODE_ENV=${APP_ENV:-production}
+    - NODE_ENV=${NODE_ENV:-production}
 
 services:
   # Set up temporary folders for storages
@@ -27,8 +27,6 @@ services:
       dockerfile: ./backend/Dockerfile
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/status || exit 1"]
-    environment:
-      - ASPNETCORE_ENVIRONMENT=${APP_ENV:-production}
 
   frontend:
     <<: *jsbase
