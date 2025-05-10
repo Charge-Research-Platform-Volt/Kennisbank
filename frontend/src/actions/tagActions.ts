@@ -178,7 +178,7 @@ export const MergeTag = async (formData: FormData): Promise<ApiResponse> => {
 
   const cookieHeader = await cookies();
   const response = await fetch(
-    `http://backend:8080/tags/merge/${encodeURIComponent(tagId1)}/${encodeURIComponent(tagId2)}`,
+    `${process.env.API_URL}/tags/merge/${encodeURIComponent(tagId1)}/${encodeURIComponent(tagId2)}`,
     {
       method: "PATCH",
       headers: {

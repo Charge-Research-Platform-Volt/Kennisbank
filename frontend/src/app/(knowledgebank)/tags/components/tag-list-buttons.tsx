@@ -58,24 +58,3 @@ export function DeleteTagButton({ tag, userRole }: { tag: Tag, userRole: string 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-
-//     <Button
-// className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
-// variant="default"
-// type="button"
-// onClick={handleAction}
-// disabled={isPending}
-// title={title}
-// >
-// {Icon}
-// </Button>
-// <ActionButton<string>
-//   action={TagMergePopup}
-//   actionName="Merge tags"
-//   actionArg={tag.id}
-//   successMessage="Tag merge"
-//   onSuccessAction={() => window.dispatchEvent(new Event("tagListUpdated"))}
-//   icon={<Merge/>}
-//   title="Merge tag into another tag"
-// />
