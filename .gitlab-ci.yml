@@ -5,7 +5,7 @@
 
   variables:
     COMPOSE_PROJECT_NAME: ${CI_PROJECT_NAME}-${CI_PIPELINE_ID}
-    COMPOSE: docker compose -f docker-compose.yml -f docker-compose.ci.yml
+    COMPOSE: docker-compose -f docker-compose.yml -f docker-compose.ci.yml
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
 
@@ -18,12 +18,12 @@
   # Define reusable templates
   .setup_environment: &setup_environment
     - docker info
-    - apk add --no-cache docker compose py3-pip
-    - docker compose version
+    - apk add --no-cache docker-compose py3-pip
+    - docker-compose version
     - docker system prune -f || true
 
   .cleanup_environment: &cleanup_environment
-    - docker compose down -v --remove-orphans || true
+    - docker-compose down -v --remove-orphans || true
 
   .release_ports: &release_ports
     - docker ps | grep 5432 && docker stop $(docker ps | grep 5432 | awk '{print $1}') || true
@@ -36,7 +36,7 @@
   .wait_for_database: &wait_for_database
     - |
       for i in $(seq 1 30); do
-        if docker compose exec -T database pg_isready -U postgres; then
+        if docker-compose exec -T database pg_isready -U postgres; then
           echo "Database is ready!"
           break
         fi
@@ -51,7 +51,7 @@
   .wait_for_backend: &wait_for_backend
     - |
       for i in $(seq 1 30); do
-        if docker compose exec -T backend curl -sf http://localhost:8080/status > /dev/null 2>&1; then
+        if docker-compose exec -T backend curl -sf http://localhost:8080/status > /dev/null 2>&1; then
           echo "Backend is ready!"
           break
         fi
@@ -70,7 +70,7 @@
     - *wait_for_backend
 
   .cleanup: &cleanup
-    - docker compose down -v || true
+    - docker-compose down -v || true
     
   # Build all services in the Docker Compose stack
   build:
