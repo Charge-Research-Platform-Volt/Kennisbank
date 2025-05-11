@@ -10,6 +10,7 @@ namespace KnowledgeBank.Data
         public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options) { }
 
         public DbSet<Resource> Resources { get; set; }
+        public DbSet<Project> Projects {get; set;}
         public DbSet<Tag> Tags { get; set; }
         public DbSet<ResourceTagRelation> ResourceTagRelations { get; set; }
         public DbSet<User> AppUsers { get; set; } // Renamed to avoid conflict with IdentityDbContext.Users
@@ -35,6 +36,10 @@ namespace KnowledgeBank.Data
         public DbSet<ResourceRegionRelation> ResourceRegionRelations { get; set; }
         public DbSet<ResourceSourceRelation> ResourceSourceRelations { get; set; }
         public DbSet<ResourceRelatedSourceRelation> ResourceRelatedSourceRelations { get; set; }
+        public DbSet<ProjectFolderRelation> ProjectFolderRelations { get; set; }
+        public DbSet<ProjectTagRelation> ProjectTagRelations { get; set; }
+        public DbSet<ProjectResourceRelation> ProjectResourceRelations { get; set; }
+        public DbSet<ProjectCreatorRelation> ProjectCreatorRelations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
