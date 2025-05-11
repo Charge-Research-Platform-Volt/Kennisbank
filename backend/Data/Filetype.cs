@@ -5,7 +5,7 @@
     /// </summary>
     public static class Filetype
     {
-        private struct UploadType 
+        public struct UploadType 
         {
             public const string Document = "document";
             public const string Audio = "audio";

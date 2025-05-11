@@ -266,7 +266,7 @@ public class ResourcesControllerTests : TestBaseBlob
         Guid resourceId = (Guid)response.Body;
         bool existsInDatabase = await _resourceManager.ResourceExistsAsync(resourceId.ToString());
         
-        BLOB_STATUSCODE existsInBlob = await BlobService.BlobExistsAsync("text", resourceId.ToString());
+        BLOB_STATUSCODE existsInBlob = await BlobService.BlobExistsAsync(Filetype.UploadType.Document, resourceId.ToString());
         UploadedBlobs.Add(resourceId.ToString());
 
         Assert.That(existsInDatabase, Is.True);
