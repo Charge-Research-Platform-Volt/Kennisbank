@@ -15,7 +15,7 @@ import { useDebouncedCallback } from "use-debounce";
 export default function UsersList() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const pageParam : string | null = searchParams.get("page");
+    const pageParam : string | null = searchParams?.get("page") || null;
     const initialPage : number = pageParam && !isNaN(Number(pageParam)) ? parseInt(pageParam) : 1;
     const emptyUserArray: UserArray = [];
     const [users, setUsers] = useState(emptyUserArray);
@@ -111,7 +111,7 @@ export default function UsersList() {
                 <div>
                     <div className="flex flex-col space-y-2">
                         {users.map((user) => (
-                            <UserListItem key={crypto.randomUUID()} user={user} />
+                            <UserListItem key={user.id} user={user} />
                         ))}
                     </div>
                     <div className="flex justify-between items-center border-t py-4 mt-4">

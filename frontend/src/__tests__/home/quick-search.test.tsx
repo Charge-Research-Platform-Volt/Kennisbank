@@ -192,7 +192,7 @@ describe("QuickSearch Component test", () => {
 
     // useEffect trigger fetch after dialog opens
     expect(fetch).toHaveBeenCalledTimes(1);
-    expect(fetch).toHaveBeenCalledWith(`/api/Search/search-full-text?pageIndex=1&pageSize=10`, {
+    expect(fetch).toHaveBeenCalledWith("/api/Search/search-full-text?pageIndex=1&pageSize=10", {
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       method: "POST",

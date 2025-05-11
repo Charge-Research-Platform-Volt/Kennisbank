@@ -7,6 +7,7 @@ import { Tag } from "@/types/tag.type";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AddStandardizedTag } from "@/actions/tagActions";
+import { MAX_TAG_LENGTH } from "@/../constants";
 
 const initialState: FormResponse<Tag> = {
   success: false,
@@ -19,6 +20,7 @@ export default function CreateStandardizedTag() {
   useEffect(() => {
     if (state.success) {
       toast.success(state.message);
+      window.dispatchEvent(new Event("tagListUpdated"));
     } else if (state.message) {
       toast.error(state.message);
     }
@@ -28,12 +30,15 @@ export default function CreateStandardizedTag() {
     <form className="mb-4 flex space-x-2 w-full" action={action}>
       <div className="relative w-full">
         <Input
+          data-testid="input"
           type="text"
           name="name"
-          placeholder="New tag"
+          placeholder="New standardized tag"
           disabled={isPending}
+          maxLength={MAX_TAG_LENGTH}
         />
         <Button
+          data-testid="button"
           className="absolute inset-y-0 right-2 flex items-center justify-center bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
           variant="default"
           type="submit"

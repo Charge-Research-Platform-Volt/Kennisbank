@@ -59,7 +59,7 @@ export const AddWebsite = async (
         const cookieHeader = await cookies();
         console.log(validatedData);
 
-        const response = await fetch("${process.env.API_URL}/WebsiteUpload/add-website", {
+        const response = await fetch(`${process.env.API_URL}/websiteupload/add-website`, {
             method: "PUT",
             body: formData,
             credentials: "include",

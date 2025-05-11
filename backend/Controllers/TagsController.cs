@@ -8,13 +8,14 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using System.Linq.Expressions;
 using KnowledgeBank.Utils;
+using KnowledgeBank.Responses;
 
 namespace KnowledgeBank.Controllers;
 
 [ApiController]
 [Route("[controller]")]
 [Produces("application/json")]
-[Authorize] 
+[Authorize]
 public class TagsController(ResourceManager resourceManager) : ControllerBase
 {
     // Database context
@@ -28,7 +29,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     /// <returns>
     /// Returns a 200 OK response containing a list of tags.
     /// </returns>
-    [HttpGet("tags")]
+    [HttpPost("tags")]
     [SwaggerOperation(
         Summary = "Get tags with advanced filtering and sorting",
         Description = "Retrieve tags with options for pagination, filtering by multiple properties, and sorting"
@@ -36,7 +37,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> GetTags([FromQuery] TagFilterOptions filterOptions)
+    public async Task<IActionResult> GetTags([FromBody] TagFilterOptions filterOptions)
     {
         try
         {
@@ -75,8 +76,10 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             // Handle empty result
             if (tags == null || tags.Length == 0)
             {
-                return Ok(Array.Empty<Tag>());
-            }
+                if(filterOptions.UsePaging && filterOptions.PageIndex > 1)
+                    return BadRequest(new { message = "The page index is invalid." });
+                else
+                    return Ok(new TagPageResponse("No tags found.", new Tag[0]));            }
 
             // Set the UsageCount property for each tag if IncludeUsageCount is true
             if (filterOptions.IncludeUsageCount)
@@ -99,7 +102,15 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                 tags = PropertyMatcher.SortByProperty(tags, filterOptions.SortBy, filterOptions.SortDescending, filterOptions.SortBy).ToArray();
             }
 
-            return Ok(tags);
+            if(filterOptions.UsePaging)
+            {
+                // calculate the total number of tags
+                int totalCount = await resourceManager.TagCountAsync(predicate);
+                int pageCount = (int)Math.Ceiling((double)totalCount/filterOptions.PageSize);
+                return Ok(new TagPageResponse($"{tags.Length} tags found.", tags, filterOptions.PageIndex, filterOptions.PageSize, pageCount));
+            }
+            return Ok(new TagPageResponse($"{tags.Length} tags found.", tags));
+
         }
         catch (Exception e)
         {
@@ -140,11 +151,45 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     [SwaggerOperation(Summary = "List all tags paged.", Description = "List all tags paged.")]
     [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
     [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> GetAllPaged(int pageIndex = 1, int pageSize = 100)
+    public async Task<IActionResult> GetAllPaged(int pageIndex = 1, int pageSize = 100, string? searchQuery = null)
     {
         try
         {
-            return Ok(await resourceManager.GetTagPageAsync(pageIndex, pageSize));
+            if (pageIndex < 1)
+                return BadRequest(new { message = "Page index cannot be lower than 1." });
+
+            if(pageSize < 1)
+                return BadRequest(new { message = "Page size cannot be lower than 1." });
+
+            Tag[] tags;
+            // If there is a query, return the tag page that match that query and the index
+            if(!string.IsNullOrEmpty(searchQuery))
+            {
+                tags = await resourceManager.GetTagPageAsync(
+                    pageIndex: pageIndex, 
+                    pageSize: pageSize, 
+                    predicate: t => t.Name.ToLower().Contains(searchQuery.ToLower())
+                );
+            }
+
+            // Otherwise page normally
+            else
+            {
+                tags = await resourceManager.GetTagPageAsync(
+                    pageIndex: pageIndex,
+                    pageSize: pageSize
+                );
+            }
+
+            // Get the total amount of tags and pages
+            int totalTags = (await resourceManager.GetAllTagsAsync()).Length; 
+            int pageCount = (int)Math.Ceiling((double)totalTags / pageSize);
+            
+            // If no tags are returned, put in the message that no tags are found
+            if(tags == null)
+                return Ok(new TagPageResponse("No tags on this page.", Array.Empty<Tag>(), pageIndex, pageSize, pageCount));
+            
+            return Ok(new TagPageResponse($"{tags.Length} tags found", tags, pageIndex, pageSize, pageCount));
         }
         catch (Exception e)
         {
@@ -279,13 +324,18 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             return BadRequest(new { message = "Name is required" });
         }
 
-        // Check if the tag already exists in the UserTags table
-        bool userTagExists = await resourceManager.TagExistsAsync(t => t.Name == dto.Name);
+        if(dto.Name.Length > 50){
+            Log.Error("Tag is too long");
+            return BadRequest(new { message = "Tag is too long" }); 
+        }
 
-        if (userTagExists)
+        // Check if the tag already exists in the UserTags table
+        bool tagExists = await resourceManager.TagExistsAsync(t => t.Name == dto.Name);
+
+        if (tagExists)
         {
-            Log.Error("Tag already exists in UserTags table.");
-            return Conflict(new { message = "Tag already exists in the user tags list, try converting it instead." });
+            Log.Error("Tag already exists.");
+            return Conflict(new { message = "Tag already exists." });
         }
 
         // Add the tag
@@ -342,13 +392,18 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             return BadRequest(new { message = "Name is required" });
         }
 
-        // Check if the tag already exists in the UserTags table
-        bool userTagExists = await resourceManager.TagExistsAsync(t => t.Name == dto.Name);
+        if(dto.Name.Length > 50){
+            Log.Error("Tag is too long");
+            return BadRequest(new { message = "Tag is too long" }); 
+        }
 
-        if (userTagExists)
+        // Check if the tag already exists in the UserTags table
+        bool tagExists = await resourceManager.TagExistsAsync(t => t.Name == dto.Name);
+
+        if (tagExists)
         {
-            Log.Error("Tag already exists in UserTags table.");
-            return Conflict(new { message = "Tag already exists in the user tags list, try converting it instead." });
+            Log.Error("Tag already exists..");
+            return Conflict(new { message = "Tag already exists." });
         }
 
         // Add the tag
@@ -511,8 +566,8 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         
             if (await resourceManager.TagExistsAsync(t => t.Name == newName))
             {
-                Log.Error("Tag already exists in UserTags table.");
-                return Conflict(new { message = "Tag already exists in the user tags list, try converting the user tag instead." });
+                Log.Error("Tag already exists.");
+                return Conflict(new { message = "Tag already exists." });
             }
 
             if (!await resourceManager.UpdateTagAsync(id, t => t.Name, newName))

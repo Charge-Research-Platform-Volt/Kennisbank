@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { TagArray, Tag } from "@/types/tag.type";
+import { Tag } from "@/types/tag.type";
 import { FInput, InputBlock, InputHeader } from "@/components/ui/Popup";
 import { Button } from "@/components/ui/button";
 import AdminTagIcon from "@/icons/tag-icons/admin-tag";
 import ApprovedTagIcon from "@/icons/tag-icons/aproved-tag";
 import { AddUserTag } from "@/actions/tagActions";
 import { toast } from "sonner";
+import { fetchTagSearch } from "@/actions/tagActions";
+import { MAX_TAG_LENGTH } from "@/../constants";
 
 /**
  *
@@ -17,7 +19,7 @@ import { toast } from "sonner";
  *
  * @returns The dropdown box where the user can type and select tags to be added to the document
  */
-export default function TagSelectionDropdown({ tags, onSelectionChangedAction = () => {}, className, createButton = true }: { tags: TagArray, onSelectionChangedAction?: (tagFilters: string[]) => void, className?: string, createButton?: boolean }) {  
+export default function TagSelectionDropdown({ onSelectionChangedAction = () => {}, className, createButton = true }: { onSelectionChangedAction?: (tagFilters: string[]) => void, className?: string, createButton?: boolean }) {  
   const MAX_TAGS: number = 10;
 
   // States containing the inputvalue, tags returned by the input value, and the tags to be added to the document
@@ -104,24 +106,23 @@ export default function TagSelectionDropdown({ tags, onSelectionChangedAction = 
     onSelectionChangedAction(selectedTags); // Call the action passed from the parent component
   }
 
-
   // Filters tags to display only those tags that correspond with the input value
-  function filterTags() {
-    const fetchedTags = Object.values(tags); // Gets all values from inserted tags
-
+  async function filterTags() {
     // Ensures we don't add more tags than allowed and we don't render all tags at the start (We want to display filtered tags after at least 1 character is in the input)
     if (inputValue == "" || addedTags.length >= MAX_TAGS) {
       setFilteredTags([]);
       return;
     }
 
-    // Then we filter the tags on uppercase input/tag.name
-    const uppercaseInput: string = inputValue.toUpperCase();
+    // Gets all values from inserted tags and then filters the tags on uppercase name, sorts them on relevance, and returns top k tags
+    const fetchedTags = await fetchTagSearch(inputValue, MAX_TAGS);
 
-    const filtered = fetchedTags.filter((tag) => tag.name.toUpperCase().startsWith(uppercaseInput));
+    // Don't do anything if fetchedTags returns null or undefined
+    if(fetchedTags == null || fetchedTags == undefined || fetchedTags.tags == null || fetchedTags.tags == undefined)
+      return;
 
     // And we update our state
-    setFilteredTags(filtered.filter((tag) => !addedTags.includes(tag)));
+    setFilteredTags(fetchedTags.tags.filter((tag) => !addedTags.some(addedTag => addedTag.id === tag.id)));
   }
   
 
@@ -132,19 +133,22 @@ export default function TagSelectionDropdown({ tags, onSelectionChangedAction = 
   return (
     <div className={className}>
       <div className="relative w-full">
-        <InputBlock data-testid="popup_text" className="block w-full">
+        <InputBlock className="block w-full">
           <div className="flex items-center mt-1">
-            <InputHeader className="">Tags: </InputHeader>
+            <InputHeader className="" data-testid="popup_text">Tags: </InputHeader>
             {createButton ? (
-              <Button onClick={() => setShowCreateTagField(!showCreateTagField)} className="ml-auto cursor-pointer text-sm" type="button">
-                {showCreateTagField ? 'Cancel' : 'Create'}
-              </Button>
+              <div data-testid="popup_text">
+                <Button onClick={() => setShowCreateTagField(!showCreateTagField)} className="ml-auto cursor-pointer text-sm" type="button" data-testid="create_cancel_button">
+                  {showCreateTagField ? 'Cancel' : 'Create'}
+                </Button>
+              </div>
             ) : ''}
           </div>
 
           {showCreateTagField && (
             <div className="mt-1 flex">
               <FInput 
+                data-testid="tag_create_name"
                 className="flex-grow"
                 type="text"
                 placeholder="Enter new tag name"
@@ -158,8 +162,10 @@ export default function TagSelectionDropdown({ tags, onSelectionChangedAction = 
                     setNewTagName("");
                   }
                 }}
+                maxLength={50}
               />
               <Button 
+                data-testid="tag_add_button"
                 type="button"
                 onClick={handleCreateTag}
                 disabled={!newTagName.trim() || isCreatingTag}
@@ -169,7 +175,7 @@ export default function TagSelectionDropdown({ tags, onSelectionChangedAction = 
               </Button>
             </div>
           )}
-          <FInput data-testid="input_tags" className="mt-1 w-full" type="string" name="author" placeholder={tagPlaceholder} value={inputValue} onChange={handleInputChange} />
+          <FInput data-testid="input_tags" className="mt-1 w-full" type="string" name="author" placeholder={tagPlaceholder} value={inputValue} onChange={handleInputChange} maxLength={MAX_TAG_LENGTH} />
         </InputBlock>
         <div className={`absolute right-0 left-0 z-10 max-h-50 max-w-full overflow-y-auto bg-white shadow-lg ${filteredTags.length > 0 ? "rounded border" : ""}`}>
           {filteredTags.map((tag) => (

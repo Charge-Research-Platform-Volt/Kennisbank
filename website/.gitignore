@@ -4,6 +4,7 @@
 /content/docs/(api)/**
 swagger.json
 /docfx-files
+/typedoc-files
 
 # dependencies
 /node_modules
