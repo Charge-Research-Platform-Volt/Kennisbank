@@ -14,18 +14,12 @@
     
         private static readonly Dictionary<string, string> extToType = new()
         {
-            // Powerpoint
+            // Document
             { "ppt", UploadType.Document },
             { "pptx", UploadType.Document },
-
-            // Word
             { "doc", UploadType.Document },
             { "docx", UploadType.Document },
-
-            // PDF
             { "pdf", UploadType.Document },
-
-            // Text
             { "txt", UploadType.Document },
             
             // Audio
@@ -36,6 +30,8 @@
             // Video
             { "mp4", UploadType.Video },
             { "avi", UploadType.Video },
+            { "mkv", UploadType.Video },
+            { "mov", UploadType.Video },
         };
 
         /// <summary>
