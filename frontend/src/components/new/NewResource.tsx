@@ -39,7 +39,7 @@ export const UploadTypeEnum = z.enum(["document", "website", "audio", "video"])
 // Define constants
 const urlDefault = "http://no.url/"
 const fileDefault = new File([""], "placeholder.txt", { type: "text/plain" });
-const MAX_FILE_SIZE = 30 * 1024 * 1024;
+const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB, just under the 30 MB allowed by ASP.NET
 
 export const resourceCreateFormSchema = z.object(
 {
