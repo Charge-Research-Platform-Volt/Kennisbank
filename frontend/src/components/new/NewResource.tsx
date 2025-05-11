@@ -39,6 +39,7 @@ export const UploadTypeEnum = z.enum(["document", "website", "audio", "video"])
 // Define constants
 const urlDefault = "http://no.url/"
 const fileDefault = new File([""], "placeholder.txt", { type: "text/plain" });
+const MAX_FILE_SIZE = 30 * 1024 * 1024;
 
 export const resourceCreateFormSchema = z.object(
 {
@@ -57,7 +58,7 @@ export const resourceCreateFormSchema = z.object(
     regions: z.string().uuid().array(),
     uploadType: UploadTypeEnum,
     url: z.string().min(1, "URL is required").url("Invalid URL"),
-    file: z.any().refine(val => val !== undefined , { message: "File is required" }),
+    file: z.any().refine(val => val !== undefined , { message: "File is required" }).refine(val => val.size <= MAX_FILE_SIZE, { message: `File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`}),
     hash: z.string().optional(),
     accessedOn: z.string().date("Invalid Date").optional(),
     abstract: z.string().optional(),
