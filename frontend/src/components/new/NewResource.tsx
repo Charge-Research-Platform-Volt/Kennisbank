@@ -58,7 +58,7 @@ export const resourceCreateFormSchema = z.object(
     regions: z.string().uuid().array(),
     uploadType: UploadTypeEnum,
     url: z.string().min(1, "URL is required").url("Invalid URL"),
-    file: z.any().refine(val => val !== undefined , { message: "File is required" }).refine(val => val.size <= MAX_FILE_SIZE, { message: `File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`}),
+    file: z.any().refine(val => val !== undefined , { message: "File is required" }).refine(val => val instanceof File ? val.size <= MAX_FILE_SIZE : true, { message: `File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`}),
     hash: z.string().optional(),
     accessedOn: z.string().date("Invalid Date").optional(),
     abstract: z.string().optional(),
