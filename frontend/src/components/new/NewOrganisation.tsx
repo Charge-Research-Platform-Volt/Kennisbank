@@ -102,7 +102,7 @@ export default function NewOrganisation({ organisationOptions, onCreate, contain
         setIsChecking(true);
         
         const urlSafeName = encodeURIComponent(name);
-        const response = await fetch("http://localhost:8080/organisations/exists?name=" + urlSafeName, { credentials: "include" });
+        const response = await fetch("/api/organisations/exists?name=" + urlSafeName, { credentials: "include" });
         
         if (response.ok) 
         {
