@@ -3,12 +3,12 @@ using MimeKit;
 
 namespace KnowledgeBank.Utils
 {
-    public class MailUtils
+    public class MailUtils(string smtpHost, int tlsPort, string address, string password, string fromName)
     {
-        public static void SendMail(string to, string subject, string body)
+        public void SendMail(string to, string subject, string body)
         {
             MimeMessage message = new MimeMessage();
-            message.From.Add(new MailboxAddress("Ohmega", "ohmega45@gmail.com"));
+            message.From.Add(new MailboxAddress(fromName, address));
             message.To.Add(new MailboxAddress(to, to));
             message.Subject = subject;
 
@@ -19,8 +19,8 @@ namespace KnowledgeBank.Utils
 
             using (SmtpClient client = new SmtpClient())
             {
-                client.Connect("smtp.gmail.com", 587, MailKit.Security.SecureSocketOptions.StartTls);
-                client.Authenticate("ohmega45@gmail.com", "wozy agto ddok vpch");
+                client.Connect(smtpHost, tlsPort, MailKit.Security.SecureSocketOptions.StartTls);
+                client.Authenticate(address, password);
 
                 client.Send(message);
                 client.Disconnect(true);

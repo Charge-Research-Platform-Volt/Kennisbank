@@ -10,6 +10,7 @@ using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Diagnostics;
+using KnowledgeBank.Utils;
 
 namespace KnowledgeBank
 {
@@ -53,23 +54,38 @@ namespace KnowledgeBank
 
             // # Database context
             builder.Services.AddDbContext<DatabaseContext>(
-                // CONNECTION_STRING is set in docker-compose.dev.yml file
-                options => options.UseNpgsql(builder.Configuration.GetValue<string>("CONNECTION_STRING")
+                // DATABASE_CONNECTION_STRING is set in docker-compose.dev.yml file
+                options => options.UseNpgsql(builder.Configuration.GetValue<string>("DATABASE_CONNECTION_STRING")
             ));
 
             builder.Services.AddScoped<ResourceManager>();
 
+            // # Mailer;
+            builder.Services.AddSingleton(new MailUtils(
+                builder.Configuration.GetValue<string>("EMAIL_SMTP_HOST") ?? throw new ArgumentNullException("EMAIL_SMTP_HOST needs to be set"),
+                builder.Configuration.GetValue<int?>("EMAIL_TLS_PORT") ?? throw new ArgumentNullException("EMAIL_TLS_PORT needs to be set"),
+                builder.Configuration.GetValue<string>("EMAIL_ADDRESS") ?? throw new ArgumentNullException("EMAIL_ADDRESS needs to be set"),
+                builder.Configuration.GetValue<string>("EMAIL_PASSWORD") ?? throw new ArgumentNullException("EMAIL_PASSWORD needs to be set"),
+                builder.Configuration.GetValue<string>("EMAIL_FROM_NAME") ?? throw new ArgumentNullException("EMAIL_FROM_NAME needs to be set")
+            ));
+
+            builder.Services.AddSingleton(new FrontendDomain(
+                builder.Configuration.GetValue<string>("FRONTEND_DOMAIN")!
+            ));
+
             // CORS to allow Cross Origin Resource Sharing
-            builder.Services.AddCors(options =>
-            {
-                options.AddPolicy("AllowFrontend", policy =>
-                {
-                    policy.WithOrigins("http://localhost:3000")
-                          .AllowAnyHeader()
-                          .AllowAnyMethod()
-                          .AllowCredentials();
-                });
-            });
+            // TODO: I believe this is only necesary if we have to call the backend directly from the client
+            // or if we host our backend and frontend on different domains (unlikely) rm?
+            // builder.Services.AddCors(options =>
+            // {
+            //     options.AddPolicy("AllowFrontend", policy =>
+            //     {
+            //         policy.WithOrigins(builder.Configuration.GetValue<string>("FRONTEND_URL")!)
+            //               .AllowAnyHeader()
+            //               .AllowAnyMethod()
+            //               .AllowCredentials();
+            //     });
+            // });
 
             // # Application
             WebApplication app = builder.Build();
@@ -102,7 +118,8 @@ namespace KnowledgeBank
 
             app.UseHttpsRedirection();
             app.UseRouting();
-            app.UseCors("AllowFrontend");
+            //TODO: see todo where defined above
+            //app.UseCors("AllowFrontend");
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();

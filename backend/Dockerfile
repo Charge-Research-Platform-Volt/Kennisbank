@@ -1,5 +1,6 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS base
-ENV PORT=8080
+# Only used for building
+ARG PORT=8080
 
 # Build stage - compiles and builds the application
 FROM base AS build

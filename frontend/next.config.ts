@@ -24,10 +24,6 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: process.env.NODE_ENV === "production", // Disable ESLint in production
   },
 
-  env: {
-    API_URL: process.env.API_URL,
-  },
-
   async rewrites() {
     return [
       {
