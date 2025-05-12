@@ -109,52 +109,50 @@ test-frontend:
   after_script:
     - *cleanup
 
-# Final cleanup job
+# Cleanup job that only targets containers on the ci_network
 final-cleanup:
   stage: cleanup
   when: always
   script:
-    # Make sure environment is set up correctly
-    - *setup_environment
-    
-    # Down the CI containers with the CI project name
+    # Ensure the docker-compose processes are stopped
     - docker-compose -p ${COMPOSE_PROJECT_NAME} down -v --remove-orphans || true
     
-    # Remove any containers belonging to this pipeline
+    # Find and stop only containers connected to ci_network
     - |
-      echo "Removing containers for this pipeline..."
-      for container in $(docker ps -a --filter "name=${COMPOSE_PROJECT_NAME}" --format "{{.ID}}"); do
-        docker rm -f $container || true
-      done
-    
-    # Remove any networks created by this pipeline
-    - |
-      echo "Removing networks for this pipeline..."
-      for network in $(docker network ls --filter "name=${COMPOSE_PROJECT_NAME}" --format "{{.ID}}"); do
-        docker network rm $network || true
-      done
-    
-    # Remove any volumes created by this pipeline
-    - |
-      echo "Removing volumes for this pipeline..."
-      for volume in $(docker volume ls --filter "name=${COMPOSE_PROJECT_NAME}" --format "{{.ID}}"); do
-        docker volume rm $volume || true
-      done
+      echo "Finding containers connected to ci_network..."
       
-    # Remove any dangling images created during this pipeline
+      # This command finds all containers connected to the ci_network
+      CONTAINERS_ON_NETWORK=$(docker network inspect ci_network -f '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null || echo "")
+      
+      if [ -n "$CONTAINERS_ON_NETWORK" ]; then
+        echo "Stopping containers on ci_network: $CONTAINERS_ON_NETWORK"
+        for container in $CONTAINERS_ON_NETWORK; do
+          docker stop $container || true
+          docker rm $container || true
+          echo "Stopped and removed: $container"
+        done
+      else
+        echo "No containers found on ci_network"
+      fi
+    
+    # Remove the network itself if it exists
     - |
-      echo "Removing dangling images..."
+      if docker network ls | grep -q "ci_network"; then
+        echo "Removing ci_network..."
+        docker network rm ci_network || true
+      else
+        echo "ci_network does not exist"
+      fi
+    
+    # Clean up other resources that might be left by the CI process
+    - |
+      echo "Cleaning up dangling resources..."
+      docker container prune -f
       docker image prune -f
-      
-    # Clean build cache for this pipeline
-    - |
-      echo "Cleaning build cache..."
-      docker builder prune -f --filter "until=1h" || true
-      
-    # Release any hung ports if needed
-    - *release_ports
+      docker volume prune -f
+      docker builder prune -f
     
-    - echo "Successfully cleaned up all resources for pipeline ${CI_PIPELINE_ID}"
+    - echo "Cleanup completed - released all ports on ci_network"
 
 # This program has been developed by students from the bachelor Computer Science at Utrecht
 # University within the Software Project course.
