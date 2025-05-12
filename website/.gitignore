@@ -2,6 +2,7 @@
 
 /.source/*
 !/.source/source.config.mjs
+!/.source/index.ts
 /content/docs/(api)/**
 swagger.json
 /docfx-files
