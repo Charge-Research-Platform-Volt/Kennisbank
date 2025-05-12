@@ -14,7 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { ApiResponseSchema } from "@/types/apiResponse.type"
 import { UploadWithDto } from "@/actions/uploadActions"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { RequiredAstrix } from "@/components/ui/required-astrix"
 import { AddRelationsDialog } from "@/components/ui/add-relations-dialog"
 import { OrganisationCreateDto, OrganisationCreateDtoSchema, RelatedEntry } from "@/types/uploadTypes"
@@ -30,7 +30,6 @@ interface NewOrganisationProps
     container?: HTMLElement | null;
     updateOrganisations?: (organisations: SelectOption[]) => void;
     useUnsavedDialog?: boolean;
-    returnUrl?: string;
 }
 
 /**
@@ -41,7 +40,7 @@ interface NewOrganisationProps
  * @param useUnsavedDialog Determines if there should be an UnsavedDialog whenever any field is filled and the user tries to navigate
  * @param returnUrl The URL to where the user will be sent after upload
  */
-export default function NewOrganisation({ organisationOptions, onCreate, container = null, updateOrganisations, useUnsavedDialog = true, returnUrl = '/' }: NewOrganisationProps) 
+export default function NewOrganisation({ organisationOptions, onCreate, container = null, updateOrganisations, useUnsavedDialog = true }: NewOrganisationProps) 
 {
     // React states
     const [isChecking, setIsChecking] = React.useState<boolean>(false);
@@ -54,6 +53,9 @@ export default function NewOrganisation({ organisationOptions, onCreate, contain
     const organisationDrawerRef = React.useRef<HTMLDivElement>(null);
     
     const router = useRouter();
+    const searchParams = useSearchParams();
+        
+    const returnUrl = searchParams.get('returnUrl') || '/';
     
     useDrawerRerender([createOrganisationOpen]);
     

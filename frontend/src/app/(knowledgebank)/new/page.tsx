@@ -12,20 +12,12 @@ import { Tag, TagArraySchema } from "@/types/tag.type"
 import { Region, RegionArraySchema } from "@/types/region.type"
 import { SelectOption } from "@/components/ui/selection";
 
-interface NewPageProps 
-{
-  searchParams: { [key: string]: string | string[] | undefined };
-}
-
 /**
  * @summary A page where you can upload any kind entity to our database
  * @param searchParams The parameters given in the URL
  */
-export default async function NewPage({ searchParams }: NewPageProps) 
+export default async function NewPage()
 {
-    const resolvedSearchParams = await searchParams;
-    const returnUrl = typeof resolvedSearchParams.returnUrl === 'string' ? resolvedSearchParams.returnUrl : '/';
-    
     // Fetch persons
     const personsFetch = await FetchWithValidation(ApiResponseSchema, `${process.env.API_URL}/persons/list`);
     
@@ -151,9 +143,9 @@ export default async function NewPage({ searchParams }: NewPageProps)
                 <FormTabsTrigger value="person">Person</FormTabsTrigger>
                 <FormTabsTrigger value="organisation">Organisation</FormTabsTrigger>
             </TabsList>
-            <TabsContent value="resource"><NewResource personOptions={personsOptions} organisationOptions={organisationOptions} resourceTypeOptions={typesOptions} tagOptions={tagOptions} regionOptions={regionOptions} returnUrl={returnUrl} documentExtensions={fileExtensionsFetch.data.body.document} audioExtensions={fileExtensionsFetch.data.body.audio} videoExtensions={fileExtensionsFetch.data.body.video} /></TabsContent>
-            <TabsContent value="person"><NewPerson personOptions={personsOptions} organisationOptions={organisationOptions} returnUrl={returnUrl} /></TabsContent>
-            <TabsContent value="organisation"><NewOrganisation organisationOptions={organisationOptions} returnUrl={returnUrl} /></TabsContent>
+            <TabsContent value="resource"><NewResource personOptions={personsOptions} organisationOptions={organisationOptions} resourceTypeOptions={typesOptions} tagOptions={tagOptions} regionOptions={regionOptions} documentExtensions={fileExtensionsFetch.data.body.document} audioExtensions={fileExtensionsFetch.data.body.audio} videoExtensions={fileExtensionsFetch.data.body.video} /></TabsContent>
+            <TabsContent value="person"><NewPerson personOptions={personsOptions} organisationOptions={organisationOptions} /></TabsContent>
+            <TabsContent value="organisation"><NewOrganisation organisationOptions={organisationOptions} /></TabsContent>
         </FormTabs>
     );
 }
