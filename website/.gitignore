@@ -1,7 +1,6 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 /.source/*
-!/.source/index.ts
 !/.source/source.config.mjs
 /content/docs/(api)/**
 swagger.json
