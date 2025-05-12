@@ -1,6 +1,7 @@
 x-target: &target
   target: ${TARGET:-development} # If TARGET is not set, default to development
 
+# TODO: check if this works
 x-API_URL: &API_URL
   API_URL=${API_URL:-http://backend:8080} # If API_URL is not set, guess
 
@@ -9,11 +10,11 @@ services:
   database:
     image: postgres:latest
     ports:
-      - "5432:5432"
+      - ${DATABASE_PORT:-5432}:5432
     environment:
-      - POSTGRES_USER=${DB_USER:-postgres}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-      - POSTGRES_DB=${DB_NAME:-postgres}
+      - POSTGRES_USER=${DATABASE_USER:-postgres}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD:?}
+      - POSTGRES_DB=${DATABASE_NAME:-postgres}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -24,7 +25,7 @@ services:
   storage:
     image: mcr.microsoft.com/azure-storage/azurite
     ports:
-      - "10000:10000"
+      - ${STORAGE_PORT:-10000}:10000
 
   # Start backend with database and storage
   backend:
@@ -33,11 +34,27 @@ services:
       dockerfile: Dockerfile
       <<: *target
     ports:
-      - "8080:8080"
+      - ${BACKEND_PORT:-8080}:8080
     environment:
-      - CONNECTION_STRING=Host=database;Port=5432;Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres};Database=${DB_NAME:-postgres};Include Error Detail=true
-      - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://storage:10000/devstoreaccount1;
-      - HOST_URL=${HOST_URL}
+      FRONTEND_DOMAIN: ${FROTEND_DOMAIN:-localhost:${FRONTEND_PORT:-3000}} # Public URL for the email
+      DATABASE_CONNECTION_STRING: >-
+        Host=database;
+        Port=5432;
+        Username=${DATABASE_USER:-postgres};
+        Password=${DATABASE_PASSWORD:?};
+        Database=${DATABASE_NAME:-postgres};
+        Include Error Detail=true
+      # Spaces aren't allowed so use \ with "" which is the only multiline syntax to have nothing between lines
+      STORAGE_CONNECTION_STRING: # TODO: Use a real connection string
+        "DefaultEndpointsProtocol=http;\
+        AccountName=devstoreaccount1;\
+        AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;\
+        BlobEndpoint=http://storage:10000/devstoreaccount1;"
+      EMAIL_SMTP_HOST: ${EMAIL_SMTP_HOST:?}
+      EMAIL_TLS_PORT:  ${EMAIL_TLS_PORT:-587}
+      EMAIL_ADDRESS: ${EMAIL_ADDRESS:?}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD:?}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-$EMAIL_ADDRESS}
     depends_on:
       database:
         condition: service_healthy
@@ -57,12 +74,11 @@ services:
       dockerfile: Dockerfile
       <<: *target
     ports:
-      - "3000:3000"
+      - ${FRONTEND_PORT:-3000}:3000
     environment:
-      - *API_URL
-      - HELP_URL=${HELP_URL}
-      - NEXT_PUBLIC_TIMEZONE=${NEXT_PUBLIC_TIMEZONE}
-      - NODE_ENV=development
+      - API_URL=${API_URL:-http://backend:8080}
+      - WEBSITE_DOMAIN=${WEBSITE_DOMAIN:?localhost:${WEBSITE_PORT:-3001}}
+      - NEXT_PUBLIC_TIMEZONE=${NEXT_PUBLIC_TIMEZONE:?UTC}
     depends_on:
       backend:
         condition: service_healthy
@@ -74,9 +90,9 @@ services:
       dockerfile: Dockerfile
       <<: *target
     ports:
-      - "3001:3001"
+      - ${WEBSITE_PORT:-3001}:3001
     environment:
-      - *API_URL
+      - API_URL=${API_URL:-http://backend:8080}
     depends_on:
       backend:
         condition: service_healthy
