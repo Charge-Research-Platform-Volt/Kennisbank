@@ -114,9 +114,19 @@ final-cleanup:
   stage: cleanup
   when: always
   script:
-    - docker-compose down -v || true
-    - docker system prune -a -f || true
-    - echo "Cleaned up all resources"
+    # Down only the CI containers (using the CI project name)
+    - docker-compose -p ${COMPOSE_PROJECT_NAME} down -v || true
+    
+    # Clean only orphaned/dangling resources
+    - docker system prune -f || true  # Remove only unused networks, images (not containers)
+    
+    # Release any hung CI test ports if needed
+    - |
+      for container in $(docker ps -a --filter "name=${COMPOSE_PROJECT_NAME}" --format "{{.ID}}"); do
+        docker rm -f $container || true
+      done
+    
+    - echo "Cleaned up CI resources while preserving production containers"
 
 # This program has been developed by students from the bachelor Computer Science at Utrecht
 # University within the Software Project course.

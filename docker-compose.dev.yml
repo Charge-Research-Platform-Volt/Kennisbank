@@ -98,6 +98,8 @@ services:
       - "3001:3001"
     environment:
       - API_URL=${API_URL}
+      - HELP_URL=${HELP_URL}
+      - NEXT_PUBLIC_TIMEZONE=${NEXT_PUBLIC_TIMEZONE}
       - NODE_ENV=development
       - WATCHPACK_POLLING=true
     volumes:

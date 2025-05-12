@@ -44,7 +44,7 @@ export default async function LeftSidebarServer() {
   const bottomMenuItems: SidebarItem[] = [
     {
       id: 1,
-      path: "http://localhost:3001/guide",
+      path: `${process.env.HELP_URL}/guide`,
       icon: <Help className="h-4 w-4" />,
       name: "Help",
     },

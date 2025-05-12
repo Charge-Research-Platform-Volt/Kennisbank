@@ -9,12 +9,14 @@ using Microsoft.OpenApi.Models;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
-using System.Diagnostics;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace KnowledgeBank
 {
     public class Program
     {
+        public static string HostUrl { get; private set; } = "http://localhost:3000";
+    
         public static async Task Main(string[] args)
         {
             // # Builder
@@ -57,6 +59,8 @@ namespace KnowledgeBank
                 options => options.UseNpgsql(builder.Configuration.GetValue<string>("CONNECTION_STRING")
             ));
 
+            HostUrl = builder.Configuration.GetValue<string>("HOST_URL") ?? HostUrl;
+
             builder.Services.AddScoped<ResourceManager>();
 
             // CORS to allow Cross Origin Resource Sharing
@@ -69,6 +73,19 @@ namespace KnowledgeBank
                           .AllowAnyMethod()
                           .AllowCredentials();
                 });
+            });
+            
+            builder.Services.Configure<FormOptions>(options =>
+            {
+                // Set the limit to 100 MB
+                options.MultipartBodyLengthLimit = 110100480; // 105 * 1024c * 1024
+                options.ValueLengthLimit = int.MaxValue;
+                options.MultipartHeadersLengthLimit = int.MaxValue;
+            });
+            
+            builder.WebHost.ConfigureKestrel(serverOptions =>
+            {
+                serverOptions.Limits.MaxRequestBodySize = 110100480; // 105 MB in bytes
             });
 
             // # Application
