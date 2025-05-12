@@ -39,6 +39,9 @@ public class Tag
     // Non-mapped, runtime-only properties used for view logic / API response shaping.
     [NotMapped]
     public int UsageCount { get; set; }
+    
+    [NotMapped]
+    public bool CanEditAndDelete { get; set; }
 }
 
 public class TagCreateDto
@@ -72,6 +75,8 @@ public class TagFilterOptions
 
     // Additional processing
     public bool IncludeUsageCount { get; set; } = true;
+    
+    public bool IncludeCanEditAndDelete { get; set; } = true;
 
     // Sorting
     public string? SortBy { get; set; } = "Name";
