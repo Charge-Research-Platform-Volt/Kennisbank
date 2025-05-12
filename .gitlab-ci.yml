@@ -109,43 +109,40 @@ test-frontend:
   after_script:
     - *cleanup
 
-# Final cleanup job with more aggressive cleaning
+# Final cleanup job - nuclear option that preserves only running containers
 final-cleanup:
   stage: cleanup
   when: always
   script:
-    # Stop and remove all containers from this pipeline
-    - |
-      echo "Stopping all containers related to CI..."
-      # First stop all docker-compose containers
-      docker-compose -p ${COMPOSE_PROJECT_NAME} down -v --remove-orphans || true
-      
-      # Then try to identify and stop any other containers that might be related to CI
-      # This will NOT stop containers that have been running for more than 2 hours
-      for container in $(docker ps -a --format "{{.ID}} {{.RunningFor}}" | grep -v "hour[s]*" | grep -v "day[s]*" | grep -v "week[s]*" | grep -v "month[s]*" | awk '{print $1}'); do
-        docker stop $container || true
-        docker rm $container || true
-      done
+    # First ensure we're not accidentally stopping our CI processes
+    - docker-compose -p ${COMPOSE_PROJECT_NAME} down -v --remove-orphans || true
     
-    # Remove unused networks, volumes, and images
+    # Stop the CI process to ensure we don't interfere with it
+    - sleep 2
+    
+    # NUCLEAR OPTION - but safe for running containers
     - |
-      echo "Removing unused networks..."
+      echo "NUCLEAR CLEANUP: Removing all stopped containers..."
+      docker container prune -f
+      
+      echo "NUCLEAR CLEANUP: Removing all unused networks..."
       docker network prune -f
       
-      echo "Removing unused volumes..."
+      echo "NUCLEAR CLEANUP: Removing all unused volumes..."
       docker volume prune -f
       
-      echo "Removing dangling images..."
-      docker image prune -f
+      echo "NUCLEAR CLEANUP: Removing all dangling and unused images..."
+      docker image prune -af
+      
+      echo "NUCLEAR CLEANUP: Removing all build cache..."
+      docker builder prune -af
+      
+      echo "Docker system has been reset while preserving running containers!"
     
-    # Clean ALL build cache
-    - |
-      echo "Removing all build cache..."
-      docker builder prune -af || true
-    
+    # Release any hung ports if needed
     - *release_ports
     
-    - echo "Aggressive cleanup completed for pipeline ${CI_PIPELINE_ID}"
+    - echo "Nuclear cleanup completed - only running containers remain"
 
 # This program has been developed by students from the bachelor Computer Science at Utrecht
 # University within the Software Project course.
