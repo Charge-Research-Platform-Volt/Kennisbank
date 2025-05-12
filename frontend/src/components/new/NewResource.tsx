@@ -20,7 +20,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { ApiResponseSchema } from "@/types/apiResponse.type"
 import { UploadNewResource, UploadWithDto } from "@/actions/uploadActions"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { RequiredAstrix } from "@/components/ui/required-astrix"
 import { AddRelationsDialog } from "@/components/ui/add-relations-dialog"
 import { RegionCreateDto, RelatedEntry, RelatedEntrySchema, ResourceTypeCreateDto } from "@/types/uploadTypes"
@@ -28,7 +28,7 @@ import CreateDialog from "./CreateDialog"
 import { TagCreateDto } from "@/types/tag.type"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import NewPerson from "@/components/new/NewPerson"
-import NewOrganisation from "./NewOrganisation"
+import NewOrganisation from "@/components/new/NewOrganisation"
 import { useDrawerRerender } from "@/utils/useDrawerRerenderer"
 import { useTabsContext } from "@/context/tabs-context"
 import { useFormHasValues } from "@/hooks/useFormNonDefaultValues"
@@ -75,7 +75,6 @@ interface NewResourceProps
     tagOptions: SelectOption[];
     regionOptions: SelectOption[];
     useUnsavedDialog?: boolean;
-    returnUrl?: string;
     documentExtensions?: string[];
     audioExtensions?: string[];
     videoExtensions?: string[];
@@ -89,9 +88,8 @@ interface NewResourceProps
  * @param tagOptions The complete list of tags in the database
  * @param regionOptions The complete list of regions in the database
  * @param useUnsavedDialog Determines if there should be a dialog when some fields are filled and the user tries to navigate
- * @param returnUrl The URL the user will be sent to after uploading
  */
-export default function NewResource({ personOptions, organisationOptions, resourceTypeOptions, tagOptions, regionOptions, useUnsavedDialog = true, returnUrl = '/', documentExtensions = [], audioExtensions = [], videoExtensions = [] }: NewResourceProps) 
+export default function NewResource({ personOptions, organisationOptions, resourceTypeOptions, tagOptions, regionOptions, useUnsavedDialog = true, documentExtensions = [], audioExtensions = [], videoExtensions = [] }: NewResourceProps) 
 {
     // React states
     const [uploadType, setUploadType] = React.useState<z.infer<typeof UploadTypeEnum>>("document");
@@ -119,6 +117,9 @@ export default function NewResource({ personOptions, organisationOptions, resour
     const organisationDrawerRef = React.useRef<HTMLDivElement>(null);
     
     const router = useRouter();
+    const searchParams = useSearchParams();
+    
+    const returnUrl = searchParams.get('returnUrl') || '/';
     
     useDrawerRerender([createPersonOpen, createOrganisationOpen]);
     

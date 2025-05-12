@@ -14,7 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { ApiResponseSchema } from "@/types/apiResponse.type"
 import { UploadWithDto } from "@/actions/uploadActions"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { RequiredAstrix } from "@/components/ui/required-astrix"
 import { AddRelationsDialog } from "@/components/ui/add-relations-dialog"
 import { PersonCreateDto, PersonCreateDtoSchema, RelatedEntry } from "@/types/uploadTypes"
@@ -33,7 +33,6 @@ interface NewPersonProps
     updatePersons?: (organisations: SelectOption[]) => void;
     updateOrganisations?: (organisations: SelectOption[]) => void;
     useUnsavedDialog?: boolean;
-    returnUrl?: string;
 }
 
 /**
@@ -45,9 +44,8 @@ interface NewPersonProps
  * @param updatePersons This function is called when the collection of persons is changed
  * @param updateOrganisations This function is called when the collection of organisations is changed
  * @param useUnsavedDialog Determines if there should be a UnsavedDialog whenever some fields are filled and the user tries to navigate
- * @param returnUrl The URL to where the user will be sent after successfull upload
  */
-export default function NewPerson({ personOptions, organisationOptions, onCreate, container = null, updatePersons, updateOrganisations, useUnsavedDialog = true, returnUrl = '/' }: NewPersonProps) 
+export default function NewPerson({ personOptions, organisationOptions, onCreate, container = null, updatePersons, updateOrganisations, useUnsavedDialog = true }: NewPersonProps) 
 {
     // React states
     const [isChecking, setIsChecking] = React.useState<boolean>(false);
@@ -63,6 +61,9 @@ export default function NewPerson({ personOptions, organisationOptions, onCreate
     const organisationDrawerRef = React.useRef<HTMLDivElement>(null);
     
     const router = useRouter();
+    const searchParams = useSearchParams();
+        
+    const returnUrl = searchParams.get('returnUrl') || '/';
     
     useDrawerRerender([createPersonOpen, createOrganisationOpen]);
     
