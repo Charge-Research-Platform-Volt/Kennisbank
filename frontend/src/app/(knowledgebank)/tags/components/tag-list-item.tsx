@@ -109,7 +109,7 @@ export default function TagListItem({ tag, userRole }: { tag: Tag, userRole: str
             </div>
 
             <div className="flex items-center">
-              <TagMergeButton tag={tag}></TagMergeButton>
+              {userRole == "admin" ? <TagMergeButton tag={tag}></TagMergeButton> : null}
               <TagActionButtons
                 tag={tag}
                 onEditClick={handleEditClick}
