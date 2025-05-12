@@ -24,7 +24,8 @@ namespace KnowledgeBank.Data
                 await database.ResourceTypes.AddAsync(new() { Id = new Guid(UnknownResourceTypeId), Name = "Unknown" });
 
             // Create Scientific Article resource type
-            await resourceManager.CreateResourceTypeAsync(new ResourceTypeCreateDto { Name = "Scientific Article" });
+            if (!await resourceManager.ResourceTypeExistsAsync(type => type.Name == "Scientific Article"))
+                await resourceManager.CreateResourceTypeAsync(new ResourceTypeCreateDto { Name = "Scientific Article" });
 
             // Save changes
             await database.SaveChangesAsync();

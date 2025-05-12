@@ -1,6 +1,6 @@
 networks:
-  my_network:
-    name: my_network
+  dev_network:
+    name: dev_network
     driver: bridge
 
 services:
@@ -16,7 +16,7 @@ services:
     tmpfs:
       - /var/lib/postgresql/data
     networks:
-      - my_network
+      - dev_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -31,7 +31,7 @@ services:
     tmpfs:
       - /data
     networks:
-      - my_network
+      - dev_network
 
   # Start backend after database and storage
   backend:
@@ -57,7 +57,7 @@ services:
       storage:
         condition: service_started
     networks:
-      - my_network
+      - dev_network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/status"]
       interval: 10s
@@ -86,7 +86,7 @@ services:
       backend:
         condition: service_healthy
     networks:
-      - my_network
+      - dev_network
   
   # Start website after backend
   website:
@@ -111,7 +111,7 @@ services:
       backend:
         condition: service_healthy
     networks:
-      - my_network
+      - dev_network
 
 # This program has been developed by students from the bachelor Computer Science at Utrecht
 # University within the Software Project course.
