@@ -109,52 +109,43 @@ test-frontend:
   after_script:
     - *cleanup
 
-# Final cleanup job
+# Final cleanup job with more aggressive cleaning
 final-cleanup:
   stage: cleanup
   when: always
   script:
-    # Make sure environment is set up correctly
-    - *setup_environment
-    
-    # Down the CI containers with the CI project name
-    - docker-compose -p ${COMPOSE_PROJECT_NAME} down -v --remove-orphans || true
-    
-    # Remove any containers belonging to this pipeline
+    # Stop and remove all containers from this pipeline
     - |
-      echo "Removing containers for this pipeline..."
-      for container in $(docker ps -a --filter "name=${COMPOSE_PROJECT_NAME}" --format "{{.ID}}"); do
-        docker rm -f $container || true
-      done
-    
-    # Remove any networks created by this pipeline
-    - |
-      echo "Removing networks for this pipeline..."
-      for network in $(docker network ls --filter "name=${COMPOSE_PROJECT_NAME}" --format "{{.ID}}"); do
-        docker network rm $network || true
-      done
-    
-    # Remove any volumes created by this pipeline
-    - |
-      echo "Removing volumes for this pipeline..."
-      for volume in $(docker volume ls --filter "name=${COMPOSE_PROJECT_NAME}" --format "{{.ID}}"); do
-        docker volume rm $volume || true
-      done
+      echo "Stopping all containers related to CI..."
+      # First stop all docker-compose containers
+      docker-compose -p ${COMPOSE_PROJECT_NAME} down -v --remove-orphans || true
       
-    # Remove any dangling images created during this pipeline
+      # Then try to identify and stop any other containers that might be related to CI
+      # This will NOT stop containers that have been running for more than 2 hours
+      for container in $(docker ps -a --format "{{.ID}} {{.RunningFor}}" | grep -v "hour[s]*" | grep -v "day[s]*" | grep -v "week[s]*" | grep -v "month[s]*" | awk '{print $1}'); do
+        docker stop $container || true
+        docker rm $container || true
+      done
+    
+    # Remove unused networks, volumes, and images
     - |
+      echo "Removing unused networks..."
+      docker network prune -f
+      
+      echo "Removing unused volumes..."
+      docker volume prune -f
+      
       echo "Removing dangling images..."
       docker image prune -f
-      
-    # Clean build cache for this pipeline
+    
+    # Clean ALL build cache
     - |
-      echo "Cleaning build cache..."
-      docker builder prune -f --filter "until=1h" || true
-      
-    # Release any hung ports if needed
+      echo "Removing all build cache..."
+      docker builder prune -af || true
+    
     - *release_ports
     
-    - echo "Successfully cleaned up all resources for pipeline ${CI_PIPELINE_ID}"
+    - echo "Aggressive cleanup completed for pipeline ${CI_PIPELINE_ID}"
 
 # This program has been developed by students from the bachelor Computer Science at Utrecht
 # University within the Software Project course.
