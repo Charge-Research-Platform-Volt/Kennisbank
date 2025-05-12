@@ -70,7 +70,7 @@ services:
       - "3000:3000"
     environment:
       - API_URL=${API_URL}
-      - NODE_ENV=development
+      - NODE_ENV=production
       - WATCHPACK_POLLING=true
     depends_on:
       backend:
@@ -89,7 +89,7 @@ services:
       - "3001:3001"
     environment:
       - API_URL=${API_URL}
-      - NODE_ENV=development
+      - NODE_ENV=production
       - WATCHPACK_POLLING=true
     depends_on:
       backend:
