@@ -139,9 +139,6 @@ final-cleanup:
       
       echo "Docker system has been reset while preserving running containers!"
     
-    # Release any hung ports if needed
-    - *release_ports
-    
     - echo "Nuclear cleanup completed - only running containers remain"
 
 # This program has been developed by students from the bachelor Computer Science at Utrecht
