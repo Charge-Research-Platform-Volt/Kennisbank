@@ -4,7 +4,6 @@ import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
 import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Skeleton } from "@/components/ui/skeleton"
 
 function Drawer({
   ...props
@@ -68,7 +67,7 @@ function DrawerContent({
       >
         {/* Removed handle in favor for X: <div className="bg-muted mx-auto mt-4 hidden h-2 w-[100px] shrink-0 rounded-full group-data-[vaul-drawer-direction=bottom]/drawer-content:block" /> */}
         <DrawerPrimitive.Close className="w-full flex justify-end">
-          <X className="w-6 h-6 m-3" />
+          <X className="w-6 h-6 m-3 cursor-pointer" />
         </DrawerPrimitive.Close>
         {children}
       </DrawerPrimitive.Content>

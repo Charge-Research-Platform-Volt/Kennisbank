@@ -48,7 +48,7 @@ export const resourceCreateFormSchema = z.object(
     typeId: z.string().uuid(),
     languageCode: z.string().length(2, { message: "Please select a language" }),
     publicationCode: z.string().optional(),
-    publicationDate: z.string().date("Please select a date"),
+    publicationDate: z.string().date("Please select a date").refine((dateStr) => new Date(dateStr) <= new Date(), "The date cannot be in the future"),
     license: z.string().optional(),
     sources: z.string().array().optional(),
     note: z.string().optional(),
@@ -215,6 +215,14 @@ export default function NewResource({ personOptions, organisationOptions, resour
         
         setResourceType(selectedType?.label || ""); 
     }, [typeId, resourceTypes]);
+    
+    // Effect for publication date
+    React.useEffect(() => 
+    {
+        // Revalidate when date changes
+        if (form.getValues("publicationDate"))
+            form.trigger("publicationDate");
+    }, [form, form.watch("publicationDate")])
     
     // Handle file changing
     async function onFileChange(file: File | undefined) 
@@ -502,7 +510,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                             <FormItem>
                                 <FormLabel>Publication Date <RequiredAstrix /></FormLabel>
                                 <FormControl>
-                                    <Input type="date" { ... field} />
+                                    <Input type="date" max={new Date().toISOString().split('T')[0]} className="cursor-pointer" { ... field} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>

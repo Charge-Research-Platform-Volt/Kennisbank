@@ -189,7 +189,7 @@ export function Selection({
                                     const isSelected = multiSelect && Array.isArray(value) ? value.includes(option.value) : value === option.value;
                                 
                                     return (
-                                        <CommandItem key={option.label} value={option.label} onSelect={handleOnSelect}>
+                                        <CommandItem key={option.label} value={option.label} onSelect={handleOnSelect} className="cursor-pointer">
                                             <div className="flex items-center justify-between w-full">
                                                 {option.label}
                                                 <Check className={cn("ml-2 h-4 w-4", isSelected ? "opacity-100" : "opacity-0")} />
@@ -204,7 +204,7 @@ export function Selection({
                                     const isSelected = multiSelect && Array.isArray(value) ? value.includes(option.value) : value === option.value;
                                 
                                     return (
-                                        <CommandItem key={option.label} value={option.label} onSelect={handleOnSelect}>
+                                        <CommandItem key={option.label} value={option.label} onSelect={handleOnSelect} className="cursor-pointer">
                                             <div className="flex items-center justify-between w-full">
                                                 {option.label}
                                                 <Check className={cn("ml-2 h-4 w-4", isSelected ? "opacity-100" : "opacity-0")} />
