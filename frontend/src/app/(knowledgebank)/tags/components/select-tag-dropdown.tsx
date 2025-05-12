@@ -144,6 +144,7 @@ export default function SelectTagDropdown({ onChangeAction = () => {}, standardT
             <CommandGroup>
               {filteredTags.map((tag) => (
                 <CommandItem
+                  className="cursor-pointer"
                   key={tag.id}
                   value={tag.name}
                   onSelect={() => addTags(tag)}

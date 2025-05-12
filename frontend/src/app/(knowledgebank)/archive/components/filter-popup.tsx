@@ -11,7 +11,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-
 import { Label } from "@/components/ui/label";
 
 /**
@@ -20,7 +19,7 @@ import { Label } from "@/components/ui/label";
  * @param [className] - Styling from parent
  * @returns A popup where users can filter on date and tags
  */
-export default function FilterPopup({ onApplyAction, className }: { onApplyAction: (tagFilters: string[], startDate: number, endDate: number) => void, className?: string }) {
+export default function FilterPopup({ onApplyAction, onCloseAction, className }: { onApplyAction: (tagFilters: string[], startDate: number, endDate: number) => void, onCloseAction: () => void, className?: string }) {
     const [startYear, setStartYear] = useState<number>(0); // State containing the start date to filter on
     const [endYear, setEndYear] = useState<number>(0); // State containing the end date to filter on
     const [tagFilters, setTagFilters] = useState<string[]>([]); // State containing the tags to filter on
@@ -29,6 +28,11 @@ export default function FilterPopup({ onApplyAction, className }: { onApplyActio
             setTagFilters([]);
         }
     , []);
+
+    function Apply(tagFilters: string[], startYear: number, endYear: number): void {
+        onApplyAction(tagFilters, startYear, endYear)
+        onCloseAction()
+    }
 
     return (
         <DialogContent className={className}>
@@ -40,22 +44,22 @@ export default function FilterPopup({ onApplyAction, className }: { onApplyActio
                             </DialogHeader>
                             {/* Items for filtering */}
                             <div className="grid gap-4 py-4">
-                                <div className="grid grid-cols-4 items-center gap-4">
+                                <div className="grid grid-cols-3 items-center gap-4">
                                     <Label htmlFor="first tag" className="text-right">
                                     Published Between:
                                     </Label>
-                                        <DateFilterSlider setStartYearAction={setStartYear} setEndYearAction={setEndYear} className="w-[450px] mt-[10px]" />
+                                        <DateFilterSlider setStartYearAction={setStartYear} setEndYearAction={setEndYear} className="col-span-2 mt-[10px]" />
                                     </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
+                                <div className="grid grid-cols-3 items-center gap-4">
                                     <Label htmlFor="second tag" className="text-right">
                                     Tags:
                                     </Label>
-                                        <TagSelectionDropdown onSelectionChangedAction={setTagFilters} createButton={false} />
+                                        <TagSelectionDropdown onSelectionChangedAction={setTagFilters} createButton={false} className="col-span-2"/>
                                     </div>
                             </div>
             {/* Button to apply filter */}
             <DialogFooter>
-                <Button onClick={() => onApplyAction(tagFilters, startYear, endYear)}>Apply</Button>
+                <Button onClick={() => Apply(tagFilters, startYear, endYear)}>Apply</Button>
             </DialogFooter>
         </DialogContent>
 
