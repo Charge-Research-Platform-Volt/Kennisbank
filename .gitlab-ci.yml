@@ -114,19 +114,47 @@ final-cleanup:
   stage: cleanup
   when: always
   script:
-    # Down only the CI containers (using the CI project name)
-    - docker-compose -p ${COMPOSE_PROJECT_NAME} down -v || true
+    # Make sure environment is set up correctly
+    - *setup_environment
     
-    # Clean only orphaned/dangling resources
-    - docker system prune -f || true  # Remove only unused networks, images (not containers)
+    # Down the CI containers with the CI project name
+    - docker-compose -p ${COMPOSE_PROJECT_NAME} down -v --remove-orphans || true
     
-    # Release any hung CI test ports if needed
+    # Remove any containers belonging to this pipeline
     - |
+      echo "Removing containers for this pipeline..."
       for container in $(docker ps -a --filter "name=${COMPOSE_PROJECT_NAME}" --format "{{.ID}}"); do
         docker rm -f $container || true
       done
     
-    - echo "Cleaned up CI resources while preserving production containers"
+    # Remove any networks created by this pipeline
+    - |
+      echo "Removing networks for this pipeline..."
+      for network in $(docker network ls --filter "name=${COMPOSE_PROJECT_NAME}" --format "{{.ID}}"); do
+        docker network rm $network || true
+      done
+    
+    # Remove any volumes created by this pipeline
+    - |
+      echo "Removing volumes for this pipeline..."
+      for volume in $(docker volume ls --filter "name=${COMPOSE_PROJECT_NAME}" --format "{{.ID}}"); do
+        docker volume rm $volume || true
+      done
+      
+    # Remove any dangling images created during this pipeline
+    - |
+      echo "Removing dangling images..."
+      docker image prune -f
+      
+    # Clean build cache for this pipeline
+    - |
+      echo "Cleaning build cache..."
+      docker builder prune -f --filter "until=1h" || true
+      
+    # Release any hung ports if needed
+    - *release_ports
+    
+    - echo "Successfully cleaned up all resources for pipeline ${CI_PIPELINE_ID}"
 
 # This program has been developed by students from the bachelor Computer Science at Utrecht
 # University within the Software Project course.
