@@ -45,9 +45,9 @@ public class PersonCreateDto
     public string? EmailAddress { get; set; }
     public string? Linkedin { get; set; }
     // Tuple: (OrganisationId, Role?)
-    public (string, string?)[] OrganisationRelations { get; set; } = Array.Empty<(string, string?)>();
+    public RelatedEntry[] OrganisationRelations { get; set; } = Array.Empty<RelatedEntry>();
     // Tuple: (PersonId, Relation?)
-    public (string, string?)[] PersonRelations { get; set; } = Array.Empty<(string, string?)>();
+    public RelatedEntry[] PersonRelations { get; set; } = Array.Empty<RelatedEntry>();
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

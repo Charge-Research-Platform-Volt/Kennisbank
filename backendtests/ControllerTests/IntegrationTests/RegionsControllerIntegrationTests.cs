@@ -65,10 +65,10 @@ public class RegionsControllerTests : TestBase
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Region created successfully"));
         Assert.That(response.Body, Is.Not.Null);
+        Assert.That(response.Body, Is.Not.Null);
         
         // Deserialize the response's data, extract ID
-        JObject? json = JObject.FromObject(response.Body);
-        Guid regionId = Guid.Parse(json["id"].ToString());
+        Guid regionId = (Guid)response.Body;
         
         bool exists = await _resourceManager.RegionExistsAsync(regionId.ToString());
         Assert.That(exists, Is.True);
@@ -117,10 +117,9 @@ public class RegionsControllerTests : TestBase
         ApiResponse? createResponse = createResult.Value as ApiResponse;
         Assert.That(createResponse, Is.Not.Null);
         Assert.That(createResponse.Body, Is.Not.Null);
-        
+
         // Deserialize the response's data
-        JObject? json = JObject.FromObject(createResponse.Body);
-        Guid regionId = Guid.Parse(json["id"].ToString());
+        Guid regionId = (Guid)createResponse.Body;
         string regionIdStr = regionId.ToString();
         
         // Act
