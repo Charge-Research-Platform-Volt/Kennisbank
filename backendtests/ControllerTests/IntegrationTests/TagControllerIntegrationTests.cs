@@ -83,7 +83,10 @@ public class TagControllerTests : TestBase
         // Get all tags
         OkObjectResult? result = await _controller.GetAll() as OkObjectResult;
         Assert.That(result, Is.Not.Null);
-        Tag[]? tags = ((ApiResponse)result.Value).Body as Tag[];
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.EqualTo(true));
+        Tag[]? tags = response.Body as Tag[];
         Assert.That(tags, Is.Not.Null);
         
         // Assert
@@ -101,7 +104,9 @@ public class TagControllerTests : TestBase
         // Get all tags
         OkObjectResult? result = await _controller.GetAll() as OkObjectResult;
         Assert.That(result, Is.Not.Null);
-        Tag[]? tags = ((ApiResponse)result.Value).Body as Tag[];
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Tag[]? tags = response.Body as Tag[];
         Assert.That(tags, Is.Not.Null);
 
         // Assert
@@ -126,8 +131,10 @@ public class TagControllerTests : TestBase
         // Get second page with 10 items per page
         OkObjectResult? result = await _controller.GetAllPaged(2, 10) as OkObjectResult;
         Assert.That(result, Is.Not.Null);
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         
         // Assert
@@ -150,8 +157,10 @@ public class TagControllerTests : TestBase
         // Get first page with 10 items per page
         OkObjectResult? result = await _controller.GetAllPaged(1, 10) as OkObjectResult;
         Assert.That(result, Is.Not.Null);
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
 
         // Assert
@@ -172,8 +181,10 @@ public class TagControllerTests : TestBase
         // Get third page with 5 items per page (should be empty)
         OkObjectResult? result = await _controller.GetAllPaged(3, 5) as OkObjectResult;
         Assert.That(result, Is.Not.Null);
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
 
         // Assert
@@ -201,7 +212,9 @@ public class TagControllerTests : TestBase
         // Get second page with 5 items per page
         OkObjectResult? result = await _controller.GetAllStandardizedPaged(2, 5) as OkObjectResult;
         Assert.That(result, Is.Not.Null);
-        Tag[] tags = result.Value as Tag[];
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Tag[] tags = response.Body as Tag[];
         Assert.That(tags, Is.Not.Null);
         // Assert
         Assert.That(result.StatusCode, Is.EqualTo(200));
@@ -226,7 +239,9 @@ public class TagControllerTests : TestBase
         // Get all user tags
         OkObjectResult? result = await _controller.GetAllUser() as OkObjectResult;
         Assert.That(result, Is.Not.Null);
-        Tag[] tags = result.Value as Tag[];
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Tag[] tags = response.Body as Tag[];
         Assert.That(tags, Is.Not.Null);
         
         // Assert
@@ -257,7 +272,9 @@ public class TagControllerTests : TestBase
         // Get second page with 5 items per page
         OkObjectResult? result = await _controller.GetAllUserPaged(2, 5) as OkObjectResult;
         Assert.That(result, Is.Not.Null);
-        Tag[] tags = result.Value as Tag[];
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Tag[] tags = response.Body as Tag[];
         Assert.That(tags, Is.Not.Null);
         
         // Assert
@@ -288,8 +305,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(3));
         Assert.That(tags.Select(t => t.Name), Does.Contain("tag1"));
@@ -309,8 +328,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(0));
     }
@@ -339,8 +360,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(10));
         Assert.That(tags[0].Name, Is.EqualTo("tag11"));
@@ -371,8 +394,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(5));
     }
@@ -454,8 +479,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(2));
         Assert.That(tags.Select(t => t.Name), Does.Contain("std1"));
@@ -486,8 +513,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(2));
         Assert.That(tags.Select(t => t.Name), Does.Contain("tag1"));
@@ -525,8 +554,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(5));
         Assert.That(tags[0].Name, Is.EqualTo("tag06"));
@@ -562,8 +593,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(5));
         Assert.That(tags[0].Name, Is.EqualTo("standard tag 06"));
@@ -592,8 +625,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(2));
         Assert.That(tags.Select(t => t.Name), Does.Contain("admin-tag1"));
@@ -624,8 +659,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(2));
         Assert.That(tags.Select(t => t.Name), Does.Contain("apple"));
@@ -679,8 +716,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(2));
         
@@ -713,8 +752,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(3));
         Assert.That(tags[0].Name, Is.EqualTo("A-tag"));
@@ -734,8 +775,10 @@ public class TagControllerTests : TestBase
         Assert.That(result2, Is.Not.Null);
         Assert.That(result2.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response2 = (TagPageResponse)result2.Value;
-        Tag[]? tags2 = response2.Tags;
+        ApiResponse response2 = result2.Value as ApiResponse;
+        Assert.That(response2, Is.Not.Null);
+        TagPageResponse tagPageResponse2 = (TagPageResponse)response2.Body;
+        Tag[] tags2 = tagPageResponse2.Tags;
         Assert.That(tags2, Is.Not.Null);
         Assert.That(tags2.Length, Is.EqualTo(3));
         Assert.That(tags2[0].Name, Is.EqualTo("C-tag"));
@@ -768,8 +811,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(1));
         Assert.That(tags[0].Name, Is.EqualTo("approved-tag"));
@@ -795,8 +840,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(1));
         Assert.That(tags[0].Name, Is.EqualTo("user-tag"));
@@ -823,8 +870,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(2));
     }
@@ -852,8 +901,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(1));
         Assert.That(tags[0].Name, Is.EqualTo("std-apple"));
@@ -886,8 +937,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(4));
         Assert.That(tags[0].Name, Is.EqualTo("tag 3"));
@@ -917,8 +970,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(3));
         Assert.That(tags[0].Name, Is.EqualTo("tag B"));
@@ -946,8 +1001,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(2));
         // Both have the same score, so it should order by DefaultPropertyName
@@ -977,8 +1034,10 @@ public class TagControllerTests : TestBase
         Assert.That(result, Is.Not.Null);
         Assert.That(result.StatusCode, Is.EqualTo(200));
         
-        TagPageResponse response = (TagPageResponse)result.Value;
-        Tag[] tags = response.Tags;
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        TagPageResponse tagPageResponse = (TagPageResponse)response.Body;
+        Tag[] tags = tagPageResponse.Tags;
         Assert.That(tags, Is.Not.Null);
         Assert.That(tags.Length, Is.EqualTo(3));
 
