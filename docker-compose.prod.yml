@@ -31,11 +31,15 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data  # Persistent volume
     <<: *base
+    ports:
+      - 9004:5432
 
   storage:
     volumes:
       - storage_data:/data  # Persistent volume
     <<: *base
+    ports:
+      - 9003:10000
 
   backend:
     <<: *imagebase
@@ -43,12 +47,18 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+    ports:
+      - 9002:8080
 
   frontend:
     <<: *imagebase
+    ports: 
+      - 9000:3000
   
   website:
     <<: *imagebase
+    ports:
+      - 9001:3001
 
 volumes:
   postgres_data:  # Persistent volume for database
