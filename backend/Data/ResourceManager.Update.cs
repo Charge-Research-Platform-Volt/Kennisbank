@@ -275,40 +275,6 @@ namespace KnowledgeBank.Data
         { return await UpdateRoleInResourceRelatedPersonRelationAsync(Guid.Parse(resourceId), Guid.Parse(personId), newRole); }
 
         #endregion
-
-        #region Resource Archive
-        public async Task<bool> ArchiveResourceAsync(Guid resourceId)
-        { 
-            await BeginTransaction();
-
-            bool updatedArchivedRows = await UpdateResourceAsync(resourceId, resource => resource.Archived, true);
-            bool updatedArchiveDateRows =  await UpdateResourceAsync(resourceId, resource => resource.ArchiveDate, DateTime.UtcNow);
-
-            await Commit();
-
-            return updatedArchiveDateRows && updatedArchivedRows;
-        }
-
-        public async Task<bool> ArchiveResourceAsync(string resourceId)
-        { return await ArchiveResourceAsync(Guid.Parse(resourceId)); }
-
-
-        public async Task<bool> UnarchiveResourceAsync(Guid resourceId)
-        { 
-            await BeginTransaction();
-
-            bool updatedArchivedRows = await UpdateResourceAsync(resourceId, resource => resource.Archived, false);
-            bool updatedArchiveDateRows =  await UpdateResourceAsync(resourceId, resource => resource.ArchiveDate, null);
-
-            await Commit();
-            
-            return updatedArchiveDateRows && updatedArchivedRows; 
-        }
-
-        public async Task<bool> UnarchiveResourceAsync(string resourceId)
-        { return await UnarchiveResourceAsync(Guid.Parse(resourceId)); }
-        
-        #endregion
     }
 }
 
