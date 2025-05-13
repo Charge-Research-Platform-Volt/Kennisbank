@@ -16,7 +16,7 @@ import HideMenu from "@/icons/menu/hide-menu";
  */
 export default function RightSidebar()
 {
-  	const { currentId, currentType, navigateBack, navigateForward, setRightSidebarOpen, isEmptyPrevs, isEmptyNexts } = useSidebar();
+  	const { currentType, navigateBack, navigateForward, setRightSidebarOpen, isEmptyPrevs, isEmptyNexts } = useSidebar();
 
 	const handleOpenClick = () => 
 	{
