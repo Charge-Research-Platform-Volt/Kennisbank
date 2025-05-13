@@ -1,8 +1,16 @@
 "use client"
 
-export function PersonContent() 
+interface PersonContentProps 
+{
+    id: string;
+}
+
+export function PersonContent({ id }: PersonContentProps) 
 {
     return (
-        <h1>Person</h1>
+        <>
+            <h1>Person</h1>
+            <p>{id}</p>
+        </>
     )
 }

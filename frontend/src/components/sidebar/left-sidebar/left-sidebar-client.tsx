@@ -97,7 +97,7 @@ export default function LeftSidebarClient({
             toggleLeftSidebar();
           }}
         >
-          <HideMenu />
+          <HideMenu flipArrow={!open} />
         </Button>
       </div>
 

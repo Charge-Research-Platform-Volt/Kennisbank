@@ -16,7 +16,7 @@ import HideMenu from "@/icons/menu/hide-menu";
  */
 export default function RightSidebar()
 {
-  	const { currentId, currentType, navigate, navigateBack, navigateForward, setRightSidebarOpen } = useSidebar();
+  	const { currentId, currentType, navigateBack, navigateForward, setRightSidebarOpen, isEmptyPrevs, isEmptyNexts } = useSidebar();
 
 	const handleOpenClick = () => 
 	{
@@ -33,8 +33,8 @@ export default function RightSidebar()
 				<Button variant="outline" onClick={handleOpenClick} className="flex-1">Download</Button>
 				
 				<div className="flex justify-center space-x-2">
-					<Button variant="outline" onClick={navigateBack} className="w-[8rem]">Previous</Button>
-					<Button variant="outline" onClick={navigateForward} className="w-[8rem]">Next</Button>
+					<Button variant="outline" onClick={navigateBack} className="w-[8rem]" disabled={isEmptyPrevs()}>Previous</Button>
+					<Button variant="outline" onClick={navigateForward} className="w-[8rem]" disabled={isEmptyNexts()}>Next</Button>
 				</div>
 			</div>
 			
@@ -45,11 +45,11 @@ export default function RightSidebar()
 				    switch (currentType) 
 				    {
 				        case MetadataTypeEnum.RESOURCE:
-							return <ResourceContent />
+							return <ResourceContent id={currentId} />
 						case MetadataTypeEnum.PERSON:
-							return <PersonContent />
+							return <PersonContent id={currentId} />
 						case MetadataTypeEnum.ORGANISTATION:
-							return <OrganisationContent />
+							return <OrganisationContent id={currentId} />
 						default:
 							<h1>Error displaying content.</h1>
 				    }

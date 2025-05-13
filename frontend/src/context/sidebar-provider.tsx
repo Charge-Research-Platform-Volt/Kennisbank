@@ -149,6 +149,14 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
             else
                 setLeftSidebarOpen(false);
         }
+        
+        // On right sidebar close
+        else 
+        {
+            setCurrentId("");
+            prevs.clear();
+            nexts.clear();
+        }
     }, [rightSidebarOpen])
     
     // Effect for left sidebar open

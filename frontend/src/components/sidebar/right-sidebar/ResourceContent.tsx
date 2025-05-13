@@ -4,10 +4,17 @@ import LoremIpsum from "@/utils/lorem-ipsum"
 import Expandable from "./expandable"
 import { Badge } from "@/components/ui/badge"
 
-export function ResourceContent() 
+interface ResourceContentProps 
+{
+    id: string;
+}
+
+export function ResourceContent({ id }: ResourceContentProps) 
 {
     return (
         <>
+            <h1 className="pb-2 font-bold">{id}</h1>
+        
             <Expandable title="Description" collapsedHeight={100}>
                 <LoremIpsum />
             </Expandable>
