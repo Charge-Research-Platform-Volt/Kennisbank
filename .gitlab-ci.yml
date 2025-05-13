@@ -5,7 +5,7 @@ stages:
 
 variables:
   COMPOSE_PROJECT_NAME: ${CI_PROJECT_NAME}-${CI_PIPELINE_ID}
-  COMPOSE: docker-compose -f docker-compose.yml -f docker-compose.ci.yml
+  COMPOSE: docker-compose --env-file .gitlab-ci.env -f docker-compose.yml -f docker-compose.ci.yml
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: ""
 

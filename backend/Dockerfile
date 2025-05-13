@@ -1,6 +1,5 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS base
-# Only used for building
-ARG PORT=8080
+ENV PORT=8080
 
 # Build stage - compiles and builds the application
 FROM base AS build
@@ -40,7 +39,7 @@ CMD exec dotnet run --project backend.csproj --urls http://+:${PORT}
 
 
 # Production stage - Builds and runs the application for production
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS production
+FROM base AS production
 ENV ASPNETCORE_ENVIRONMENT=Production
 WORKDIR /app
 RUN apt-get update && apt-get install -y wget curl && rm -rf /var/lib/apt/lists/*
