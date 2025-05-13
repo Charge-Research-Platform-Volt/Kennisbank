@@ -53,8 +53,6 @@ services:
   # Start frontend after backend
   frontend:
     build:
-      args:
-        API_URL: ${API_URL}
       context: ./frontend
       dockerfile: Dockerfile
       <<: *target

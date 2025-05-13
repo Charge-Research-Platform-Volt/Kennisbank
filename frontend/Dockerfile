@@ -32,7 +32,8 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-ENV API_URL=http://backend:8080
+# Copy needed env variables for build from layer above
+ENV API_URL=${API_URL}
 RUN npm run build
 
 
