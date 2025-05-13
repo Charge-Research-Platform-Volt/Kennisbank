@@ -48,6 +48,9 @@ public class Resource
     [MaxLength(64)]
     public string? Hash { get; set; }
 
+    [Column("archived")]
+    public bool Archived { get; set; } = false;
+
     #region Direct navigation properties
     // Navigation property for Vector (one to one). JsonIgnore excludes it from response bodies.
     [JsonIgnore] public ResourceVector? Vector { get; set; }

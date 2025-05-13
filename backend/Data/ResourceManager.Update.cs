@@ -275,6 +275,22 @@ namespace KnowledgeBank.Data
         { return await UpdateRoleInResourceRelatedPersonRelationAsync(Guid.Parse(resourceId), Guid.Parse(personId), newRole); }
 
         #endregion
+
+        #region Resource Archive
+        public async Task<bool> ArchiveResourceAsync(Guid resourceId)
+        { return await UpdateResourceAsync(resourceId, resource => resource.Archived, true); }
+
+        public async Task<bool> ArchiveResourceAsync(string resourceId)
+        { return await ArchiveResourceAsync(Guid.Parse(resourceId)); }
+
+
+        public async Task<bool> UnarchiveResourceAsync(Guid resourceId)
+        { return await UpdateResourceAsync(resourceId, resource => resource.Archived, false); }
+
+        public async Task<bool> UnarchiveResourceAsync(string resourceId)
+        { return await UnarchiveResourceAsync(Guid.Parse(resourceId)); }
+        
+        #endregion
     }
 }
 
