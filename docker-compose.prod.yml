@@ -1,14 +1,16 @@
 networks:
-  my_network:
-    name: my_network
+  prod_network:
+    name: prod_network
     driver: bridge
 
 services:
   # Production database with persistent volume
   database:
+    user: root
+    privileged: true
     image: postgres:latest
     ports:
-      - "5432:5432"
+      - "9004:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}  # Use env var with fallback
@@ -16,7 +18,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data  # Persistent volume
     networks:
-      - my_network
+      - prod_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -31,13 +33,15 @@ services:
 
   # Production storage
   storage:
+    user: root
+    privileged: true
     image: mcr.microsoft.com/azure-storage/azurite
     ports:
-      - "10000:10000"
+      - "9003:10000"
     volumes:
       - storage_data:/data  # Persistent volume
     networks:
-      - my_network
+      - prod_network
     restart: unless-stopped
     logging:
       driver: "local"
@@ -47,23 +51,26 @@ services:
 
   # Production backend
   backend:
+    user: root
+    privileged: true
     build:
       context: ./backend
       dockerfile: Dockerfile
       target: production  # Use production target
     ports:
-      - "8080:8080"
+      - "9002:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - CONNECTION_STRING=Host=database;Port=5432;Username=postgres;Password=${DB_PASSWORD:-postgres};Database=postgres;
       - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://storage:10000/devstoreaccount1;
+      - HOST_URL=${HOST_URL}
     depends_on:
       database:
         condition: service_healthy
       storage:
         condition: service_started
     networks:
-      - my_network
+      - prod_network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/status"]
       interval: 10s
@@ -79,6 +86,8 @@ services:
 
   # Production frontend
   frontend:
+    user: root
+    privileged: true
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -86,15 +95,17 @@ services:
       args: 
         API_URL: ${API_URL}
     ports:
-      - "3000:3000"
+      - "9000:3000"
     environment:
       - API_URL=${API_URL}
+      - HELP_URL=${HELP_URL}
+      - NEXT_PUBLIC_TIMEZONE=${NEXT_PUBLIC_TIMEZONE}
       - NODE_ENV=production
     depends_on:
       backend:
         condition: service_healthy
     networks:
-      - my_network
+      - prod_network
     restart: unless-stopped
     logging:
       driver: "local"
@@ -104,12 +115,14 @@ services:
   
   # Production website
   website:
+    user: root
+    privileged: true
     build:
       context: ./website
       dockerfile: Dockerfile
       target: production  # Use production target
     ports:
-      - "3001:3001"
+      - "9001:3001"
     environment:
       - API_URL=${API_URL}
       - NODE_ENV=production
@@ -117,7 +130,7 @@ services:
       backend:
         condition: service_healthy
     networks:
-      - my_network
+      - prod_network
     restart: unless-stopped
     logging:
       driver: "local"

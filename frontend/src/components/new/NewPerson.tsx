@@ -113,7 +113,7 @@ export default function NewPerson({ personOptions, organisationOptions, onCreate
         setIsChecking(true);
         
         const urlSafeName = encodeURIComponent(name);
-        const response = await fetch("http://localhost:8080/persons/exists?name=" + urlSafeName, { credentials: "include" });
+        const response = await fetch("/api/persons/exists?name=" + urlSafeName, { credentials: "include" });
         
         if (response.ok) 
         {
