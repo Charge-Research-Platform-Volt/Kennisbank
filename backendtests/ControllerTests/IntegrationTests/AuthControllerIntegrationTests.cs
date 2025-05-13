@@ -25,6 +25,8 @@ public class AuthControllerTests : TestBase
     private Mock<IUserClaimsPrincipalFactory<User>> _mockUserClaimsPrincipalFactory;
     private Mock<HttpContext> _mockHttpContext;
     private UserStore<User> _userStore;
+    private Mock<MailUtils> _mockMailUtils;
+    private FrontendDomain _frontendDomain;
 
     protected override Task SeedTemplateDatabase(DatabaseContext context)
     {
@@ -69,7 +71,10 @@ public class AuthControllerTests : TestBase
             null, null, null, null
         );
 
-        _controller = new AuthController(_signInManager, Context, new MailUtils("invalid", 0, "invalid", "invalid", "invalid"), new FrontendDomain("HttpClient://localhost:3000"));
+        _mockMailUtils = new Mock<MailUtils>();
+        _frontendDomain = new FrontendDomain("http://localhost:3000");
+
+        _controller = new AuthController(_signInManager, Context, _mockMailUtils.Object, _frontendDomain);
     }
 
     protected override Task OnTestTearDown()
@@ -83,7 +88,7 @@ public class AuthControllerTests : TestBase
     public async Task SendInvitation_CreatesInvitation_WithCorrectParameters()
     {
         // Arrange
-        string email = "test@test.nl";
+        string email = "fake@email.invalid";
         string hashedEmail = ShaUtils.Sha256(email);
         DateTime startTime = DateTime.UtcNow;
 
@@ -434,7 +439,7 @@ public class AuthControllerTests : TestBase
             .Setup(sm => sm.SignOutAsync())
             .Returns(Task.CompletedTask);
         
-        _controller = new AuthController(mockSignInManager.Object, Context, new MailUtils("invalid", 0, "invalid", "invalid", "invalid"), new FrontendDomain("HttpClient://localhost:3000"));
+        _controller = new AuthController(mockSignInManager.Object, Context, _mockMailUtils.Object, _frontendDomain);
 
         // Simulate an authenticated user
         List<Claim> claims = new List<Claim> { new Claim(ClaimTypes.Name, "test@test.nl") };
@@ -473,7 +478,7 @@ public class AuthControllerTests : TestBase
             null, null, null, null
         );
         
-        _controller = new AuthController(mockSignInManager.Object, Context, new MailUtils("invalid", 0, "invalid", "invalid", "invalid"), new FrontendDomain("HttpClient://localhost:3000"));
+        _controller = new AuthController(mockSignInManager.Object, Context, _mockMailUtils.Object, _frontendDomain);
 
         // Simulate an authenticated user
         List<Claim> claims = new List<Claim> { new Claim(ClaimTypes.Name, "test@test.nl") };
