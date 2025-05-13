@@ -21,7 +21,7 @@ namespace KnowledgeBank.Controllers
         private readonly MailUtils _mailUtils;
         private readonly string _frontendDomain;
 
-        public AuthController(IConfiguration config, SignInManager<User> signInManager, DatabaseContext context, MailUtils mailUtils, FrontendDomain frontendUrl)
+        public AuthController(IConfiguration config, SignInManager<User> signInManager, DatabaseContext context, MailUtils mailUtils)
         {
             _signInManager = signInManager;
             _logger = Log.ForContext<AuthController>();
