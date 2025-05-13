@@ -41,7 +41,7 @@ services:
         Host=database;
         Port=5432;
         Username=${DATABASE_USER:-postgres};
-        Password=${DATABASE_PASSWORD:?};
+        Password=${DATABASE_PASSWORD:?Database password is required};
         Database=${DATABASE_NAME:-postgres};
         Include Error Detail=true
       # Spaces aren't allowed so use \ with "" which is the only multiline syntax to have nothing between lines
@@ -50,10 +50,10 @@ services:
         AccountName=devstoreaccount1;\
         AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;\
         BlobEndpoint=http://storage:10000/devstoreaccount1;"
-      EMAIL_SMTP_HOST: ${EMAIL_SMTP_HOST:?}
+      EMAIL_SMTP_HOST: ${EMAIL_SMTP_HOST:?Emall SMTP host is required}
       EMAIL_TLS_PORT:  ${EMAIL_TLS_PORT:-587}
-      EMAIL_ADDRESS: ${EMAIL_ADDRESS:?}
-      EMAIL_PASSWORD: ${EMAIL_PASSWORD:?}
+      EMAIL_ADDRESS: ${EMAIL_ADDRESS:?Email address is required}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD:?Email password is required}
       EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-$EMAIL_ADDRESS}
     depends_on:
       database:

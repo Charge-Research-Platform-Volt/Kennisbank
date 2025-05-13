@@ -69,7 +69,8 @@ public class AuthControllerTests : TestBase
             null, null, null, null
         );
 
-        _controller = new AuthController(_signInManager, Context);
+        // TODO: FIX
+        _controller = new AuthController(_signInManager, Context, new MailUtils("invalid", 0, "invalid", "invalid", "invalid"), new FrontendDomain("HttpClient://localhost:3000"));
     }
 
     protected override Task OnTestTearDown()
@@ -434,7 +435,7 @@ public class AuthControllerTests : TestBase
             .Setup(sm => sm.SignOutAsync())
             .Returns(Task.CompletedTask);
         
-        _controller = new AuthController(mockSignInManager.Object, Context);
+        _controller = new AuthController(mockSignInManager.Object, Context, new MailUtils("invalid", 0, "invalid", "invalid", "invalid"));
 
         // Simulate an authenticated user
         List<Claim> claims = new List<Claim> { new Claim(ClaimTypes.Name, "test@test.nl") };
@@ -473,7 +474,8 @@ public class AuthControllerTests : TestBase
             null, null, null, null
         );
         
-        _controller = new AuthController(mockSignInManager.Object, Context);
+        // TODO: FIX
+        _controller = new AuthController(mockSignInManager.Object, Context, new MailUtils("invalid", 0, "invalid", "invalid", "invalid"), new FrontendDomain("HttpClient://localhost:3000"));
 
         // Simulate an authenticated user
         List<Claim> claims = new List<Claim> { new Claim(ClaimTypes.Name, "test@test.nl") };
