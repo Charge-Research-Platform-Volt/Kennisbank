@@ -3,17 +3,16 @@
 import LoremIpsum from "@/utils/lorem-ipsum"
 import Expandable from "./expandable"
 import { Badge } from "@/components/ui/badge"
+import { useSidebar } from "@/context/sidebar-provider"
 
-interface ResourceContentProps 
-{
-    id: string;
-}
 
-export function ResourceContent({ id }: ResourceContentProps) 
+export function ResourceContent()
 {
+    const { currentId } = useSidebar();
+
     return (
         <>
-            <h1 className="pb-2 font-bold">{id}</h1>
+            <h1 className="pb-2 font-bold">{currentId}</h1>
         
             <Expandable title="Description" collapsedHeight={100}>
                 <LoremIpsum />

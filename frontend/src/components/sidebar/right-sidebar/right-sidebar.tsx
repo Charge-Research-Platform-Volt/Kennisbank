@@ -45,11 +45,11 @@ export default function RightSidebar()
 				    switch (currentType) 
 				    {
 				        case MetadataTypeEnum.RESOURCE:
-							return <ResourceContent id={currentId} />
+							return <ResourceContent />
 						case MetadataTypeEnum.PERSON:
-							return <PersonContent id={currentId} />
+							return <PersonContent />
 						case MetadataTypeEnum.ORGANISTATION:
-							return <OrganisationContent id={currentId} />
+							return <OrganisationContent />
 						default:
 							<h1>Error displaying content.</h1>
 				    }

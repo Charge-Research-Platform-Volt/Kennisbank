@@ -1,16 +1,15 @@
 "use client"
 
-interface OrganisationContentProps
-{
-    id: string;
-}
+import { useSidebar } from "@/context/sidebar-provider"
 
-export function OrganisationContent({ id }: OrganisationContentProps) 
+export function OrganisationContent() 
 {
+    const { currentId } = useSidebar();
+
     return (
         <>
             <h1>Organisation</h1>
-            <p>{id}</p>
+            <p>{currentId}</p>
         </>
     )
 }

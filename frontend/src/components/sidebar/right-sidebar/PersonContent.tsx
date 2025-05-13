@@ -1,16 +1,15 @@
 "use client"
 
-interface PersonContentProps 
-{
-    id: string;
-}
+import { useSidebar } from "@/context/sidebar-provider";
 
-export function PersonContent({ id }: PersonContentProps) 
+export function PersonContent() 
 {
+    const { currentId } = useSidebar();
+
     return (
         <>
             <h1>Person</h1>
-            <p>{id}</p>
+            <p>{currentId}</p>
         </>
     )
 }
