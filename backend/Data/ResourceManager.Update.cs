@@ -278,14 +278,32 @@ namespace KnowledgeBank.Data
 
         #region Resource Archive
         public async Task<bool> ArchiveResourceAsync(Guid resourceId)
-        { return await UpdateResourceAsync(resourceId, resource => resource.Archived, true); }
+        { 
+            await BeginTransaction();
+
+            bool updatedArchivedRows = await UpdateResourceAsync(resourceId, resource => resource.Archived, true);
+            bool updatedArchiveDateRows =  await UpdateResourceAsync(resourceId, resource => resource.ArchiveDate, DateTime.UtcNow);
+
+            await Commit();
+
+            return updatedArchiveDateRows && updatedArchivedRows;
+        }
 
         public async Task<bool> ArchiveResourceAsync(string resourceId)
         { return await ArchiveResourceAsync(Guid.Parse(resourceId)); }
 
 
         public async Task<bool> UnarchiveResourceAsync(Guid resourceId)
-        { return await UpdateResourceAsync(resourceId, resource => resource.Archived, false); }
+        { 
+            await BeginTransaction();
+
+            bool updatedArchivedRows = await UpdateResourceAsync(resourceId, resource => resource.Archived, false);
+            bool updatedArchiveDateRows =  await UpdateResourceAsync(resourceId, resource => resource.ArchiveDate, null);
+
+            await Commit();
+            
+            return updatedArchiveDateRows && updatedArchivedRows; 
+        }
 
         public async Task<bool> UnarchiveResourceAsync(string resourceId)
         { return await UnarchiveResourceAsync(Guid.Parse(resourceId)); }

@@ -52,6 +52,9 @@ public class Resource
     [Column("archived")]
     public bool Archived { get; set; } = false;
 
+    [Column("archive-date")]
+    public DateTime? ArchiveDate { get; set; } = null;
+
     #region Direct navigation properties
     // Navigation property for Vector (one to one). JsonIgnore excludes it from response bodies.
     [JsonIgnore] public ResourceVector? Vector { get; set; }

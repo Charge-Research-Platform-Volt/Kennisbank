@@ -559,12 +559,13 @@ namespace KnowledgeBank.Controllers
         /// </summary>
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
+        /// <param name="archived">(Optional) Whether to show archived resources or non archived resources</param>
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all resources")]
         [SwaggerResponse(200, "A list or page of all the resources in the archive", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> List(int? pageIndex, int? pageSize) 
+        public async Task<IActionResult> List(int? pageIndex, int? pageSize, bool archived = false) 
         {
             // Verification
             if (pageIndex != null && pageIndex < 1)
@@ -584,11 +585,11 @@ namespace KnowledgeBank.Controllers
 
                 // No paging requested, list all resources
                 if (pageIndex == null || pageSize == null)
-                    resources = await resourceManager.GetAllResourcesAsync();
+                    resources = await resourceManager.GetAllResourcesAsync(predicate: r => r.Archived == archived);
 
                 // Paging requested, retrieve resources on that page
                 else
-                    resources = await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize);
+                    resources = await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize, predicate: r => !r.Archived);
 
                 // Return found resources
                 return Ok(new ApiResponse(true, $"Found {resources.Length} resources", resources));
