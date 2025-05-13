@@ -11,14 +11,14 @@ networks:
 x-base: &base
   user: root
   privileged: true
+  networks:
+    - prod_network
   restart: unless-stopped
   logging:
     driver: "local"
     options:
       max-size: "10m"
       max-file: "5"
-  networks:
-    - prod_network
 
 # Default for our images
 x-imagebase: &imagebase
