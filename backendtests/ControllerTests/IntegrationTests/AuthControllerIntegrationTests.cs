@@ -72,7 +72,7 @@ public class AuthControllerTests : TestBase
             null, null, null, null
         );
 
-        _mockMailUtils = new Mock<MailUtils>();
+        _mockMailUtils = new Mock<MailUtils>("mock", 13_15_3_11 , "mock", "mock", "mock");
         _mockConfig = new Mock<IConfiguration>();
 
         // TODO: FIX
@@ -93,6 +93,8 @@ public class AuthControllerTests : TestBase
         string email = "email@example.nl";
         string hashedEmail = ShaUtils.Sha256(email);
         DateTime startTime = DateTime.UtcNow;
+        _mockMailUtils.Setup(m => m.SendMail(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()));
+        _mockConfig.Setup(m => m.GetValue<string>("FRONTEND_DOMAIN")).Returns("http://localhost:3000");
 
         // Act
         IActionResult result = await _controller.Invite(email);
