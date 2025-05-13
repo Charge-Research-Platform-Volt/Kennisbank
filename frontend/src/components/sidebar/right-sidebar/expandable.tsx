@@ -50,7 +50,7 @@ export default function Expandable({
     return (
         <div className="w-full relative">
             <Collapsible open={open} onOpenChange={setOpen} className="w-full">
-                <CollapsibleTrigger className="w-full">
+                <CollapsibleTrigger className="w-full cursor-pointer">
                     <div className="w-full flex items-center gap-2">
                         <span>{title}</span>
                         <div className="flex-1 h-px bg-gray-300" />
