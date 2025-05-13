@@ -1,9 +1,8 @@
   x-target: &target
     target: ${TARGET:-development} # If TARGET is not set, default to development
 
-  x-jsenv: &jsenv
-    environment:
-      - API_URL=${API_URL:-http://backend:8080} # If API_URL is not set, guess
+  x-API_URL: &API_URL
+    API_URL=${API_URL:-http://backend:8080} # If API_URL is not set, guess
 
   networks:
     my_network:
@@ -51,6 +50,7 @@
       environment:
         - CONNECTION_STRING=Host=database;Port=5432;Username=${DB_USER:-postgres};Password=${DB_PASSWORD:-postgres};Database=${DB_NAME:-postgres};Include Error Detail=true
         - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://storage:10000/devstoreaccount1;
+        - HOST_URL=${HOST_URL}
       depends_on:
         database:
           condition: service_healthy
@@ -73,7 +73,10 @@
         <<: *target
       ports:
         - "3000:3000"
-      <<: *jsenv
+      environment:
+        - *API_URL
+        - NEXT_PUBLIC_TIMEZONE=${NEXT_PUBLIC_TIMEZONE}
+        - NODE_ENV=development
       depends_on:
         backend:
           condition: service_healthy
@@ -88,7 +91,8 @@
         <<: *target
       ports:
         - "3001:3001"
-      <<: *jsenv
+      environment:
+        - *API_URL
       depends_on:
         backend:
           condition: service_healthy
