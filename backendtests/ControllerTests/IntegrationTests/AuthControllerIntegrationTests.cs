@@ -71,7 +71,7 @@ public class AuthControllerTests : TestBase
             null, null, null, null
         );
 
-        _mockMailUtils = new Mock<MailUtils>();
+        _mockMailUtils = new Mock<MailUtils>("mock", 13_15_3_11 , "mock", "mock", "mock");
         _frontendDomain = new FrontendDomain("http://localhost:3000");
 
         _controller = new AuthController(_signInManager, Context, _mockMailUtils.Object, _frontendDomain);
