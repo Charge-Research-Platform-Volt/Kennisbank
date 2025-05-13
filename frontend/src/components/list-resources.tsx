@@ -13,6 +13,7 @@ import GetFileIcon from "./getFileIcon";
 import { format, parseISO } from "date-fns";
 import OpenFileButton from "./open-file-button";
 import { useSidebar } from "@/context/sidebar-provider";
+import { MetadataTypeEnum } from "@/context/sidebar-provider";
 
 // Register all modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -36,7 +37,7 @@ export default function ListResources({ data }: { data: ResourcePageWithTagsResp
   const gridApiRef = useRef<GridApi | null>(null);
 
   // use sidebar context
-  const { rightSidebarOpen, toggleRightSidebar } = useSidebar();
+  const { rightSidebarOpen, openRightSidebar } = useSidebar();
 
   //when grid is ready, set the gridApi and onCloseClicked function
   const onGridReady = (params: GridReadyEvent) => {
@@ -56,7 +57,7 @@ export default function ListResources({ data }: { data: ResourcePageWithTagsResp
     // do nothing if the download button is clicked
     if ((e.event?.target as HTMLElement)?.closest(".download-button")) return;
 
-    toggleRightSidebar(e.data);
+    openRightSidebar(e.data.id, MetadataTypeEnum.RESOURCE);
     e.node.setSelected(true);
   };
 

@@ -1,9 +1,9 @@
 import * as React from "react";
 import { SVGProps } from "react";
 
-export default function HideMenu(props: SVGProps<SVGSVGElement>) {
+export default function HideMenu({ flip = false, ...props}: SVGProps<SVGSVGElement> & { flip?: boolean }) {
   return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="15.059 15.75 14.94 13.59">
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="15.059 15.75 14.94 13.59" transform={flip ? "scale(-1, 1)" : undefined}>
       <path
         strokeLinejoin="round"
         strokeLinecap="round"
