@@ -24,7 +24,7 @@ interface TagActionButtonsProps {
 export function TagActionButtons({ tag, onEditClick, userRole }: TagActionButtonsProps) {
   // Common Edit Button that appears for all tag types
   const EditButton = () => (
-    tag.canEditAndDelete && userRole == "admin" ? (
+    tag.canEditAndDelete || userRole == "admin" ? (
       <Button
         className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
         variant="default"
