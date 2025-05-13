@@ -5,7 +5,7 @@ import { useState } from "react";
 
 // Table imports
 import { AgGridReact } from "ag-grid-react";
-import type { ColDef, GridApi, GridReadyEvent, RowClickedEvent, RowSelectionOptions } from "ag-grid-community";
+import type { CellContextMenuEvent, ColDef, GridApi, GridReadyEvent, RowClickedEvent, RowSelectionOptions } from "ag-grid-community";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 import { ResourcePageWithTagsResponse, ResourceResponse } from "@/types/resource.type";
 import { tableTheme } from "@/lib/tableConfig";
@@ -13,6 +13,10 @@ import GetFileIcon from "./getFileIcon";
 import { format, parseISO } from "date-fns";
 import OpenFileButton from "./open-file-button";
 import { useSidebar } from "@/context/sidebar-provider";
+import { handleOpenFile } from "@/actions/openFileActions";
+import { ArchiveResource } from "@/actions/archiveResourceActions";
+import { toast } from "sonner";
+import { useUserRole } from "@/context/user-role-context";
 
 // Register all modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -22,7 +26,9 @@ ModuleRegistry.registerModules([AllCommunityModule]);
  * @param data - Data to display in the table, this is a page of the archive, possibly filtered through a search query or other means
  * @returns A table representation of the data
  */
-export default function ListResources({ data }: { data: ResourcePageWithTagsResponse }) {
+export default function ListResources({ data, initialLoadingComplete }: { data: ResourcePageWithTagsResponse, initialLoadingComplete: boolean }) {
+  const { userRole } = useUserRole();
+
   // Column definitions
   const columnDefs = useState<ColDef[]>([
     { field: "title", cellRenderer: Render, minWidth: 500, flex: 3, resizable: true },
@@ -67,19 +73,89 @@ export default function ListResources({ data }: { data: ResourcePageWithTagsResp
     }
   }, [rightSidebarOpen]);
 
+  // Context menu on right click
+  const [contextMenuPosition, setContextMenuPosition] = useState<{ mouseX: number; mouseY: number } | null>(null);
+  const [selectedRowData, setSelectedRowData] = useState<ResourceResponse | null>(null);
+
+  const onCellContextMenu = (event: CellContextMenuEvent) => {
+    event.event?.preventDefault();
+
+    const mouseEvent = event.event as MouseEvent;
+
+    setSelectedRowData(event.data);
+    setContextMenuPosition({
+      mouseX: mouseEvent.clientX,
+      mouseY: mouseEvent.clientY,
+    });
+  };
+
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+  const handleClickOutside = (event: MouseEvent) => {
+    if (
+        contextMenuRef.current &&
+        !contextMenuRef.current.contains(event.target as Node)
+      ) {
+        setContextMenuPosition(null);
+      }
+    };
+
+    if (contextMenuPosition) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [contextMenuPosition]);
+
+  const HandleArchive = async () => {
+    const result = await ArchiveResource(selectedRowData ? selectedRowData.id : "");
+
+    if(result.success){
+      toast.success(result.message);
+      window.dispatchEvent(new Event("resourceListUpdated"));
+    }
+    else{
+      toast.error(result.message);
+    }
+  }
+
   return (
-    <div className="h-[calc(100vh-4rem)] w-full">
-      <AgGridReact
-        suppressMovableColumns={true}
-        suppressCellFocus={true}
-        rowData={data.resources}
-        columnDefs={columnDefs}
-        theme={tableTheme}
-        onGridReady={onGridReady}
-        rowSelection={rowSelection as RowSelectionOptions}
-        onRowClicked={onRowClicked}
-      />
-    </div>
+    <>
+      {contextMenuPosition && (
+        <div
+          ref={contextMenuRef}
+          className="absolute z-50 bg-white border shadow-md rounded-md"
+          style={{ top: contextMenuPosition.mouseY, left: contextMenuPosition.mouseX }}
+          onClick={() => setContextMenuPosition(null)}
+        >
+          <ul>
+            <li onClick={() => selectedRowData ? handleOpenFile(selectedRowData) : () => {}} className="hover:bg-gray-100 cursor-pointer px-4">{selectedRowData?.fileType == "pdf" || selectedRowData?.fileType == "website" ? "Open" : "Dowload"}</li>
+            {userRole == "admin" ? (<li onClick={HandleArchive} className="hover:bg-gray-100 cursor-pointer px-4">Move to trash</li>) : null}
+          </ul>
+        </div>
+      )}
+      <div className="h-[calc(100vh-4rem)] w-full" >
+        <AgGridReact
+          suppressMovableColumns={true}
+          suppressCellFocus={true}
+          rowData={data.resources}
+          columnDefs={columnDefs}
+          theme={tableTheme}
+          onGridReady={onGridReady}
+          rowSelection={rowSelection as RowSelectionOptions}
+          onRowClicked={onRowClicked}
+          suppressContextMenu={true}
+          preventDefaultOnContextMenu={true}
+          onCellContextMenu={onCellContextMenu}
+          localeText={{
+            noRowsToShow: initialLoadingComplete ? "No results found" : "Loading...",
+          }}
+        />
+      </div>
+    </>
   );
 }
 

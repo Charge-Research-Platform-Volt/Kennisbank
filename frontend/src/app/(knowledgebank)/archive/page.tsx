@@ -9,6 +9,7 @@ import { OctagonAlert } from "lucide-react";
 import FilterButton from "./components/filter-button";
 import { ResourcePageWithTagsResponse } from "@/types/resource.type";
 import ListResources from "@/components/list-resources";
+import { UserRoleProvider } from "@/context/user-role-context";
 
 type filterDto = {
   tagFilters: string[];
@@ -24,18 +25,7 @@ export default function ArchivePage() {
   const [tagFilters, setTagFilters] = useState<string[]>([]);
   const [currentQuery, setCurrentQuery] = useState<string>("");
   const [refreshKey, setRefreshKey] = useState<number>(0); // Key to trigger re-fetching of data
-
-  // Fetch initial files
-  useEffect(() => {
-    fetchFiles(
-      "/api/Storage/list-all",
-      "GET",
-      (response) => {
-        if (searchResults === null) setSearchResults(response);
-      },
-      "An error occurred while fetching initial files.",
-    );
-  }, []);
+  const [initialLoadingComplete, setInitialLoadingComplete] = useState<boolean>(false); // State to track if initial loading is complete
 
   // Fetch search results
   async function fetchQuery(query: string = currentQuery, tags: string[] = tagFilters, start: number | null = startYear, end: number | null = endYear) {
@@ -46,6 +36,7 @@ export default function ArchivePage() {
       "POST",
       (response) => {
         setSearchResults(response);
+        setInitialLoadingComplete(true);
       },
       "An error occurred while fetching search results.",
       undefined,
@@ -87,7 +78,7 @@ export default function ArchivePage() {
   }, [currentQuery, tagFilters, startYear, endYear, refreshKey, handleSearch]);
 
   return (
-    <>
+    <UserRoleProvider>
       <div className="*:not-first:mt-2">
         <div className="relative w-full">
           <Input
@@ -117,10 +108,10 @@ export default function ArchivePage() {
             <OctagonAlert size={16} /> {searchResults}
           </p>
         ) : (
-          <ListResources data={searchResults ?? { message: "", pageIndex: 0, pageSize: 0, resources: [], responseType: "" }} />
+          <ListResources data={searchResults ?? { message: "", pageIndex: 0, pageSize: 0, resources: [], responseType: "" }} initialLoadingComplete={initialLoadingComplete} />
         )}
       </div>
-    </>
+    </UserRoleProvider>
   );
 
   // Helper function for fetching files
