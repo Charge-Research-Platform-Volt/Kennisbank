@@ -29,15 +29,25 @@ function Badge({
   className,
   variant,
   asChild = false,
+  onClick,
   ...props
 }: React.ComponentProps<"span"> &
-  VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
+  VariantProps<typeof badgeVariants> & { 
+    asChild?: boolean;
+    onClick?: React.MouseEventHandler<HTMLSpanElement>;
+  }) {
   const Comp = asChild ? Slot : "span"
 
   return (
     <Comp
       data-slot="badge"
-      className={cn(badgeVariants({ variant }), className)}
+      className={cn(
+        badgeVariants({ variant }),
+        onClick ? "cursor-pointer" : "",
+        className
+      )}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
       {...props}
     />
   )
