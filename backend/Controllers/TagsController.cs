@@ -79,7 +79,6 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                 if(filterOptions.UsePaging && filterOptions.PageIndex > 1)
                     return BadRequest(new ApiResponse(false, "The page index is invalid"));
                 else{
-                    Log.Debug("test");
                     return Ok(new ApiResponse(true, "No tags found", new TagPageResponse([])));            }
                 }
 

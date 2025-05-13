@@ -16,7 +16,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
-using System.Reflection;
+using System.Text.Json;
 
 namespace KnowledgeBank.Controllers 
 {
@@ -36,15 +36,25 @@ namespace KnowledgeBank.Controllers
         /// <summary>
         /// Creates a new resource
         /// </summary>
-        /// <param name="dto">The Data Transfer Object</param>
+        /// <param name="uploadDto">The Data Transfer Object</param>
         [HttpPut("new")]
         [SwaggerOperation(Summary = "Create a new resource in the archive.")]
         [SwaggerResponse(200, "Resource was created successfully", typeof(ApiResponse))]
         [SwaggerResponse(409, "Resource already exists", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> New([FromForm] ResourceCreateDto dto) 
+        public async Task<IActionResult> New([FromForm] ResourceUploadDto uploadDto) 
         {
+            ResourceCreateDto? dto = null;
+            
+            if (uploadDto.UploadType == "website")
+                dto = JsonSerializer.Deserialize<WebsiteCreateDto>(uploadDto.Dto);
+            else if (uploadDto.File != null)
+                dto = DeserializeWithFile(uploadDto.UploadType, uploadDto.Dto, uploadDto.File);
+
+            if (dto == null)
+                return BadRequest(new ApiResponse(false, "Invalid DTO sent"));
+        
             // Check if there is a title
             if (string.IsNullOrEmpty(dto.Title))
                 return BadRequest(new ApiResponse(false, "No name was provided."));
@@ -78,14 +88,14 @@ namespace KnowledgeBank.Controllers
             }
             
             // Checks for website
-            if (dto is WebsiteCreateDto wDto) 
+            if (dto is WebsiteCreateDto _wDto) 
             {
                 // Check if the URL is empty
-                if (string.IsNullOrEmpty(wDto.Url))
+                if (string.IsNullOrEmpty(_wDto.Url))
                     return BadRequest(new ApiResponse(false, "The URL was empty."));
 
                 // Check if the URL is valid
-                if (!ValidityUtil.IsValidUrl(wDto.Url))
+                if (!ValidityUtil.IsValidUrl(_wDto.Url))
                     return BadRequest(new ApiResponse(false, "The URL was invalid."));
             }
 
@@ -97,11 +107,22 @@ namespace KnowledgeBank.Controllers
                 await resourceManager.BeginTransaction();
 
                 // Create the resource in the database and retrieve the ID
-                Guid id = await resourceManager.CreateResourceAsync(dto);
+                Guid id = uploadDto.UploadType switch 
+                {
+                    "website" => await resourceManager.CreateWebsiteAsync((WebsiteCreateDto)dto),
+                    "document" => await resourceManager.CreateDocumentAsync((DocumentCreateDto)dto),
+                    "audio" => await resourceManager.CreateAudioAsync((AudioCreateDto)dto),
+                    "video" => await resourceManager.CreateVideoAsync((VideoCreateDto)dto),
+                    _ => await resourceManager.CreateResourceAsync(dto)
+                };
                 
                 // If the resource is a file, upload it to storage
                 if (dto is FileResourceCreateDto fDto) 
                 {
+                    // Check if file was empty
+                    if (fDto.File == null)
+                        return BadRequest(new ApiResponse(false, "No file was uploaded."));
+                
                     // Get the extension and filetype
                     string extension = Path.GetExtension(fDto.File.FileName);
                     string fileType = Filetype.ConvertExtensionToFiletype(extension);
@@ -580,11 +601,118 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
         
+        #region Types New
+        /// <summary>
+        /// Creates a new resource type
+        /// </summary>m
+        [HttpPut("types/new")]
+        [SwaggerOperation(Summary = "Creates a new resource type")]
+        [SwaggerResponse(200, "Resource type created successfully", typeof(ApiResponse))]
+        [SwaggerResponse(409, "Resource type already exists", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> TypesNew([FromBody] ResourceTypeCreateDto dto) 
+        {
+            // Validation
+            if (string.IsNullOrEmpty(dto.Name))
+                return BadRequest(new ApiResponse(false, "Invalid name"));
+                
+            try 
+            {
+                // Check if resource type already exists
+                if (await resourceManager.ResourceTypeExistsAsync(rt => rt.Name == dto.Name))
+                    return Conflict(new ApiResponse(false, "Resource type already exists"));
+
+                logger.Information("Creating resource type with name '{Name}'", dto.Name);
+            
+                // Create resource type and return ID
+                Guid id = await resourceManager.CreateResourceTypeAsync(dto);
+
+                logger.Information("Resource type with name '{Name}' created successfully", dto.Name);
+                
+                return Ok(new ApiResponse(true, "Resource type created successfully", id));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error creating resource type.");
+                return StatusCode(500, new ApiResponse(false, "Error creating resource type.", e.Message));
+            }
+        }
+        #endregion
+        
+        #region Types Fetch
+        /// <summary>
+        /// Retrieves a list of all resource types
+        /// </summary>
+        [HttpGet("types/list")]
+        [SwaggerOperation(Summary = "Retrieves a list of all resource types")]
+        [SwaggerResponse(200, "A list of all the resource types", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> TypesFetch() 
+        {
+            try 
+            {
+                // Fetch the resource types
+                ResourceType[] types = await resourceManager.GetAllResourceTypesAsync();
+                
+                // Return the resource types
+                return Ok(new ApiResponse(true, $"Found {types.Length} resource types", types));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error listing resource types");
+                return StatusCode(500, new ApiResponse(false, "Error listing resource types", e.Message));
+            }
+        }
+        #endregion
+        
+        #region Filetype Support fetch
+        [HttpGet("supported_extensions")]
+        [SwaggerOperation(Summary = "Retrieves a dictionary of all supported file extensions per uploadtype")]
+        [SwaggerResponse(200, "A dictionary of all supported file extensions per upload type", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public IActionResult FiletypeSupportFetch() 
+        {
+            try 
+            {
+                // Return the dictionary
+                return Ok(new ApiResponse(true, "Fetch successfull", Filetype.SupportedExtensions));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error fetching supported extensions");
+                return StatusCode(500, new ApiResponse(false, "Error fetching supported extensions", e.Message));
+            }
+        }
+        #endregion
+        
         
         #region Helper Functions
         // ---------------------------
         // Helper functions
         // ---------------------------
+        
+        // Helper function to add file to dto
+        private FileResourceCreateDto? DeserializeWithFile(string uploadType, string jsonDto, IFormFile file) 
+        {
+            return uploadType switch
+            {
+                "document" => DeserializeAndAssignFile<DocumentCreateDto>(jsonDto, file),
+                "audio" => DeserializeAndAssignFile<AudioCreateDto>(jsonDto, file),
+                "video" => DeserializeAndAssignFile<VideoCreateDto>(jsonDto, file),
+                _ => DeserializeAndAssignFile<FileResourceCreateDto>(jsonDto, file)
+            };
+        }
+        
+        private T? DeserializeAndAssignFile<T>(string jsonDto, IFormFile file) where T : FileResourceCreateDto 
+        {
+            T? dto = JsonSerializer.Deserialize<T>(jsonDto);
+            
+            if (dto != null)
+                dto.File = file;
+
+            return dto;
+        }
         
         // Helper method to update a property
         private async Task UpdateProperty<TSet, TProperty>(string id, string propertyName, TProperty newValue) where TSet : class 

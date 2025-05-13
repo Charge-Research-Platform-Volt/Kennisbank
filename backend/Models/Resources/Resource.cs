@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+using Org.BouncyCastle.Asn1.X509.Qualified;
 
 namespace KnowledgeBank.Models;
 
@@ -83,6 +84,13 @@ public class Resource
 
     #endregion
 }
+
+public class RelatedEntry 
+{
+    public required string Id { get; set; }
+    public string? Relation { get; set; }
+}
+
 public class ResourceCreateDto // Data Transfer Object (DTO)
 {
     public required string Title { get; set; }
@@ -97,19 +105,26 @@ public class ResourceCreateDto // Data Transfer Object (DTO)
     public string[] Tags { get; set; } = [];
     public string[] Authors { get; set; } = [];
     // Tuple: (OrganisationId, role?)
-    public (string, string?)[] Organisations { get; set; } = [];
+    public RelatedEntry[] Organisations { get; set; } = [];
     public string[] Regions { get; set; } = [];
     // Tuple: (OrganisationId, role?)
-    public (string, string?)[] RelatedOrganisations { get; set; } = [];
+    public RelatedEntry[] RelatedOrganisations { get; set; } = [];
     // Tuple: (PersonId, role?)
-    public (string, string?)[] RelatedPersons { get; set; } = [];
+    public RelatedEntry[] RelatedPersons { get; set; } = [];
     public string[] RelatedSources { get; set; } = [];
 }
 
 public class FileResourceCreateDto : ResourceCreateDto
 {
-    public required IFormFile File { get; set; }
     public string? Hash { get; set; } = null;
+    public IFormFile? File { get; set; }
+}
+
+public class ResourceUploadDto 
+{
+    public required string Dto { get; set; }
+    public required string UploadType { get; set; }
+    public IFormFile? File { get; set; }
 }
 
 public class ResourceRenameDto

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { string, z } from "zod";
 
 /**
  * Tag scheme
@@ -55,14 +55,17 @@ export type TagResponse = z.infer<typeof TagResponseSchema>;
 /**
  * Tag page response schema
  */
-export type TagPageResponse = {
-  success: boolean;
-  message: string;
-  pageIndex?: number;
-  pageSize?: number;
-  pageCount?: number;
-  tags?: TagArray;
-}
+export const TagPageResponseSchema = z.object(
+{
+    success: z.boolean(),
+    message: z.string(),
+    pageIndex: z.number().optional(),
+    pageSize: z.number().optional(),
+    pageCount: z.number().optional(),
+    tags: z.array(TagSchema).optional(),
+});
+ 
+export type TagPageResponse = z.infer<typeof TagPageResponseSchema>;
 
 /**
  * Tag relation response schema

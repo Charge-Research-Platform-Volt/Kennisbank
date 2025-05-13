@@ -69,10 +69,9 @@ public class PersonsControllerTests : TestBase
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Person created successfully"));
         Assert.That(response.Body, Is.Not.Null);
-        
+
         // Deserialize the response's data, extract ID
-        JObject? json = JObject.FromObject(response.Body);
-        Guid personId = Guid.Parse(json["id"].ToString());
+        Guid personId = (Guid)response.Body;
         
         bool exists = await _resourceManager.PersonExistsAsync(personId.ToString());
         Assert.That(exists, Is.True);
@@ -125,10 +124,9 @@ public class PersonsControllerTests : TestBase
         ApiResponse? createResponse = createResult.Value as ApiResponse;
         Assert.That(createResponse, Is.Not.Null);
         Assert.That(createResponse.Body, Is.Not.Null);
-        
+
         // Deserialize the response's data
-        JObject? json = JObject.FromObject(createResponse.Body);
-        Guid personId = Guid.Parse(json["id"].ToString());
+        Guid personId = (Guid)createResponse.Body;
         string personIdStr = personId.ToString();
         
         // Act
