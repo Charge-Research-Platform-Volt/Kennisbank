@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using KnowledgeBank.Responses;
 using System.Text;
+using System.Text.Json;
 
 namespace backend.Tests.Integration;
 
@@ -97,8 +98,14 @@ public class ResourcesControllerTests : TestBaseBlob
             Url = "https://www.example.com"
         };
 
+        ResourceUploadDto uDto = new ResourceUploadDto
+        {
+            Dto = JsonSerializer.Serialize(dto),
+            UploadType = "website",
+        };
+
         // Act
-        ObjectResult? result = await _controller.New(dto) as ObjectResult;                
+        ObjectResult? result = await _controller.New(uDto) as ObjectResult;                
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -130,8 +137,14 @@ public class ResourcesControllerTests : TestBaseBlob
             Url = "not-a-valid-url"
         };
 
+        ResourceUploadDto uDto = new ResourceUploadDto
+        {
+            Dto = JsonSerializer.Serialize(dto),
+            UploadType = "website"
+        };
+
         // Act
-        BadRequestObjectResult? result = await _controller.New(dto) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.New(uDto) as BadRequestObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -157,8 +170,14 @@ public class ResourcesControllerTests : TestBaseBlob
             Url = ""
         };
 
+        ResourceUploadDto uDto = new ResourceUploadDto
+        {
+            Dto = JsonSerializer.Serialize(dto),
+            UploadType = "website"
+        };
+
         // Act
-        BadRequestObjectResult? result = await _controller.New(dto) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.New(uDto) as BadRequestObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -184,8 +203,14 @@ public class ResourcesControllerTests : TestBaseBlob
             Url = "https://example.com"
         };
 
+        ResourceUploadDto uDto = new ResourceUploadDto
+        {
+            Dto = JsonSerializer.Serialize(dto),
+            UploadType = "website"
+        };
+
         // Act
-        BadRequestObjectResult? result = await _controller.New(dto) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.New(uDto) as BadRequestObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -211,15 +236,21 @@ public class ResourcesControllerTests : TestBaseBlob
         
         FileResourceCreateDto dto = new FileResourceCreateDto
         {
-            File = new FormFile(fileStream, 0, fileStream.Length, "file", fileName),
             Title = "Test File",
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
         };
 
+        ResourceUploadDto uDto = new ResourceUploadDto
+        {
+            Dto = JsonSerializer.Serialize(dto),
+            UploadType = "document",
+            File = new FormFile(fileStream, 0, fileStream.Length, "file", fileName)
+        };
+
         // Act
-        OkObjectResult? result = await _controller.New(dto) as OkObjectResult;        
+        OkObjectResult? result = await _controller.New(uDto) as OkObjectResult;        
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -235,7 +266,7 @@ public class ResourcesControllerTests : TestBaseBlob
         Guid resourceId = (Guid)response.Body;
         bool existsInDatabase = await _resourceManager.ResourceExistsAsync(resourceId.ToString());
         
-        BLOB_STATUSCODE existsInBlob = await BlobService.BlobExistsAsync("text", resourceId.ToString());
+        BLOB_STATUSCODE existsInBlob = await BlobService.BlobExistsAsync(Filetype.UploadType.Document, resourceId.ToString());
         UploadedBlobs.Add(resourceId.ToString());
 
         Assert.That(existsInDatabase, Is.True);
@@ -249,15 +280,23 @@ public class ResourcesControllerTests : TestBaseBlob
         // Arrange
         FileResourceCreateDto dto = new FileResourceCreateDto
         {
-            File = null,
             Title = "Test File No File",
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
         };
 
+        string sDto = JsonSerializer.Serialize(dto, new JsonSerializerOptions { WriteIndented = true });
+        
+        ResourceUploadDto uDto = new ResourceUploadDto
+        {
+            Dto = sDto,
+            UploadType = "document",
+            File = null
+        };
+
         // Act
-        BadRequestObjectResult? result = await _controller.New(dto) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.New(uDto) as BadRequestObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -266,7 +305,7 @@ public class ResourcesControllerTests : TestBaseBlob
         ApiResponse? response = result.Value as ApiResponse;
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.False);
-        Assert.That(response.Message, Is.EqualTo("No file was uploaded."));
+        Assert.That(response.Message, Is.EqualTo("Invalid DTO sent"));
     }
     
     [Test]
@@ -279,15 +318,21 @@ public class ResourcesControllerTests : TestBaseBlob
         
         FileResourceCreateDto dto = new FileResourceCreateDto
         {
-            File = new FormFile(fileStream, 0, fileStream.Length, "file", fileName),
             Title = "Test Empty File",
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
         };
+        
+        ResourceUploadDto uDto = new ResourceUploadDto
+        {
+            Dto = JsonSerializer.Serialize(dto),
+            UploadType = "document",
+            File = new FormFile(fileStream, 0, fileStream.Length, "file", fileName)
+        };
 
         // Act
-        BadRequestObjectResult? result = await _controller.New(dto) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.New(uDto) as BadRequestObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -309,16 +354,22 @@ public class ResourcesControllerTests : TestBaseBlob
         
         FileResourceCreateDto dto = new FileResourceCreateDto
         {
-            File = new FormFile(fileStream, 0, fileStream.Length, "file", fileName),
             Title = "Test Unsupported File",
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
         };
+        
+        ResourceUploadDto uDto = new ResourceUploadDto
+        {
+            Dto = JsonSerializer.Serialize(dto),
+            UploadType = "document",
+            File = new FormFile(fileStream, 0, fileStream.Length, "file", fileName)
+        };
 
 
         // Act
-        BadRequestObjectResult? result = await _controller.New(dto) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.New(uDto) as BadRequestObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -431,14 +482,20 @@ public class ResourcesControllerTests : TestBaseBlob
         
         FileResourceCreateDto dto = new FileResourceCreateDto
         {
-            File = new FormFile(fileStream, 0, fileStream.Length, "file", fileName),
             Title = "Delete Test File",
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
         };
         
-        OkObjectResult? createResult = await _controller.New(dto) as OkObjectResult;
+        ResourceUploadDto uDto = new ResourceUploadDto
+        {
+            Dto = JsonSerializer.Serialize(dto),
+            UploadType = "document",
+            File = new FormFile(fileStream, 0, fileStream.Length, "file", fileName)
+        };
+        
+        OkObjectResult? createResult = await _controller.New(uDto) as OkObjectResult;
         Assert.That(createResult, Is.Not.Null);
         ApiResponse? createResponse = createResult.Value as ApiResponse;
         Assert.That(createResponse, Is.Not.Null);
@@ -521,8 +578,14 @@ public class ResourcesControllerTests : TestBaseBlob
             PublicationDate = DateTime.UtcNow,
             Url = "https://example.org/delete-me"
         };
+
+        ResourceUploadDto uDto = new ResourceUploadDto
+        {
+            Dto = JsonSerializer.Serialize(dto),
+            UploadType = "website"
+        };
         
-        OkObjectResult? createResult = await _controller.New(dto) as OkObjectResult;
+        OkObjectResult? createResult = await _controller.New(uDto) as OkObjectResult;
         Assert.That(createResult, Is.Not.Null);
         ApiResponse? createResponse = createResult.Value as ApiResponse;
         Assert.That(createResponse, Is.Not.Null);

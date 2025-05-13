@@ -39,7 +39,7 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(409, "Region already exists", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> New([FromForm] RegionCreateDto dto)
+        public async Task<IActionResult> New([FromBody] RegionCreateDto dto)
         {
             // DTO checks
             if (string.IsNullOrEmpty(dto.Name))
@@ -53,7 +53,7 @@ namespace KnowledgeBank.Controllers
                 Guid id = await resourceManager.CreateRegionAsync(dto);
 
                 logger.Information("Region '{Name}' created successfully.", dto.Name);
-                return Ok(new ApiResponse(true, "Region created successfully", new { id }));
+                return Ok(new ApiResponse(true, "Region created successfully", id ));
             }
             catch (Exception e)
             {

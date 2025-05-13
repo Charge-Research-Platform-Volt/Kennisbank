@@ -1,3 +1,12 @@
+networks:
+  ci_network:
+    name: ci_network
+    driver: bridge
+
+x-network: &network
+  networks:
+    - ci_network
+
 # Target to use for building the images
 x-target: &target
   target: ci-runner
@@ -8,16 +17,19 @@ x-jsbase: &jsbase
     <<: *target
   environment:
     - NODE_ENV=${NODE_ENV:-production}
+  <<: *network
 
 services:
   # Set up temporary folders for storages
   database:
     tmpfs:
-      - /data
+      - /var/lib/postgresql/data
+    <<: *network
 
   storage:
     tmpfs:
       - /data
+    <<: *network
 
   # Uncertain what these are for, but these were differences from prod compose
   backend:
@@ -25,6 +37,7 @@ services:
       <<: *target
       context: .
       dockerfile: ./backend/Dockerfile
+    <<: *network
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/status || exit 1"]
 

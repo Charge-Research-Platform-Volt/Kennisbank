@@ -1,28 +1,41 @@
-# Add automatic restarts and logging to all services
-x-productionbase: &productionbase
+networks:
+  prod_network:
+    name: prod_network
+    driver: bridge
+
+# Define base aditions to all services
+# Root access
+# Automatic restarts
+# Logging
+# Network
+x-base: &base
+  user: root
+  privileged: true
   restart: unless-stopped
   logging:
     driver: "local"
     options:
       max-size: "10m"
       max-file: "5"
+  networks:
+    - prod_network
 
 # Default for our images
 x-imagebase: &imagebase
   build:
     target: production
-  <<: *productionbase
+  <<: *base
 
 services:
   database:
     volumes:
       - postgres_data:/var/lib/postgresql/data  # Persistent volume
-    <<: *productionbase
+    <<: *base
 
   storage:
     volumes:
       - storage_data:/data  # Persistent volume
-    <<: *productionbase
+    <<: *base
 
   backend:
     <<: *imagebase

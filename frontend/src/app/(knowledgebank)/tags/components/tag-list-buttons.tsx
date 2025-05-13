@@ -15,7 +15,7 @@ export function ApproveTagButton({ tag }: { tag: Tag }) {
       actionArg={tag.id}
       successMessage="Tag approved"
       onSuccessAction={() => window.dispatchEvent(new Event("tagListUpdated"))}
-      icon={<ApproveTagIcon className= "h-5 w-5" fill= "#737373"/>}
+      icon={<ApproveTagIcon className= "h-5 w-5" fill= "#737373" />}
       title="Approve tag"
     />
   );
@@ -35,8 +35,8 @@ export function ConvertTagButton({ tag }: { tag: Tag }) {
   );
 }
 
-export function DeleteTagButton({ tag }: { tag: Tag }) {
-  if (tag) {
+export function DeleteTagButton({ tag, userRole }: { tag: Tag, userRole: string }) {
+  if (tag && tag.canEditAndDelete || userRole == "admin") {
     return (
       <ActionButton<string>
         action={DeleteTag}
@@ -58,5 +58,3 @@ export function DeleteTagButton({ tag }: { tag: Tag }) {
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

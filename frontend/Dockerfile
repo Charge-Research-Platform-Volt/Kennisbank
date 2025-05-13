@@ -7,6 +7,7 @@ ENV PORT=3000
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
+RUN npm install
 RUN npm ci
 
 # -- Development

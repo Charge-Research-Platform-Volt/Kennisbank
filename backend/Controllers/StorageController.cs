@@ -24,6 +24,7 @@ namespace KnowledgeBank.Controllers
         private readonly ResourceManager resourceManager = resourceManager;
 
         [HttpPut("upload")]
+        [Obsolete]
         [SwaggerOperation(
             Summary = "Upload a file to storage.",
             Description = "Uploads a file to Azure Blob Storage and returns metadata."
