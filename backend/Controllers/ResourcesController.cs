@@ -501,31 +501,26 @@ namespace KnowledgeBank.Controllers
                     return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
 
                 object[] items;
-                string type;
 
                 //Get all the items in the relation
                 switch (relation)
                 {
                     case "author":
                         items = await resourceManager.GetAllResourceAuthorRelationsAsync(id);
-                        type = "person";
 
                     break; case "organisation":
                         items = await resourceManager.GetAllResourceOrganisationRelationsAsync(id);
-                        type = "organisation";
 
                     break; case "region":
                         items = await resourceManager.GetAllResourceRegionRelationsAsync(id);
 
                     break; case "relatedOrganisation":
                         items = await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(id);
-                        type = "organisation";
 
                     break; case "relatedPerson":
                         items = await resourceManager.GetAllResourceRelatedPersonRelationsAsync(id);
-                        type = "person";
 
-                        break; case "relatedSource":
+                    break; case "relatedSource":
                         items = await resourceManager.GetAllResourceRelatedSourceRelationsAsync(id);
 
                     break; case "source":
@@ -550,17 +545,6 @@ namespace KnowledgeBank.Controllers
                     }
                 }
 
-                // Dto for tag and region, no type included
-                else if (relation == "tag" || relation == "region")
-                {
-                    results = new object[items.Length];
-                    for (int i = 0; i < items.Length; i++)
-                    {
-                        object resourceDto = DtoGenerator.ToDto(items[i], true, "Id", "Name");
-                        results[i] = resourceDto;
-                    }
-                }
-
                 // Dto for every other relation
                 else
                 {
@@ -568,7 +552,7 @@ namespace KnowledgeBank.Controllers
                     for (int i = 0; i < items.Length; i++)
                     {
                         object resourceDto = DtoGenerator.ToDto(items[i], true, "Id", "Name");
-                        results[i] = resourceDto; //ToDo: add type into Dto
+                        results[i] = resourceDto;
                     }
                 }
 

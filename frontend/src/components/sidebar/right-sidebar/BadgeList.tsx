@@ -10,7 +10,7 @@ export interface ListItem
 {
     id: string,
     name: string,
-    type: MetadataTypeEnum,
+    type: string,
 }
 
 interface BadgeListProps
@@ -32,6 +32,19 @@ export default function BadgeList({
 } : BadgeListProps)
 {
     const { navigate } = useSidebar();
+    
+    async function navigateTo(id: string, type: string)
+    {
+        if (type == "person" || type == "organisation" || type == "resource")
+        {
+            const nType: MetadataTypeEnum = type as MetadataTypeEnum;
+            navigate(id, nType)
+        }
+        else if (type == "tag")
+        {
+            // Add here: apply tag filter on archive
+        }
+    } 
 
     return (
         <>
@@ -44,7 +57,7 @@ export default function BadgeList({
             ) : itemList.length > 0 ? (
                 <>
                     {itemList.map((item, index) =>(
-                        <Badge onClick={() => navigate(item.id, item.type)} variant={variant} className={className}>{item.name}</Badge>
+                        <Badge onClick={() => navigateTo(item.id, item.type)} variant={variant} className={className}>{item.name}</Badge>
                     ))}
                 </>
             ) : (
