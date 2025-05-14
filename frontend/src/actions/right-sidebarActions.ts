@@ -4,40 +4,34 @@ import { ApiResponse, ApiResponseSchema } from "@/types/apiResponse.type";
 import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 import { cookies } from "next/headers";
 
-type resourceProperty = "title" | "description" | 
-                        "language-code" | "publication-code" | 
-                        "publication-date" | "creation-date" |
-                        "license" | "note";
-
-type personProperty = "";
-
-type organisationProperty = "";
-
 type resourceRelation = "author" | "organisation" |
                         "region" | "relatedOrganisation" |
                         "relatedSource" | "source" |
                         "tag"; 
 
-export const getProperty = async (
+export const getProperties = async (
     id: string,
     type: string,
-    property: resourceProperty | personProperty | organisationProperty,
 ) : Promise<ApiResponse> => {
     
-    const endPoint = "";
+    let endPoint;
+
+    if (type === "resource") {endPoint = "resources/info"}
+    else if (type === "person") {endPoint = "persons/info"}
+    else if (type === "organisation") {endPoint = "organisation/info"}
+
     const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response = await fetch(
-        `/api/${endPoint}`,
+        `/api/${endPoint}/${id}`,
         {
             method: "GET",
             credentials: "include",
             headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
-            body: JSON.stringify({id: id, type: type, property: property}),
         },
     );
 
     if (!response.ok) {
-        throw new Error(`Problem with finding property: ${property}`);
+        throw new Error(`Problem with getting properties`);
     }
     
     const rawData = await response.json();
@@ -51,7 +45,11 @@ export const getRelation = async (
     relation: resourceRelation,
 ) => {
 
-    const endPoint = "";
+    let endPoint;
+    if (type === "resource") {endPoint = "resources/relation"}
+    else if (type === "person") {endPoint = "persons/..."}
+    else if (type === "organisation") {endPoint = "organisation/..."}
+
     const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response = await fetch(
         `/api/${endPoint}`,
@@ -59,7 +57,7 @@ export const getRelation = async (
                 method: "GET",
                 credentials: "include",
                 headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
-                body: JSON.stringify({id: id, type: type, relation: relation}),
+                body: JSON.stringify({id: id, relation: relation}),
             },
     );
     

@@ -17,6 +17,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using System.Text.Json;
+using Azure;
+using DotNet.Testcontainers;
 
 namespace KnowledgeBank.Controllers 
 {
@@ -472,7 +474,99 @@ namespace KnowledgeBank.Controllers
             }
         }
         #endregion
-        
+
+        #region Get Relation Information
+        /// <summary>
+        /// Retrieves a list containing a specific relation (i.g. tags, persons, organisations), containing the id, name/title, and type
+        /// </summary>
+        /// <param name="id">The guid of the resource</param>
+        /// <param name="relation">The relation that is retrieved</param>
+        [HttpGet("relation")]
+        [SwaggerOperation(Summary = "Retrieves a list containing a specific relation")]
+        [SwaggerResponse(200, "A list containing a specific relation", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Relation(string id, string relation)
+        {
+
+            // Check if the ID is valid
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID."));
+
+            try
+            {
+                // Check if the resource exists
+                if (!await resourceManager.ResourceExistsAsync(id))
+                    return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
+
+                object[] items;
+
+                //Get all the items in the relation
+                switch (relation)
+                {
+                    case "author":
+                        items = await resourceManager.GetAllResourceAuthorRelationsAsync(id);
+
+                    break; case "organisation":
+                        items = await resourceManager.GetAllResourceOrganisationRelationsAsync(id);
+
+                    break; case "region":
+                        items = await resourceManager.GetAllResourceRegionRelationsAsync(id);
+
+                    break; case "relatedOrganisation":
+                        items = await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(id);
+
+                    break; case "relatedSource":
+                        items = await resourceManager.GetAllResourceRelatedSourceRelationsAsync(id);
+
+                    break; case "source":
+                        items = await resourceManager.GetAllResourceSourceRelationsAsync(id);
+
+                    break; case "tag":
+                        items = await resourceManager.GetAllResourceTagRelationsAsync(id);
+                    break; default:
+                        return BadRequest(new ApiResponse(false, $"Invalid relation: {relation}"));
+                }
+
+                object[] results = new object[items.Length];
+
+                // Source Dto
+                if (relation == "source" || relation == "relatedSourec")
+                {
+                    results = new object[items.Length];
+                    for (int i = 0; i < items.Length; i++)
+                    {
+                        object resourceDto = DtoGenerator.ToDto(items[i], true, "Url");
+                        results[i] = resourceDto;
+                    }
+                }
+
+                // Dto for every other relation
+                else
+                {
+                    results = new object[items.Length];
+                    for (int i = 0; i < items.Length; i++)
+                    {
+                        object resourceDto = DtoGenerator.ToDto(items[i], true, "Id", "Name");
+                        results[i] = resourceDto;
+                    }
+                }
+
+                // Return the relation
+                logger.Information("Resources relation with ID '{ID}' successfully retrieved.", id);
+                return Ok(new ApiResponse(true, "Succesfully retrieved relation", results));
+            }
+
+            catch (Exception e)
+            {
+                logger.Error(e, $"Error retrieving relation with ID: {id} and relation: {relation}.", id);
+                return StatusCode(500, new ApiResponse(false, "Error retrieving relation", e.Message));
+            }
+        }
+
+        #endregion
+
         #region List
         /// <summary>
         /// Retrieves a list or page of all resources
