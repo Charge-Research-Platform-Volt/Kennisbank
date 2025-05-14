@@ -144,7 +144,7 @@ final-cleanup:
         echo "ci_network does not exist"
       fi
     
-    # Clean up other resources that might be left by the CI process #
+    # Clean up other resources that might be left by the CI process
     - |
       echo "Cleaning up dangling resources..."
       docker container prune -f
