@@ -17,8 +17,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using System.Text.Json;
-using Azure;
-using DotNet.Testcontainers;
 
 namespace KnowledgeBank.Controllers 
 {
