@@ -44,6 +44,7 @@
     "react-dom": "19.0.0",
     "react-hook-form": "^7.56.1",
     "react-hotkeys-hook": "^4.6.1",
+    "react-loading-skeleton": "^3.5.0",
     "react-range-slider-input": "^3.2.1",
     "react-select": "^5.10.1",
     "rollup-plugin-node-builtins": "^2.0.0",

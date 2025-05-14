@@ -1,4 +1,8 @@
+"use server";
+
 import { ApiResponse, ApiResponseSchema } from "@/types/apiResponse.type";
+import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
+import { cookies } from "next/headers";
 
 type resourceProperty = "title" | "description" | 
                         "language-code" | "publication-code" | 
@@ -20,13 +24,15 @@ export const getProperty = async (
     property: resourceProperty | personProperty | organisationProperty,
 ) : Promise<ApiResponse> => {
     
+    const endPoint = "";
+    const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response = await fetch(
-        `${process.env.API_URL}/`,
+        `/api/${endPoint}`,
         {
             method: "GET",
             credentials: "include",
-            headers: { "Content-Type": "application/json"},
-            body: JSON.stringify({id, type, property}),
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+            body: JSON.stringify({id: id, type: type, property: property}),
         },
     );
 
@@ -45,13 +51,15 @@ export const getRelation = async (
     relation: resourceRelation,
 ) => {
 
+    const endPoint = "";
+    const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response = await fetch(
-        `${process.env.API_URL}/`,
+        `/api/${endPoint}`,
             {
                 method: "GET",
                 credentials: "include",
-                headers: { "Content-Type": "application/json"},
-                body: JSON.stringify({id, type, relation}),
+                headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+                body: JSON.stringify({id: id, type: type, relation: relation}),
             },
     );
     

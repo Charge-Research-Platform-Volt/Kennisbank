@@ -5,18 +5,47 @@ import Expandable from "./expandable"
 import BadgeList from "./BadgeList"
 import { Badge } from "@/components/ui/badge"
 import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider"
+import { getProperty, getRelation } from "@/actions/right-sidebarActions"
+import { ApiResponse } from "@/types/apiResponse.type"
+import { useState, use, useEffect } from "react"
+import Skeleton from 'react-loading-skeleton'
+import 'react-loading-skeleton/dist/skeleton.css'
 
 
 export function ResourceContent()
 {
     const { currentId } = useSidebar();
+    const [ title, setTitle ] = useState<string | null>(null);
+    const [ description, setDescription ] = useState<string | null>(null);
+
+    useEffect(() => {
+        loadProperties()
+    }, [])
+
+    const loadProperties = async () => {
+
+    const titlePromise = getProperty(currentId, MetadataTypeEnum.RESOURCE, "title");
+    const descriptionPromise = getProperty(currentId, MetadataTypeEnum.RESOURCE, "description");
+    
+    titlePromise.then(response => {
+        setTitle(response.body);
+    }).catch(error => {
+        console.error("Error loading title:", error);
+    });
+    
+    descriptionPromise.then(response => {
+        setDescription(response.body);
+    }).catch(error => {
+        console.error("Error loading description:", error);
+    });
+    }
 
     return (
         <>
-            <h1 className="pb-2 font-bold">{currentId}</h1>
+            <h1 className="pb-2 font-bold">{title || <Skeleton />}</h1>
         
             <Expandable title="Description" collapsedHeight={100}>
-                <LoremIpsum />
+                {description || <Skeleton />}
             </Expandable>
             
             <Expandable variant="horizontal" title="Tags">

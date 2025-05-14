@@ -3,6 +3,8 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge"
 import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider"
+import Skeleton from 'react-loading-skeleton'
+import 'react-loading-skeleton/dist/skeleton.css'
 
 interface ListItem
 {
@@ -16,8 +18,11 @@ interface BadgeListProps
     variant?: "outline" | "default" | "secondary" | "destructive";
     className?: string;
     emptyMessage: string;
-    itemList: ListItem[];
+    itemList: ListItem[] | null;
 }
+
+const skeletonList = [1,2,3,4,5,6,7,8]
+
 
 export default function BadgeList({
     variant = "outline",
@@ -30,7 +35,13 @@ export default function BadgeList({
 
     return (
         <>
-            {itemList.length > 0 ? (
+            {itemList === null ? (
+                <>
+                    {skeletonList.map((item, index) =>(
+                        <Badge variant={variant} className={className}><Skeleton width={50}/></Badge>
+                    ))}
+                </>
+            ) : itemList.length > 0 ? (
                 <>
                     {itemList.map((item, index) =>(
                         <Badge onClick={() => navigate(item.id, item.type)} variant={variant} className={className}>{item.label}</Badge>
@@ -38,6 +49,7 @@ export default function BadgeList({
                 </>
             ) : (
                 <div className="text-xs font-medium">{emptyMessage}</div>
+                
             )}
         </>
     )
