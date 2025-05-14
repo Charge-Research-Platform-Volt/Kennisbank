@@ -6,10 +6,10 @@ import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider"
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 
-interface ListItem
+export interface ListItem
 {
     id: string,
-    label: string,
+    name: string,
     type: MetadataTypeEnum,
 }
 
@@ -44,7 +44,7 @@ export default function BadgeList({
             ) : itemList.length > 0 ? (
                 <>
                     {itemList.map((item, index) =>(
-                        <Badge onClick={() => navigate(item.id, item.type)} variant={variant} className={className}>{item.label}</Badge>
+                        <Badge onClick={() => navigate(item.id, item.type)} variant={variant} className={className}>{item.name}</Badge>
                     ))}
                 </>
             ) : (

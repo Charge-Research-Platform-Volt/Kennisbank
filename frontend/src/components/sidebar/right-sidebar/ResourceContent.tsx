@@ -3,6 +3,7 @@
 import LoremIpsum from "@/utils/lorem-ipsum"
 import Expandable from "./expandable"
 import BadgeList from "./BadgeList"
+import { ListItem } from "./BadgeList"
 import { Badge } from "@/components/ui/badge"
 import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider"
 import { getProperties, getRelation } from "@/actions/right-sidebarActions"
@@ -17,7 +18,7 @@ export function ResourceContent()
     const { currentId } = useSidebar();
     const [ title, setTitle ] = useState<string | null>(null);
     const [ description, setDescription ] = useState<string | null>(null);
-    const [ authors, setAuthors ] = useState<Array<[string, string]> | null>(null);
+    const [ authors, setAuthors ] = useState<ListItem[] | null>(null);
 
     useEffect(() => {
         loadInformation()
@@ -35,6 +36,7 @@ export function ResourceContent()
         });
 
         authorsPromise.then(response => {
+
             setAuthors(response.body);
         }).catch(error => {
             console.error("Error loading authors: ", error);
@@ -75,23 +77,23 @@ export function ResourceContent()
 
             <Expandable variant="horizontal" title="Authors">
                 <BadgeList emptyMessage={"No Authors recorded"} itemList={[
-                    {id: "9a224808-f595-4aaa-9c87-48c5db3235e0", label: "test", type: MetadataTypeEnum.RESOURCE},
-                    {id: "i2", label: "author2", type: MetadataTypeEnum.PERSON},
-                    {id: "i3", label: "author3", type: MetadataTypeEnum.PERSON},
-                    {id: "i4", label: "author4", type: MetadataTypeEnum.PERSON},
-                    {id: "i5", label: "author5", type: MetadataTypeEnum.PERSON},
-                    {id: "i6", label: "author6", type: MetadataTypeEnum.PERSON},
-                    {id: "i7", label: "author7", type: MetadataTypeEnum.PERSON},
-                    {id: "i8", label: "author8", type: MetadataTypeEnum.PERSON},
-                    {id: "i9", label: "author9", type: MetadataTypeEnum.PERSON},
-                    {id: "i10", label: "author10", type: MetadataTypeEnum.PERSON},
-                    {id: "i11", label: "author11", type: MetadataTypeEnum.PERSON},
-                    {id: "i12", label: "author12", type: MetadataTypeEnum.PERSON},
-                    {id: "i13", label: "author13", type: MetadataTypeEnum.PERSON},
-                    {id: "i14", label: "author14", type: MetadataTypeEnum.PERSON},
-                    {id: "i15", label: "author15", type: MetadataTypeEnum.PERSON},
-                    {id: "i16", label: "author16", type: MetadataTypeEnum.PERSON},
-                    {id: "i17", label: "author17", type: MetadataTypeEnum.PERSON},
+                    {id: "9a224808-f595-4aaa-9c87-48c5db3235e0", name: "test", type: MetadataTypeEnum.RESOURCE},
+                    {id: "i2", name: "author2", type: MetadataTypeEnum.PERSON},
+                    {id: "i3", name: "author3", type: MetadataTypeEnum.PERSON},
+                    {id: "i4", name: "author4", type: MetadataTypeEnum.PERSON},
+                    {id: "i5", name: "author5", type: MetadataTypeEnum.PERSON},
+                    {id: "i6", name: "author6", type: MetadataTypeEnum.PERSON},
+                    {id: "i7", name: "author7", type: MetadataTypeEnum.PERSON},
+                    {id: "i8", name: "author8", type: MetadataTypeEnum.PERSON},
+                    {id: "i9", name: "author9", type: MetadataTypeEnum.PERSON},
+                    {id: "i10", name: "author10", type: MetadataTypeEnum.PERSON},
+                    {id: "i11", name: "author11", type: MetadataTypeEnum.PERSON},
+                    {id: "i12", name: "author12", type: MetadataTypeEnum.PERSON},
+                    {id: "i13", name: "author13", type: MetadataTypeEnum.PERSON},
+                    {id: "i14", name: "author14", type: MetadataTypeEnum.PERSON},
+                    {id: "i15", name: "author15", type: MetadataTypeEnum.PERSON},
+                    {id: "i16", name: "author16", type: MetadataTypeEnum.PERSON},
+                    {id: "i17", name: "author17", type: MetadataTypeEnum.PERSON},
                 ]}/>
             </Expandable>
 

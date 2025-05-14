@@ -7,7 +7,7 @@ import { cookies } from "next/headers";
 type resourceRelation = "author" | "organisation" |
                         "region" | "relatedOrganisation" |
                         "relatedSource" | "source" |
-                        "tag"; 
+                        "tag" | "relatedPerson"; 
 
 export const getProperties = async (
     id: string,
