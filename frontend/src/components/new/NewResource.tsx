@@ -19,7 +19,7 @@ import { toast } from "sonner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { ApiResponseSchema } from "@/types/apiResponse.type"
-import { UploadNewResource, UploadWithDto } from "@/actions/uploadActions"
+import { UploadNewResource, UploadWithDto, UploadNewLargeResource } from "@/actions/uploadActions"
 import { useRouter, useSearchParams } from "next/navigation"
 import { RequiredAstrix } from "@/components/ui/required-astrix"
 import { AddRelationsDialog } from "@/components/ui/add-relations-dialog"
@@ -39,7 +39,7 @@ export const UploadTypeEnum = z.enum(["document", "website", "audio", "video"])
 // Define constants
 const urlDefault = "http://no.url/"
 const fileDefault = new File([""], "placeholder.txt", { type: "text/plain" });
-const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB, just under the 30 MB allowed by ASP.NET
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 25 MB, just under the 30 MB allowed by ASP.NET
 
 export const resourceCreateFormSchema = z.object(
 {
@@ -58,7 +58,7 @@ export const resourceCreateFormSchema = z.object(
     regions: z.string().uuid().array(),
     uploadType: UploadTypeEnum,
     url: z.string().min(1, "URL is required").url("Invalid URL"),
-    file: z.any().refine(val => val !== undefined , { message: "File is required" }).refine(val => val instanceof File ? val.size <= MAX_FILE_SIZE : true, { message: `File size must be less than ${MAX_FILE_SIZE / (1024 * 1024)}MB`}),
+    file: z.any().refine(val => val !== undefined , { message: "File is required" }),
     hash: z.string().optional(),
     accessedOn: z.string().date("Invalid Date").optional(),
     abstract: z.string().optional(),
@@ -303,7 +303,15 @@ export default function NewResource({ personOptions, organisationOptions, resour
         // Disable the submit button
         setIsChecking(true);
     
-        const id: string = await UploadNewResource(values);
+        const fileSize = values.file.size;
+        let id: string;
+
+        if (fileSize > MAX_FILE_SIZE) {
+            id = await UploadNewLargeResource(values);
+        } else {
+            id = await UploadNewResource(values);
+        }        
+        
         toast.info(`Resource uploaded succesfully with ID '${id}'`);
         
         router.push(returnUrl);
