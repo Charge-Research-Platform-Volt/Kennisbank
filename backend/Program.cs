@@ -12,6 +12,7 @@ using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Diagnostics;
 using KnowledgeBank.BackgroundServices;
 using KnowledgeBank.Services;
+using Hubs;
 
 namespace KnowledgeBank
 {
@@ -25,6 +26,7 @@ namespace KnowledgeBank
 
             // # Services
             builder.Services.AddControllers();
+            builder.Services.AddSignalR();
             builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
             builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, CustomAuthorizationMiddlewareResultHandler>();
             builder.Services.AddAuthorization(options =>
@@ -49,15 +51,12 @@ namespace KnowledgeBank
                             .AddApiEndpoints();
 
 
-            // Semantic Kernel
-            builder.Services.AddSingleton<ISemanticKernel, SemanticKernel>();
+            // Retrieval Augmented Generation system
+            builder.Services.AddSingleton<IRAGSystem, RAGSystem>();
 
             // Background services
             builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
             builder.Services.AddHostedService<QueuedHostedService>();
-
-            // Add text extraction service
-            builder.Services.AddScoped<ITextExtractionService, TextExtractionService>();
 
             // Swagger
             builder.Services.AddOpenApi();
@@ -115,6 +114,7 @@ namespace KnowledgeBank
 
             app.UseHttpsRedirection();
             app.UseRouting();
+            app.MapHub<Chat>("/chat"); // SignalR hub for chat functionality
             app.UseCors("AllowFrontend");
             app.UseAuthentication();
             app.UseAuthorization();

@@ -19,20 +19,20 @@ namespace KnowledgeBank.Controllers
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class StorageController(IAzureBlobService blobService, ResourceManager resourceManager, IBackgroundTaskQueue taskQueue, ITextExtractionService textExtractionService) : ControllerBase
+    public class StorageController(IAzureBlobService blobService, ResourceManager resourceManager, IBackgroundTaskQueue taskQueue, IRAGSystem ragSystem) : ControllerBase
     {
         private readonly IAzureBlobService blobService = blobService;
         private readonly Serilog.ILogger logger = Log.ForContext<StorageController>();
         private readonly ResourceManager resourceManager = resourceManager;
+
+
+        private readonly IRAGSystem _ragSystem = ragSystem;
         private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
-        private readonly ITextExtractionService _textExtractionService = textExtractionService;
+
 
 
         [HttpPut("upload")]
-        [SwaggerOperation(
-            Summary = "Upload a file to storage.",
-            Description = "Uploads a file to Azure Blob Storage and returns metadata."
-        )]
+        [SwaggerOperation(Summary = "Upload a file to storage.", Description = "Uploads a file to Azure Blob Storage and returns metadata.")]
         [SwaggerResponse(200, "File was uploaded successfully", typeof(StorageResponse))]
         [SwaggerResponse(404, "Container does not exist", typeof(StorageResponse))]
         [SwaggerResponse(409, "File already exists", typeof(StorageResponse))]
@@ -86,6 +86,7 @@ namespace KnowledgeBank.Controllers
 
                         logger.Information("File '{FileName}' added successfully", dto.File.FileName);
 
+
                         // If the file is a PDF, queue it for text extraction (This will not block the request and will be done in the background)
                         if (fileType.Equals("pdf", StringComparison.OrdinalIgnoreCase))
                         {
@@ -93,7 +94,7 @@ namespace KnowledgeBank.Controllers
 
                             _taskQueue.QueueBackgroundWorkItem(async token =>
                             {
-                                await _textExtractionService.ProcessDocumentAsync(id.ToString(), fileType);
+                                await _ragSystem.MainPipeline(id, fileType, dto);
                             });
                         }
 
@@ -123,16 +124,11 @@ namespace KnowledgeBank.Controllers
             }
         }
 
-
-        // private async Task ExtractFileContentAsync()
-        // {
-        //     logger.Information("Extracting file content...");
-        //     await Task.Delay(120000);
-        //     logger.Information("File content extracted successfully.");
-        // }
-
         [HttpGet("download/{id}")]
-        [SwaggerOperation(Summary = "Download a file from storage.", Description = "Downloads a given blob from the given container in the Azure Blob Storage.")]
+        [SwaggerOperation(
+            Summary = "Download a file from storage.",
+            Description = "Downloads a given blob from the given container in the Azure Blob Storage."
+        )]
         [SwaggerResponse(200, "File found and returned")]
         [SwaggerResponse(404, "File not found", typeof(StorageResponse))]
         [SwaggerResponse(400, "Invalid location.", typeof(StorageResponse))]
@@ -434,5 +430,4 @@ namespace KnowledgeBank.Controllers
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
-
 
