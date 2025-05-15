@@ -78,7 +78,7 @@ namespace KnowledgeBank.Controllers
                 await _context.SaveChangesAsync();
                 
                 // send the email
-                MailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: http://localhost:3000/signup?token={token}");
+                MailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: {Program.HostUrl}/signup?token={token}");
             }
             catch (Exception e)
             {

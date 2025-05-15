@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
   // Increases the maximum body size limit for server actions
   experimental: {
     serverActions: {
-      bodySizeLimit: "100mb", 
+      bodySizeLimit: "105mb", 
     },
   },
 
@@ -26,6 +26,8 @@ const nextConfig: NextConfig = {
 
   env: {
     API_URL: process.env.API_URL,
+    HELP_URL: process.env.HELP_URL,
+    NEXT_PUBLIC_TIMEZONE: process.env.NEXT_PUBLIC_TIMEZONE,
   },
 
   async rewrites() {
