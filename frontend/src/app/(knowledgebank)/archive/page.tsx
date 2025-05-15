@@ -6,7 +6,7 @@ import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { OctagonAlert } from "lucide-react";
-import FilterButton from "./components/filter-button";
+import FilterButton from "./_components/filter-button";
 import { ResourcePageWithTagsResponse } from "@/types/resource.type";
 import ListResources from "@/components/list-resources";
 
@@ -59,17 +59,17 @@ export default function ArchivePage() {
 
   // Listen for resource list updates
   useEffect(() => {
-      const handleResourceListUpdated = () => {
-          setRefreshKey((prevKey) => (prevKey) + 1); // increment the refresh key to trigger a re-fetch
-      };
+    const handleResourceListUpdated = () => {
+      setRefreshKey((prevKey) => prevKey + 1); // increment the refresh key to trigger a re-fetch
+    };
 
-      // Add the event listener to the window object
-      window.addEventListener("resourceListUpdated", handleResourceListUpdated);
+    // Add the event listener to the window object
+    window.addEventListener("resourceListUpdated", handleResourceListUpdated);
 
-      // Cleanup the event listener on component unmount
-      return () => {
-          window.removeEventListener("resourceListUpdated", handleResourceListUpdated);
-      };
+    // Cleanup the event listener on component unmount
+    return () => {
+      window.removeEventListener("resourceListUpdated", handleResourceListUpdated);
+    };
   }, []);
 
   // Respond to search input changes
@@ -87,7 +87,7 @@ export default function ArchivePage() {
   }, [currentQuery, tagFilters, startYear, endYear, refreshKey, handleSearch]);
 
   return (
-    <>
+    <div className="p-2">
       <div className="*:not-first:mt-2">
         <div className="relative w-full">
           <Input
@@ -120,7 +120,7 @@ export default function ArchivePage() {
           <ListResources data={searchResults ?? { message: "", pageIndex: 0, pageSize: 0, resources: [], responseType: "" }} />
         )}
       </div>
-    </>
+    </div>
   );
 
   // Helper function for fetching files

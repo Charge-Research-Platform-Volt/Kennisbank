@@ -8,7 +8,7 @@ export default async function KnowledgeBankLayout({ children }: Readonly<{ child
     <QuickSearchProvider>
       <div className="flex h-screen w-full">
         <LeftSidebarServer />
-        <main className="w-full overflow-y-auto p-2">{children}</main>
+        <main className="w-full overflow-y-auto">{children}</main>
         <RightSidebar />
       </div>
     </QuickSearchProvider>
