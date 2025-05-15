@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Tag } from "@/types/tag.type";
+import type { Tag } from "@/types/tag.type";
 import EditIcon from "@/icons/edit-icon";
 import { ApproveTagButton, DeleteTagButton, ConvertTagButton } from "./tag-list-buttons";
 
@@ -12,30 +12,24 @@ interface TagActionButtonsProps {
 
 /**
  * TagActionButtons - A component that renders the appropriate action buttons for tags
- * 
+ *
  * This component displays different combinations of buttons based on the type of tag:
  * - For unapproved user tags: Approve, Edit, Delete
  * - For approved user tags: Convert, Edit, Delete
  * - For standardized tags: Edit, Delete
- * 
+ *
  * @param {TagActionButtonsProps} props - The component props
  * @returns {ReactElement} - The rendered action buttons
  */
 export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
   // Common Edit Button that appears for all tag types
   const EditButton = () => (
-    <Button
-      className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
-      variant="default"
-      type="button"
-      title="Edit tag"
-      onClick={onEditClick}
-    >
+    <Button className="text-muted-foreground bg-transparent shadow-none hover:bg-gray-200" variant="default" type="button" title="Edit tag" onClick={onEditClick}>
       <EditIcon className="h-5 w-5" fill="#737373" />
     </Button>
   );
 
-  // If unapproved user tag 
+  // If unapproved user tag
   if (!tag.isStandardized && !tag.isApproved) {
     return (
       <div className="flex">
@@ -45,7 +39,7 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
       </div>
     );
   }
-  
+
   // If approved user tag
   if (!tag.isStandardized && tag.isApproved) {
     return (
@@ -56,7 +50,7 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
       </div>
     );
   }
-  
+
   // If standardized tag
   if (tag) {
     return (
@@ -66,7 +60,7 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
       </div>
     );
   }
-  
+
   // Fallback for type safety
   return null;
 }
@@ -74,5 +68,3 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-
