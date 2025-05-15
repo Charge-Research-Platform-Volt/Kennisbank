@@ -81,6 +81,660 @@ public class ResourcesControllerTests : TestBaseBlob
         await BlobService.UploadBlobAsync("text", _existingFileResourceId.ToString(), metadata, fileStream);
         UploadedBlobs.Add(_existingFileResourceId.ToString());
     }
+    
+    // Helper method to create a valid ResourceUploadDto for initialization
+    private ResourceUploadDto CreateValidResourceUploadDto(string uploadType = "document", string title = "Test Large File")
+    {
+        DocumentCreateDto dtoDetails = new DocumentCreateDto
+        {
+            Title = title,
+            TypeId = DatabaseSeeder.UnknownResourceTypeId,
+            LanguageCode = "en",
+            PublicationDate = DateTime.UtcNow
+        };
+
+        FormFile formFile = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("dummy file content")), 0, 0, "file", "test.txt");
+        
+        if (uploadType == "website") 
+        {
+            WebsiteCreateDto websiteDto = new WebsiteCreateDto
+            {
+                Title = title,
+                TypeId = DatabaseSeeder.UnknownResourceTypeId,
+                LanguageCode = "en",
+                PublicationDate = DateTime.UtcNow,
+                Url = "https://example.com/large"
+            };
+                return new ResourceUploadDto
+            {
+                Dto = JsonSerializer.Serialize(websiteDto),
+                UploadType = uploadType
+            };
+        }
+
+        return new ResourceUploadDto
+        {
+            Dto = JsonSerializer.Serialize(dtoDetails),
+            UploadType = uploadType,
+            File = formFile
+        };
+    }
+
+    #region InitLargeFileUpload Tests
+
+        [Test]
+        [Description("InitLargeFileUpload initializes a session successfully for a document")]
+        public async Task InitLargeFileUpload_ValidDtoDocument_ReturnsOk()
+        {
+            // Arrange
+            ResourceUploadDto uploadDto = CreateValidResourceUploadDto("document");
+
+            // Act
+            ObjectResult? result = await _controller.InitLargeFileUpload(uploadDto) as ObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(200));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.True);
+            Assert.That(response.Message, Is.EqualTo("Upload session initialized"));
+            Assert.That(response.Body, Is.InstanceOf<Guid>());
+            Guid resourceId = (Guid)response.Body;
+            Assert.That(resourceId, Is.Not.EqualTo(Guid.Empty));
+        }
+        
+        [Test]
+        [Description("InitLargeFileUpload initializes a session successfully for a website")]
+        public async Task InitLargeFileUpload_ValidDtoWebsite_ReturnsOk()
+        {
+            // Arrange
+            ResourceUploadDto uploadDto = CreateValidResourceUploadDto("website");
+            uploadDto.File = null;
+
+            // Act
+            ObjectResult? result = await _controller.InitLargeFileUpload(uploadDto) as ObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(200));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.True);
+            Assert.That(response.Message, Is.EqualTo("Upload session initialized"));
+            Assert.That(response.Body, Is.InstanceOf<Guid>());
+            Guid resourceId = (Guid)response.Body;
+            Assert.That(resourceId, Is.Not.EqualTo(Guid.Empty));
+        }
+        
+        [Test]
+        [Description("InitLargeFileUpload returns BadRequest if file is null for non-website upload")]
+        public async Task InitLargeFileUpload_NullFileForNonWebsite_ReturnsBadRequest()
+        {
+            // Arrange
+            DocumentCreateDto dtoDetails = new DocumentCreateDto 
+            {
+                Title = "Test Title",
+                TypeId = DatabaseSeeder.UnknownResourceTypeId,
+                LanguageCode = "en",
+                PublicationDate = DateTime.UtcNow
+            };
+            ResourceUploadDto uploadDto = new ResourceUploadDto 
+            { 
+                UploadType = "document", 
+                Dto = JsonSerializer.Serialize(dtoDetails),
+                File = null
+            };
+
+            // Act
+            BadRequestObjectResult? result = await _controller.InitLargeFileUpload(uploadDto) as BadRequestObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(400));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.False);
+            Assert.That(response.Message, Is.EqualTo("Invalid DTO sent"));
+        }
+
+        [Test]
+        [Description("InitLargeFileUpload returns BadRequest when Title is missing")]
+        public async Task InitLargeFileUpload_MissingTitle_ReturnsBadRequest()
+        {
+            // Arrange
+            DocumentCreateDto dtoDetails = new DocumentCreateDto 
+            { 
+                Title = null, 
+                TypeId = "type1", 
+                LanguageCode = "en", 
+                PublicationDate = DateTime.UtcNow 
+            };
+            ResourceUploadDto uploadDto = new ResourceUploadDto 
+            {
+                Dto = JsonSerializer.Serialize(dtoDetails),
+                UploadType = "document",
+                File = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("dummy")), 0, 0, "file", "test.txt")
+            };
+            
+            // Act
+            BadRequestObjectResult? result = await _controller.InitLargeFileUpload(uploadDto) as BadRequestObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(400));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.False);
+            Assert.That(response.Message, Is.EqualTo("No name was provided."));
+        }
+
+
+        // Add similar tests for Missing TypeId, LanguageCode, PublicationDate
+        // Example for Missing TypeId:
+        [Test]
+        [Description("InitLargeFileUpload returns BadRequest when TypeId is missing")]
+        public async Task InitLargeFileUpload_MissingTypeId_ReturnsBadRequest()
+        {
+            // Arrange
+            DocumentCreateDto? dtoDetails = new DocumentCreateDto 
+            { 
+                Title = "Test Title", 
+                TypeId = null, 
+                LanguageCode = "en", 
+                PublicationDate = DateTime.UtcNow 
+            };
+            ResourceUploadDto uploadDto = new ResourceUploadDto 
+            {
+                Dto = JsonSerializer.Serialize(dtoDetails),
+                UploadType = "document",
+                File = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("dummy")), 0, 0, "file", "test.txt")
+            };
+
+            // Act
+            BadRequestObjectResult? result = await _controller.InitLargeFileUpload(uploadDto) as BadRequestObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(400));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.False);
+            Assert.That(response.Message, Is.EqualTo("No type ID was provided."));
+        }
+
+
+        [Test]
+        [Description("InitLargeFileUpload returns BadRequest when LanguageCode is missing")]
+        public async Task InitLargeFileUpload_MissingLanguageCode_ReturnsBadRequest()
+        {
+            // Arrange
+            DocumentCreateDto dtoDetails = new DocumentCreateDto 
+            { 
+                Title = "Test Title", 
+                TypeId = "type1", 
+                LanguageCode = null, 
+                PublicationDate = DateTime.UtcNow 
+            };
+            ResourceUploadDto uploadDto = new ResourceUploadDto 
+            {
+                Dto = JsonSerializer.Serialize(dtoDetails),
+                UploadType = "document",
+                File = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("dummy")), 0, 0, "file", "test.txt")
+            };
+            
+            // Act
+            BadRequestObjectResult? result = await _controller.InitLargeFileUpload(uploadDto) as BadRequestObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(400));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.False);
+            Assert.That(response.Message, Is.EqualTo("No language code was provided"));
+        }
+
+        [Test]
+        [Description("InitLargeFileUpload returns BadRequest when PublicationDate is missing")]
+        public async Task InitLargeFileUpload_MissingPublicationDate_ReturnsBadRequest()
+        {
+            // Arrange
+            DocumentCreateDto dtoDetails = new DocumentCreateDto 
+            { 
+                Title = "Test Title", 
+                TypeId = "type1", 
+                LanguageCode = "en", 
+                PublicationDate = DateTime.MinValue 
+            };
+            ResourceUploadDto uploadDto = new ResourceUploadDto 
+            {
+                Dto = JsonSerializer.Serialize(dtoDetails),
+                UploadType = "document",
+                File = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("dummy")), 0, 0, "file", "test.txt")
+            };
+
+            // Act
+            BadRequestObjectResult? result = await _controller.InitLargeFileUpload(uploadDto) as BadRequestObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(400));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.False);
+            Assert.That(response.Message, Is.EqualTo("No publication date was provided"));
+        }
+
+        #endregion
+
+        #region UploadChunk Tests
+
+        [Test]
+        [Description("UploadChunk uploads a chunk successfully")]
+        public async Task UploadChunk_ValidChunk_ReturnsOk()
+        {
+            // Arrange: First, initialize a large file upload
+            ResourceUploadDto? initDto = CreateValidResourceUploadDto();
+            ObjectResult? initResult = await _controller.InitLargeFileUpload(initDto) as ObjectResult;
+            Assert.That(initResult, Is.Not.Null);
+            ApiResponse? initResponse = initResult.Value as ApiResponse;
+            Assert.That(initResponse, Is.Not.Null);
+            Guid? resourceId = (Guid)initResponse.Body;
+            Assert.That(resourceId, Is.Not.Null);
+
+
+            string fileType = Filetype.ConvertExtensionToFiletype(".txt"); // Assuming a helper or direct value
+            string blockId = "block001";
+            byte[] chunkData = Encoding.UTF8.GetBytes("This is a file chunk.");
+            _controller.ControllerContext.HttpContext = new DefaultHttpContext();
+            _controller.Request.Body = new MemoryStream(chunkData);
+            _controller.Request.ContentLength = chunkData.Length;
+
+
+            // Act
+            ObjectResult? result = await _controller.UploadChunk(resourceId.ToString(), fileType, blockId) as ObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(200));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.True);
+            Assert.That(response.Message, Is.EqualTo("Chunk uploaded successfully"));
+        }
+
+        [Test]
+        [Description("UploadChunk returns BadRequest if no chunk data provided")]
+        public async Task UploadChunk_NoChunkData_ReturnsBadRequest()
+        {
+            // Arrange
+            string resourceId = Guid.NewGuid().ToString();
+            string fileType = "text";
+            string blockId = "block001";
+            _controller.ControllerContext.HttpContext = new DefaultHttpContext();
+            _controller.Request.Body = null; // Simulate no body
+
+            // Act
+            BadRequestObjectResult? result = await _controller.UploadChunk(resourceId, fileType, blockId) as BadRequestObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(400));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.False);
+            Assert.That(response.Message, Is.EqualTo("No chunk data was provided."));
+        }
+        
+        [Test]
+        [Description("UploadChunk returns BadRequest for invalid Resource ID")]
+        public async Task UploadChunk_InvalidResourceId_ReturnsBadRequest()
+        {
+            // Arrange
+            string invalidResourceId = "invalid-guid";
+            string fileType = "text";
+            string blockId = "block001";
+            byte[] chunkData = Encoding.UTF8.GetBytes("This is a file chunk.");
+            _controller.ControllerContext.HttpContext = new DefaultHttpContext();
+            _controller.Request.Body = new MemoryStream(chunkData);
+
+
+            // Act
+            BadRequestObjectResult? result = await _controller.UploadChunk(invalidResourceId, fileType, blockId) as BadRequestObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(400));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.False);
+            Assert.That(response.Message, Is.EqualTo("Invalid resource ID."));
+        }
+
+        [Test]
+        [Description("UploadChunk returns BadRequest if no FileType provided")]
+        public async Task UploadChunk_NoFileType_ReturnsBadRequest()
+        {
+            // Arrange
+            string resourceId = Guid.NewGuid().ToString();
+            string blockId = "block001";
+            byte[] chunkData = Encoding.UTF8.GetBytes("This is a file chunk.");
+            _controller.ControllerContext.HttpContext = new DefaultHttpContext();
+            _controller.Request.Body = new MemoryStream(chunkData);
+
+            // Act
+            BadRequestObjectResult? result = await _controller.UploadChunk(resourceId, "", blockId) as BadRequestObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(400));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.False);
+            Assert.That(response.Message, Is.EqualTo("No file type was provided."));
+        }
+
+        [Test]
+        [Description("UploadChunk returns BadRequest if no Block ID provided")]
+        public async Task UploadChunk_NoBlockId_ReturnsBadRequest()
+        {
+            // Arrange
+            string resourceId = Guid.NewGuid().ToString();
+            string fileType = "text";
+            byte[] chunkData = Encoding.UTF8.GetBytes("This is a file chunk.");
+            _controller.ControllerContext.HttpContext = new DefaultHttpContext();
+            _controller.Request.Body = new MemoryStream(chunkData);
+
+            // Act
+            BadRequestObjectResult? result = await _controller.UploadChunk(resourceId, fileType, "") as BadRequestObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(400));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.False);
+            Assert.That(response.Message, Is.EqualTo("No block ID was provided."));
+        }
+
+        #endregion
+
+        #region FinalizeLargeFileUpload Tests
+
+        [Test]
+        [Description("FinalizeLargeFileUpload finalizes upload successfully")]
+        public async Task FinalizeLargeFileUpload_ValidData_ReturnsOk()
+        {
+            // Arrange: Initialize and upload a chunk first
+            ResourceUploadDto? initDto = CreateValidResourceUploadDto(title: "Finalize Test File");
+            ObjectResult? initResult = await _controller.InitLargeFileUpload(initDto) as ObjectResult;
+            Assert.That(initResult, Is.Not.Null);
+            ApiResponse? initResponse = initResult.Value as ApiResponse;
+            Assert.That(initResponse, Is.Not.Null);
+            Assert.That(initResponse.Body, Is.Not.Null);
+            Guid? resourceId = (Guid)initResponse.Body;
+            Assert.That(resourceId, Is.Not.Null);
+
+            string fileTypeForChunk = Filetype.ConvertExtensionToFiletype(".txt");
+            string blockId1 = "finalBlock001";
+            string base64BlockId1 = Convert.ToBase64String(Encoding.UTF8.GetBytes(blockId1));
+            byte[] chunkData = Encoding.UTF8.GetBytes("Final chunk.");
+            
+            _controller.ControllerContext.HttpContext = new DefaultHttpContext();
+            _controller.Request.Body = new MemoryStream(chunkData);
+            _controller.Request.ContentLength = chunkData.Length;
+            await _controller.UploadChunk(resourceId.ToString(), fileTypeForChunk, blockId1); 
+
+            LargeFileFinalizeDto finalizeDto = new LargeFileFinalizeDto
+            {
+                ResourceId = resourceId.ToString(),
+                FileType = fileTypeForChunk, 
+                FileName = "finalized-test-file.txt",
+                BlockIds = new List<string> { blockId1 }
+            };
+
+            // Act
+            ObjectResult? result = await _controller.FinalizeLargeFileUpload(finalizeDto) as ObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(200));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.True);
+            Assert.That(response.Message, Is.EqualTo("File upload finalized successfully"));
+            Assert.That(response.Body, Is.EqualTo(resourceId));
+            
+            // Verify blob exists after finalize
+            UploadedBlobs.Add(resourceId.ToString()); // Add for cleanup in TestBaseBlob
+            BLOB_STATUSCODE blobExists = await BlobService.BlobExistsAsync(fileTypeForChunk, resourceId.ToString());
+            Assert.That(blobExists, Is.EqualTo(BLOB_STATUSCODE.OK));
+        }
+
+        [Test]
+        [Description("FinalizeLargeFileUpload returns BadRequest for invalid Resource ID")]
+        public async Task FinalizeLargeFileUpload_InvalidResourceId_ReturnsBadRequest()
+        {
+            // Arrange
+            LargeFileFinalizeDto finalizeDto = new LargeFileFinalizeDto
+            {
+                ResourceId = "invalid-guid",
+                FileType = "text",
+                FileName = "test.txt",
+                BlockIds = new List<string> { "block1" }
+            };
+
+            // Act
+            BadRequestObjectResult? result = await _controller.FinalizeLargeFileUpload(finalizeDto) as BadRequestObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(400));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.False);
+            Assert.That(response.Message, Is.EqualTo("Invalid resource ID."));
+        }
+        
+        [Test]
+        [Description("FinalizeLargeFileUpload returns BadRequest if no FileType provided")]
+        public async Task FinalizeLargeFileUpload_NoFileType_ReturnsBadRequest()
+        {
+            // Arrange
+            LargeFileFinalizeDto finalizeDto = new LargeFileFinalizeDto
+            {
+                ResourceId = Guid.NewGuid().ToString(),
+                FileType = "",
+                FileName = "test.txt",
+                BlockIds = new List<string> { "block1" }
+            };
+
+            // Act
+            BadRequestObjectResult? result = await _controller.FinalizeLargeFileUpload(finalizeDto) as BadRequestObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(400));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.False);
+            Assert.That(response.Message, Is.EqualTo("No file type was provided."));
+        }
+
+        [Test]
+        [Description("FinalizeLargeFileUpload returns BadRequest if no FileName provided")]
+        public async Task FinalizeLargeFileUpload_NoFileName_ReturnsBadRequest()
+        {
+            // Arrange
+            LargeFileFinalizeDto finalizeDto = new LargeFileFinalizeDto
+            {
+                ResourceId = Guid.NewGuid().ToString(),
+                FileType = "text",
+                FileName = "",
+                BlockIds = new List<string> { "block1" }
+            };
+
+            // Act
+            BadRequestObjectResult? result = await _controller.FinalizeLargeFileUpload(finalizeDto) as BadRequestObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(400));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.False);
+            Assert.That(response.Message, Is.EqualTo("No file name was provided."));
+        }
+
+        [Test]
+        [Description("FinalizeLargeFileUpload returns BadRequest if no BlockIds provided")]
+        public async Task FinalizeLargeFileUpload_NoBlockIds_ReturnsBadRequest()
+        {
+            // Arrange
+            LargeFileFinalizeDto finalizeDto = new LargeFileFinalizeDto
+            {
+                ResourceId = Guid.NewGuid().ToString(),
+                FileType = "text",
+                FileName = "test.txt",
+                BlockIds = new List<string>() // Empty BlockIds
+            };
+
+            // Act
+            BadRequestObjectResult? result = await _controller.FinalizeLargeFileUpload(finalizeDto) as BadRequestObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(400));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.False);
+            Assert.That(response.Message, Is.EqualTo("No block IDs were provided."));
+        }
+        
+        [Test]
+        [Description("FinalizeLargeFileUpload returns BadRequest if BlockIds is null")]
+        public async Task FinalizeLargeFileUpload_NullBlockIds_ReturnsBadRequest()
+        {
+            // Arrange
+            LargeFileFinalizeDto finalizeDto = new LargeFileFinalizeDto
+            {
+                ResourceId = Guid.NewGuid().ToString(),
+                FileType = "text",
+                FileName = "test.txt",
+                BlockIds = null
+            };
+
+            // Act
+            BadRequestObjectResult result = await _controller.FinalizeLargeFileUpload(finalizeDto) as BadRequestObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(400));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.False);
+            Assert.That(response.Message, Is.EqualTo("No block IDs were provided."));
+        }
+
+
+        #endregion
+
+        #region CleanupFailedUpload Tests
+
+        [Test]
+        [Description("CleanupFailedUpload removes database entry for an initialized upload")]
+        public async Task CleanupFailedUpload_ExistingInitializedResource_ReturnsOkAndDeletesEntry()
+        {
+            ResourceUploadDto? initDto = CreateValidResourceUploadDto(title: "Cleanup Test File");
+            ObjectResult? initResult = await _controller.InitLargeFileUpload(initDto) as ObjectResult;
+            Assert.That(initResult, Is.Not.Null);
+            ApiResponse? initResponse = initResult.Value as ApiResponse;
+            Assert.That(initResponse, Is.Not.Null);
+            Assert.That(initResponse.Body, Is.Not.Null);
+            Guid? resourceId = (Guid)initResponse.Body;
+            Assert.That(resourceId, Is.Not.Null);
+
+
+            bool existsBeforeCleanup = await _resourceManager.ResourceExistsAsync(resourceId.ToString());
+            Assert.That(existsBeforeCleanup, Is.True, "Resource should exist in DB after Init for cleanup test");
+
+            // Act
+            ObjectResult? result = await _controller.CleanupFailedUpload(resourceId.ToString()) as ObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(200));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.True);
+            Assert.That(response.Message, Is.EqualTo("Upload cleaned up successfully"));
+
+            // Verify database entry is removed
+            bool existsAfterCleanup = await _resourceManager.ResourceExistsAsync(resourceId.ToString());
+            Assert.That(existsAfterCleanup, Is.False);
+        }
+
+        [Test]
+        [Description("CleanupFailedUpload returns Ok if resource not found (already cleaned or invalid)")]
+        public async Task CleanupFailedUpload_NonExistentResource_ReturnsOk()
+        {
+            // Arrange
+            string nonExistentResourceId = Guid.NewGuid().ToString();
+
+            // Act
+            ObjectResult? result = await _controller.CleanupFailedUpload(nonExistentResourceId) as ObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(200)); // As per controller logic
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.True);
+            Assert.That(response.Message, Is.EqualTo("Resource not found, but cleanup completed"));
+        }
+
+        [Test]
+        [Description("CleanupFailedUpload returns BadRequest for invalid Resource ID format")]
+        public async Task CleanupFailedUpload_InvalidResourceIdFormat_ReturnsBadRequest()
+        {
+            // Arrange
+            string invalidFormatResourceId = "not-a-guid";
+
+            // Act
+            BadRequestObjectResult? result = await _controller.CleanupFailedUpload(invalidFormatResourceId) as BadRequestObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(400));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.False);
+            Assert.That(response.Message, Is.EqualTo("Invalid resource ID format.").Or.EqualTo("Invalid resource ID."));
+        }
+        
+        [Test]
+        [Description("CleanupFailedUpload returns BadRequest for empty Resource ID")]
+        public async Task CleanupFailedUpload_EmptyResourceId_ReturnsBadRequest()
+        {
+            // Arrange
+            string emptyResourceId = "";
+
+            // Act
+            BadRequestObjectResult result = await _controller.CleanupFailedUpload(emptyResourceId) as BadRequestObjectResult;
+
+            // Assert
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result.StatusCode, Is.EqualTo(400));
+            ApiResponse? response = result.Value as ApiResponse;
+            Assert.That(response, Is.Not.Null);
+            Assert.That(response.Success, Is.False);
+            Assert.That(response.Message, Is.EqualTo("Invalid resource ID."));
+        }
+
+
+        #endregion
+        
 
     #region New Website Tests
     
