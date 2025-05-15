@@ -14,9 +14,12 @@ import { format, parseISO } from "date-fns";
 import OpenFileButton from "./open-file-button";
 import { useSidebar } from "@/context/sidebar-provider";
 import { handleOpenFile } from "@/actions/openFileActions";
-import { ArchiveResource } from "@/actions/archiveResourceActions";
+import { ArchiveResource, UnarchiveResource } from "@/actions/archiveResourceActions";
 import { toast } from "sonner";
 import { useUserRole } from "@/context/user-role-context";
+import { ArchiveRestore } from "lucide-react";
+import { Button } from "./ui/button";
+import { DeleteResource } from "@/actions/deleteActions";
 
 // Register all modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -122,6 +125,30 @@ export default function ListResources({ data, initialLoadingComplete }: { data: 
     }
   }
 
+  const HandleRestore = async () => {
+    const result = await UnarchiveResource(selectedRowData ? selectedRowData.id : "");
+
+    if(result.success){
+      toast.success(result.message);
+      window.dispatchEvent(new Event("resourceListUpdated"));
+    }
+    else{
+      toast.error(result.message);
+    }
+  }
+
+  const HandlePermanentDelte = async () => {
+    const result = await DeleteResource(selectedRowData ? selectedRowData.id : "");
+
+    if(result.success){
+      toast.success(result.message);
+      window.dispatchEvent(new Event("resourceListUpdated"));
+    }
+    else{
+      toast.error(result.message);
+    }
+  }
+
   return (
     <>
       {contextMenuPosition && (
@@ -132,8 +159,10 @@ export default function ListResources({ data, initialLoadingComplete }: { data: 
           onClick={() => setContextMenuPosition(null)}
         >
           <ul>
-            <li onClick={() => selectedRowData ? handleOpenFile(selectedRowData) : () => {}} className="hover:bg-gray-100 cursor-pointer px-4">{selectedRowData?.fileType == "pdf" || selectedRowData?.fileType == "website" ? "Open" : "Dowload"}</li>
-            {userRole == "admin" ? (<li onClick={HandleArchive} className="hover:bg-gray-100 cursor-pointer px-4">Move to trash</li>) : null}
+            {!selectedRowData?.archived && (<li onClick={() => selectedRowData ? handleOpenFile(selectedRowData) : () => {}} className="hover:bg-gray-100 cursor-pointer px-4">{selectedRowData?.fileType == "pdf" || selectedRowData?.fileType == "website" ? "Open" : "Dowload"}</li>)}
+            {userRole == "admin" && !selectedRowData?.archived ? (<li onClick={HandleArchive} className="hover:bg-gray-100 cursor-pointer px-4">Move to trash</li>) : null}
+            {userRole == "admin" && selectedRowData?.archived ? (<li onClick={HandleRestore} className="hover:bg-gray-100 cursor-pointer px-4">Restore file</li>) : null}
+            {userRole == "admin" && selectedRowData?.archived ? (<li onClick={HandlePermanentDelte} className="hover:bg-gray-100 cursor-pointer px-4">Delete permanently</li>) : null}
           </ul>
         </div>
       )}
@@ -194,9 +223,30 @@ export function Render(params: { data: { fileType: string }; value: string }) {
  */
 
 export function DownloadRenderer(params: { data: ResourceResponse }) {
+  const handleUnarchiveResource = async (id: string) => {
+    const result = await UnarchiveResource(id);
+
+    if(result.success){
+      toast.success(result.message);
+      window.dispatchEvent(new Event("resourceListUpdated"));
+    }
+    else{
+      toast.error(result.message);
+    }
+  }
   return (
     <div className="download-button flex items-center justify-center">
-      <OpenFileButton file={params.data} asIcon={true} />
+      {params.data.archived ? (
+        <Button
+          className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
+          variant="default"
+          type="button"
+          title="Restore"
+          onClick={() => handleUnarchiveResource(params.data.id)}
+        >
+          <ArchiveRestore />
+        </Button>
+      ) : (<OpenFileButton file={params.data} asIcon={true} />)}
     </div>
   );
 }

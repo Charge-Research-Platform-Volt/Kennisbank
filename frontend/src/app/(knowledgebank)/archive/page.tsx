@@ -9,12 +9,14 @@ import { OctagonAlert } from "lucide-react";
 import FilterButton from "./components/filter-button";
 import { ResourcePageWithTagsResponse } from "@/types/resource.type";
 import ListResources from "@/components/list-resources";
-import { UserRoleProvider } from "@/context/user-role-context";
+import { UserRoleProvider, useUserRole } from "@/context/user-role-context";
+import { Button } from "@/components/ui/button";
 
 type filterDto = {
   tagFilters: string[];
   startDate?: Date;
   endDate?: Date;
+  archived?: boolean;
 };
 
 export default function ArchivePage() {
@@ -26,6 +28,8 @@ export default function ArchivePage() {
   const [currentQuery, setCurrentQuery] = useState<string>("");
   const [refreshKey, setRefreshKey] = useState<number>(0); // Key to trigger re-fetching of data
   const [initialLoadingComplete, setInitialLoadingComplete] = useState<boolean>(false); // State to track if initial loading is complete
+  const [showArchived, setShowArchived] = useState<boolean>(false); // State to track if archived items should be shown
+  const { userRole } = useUserRole();
 
   // Fetch search results
   async function fetchQuery(query: string = currentQuery, tags: string[] = tagFilters, start: number | null = startYear, end: number | null = endYear) {
@@ -44,6 +48,7 @@ export default function ArchivePage() {
         tagFilters: tags,
         startDate: start ? new Date(start, 0, 1) : undefined,
         endDate: end ? new Date(end, 11, 31, 23, 59, 59, 999) : undefined,
+        archived: showArchived,
       },
     );
   }
@@ -75,31 +80,34 @@ export default function ArchivePage() {
   // Call the search function when the input changes or when the refresh key changes
   useEffect(() => {
     handleSearch(currentQuery, tagFilters, startYear, endYear);
-  }, [currentQuery, tagFilters, startYear, endYear, refreshKey, handleSearch]);
+  }, [currentQuery, tagFilters, startYear, endYear, showArchived, refreshKey, handleSearch]);
 
   return (
     <UserRoleProvider>
-      <div className="*:not-first:mt-2">
-        <div className="relative w-full">
-          <Input
-            className="peer h-10 ps-9"
-            placeholder="Search"
-            type="text"
-            onChange={(e) => {
-              setCurrentQuery(e.target.value);
-            }}
-          />
-          <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
-            <Search className="h-4 w-4" aria-hidden="true" fill="currentColor" />
+      <div className="flex w-full gap-2">
+        <div className="w-full">
+          <div className="relative w-full">
+            <Input
+              className="peer h-10 ps-9"
+              placeholder="Search"
+              type="text"
+              onChange={(e) => {
+                setCurrentQuery(e.target.value);
+              }}
+            />
+            <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
+              <Search className="h-4 w-4" aria-hidden="true" fill="currentColor" />
+            </div>
+            <FilterButton
+              onApplyAction={(tagFilters, startDate, endDate) => {
+                setTagFilters(tagFilters);
+                setStartYear(startDate);
+                setEndYear(endDate);
+              }}
+            />
           </div>
-          <FilterButton
-            onApplyAction={(tagFilters, startDate, endDate) => {
-              setTagFilters(tagFilters);
-              setStartYear(startDate);
-              setEndYear(endDate);
-            }}
-          />
         </div>
+        {userRole ?? (<Button onClick={() => setShowArchived((prev) => !prev) } variant="outline" className="mb-2">{showArchived ? "Close trashbin" : "Show trashbin"}</Button>)}
       </div>
 
       <div className="flex pt-2">

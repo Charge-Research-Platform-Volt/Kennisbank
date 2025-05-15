@@ -46,16 +46,16 @@ export default function FilterPopup({ onApplyAction, onCloseAction, className }:
                             <div className="grid gap-4 py-4">
                                 <div className="grid grid-cols-3 items-center gap-4">
                                     <Label htmlFor="first tag" className="text-right">
-                                    Published Between:
+                                        Published Between:
                                     </Label>
-                                        <DateFilterSlider setStartYearAction={setStartYear} setEndYearAction={setEndYear} className="col-span-2 mt-[10px]" />
-                                    </div>
+                                    <DateFilterSlider setStartYearAction={setStartYear} setEndYearAction={setEndYear} className="col-span-2 mt-[10px]" />
+                                </div>
                                 <div className="grid grid-cols-3 items-center gap-4">
                                     <Label htmlFor="second tag" className="text-right">
-                                    Tags:
+                                        Tags:
                                     </Label>
-                                        <TagSelectionDropdown onSelectionChangedAction={setTagFilters} createButton={false} className="col-span-2"/>
-                                    </div>
+                                    <TagSelectionDropdown onSelectionChangedAction={setTagFilters} createButton={false} className="col-span-2"/>
+                                </div>
                             </div>
             {/* Button to apply filter */}
             <DialogFooter>
