@@ -131,6 +131,8 @@ services:
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
+    environment:
+      - OLLAMA_DEBUG=1
     ports:
       - 11434:11434
     volumes:
@@ -141,7 +143,7 @@ services:
     command: >
       "ollama serve &
        sleep 10 &&
-       ollama pull gemma3:12b &&
+       ollama pull gemma3:4b &&
        ollama pull paraphrase-multilingual &&
        tail -f /dev/null"
 
