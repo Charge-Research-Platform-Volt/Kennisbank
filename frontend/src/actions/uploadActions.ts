@@ -85,11 +85,11 @@ const handleApiResponse = async (response: Response): Promise<string> => {
   const result: ApiResponse = await response.json();
   
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status} - ${result.message}`);
+    throw new Error(`Upload failed: ${response.status} ${result.message}`);
   }
   
   if (!result.success) {
-    throw new Error(`Operation failed: ${result.message}`);
+    throw new Error(`Upload failed: ${result.message}`);
   }
   
   return result.body;
