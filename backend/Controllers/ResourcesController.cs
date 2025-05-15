@@ -800,6 +800,58 @@ namespace KnowledgeBank.Controllers
             }
         }
         
+        /// <summary>
+        /// Cleans up a failed large file upload by deleting database entry. Cleaning of block blobs
+        /// is automatically handled, uncommitted blocks are deleted after 7 days. There's no API to do
+        /// this manually.
+        /// </summary>
+        /// <param name="resourceId">Resource ID to clean up</param>
+        [HttpDelete("large/cleanup/{resourceId}")]
+        [SwaggerOperation(Summary = "Clean up a failed large file upload")]
+        [SwaggerResponse(200, "Upload cleaned up successfully", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> CleanupFailedUpload(string resourceId)
+        {
+            if (string.IsNullOrEmpty(resourceId) || !ValidityUtil.IsValidId(resourceId))
+                return BadRequest(new ApiResponse(false, "Invalid resource ID."));
+                
+            Guid parsedResourceId;
+            try
+            {
+                parsedResourceId = Guid.Parse(resourceId);
+            }
+            catch (Exception)
+            {
+                return BadRequest(new ApiResponse(false, "Invalid resource ID format."));
+            }
+            
+            try
+            {
+                // Delete the database entry
+                await resourceManager.BeginTransaction();
+                bool deleted = await resourceManager.DeleteResourceAsync(parsedResourceId);
+                await resourceManager.Commit();
+                
+                if (deleted)
+                {
+                    logger.Information("Successfully cleaned up resource {ResourceId}", resourceId);
+                    return Ok(new ApiResponse(true, "Upload cleaned up successfully"));
+                }
+                else
+                {
+                    logger.Warning("Resource {ResourceId} not found during cleanup", resourceId);
+                    return Ok(new ApiResponse(true, "Resource not found, but cleanup completed"));
+                }
+            }
+            catch (Exception e)
+            {
+                await resourceManager.Rollback();
+                logger.Error(e, "Error cleaning up for resource {ResourceId}", resourceId);
+                return StatusCode(500, new ApiResponse(false, "Error cleaning up upload", e.Message));
+            }
+        }
+        
         #endregion
         
         

@@ -307,7 +307,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
         let id: string;
 
         if (fileSize > MAX_FILE_SIZE) {
-            id = await UploadNewLargeResource(values);
+            id = await UploadNewLargeResource(values, MAX_FILE_SIZE);
         } else {
             id = await UploadNewResource(values);
         }        

@@ -171,6 +171,11 @@ async function InitLargeResourceUpload(form: z.infer<typeof resourceCreateFormSc
 
 /**
  * Uploads a chunk of a file to the server
+ * @param resourceId The ID of the resource
+ * @param fileType The file type of the resource
+ * @param blockId The ID of the current block/chunk
+ * @param chunkData A slice of the original file
+ * @returns Promise resolving when chunk has been uploaded
  */
 async function UploadChunk(resourceId: string, fileType: string, blockId: string, chunkData: Blob): Promise<void> {
   const response = await fetch(`/api/resources/large/chunk/${resourceId}/${fileType}/${blockId}`, {
@@ -179,11 +184,17 @@ async function UploadChunk(resourceId: string, fileType: string, blockId: string
     body: chunkData,
   });
 
-  await handleApiResponse(response);
+  const result: ApiResponse = await response.json();
+  
+  if (!response.ok || !result.success) {
+    throw new Error(`Chunk upload failed: ${result.message}`);
+  }
 }
 
 /**
  * Finalizes a large file upload
+ * @param finalizeDto The DTO to finalize the large file upload
+ * @returns The ID of the new resource
  */
 async function finalizeLargeUpload(finalizeDto: LargeFileFinalizeDto): Promise<string> {
   const formData = new FormData();
@@ -208,35 +219,79 @@ async function finalizeLargeUpload(finalizeDto: LargeFileFinalizeDto): Promise<s
 }
 
 /**
- * Uploads a large resource by splitting it into chunks
+ * Reverts a chunk upload operation by deleting the uploaded chunks and resource
+ * @param resourceId The ID of the resource to revert
+ * @param fileType The type of file being uploaded
+ * @returns Promise resolving when cleanup is complete
  */
-export async function UploadNewLargeResource(form: z.infer<typeof resourceCreateFormSchema>): Promise<string> {
-  const CHUNK_SIZE = 20 * 1024 * 1024; // TODO: 100MB?
+async function RevertChunkUploads(resourceId: string, fileType: string): Promise<void> {
+  try {
+    // Send request to cleanup endpoint
+    const response = await fetch(`/api/resources/large/cleanup/${resourceId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    const result: ApiResponse = await response.json();
+    
+    if (!response.ok || !result.success) {
+      console.error(`Failed to clean up failed upload: ${result.message}`);
+    } else {
+      console.log(`Successfully cleaned up failed upload for resource ${resourceId}`);
+    }
+  } catch (error) {
+    console.error(`Error cleaning up failed upload: ${error}`);
+  }
+}
+
+/**
+ * @summary Uploads a large resource by splitting it into chunks
+ * @param form The form of the NewResource page
+ * @returns The ID of the new resource
+ */
+export async function UploadNewLargeResource(form: z.infer<typeof resourceCreateFormSchema>, MAX_FILE_SIZE: number): Promise<string> {
+  const chunkSize = MAX_FILE_SIZE * 0.9; // Make sure there's enough room for headers etc
   const file = form.file;
   const fileName = file.name;
   const fileType = form.uploadType;
-  const resourceId = await InitLargeResourceUpload(form);
-  
-  const numberOfChunks = Math.ceil(file.size / CHUNK_SIZE);
+  let resourceId: string;
+
+  try {
+    resourceId = await InitLargeResourceUpload(form);
+  } catch (error) {
+    throw new Error(`Failed to initialize upload: ${error}`);
+  }  
+
+  const numberOfChunks = Math.ceil(file.size / chunkSize);
   const blockIds: string[] = [];
 
-  for (let i = 0; i < numberOfChunks; i++) {
-    const start = i * CHUNK_SIZE;
-    const end = Math.min(start + CHUNK_SIZE, file.size);
-    const chunk = file.slice(start, end);
+  try {
+    for (let i = 0; i < numberOfChunks; i++) {
+      const start = i * chunkSize;
+      const end = Math.min(start + chunkSize, file.size);
+      const chunk = file.slice(start, end);
 
-    const blockId = Buffer.from(`block-${i}`).toString('base64');
-    blockIds.push(blockId);
+      const blockId = Buffer.from(`block-${i}`).toString('base64');
+      blockIds.push(blockId);
 
-    await UploadChunk(resourceId, fileType, blockId, chunk);
+      try {
+        await UploadChunk(resourceId, fileType, blockId, chunk);
+      } catch {
+        throw new Error(`Failed to upload chunk ${i+1}/${numberOfChunks}`);
+      }
+    }
+
+    const finalizeDto: LargeFileFinalizeDto = {
+      ResourceId: resourceId,
+      FileType: fileType,
+      FileName: fileName,
+      BlockIds: blockIds
+    };
+
+    return await finalizeLargeUpload(finalizeDto);
+  } catch (error) {
+    // If anything fails during the upload process, clean up
+    await RevertChunkUploads(resourceId, fileType);
+    throw error;
   }
-
-  const finalizeDto: LargeFileFinalizeDto = {
-    ResourceId: resourceId,
-    FileType: fileType,
-    FileName: fileName,
-    BlockIds: blockIds
-  };
-
-  return await finalizeLargeUpload(finalizeDto);
 }
