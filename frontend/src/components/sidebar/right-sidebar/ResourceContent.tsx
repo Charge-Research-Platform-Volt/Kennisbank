@@ -15,23 +15,34 @@ import 'react-loading-skeleton/dist/skeleton.css'
 
 export function ResourceContent()
 {
-    const { currentId } = useSidebar();
+    const { currentId, navigate } = useSidebar();
     const [ title, setTitle ] = useState<string | null>(null);
     const [ description, setDescription ] = useState<string | null>(null);
     const [ authors, setAuthors ] = useState<ListItem[] | null>(null);
+    const [ tags, setTags ] = useState<ListItem[] | null>(null);
+
 
 
     useEffect(() => {
-        loadInformation()
+        setTitle(null);
+        setDescription(null);
+        setAuthors(null);
+        setTags(null);
+        loadInformation();
     }, [currentId])
 
     const loadInformation = async () => {
         const infoPromise = getProperties(currentId, MetadataTypeEnum.RESOURCE);
         const authorsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "author");
+        const tagsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "tag");
     
         infoPromise.then(response => {
             setTitle(response.body.title);
-            setDescription(response.body.description)
+            if (response.body.description) {
+                setDescription(response.body.description)
+            }
+
+            else {setDescription("No description.")}
         }).catch(error => {
             console.error("Error loading information: ", error);
         });
@@ -46,6 +57,17 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading authors: ", error);
         });
+
+        tagsPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+                id: item.id,
+                name: item.name,
+                type: "tag",
+            }))
+            setTags(list);
+        }).catch(error => {
+            console.error("Error loading tags: ", error);
+        });
     }
     
 
@@ -58,34 +80,15 @@ export function ResourceContent()
             </Expandable>
             
             <Expandable variant="horizontal" title="Tags">
-                <Badge variant="outline" className="p-2">Tag1</Badge>
-                <Badge variant="outline" className="p-2">Tag2</Badge>
-                <Badge variant="outline" className="p-2">Tag3</Badge>
-                <Badge variant="outline" className="p-2">Tag4</Badge>
-                <Badge variant="outline" className="p-2">Tag5</Badge>
-                <Badge variant="outline" className="p-2">Tag6</Badge>
-                <Badge variant="outline" className="p-2">Tag7</Badge>
-                <Badge variant="outline" className="p-2">Tag8</Badge>
-                <Badge variant="outline" className="p-2">Tag9</Badge>
-                <Badge variant="outline" className="p-2">Tag10</Badge>
-                <Badge variant="outline" className="p-2">Tag11</Badge>
-                <Badge variant="outline" className="p-2">Tag12</Badge>
-                <Badge variant="outline" className="p-2">Tag13</Badge>
-                <Badge variant="outline" className="p-2">Tag14</Badge>
-                <Badge variant="outline" className="p-2">Tag15</Badge>
-                <Badge variant="outline" className="p-2">Tag16</Badge>
-                <Badge variant="outline" className="p-2">Tag17</Badge>
-                <Badge variant="outline" className="p-2">Tag18</Badge>
-                <Badge variant="outline" className="p-2">Tag19</Badge>
-                <Badge variant="outline" className="p-2">Tag20</Badge>
+                <BadgeList emptyMessage={"No Tags recorded"} itemList={tags}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Authors">
                 <BadgeList emptyMessage={"No Authors recorded"} itemList={authors}/>
             </Expandable>
 
-            <Expandable variant="horizontal" title="Authors">
-                <BadgeList emptyMessage={"No Authors recorded"} itemList={[]}/>
+            <Expandable variant="horizontal" title="Related Resources">
+                <Badge onClick={() => navigate("b5c443ad-88f3-4065-836b-bb61595ba55b", MetadataTypeEnum.RESOURCE)} variant={"outline"} className={"p-2"}>Burgers gelijkwaardig aan de ontwerptafel</Badge>
             </Expandable>
         </>
     )
