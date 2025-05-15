@@ -95,24 +95,25 @@ export default function ListResources({ data, initialLoadingComplete }: { data: 
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-  const handleClickOutside = (event: MouseEvent) => {
-    if (
-        contextMenuRef.current &&
-        !contextMenuRef.current.contains(event.target as Node)
-      ) {
-        setContextMenuPosition(null);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+          contextMenuRef.current &&
+          !contextMenuRef.current.contains(event.target as Node)
+        ) {
+          setContextMenuPosition(null);
+        }
+      };
+
+      if (contextMenuPosition) {
+        document.addEventListener("mousedown", handleClickOutside);
       }
-    };
 
-    if (contextMenuPosition) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, [contextMenuPosition]);
 
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [contextMenuPosition]);
-
+  // Handle archiving a file
   const HandleArchive = async () => {
     const result = await ArchiveResource(selectedRowData ? selectedRowData.id : "");
 
@@ -125,6 +126,7 @@ export default function ListResources({ data, initialLoadingComplete }: { data: 
     }
   }
 
+  // Handle restoring an archived file
   const HandleRestore = async () => {
     const result = await UnarchiveResource(selectedRowData ? selectedRowData.id : "");
 
@@ -137,6 +139,7 @@ export default function ListResources({ data, initialLoadingComplete }: { data: 
     }
   }
 
+  // Handle permanently deleting an archived file
   const HandlePermanentDelte = async () => {
     const result = await DeleteResource(selectedRowData ? selectedRowData.id : "");
 
