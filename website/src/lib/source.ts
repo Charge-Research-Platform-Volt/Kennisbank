@@ -1,4 +1,4 @@
-import { docs, guide } from "../../.source";
+import { docs, guide } from "@/../.source";
 import { loader } from "fumadocs-core/source";
 import { createOpenAPI } from "fumadocs-openapi/server";
 import { attachFile } from "fumadocs-openapi/server";

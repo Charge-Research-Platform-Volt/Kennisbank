@@ -9,7 +9,7 @@ export default async function StandardizedTagsPage() {
 
   return (
     <div className="flex p-2">
-      <div className="p6 w-full flex-1 p-4">
+      <div className="w-full flex-1 p-4">
         <div className="flex w-full gap-2">
           <div className="w-full">
             <h1 className="mb-2 text-xl font-bold">Tags:</h1>

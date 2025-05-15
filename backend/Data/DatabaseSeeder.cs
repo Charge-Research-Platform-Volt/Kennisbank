@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using KnowledgeBank.Models;
+using Npgsql.Replication;
 
 namespace KnowledgeBank.Data
 {
@@ -7,21 +8,24 @@ namespace KnowledgeBank.Data
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         public const string UnknownResourceTypeId = "0cc285a8-0f07-11f0-a0a6-5600051f1387";
         private static DatabaseContext database;
+        private static ResourceManager resourceManager;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
         /// <summary>
         /// Helper method for common seed logic
         /// </summary>
-        /// <param name="database">Database in question</param>
         /// <returns></returns>
-        private static async Task SeedData(DatabaseContext database)
+        private static async Task SeedData()
         {
             // Seed data (this part is common between both Seed and SeedTemplate methods)
-            if (!await database.ResourceTypes.AnyAsync(rt => rt.Id == new Guid(UnknownResourceTypeId)))
-                {
-                    // Add the unknown resource type if it doesn't exist
-                    await database.ResourceTypes.AddAsync(new() { Id = new Guid(UnknownResourceTypeId), Name = "Unknown" });
-                }
+            
+            // Add the unknown resource type if it doesn't exist
+            if (!await resourceManager.ResourceTypeExistsAsync(UnknownResourceTypeId))
+                await database.ResourceTypes.AddAsync(new() { Id = new Guid(UnknownResourceTypeId), Name = "Unknown" });
+
+            // Create Scientific Article resource type
+            if (!await resourceManager.ResourceTypeExistsAsync(type => type.Name == "Scientific Article"))
+                await resourceManager.CreateResourceTypeAsync(new ResourceTypeCreateDto { Name = "Scientific Article" });
 
             // Save changes
             await database.SaveChangesAsync();
@@ -37,9 +41,10 @@ namespace KnowledgeBank.Data
             // Get database service from the main database
             using IServiceScope scope = serviceProvider.CreateScope();
             database = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+            resourceManager = scope.ServiceProvider.GetRequiredService<ResourceManager>();
 
             // Call the common seed logic
-            await SeedData(database);
+            await SeedData();
         }
 
         /// <summary>
@@ -49,8 +54,11 @@ namespace KnowledgeBank.Data
         /// <returns></returns>
         public static async Task SeedTemplate(DatabaseContext database)
         {
+            DatabaseSeeder.database = database;
+            DatabaseSeeder.resourceManager = new ResourceManager(database);
+        
             // Call the common seed logic for the template database
-            await SeedData(database);
+            await SeedData();
         }
 
     }

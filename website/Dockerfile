@@ -5,6 +5,7 @@ FROM node:lts-alpine AS base
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json* source.config.ts ./
+RUN npm install
 RUN npm ci
 
 # -- Development

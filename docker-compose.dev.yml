@@ -1,6 +1,6 @@
 networks:
-  my_network:
-    name: my_network
+  dev_network:
+    name: dev_network
     driver: bridge
 
 services:
@@ -16,7 +16,7 @@ services:
     tmpfs:
       - /var/lib/postgresql/data
     networks:
-      - my_network
+      - dev_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -31,7 +31,7 @@ services:
     tmpfs:
       - /data
     networks:
-      - my_network
+      - dev_network
 
   # Start backend after database and storage
   backend:
@@ -45,6 +45,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - CONNECTION_STRING=Host=database;Port=5432;Username=postgres;Password=postgres;Database=postgres;Include Error Detail=true
       - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://storage:10000/devstoreaccount1;
+      - HOST_URL=${HOST_URL}
     volumes:
       - ./backend:/app
       - /app/bin
@@ -56,7 +57,7 @@ services:
       storage:
         condition: service_started
     networks:
-      - my_network
+      - dev_network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/status"]
       interval: 10s
@@ -98,6 +99,8 @@ services:
       - "3001:3001"
     environment:
       - API_URL=${API_URL}
+      - HELP_URL=${HELP_URL}
+      - NEXT_PUBLIC_TIMEZONE=${NEXT_PUBLIC_TIMEZONE}
       - NODE_ENV=development
       - WATCHPACK_POLLING=true
     volumes:
@@ -108,7 +111,7 @@ services:
       backend:
         condition: service_healthy
     networks:
-      - my_network
+      - dev_network
 
   qdrant:
     image: qdrant/qdrant:latest

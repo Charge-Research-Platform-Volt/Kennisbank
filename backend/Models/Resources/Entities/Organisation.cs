@@ -41,7 +41,7 @@ public class OrganisationCreateDto
     public string? Website { get; set; }
     public string? EmailAddress { get; set; }
     // Tuple: (OrganisationId, Relation?)
-    public (string, string?)[] OrganisationRelations { get; set; } = Array.Empty<(string, string?)>();
+    public RelatedEntry[] OrganisationRelations { get; set; } = Array.Empty<RelatedEntry>();
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

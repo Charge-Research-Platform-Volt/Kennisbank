@@ -6,9 +6,9 @@ namespace backend.Tests
     [Category("UnitTest")]
     public class FileTypeTests
     {
-        [TestCase(".pdf", "pdf")]
-        [TestCase(".docx", "word")]
-        [TestCase(".txt", "text")]
+        [TestCase(".pdf", Filetype.UploadType.Document)]
+        [TestCase(".docx", Filetype.UploadType.Document)]
+        [TestCase(".txt", Filetype.UploadType.Document)]
         [Description("Tests if the conversion results in correct trimming and returns the full filetype from the dictionary")]
         public void extensionConversionTest(string input, string output)
         {

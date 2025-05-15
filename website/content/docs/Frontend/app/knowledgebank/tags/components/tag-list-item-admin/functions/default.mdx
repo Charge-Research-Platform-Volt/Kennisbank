@@ -1,0 +1,57 @@
+---
+title: Default
+sidebar_position: 1
+---
+
+[frontend](../../../../../..) • Docs
+
+***
+
+[frontend](../../../../../..) / [app/knowledgebank/tags/components/tag-list-item-admin](..) / default
+
+# Function: default()
+
+> **default**(`props`): `Element`
+
+TagListItemAdmin - Component for displaying and managing tags in the admin interface
+
+This component handles both standardized tags and user tags, providing:
+- Tag display with appropriate icons
+- Inline editing functionality
+- Action buttons based on tag type and state
+
+## Parameters
+
+• **props**
+
+Component props
+
+• **props.tag**
+
+Tag object
+
+• **props.tag.approvedBy**: `null` \| `string`= `undefined`
+
+• **props.tag.approvedOn**: `null` \| `string`= `undefined`
+
+• **props.tag.createdBy**: `string`= `undefined`
+
+• **props.tag.createdOn**: `string`= `undefined`
+
+• **props.tag.id**: `string`= `undefined`
+
+• **props.tag.isApproved**: `boolean`= `undefined`
+
+• **props.tag.isStandardized**: `boolean`= `undefined`
+
+• **props.tag.name**: `string`= `undefined`
+
+## Returns
+
+`Element`
+
+The rendered tag list item
+
+## Source
+
+src/app/knowledgebank/tags/components/tag-list-item-admin.tsx:32
