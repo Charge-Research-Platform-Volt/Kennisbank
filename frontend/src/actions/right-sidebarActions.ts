@@ -22,7 +22,7 @@ export const getProperties = async (
 
     const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response = await fetch(
-        `/api/${endPoint}/${id}`,
+        `${process.env.API_URL}/${endPoint}/${id}`,
         {
             method: "GET",
             credentials: "include",
@@ -52,14 +52,14 @@ export const getRelation = async (
 
     const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response = await fetch(
-        `/api/${endPoint}`,
+        `${process.env.API_URL}/${endPoint}/${encodeURIComponent(id)}/${encodeURIComponent(relation)}`,
             {
                 method: "GET",
                 credentials: "include",
                 headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
-                body: JSON.stringify({id: id, relation: relation}),
             },
     );
+    console.log(response);
     
     if (!response.ok) {
         throw new Error(`Problem with finding relation: ${relation}`);

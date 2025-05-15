@@ -23,7 +23,7 @@ export function ResourceContent()
 
     useEffect(() => {
         loadInformation()
-    }, [])
+    }, [currentId])
 
     const loadInformation = async () => {
         const infoPromise = getProperties(currentId, MetadataTypeEnum.RESOURCE);
