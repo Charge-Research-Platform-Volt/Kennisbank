@@ -43,6 +43,8 @@ services:
 
   backend:
     <<: *imagebase
+    environment:
+      HOST_URL: ${FROTEND_DOMAIN:-http://localhost:${FRONTEND_PORT:-9000}} # Overwrite with frontend port default as 9000
     healthcheck: # Slightly modify health check
       timeout: 5s
       retries: 3
@@ -56,6 +58,8 @@ services:
       args:
         API_URL: ${API_URL:-http://backend:8080} # Prod pre-builds the website, so it needs the backend URL as a build arg
     <<: *base
+    environment:
+      - HELP_URL=${HELP_URL:-http://localhost:${WEBSITE_PORT:-9001}} # Overwrite with website port default as 9001
     ports: 
       - ${FRONTEND_PORT:-9000}:3000
   
