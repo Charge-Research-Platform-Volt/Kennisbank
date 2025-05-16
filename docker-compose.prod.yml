@@ -51,10 +51,10 @@ services:
       - 9002:8080
 
   frontend:
-    build::
+    build:
       target: production
-      arg:
-        API_URL: ${API_URL:-http://backend:8080}
+      args:
+        API_URL: ${API_URL:-http://backend:8080} # Prod pre-builds the website, so it needs the backend URL as a build arg
     <<: *base
     ports: 
       - ${FRONTEND_PORT:-9000}:3000

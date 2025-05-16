@@ -1,6 +1,9 @@
 # Base image with Node.js LTS on Alpine Linux
-FROM node:lts-alpine AS base
-ENV NEXT_TELEMETRY_DISABLED=true
+FROM node:lts-alpine AS base-image
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Define the base with env variable defaults
+FROM base-image AS base
 ENV API_URL=http://backend:8080
 ENV HELP_URL=http://localhost:3001
 ENV NEXT_PUBLIC_TIMEZONE=UTC
@@ -30,13 +33,14 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 EXPOSE $PORT
 
-# -- Build the app
-FROM base AS builder
+# -- Build the app,
+# Do not use the default env variables because before docker compose would normally override the, they are already being used.
+# Instead pass any needed env variables as build args for the build, which will be available as env variables during the build.
+FROM base-image AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Copy needed env variables for build from layer above
-ENV API_URL=${API_URL}
+ARG API_URL
 RUN npm run build
 
 
