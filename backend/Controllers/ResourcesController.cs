@@ -478,118 +478,6 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
 
-        #region Get Relation Information
-        /// <summary>
-        /// Retrieves a list containing a specific relation (i.g. tags, persons, organisations), containing the id, name/title, and type
-        /// </summary>
-        /// <param name="id">The guid of the resource</param>
-        /// <param name="relation">The relation that is retrieved</param>
-        [HttpGet("relation/{id}/{relation}")]
-        [SwaggerOperation(Summary = "Retrieves a list containing a specific relation")]
-        [SwaggerResponse(200, "A list containing a specific relation", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Relation(string id, string relation)
-        {
-
-            // Check if the ID is valid
-            if (!ValidityUtil.IsValidId(id))
-                return BadRequest(new ApiResponse(false, "Invalid ID."));
-
-            logger.Information(id);
-            logger.Information(relation);
-
-            try
-            {
-                // Check if the resource exists
-                if (!await resourceManager.ResourceExistsAsync(id))
-                    return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
-
-
-                logger.Information("Check succesful");
-
-                object[] relations;
-                object[] items;
-
-                //Get all the items in the relation
-                switch (relation)
-                {
-                    case "author":
-                        relations = await resourceManager.GetAllResourceAuthorRelationsAsync(predicate: r => r.ResourceId.ToString() == id);
-                        items = await GetItems<ResourceAuthorRelation, Person>(relations as ResourceAuthorRelation[], async relation  => await resourceManager.GetPersonAsync(relation.PersonId));
-
-                        break; case "organisation":
-                        relations = await resourceManager.GetAllResourceOrganisationRelationsAsync(predicate: r => r.ResourceId.ToString() == id);
-                        items = await GetItems<ResourceOrganisationRelation, Organisation>(relations as ResourceOrganisationRelation[], async relation => await resourceManager.GetOrganisationAsync(relation.OrganisationId));
-
-                        break; case "region":
-                        relations = await resourceManager.GetAllResourceRegionRelationsAsync(predicate: r => r.ResourceId.ToString() == id);
-                        items = await GetItems<ResourceRegionRelation, Region>(relations as ResourceRegionRelation[], async relation => await resourceManager.GetRegionAsync(relation.ResourceId));
-
-                        break; case "relatedOrganisation":
-                        relations = await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(predicate: r => r.ResourceId.ToString() == id);
-                        items = await GetItems<ResourceRelatedOrganisationRelation, Organisation>(relations as ResourceRelatedOrganisationRelation[], async relation => await resourceManager.GetOrganisationAsync(relation.OrganisationId));
-
-                        break; case "relatedPerson":
-                        relations = await resourceManager.GetAllResourceRelatedPersonRelationsAsync(predicate: r => r.ResourceId.ToString() == id);
-                        items = await GetItems<ResourceRelatedPersonRelation, Person>(relations as ResourceRelatedPersonRelation[], async relation => await resourceManager.GetPersonAsync(relation.PersonId));
-
-                        break; case "relatedSource":
-                        items = await resourceManager.GetAllResourceRelatedSourceRelationsAsync(predicate: r => r.ResourceId.ToString() == id);
-
-                        break; case "source":
-                        items = await resourceManager.GetAllResourceSourceRelationsAsync(predicate: r => r.ResourceId.ToString() == id);
-
-                        break; case "tag":
-                        relations = await resourceManager.GetAllResourceTagRelationsAsync(predicate: r => r.ResourceId.ToString() == id);
-                        items = await GetItems<ResourceTagRelation, Tag>(relations as ResourceTagRelation[], async relation => await resourceManager.GetTagAsync(relation.TagId));
-
-
-                        break; default:
-                        return BadRequest(new ApiResponse(false, $"Invalid relation: {relation}"));
-                }
-
-                object[] results = new object[items.Length];
-
-                logger.Information("Getting relation succesful");
-
-                // Source Dto
-                if (relation == "source" || relation == "relatedSourec")
-                {
-                    results = new object[items.Length];
-                    for (int i = 0; i < items.Length; i++)
-                    {
-                        object resourceDto = DtoGenerator.ToDto(items[i], true, "Url");
-                        results[i] = resourceDto;
-                    }
-                }
-
-                // Dto for every other relation
-                else
-                {
-                    results = new object[items.Length];
-                    for (int i = 0; i < items.Length; i++)
-                    {
-                        object resourceDto = DtoGenerator.ToDto(items[i], true, "Id", "Name");
-                        results[i] = resourceDto;
-                    }
-                }
-
-                // Return the relation
-                logger.Information("Resources relation with ID '{ID}' successfully retrieved.", id);
-                return Ok(new ApiResponse(true, "Succesfully retrieved relation", results));
-            }
-
-            catch (Exception e)
-            {
-                logger.Error(e, $"Error retrieving relation with ID: {id} and relation: {relation}.", id);
-                return StatusCode(500, new ApiResponse(false, "Error retrieving relation", e.Message));
-            }
-        }
-
-        #endregion
-
         #region List
         /// <summary>
         /// Retrieves a list or page of all resources
@@ -711,6 +599,10 @@ namespace KnowledgeBank.Controllers
         #endregion
 
         #region Filetype Support fetch
+        /// <summary>
+        /// Retrieves a dictionary of supported extensions per upload type
+        /// </summary>
+        /// <returns>A dictionary of supported extensions per upload type</returns>
         [HttpGet("supported_extensions")]
         [SwaggerOperation(Summary = "Retrieves a dictionary of all supported file extensions per uploadtype")]
         [SwaggerResponse(200, "A dictionary of all supported file extensions per upload type", typeof(ApiResponse))]
@@ -726,6 +618,86 @@ namespace KnowledgeBank.Controllers
             {
                 logger.Error(e, "Error fetching supported extensions");
                 return StatusCode(500, new ApiResponse(false, "Error fetching supported extensions", e.Message));
+            }
+        }
+        #endregion
+        
+        #region Relation fetches
+        /// <summary>
+        /// Retrieves all relations of the given type for the given resource ID
+        /// </summary>
+        /// <param name="relation">The relation to retrieve</param>
+        /// <param name="id">The ID of the resource</param>
+        /// <param name="properties">(Optional) The properties to select from the result</param>
+        /// <returns></returns>
+        [HttpGet("{id}/relations/{relation}")]
+        [SwaggerOperation(Summary = "Retrieves all relations of the given type for the given resource ID")]
+        [SwaggerResponse(200, "The relations", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Relations(string relation, string id, string? properties) 
+        {
+            // Check if relation is filled in
+            if (string.IsNullOrEmpty(relation))
+                return BadRequest(new ApiResponse(false, "Invalid relation"));
+                
+            // Check ID
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID"));
+
+            try 
+            {
+                object? result = relation switch
+                {
+                    // Authors
+                    "authors" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceAuthorRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceAuthorRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
+                    
+                    // Organisations
+                    "organisations" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceOrganisationRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceOrganisationRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
+                        
+                    // Regions
+                    "regions" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceRegionRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceRegionRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
+                        
+                    // Related Organisations
+                    "related-organisations" => string.IsNullOrEmpty(properties) ? 
+                        await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
+                        
+                    // Related Persons
+                    "related-persons" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceRelatedPersonRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceRelatedPersonRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
+                        
+                    // Sources
+                    "sources" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceSourceRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceSourceRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
+                        
+                    // Tags
+                    "tags" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceTagRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceTagRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
+                    
+                    // Default
+                    _ => null
+                };
+
+                if (result == null)
+                    return NotFound(new ApiResponse(false, "ID or relation not found"));
+
+                return Ok(new ApiResponse(true, "Successfully retrieved relations", result));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error retrieving relation '{Relation}' for resource with ID '{Id}'", relation, id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
             }
         }
         #endregion
@@ -836,16 +808,6 @@ namespace KnowledgeBank.Controllers
 
             // Return result + extension
             return result + extension;
-        }
-
-        private async Task<TResult[]>  GetItems<TSource, TResult>(TSource[] relation, Func<TSource, Task<TResult>> getItemFunc)
-        {
-            TResult[] result = new TResult[relation.Length];
-            for (int i = 0; i < relation.Length; i++)
-            {
-                result[i] = await getItemFunc(relation[i]);
-            }
-            return result;
         }
         #endregion
     }
