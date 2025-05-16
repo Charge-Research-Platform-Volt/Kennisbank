@@ -14,7 +14,6 @@ using KnowledgeBank.Models;
 using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
-using System.Reflection;
 
 namespace KnowledgeBank.Controllers
 {
@@ -205,8 +204,7 @@ namespace KnowledgeBank.Controllers
 
                 // Handle name
                 if (!string.IsNullOrEmpty(name))
-                    organisationId = await resourceManager.GetOrganisationPropertyOrDefaultAsync(predicate: p => p.Name == name, selector: p => p.Id);
-
+                    organisationId = await resourceManager.GetOrganisationPropertyOrDefaultAsync(predicate: p => p.Name == name, selector: "Id");
 
 
                 // ID is empty, so no person was found
@@ -229,13 +227,14 @@ namespace KnowledgeBank.Controllers
         /// Gets the information of the organisation (database row)
         /// </summary>
         /// <param name="id">The ID of the organisation</param>
+        /// <param name="properties">The properties you are trying to receive, separated by comma</param>
         [HttpGet("info/{id}")]
         [SwaggerOperation(Summary = "Get the information of the organisation")]
         [SwaggerResponse(200, "Organisation information", typeof(ApiResponse))]
         [SwaggerResponse(404, "Organisation Not Found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Info(string id)
+        public async Task<IActionResult> Info(string id, [FromQuery] string? properties)
         {
             // Check if the ID is valid
             if (!ValidityUtil.IsValidId(id))
@@ -244,7 +243,9 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Retrieve the organisation
-                Organisation? organisation = await resourceManager.GetOrganisationAsync(id);
+                object? organisation = string.IsNullOrEmpty(properties) ?
+                    await resourceManager.GetOrganisationAsync(id) :
+                    await resourceManager.GetOrganisationAsync(id, $"new({properties})");
 
                 // If null, the organisation was not found
                 if (organisation == null)
@@ -267,12 +268,13 @@ namespace KnowledgeBank.Controllers
         /// </summary>
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
+        /// <param name="properties">(Optional) The properties to select, separated by comma
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all organisations")]
         [SwaggerResponse(200, "A list or page of all the organisations in the archive", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> List(int? pageIndex, int? pageSize)
+        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties)
         {
             // Verification
             if (pageIndex != null && pageIndex < 1)
@@ -288,15 +290,21 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // All organisations to be returned
-                Organisation[]? organisations = [];
-
+                object[]? organisations = [];
+                
+                string projectionString = $"new({properties})";
+                
                 // No paging requested, list all organisations
                 if (pageIndex == null || pageSize == null)
-                    organisations = await resourceManager.GetAllOrganisationsAsync();
+                    organisations = string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllOrganisationsAsync() :
+                        await resourceManager.GetAllOrganisationsAsync(projection: projectionString);
 
                 // Paging requested, retrieve organisations on that page
                 else
-                    organisations = await resourceManager.GetOrganisationPageAsync((int)pageIndex, (int)pageSize);
+                    organisations = string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetOrganisationPageAsync((int)pageIndex, (int)pageSize) :
+                        await resourceManager.GetOrganisationPageAsync(projectionString, (int)pageIndex, (int)pageSize);
 
                 // Return found organisations
                 return Ok(new ApiResponse(true, $"Found {organisations.Length} organisations", organisations));

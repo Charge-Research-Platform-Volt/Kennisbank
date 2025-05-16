@@ -13,7 +13,6 @@ using KnowledgeBank.Models;
 using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
-using System.Reflection;
 
 namespace KnowledgeBank.Controllers 
 {
@@ -204,7 +203,7 @@ namespace KnowledgeBank.Controllers
 
                 // Handle name
                 if (!string.IsNullOrEmpty(name))
-                    personId = await resourceManager.GetPersonPropertyOrDefaultAsync(predicate: p => p.Name == name, selector: p => p.Id);
+                    personId = await resourceManager.GetPersonPropertyOrDefaultAsync(predicate: p => p.Name == name, selector: "Id");
 
 
 
@@ -228,13 +227,14 @@ namespace KnowledgeBank.Controllers
         /// Gets the information of the person (database row)
         /// </summary>
         /// <param name="id">The ID of the person</param>
+        /// <param name="properties">The properties you are trying to receive, separated by comma</param>
         [HttpGet("info/{id}")]
         [SwaggerOperation(Summary = "Get the information of the person")]
         [SwaggerResponse(200, "Person information", typeof(ApiResponse))]
         [SwaggerResponse(404, "Person Not Found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Info(string id)
+        public async Task<IActionResult> Info(string id, [FromQuery] string? properties)
         {
             // Check if ID is valid
             if (!ValidityUtil.IsValidId(id))
@@ -243,7 +243,9 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Retrieve the person
-                Person? person = await resourceManager.GetPersonAsync(id);
+                object? person = string.IsNullOrEmpty(properties) ?
+                    await resourceManager.GetPersonAsync(id) :
+                    await resourceManager.GetPersonAsync(id, $"new({properties})");
 
                 // If null, the person was not found
                 if (person == null)
@@ -266,12 +268,13 @@ namespace KnowledgeBank.Controllers
         /// </summary>
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
+        /// <param name="properties">(Optional) The properties to select, separated by comma
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all persons")]
         [SwaggerResponse(200, "A list or page of all the persons in the archive", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> List(int? pageIndex, int? pageSize)
+        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties)
         {
             // Verification
             if (pageIndex != null && pageIndex < 1)
@@ -287,15 +290,21 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // All persons to be returned
-                Person[] persons = [];
+                object[] persons = [];
+
+                string projectionString = $"new({properties})";
 
                 // No paging requested, list all persons
                 if (pageIndex == null || pageSize == null)
-                    persons = await resourceManager.GetAllPersonsAsync();
+                    persons = string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllPersonsAsync() :
+                        await resourceManager.GetAllPersonsAsync(projection: projectionString);
 
                 // Paging requested, retrieve persons on that page
                 else
-                    persons = await resourceManager.GetPersonPageAsync((int)pageIndex, (int)pageSize);
+                    persons = string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetPersonPageAsync((int)pageIndex, (int)pageSize) :
+                        await resourceManager.GetPersonPageAsync(projectionString, (int)pageIndex, (int)pageSize);
 
                 // Return found persons
                 return Ok(new ApiResponse(true, $"Found {persons.Length} persons", persons));

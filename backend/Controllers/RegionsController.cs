@@ -202,7 +202,7 @@ namespace KnowledgeBank.Controllers
 
                 // Handle name
                 if (!string.IsNullOrEmpty(name))
-                    regionId = await resourceManager.GetRegionPropertyOrDefaultAsync(predicate: r => r.Name == name, selector: r => r.Id);
+                    regionId = await resourceManager.GetRegionPropertyOrDefaultAsync(predicate: r => r.Name == name, selector: "Id");
 
 
 
@@ -226,13 +226,14 @@ namespace KnowledgeBank.Controllers
         /// Gets the information of the region (database row)
         /// </summary>
         /// <param name="id">The ID of the region</param>
+        /// <param name="properties">The properties you are trying to receive, separated by comma</param>
         [HttpGet("info/{id}")]
         [SwaggerOperation(Summary = "Get the information of the region")]
         [SwaggerResponse(200, "Region information", typeof(ApiResponse))]
         [SwaggerResponse(404, "Region Not Found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Info(string id)
+        public async Task<IActionResult> Info(string id, [FromQuery] string? properties)
         {
             // Check if ID is valid
             if (!ValidityUtil.IsValidId(id))
@@ -241,7 +242,9 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Retrieve the region
-                Region? region = await resourceManager.GetRegionAsync(id);
+                object? region = string.IsNullOrEmpty(properties) ?
+                    await resourceManager.GetRegionAsync(id) :
+                    await resourceManager.GetRegionPropertyAsync(id, $"new({properties})");
 
                 // If null, the region was not found
                 if (region == null)
@@ -264,12 +267,13 @@ namespace KnowledgeBank.Controllers
         /// </summary>
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
+        /// <param name="properties">(Optional) The properties to select, separated by comma
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all regions")]
         [SwaggerResponse(200, "A list or page of all the regions in the archive", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> List(int? pageIndex, int? pageSize)
+        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties)
         {
             // Verification
             if (pageIndex != null && pageIndex < 1)
@@ -285,15 +289,21 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // All regions to be returned
-                Region[] regions = [];
+                object[] regions = [];
 
+                string projectionString = $"new({properties})";
+                
                 // No paging requested, list all regions
                 if (pageIndex == null || pageSize == null)
-                    regions = await resourceManager.GetAllRegionsAsync();
+                    regions = string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllRegionsAsync() :
+                        await resourceManager.GetAllRegionsAsync(projection: projectionString);
 
                 // Paging requested, retrieve regions on that page
                 else
-                    regions = await resourceManager.GetRegionPageAsync((int)pageIndex, (int)pageSize);
+                    regions = string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetRegionPageAsync((int)pageIndex, (int)pageSize) : 
+                        await resourceManager.GetRegionPageAsync(projectionString, (int)pageIndex, (int)pageSize);
 
                 // Return found regions
                 return Ok(new ApiResponse(true, $"Found {regions.Length} regions", regions));
