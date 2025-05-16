@@ -51,13 +51,13 @@ export default function BadgeList({
             {itemList === null ? (
                 <>
                     {skeletonList.map((item, index) =>(
-                        <Badge variant={variant} className={className}><Skeleton width={50}/></Badge>
+                        <Badge key={index} variant={variant} className={className}><Skeleton width={50}/></Badge>
                     ))}
                 </>
             ) : itemList.length > 0 ? (
                 <>
                     {itemList.map((item, index) =>(
-                        <Badge onClick={() => navigateTo(item.id, item.type)} variant={variant} className={className}>{item.name}</Badge>
+                        <Badge key={index} onClick={() => navigateTo(item.id, item.type)} variant={variant} className={className}>{item.name}</Badge>
                     ))}
                 </>
             ) : (
