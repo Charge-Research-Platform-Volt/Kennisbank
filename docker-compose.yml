@@ -78,7 +78,7 @@ services:
     environment:
       - API_URL=${API_URL:-http://backend:8080} # Do NOT use the global port here
       - HELP_URL=${HELP_URL:-http://localhost:${WEBSITE_PORT:-3001}}
-      - NEXT_PUBLIC_TIMEZONE=${NEXT_PUBLIC_TIMEZONE:?UTC}
+      - NEXT_PUBLIC_TIMEZONE=${NEXT_PUBLIC_TIMEZONE:-UTC}
     depends_on:
       backend:
         condition: service_healthy
