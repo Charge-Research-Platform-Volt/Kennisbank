@@ -86,7 +86,7 @@ services:
       backend:
         condition: service_healthy
     networks:
-      - my_network
+      - dev_network
 
   # Start website after backend
   website:
@@ -129,7 +129,7 @@ services:
     volumes:
       - ./qdrant_data:/qdrant/storage
     networks:
-      - my_network
+      - dev_network
 
   ollama:
     image: ollama/ollama:latest
@@ -141,7 +141,7 @@ services:
     volumes:
       - ./ollama_data:/root/.ollama
     networks:
-      - my_network
+      - dev_network
     entrypoint: ["/bin/sh", "-c"]
     command: >
       "ollama serve &
