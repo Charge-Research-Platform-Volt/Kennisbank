@@ -27,7 +27,7 @@ namespace KnowledgeBank.Controllers
             _logger = Log.ForContext<AuthController>();
             _context = context;
             _mailUtils = mailUtils;
-            _frontendDomain = config.GetValue<string>("FRONTEND_DOMAIN") ?? throw new ArgumentNullException("FRONTEND_URL needs to be set");
+            _frontendDomain = config.GetValue<string>("HOST_URL") ?? throw new ArgumentNullException("HOST_URL needs to be set");
         }
 
         [HttpPost]

@@ -1,4 +1,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS base
+ENV HOST_URL=http://localhost:3000
+ENV DATABASE_CONNECTION_STRING=${DATABASE_CONNECTION_STRING:?Database connection string is required}
+ENV EMAIL_SMTP_HOST=${EMAIL_SMTP_HOST:?Emall SMTP host is required}
+ENV EMAIL_TLS_PORT=587
+ENV EMAIL_ADDRESS=${EMAIL_ADDRESS:?Email address is required}
+ENV EMAIL_PASSWORD=${EMAIL_PASSWORD:?Email password is required}
+ENV EMAIL_FROM_NAME=${EMAIL_ADDRESS}
 ENV PORT=8080
 
 # Build stage - compiles and builds the application

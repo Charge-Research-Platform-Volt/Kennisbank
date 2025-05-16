@@ -74,7 +74,7 @@ namespace KnowledgeBank
             {
                 options.AddPolicy("AllowFrontend", policy =>
                 {
-                    policy.WithOrigins(builder.Configuration.GetValue<string>("FRONTEND_URL") ?? throw new ArgumentNullException("FRONTEND_URL needs to be set"))
+                    policy.WithOrigins(builder.Configuration.GetValue<string>("HOST_URL") ?? throw new ArgumentNullException("HOST_URL needs to be set"))
                           .AllowAnyHeader()
                           .AllowAnyMethod()
                           .AllowCredentials();

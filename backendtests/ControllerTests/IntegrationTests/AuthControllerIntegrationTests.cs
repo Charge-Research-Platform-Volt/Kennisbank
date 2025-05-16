@@ -94,7 +94,7 @@ public class AuthControllerTests : TestBase
         string hashedEmail = ShaUtils.Sha256(email);
         DateTime startTime = DateTime.UtcNow;
         _mockMailUtils.Setup(m => m.SendMail(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()));
-        _mockConfig.Setup(m => m.GetValue<string>("FRONTEND_DOMAIN")).Returns("http://localhost:3000");
+        _mockConfig.Setup(m => m.GetValue<string>("HOST_URL")).Returns("http://localhost:3000");
 
         // Act
         IActionResult result = await _controller.Invite(email);

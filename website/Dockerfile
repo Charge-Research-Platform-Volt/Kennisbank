@@ -1,6 +1,7 @@
 # Base image with Node.js LTS on Alpine Linux
 FROM node:lts-alpine AS base
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV API_URL=http://localhost:3000
 ENV PORT=3001
 
 # -- Install dependencies
