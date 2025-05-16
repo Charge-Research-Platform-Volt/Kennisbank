@@ -108,7 +108,7 @@ export default function ArchivePage() {
 
         {userRole == "admin" && (
             <Button
-            onClick={() => setShowArchived((prev) => !prev)}
+            onClick={() => { setShowArchived((prev) => !prev); setInitialLoadingComplete(false); setSearchResults(null); }}
             variant="outline"
             className="h-10 whitespace-nowrap w-36"
             >
