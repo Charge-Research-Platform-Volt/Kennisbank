@@ -148,9 +148,9 @@ final-cleanup:
     - |
       echo "Cleaning up dangling resources..."
       docker container prune -f
-      docker image prune -f
+      docker image prune -a -f
       docker volume prune -f
-      docker builder prune -f
+      docker builder prune -a -f
     
     - echo "Cleanup completed - released all ports on ci_network"
 
