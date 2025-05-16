@@ -51,14 +51,18 @@ services:
       - 9002:8080
 
   frontend:
-    <<: *imagebase
+    build::
+      target: production
+      arg:
+        API_URL: ${API_URL:-http://backend:8080}
+    <<: *base
     ports: 
-      - 9000:3000
+      - ${FRONTEND_PORT:-9000}:3000
   
   website:
     <<: *imagebase
     ports:
-      - 9001:3001
+      - ${WEBSITE_PORT:-9001}:3001
 
 volumes:
   postgres_data:  # Persistent volume for database
