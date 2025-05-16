@@ -205,7 +205,7 @@ public class ResourcesControllerTests : TestBaseBlob
         // Arrange
         DocumentCreateDto dtoDetails = new DocumentCreateDto 
         { 
-            Title = null, 
+            Title = null!, 
             TypeId = "type1", 
             LanguageCode = "en", 
             PublicationDate = DateTime.UtcNow 
@@ -237,7 +237,7 @@ public class ResourcesControllerTests : TestBaseBlob
         DocumentCreateDto? dtoDetails = new DocumentCreateDto 
         { 
             Title = "Test Title", 
-            TypeId = null, 
+            TypeId = null!, 
             LanguageCode = "en", 
             PublicationDate = DateTime.UtcNow 
         };
@@ -270,7 +270,7 @@ public class ResourcesControllerTests : TestBaseBlob
         { 
             Title = "Test Title", 
             TypeId = "type1", 
-            LanguageCode = null, 
+            LanguageCode = null!, 
             PublicationDate = DateTime.UtcNow 
         };
         ResourceUploadDto uploadDto = new ResourceUploadDto 
@@ -331,15 +331,14 @@ public class ResourcesControllerTests : TestBaseBlob
     [Description("UploadChunk uploads a chunk successfully")]
     public async Task UploadChunk_ValidChunk_ReturnsOk()
     {
-        // Arrange: First, initialize a large file upload
+        // Arrange
         ResourceUploadDto? initDto = CreateValidResourceUploadDto();
         ObjectResult? initResult = await _controller.InitLargeFileUpload(initDto) as ObjectResult;
         Assert.That(initResult, Is.Not.Null);
         ApiResponse? initResponse = initResult.Value as ApiResponse;
         Assert.That(initResponse, Is.Not.Null);
-        Guid? resourceId = (Guid)initResponse.Body;
-        Assert.That(resourceId, Is.Not.Null);
-
+        Assert.That(initResponse.Body, Is.Not.Null);
+        Guid resourceId = (Guid)initResponse.Body;
 
         string fileType = Filetype.ConvertExtensionToFiletype(".txt"); // Assuming a helper or direct value
         string blockId = "block001";
@@ -370,7 +369,7 @@ public class ResourcesControllerTests : TestBaseBlob
         string fileType = "text";
         string blockId = "block001";
         _controller.ControllerContext.HttpContext = new DefaultHttpContext();
-        _controller.Request.Body = null; // Simulate no body
+        _controller.Request.Body = null!;
 
         // Act
         BadRequestObjectResult? result = await _controller.UploadChunk(resourceId, fileType, blockId) as BadRequestObjectResult;
@@ -470,8 +469,7 @@ public class ResourcesControllerTests : TestBaseBlob
         ApiResponse? initResponse = initResult.Value as ApiResponse;
         Assert.That(initResponse, Is.Not.Null);
         Assert.That(initResponse.Body, Is.Not.Null);
-        Guid? resourceId = (Guid)initResponse.Body;
-        Assert.That(resourceId, Is.Not.Null);
+        Guid resourceId = (Guid)initResponse.Body;
 
         string fileTypeForChunk = Filetype.ConvertExtensionToFiletype(".txt");
         string blockId1 = "finalBlock001";
@@ -488,7 +486,7 @@ public class ResourcesControllerTests : TestBaseBlob
             ResourceId = resourceId.ToString(),
             FileType = fileTypeForChunk, 
             FileName = "finalized-test-file.txt",
-            BlockIds = new List<string> { blockId1 }
+            BlockIds = new List<string> { base64BlockId1 }
         };
 
         // Act
@@ -619,11 +617,11 @@ public class ResourcesControllerTests : TestBaseBlob
             ResourceId = Guid.NewGuid().ToString(),
             FileType = "text",
             FileName = "test.txt",
-            BlockIds = null
+            BlockIds = null!
         };
 
         // Act
-        BadRequestObjectResult result = await _controller.FinalizeLargeFileUpload(finalizeDto) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.FinalizeLargeFileUpload(finalizeDto) as BadRequestObjectResult;
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -648,10 +646,9 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(initResult, Is.Not.Null);
         ApiResponse? initResponse = initResult.Value as ApiResponse;
         Assert.That(initResponse, Is.Not.Null);
+        Assert.That(initResponse.Success, Is.True);
         Assert.That(initResponse.Body, Is.Not.Null);
-        Guid? resourceId = (Guid)initResponse.Body;
-        Assert.That(resourceId, Is.Not.Null);
-
+        Guid resourceId = (Guid)initResponse.Body;
 
         bool existsBeforeCleanup = await _resourceManager.ResourceExistsAsync(resourceId.ToString());
         Assert.That(existsBeforeCleanup, Is.True, "Resource should exist in DB after Init for cleanup test");
@@ -718,7 +715,7 @@ public class ResourcesControllerTests : TestBaseBlob
         string emptyResourceId = "";
 
         // Act
-        BadRequestObjectResult result = await _controller.CleanupFailedUpload(emptyResourceId) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.CleanupFailedUpload(emptyResourceId) as BadRequestObjectResult;
 
         // Assert
         Assert.That(result, Is.Not.Null);
