@@ -411,7 +411,7 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Retrieve the ID of the resource if it already exists
-                Guid resourceId = Guid.Empty;
+                object? resourceId = null;
 
                 // Handle hash for files
                 if (!string.IsNullOrEmpty(hash))
@@ -424,7 +424,7 @@ namespace KnowledgeBank.Controllers
 
 
                 // ID is empty, so no resource was found
-                if (resourceId == Guid.Empty)
+                if (resourceId == null)
                     return Ok(new ApiResponse(true, "Resource does not exist", new { exists = false, id = "" }));
 
                 // ID was not empty, so resource already exists, return the ID

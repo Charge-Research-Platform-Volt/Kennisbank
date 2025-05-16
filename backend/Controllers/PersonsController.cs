@@ -199,7 +199,7 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Retrieve the ID of the person if it already exists
-                Guid personId = Guid.Empty;
+                object? personId = null;
 
                 // Handle name
                 if (!string.IsNullOrEmpty(name))
@@ -208,7 +208,7 @@ namespace KnowledgeBank.Controllers
 
 
                 // ID is empty, so no person was found
-                if (personId == Guid.Empty)
+                if (personId == null)
                     return Ok(new ApiResponse(true, "Person does not exist", new { exists = false, id = "" }));
 
                 // ID was not empty, so person already exists, return the ID

@@ -198,7 +198,7 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Retrieve the ID of the region if it already exists
-                Guid regionId = Guid.Empty;
+                object? regionId = null;
 
                 // Handle name
                 if (!string.IsNullOrEmpty(name))
@@ -207,7 +207,7 @@ namespace KnowledgeBank.Controllers
 
 
                 // ID is empty, so no region was found
-                if (regionId == Guid.Empty)
+                if (regionId == null)
                     return Ok(new ApiResponse(true, "Region does not exist", new { exists = false, id = "" }));
 
                 // ID was not empty, so region already exists, return the ID

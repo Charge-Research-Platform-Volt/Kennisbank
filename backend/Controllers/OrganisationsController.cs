@@ -200,7 +200,7 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Retrieve the ID of the person if it already exists
-                Guid organisationId = Guid.Empty;
+                object? organisationId = null;
 
                 // Handle name
                 if (!string.IsNullOrEmpty(name))
@@ -208,7 +208,7 @@ namespace KnowledgeBank.Controllers
 
 
                 // ID is empty, so no person was found
-                if (organisationId == Guid.Empty)
+                if (organisationId == null)
                     return Ok(new ApiResponse(true, "Person does not exist", new { exists = false, id = "" }));
 
                 // ID was not empty, so organisation already exists, return the ID
@@ -304,10 +304,10 @@ namespace KnowledgeBank.Controllers
                 else
                     organisations = string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetOrganisationPageAsync((int)pageIndex, (int)pageSize) :
-                        await resourceManager.GetOrganisationPageAsync(projectionString, (int)pageIndex, (int)pageSize);
+                        await resourceManager.GetOrganisationPageAsync(projectionString, (int)pageIndex, (int)pageSize, includeProperties: "ResourceAuthorRelations");
 
                 // Return found organisations
-                return Ok(new ApiResponse(true, $"Found {organisations.Length} organisations", organisations));
+                return Ok(new ApiResponse(true, $"Found {organisations.Length} organisations", DtoGenerator.ToDto(organisations)));
             }
             catch (Exception e)
             {
