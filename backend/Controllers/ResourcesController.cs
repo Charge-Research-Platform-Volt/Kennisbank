@@ -596,7 +596,7 @@ namespace KnowledgeBank.Controllers
         /// </summary>
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
-        /// <param name="properties">(Optional) The properties to select, separated by comma
+        /// <param name="properties">(Optional) The properties to select, separated by comma</param>
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all resources")]
         [SwaggerResponse(200, "A list or page of all the resources in the archive", typeof(ApiResponse))]

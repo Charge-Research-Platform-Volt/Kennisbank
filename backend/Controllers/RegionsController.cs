@@ -267,7 +267,7 @@ namespace KnowledgeBank.Controllers
         /// </summary>
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
-        /// <param name="properties">(Optional) The properties to select, separated by comma
+        /// <param name="properties">(Optional) The properties to select, separated by comma</param>
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all regions")]
         [SwaggerResponse(200, "A list or page of all the regions in the archive", typeof(ApiResponse))]

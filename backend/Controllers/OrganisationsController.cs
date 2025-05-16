@@ -268,7 +268,7 @@ namespace KnowledgeBank.Controllers
         /// </summary>
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
-        /// <param name="properties">(Optional) The properties to select, separated by comma
+        /// <param name="properties">(Optional) The properties to select, separated by comma</param>
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all organisations")]
         [SwaggerResponse(200, "A list or page of all the organisations in the archive", typeof(ApiResponse))]
@@ -304,7 +304,7 @@ namespace KnowledgeBank.Controllers
                 else
                     organisations = string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetOrganisationPageAsync((int)pageIndex, (int)pageSize) :
-                        await resourceManager.GetOrganisationPageAsync(projectionString, (int)pageIndex, (int)pageSize, includeProperties: "ResourceAuthorRelations");
+                        await resourceManager.GetOrganisationPageAsync(projectionString, (int)pageIndex, (int)pageSize);
 
                 // Return found organisations
                 return Ok(new ApiResponse(true, $"Found {organisations.Length} organisations", DtoGenerator.ToDto(organisations)));
