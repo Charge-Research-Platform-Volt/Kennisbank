@@ -74,6 +74,7 @@ public class AuthControllerTests : TestBase
 
         _mockMailUtils = new Mock<MailUtils>("mock", 13_15_3_11 , "mock", "mock", "mock");
         _mockConfig = new Mock<IConfiguration>();
+        _mockConfig.Setup(m => m["HOST_URL"]).Returns("http://localhost:3000");
 
         // TODO: FIX
         _controller = new AuthController(_mockConfig.Object, _signInManager, Context, _mockMailUtils.Object);
@@ -94,7 +95,6 @@ public class AuthControllerTests : TestBase
         string hashedEmail = ShaUtils.Sha256(email);
         DateTime startTime = DateTime.UtcNow;
         _mockMailUtils.Setup(m => m.SendMail(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()));
-        _mockConfig.Setup(m => m.GetValue<string>("HOST_URL")).Returns("http://localhost:3000");
 
         // Act
         IActionResult result = await _controller.Invite(email);

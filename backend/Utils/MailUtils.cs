@@ -5,7 +5,7 @@ namespace KnowledgeBank.Utils
 {
     public class MailUtils(string smtpHost, int tlsPort, string address, string password, string fromName)
     {
-        public void SendMail(string to, string subject, string body)
+        public virtual void SendMail(string to, string subject, string body)
         {
             MimeMessage message = new MimeMessage();
             message.From.Add(new MailboxAddress(fromName, address));
