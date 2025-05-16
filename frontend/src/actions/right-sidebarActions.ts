@@ -59,12 +59,35 @@ export const getRelation = async (
                 headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
             },
     );
-    console.log(response);
     
     if (!response.ok) {
         throw new Error(`Problem with finding relation: ${relation}`);
     }
         
+    const rawData = await response.json();
+    const data = ApiResponseSchema.parse(rawData);
+    return data;
+}
+
+export const getRelatedDocuments = async (
+    id: string,
+    listSize: number,
+) => {
+    let endPoint = `resources/related-resources/${id}/${listSize}`
+
+    const cookieHeader : ReadonlyRequestCookies = await cookies();
+    const response = await fetch(`${process.env.API_URL}/${endPoint}`,
+        {
+            method: "GET",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+        }
+    )
+
+    if (!response.ok) {
+        throw new Error(`Problem with getting related resources`);
+    }
+    
     const rawData = await response.json();
     const data = ApiResponseSchema.parse(rawData);
     return data;

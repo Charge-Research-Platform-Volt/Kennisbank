@@ -6,11 +6,12 @@ import BadgeList from "./BadgeList"
 import { ListItem } from "./BadgeList"
 import { Badge } from "@/components/ui/badge"
 import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider"
-import { getProperties, getRelation } from "@/actions/right-sidebarActions"
+import { getProperties, getRelatedDocuments, getRelation } from "@/actions/right-sidebarActions"
 import { ApiResponse } from "@/types/apiResponse.type"
 import { useState, use, useEffect } from "react"
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
+import ResourceList from "./ResourceList"
 
 
 export function ResourceContent()
@@ -23,6 +24,7 @@ export function ResourceContent()
     const [ organisations, setOrganisations ] = useState<ListItem[] | null>(null);
     const [ relatedOrganisations, setRelatedOrganisations ] = useState<ListItem[] | null>(null);
     const [ relatedPersons, setRelatedPersons ] = useState<ListItem[] | null>(null);
+    const [ relatedResources, setRelatedResources ] = useState<ListItem[] | null>(null);
 
 
 
@@ -35,6 +37,7 @@ export function ResourceContent()
         setOrganisations(null);
         setRelatedOrganisations(null);
         setRelatedPersons(null);
+        setRelatedResources(null);
         loadInformation(); }
     }, [currentId])
 
@@ -43,8 +46,9 @@ export function ResourceContent()
         const authorsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "author");
         const tagsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "tag");
         const organisationsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "organisation");
-        const relatedOrganisationsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "relatedOrganisation")
-        const relatedPersonsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "relatedPerson")
+        const relatedOrganisationsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "relatedOrganisation");
+        const relatedPersonsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "relatedPerson");
+        const relatedResourcesPromise = getRelatedDocuments(currentId, 10);
     
         infoPromise.then(response => {
             setTitle(response.body.title);
@@ -111,6 +115,17 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading related organisations: ", error);
         });
+
+        relatedResourcesPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: { id: any; title: any;  }) => ({
+                id: item.id,
+                name: item.title,
+                type: "pdf",
+            }))
+            setRelatedResources(list);
+        }).catch(error => {
+            console.error("Error loading related resources: ", error);
+        });
     }
     
 
@@ -142,9 +157,7 @@ export function ResourceContent()
                 <BadgeList listType="relatedOrganisation" emptyMessage={"No related organisations recorded"} itemList={relatedOrganisations}/>
             </Expandable>
 
-            <Expandable variant="horizontal" title="Related Resources">
-                <Badge onClick={() => navigate("b5c443ad-88f3-4065-836b-bb61595ba55b", MetadataTypeEnum.RESOURCE)} variant={"outline"} className={"p-2"}>Burgers gelijkwaardig aan de ontwerptafel</Badge>
-            </Expandable>
+            <ResourceList header="Related" resources={relatedResources}/>
         </>
     )
 }

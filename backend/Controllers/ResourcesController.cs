@@ -587,6 +587,93 @@ namespace KnowledgeBank.Controllers
 
         #endregion
 
+        #region Get Related Resources
+
+        /// <summary>
+        /// Retrieves a list of related resources based on tag connections (will need to be changed to use the vectors)
+        /// </summary>
+        /// <param name="pageIndex"></param>
+        /// <param name="pageSize"></param>
+        [HttpGet("related-resources/{id}/{listSize}")]
+        [SwaggerOperation(Summary = "Retrieves a list of related resources based on tag connections")]
+        [SwaggerResponse(200, "A list containing related resources", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> RelatedResources(string id, int listSize)
+        {
+            // Check if the ID is valid
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID."));
+
+            double standardizedTagWeight = 3.0;
+            double approvedTagWeight = 2.0;
+            double regularTagWeight = 1.0;
+
+            try
+            {
+                // Check if the resource exists
+                if (!await resourceManager.ResourceExistsAsync(id))
+                    return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
+
+                ResourceTagRelation[] resourceTags = await resourceManager.GetAllResourceTagRelationsAsync(
+                    predicate: r => r.ResourceId.ToString() == id,
+                    includeProperties: new[] { "Tag" });
+
+
+                if (resourceTags.Length == 0)
+                    return Ok(new ApiResponse(true, "No tags found for resource", Array.Empty<Resource>()));
+
+                // Retrieve resources with at least one common tag
+                var documentTagIds = resourceTags.Select(r => r.TagId).ToHashSet();
+
+                ResourceTagRelation[] resourceTagRelations = await resourceManager.GetAllResourceTagRelationsAsync(
+                    predicate: r => documentTagIds.Contains(r.TagId) && r.ResourceId.ToString() != id,
+                    includeProperties: new[] { "Tag", "Resource" });
+
+                // Group by resource, and calculate similarity score
+                Resource[] relatedResources = resourceTagRelations
+                    .GroupBy(r => r.ResourceId)
+                    .Select(group =>
+                    {
+                        // Get resource
+                        var resource = group.First().Resource!;
+
+                        double similarityScore = 0;
+                        foreach (var r in group)
+                        {
+                            // Check to avoid possible errors
+                            if (r.Tag == null) continue;
+
+                            // Add appropriate weight
+                            if (r.Tag.IsStandardized) similarityScore += standardizedTagWeight;
+                            else if (r.Tag.IsApproved) similarityScore += approvedTagWeight;
+                            else similarityScore += regularTagWeight;
+                        }
+
+                        return new { Resource = resource, SimlarityScore = similarityScore };
+                    })
+                    .OrderByDescending(item => item.SimlarityScore)
+                    .Take(listSize)
+                    .Select(item => item.Resource)
+                    .ToArray();
+
+
+                if (relatedResources.Count() == 0)
+                    return NotFound(new ApiResponse(true, "No related resources found", Array.Empty<Resource>()));
+
+                return Ok(new ApiResponse(true, "Related resources found", relatedResources));
+
+            }
+            
+            catch (Exception e)
+            {
+                return StatusCode(500, new ApiResponse(false, "Error finding related resources."));
+            }
+        }
+
+        #endregion
+
         #region List
         /// <summary>
         /// Retrieves a list or page of all resources
