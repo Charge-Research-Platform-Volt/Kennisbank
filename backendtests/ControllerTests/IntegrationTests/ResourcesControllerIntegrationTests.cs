@@ -650,11 +650,17 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(initResponse.Body, Is.Not.Null);
         Guid resourceId = (Guid)initResponse.Body;
 
+        await BlobService.DeleteBlobAsync("document", resourceId.ToString());
+
         bool existsBeforeCleanup = await _resourceManager.ResourceExistsAsync(resourceId.ToString());
         Assert.That(existsBeforeCleanup, Is.True, "Resource should exist in DB after Init for cleanup test");
 
+
+        Assert.That(await BlobService.BlobExistsAsync("document", resourceId.ToString()), Is.EqualTo(BLOB_STATUSCODE.NOTFOUND));
         // Act
         ObjectResult? result = await _controller.CleanupFailedUpload(resourceId.ToString()) as ObjectResult;
+
+        Assert.That(await BlobService.BlobExistsAsync("document", resourceId.ToString()), Is.EqualTo(BLOB_STATUSCODE.NOTFOUND));
 
         // Assert
         Assert.That(result, Is.Not.Null);

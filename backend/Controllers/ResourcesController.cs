@@ -802,8 +802,7 @@ namespace KnowledgeBank.Controllers
         
         /// <summary>
         /// Cleans up a failed large file upload by deleting database entry. Cleaning of block blobs
-        /// is automatically handled, uncommitted blocks are deleted after 7 days. There's no API to do
-        /// this manually.
+        /// is automatically handled, uncommitted blocks are deleted.
         /// </summary>
         /// <param name="resourceId">Resource ID to clean up</param>
         [HttpDelete("large/cleanup/{resourceId}")]
@@ -825,18 +824,34 @@ namespace KnowledgeBank.Controllers
             {
                 return BadRequest(new ApiResponse(false, "Invalid resource ID format."));
             }
-            
+
             try
             {
                 // Delete the database entry
                 await resourceManager.BeginTransaction();
-                bool deleted = await resourceManager.DeleteResourceAsync(parsedResourceId);
-                await resourceManager.Commit();
-                
-                if (deleted)
+                string? fileType = await resourceManager.GetResourcePropertyOrDefaultAsync(parsedResourceId.ToString(), r => r.FileType);
+                if (fileType is not null)
                 {
-                    logger.Information("Successfully cleaned up resource {ResourceId}", resourceId);
-                    return Ok(new ApiResponse(true, "Upload cleaned up successfully"));
+                    BLOB_STATUSCODE code = await blobService.CommitBlockListAsync(resourceId.ToString(), fileType, [], new());
+                    if (code == BLOB_STATUSCODE.OK)
+                    {
+                        await blobService.DeleteBlobAsync(fileType, resourceId.ToString());
+                        await resourceManager.DeleteResourceAsync(parsedResourceId.ToString());
+                        logger.Information("Successfully cleaned up resource {ResourceId}", resourceId);
+                        return Ok(new ApiResponse(true, "Upload cleaned up successfully"));
+                    }
+                    else if (code == BLOB_STATUSCODE.NOTFOUND)
+                    {
+                        await resourceManager.DeleteResourceAsync(parsedResourceId.ToString());
+                        logger.Warning("Blob {RecourseId} not found during cleanup", resourceId);
+                        return Ok(new ApiResponse(true, "Blob not found, but database entry removed, cleanup completed"));
+                    }
+                    else
+                    {
+                        logger.Error("Error deleting blob {ResourceId} in storage", resourceId);
+                        return StatusCode(500, new ApiResponse(false, "Error deleting blob in storage"));
+                    }
+            
                 }
                 else
                 {
