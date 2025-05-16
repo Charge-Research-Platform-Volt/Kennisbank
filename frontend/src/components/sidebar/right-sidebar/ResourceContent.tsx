@@ -15,7 +15,7 @@ import 'react-loading-skeleton/dist/skeleton.css'
 
 export function ResourceContent()
 {
-    const { currentId, navigate } = useSidebar();
+    const { currentId, navigate, rightSidebarOpen } = useSidebar();
     const [ title, setTitle ] = useState<string | null>(null);
     const [ description, setDescription ] = useState<string | null>(null);
     const [ authors, setAuthors ] = useState<ListItem[] | null>(null);
@@ -27,6 +27,7 @@ export function ResourceContent()
 
 
     useEffect(() => {
+        if (rightSidebarOpen) {
         setTitle(null);
         setDescription(null);
         setAuthors(null);
@@ -34,7 +35,7 @@ export function ResourceContent()
         setOrganisations(null);
         setRelatedOrganisations(null);
         setRelatedPersons(null);
-        loadInformation();
+        loadInformation(); }
     }, [currentId])
 
     const loadInformation = async () => {

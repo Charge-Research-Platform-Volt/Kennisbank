@@ -4,7 +4,7 @@ import { SVGProps } from "react";
 export default function New(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14 16">
-      <path d="M6.563 5A.437.437 0 0 1 7 5.438v2.187h2.188a.437.437 0 1 1 0 .875H7v2.188a.438.438 0 0 1-.875 0V8.5H3.937a.437.437 0 1 1 0-.875h2.188V5.437A.437.437 0 0 1 6.563 5Z" fill="#fff" />
+      <path d="M6.563 5A.437.437 0 0 1 7 5.438v2.187h2.188a.437.437 0 1 1 0 .875H7v2.188a.438.438 0 0 1-.875 0V8.5H3.937a.437.437 0 1 1 0-.875h2.188V5.437A.437.437 0 0 1 6.563 5Z" fill="currentColor" />
       <path
         fillRule="evenodd"
         clipRule="evenodd"

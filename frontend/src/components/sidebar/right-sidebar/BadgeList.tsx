@@ -6,6 +6,7 @@ import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider"
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 import New from "@/icons/new"
+import NewBadge from "./NewBadge"
 
 export interface ListItem
 {
@@ -67,10 +68,10 @@ export default function BadgeList({
                     {itemList.map((item, index) =>(
                         <Badge key={index} onClick={() => navigateTo(item.id, item.type)} variant={variant} className={className}>{item.name}</Badge>
                     ))}
-                    <Badge key={-1} onClick={() => addBadge()} variant={variant} className={className}><New className="h-5 w-5 text-black" /></Badge>
+                    <NewBadge type={listType} />
                 </>
             ) : (
-                <Badge key={-1} onClick={() => addBadge()} variant={variant} className={className}><New className="h-5 w-5 text-black" /></Badge>
+                <NewBadge type={listType} />
                 
             )}
         </>
