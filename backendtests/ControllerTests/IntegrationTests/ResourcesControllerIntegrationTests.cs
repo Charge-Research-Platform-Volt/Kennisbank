@@ -653,10 +653,8 @@ public class ResourcesControllerTests : TestBaseBlob
         bool existsBeforeCleanup = await _resourceManager.ResourceExistsAsync(resourceId.ToString());
         Assert.That(existsBeforeCleanup, Is.True, "Resource should exist in DB after Init for cleanup test");
 
-
         // Act
         ObjectResult? result = await _controller.CleanupFailedUpload(resourceId.ToString()) as ObjectResult;
-
 
         // Assert
         Assert.That(result, Is.Not.Null);
