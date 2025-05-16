@@ -307,7 +307,7 @@ namespace KnowledgeBank.Controllers
                         await resourceManager.GetOrganisationPageAsync(projectionString, (int)pageIndex, (int)pageSize);
 
                 // Return found organisations
-                return Ok(new ApiResponse(true, $"Found {organisations.Length} organisations", DtoGenerator.ToDto(organisations)));
+                return Ok(new ApiResponse(true, $"Found {organisations.Length} organisations", organisations));
             }
             catch (Exception e)
             {

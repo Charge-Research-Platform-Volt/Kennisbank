@@ -23,7 +23,7 @@ namespace KnowledgeBank.Controllers
 
 
     /// <summary>
-    /// This controller is responsible for handing API calls to manage resources and their metadata.
+    /// This controller is responsible for handling API calls to manage resources and their metadata.
     /// 
     /// Author: Abel Dieterich
     /// </summary>
