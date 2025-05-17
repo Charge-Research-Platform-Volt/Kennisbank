@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LoginRequest } from "@/types/loginRequest.type";
 import { FormResponse } from "@/types/return.type";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useActionState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -19,12 +19,15 @@ export default function LoginPage() {
     const [password, setPassword] = useState<string>("");
     
     const [state, action, isPending] = useActionState(Login, initialState);
+
+    const searchParams = useSearchParams();
+    const redirect = searchParams.get("redirect");
     
     const router = useRouter();
     useEffect(() => {
         if (state.success) {
           toast.success(state.message);
-          router.push("/");
+          router.push(redirect || "/");
         } else if (state.message) {
           toast.error(state.message);
         }
