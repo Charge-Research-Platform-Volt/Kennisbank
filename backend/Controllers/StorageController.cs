@@ -125,7 +125,7 @@ namespace KnowledgeBank.Controllers
                 if (!await resourceManager.ResourceExistsAsync(id))
                     return NotFound(new StorageResponse("ID not found in the database."));
 
-                string filetype = await resourceManager.GetResourcePropertyAsync(id, resource => resource.FileType);
+                string filetype = await resourceManager.GetResourcePropertyAsync(id, "new(FileType as FileType)");
 
                 BlobDownloadResponse? maybeResponse = await blobService.DownloadBlobAsync(filetype, id);
 
@@ -135,7 +135,7 @@ namespace KnowledgeBank.Controllers
                 BlobDownloadResponse response = (BlobDownloadResponse)maybeResponse;
 
                 string contentType = "application/octet-stream";
-                string fileName = SanitizeFileName(await resourceManager.GetResourcePropertyAsync(id, resource => resource.Title)) + response.Metadata["extension"];
+                string fileName = SanitizeFileName(await resourceManager.GetResourcePropertyAsync(id, "new(Title as Title)")) + response.Metadata["extension"];
 
                 if (Path.HasExtension(fileName))
                 {
@@ -173,7 +173,7 @@ namespace KnowledgeBank.Controllers
                 if (await resourceManager.ResourceExistsAsync(id))
                     return NotFound(new StorageResponse("ID was not found in database. File was deleted succesfully."));
 
-                string filetype = await resourceManager.GetResourcePropertyAsync(id, resource => resource.FileType);
+                string filetype = await resourceManager.GetResourcePropertyAsync(id, "new(FileType as FileType)");
 
                 BLOB_STATUSCODE result = await blobService.DeleteBlobAsync(filetype, id);
 
@@ -246,7 +246,7 @@ namespace KnowledgeBank.Controllers
 
             try
             {
-                Guid resourceId = await resourceManager.GetResourcePropertyOrDefaultAsync(predicate: r => r.Hash == hash, selector: r => r.Id);
+                Guid resourceId = await resourceManager.GetResourcePropertyOrDefaultAsync(predicate: r => r.Hash == hash, selector: "Id");
 
                 if (resourceId == Guid.Empty)
                     return Ok(new ExistsResponse("File does not exist.", false, ""));

@@ -23,7 +23,7 @@ namespace KnowledgeBank.Controllers
 
 
     /// <summary>
-    /// This controller is responsible for handing API calls to manage resources and their metadata.
+    /// This controller is responsible for handling API calls to manage resources and their metadata.
     /// 
     /// Author: Abel Dieterich
     /// </summary>
@@ -204,7 +204,7 @@ namespace KnowledgeBank.Controllers
                 logger.Information("Downloding resource with ID: {ID}", id);
 
                 // Get the filetype from the database
-                string filetype = await resourceManager.GetResourcePropertyAsync(id, resource => resource.FileType);
+                string filetype = await resourceManager.GetResourcePropertyAsync(id, "new(FileType as FileType)");
 
                 // If website, we cannot download, return BadRequest
                 if (filetype.Equals("website", StringComparison.CurrentCultureIgnoreCase))
@@ -222,7 +222,7 @@ namespace KnowledgeBank.Controllers
 
                 // Set the contentType and generate a filename from the title
                 string contentType = "application/octet-stream";
-                string title = await resourceManager.GetResourcePropertyAsync(id, r => r.Title);
+                string title = await resourceManager.GetResourcePropertyAsync(id, "new(Title as Title)");
                 string extension = response.Metadata["extension"];
                 string fileName = SanitizeFileName(title) + extension;
 
@@ -273,7 +273,7 @@ namespace KnowledgeBank.Controllers
                 logger.Information("Deleting resource with ID: {ID}", id);
 
                 // Get the filetype of the resource
-                string filetype = await resourceManager.GetResourcePropertyAsync(id, r => r.FileType);
+                string filetype = await resourceManager.GetResourcePropertyAsync(id, "new(FileType as FileType)");
 
                 // Delete the file from storage
                 BLOB_STATUSCODE result = await blobService.DeleteBlobAsync(filetype, id);
@@ -411,20 +411,20 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Retrieve the ID of the resource if it already exists
-                Guid resourceId = Guid.Empty;
+                object? resourceId = null;
 
                 // Handle hash for files
                 if (!string.IsNullOrEmpty(hash))
-                    resourceId = await resourceManager.GetResourcePropertyOrDefaultAsync(predicate: r => r.Hash == hash, selector: r => r.Id);
+                    resourceId = await resourceManager.GetResourcePropertyOrDefaultAsync(predicate: r => r.Hash == hash, selector: "Id");
 
                 // Handle URL for websites
                 else if (!string.IsNullOrEmpty(url))
-                    resourceId = await resourceManager.GetWebsiteMetadataPropertyOrDefaultAsync(predicate: m => m.Url == url, selector: m => m.ResourceId);
+                    resourceId = await resourceManager.GetWebsiteMetadataPropertyOrDefaultAsync(predicate: m => m.Url == url, selector: "ResourceId");
 
 
 
                 // ID is empty, so no resource was found
-                if (resourceId == Guid.Empty)
+                if (resourceId == null)
                     return Ok(new ApiResponse(true, "Resource does not exist", new { exists = false, id = "" }));
 
                 // ID was not empty, so resource already exists, return the ID
@@ -443,13 +443,14 @@ namespace KnowledgeBank.Controllers
         /// Gets the information of the resource (database row)
         /// </summary>
         /// <param name="id">The ID of the resource</param>
+        /// <param name="properties">The properties you are trying to receive, separated by comma</param>
         [HttpGet("info/{id}")]
         [SwaggerOperation(Summary = "Get the information of the resource")]
         [SwaggerResponse(200, "Resource Information", typeof(ApiResponse))]
         [SwaggerResponse(404, "Resource Not Found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Info(string id)
+        public async Task<IActionResult> Info(string id, [FromQuery] string? properties)
         {
             // Check if ID is valid
             if (!ValidityUtil.IsValidId(id))
@@ -457,8 +458,10 @@ namespace KnowledgeBank.Controllers
 
             try
             {
-                // Retrieve the resource
-                Resource? resource = await resourceManager.GetResourceAsync(id);
+                // Retrieve the resource or the specified properties
+                object? resource = string.IsNullOrEmpty(properties) ?
+                    await resourceManager.GetResourceAsync(id) :
+                    await resourceManager.GetResourcePropertyAsync(id, $"new({properties})");
 
                 // If null, the resource was not found
                 if (resource == null)
@@ -658,12 +661,13 @@ namespace KnowledgeBank.Controllers
         /// </summary>
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
+        /// <param name="properties">(Optional) The properties to select, separated by comma</param>
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all resources")]
         [SwaggerResponse(200, "A list or page of all the resources in the archive", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> List(int? pageIndex, int? pageSize)
+        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties)
         {
             // Verification
             if (pageIndex != null && pageIndex < 1)
@@ -679,15 +683,21 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // All resources to be returned
-                Resource[] resources = [];
+                object[] resources = [];
 
+                string projectionString = $"new({properties})";
+                
                 // No paging requested, list all resources
                 if (pageIndex == null || pageSize == null)
-                    resources = await resourceManager.GetAllResourcesAsync();
+                    resources = string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourcesAsync() :
+                        await resourceManager.GetAllResourcesAsync(projection: projectionString);
 
                 // Paging requested, retrieve resources on that page
                 else
-                    resources = await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize);
+                    resources = string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize) :
+                        await resourceManager.GetResourcePageAsync(projectionString, (int)pageIndex, (int)pageSize);
 
                 // Return found resources
                 return Ok(new ApiResponse(true, $"Found {resources.Length} resources", resources));

@@ -60,7 +60,7 @@ namespace KnowledgeBank.Controllers
         {
             try
             {
-                return Ok(await resourceManager.GetWebsiteMetadataPropertyAsync(id, metadata => metadata.Url));
+                return Ok(await resourceManager.GetWebsiteMetadataPropertyAsync(id, "new(Url as Url)"));
             }
             catch (Exception e)
             {
