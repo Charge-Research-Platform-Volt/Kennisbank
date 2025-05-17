@@ -337,34 +337,6 @@ namespace KnowledgeBank.Data
 
             return typeId;
         }
-
-        public async Task<Guid> CreateProject(ProjectCreateDto dto)
-        {
-            bool startedTransaction = await BeginTransaction();
-        
-            // Generate new ID for the project
-            Guid projectId = Guid.NewGuid();
-
-            // Create a project instance using the DTO
-            Project project = new()
-            {
-                Id = projectId,
-                Title = dto.Title,
-                Description = dto.Description,
-                LanguageCode = dto.LanguageCode,
-                CreationDate = dto.CreationDate,
-                DeletionDate = dto.DeletionDate,
-                Note = dto.Note,
-                ProjectType = dto.ProjectType
-            };
-
-            // Add project to database
-            await database.Projects.AddAsync(project);
-
-            if (startedTransaction) await Commit();
-
-            return projectId;
-        }
     }
 }
 

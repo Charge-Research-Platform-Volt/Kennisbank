@@ -30,21 +30,20 @@ public class Project
     [Column("note")]
     public string? Note { get; set; }
 
-    [Column("filetype")]
+    [Column("project-type")]
     [MaxLength(10)]
-    public required string ProjectType { get; set; }
+    public required string ProjectType { get; set; } // Either "project" or "folder"
 
     #region Relation navigation properties
     // Navigation properties for the relations a object can have (1:m)
     [JsonIgnore] public ICollection<ProjectTagRelation>? ProjectTagRelations { get; set; }
-
     [JsonIgnore] public ICollection<ProjectCreatorRelation>? ProjectCreatorRelations { get; set; }
-
-    [JsonIgnore] public ICollection<ProjectFolderRelation>? ProjectFolderRelations { get; set; }
-
     [JsonIgnore] public ICollection<ProjectResourceRelation>? ProjectResourcesRelations { get; set; }
 
     #endregion
+
+    [JsonIgnore][InverseProperty("ChildFolder")] public ICollection<ProjectFolderRelation>? ParentFolders { get; set; }
+    [JsonIgnore][InverseProperty("ParentFolder")] public ICollection<ProjectFolderRelation>? ChildFolders { get; set; }
 }
 
 // Does not include folders or resources as those will be added only AFTER creation

@@ -58,6 +58,7 @@ namespace KnowledgeBank
             ));
 
             builder.Services.AddScoped<ResourceManager>();
+            builder.Services.AddScoped<ProjectManager>();
 
             // CORS to allow Cross Origin Resource Sharing
             builder.Services.AddCors(options =>

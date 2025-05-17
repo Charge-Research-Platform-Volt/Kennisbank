@@ -102,6 +102,29 @@ namespace KnowledgeBank.Data
                 .WithMany(o => o.SourceRelationships)
                 .HasForeignKey(or => or.TargetPersonId);
 
+            // Projects
+            modelBuilder.Entity<ProjectResourceRelation>()
+                .HasKey(prr => new {prr.ProjectId, prr.ResourceId});
+
+            modelBuilder.Entity<ProjectCreatorRelation>()
+                .HasKey(pcr => new {pcr.ProjectId, pcr.CreatorId});
+
+            modelBuilder.Entity<ProjectTagRelation>()
+                .HasKey(ptr => new { ptr.ProjectId, ptr.TagId });
+
+            modelBuilder.Entity<ProjectFolderRelation>()
+                .HasKey(pfr => new { pfr.ParentId, pfr.ChildId});
+
+            modelBuilder.Entity<ProjectFolderRelation>()
+                .HasOne(pfr => pfr.ParentFolder)
+                .WithMany(u => u.ChildFolders)
+                .HasForeignKey(pfr => pfr.ParentId);
+
+            modelBuilder.Entity<ProjectFolderRelation>()
+                .HasOne(pfr => pfr.ChildFolder)
+                .WithMany(f => f.ParentFolders)
+                .HasForeignKey(pfr => pfr.ChildId);
+
             base.OnModelCreating(modelBuilder);
         }
 

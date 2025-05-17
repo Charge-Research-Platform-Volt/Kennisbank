@@ -5,17 +5,20 @@ namespace KnowledgeBank.Models;
 [Table("project-folder")]
 public class ProjectFolderRelation
 {
-    [Column("root-id")]
-    [ForeignKey("Project")]
-    public required Guid RootId { get; set; }
+    [Column("parent-id")]
+    public required Guid ParentId { get; set; }
 
     [Column("child-id")]
-    [ForeignKey("Project")]
     public required Guid ChildId { get; set; }
 
     // Navigation properties
-    [JsonIgnore] public Project? Root { get; set; }
-    [JsonIgnore] public Project? Child { get; set; }
+    [ForeignKey("ParentId")]
+    [JsonIgnore]
+    public Project? ParentFolder { get; set; }
+
+    [ForeignKey("ChildId")]
+    [JsonIgnore]
+    public Project? ChildFolder { get; set; }
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

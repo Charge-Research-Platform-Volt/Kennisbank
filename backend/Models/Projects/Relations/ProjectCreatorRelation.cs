@@ -11,11 +11,11 @@ public class ProjectCreatorRelation
 
     [Column("creator-id")]
     [ForeignKey("Creator")]
-    public required Guid CreatorId { get; set; }
+    public required string CreatorId { get; set; }
 
     // Navigation properties
     [JsonIgnore] public Project? Project { get; set; }
-    [JsonIgnore] public User? User { get; set; }
+    [JsonIgnore] public User? Creator { get; set; }
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

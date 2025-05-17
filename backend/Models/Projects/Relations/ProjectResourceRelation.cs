@@ -13,6 +13,9 @@ public class ProjectResourceRelation
     [ForeignKey("Resource")]
     public required Guid ResourceId { get; set; }
 
+    [Column("added-by")]
+    public Guid? AddedBy { get; set; }
+
     // Navigation properties
     [JsonIgnore] public Project? Project { get; set; }
     [JsonIgnore] public Resource? Resource { get; set; }
