@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using KnowledgeBank.Responses;
 using System.Text;
 using System.Text.Json;
+using Azure.Storage.Blobs.Specialized;
 
 namespace backend.Tests.Integration;
 
@@ -650,8 +651,18 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(initResponse.Body, Is.Not.Null);
         Guid resourceId = (Guid)initResponse.Body;
 
+        string fileType = Filetype.ConvertExtensionToFiletype(".txt"); // Assuming a helper or direct value
+        string blockId = "block001";
+        byte[] chunkData = Encoding.UTF8.GetBytes("This is a file chunk.");
+        _controller.ControllerContext.HttpContext = new DefaultHttpContext();
+        _controller.Request.Body = new MemoryStream(chunkData);
+        _controller.Request.ContentLength = chunkData.Length;
+        await _controller.UploadChunk(resourceId.ToString(), fileType, blockId);
+
         bool existsBeforeCleanup = await _resourceManager.ResourceExistsAsync(resourceId.ToString());
         Assert.That(existsBeforeCleanup, Is.True, "Resource should exist in DB after Init for cleanup test");
+        var blockBlobClient = (await BlobService.GetOrCreateContainerAsync(fileType)).GetBlockBlobClient(resourceId.ToString());
+        Assert.That(blockBlobClient.GetBlockList().Value.UncommittedBlocks, Is.Not.Empty, "Blob should have uncommited blocks before cleanup");
 
         // Act
         ObjectResult? result = await _controller.CleanupFailedUpload(resourceId.ToString()) as ObjectResult;
@@ -664,10 +675,10 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(response.Success, Is.True);
         Assert.That(response.Message, Is.EqualTo("Upload cleaned up successfully"));
 
-        // Verify database entry and blob are removed
+        // Verify database entry is removed, and that there is no blob or staged blocks for the blob after cleanup
         bool existsAfterCleanup = await _resourceManager.ResourceExistsAsync(resourceId.ToString());
         Assert.That(existsAfterCleanup, Is.False);
-        Assert.That(await BlobService.BlobExistsAsync("document", resourceId.ToString()), Is.EqualTo(BLOB_STATUSCODE.NOTFOUND));
+        Assert.That(await BlobService.BlobExistsAsync(fileType, resourceId.ToString()), Is.EqualTo(BLOB_STATUSCODE.NOTFOUND), "There should be no blob after cleanup"); // If there is no blob there are no uncommited blocks
     }
 
     [Test]
