@@ -29,7 +29,7 @@ const skeletonList = [1,2,3,4,5,6,7,8]
 
 export default function BadgeList({
     variant = "outline",
-    className = "p-2",
+    className = "p-2 select-none",
     listType = null, //can be overridden, is used to identify what relation you can add with the plus button
     emptyMessage = "None found",
     itemList,

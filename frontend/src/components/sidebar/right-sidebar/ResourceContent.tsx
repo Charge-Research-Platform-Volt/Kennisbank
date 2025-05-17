@@ -12,12 +12,15 @@ import { useState, use, useEffect } from "react"
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 import ResourceList from "./ResourceList"
+import Link from "next/link"
 
 
 export function ResourceContent()
 {
-    const { currentId, navigate, rightSidebarOpen } = useSidebar();
+    const { currentId, rightSidebarOpen } = useSidebar();
+    const [ resourceType, setResourceType] = useState<string | null>(null);
     const [ title, setTitle ] = useState<string | null>(null);
+    const [ url, setUrl ] = useState<string | undefined>(undefined);
     const [ description, setDescription ] = useState<string | null>(null);
     const [ authors, setAuthors ] = useState<ListItem[] | null>(null);
     const [ tags, setTags ] = useState<ListItem[] | null>(null);
@@ -30,6 +33,8 @@ export function ResourceContent()
 
     useEffect(() => {
         if (rightSidebarOpen) {
+        setResourceType(null);
+        setUrl(undefined);
         setTitle(null);
         setDescription(null);
         setAuthors(null);
@@ -51,6 +56,14 @@ export function ResourceContent()
         const relatedResourcesPromise = getRelatedDocuments(currentId, 10);
     
         infoPromise.then(response => {
+            setResourceType(response.body.fileType);
+            if (response.body.fileType === "website") {
+                const websitePromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "website");
+                
+                websitePromise.then(response => {
+                    setUrl(response.body[0].url);
+                }).catch(error => {console.error("Error loading url: ", error);})
+            }
             setTitle(response.body.title);
             if (response.body.description) {
                 setDescription(response.body.description)
@@ -60,6 +73,8 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading information: ", error);
         });
+        
+        
 
         authorsPromise.then(response => {
             const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
@@ -131,7 +146,13 @@ export function ResourceContent()
 
     return (
         <>
-            <h1 className="pb-2 font-bold">{title || <Skeleton />}</h1>
+            {resourceType === "website" ? (
+                <a href={url} target="_blank" rel="noreferror">
+                    <h1 className="pb-2 font-bold select-none">{title || <Skeleton />}</h1>
+                    <h1 className="pb-2 select-none">{url || <Skeleton />}</h1>
+                </a>
+
+            ) : ( <h1 className="pb-2 font-bold select-none">{title || <Skeleton />}</h1> )}
         
             <Expandable title="Description" collapsedHeight={100}>
                 {description || <Skeleton />}
@@ -158,6 +179,8 @@ export function ResourceContent()
             </Expandable>
 
             <ResourceList header="Related" resources={relatedResources}/>
+
+            {resourceType}
         </>
     )
 }

@@ -494,9 +494,6 @@ namespace KnowledgeBank.Controllers
             if (!ValidityUtil.IsValidId(id))
                 return BadRequest(new ApiResponse(false, "Invalid ID."));
 
-            logger.Information(id);
-            logger.Information(relation);
-
             try
             {
                 // Check if the resource exists
@@ -532,6 +529,11 @@ namespace KnowledgeBank.Controllers
                         relations = await resourceManager.GetAllResourceRelatedPersonRelationsAsync(predicate: r => r.ResourceId.ToString() == id);
                         items = await GetItems<ResourceRelatedPersonRelation, Person>(relations as ResourceRelatedPersonRelation[], async relation => await resourceManager.GetPersonAsync(relation.PersonId));
 
+                        break; case "website":
+                        WebsiteMetadata rel = await resourceManager.GetWebsiteMetadataAsync(id);
+                        items = new object[1];
+                        items[0] = rel;
+
                         break; case "relatedSource":
                         items = await resourceManager.GetAllResourceRelatedSourceRelationsAsync(predicate: r => r.ResourceId.ToString() == id);
 
@@ -547,35 +549,11 @@ namespace KnowledgeBank.Controllers
                         return BadRequest(new ApiResponse(false, $"Invalid relation: {relation}"));
                 }
 
-                object[] results = new object[items.Length];
-
-                logger.Information("Getting relation succesful");
-
-                // Source Dto
-                if (relation == "source" || relation == "relatedSourec")
-                {
-                    results = new object[items.Length];
-                    for (int i = 0; i < items.Length; i++)
-                    {
-                        object resourceDto = DtoGenerator.ToDto(items[i], true, "Url");
-                        results[i] = resourceDto;
-                    }
-                }
-
-                // Dto for every other relation
-                else
-                {
-                    results = new object[items.Length];
-                    for (int i = 0; i < items.Length; i++)
-                    {
-                        object resourceDto = DtoGenerator.ToDto(items[i], true, "Id", "Name");
-                        results[i] = resourceDto;
-                    }
-                }
+                
 
                 // Return the relation
                 logger.Information("Resources relation with ID '{ID}' successfully retrieved.", id);
-                return Ok(new ApiResponse(true, "Succesfully retrieved relation", results));
+                return Ok(new ApiResponse(true, "Succesfully retrieved relation", items));
             }
 
             catch (Exception e)

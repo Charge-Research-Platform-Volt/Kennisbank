@@ -24,6 +24,6 @@ export default function NewBadge({
 
 
     return(
-                <Badge key={-1} onClick={() => addBadge()} variant={variant} style={{ width: '2.05rem', height: '2.05rem'}} ><New style={{ width: '1.7rem', height: '1.7rem' }} className=" text-black" /></Badge>
+                <Badge key={-1} onClick={() => addBadge()} variant={variant} style={{ width: '2.05rem', height: '2.05rem', userSelect: 'none'}} ><New style={{ width: '1.7rem', height: '1.7rem' }} className=" text-black" /></Badge>
     );
 }
