@@ -10,6 +10,7 @@ using System.Linq.Expressions;
 using KnowledgeBank.Utils;
 using KnowledgeBank.Responses;
 using System.Threading.Tasks;
+using System.Reflection.Metadata.Ecma335;
 
 namespace KnowledgeBank.Controllers;
 
@@ -55,6 +56,12 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return BadRequest(new ApiResponse(false, "Language code invalid"));
         }
 
+        if (string.IsNullOrEmpty(dto.ProjectType) || dto.ProjectType != "root")
+        {
+            Log.Error("Type invalid");
+            return BadRequest(new ApiResponse(false, "Type invalid"));
+        }
+
         // Mandatory check: look if project already exists with the same name
         bool projectExists = await projectManager.ProjectExistsAsync(project => project.Title == dto.Title);
 
@@ -88,6 +95,18 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         }
     }
 
+    [HttpGet("get-project")]
+    [SwaggerOperation(
+        Summary = "",
+        Description = ""
+    )]
+    [SwaggerResponse(200, "Projects fetched")]
+    [SwaggerResponse(400, "Bad request")]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetProjects()
+    {
+        return Ok();
+    }
     /// <summary>
     /// Adds a new folder given a name and parent.
     /// </summary>
@@ -204,7 +223,6 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
             // Get the GUID of the user
             Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
-            bool userIsAdmin = User.IsInRole("admin");
 
             // Get the project
             Project? project = await projectManager.GetProjectAsync(projectId, includeProperties: "ProjectCreatorRelations");
@@ -215,11 +233,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                 return NotFound(new ApiResponse(false, "Project not found."));
             }
 
-            // Check if user is creator of project / folder
-            bool userValidation = project.ProjectCreatorRelations?.Any(relation => relation.CreatorId == userId.ToString()) ?? false;
-
             // Check if the user has permission to delete this project
-            if (!userIsAdmin && !userValidation)
+            if (ProjectAuthorizationLevel(userId, project) == "unauthorized")
             {
                 Log.Warning("User {UserId} attempted to delete {id} without permissions.", userId, projectId);
                 return StatusCode(403, new ApiResponse(false, "User cannot delete this project or folder."));
@@ -257,11 +272,11 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     [SwaggerResponse(403, "Forbidden - User cannot update this project")]
     [SwaggerResponse(404, "Project not found")]
     [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> UpdateProperty(string projectId, [FromBody] Dictionary<string, string> updates)
+    public async Task<IActionResult> Update(string projectId, [FromBody] Dictionary<string, object> updates)
     {
         try
         {
-            Log.Information("Updating project name.");
+            Log.Information("Updating project.");
 
             // Make sure we have the required fields
             if (string.IsNullOrEmpty(projectId))
@@ -273,55 +288,44 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             if (updates == null || updates.Count == 0)
                 return BadRequest(new ApiResponse(false, "No updates were provided."));
 
+            // Fetch project, if there is no project, throw an error
             Project? project = await projectManager.GetProjectAsync(projectId, includeProperties: ["ProjectCreatorRelations"]);
+
             if (project == null)
             {
                 Log.Error("Project not found.");
                 return NotFound(new ApiResponse(false, "Project not found."));
             }
 
+            // Then we begin a transaction as we might need to do a rollback
             await projectManager.BeginTransaction();
 
-            foreach (KeyValuePair<string, string> update in updates)
+            foreach (KeyValuePair<string, object> update in updates)
             {
                 string property = update.Key;
-                string newValue = update.Value;
+                object newValue = update.Value;
 
-                if (string.IsNullOrEmpty(newValue))
+                // If the new value is empty, throw an error
+                if (string.IsNullOrEmpty(property) || newValue == null || !ValidUpdate(property, newValue))
                 {
                     await projectManager.Rollback();
-                    Log.Error("Title is required");
-                    return BadRequest(new ApiResponse(false, "Title is required"));
+                    Log.Error("Property empty");
+                    return BadRequest(new ApiResponse(false, "Property empty"));
                 }
 
                 // Check if user is authorized to edit property
                 Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
                 bool userIsAdmin = User.IsInRole("admin");
-                if (!userIsAdmin && !project.ProjectCreatorRelations.Any(relation => relation.CreatorId == userId.ToString()))
+
+                // If user is NOT an admin AND if he is NOT the creator of the folder where the property is updated, then throw an error
+                if (!userIsAdmin && ProjectAuthorizationLevel(userId, project) == "unauthorized")
                 {
                     await projectManager.Rollback();
                     Log.Warning("User {UserId} attempted to update property {property} of {id} without permissions.", userId, property, projectId);
                     return StatusCode(403, new ApiResponse(false, "User cannot update this property."));
                 }
 
-                switch (property)
-                {
-                    case "title":
-                        await projectManager.UpdateProjectAsync(projectId, project => project.Title, newValue);
-                        break;
-                    case "description":
-                        await projectManager.UpdateProjectAsync(projectId, project => project.Description, newValue);
-                        break;
-                    case "note":
-                        await projectManager.UpdateProjectAsync(projectId, project => project.Note, newValue);
-                        break;
-                    case "languagecode": // TODO: stop if wrong statuscode
-                        await UpdateLanguageCode(project, newValue);
-                        break;
-                    default:
-                        Log.Error("Property not found.");
-                        return NotFound(new ApiResponse(false, "Property not found."));
-                }
+                await UpdateProperty(project, property, newValue);
             }
             await projectManager.Commit();
             return Ok(new ApiResponse(true, "property successfully updated"));
@@ -332,12 +336,6 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return StatusCode(500, new ApiResponse(false, "Internal server error."));
         }
     }
-
-
-    // update title => project and folders
-    // update description, note, tags, languagecode => only change root project, no cascading update, fails if applied to folder
-    // update creators => cascading update
-
 
     [HttpPut("add-resource/{projectId}/{resourceId}")]
     [SwaggerOperation(
@@ -421,7 +419,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             bool userIsAdmin = User.IsInRole("admin");
 
             // Check if project and resource exist
-            Project? project = await projectManager.GetProjectAsync(projectId, includeProperties: "ProjectResourcesRelations");
+            Project? project = await projectManager.GetProjectAsync(projectId, includeProperties: ["ProjectResourcesRelations", "ProjectCreatorRelations"]);
 
             if (project == null)
             {
@@ -435,9 +433,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                 return NotFound(new ApiResponse(false, "Resource not found."));
             }
 
-            // Check if user is creator of relation
-            // TODO: Add parent creators permissions
-            bool userValidation = project.ProjectResourcesRelations?.Any(relation => relation.AddedBy == userId) ?? false;
+            // Check if user is creator of relation or creator of folder where the resource is in
+            bool userValidation = (project.ProjectResourcesRelations?.Any(relation => relation.AddedBy == userId) ?? false) || ProjectAuthorizationLevel(userId, project) == "unauthorized";
 
             // Check if the user has permission to delete this project
             if (!userIsAdmin && !userValidation)
@@ -461,40 +458,71 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     }
     #endregion
 
-    // change tags / language code
-    // get projects, with paging, filtering, search, etc.
-    // get contents of project, with paging, filtering, search, etc.
-    // implement delete permissions
+    // TODO
+    // finish update function
+    // get projects, with paging, filtering (upload date + tags), search, etc.
+    // get contents of project, with paging, filtering, search, etc. (applies to both folders and resources)
+
+    // implement delete permissions (current system ==> you can only delete / update if you either created it or the folder/project it is in)
     // prohibit adding same resource twice in same project if they are in subfolders
+
     #region helper functions
-    private async Task<IActionResult> UpdateLanguageCode(Project project, string newCode)
+    // keep in mind, updates to tags and creators are done by just supplying the new tags + creators, so just delete the old ones and make new links
+    private async Task UpdateProperty(Project project, string property, object newValue)
     {
-        // first, we check if the projectid is the one from a root project, since it should only be possible
-        // to edit those from the root project
-        if (project.ParentFolders.Count != 0)
+        // Update the appropiate property based on the type
+        await (property switch
         {
-            Log.Error("Language code can only be changed from root folder.");
-            return BadRequest(new ApiResponse(false, "Language code can only be changed from root folder."));
-        }
-        Queue<Guid> foldersToUpdate = new();
-        foldersToUpdate.Enqueue(project.Id);
+            // Updating general properties
+            // Title can only be updated if the user is authorized, can be changed in both folders and projects
+            "title" => projectManager.UpdateProjectAsync(project.Id, p => p.Title, newValue.ToString()),
+            // Description, note, tags and languagecode can only be changed from the root project, and fail if applied to folder
+            "description" => project.ProjectType == "root" ? projectManager.UpdateProjectAsync(project.Id, p => p.Description, newValue.ToString()) : throw new UnauthorizedAccessException("User cannot update property used in folder."),
+            "note" => project.ProjectType == "root" ? projectManager.UpdateProjectAsync(project.Id, p => p.Note, newValue.ToString()) : throw new UnauthorizedAccessException("User cannot update property used in folder."),
+            "languagecode" => project.ProjectType == "root" ? projectManager.UpdateProjectAsync(project.Id, p => p.LanguageCode, newValue.ToString()) : throw new UnauthorizedAccessException("User cannot update property used in folder."),
 
-        while (foldersToUpdate.Count != 0)
-        {
-            // Get folder to change language code of
-            Project folderToUpdate = await projectManager.GetProjectAsync(folder => folder.Id == foldersToUpdate.Dequeue());
+            // Updating relations
+            "tags" => project.ProjectType == "root" ? projectManager.UpdateProjectAsync(project.Id, p => p.ProjectTagRelations, newValue) : throw new UnauthorizedAccessException("User cannot update property used in folder."),
+            // Creators need to updated with a cascading update to make sure permissions are okay
+            // "creators" => projectManager.UpdateProjectCascadingAsync(project.Id, p => p.Creators, newValue),
 
-            // Change languagecode
-            await projectManager.UpdateProjectAsync(folderToUpdate.Id, project => project.LanguageCode, newCode);
-
-            // Enqueue subfolders
-            await projectManager.GetAllFolders(relation => relation.ParentId == folderToUpdate.Id);
-        }
-        return Ok(new ApiResponse(true, "Language code changed successfully"));
+            // Default
+            _ => throw new ArgumentException($"Cannot update property: {property}")
+        });
     }
 
+    private string ProjectAuthorizationLevel(Guid? user, Project project)
+    {
+        // TODO: make constants of these
+        if (user == null)
+            return "unauthorized";
+        if (User.IsInRole("admin"))
+            return "admin";
+        string level = "unauthorized";
+        if (project.ProjectCreatorRelations?.Any(r => r.CreatorId == user.ToString()) ?? false)
+            level = "creator";
+        return level;
+    }
 
-
+    private bool ValidUpdate(string prop, object val)
+    {
+        switch (prop)
+        {
+            case "title":
+            case "note":
+            case "description":
+                return string.IsNullOrEmpty(val.ToString());
+            case "languagecode": // won't evaluate the second part if val is null
+                return string.IsNullOrEmpty(val.ToString()) && val.ToString().Length == 2;
+            case "creators":
+                return ((string[])val).Length > 0;
+            case "tags":
+                return ((Guid[])val).Length > 0;
+            default:
+                throw new ArgumentException($"Cannot update property: {prop}");
+        }
+        ;
+    }
 
     #endregion
 
