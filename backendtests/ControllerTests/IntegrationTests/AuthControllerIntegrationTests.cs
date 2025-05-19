@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 using KnowledgeBank.Utils;
 using System.Net;
 using System.Security.Claims;
+using Microsoft.Extensions.Configuration;
 
 namespace backend.Tests.Integration;
 
@@ -25,6 +26,8 @@ public class AuthControllerTests : TestBase
     private Mock<IUserClaimsPrincipalFactory<User>> _mockUserClaimsPrincipalFactory;
     private Mock<HttpContext> _mockHttpContext;
     private UserStore<User> _userStore;
+    private Mock<MailUtils> _mockMailUtils;
+    private Mock<IConfiguration> _mockConfig;
 
     protected override Task SeedTemplateDatabase(DatabaseContext context)
     {
@@ -69,7 +72,12 @@ public class AuthControllerTests : TestBase
             null, null, null, null
         );
 
-        _controller = new AuthController(_signInManager, Context);
+        _mockMailUtils = new Mock<MailUtils>("mock", 13_15_3_11 , "mock", "mock", "mock");
+        _mockConfig = new Mock<IConfiguration>();
+        _mockConfig.Setup(m => m["HOST_URL"]).Returns("http://localhost:3000");
+
+        // TODO: FIX
+        _controller = new AuthController(_mockConfig.Object, _signInManager, Context, _mockMailUtils.Object);
     }
 
     protected override Task OnTestTearDown()
@@ -83,9 +91,10 @@ public class AuthControllerTests : TestBase
     public async Task SendInvitation_CreatesInvitation_WithCorrectParameters()
     {
         // Arrange
-        string email = "test@test.nl";
+        string email = "email@example.nl";
         string hashedEmail = ShaUtils.Sha256(email);
         DateTime startTime = DateTime.UtcNow;
+        _mockMailUtils.Setup(m => m.SendMail(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()));
 
         // Act
         IActionResult result = await _controller.Invite(email);
@@ -434,7 +443,7 @@ public class AuthControllerTests : TestBase
             .Setup(sm => sm.SignOutAsync())
             .Returns(Task.CompletedTask);
         
-        _controller = new AuthController(mockSignInManager.Object, Context);
+        _controller = new AuthController(_mockConfig.Object, mockSignInManager.Object, Context, _mockMailUtils.Object);
 
         // Simulate an authenticated user
         List<Claim> claims = new List<Claim> { new Claim(ClaimTypes.Name, "test@test.nl") };
@@ -473,7 +482,7 @@ public class AuthControllerTests : TestBase
             null, null, null, null
         );
         
-        _controller = new AuthController(mockSignInManager.Object, Context);
+        _controller = new AuthController(_mockConfig.Object, mockSignInManager.Object, Context, _mockMailUtils.Object);
 
         // Simulate an authenticated user
         List<Claim> claims = new List<Claim> { new Claim(ClaimTypes.Name, "test@test.nl") };
