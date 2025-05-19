@@ -6,6 +6,7 @@ import { Tag } from "@/types/tag.type";
 import { DeleteTag, ApproveTag, MakeStandardized } from "@/actions/tagActions";
 import AdminIcon from "@/icons/tag-icons/admin-tag";
 import DeleteIcon from "@/icons/delete-icon";
+import { useUserRole } from "@/context/user-role-context";
 
 export function ApproveTagButton({ tag }: { tag: Tag }) {
   return (
@@ -35,7 +36,9 @@ export function ConvertTagButton({ tag }: { tag: Tag }) {
   );
 }
 
-export function DeleteTagButton({ tag, userRole }: { tag: Tag, userRole: string }) {
+export function DeleteTagButton({ tag }: { tag: Tag }) {
+  const { userRole } = useUserRole();
+
   if (tag && tag.canEditAndDelete || userRole == "admin") {
     return (
       <ActionButton<string>
