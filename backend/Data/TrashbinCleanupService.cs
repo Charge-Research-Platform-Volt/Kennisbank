@@ -1,6 +1,7 @@
 using KnowledgeBank.Data;
 using Microsoft.EntityFrameworkCore;
 using KnowledgeBank.Utils;
+using KnowledgeBank.Models;
 
 /// <summary>
 /// A background service that runs daily to clean up archived resources from the database.
@@ -26,15 +27,15 @@ public class TrashbinCleanupService : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await WaitUntilUtils.WaitUntilNextRun(new TimeSpan(0, 0, 0), stoppingToken); // Run at midnight
+            await WaitUntilUtils.WaitUntilTime(new TimeSpan(0, 0, 0), stoppingToken); // Run at midnight
 
             using (var scope = _serviceProvider.CreateScope())
             {
-                var dbContext = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+                DatabaseContext dbContext = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
 
-                DateTime threshold = DateTime.UtcNow.AddDays(-30);
+                DateTime threshold = DateTime.UtcNow.AddMinutes(-1);
 
-                var oldResources = await dbContext.Resources
+                List<Resource> oldResources = await dbContext.Resources
                     .Where(r => r.ArchiveDate < threshold)
                     .ToListAsync(stoppingToken);
 
@@ -45,7 +46,7 @@ public class TrashbinCleanupService : BackgroundService
                 }
             }
 
-            await Task.Delay(TimeSpan.FromDays(1), stoppingToken);
+            await WaitUntilUtils.WaitUntilTime(new TimeSpan(0, 0, 0), stoppingToken); 
         }
     }
 }
