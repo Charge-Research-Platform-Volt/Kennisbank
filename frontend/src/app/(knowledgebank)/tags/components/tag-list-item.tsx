@@ -13,6 +13,7 @@ import AdminIcon from "@/icons/tag-icons/admin-tag";
 import { TagActionButtons } from "./tag-action-buttons";
 import { TagMergeButton } from "./merge-tags-popup";
 import { UserRoleProvider } from "@/context/user-role-context";
+import { useUserRole } from "@/context/user-role-context";
 
 
 const initialStateTag: FormResponse<TagRenameDto> = {
@@ -32,6 +33,8 @@ const initialStateTag: FormResponse<TagRenameDto> = {
  * @returns {ReactElement} The rendered tag list item
  */
 export default function TagListItem({ tag }: { tag: Tag }) {
+  const { userRole } = useUserRole();
+
   const [saveTagState, saveTagAction, savingTagIsPending] = useActionState(RenameTag, initialStateTag);
 
   const [tagName, setTagName] = useState(tag.name);
@@ -110,7 +113,7 @@ export default function TagListItem({ tag }: { tag: Tag }) {
               </div>
 
               <div className="flex items-center">
-                <TagMergeButton tag={tag}></TagMergeButton>
+                {userRole == "admin" ? (<TagMergeButton tag={tag}></TagMergeButton>) : null}
                 <TagActionButtons
                   tag={tag}
                   onEditClick={handleEditClick}
