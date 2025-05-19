@@ -11,6 +11,10 @@ using KnowledgeBank.Utils;
 using KnowledgeBank.Responses;
 using System.Threading.Tasks;
 using System.Reflection.Metadata.Ecma335;
+using Microsoft.EntityFrameworkCore.Storage.Json;
+using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace KnowledgeBank.Controllers;
 
@@ -95,16 +99,59 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         }
     }
 
-    [HttpGet("get-project")]
+    [HttpPost("get-project")]
     [SwaggerOperation(
-        Summary = "",
-        Description = ""
+        Summary = "Retrieves projects",
+        Description = "Retrieves projects, given a query, and a dto to filter on"
     )]
     [SwaggerResponse(200, "Projects fetched")]
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> GetProjects()
+    public async Task<IActionResult> GetProjects([FromBody] FilterProjectDto dto)
     {
+        // Validate paging parameters if using paging
+        if (dto.UsePaging)
+        {
+            if (dto.PageIndex < 1)
+                return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1."));
+
+            if (dto.PageSize < 1)
+                return BadRequest(new ApiResponse(false, "PAge size cannot be lower than 1."));
+        }
+
+        Expression<Func<Project, bool>> predicate = BuildPredicate(dto);
+        Project[]? projects;
+        if (dto.UsePaging)
+        {
+            projects = await projectManager.GetProjectPageAsync(
+                pageIndex: dto.PageIndex,
+                pageSize: dto.PageSize,
+                predicate: predicate,
+                includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations"]
+            );
+        }
+        else
+        {
+            projects = await projectManager.GetAllProjectsAsync(
+                predicate: predicate,
+                includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations"]
+            );
+        }
+        if (projects == null || projects.Length == 0)
+        {
+            if(dto.UsePaging && dto.PageIndex > 1)
+                return BadRequest(new ApiResponse(false, "The page index is invalid"));
+            else{
+                return Ok(new ApiResponse(true, "No projects found"));            }
+        }
+
+        if(dto.UsePaging)
+        {
+            // calculate the total number of projects
+            int totalCount = await projectManager.ProjectCount(predicate);
+            int pageCount = (int)Math.Ceiling((double)totalCount/dto.PageSize);
+            return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", new ProjectPageResponse(projects, dto.PageIndex, dto.PageSize, pageCount)));
+        }
         return Ok();
     }
     /// <summary>
@@ -305,6 +352,15 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                 string property = update.Key;
                 object newValue = update.Value;
 
+                List<string> Ids = new List<string>();
+
+                if (property == "creators" || property == "tags")
+                {
+                    JsonElement JsonArray = (JsonElement)newValue;
+                    Ids = JsonArray.Deserialize<List<string>>() ?? throw new Exception("Could not parse JSONArray to strings");
+                    newValue = Ids;
+                }
+
                 // If the new value is empty, throw an error
                 if (string.IsNullOrEmpty(property) || newValue == null || !ValidUpdate(property, newValue))
                 {
@@ -459,12 +515,9 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     #endregion
 
     // TODO
-    // finish update function
+    // remove language code / note
     // get projects, with paging, filtering (upload date + tags), search, etc.
     // get contents of project, with paging, filtering, search, etc. (applies to both folders and resources)
-
-    // implement delete permissions (current system ==> you can only delete / update if you either created it or the folder/project it is in)
-    // prohibit adding same resource twice in same project if they are in subfolders
 
     #region helper functions
     // keep in mind, updates to tags and creators are done by just supplying the new tags + creators, so just delete the old ones and make new links
@@ -482,9 +535,9 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             "languagecode" => project.ProjectType == "root" ? projectManager.UpdateProjectAsync(project.Id, p => p.LanguageCode, newValue.ToString()) : throw new UnauthorizedAccessException("User cannot update property used in folder."),
 
             // Updating relations
-            "tags" => project.ProjectType == "root" ? projectManager.UpdateProjectAsync(project.Id, p => p.ProjectTagRelations, newValue) : throw new UnauthorizedAccessException("User cannot update property used in folder."),
+            "tags" => project.ProjectType == "root" ? projectManager.UpdateProjectTagsAsync(project.Id, ((List<string>)newValue).ToArray()) : throw new UnauthorizedAccessException("User cannot update property used in folder."),
             // Creators need to updated with a cascading update to make sure permissions are okay
-            // "creators" => projectManager.UpdateProjectCascadingAsync(project.Id, p => p.Creators, newValue),
+            "creators" => projectManager.UpdateProjectCreatorsAsync(project.Id, ((List<string>)newValue).ToArray()),
 
             // Default
             _ => throw new ArgumentException($"Cannot update property: {property}")
@@ -515,15 +568,43 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             case "languagecode": // won't evaluate the second part if val is null
                 return string.IsNullOrEmpty(val.ToString()) && val.ToString().Length == 2;
             case "creators":
-                return ((string[])val).Length > 0;
             case "tags":
-                return ((Guid[])val).Length > 0;
+                return ((List<string>)val).Count > 0;
             default:
                 throw new ArgumentException($"Cannot update property: {prop}");
         }
         ;
     }
 
+    private Expression<Func<Project, bool>>? BuildPredicate(FilterProjectDto dto)
+    {
+        Expression<Func<Project, bool>>? predicate = null;
+        predicate = PredicateBuilder.AddAnd(predicate, project => project.ProjectType == "root");
+
+        if (dto.StartDate.HasValue && dto.EndDate.HasValue)
+        {
+            predicate = PredicateBuilder.AddAnd(predicate, project => dto.StartDate < project.CreationDate && project.CreationDate < dto.EndDate);
+        }
+
+        if (!string.IsNullOrEmpty(dto.CreatedBy))
+        {
+            predicate = PredicateBuilder.AddAnd(predicate, project => project.ProjectCreatorRelations.Any(rel => rel.CreatorId == dto.CreatedBy));
+        }
+
+        if (!string.IsNullOrEmpty(dto.SearchQuery))
+        {
+            predicate = PredicateBuilder.AddAnd(predicate, project => project.Title.Contains(dto.SearchQuery));
+        }
+
+        if (dto.Tags != null)
+        {
+            foreach (Guid tag in dto.Tags)
+            {
+                predicate = PredicateBuilder.AddAnd(predicate, project => project.ProjectTagRelations.Any(rel => dto.Tags.Contains(rel.TagId)));
+            }
+        }
+        return predicate;
+    }
     #endregion
 
 }

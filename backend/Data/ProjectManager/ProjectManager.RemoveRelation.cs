@@ -81,7 +81,15 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> RemoveAllCreatorsFromProject(Guid projectId)
         {
-            await DeleteAllWhereAsync(database.ProjectCreatorRelations, relation => relation.ProjectId == projectId);
+            Queue<Guid> projectsToUpdate = new Queue<Guid>();
+            projectsToUpdate.Enqueue(projectId);
+
+            while (projectsToUpdate.Count > 0)
+            {
+                Guid id = projectsToUpdate.Dequeue();
+                (await GetAllFolders(predicate: p => p.ParentId == id)).Select(r => r.ChildId).ToList().ForEach(projectsToUpdate.Enqueue);
+                await DeleteAllWhereAsync(database.ProjectCreatorRelations, relation => relation.ProjectId == id);
+            }
             return true;
         }
 

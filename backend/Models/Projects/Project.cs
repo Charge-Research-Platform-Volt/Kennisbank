@@ -60,10 +60,34 @@ public class ProjectCreateDto // Data Transfer Object (DTO)
     public string[] Creators { get; set; } = [];
 }
 
-public class ProjectRenameDto
+public class FilterProjectDto
 {
-    public required string Id { get; set; }
-    public required string Title { get; set; }
+    // Pagination
+    public bool UsePaging { get; set; } = false;
+    public int PageIndex { get; set; } = 1;
+    public int PageSize { get; set; } = 100;
+
+    //Filtering
+    public string? SearchQuery { get; set; } = null;
+    public string? CreatedBy { get; set; } = null;
+    public DateTime? StartDate { get; set; } = null;
+    public DateTime? EndDate { get; set; } = null;
+    public Guid[]? Tags { get; set; } = null;
+}
+
+public class ProjectPageResponse
+{
+    public Project[] Projects { get; set; } = [];
+    public int? PageIndex { get; set; }
+    public int? PageSize { get; set; }
+    public int? PageCount { get; set; }
+    public ProjectPageResponse( Project[] projects, int? pageIndex = null, int? pageSize = null, int? pageCount = null)
+    {
+        this.PageIndex = pageIndex;
+        this.PageSize = pageSize;
+        this.Projects = projects;
+        this.PageCount = pageCount;
+    }
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

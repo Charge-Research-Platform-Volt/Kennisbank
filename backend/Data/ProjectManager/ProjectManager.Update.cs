@@ -41,15 +41,85 @@ namespace KnowledgeBank.Data
 
         #endregion
 
-        #region Language Code
-        // public async Task<bool> UpdateLanguageCodeAsync<T>(Guid id, Expression<Func<Project, T>> propertySelector, T newValue)
-        // { return await UpdateLanguageCodeAsync(database.Projects, resource => resource.Id == id, propertySelector, newValue) > 0; }
+        #region Cascading
+        // public async Task<bool> UpdateProjectCascadingAsync<T, TProperty>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate, Guid id, Expression<Func<T, TProperty>> propertySelector, TProperty newValue)
+        // {
+        //     // get project
+        //     // update project
+        //     Queue<Guid> toUpdate = new Queue<Guid>();
+        //     toUpdate.Enqueue(id);
 
-        // public async Task<bool> UpdateLanguageCodeAsync<T>(string id, Expression<Func<Project, T>> propertySelector, T newValue)
-        // { return await UpdateLanguageCodeAsync(Guid.Parse(id), propertySelector, newValue); }
+        //     while (toUpdate.Count > 0)
+        //     {
+        //         Guid update = toUpdate.Dequeue();
+        //         await dbSet.Where(predicate).ExecuteUpdateAsync(s => s.SetProperty(e => EF.Property<TProperty>(e, GetPropertyName(propertySelector)), _ => newValue));
 
-        // public async Task<bool> UpdateLanguageCodeAsync<T>(Expression<Func<Project, bool>> predicate, Expression<Func<Project, T>> propertySelector, T newValue)
-        // { return await UpdateLanguageCodeAsync(database.Projects, predicate, propertySelector, newValue) > 0; }
+        //         await UpdateProjectAsync(update, propertySelector, newValue);
+        //         ProjectFolderRelation[] newFolders = await GetAllFolders(predicate: rel => rel.ParentId == id);
+        //         for (int x = 0; x < newFolders.Length; x++)
+        //         {
+        //             toUpdate.Enqueue(newFolders[x].ChildId);
+        //         }
+        //     }
+        //     return true;
+        // }
+
+        // public async Task<bool> UpdateProjectCascadingAsync<T>(DbSet<T> dbSet, string id, Expression<Func<Project, T>> propertySelector, T newValue)
+        // {
+        //     return await UpdateProjectCascadingAsync(dbSet, Guid.Parse(id), propertySelector, newValue);
+        // }
+
+        #region Tags
+
+        public async Task<bool> UpdateProjectTagsAsync(Guid id, Guid[] newValue)
+        {
+            await RemoveAllTagsFromProject(id);
+            await AddTagToProjectRangeAsync(id, newValue);
+            return true;
+        }
+
+        public async Task<bool> UpdateProjectTagsAsync(string id, string[] newValue)
+        {
+            return await UpdateProjectTagsAsync(Guid.Parse(id), newValue.Select(Guid.Parse).ToArray());
+        }
+
+        public async Task<bool> UpdateProjectTagsAsync(Guid id, string[] newValue)
+        {
+            return await UpdateProjectTagsAsync(id, newValue.Select(Guid.Parse).ToArray());
+        }
+
+        public async Task<bool> UpdateProjectTagsAsync(string id, Guid[] newValue)
+        {
+            return await UpdateProjectTagsAsync(Guid.Parse(id), newValue);
+        }
+        #endregion
+
+        #region Creators
+
+        public async Task<bool> UpdateProjectCreatorsAsync(Guid id, Guid[] newValue)
+        {
+            await RemoveAllCreatorsFromProject(id);
+            await AddCreatorToProjectRangeAsync(id, newValue);
+            return true;
+        }
+
+        public async Task<bool> UpdateProjectCreatorsAsync(string id, string[] newValue)
+        {
+            return await UpdateProjectCreatorsAsync(Guid.Parse(id), newValue.Select(Guid.Parse).ToArray());
+        }
+
+        public async Task<bool> UpdateProjectCreatorsAsync(Guid id, string[] newValue)
+        {
+            return await UpdateProjectCreatorsAsync(id, newValue.Select(Guid.Parse).ToArray());
+        }
+
+        public async Task<bool> UpdateProjectCreatorsAsync(string id, Guid[] newValue)
+        {
+            return await UpdateProjectCreatorsAsync(Guid.Parse(id), newValue);
+        }
+
+        #endregion
+
         #endregion
     }
 }

@@ -58,22 +58,30 @@ namespace KnowledgeBank.Data
         // Range
         public async Task AddCreatorToProjectRangeAsync(Guid projectId, Guid[] userIds)
         {
+            // Is cascading
             if (userIds.Length == 0) return;
 
             bool startedTransaction = await BeginTransaction();
 
-            ProjectCreatorRelation[] creatorRelations = new ProjectCreatorRelation[userIds.Length];
+            Queue<Guid> projectsToUpdate = new Queue<Guid>();
+            projectsToUpdate.Enqueue(projectId);
 
-            for (int i = 0; i < userIds.Length; i++)
+            while (projectsToUpdate.Count > 0)
             {
-                creatorRelations[i] = new()
-                {
-                    ProjectId = projectId,
-                    CreatorId = userIds[i].ToString()
-                };
-            }
+                ProjectCreatorRelation[] creatorRelations = new ProjectCreatorRelation[userIds.Length];
+                Guid id = projectsToUpdate.Dequeue();
 
-            await database.ProjectCreatorRelations.AddRangeAsync(creatorRelations);
+                for (int i = 0; i < userIds.Length; i++)
+                {
+                    creatorRelations[i] = new()
+                    {
+                        ProjectId = id,
+                        CreatorId = userIds[i].ToString()
+                    };
+                }
+                (await GetAllFolders(predicate: p => p.ParentId == id)).Select(r => r.ChildId).ToList().ForEach(projectsToUpdate.Enqueue);
+                await database.ProjectCreatorRelations.AddRangeAsync(creatorRelations);
+            }
 
             if (startedTransaction) await Commit();
         }

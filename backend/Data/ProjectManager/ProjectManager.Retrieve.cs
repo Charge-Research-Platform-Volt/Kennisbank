@@ -1,4 +1,5 @@
 using KnowledgeBank.Models;
+using KnowledgeBank.Utils;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -104,6 +105,8 @@ namespace KnowledgeBank.Data
 
             return await query.Select(selector).FirstOrDefaultAsync();
         }
+        public async Task<int> ProjectCountAsync(Expression<Func<Project, bool>>? predicate = null)
+        { return await GetCount(database.Projects, predicate); }
 
         private readonly Expression<Func<Project, object>> projectDefaultOrderBy = project => project.CreationDate;
         private const bool projectDefaultOrderDescending = true;
