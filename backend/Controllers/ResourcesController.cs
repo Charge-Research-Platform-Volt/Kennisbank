@@ -182,7 +182,7 @@ namespace KnowledgeBank.Controllers
         /// </summary>
         /// <param name="id">The ID of the resource</param>
         [HttpPatch("archive/{id}")]
-        [Authorize(Policy = "RequireAdminRole")]
+        [Authorize]
         [SwaggerOperation(Summary = "Archives a resource.")]
         [SwaggerResponse(200, "Resource archived successfully", typeof(ApiResponse))]
         [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
@@ -567,6 +567,9 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
         public async Task<IActionResult> List(int? pageIndex, int? pageSize, bool archived = false) 
         {
+            if(archived && !User.IsInRole("admin"))
+                return Unauthorized(new ApiResponse(false, "You are not authorized to view archived resources."));
+
             // Verification
             if (pageIndex != null && pageIndex < 1)
                 return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1."));

@@ -60,6 +60,18 @@ export default function ListResources({ data, initialLoadingComplete }: { data: 
     };
   }, []);
 
+  useEffect(() => {
+    const api = gridApiRef.current;
+    if (!api) return;
+    api.hideOverlay();
+    if(data.resources.length > 0){
+      api.hideOverlay();
+    }
+    else{
+      api.showNoRowsOverlay();
+    }
+  }, [initialLoadingComplete, data.resources]);
+
   // if on row clicked, deselect all and select the clicked row (if sidebar was closed)
   const onRowClicked = (e: RowClickedEvent) => {
     // do nothing if the download button is clicked
