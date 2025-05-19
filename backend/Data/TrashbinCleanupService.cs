@@ -33,7 +33,7 @@ public class TrashbinCleanupService : BackgroundService
             {
                 DatabaseContext dbContext = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
 
-                DateTime threshold = DateTime.UtcNow.AddMinutes(-1);
+                DateTime threshold = DateTime.UtcNow.AddDays(-30);
 
                 List<Resource> oldResources = await dbContext.Resources
                     .Where(r => r.ArchiveDate < threshold)
