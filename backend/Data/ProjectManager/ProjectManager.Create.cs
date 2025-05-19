@@ -17,10 +17,8 @@ namespace KnowledgeBank.Data
                 Id = projectId,
                 Title = dto.Title,
                 Description = dto.Description,
-                LanguageCode = dto.LanguageCode,
                 CreationDate = dto.CreationDate,
                 DeletionDate = dto.DeletionDate,
-                Note = dto.Note,
                 ProjectType = dto.ProjectType
             };
 

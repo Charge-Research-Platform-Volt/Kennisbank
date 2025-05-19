@@ -17,18 +17,11 @@ public class Project
     [Column("description")]
     public string? Description { get; set; }
 
-    [Column("language-code")]
-    [MaxLength(2)]
-    public required string LanguageCode { get; set; }
-
     [Column("creation-date")]
     public required DateTime CreationDate { get; set; }
 
     [Column("deletion-date")]
     public required DateTime DeletionDate { get; set; }
-
-    [Column("note")]
-    public string? Note { get; set; }
 
     [Column("project-type")]
     [MaxLength(10)]
@@ -51,10 +44,8 @@ public class ProjectCreateDto // Data Transfer Object (DTO)
 {
     public required string Title { get; set; }
     public string? Description { get; set; }
-    public required string LanguageCode { get; set; }
     public required DateTime CreationDate { get; set; }
     public required DateTime DeletionDate { get; set; }
-    public string? Note { get; set; }
     public required string ProjectType {get; set;}
     public string[] Tags { get; set; } = [];
     public string[] Creators { get; set; } = [];

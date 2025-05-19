@@ -41,34 +41,6 @@ namespace KnowledgeBank.Data
 
         #endregion
 
-        #region Cascading
-        // public async Task<bool> UpdateProjectCascadingAsync<T, TProperty>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate, Guid id, Expression<Func<T, TProperty>> propertySelector, TProperty newValue)
-        // {
-        //     // get project
-        //     // update project
-        //     Queue<Guid> toUpdate = new Queue<Guid>();
-        //     toUpdate.Enqueue(id);
-
-        //     while (toUpdate.Count > 0)
-        //     {
-        //         Guid update = toUpdate.Dequeue();
-        //         await dbSet.Where(predicate).ExecuteUpdateAsync(s => s.SetProperty(e => EF.Property<TProperty>(e, GetPropertyName(propertySelector)), _ => newValue));
-
-        //         await UpdateProjectAsync(update, propertySelector, newValue);
-        //         ProjectFolderRelation[] newFolders = await GetAllFolders(predicate: rel => rel.ParentId == id);
-        //         for (int x = 0; x < newFolders.Length; x++)
-        //         {
-        //             toUpdate.Enqueue(newFolders[x].ChildId);
-        //         }
-        //     }
-        //     return true;
-        // }
-
-        // public async Task<bool> UpdateProjectCascadingAsync<T>(DbSet<T> dbSet, string id, Expression<Func<Project, T>> propertySelector, T newValue)
-        // {
-        //     return await UpdateProjectCascadingAsync(dbSet, Guid.Parse(id), propertySelector, newValue);
-        // }
-
         #region Tags
 
         public async Task<bool> UpdateProjectTagsAsync(Guid id, Guid[] newValue)
@@ -92,6 +64,7 @@ namespace KnowledgeBank.Data
         {
             return await UpdateProjectTagsAsync(Guid.Parse(id), newValue);
         }
+
         #endregion
 
         #region Creators
@@ -117,8 +90,6 @@ namespace KnowledgeBank.Data
         {
             return await UpdateProjectCreatorsAsync(Guid.Parse(id), newValue);
         }
-
-        #endregion
 
         #endregion
     }

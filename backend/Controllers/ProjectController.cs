@@ -54,12 +54,6 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return BadRequest(new ApiResponse(false, "Title is required"));
         }
 
-        if (string.IsNullOrEmpty(dto.LanguageCode) || dto.LanguageCode.Length != 2)
-        {
-            Log.Error("Language code invalid");
-            return BadRequest(new ApiResponse(false, "Language code invalid"));
-        }
-
         if (string.IsNullOrEmpty(dto.ProjectType) || dto.ProjectType != "root")
         {
             Log.Error("Type invalid");
@@ -212,7 +206,6 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         ProjectCreateDto newFolder = new()
         {
             Title = folderName,
-            LanguageCode = parent.LanguageCode,
             CreationDate = DateTime.UtcNow,
             DeletionDate = DateTime.UtcNow,
             ProjectType = "folder",
@@ -531,8 +524,6 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             "title" => projectManager.UpdateProjectAsync(project.Id, p => p.Title, newValue.ToString()),
             // Description, note, tags and languagecode can only be changed from the root project, and fail if applied to folder
             "description" => project.ProjectType == "root" ? projectManager.UpdateProjectAsync(project.Id, p => p.Description, newValue.ToString()) : throw new UnauthorizedAccessException("User cannot update property used in folder."),
-            "note" => project.ProjectType == "root" ? projectManager.UpdateProjectAsync(project.Id, p => p.Note, newValue.ToString()) : throw new UnauthorizedAccessException("User cannot update property used in folder."),
-            "languagecode" => project.ProjectType == "root" ? projectManager.UpdateProjectAsync(project.Id, p => p.LanguageCode, newValue.ToString()) : throw new UnauthorizedAccessException("User cannot update property used in folder."),
 
             // Updating relations
             "tags" => project.ProjectType == "root" ? projectManager.UpdateProjectTagsAsync(project.Id, ((List<string>)newValue).ToArray()) : throw new UnauthorizedAccessException("User cannot update property used in folder."),
@@ -562,11 +553,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         switch (prop)
         {
             case "title":
-            case "note":
             case "description":
                 return string.IsNullOrEmpty(val.ToString());
-            case "languagecode": // won't evaluate the second part if val is null
-                return string.IsNullOrEmpty(val.ToString()) && val.ToString().Length == 2;
             case "creators":
             case "tags":
                 return ((List<string>)val).Count > 0;
