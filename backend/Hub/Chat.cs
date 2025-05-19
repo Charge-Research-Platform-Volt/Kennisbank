@@ -6,7 +6,6 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
 using SignalRSwaggerGen.Attributes;
-using Swashbuckle.AspNetCore.Annotations;
 
 namespace Hubs;
 
@@ -14,7 +13,7 @@ namespace Hubs;
 // Todo: implement the SignalRHub and see how it results in the documentation website
 
 [SignalRHub]
-[Authorize]
+// [Authorize]
 public class Chat : Hub
 {
     private readonly Serilog.ILogger _logger;
