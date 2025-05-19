@@ -696,9 +696,6 @@ namespace KnowledgeBank.Controllers
             if (Request.Body == null)
                 return BadRequest(new ApiResponse(false, "No chunk data was provided."));
                 
-            if (Request.ContentLength == null || Request.ContentLength == 0)
-                return BadRequest(new ApiResponse(false, "The chunk data was empty."));
-                
             if (string.IsNullOrEmpty(resourceId) || !ValidityUtil.IsValidId(resourceId))
                 return BadRequest(new ApiResponse(false, "Invalid resource ID."));
                 
