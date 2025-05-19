@@ -103,50 +103,60 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> GetProjects([FromBody] FilterProjectDto dto)
     {
-        // Validate paging parameters if using paging
-        if (dto.UsePaging)
+        try
         {
-            if (dto.PageIndex < 1)
-                return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1."));
+            // Validate paging parameters if using paging
+            if (dto.UsePaging)
+            {
+                if (dto.PageIndex < 1)
+                    return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1."));
 
-            if (dto.PageSize < 1)
-                return BadRequest(new ApiResponse(false, "PAge size cannot be lower than 1."));
-        }
+                if (dto.PageSize < 1)
+                    return BadRequest(new ApiResponse(false, "PAge size cannot be lower than 1."));
+            }
 
-        Expression<Func<Project, bool>> predicate = BuildPredicate(dto);
-        Project[]? projects;
-        if (dto.UsePaging)
-        {
-            projects = await projectManager.GetProjectPageAsync(
-                pageIndex: dto.PageIndex,
-                pageSize: dto.PageSize,
-                predicate: predicate,
-                includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations"]
-            );
-        }
-        else
-        {
-            projects = await projectManager.GetAllProjectsAsync(
-                predicate: predicate,
-                includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations"]
-            );
-        }
-        if (projects == null || projects.Length == 0)
-        {
-            if(dto.UsePaging && dto.PageIndex > 1)
-                return BadRequest(new ApiResponse(false, "The page index is invalid"));
-            else{
-                return Ok(new ApiResponse(true, "No projects found"));            }
-        }
+            Expression<Func<Project, bool>> predicate = BuildPredicate(dto);
+            Project[]? projects;
+            if (dto.UsePaging)
+            {
+                projects = await projectManager.GetProjectPageAsync(
+                    pageIndex: dto.PageIndex,
+                    pageSize: dto.PageSize,
+                    predicate: predicate,
+                    includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations"]
+                );
+            }
+            else
+            {
+                projects = await projectManager.GetAllProjectsAsync(
+                    predicate: predicate,
+                    includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations"]
+                );
+            }
+            if (projects == null || projects.Length == 0)
+            {
+                if (dto.UsePaging && dto.PageIndex > 1)
+                    return BadRequest(new ApiResponse(false, "The page index is invalid"));
+                else
+                {
+                    return Ok(new ApiResponse(true, "No projects found"));
+                }
+            }
 
-        if(dto.UsePaging)
-        {
-            // calculate the total number of projects
-            int totalCount = await projectManager.ProjectCount(predicate);
-            int pageCount = (int)Math.Ceiling((double)totalCount/dto.PageSize);
-            return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", new ProjectPageResponse(projects, dto.PageIndex, dto.PageSize, pageCount)));
+            if (dto.UsePaging)
+            {
+                // calculate the total number of projects
+                int totalCount = await projectManager.ProjectCount(predicate);
+                int pageCount = (int)Math.Ceiling((double)totalCount / dto.PageSize);
+                return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", new ProjectPageResponse(projects, dto.PageIndex, dto.PageSize, pageCount)));
+            }
+            return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", projects));
         }
-        return Ok();
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to fetch folders");
+            return StatusCode(500, new ApiResponse(false, "Internal server error"));
+        }
     }
     /// <summary>
     /// Adds a new folder given a name and parent.
