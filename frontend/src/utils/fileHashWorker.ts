@@ -1,4 +1,7 @@
-import { ExistsResponseSchema } from "@/types/storage.type";
+import { ApiResponseSchema } from "@/types/apiResponse.type";
+
+const BACKEND_API_URL = "/api/";
+const BACKEND_API_EXIST_ROUTE = "resources/exists?hash=";
 
 /**
  * Calculates SHA-256 hash of a file on the client browser
@@ -84,18 +87,18 @@ export function createFileHasher() {
 
     // Ask backend if the file already exists
     const urlSafeHash = encodeURIComponent(hash);
-    const response = await fetch(`/api/storage/exists/${urlSafeHash}`, { credentials: "include" });
+    const response = await fetch(BACKEND_API_URL + BACKEND_API_EXIST_ROUTE + urlSafeHash, { credentials: "include" })
 
     // Parse response data and return
     if (response.ok) {
       const rawData = await response.json();
 
       try {
-        const existsResponse = ExistsResponseSchema.parse(rawData);
+        const existsResponse = ApiResponseSchema.parse(rawData);
         return {
           hash,
-          isDuplicate: existsResponse.exists,
-          id: existsResponse.id,
+          isDuplicate: existsResponse.body.exists,
+          id: existsResponse.body.id,
         };
       } catch (error: unknown) {
         if (error instanceof Error) {

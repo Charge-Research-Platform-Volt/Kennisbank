@@ -4,14 +4,12 @@ namespace KnowledgeBank.Responses;
 
 public struct TagPageResponse
 {
-    public string Message { get; }
     public Tag[] Tags { get; }
     public int? PageSize { get; } = null;
     public int? PageIndex { get; } = null;
     public int? PageCount { get; } = null;
-    public TagPageResponse(string message,  Tag[] tags, int? pageIndex = null, int? pageSize = null, int? pageCount = null)
+    public TagPageResponse( Tag[] tags, int? pageIndex = null, int? pageSize = null, int? pageCount = null)
     {
-        this.Message = message;
         this.PageIndex = pageIndex;
         this.PageSize = pageSize;
         this.Tags = tags;

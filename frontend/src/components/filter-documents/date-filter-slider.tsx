@@ -103,7 +103,7 @@ export default function DateFilterSlider( {className, setStartYearAction, setEnd
         <div className="flex gap-2 mt-6">
             <FInput
             data-testid="min_year"
-            className="flex-grow text-white text-center font-ubuntu rounded-lg bg-[#502379] hover:bg-[#6f2aaf]"
+            className="w-1/2 text-white text-center font-ubuntu rounded-lg bg-[#502379] hover:bg-[#6f2aaf]"
             type="text"
             placeholder="Year oldest"
             value={curTextboxRange[0]}
@@ -111,7 +111,7 @@ export default function DateFilterSlider( {className, setStartYearAction, setEnd
             />
             <FInput
             data-testid="max_year"
-            className="flex-grow text-white text-center font-ubuntu rounded-lg bg-[#502379] hover:bg-[#6f2aaf]"
+            className="w-1/2 text-white text-center font-ubuntu rounded-lg bg-[#502379] hover:bg-[#6f2aaf]"
             type="text"
             placeholder="Year newest"
             value={curTextboxRange[1]}

@@ -143,7 +143,7 @@ public class ResourceManagerDeleteTests : TestBase
             PublicationDate = DateTime.UtcNow,
             Tags = [testTagId.ToString()],
             Authors = [testPersonId.ToString()],
-            Organisations = [(testOrganisationId.ToString(), "partner")],
+            Organisations = [new RelatedEntry { Id = testOrganisationId.ToString(), Relation = "partner" }],
             Regions = [testRegionId.ToString()]
         };
 
@@ -244,7 +244,7 @@ public class ResourceManagerDeleteTests : TestBase
             TypeId = resourceType.Id.ToString(),
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
-            Organisations = [(orgId.ToString(), "publisher")]
+            Organisations = [new RelatedEntry { Id = orgId.ToString(), Relation = "publisher" }]
         };
         
         Guid resourceId = await _resourceManager.CreateResourceAsync(resourceDto);

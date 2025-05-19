@@ -109,14 +109,50 @@ test-frontend:
   after_script:
     - *cleanup
 
-# Final cleanup job
+# Cleanup job that only targets containers on the ci_network
 final-cleanup:
   stage: cleanup
   when: always
   script:
-    - docker-compose down -v || true
-    - docker system prune -a -f || true
-    - echo "Cleaned up all resources"
+    # Ensure the docker-compose processes are stopped
+    - docker-compose -p ${COMPOSE_PROJECT_NAME} down -v --remove-orphans || true
+    
+    # Find and stop only containers connected to ci_network
+    - |
+      echo "Finding containers connected to ci_network..."
+      
+      # This command finds all containers connected to the ci_network
+      CONTAINERS_ON_NETWORK=$(docker network inspect ci_network -f '{{range .Containers}}{{.Name}} {{end}}' 2>/dev/null || echo "")
+      
+      if [ -n "$CONTAINERS_ON_NETWORK" ]; then
+        echo "Stopping containers on ci_network: $CONTAINERS_ON_NETWORK"
+        for container in $CONTAINERS_ON_NETWORK; do
+          docker stop $container || true
+          docker rm $container || true
+          echo "Stopped and removed: $container"
+        done
+      else
+        echo "No containers found on ci_network"
+      fi
+    
+    # Remove the network itself if it exists
+    - |
+      if docker network ls | grep -q "ci_network"; then
+        echo "Removing ci_network..."
+        docker network rm ci_network || true
+      else
+        echo "ci_network does not exist"
+      fi
+    
+    # Clean up other resources that might be left by the CI process
+    - |
+      echo "Cleaning up dangling resources..."
+      docker container prune -f
+      docker image prune -a -f
+      docker volume prune -f
+      docker builder prune -a -f
+    
+    - echo "Cleanup completed - released all ports on ci_network"
 
 # This program has been developed by students from the bachelor Computer Science at Utrecht
 # University within the Software Project course.
