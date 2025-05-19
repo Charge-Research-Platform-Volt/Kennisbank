@@ -70,7 +70,67 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
   const [userInput, setUserInput] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [knowledgeBankContent, setKnowledgeBankContent] = useState<boolean>(true);
-  const [chatMessages, setChatMessages] = useState<Messages>([]);
+  const [chatMessages, setChatMessages] = useState<Messages>([
+    {
+      id: Date.now().toString() + "-system",
+      sender: "system",
+      message: `# Heading 1
+
+## Heading 2
+
+### Heading 3
+
+#### Heading 4
+
+##### Heading 5
+
+###### Heading 6
+
+This is a paragraph with some **bold text**, some *italic text*, and some ~~strikethrough text~~.  
+Here is a [link to OpenAI](https://www.openai.com).
+
+---
+
+> This is a blockquote.  
+> It can span multiple lines.
+
+---
+## List Example
+
+- Unordered list item 1
+- Unordered list item 2
+  - Nested unordered item
+- Unordered list item 3
+
+## Ordered List Example
+
+1. Ordered list item 1
+2. Ordered list item 2
+   1. Nested ordered item
+3. Ordered list item 3
+
+---
+## Code Example
+
+Here is an inline code example: \`console.log('Hello, world!');\`
+
+\`\`\`python
+# This is a code block
+def hello():
+    print("Hello, world!")
+\`\`\`
+
+
+## Table Example
+
+| Header 1 | Header 2 | Header 3 |
+|----------|----------|----------|
+| Row 1    | Data     | More     |
+| Row 2    | Data     | More     |
+| Row 3    | Data     | More     |
+`,
+    },
+  ]);
 
   // This ref is used to scroll to the bottom of the chat messages
   const messagesEndRef = useRef<HTMLDivElement | null>(null);

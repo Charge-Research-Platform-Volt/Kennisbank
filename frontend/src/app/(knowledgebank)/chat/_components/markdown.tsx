@@ -2,9 +2,10 @@ import { marked } from "marked";
 import { memo, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { components } from "./_markdown/main";
 
 /**
- * Parses a markdown string into an array of raw markdown blocks.
+ * Parses a markdown string into an array of raw markdown blocks.x
  *
  * This function uses the marked lexer to tokenize the input markdown string
  * and then extracts the raw content of each token.
@@ -33,7 +34,11 @@ function parseMarkdownIntoBlocks(markdown: string): string[] {
  */
 const MemoizedMarkdownBlock = memo(
   ({ content }: { content: string }) => {
-    return <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>;
+    return (
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+        {content}
+      </ReactMarkdown>
+    );
   },
   (prevProps, nextProps) => {
     if (prevProps.content !== nextProps.content) return false;

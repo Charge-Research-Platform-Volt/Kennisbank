@@ -3,7 +3,7 @@ import React from "react";
 
 export default function ChatHistory() {
   return (
-    <Button variant="outline" className="absolute top-2 right-2">
+    <Button variant="outline" className="fixed top-2 right-2">
       History
     </Button>
   );
