@@ -202,7 +202,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         HashSet<string> creators = parent.ProjectCreatorRelations?.Select(relation => relation.CreatorId).ToHashSet() ?? [];
         creators.Add(userId.ToString());
 
-        // Folders don't have descriptions or extra notes (for now), nor do they have 
+        // Folders don't have descriptions (for now)
         ProjectCreateDto newFolder = new()
         {
             Title = folderName,
@@ -508,8 +508,6 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     #endregion
 
     // TODO
-    // remove language code / note
-    // get projects, with paging, filtering (upload date + tags), search, etc.
     // get contents of project, with paging, filtering, search, etc. (applies to both folders and resources)
 
     #region helper functions
@@ -522,7 +520,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             // Updating general properties
             // Title can only be updated if the user is authorized, can be changed in both folders and projects
             "title" => projectManager.UpdateProjectAsync(project.Id, p => p.Title, newValue.ToString()),
-            // Description, note, tags and languagecode can only be changed from the root project, and fail if applied to folder
+            // Description and tags can only be changed from the root project, and fail if applied to folder
             "description" => project.ProjectType == "root" ? projectManager.UpdateProjectAsync(project.Id, p => p.Description, newValue.ToString()) : throw new UnauthorizedAccessException("User cannot update property used in folder."),
 
             // Updating relations
