@@ -3,7 +3,6 @@ import { ResourceCreateDto, WebsiteCreateDto, DocumentCreateDto, VideoCreateDto,
 import { resourceCreateFormSchema } from "@/components/new/NewResource"
 import { ApiResponse } from "@/types/apiResponse.type";
 
-const 
 
 /**
  * Helper function to convert dates to UTC ISO strings
