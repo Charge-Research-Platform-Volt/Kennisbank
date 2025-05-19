@@ -1,18 +1,21 @@
 ﻿using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
+using CsvHelper;
+using CsvHelper.Configuration;
+using CsvHelper.Configuration.Attributes;
 
 namespace KnowledgeBank.Data
 {
     public static class TestDataSeeder
     {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-        private static Random random = new Random();
         private static IAzureBlobService blobService;
-        private static DatabaseContext database;
         private static ResourceManager resourceManager;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         private static string testDataPath = Path.Combine("/app", "testdata") + "/";
+        private static readonly string systemAdminId = "00000000-0000-0000-0000-000000000001";
+
         /// <summary>
         /// Adds test data to the database and blob storage
         /// </summary>
@@ -22,113 +25,315 @@ namespace KnowledgeBank.Data
         {
             using IServiceScope scope = serviceProvider.CreateScope();
             blobService = scope.ServiceProvider.GetRequiredService<IAzureBlobService>();
-            database = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
             resourceManager = scope.ServiceProvider.GetRequiredService<ResourceManager>();
 
-            // await ShamelessCopyOfUpload("path", "title", "");
-            await AddTestAuthor("William Shakespeare", "Librarian", "Lived a long time ago", "william.shakespeare@gmail.com", "@WilliamShakespear");
-            await AddTestAuthor("Donal Trump", "Entertainer", "Hates everyone", "americanumberone@trump.com", "@Idiot");
-            await AddTestAuthor("Ozzy Osbourne", "Rockstar", "Loves drugs", "Ozz.Bourne@gmail.com", "@OzzyOsbourne");
-            await AddTestAuthor("Jan Adriaanszoon Leeghwater", "Windmills", "Insanely good at creating land from oceans", "leeghwater@gmail.com", "@LeeghwaterJan");
-            await AddTestAuthor("Mark Rutte", "NATO BAAS", "Committed treason against the Dutch people", "Markie.Rutte@gmail.com", "@MarkRutte");
-            await ShamelessCopyOfUpload("WRRRaport - Opgave AI.pdf", "Opgave AI. De nieuwe systeemtechnologie", "WRR reageert op de regeringsaanvraag over de impact van AI op publieke waarden. AI wordt gezien als een systeemtechnologie met langdurige, grootschalige en onvoorspelbare effecten, daarom pleit de WRR voor een integrale aanpak met sterke overheidsbetrokkenheid");
-            await ShamelessCopyOfUpload("WP+50v2_+AI+van+repliek+gediend_DEF_DT.pdf", "AI van repliek gediend? Een verkenning van tegenmacht vanuit maatschappelijke organisaties", "");
-            await ShamelessCopyOfUpload("Aandacht+voor+media.+Naar+nieuwe+waarborgen+voor+hun+democratische++functies.pdf", "Aandacht voor media. Naar nieuwe waarborgen voor hun democratische functies", "In dit rapport onderzoekt de WRR de kenmerken en werking van het nieuwe mediasysteem en wat de impact ervan is op de democratie. We concluderen dat de drie democratische functies van media onder druk staan en dat nieuw beleid noodzakelijk is");
-            await ShamelessCopyOfUpload("Mensbeelden+bij+beleid.pdf", "Mensbeelden bij beleid", "Dit essay benadrukt dat beleidsmakers vaak impliciete aannames hebben over wat mensen willen, kunnen en hoe ze zich gedragen. Deze mensbeelden zijn niet altijd realistisch en kunnen leiden tot beleid dat niet aansluit bij de diversiteit van de samenleving. Meer betrekken van burgers bij het beleid dus van belang.");
-            await ShamelessCopyOfUpload("Burgerperspectieven+3e+editie+2024.pdf", "Burgerperspectieven 2024 (bericht 3)", "");
-            await ShamelessCopyOfUpload("Onderzoek+Somber+over+de+samenleving.pdf", "Somber over de samenleving ", "SCP bepleit hier dat mensen die maatschappelijk onbehagen voelen meer een plek moeten krijgen in besluitvorming");
-            await ShamelessCopyOfUpload("Europes-Democracy-Blind-Spots-1.pdf", "Europe's democracy blind spots", "Dit rapport laat het belang zien van democratische vernieuwing voor Europese welvaart en veiligheid.");
-            await ShamelessCopyOfUpload("46e50ca21cbc23de3296d50e6c804b12d4188e2618578283b5c29179924c2096.pdf", "Strengthening democracy through participatory and deliberative processes ", "");
-            await ShamelessCopyOfUpload("Participatory_Democracy_paper_v4.pdf", "Participatory democracy at the EU level: How to break the invisible ceiling", "");
-            await ShamelessCopyOfUpload("FIDE+-+Including+the+underrepresented.pdf", "Including the underrepresented", "");
-            await ShamelessCopyOfUpload("Handreiking-Burgerberaden_okt-2024-v2.pdf", "Handreiking Burgerberaden", "");
-            await ShamelessCopyOfUpload("Essay+Burgers+gelijkwaardig+aan+ontwerptafel+van+beleid.pdf", "Burgers gelijkwaardig aan de ontwerptafel", "");
-            await ShamelessCopyOfUpload("kennedy-et-al-2020-demographics-and-(equal-)-voice-assessing-participation-in-online-deliberative-sessions.pdf", "Demographics and (Equal?) Voice: Assessing Participation in Online Deliberative Sessions", "");
-            await ShamelessCopyOfUpload("1887_3731030-Full Text.pdf", "Stimulering en facilitering van burgerinitiatieven door de overheid: over de invulling van de ‘dienende overheid’ bij derde generatie burgerparticipatie", "");     
+            await SeedOrganisations();
+            await SeedPersons();
+            await SeedResources();
+        }    
+        
+        #region Seed Organisations
+        
+        /// <summary>
+        /// Reads organization data from a CSV file and creates Organisation entities in the database.
+        /// </summary>
+        private static async Task SeedOrganisations()
+        {
+            // Read the CSV file and map it to the OrganisationCreateDto
+            (List<OrganisationCsvRecord> csvRecords, List<OrganisationCreateDto> organisationDtos) = CsvReaderHelper.ReadCsvFile<OrganisationCsvRecord, OrganisationCreateDto>(
+                "Organisations.csv",
+                record => new OrganisationCreateDto
+                {
+                    Name = record.Name,
+                    Description = record.Description,
+                    Website = record.Website,
+                    EmailAddress = record.EmailAddress,
+            });
+            
+            foreach (OrganisationCreateDto dto in organisationDtos)
+            {
+                if (await resourceManager.OrganisationExistsAsync(o => o.Name == dto.Name)) continue;
+                await resourceManager.CreateOrganisationAsync(dto);
+            }
         }
+        
+        #endregion
+        
+        #region Seed Persons
+        
+        /// <summary>
+        /// Reads person data from a CSV file, creates Person entities in the database, and associates them with organizations.
+        /// </summary>
+        private static async Task SeedPersons()
+        {
+            // Read the CSV file and map it to the PersonCreateDto
+            (List<PersonCsvRecord> csvRecords, List<PersonCreateDto> personDtos) = CsvReaderHelper.ReadCsvFile<PersonCsvRecord, PersonCreateDto>(
+                "Persons.csv",
+                record => new PersonCreateDto
+                {
+                    Name = record.Name,
+                    Occupation = record.Occupation,
+                    Description = record.Description,
+                    EmailAddress = record.EmailAddress,
+                    Linkedin = record.Linkedin
+            });
+            
+            // Go through all records and create the persons
+            for (int i = 0; i < csvRecords.Count; i++) 
+            {
+                PersonCsvRecord record = csvRecords[i];
+                PersonCreateDto dto = personDtos[i];
+            
+                // Create the person if it does not exist
+                if (await resourceManager.PersonExistsAsync(p => p.Name == dto.Name)) continue;
+                Guid personId = await resourceManager.CreatePersonAsync(dto);
+                
+                // If the person has organisations, add them
+                if (record.Organisations != null && record.Organisations.Length > 0)
+                {
+                    // Get the organisation names
+                    List<string> organisations = record.Organisations.Split(',').ToList();
+                    
+                    // For each organisation, get the organisation and add the person to it
+                    foreach (string organisationName in organisations) 
+                    {
+                        Organisation? organisation = await resourceManager.GetOrganisationAsync(o => o.Name == organisationName);
+                        
+                        if (organisation != null) 
+                        {
+                            await resourceManager.AddPersonToOrganisationAsync(personId, organisation.Id);
+                        }
+                    }
+                }
+            }
+        }
+        
+        #endregion
+        
+        #region Seed Resources
 
         /// <summary>
-        /// Adds a test data author to the database
+        /// Reads resource data from a CSV file, creates Resource entities in the database, 
+        /// and associates them with tags, authors, and organizations.
         /// </summary>
-        /// <param name="name">Name of author</param>
-        /// <param name="occupation">Occupation of author</param>
-        /// <param name="description">Description of author</param>
-        /// <param name="emailaddress">Email of author</param>
-        /// <param name="linkedin">Linkedin of author</param>
-        /// <returns></returns>
-        private static async Task AddTestAuthor(string name, string occupation, string description, string emailaddress, string linkedin)
+        private static async Task SeedResources()
         {
-            if (await resourceManager.PersonExistsAsync(p => p.Name == name)) return;
-            try
-            {
-                PersonCreateDto dto = new()
+            string extension = ".pdf";
+            string fileType = Filetype.ConvertExtensionToFiletype(extension);
+        
+            // Read the CSV file and map it to the ResourceCreateDto
+            (List<ResourceCsvRecord> csvRecords, List<ResourceCreateDto> resourceDtos) = CsvReaderHelper.ReadCsvFile<ResourceCsvRecord, ResourceCreateDto>(
+                "Resources.csv",
+                record => new ResourceCreateDto
                 {
-                    Name = name,
-                    Occupation = occupation,
-                    Description = description,
-                    EmailAddress = emailaddress,
-                    Linkedin = linkedin,
+                    Title = record.Title, 
+                    Description = record.Description,
+                    TypeId = DatabaseSeeder.UnknownResourceTypeId,
+                    LanguageCode = "EN",
+                    PublicationDate = DateTime.SpecifyKind(DateTime.ParseExact(record.PublicationDate, "yyyy", CultureInfo.InvariantCulture), DateTimeKind.Utc),
+                    License = record.License,
+                    Note = record.Note
+                });
+            
+            for (int i = 0; i < csvRecords.Count; i++)
+            {
+                ResourceCsvRecord record = csvRecords[i];
+                ResourceCreateDto dto = resourceDtos[i];
+                string filePath = testDataPath + record.Title.Replace(" ", " ") + extension;
+
+                await resourceManager.BeginTransaction();
+                
+                if (File.Exists(filePath))
+                {
+                    try
+                    {
+                        // Create resource if it does not exist
+                        if (await resourceManager.ResourceExistsAsync(r => r.Title == dto.Title)) continue;
+                        Guid resourceId = await resourceManager.CreateResourceAsync(dto);
+                        
+                        // Then upload to blob storage
+                        Dictionary<string, string> metadata = new Dictionary<string, string> { { "extension", extension } };
+                        BLOB_STATUSCODE result = await blobService.UploadBlobAsync(fileType, resourceId.ToString(), metadata, File.OpenRead(filePath), false);
+
+                        
+                        // If the resource has tags, add them
+                        if (record.Tags != null && record.Tags.Length > 0)
+                        {
+                            // Get the tag names and capitalize all words
+                            List<string> tags = record.Tags.Split(',').Select(s => CapitalizeWords(s.Trim())).ToList();
+                                                        
+                            foreach (string tagName in tags)
+                            {
+                                Tag? tag = await resourceManager.GetTagAsync(t => t.Name == tagName);
+                                
+                                // If the tag does not exist, create it
+                                Guid tagId = tag?.Id 
+                                    ?? await resourceManager.CreateTagAsync(new TagCreateDto 
+                                        { 
+                                            Name = tagName, 
+                                            CreatedBy = systemAdminId, 
+                                        }, isStandardized: true);
+                            
+                                // Add the tag to the resource
+                                await resourceManager.AddTagToResourceAsync(resourceId, tagId);
+                            }
+                        }
+                        
+                        // If the resource has authors, add them
+                        if (record.Authors != null && record.Authors.Length > 0)
+                        {
+                            // Get the author names and capitalize all words
+                            List<string> authors = record.Authors.Split(',').Select(s => CapitalizeWords(s.Trim())).ToList();
+                            
+                            foreach (string authorName in authors)
+                            {                                
+                                // Get the author and add it to the resource
+                                Person? author = await resourceManager.GetPersonAsync(p => p.Name == authorName);
+                                
+                                // Add the person to the resource
+                                if (author != null)
+                                    await resourceManager.AddRelatedPersonToResourceAsync(resourceId, author.Id);
+                            }
+                        }
+                        
+                        // If the resource has organisations, add them
+                        if (record.ResourceOrganisationRelations != null && record.ResourceOrganisationRelations.Length > 0)
+                        {
+                            // Get the organisation names and capitalize all words
+                            List<string> organisations = record.ResourceOrganisationRelations.Split(',').ToList();
+                            
+                            foreach (string organisationName in organisations)
+                            {
+                                // Get the organisation and add it to the resource
+                                Organisation? organisation = await resourceManager.GetOrganisationAsync(o => o.Name == organisationName);
+                                
+                                // Add the organisation to the resource
+                                if (organisation != null)
+                                    await resourceManager.AddOrganisationToResourceAsync(resourceId, organisation.Id);
+                            }
+                        }
+                        
+                        await resourceManager.Commit();
+                    }
+                    catch (Exception e)
+                    {
+                        await resourceManager.Rollback();
+                        Serilog.Log.Logger.Error(e, "Error uploading file {FileName}.", record.Title);
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"File {filePath} does not exist.");
+                }
+            }
+        }
+        
+        #endregion
+        
+        #region Helper methods
+        
+        /// <summary>
+        /// Helper method to capitalize the first letter of each word in a string
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        private static string CapitalizeWords(string input)
+        {
+            return string.Join(" ", input
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(word => char.ToUpper(word[0]) + word.Substring(1).ToLower()));
+        }
+        
+        /// <summary>
+        /// Helper class to read CSV files and map them to DTOs
+        /// </summary>
+        private static class CsvReaderHelper
+        {        
+            public static (List<TInput> Records, List<TOutput> Dtos) ReadCsvFile<TInput, TOutput>(
+                string filePath,
+                Func<TInput, TOutput> mapFunc)
+            {
+                CsvConfiguration config = new CsvConfiguration(CultureInfo.InvariantCulture)
+                {
+                    PrepareHeaderForMatch = args => args.Header.ToLower(),
+                    HeaderValidated = null,
+                    MissingFieldFound = null
                 };
 
-                await resourceManager.CreatePersonAsync(dto);
+                using StreamReader reader = new StreamReader(testDataPath + filePath);
+                using CsvReader csv = new CsvReader(reader, config);
+
+                List<TInput> records = csv.GetRecords<TInput>().ToList();
+                List<TOutput> dtos = records.Select(mapFunc).ToList();
+                
+                return (records, dtos);
             }
-            catch (Exception e)
-            {
-                Serilog.Log.Logger.Error(e, "Error adding person to document: {name}.");
-            }
+        }
+        
+        /// <summary>
+        /// Helper class to map CSV records to PersonCreateDtos
+        /// </summary>
+        private class PersonCsvRecord
+        {
+            public string Name { get; set; } = string.Empty;
+            public string Occupation { get; set; } = string.Empty;
+            [Name("Description")]
+            public string Description { get; set; } = string.Empty;
+            [Name("Publishing organisation")]
+            public string Organisations { get; set; } = string.Empty;
+            public string EmailAddress { get; set; } = string.Empty;
+            public string Linkedin { get; set; } = string.Empty;
         }
 
         /// <summary>
-        /// Makes a shameless copy of an uploaded file in the testdata and updates the database and blob storage accordingly
+        /// Helper class to map CSV records to OrganisationCreateDtos
         /// </summary>
-        /// <param name="path">Path to the test file</param>
-        /// <param name="title">Name of test file</param>
-        /// <param name="description">Description of test file</param>
-        /// <returns></returns>
-        private static async Task ShamelessCopyOfUpload(string path, string title, string description)
+        private class OrganisationCsvRecord
         {
-            path = testDataPath + path;
-
-            if (await resourceManager.ResourceExistsAsync(r => r.Title == title)) return;
-            DateTime randomDay = new DateTime(1960, 1, 1, 10, 0, 0, 0).AddDays(random.Next(0,22000)).ToUniversalTime(); //DateTime.ParseExact("1960-01-01T12:00:00Z", "yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
-            
-            string extension = Path.GetExtension(path);
-            string fileType = Filetype.ConvertExtensionToFiletype(extension);
-            
-            ResourceCreateDto dto = new()
-            {
-                Title = title,
-                Description = description,
-                LanguageCode = "??",
-                TypeId = DatabaseSeeder.UnknownResourceTypeId,
-                PublicationDate = randomDay,
-            };
-
-            await resourceManager.BeginTransaction();
-
-            Guid id = await resourceManager.CreateResourceAsync(dto);
-
-            try
-            {
-                Dictionary<string, string> metadata = new Dictionary<string, string> { { "extension", extension } };
-                BLOB_STATUSCODE result = await blobService.UploadBlobAsync(fileType, id.ToString(), metadata, File.OpenRead(path), false);
-
-                if (result == BLOB_STATUSCODE.OK)
-                {
-                    await resourceManager.Commit();
-                }else
-                {
-                    await resourceManager.Rollback();
-                }
-                await resourceManager.UpdateResourceAsync(id, r => r.FileType, fileType);
-            }
-            catch (Exception e)
-            {
-                await resourceManager.Rollback();
-                Serilog.Log.Logger.Error(e, "Error uploading file {FileName}.", path);
-            }
+            public string Name { get; set; } = string.Empty;
+            public string Description { get; set; } = string.Empty;
+            public string Website { get; set; } = string.Empty;
+            public string EmailAddress { get; set; } = string.Empty;
+            [Name("Geographical scope / region")]
+            public string Region { get; set; } = string.Empty;
         }
-    }
+
+        /// <summary>
+        /// Helper class to map CSV records to ResourceCreateDtos
+        /// </summary>
+        private class ResourceCsvRecord
+        {
+            [Name("Title / Name")]
+            public string Title { get; set; } = string.Empty;
+            public string Description { get; set; } = string.Empty;
+            [Name("Source Type")]
+            public string TypeId { get; set; } = string.Empty;
+            public string LanguageCode { get; set; } = string.Empty;
+            [Name("Geographical scope / region")]
+            public string GeographicalScope { get; set; } = string.Empty;
+            public string Authors { get; set; } = string.Empty;
+            public string ResourceOrganisationRelations { get; set; } = string.Empty;
+            [Name("Date of publication / recording")]
+            public string PublicationDate { get; set; } = string.Empty;
+            public string Tags { get; set; } = string.Empty;
+            public string Abstract { get; set; } = string.Empty;
+            [Name("DOI / ISBN / ISSN")]
+            public string Identifier { get; set; } = string.Empty;
+            [Name("URL / Source reference")]
+            public string SourceUrl { get; set; } = string.Empty;
+            [Name("Related persons")]
+            public string RelatedPersons { get; set; } = string.Empty;
+            [Name("Related Organization")]
+            public string RelatedOrganisations { get; set; } = string.Empty;
+            [Name("Related Sources")]
+            public string RelatedSources { get; set; } = string.Empty;
+            [Name("License / Usage Rights")]
+            public string License { get; set; } = string.Empty;
+            public string Note { get; set; } = string.Empty;
+        }
+        
+        #endregion
+    }  
 }
 
 
