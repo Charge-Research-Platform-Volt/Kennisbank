@@ -6,6 +6,17 @@ import * as signalR from "@microsoft/signalr";
 import type { Messages } from "@/types/chatbot.type";
 import { toast } from "sonner";
 
+// Sidebar types
+// type SidebarType = QuickViewType | ChatHistoryType;
+
+// interface QuickViewType {
+//   id: string;
+// }
+
+// interface ChatHistoryType {
+//   id: string;
+// }
+
 type ChatBotContextType = {
   // * The userInput is the input provided by the user
   userInput: string;
