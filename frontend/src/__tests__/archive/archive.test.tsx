@@ -81,13 +81,13 @@ describe("Rendering fetch results", () => {
 
     const { getByText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchivePage /></SidebarProvider>);
 
-    await awaitFetchResolve(1);
-
-    expect(getByText(testFile.title)).toBeInTheDocument();
-    expect(getByText(testFile.description)).toBeInTheDocument();
-    expect(getByText(testFile.fileType)).toBeInTheDocument();
-    expect(getByText(getCompareString(testFile.creationDate))).toBeInTheDocument();
-    expect(getByText(getCompareString(testFile.publicationDate))).toBeInTheDocument();
+    await waitFor(() => {
+      expect(getByText(testFile.title)).toBeInTheDocument();
+      expect(getByText(testFile.description)).toBeInTheDocument();
+      expect(getByText(testFile.fileType)).toBeInTheDocument();
+      expect(getByText(getCompareString(testFile.creationDate))).toBeInTheDocument();
+      expect(getByText(getCompareString(testFile.publicationDate))).toBeInTheDocument();
+    });
   });
 
   test("renders error message when fetch fails", async () => {
@@ -227,9 +227,9 @@ async function awaitFetchResolve(times: number = -1) {
     } else {
       expect(fetch).toHaveResolvedTimes(times);
     }
-    // The fetch response is a Promise, so we need to pass priority to the Promise queue, this can be done with this "hack" (resolving a nothing Promise)
-    await Promise.resolve();
   });
+  // The fetch response is a Promise, so we need to pass priority to the Promise queue, this can be done with this "hack" (resolving a nothing Promise)
+  await Promise.resolve();
 }
 
 // Converts a datestring into a string stored inside the backend
