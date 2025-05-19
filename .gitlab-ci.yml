@@ -5,7 +5,7 @@ stages:
 
 variables:
   COMPOSE_PROJECT_NAME: ${CI_PROJECT_NAME}-${CI_PIPELINE_ID}
-  COMPOSE_FILE: docker-compose.ci.yml
+  COMPOSE: docker-compose --env-file .gitlab-ci.env -f docker-compose.yml -f docker-compose.ci.yml
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: ""
 
@@ -64,9 +64,9 @@ default:
     done
 
 .start_backend: &start_backend
-  - docker-compose up -d database storage
+  - ${COMPOSE} up -d database storage
   - *wait_for_database
-  - docker-compose up -d backend
+  - ${COMPOSE} up -d backend
   - *wait_for_backend
 
 .cleanup: &cleanup
@@ -79,7 +79,7 @@ build:
     - *setup_environment
     - *cleanup_environment
   script:
-    - docker-compose build --no-cache
+    - ${COMPOSE} build --no-cache
   artifacts:
     expire_in: 1 hour
 
@@ -91,7 +91,7 @@ test-backend:
     - *setup_environment
   script:
     - *start_backend
-    - docker-compose run --rm backend sh -c 'dotnet build && dotnet test --logger:"console;verbosity=detailed"'
+    - NODE_ENV=development ${COMPOSE} run --rm backend sh -c 'dotnet build && dotnet test --logger:"console;verbosity=detailed"'
   after_script:
     - *cleanup
 
@@ -105,7 +105,7 @@ test-frontend:
     # Start the backend service as frontend tests might need it
     - *start_backend
     # Run frontend tests
-    - docker-compose run --rm frontend sh -c "npm install && npm test -- --run"
+    - NODE_ENV=development ${COMPOSE} run --rm frontend sh -c "npm install && npm test -- --run"
   after_script:
     - *cleanup
 

@@ -173,7 +173,7 @@ namespace KnowledgeBank.Data
         /// <exception cref="InvalidOperationException">Thown when no Azure Storage connection string is configured</exception>
         public AzureBlobService(IConfiguration configuration)
         {
-            string? connectionString = configuration["AZURE_STORAGE_CONNECTION_STRING"];
+            string? connectionString = configuration["STORAGE_CONNECTION_STRING"];
 
             if (string.IsNullOrEmpty(connectionString))
                 throw new InvalidOperationException("Azure Storage connection string not configured.");
