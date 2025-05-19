@@ -131,10 +131,12 @@ namespace KnowledgeBank
 
             app.UseHttpsRedirection();
             app.UseRouting();
-            app.MapHub<Chat>("/chat"); // SignalR hub for chat functionality
             app.UseCors("AllowFrontend");
             app.UseAuthentication();
             app.UseAuthorization();
+
+            // Hub and Controllers must be added after Authentication and Authorization
+            app.MapHub<Chat>("/chat"); // SignalR hub for chat functionality
             app.MapControllers();
 
             app.MapGroup("Auth").MapIdentityApi<User>().WithTags("Auth").WithOpenApi(ConfigureIdentityApiOptions).AddEndpointFilter(async (efiContext, next) =>
@@ -160,6 +162,7 @@ namespace KnowledgeBank
             c.SwaggerDoc("v1", new OpenApiInfo { Title = "KnowledgeBank", Version = "v1" });
             c.EnableAnnotations();
             c.DocumentFilter<HideEndpointFilter>();
+            c.AddSignalRSwaggerGen(); // Add SignalR support for Swagger
         }
 
 
