@@ -10,7 +10,6 @@ namespace KnowledgeBank.Controllers;
 // [Authorize]
 [Route("[controller]")]
 [Produces("application/json")]
-
 public class VectorSearchController : ControllerBase
 {
     private readonly Serilog.ILogger _logger;

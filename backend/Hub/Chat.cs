@@ -1,12 +1,20 @@
 using System.Runtime.CompilerServices;
 using KnowledgeBank.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
+using SignalRSwaggerGen.Attributes;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace Hubs;
 
+
+// Todo: implement the SignalRHub and see how it results in the documentation website
+
+[SignalRHub]
+[Authorize]
 public class Chat : Hub
 {
     private readonly Serilog.ILogger _logger;
@@ -38,9 +46,9 @@ public class Chat : Hub
     /// If the input message is empty or whitespace, the method yields no results and logs a warning.
     /// </remarks>
     public async IAsyncEnumerable<string> StreamAiResponse(
-        string message,
-        bool contentBased,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+            string message,
+            bool contentBased,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         _logger.Information("Streaming AI response for {UserIdentifier}", Context.UserIdentifier);
 

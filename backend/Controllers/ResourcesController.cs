@@ -17,8 +17,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using System.Text.Json;
+using KnowledgeBank.BackgroundServices;
+using KnowledgeBank.Services;
 
-namespace KnowledgeBank.Controllers 
+namespace KnowledgeBank.Controllers
 {
     /// <summary>
     /// This controller is responsible for handing API calls to manage resources and their metadata.
@@ -27,11 +29,19 @@ namespace KnowledgeBank.Controllers
     /// </summary>
     /// <param name="resourceManager">The resource manager service for database interactions</param>
     /// <param name="blobService">The Azure Blob Service for file storage</param>
-    [ApiController] [Route("[controller]")] [Produces("application/json")] [Authorize]
-    public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService) : ControllerBase 
+    /// <param name="taskQueue">The background task queue for processing tasks asynchronously</param>
+    /// <param name="ragSystem">The RAG system for handling document processing</param>
+    [ApiController]
+    [Route("[controller]")]
+    [Produces("application/json")]
+    [Authorize]
+    public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService, IBackgroundTaskQueue taskQueue, IRAGSystem ragSystem) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<ResourcesController>();
-        
+        private readonly IRAGSystem _ragSystem = ragSystem;
+        private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
+
+
         #region New
         /// <summary>
         /// Creates a new resource
@@ -43,10 +53,10 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(409, "Resource already exists", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> New([FromForm] ResourceUploadDto uploadDto) 
+        public async Task<IActionResult> New([FromForm] ResourceUploadDto uploadDto)
         {
             ResourceCreateDto? dto = null;
-            
+
             if (uploadDto.UploadType == "website")
                 dto = JsonSerializer.Deserialize<WebsiteCreateDto>(uploadDto.Dto);
             else if (uploadDto.File != null)
@@ -54,7 +64,7 @@ namespace KnowledgeBank.Controllers
 
             if (dto == null)
                 return BadRequest(new ApiResponse(false, "Invalid DTO sent"));
-        
+
             // Check if there is a title
             if (string.IsNullOrEmpty(dto.Title))
                 return BadRequest(new ApiResponse(false, "No name was provided."));
@@ -70,9 +80,9 @@ namespace KnowledgeBank.Controllers
             // Check if there is a publication date
             if (dto.PublicationDate == DateTime.MinValue)
                 return BadRequest(new ApiResponse(false, "No publication date was provided"));
-                
+
             // Checks for file
-            if (dto is FileResourceCreateDto _fDto) 
+            if (dto is FileResourceCreateDto _fDto)
             {
                 // Check if file was empty
                 if (_fDto.File == null)
@@ -81,14 +91,14 @@ namespace KnowledgeBank.Controllers
                 // Check if the file is empty
                 if (_fDto.File.Length == 0)
                     return BadRequest(new ApiResponse(false, "The uploaded file was empty."));
-                    
+
                 // Check if the filetype is supported
                 if (!Filetype.Supported(Path.GetExtension(_fDto.File.FileName)))
                     return BadRequest(new ApiResponse(false, "Filetype is not supported."));
             }
-            
+
             // Checks for website
-            if (dto is WebsiteCreateDto _wDto) 
+            if (dto is WebsiteCreateDto _wDto)
             {
                 // Check if the URL is empty
                 if (string.IsNullOrEmpty(_wDto.Url))
@@ -100,14 +110,14 @@ namespace KnowledgeBank.Controllers
             }
 
             logger.Information("Creating resource '{Title}'...", dto.Title);
-            
-            try 
+
+            try
             {
                 // Start a transaction on the database, since we are going to perform multiple actions
                 await resourceManager.BeginTransaction();
 
                 // Create the resource in the database and retrieve the ID
-                Guid id = uploadDto.UploadType switch 
+                Guid id = uploadDto.UploadType switch
                 {
                     "website" => await resourceManager.CreateWebsiteAsync((WebsiteCreateDto)dto),
                     "document" => await resourceManager.CreateDocumentAsync((DocumentCreateDto)dto),
@@ -115,17 +125,17 @@ namespace KnowledgeBank.Controllers
                     "video" => await resourceManager.CreateVideoAsync((VideoCreateDto)dto),
                     _ => await resourceManager.CreateResourceAsync(dto)
                 };
-                
+
                 // If the resource is a file, upload it to storage
-                if (dto is FileResourceCreateDto fDto) 
+                if (dto is FileResourceCreateDto fDto)
                 {
                     // Check if file was empty
                     if (fDto.File == null)
                         return BadRequest(new ApiResponse(false, "No file was uploaded."));
-                
+
                     // Get the extension and filetype
                     string extension = Path.GetExtension(fDto.File.FileName);
-                    string fileType = Filetype.ConvertExtensionToFiletype(extension);
+                    string fileType = Filetype.ConvertExtensionToFiletype(extension); // Resource type
 
                     logger.Information("Uploading file '{FileName}' to storage...", fDto.File.FileName);
 
@@ -134,26 +144,38 @@ namespace KnowledgeBank.Controllers
 
                     // Upload the file to storage
                     BLOB_STATUSCODE result = await blobService.UploadBlobAsync(fileType, id.ToString(), metadata, fDto.File.OpenReadStream());
-                    
-                    switch (result) 
+
+                    switch (result)
                     {
                         // Upload was successfull
                         case BLOB_STATUSCODE.OK:
                             logger.Information("File '{FileName}' uploaded successfully.", fDto.File.FileName);
+
+                            // If the file is a PDF, queue it for text extraction + vectorization (This will not block the request and will be done in the background)
+                            if (Filetype.trimExtension(extension).Equals("pdf", StringComparison.OrdinalIgnoreCase))
+                            {
+                                logger.Information("Queueing PDF {Id} for text extraction", id);
+
+                                _taskQueue.QueueBackgroundWorkItem(async token =>
+                                {
+                                    await _ragSystem.MainPipeline(id, fileType, fDto);
+                                });
+                            }
+
                             break;
-                        
+
                         // Container is missing
                         case BLOB_STATUSCODE.NOTFOUND:
                             // Roll back database changes
                             await resourceManager.Rollback();
                             return NotFound(new ApiResponse(false, "Container could not be found."));
-                            
+
                         // File already exists
                         case BLOB_STATUSCODE.ALREADYEXISTS:
                             // Roll back database changes
                             await resourceManager.Rollback();
                             return Conflict(new ApiResponse(false, "File already exists in storage."));
-                        
+
                         // Unknown state, but was not OK, so count it as a fail
                         default:
                             // Roll back database changes
@@ -167,7 +189,7 @@ namespace KnowledgeBank.Controllers
                 logger.Information("Resource '{Title}' created successfully.", dto.Title);
                 return Ok(new ApiResponse(true, "Resource created successfully.", id));
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 logger.Error(e, "Error creating resource {Title}.", dto.Title);
                 await resourceManager.Rollback();
@@ -175,7 +197,7 @@ namespace KnowledgeBank.Controllers
             }
         }
         #endregion
-        
+
         #region Download
         /// <summary>
         /// Downloads a resource
@@ -187,20 +209,20 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Download(string id) 
+        public async Task<IActionResult> Download(string id)
         {
             // Check if the ID is valid
             if (!ValidityUtil.IsValidId(id))
                 return BadRequest(new ApiResponse(false, "Invalid ID."));
-                
-            try 
+
+            try
             {
                 // Check if the resource exists
                 if (!await resourceManager.ResourceExistsAsync(id))
                     return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
 
                 logger.Information("Downloding resource with ID: {ID}", id);
-                    
+
                 // Get the filetype from the database
                 string filetype = await resourceManager.GetResourcePropertyAsync(id, resource => resource.FileType);
 
@@ -217,15 +239,15 @@ namespace KnowledgeBank.Controllers
 
                 // Convert to a non-empty response
                 BlobDownloadResponse response = (BlobDownloadResponse)maybeResponse;
-                
+
                 // Set the contentType and generate a filename from the title
                 string contentType = "application/octet-stream";
                 string title = await resourceManager.GetResourcePropertyAsync(id, r => r.Title);
                 string extension = response.Metadata["extension"];
                 string fileName = SanitizeFileName(title) + extension;
-                
+
                 // Try to get contentType from the extension
-                if (Path.HasExtension(fileName)) 
+                if (Path.HasExtension(fileName))
                 {
                     FileExtensionContentTypeProvider provider = new();
                     if (provider.TryGetContentType(fileName, out string? type) && !string.IsNullOrEmpty(type))
@@ -236,14 +258,14 @@ namespace KnowledgeBank.Controllers
                 logger.Information("Downloaded file with ID '{ID}' successfully.", id);
                 return File(response.FileStream, contentType, fileName);
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 logger.Error(e, "Error downloading resource with ID {ID}.", id);
                 return StatusCode(500, new ApiResponse(false, "Error downloading resource", e.Message));
             }
         }
         #endregion
-        
+
         #region Delete
         /// <summary>
         /// Deletes a resource
@@ -256,13 +278,13 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Delete(string id) 
+        public async Task<IActionResult> Delete(string id)
         {
             // Check if the ID is valid
             if (!ValidityUtil.IsValidId(id))
                 return BadRequest(new ApiResponse(false, "Invalid ID."));
-                
-            try 
+
+            try
             {
                 // Check if the resource exists
                 if (!await resourceManager.ResourceExistsAsync(id))
@@ -282,12 +304,12 @@ namespace KnowledgeBank.Controllers
                     case BLOB_STATUSCODE.OK:
                         logger.Information("Resource was a file and file is now deleted.");
                         break;
-                    
+
                     // If result was NOTFOUND, then it was not a file, just continue
                     case BLOB_STATUSCODE.NOTFOUND:
                         logger.Information("Resource was not found in storage, only deleting in database.");
                         break;
-                    
+
                     // All other cases means an error
                     default:
                         logger.Error("Error deleting file '{ID}' in storage", id);
@@ -300,14 +322,14 @@ namespace KnowledgeBank.Controllers
                 logger.Information("Deleted resource with ID '{ID}' successfully", id);
                 return Ok(new ApiResponse(true, "Resource deleted successfully."));
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 logger.Error(e, "Error deleting resource with ID {ID}.", id);
                 return StatusCode(500, new ApiResponse(false, "Error deleting resource", e.Message));
             }
         }
         #endregion
-        
+
         #region Update
         /// <summary>
         /// Updates the given resource's properties
@@ -322,7 +344,7 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
         [SwaggerResponse(409, "Already exists", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Update(string id, [FromBody] Dictionary<string, object> updates) 
+        public async Task<IActionResult> Update(string id, [FromBody] Dictionary<string, object> updates)
         {
             // Check if the ID is valid
             if (!ValidityUtil.IsValidId(id))
@@ -333,13 +355,13 @@ namespace KnowledgeBank.Controllers
                 return BadRequest(new ApiResponse(false, "No updates were provided."));
 
             logger.Information("Updating resource with ID '{ID}'...", id);
-            
-            try 
+
+            try
             {
                 // Check if resource exists
                 if (!await resourceManager.ResourceExistsAsync(id))
                     return NotFound(new ApiResponse(false, "The resource does not exist"));
-            
+
                 // Start a database transaction, since we could have multiple updates
                 await resourceManager.BeginTransaction();
 
@@ -364,22 +386,22 @@ namespace KnowledgeBank.Controllers
 
                 // Join all updated properties
                 string updatedPropertiesString = string.Join(", ", updatedProperties);
-                
+
                 // If all properties were updated
-                if (updatedProperties.Count == updates.Count) 
+                if (updatedProperties.Count == updates.Count)
                 {
                     logger.Information("Succesfully updated resource with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
                     return Ok(new ApiResponse(true, $"Resource updated successfully.", updatedProperties));
                 }
-                
+
                 // If not all properties were updated
-                else 
+                else
                 {
                     logger.Information("Partially updated resource with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
                     return Ok(new ApiResponse(true, $"Resource updated partially.", updatedProperties));
                 }
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 logger.Error(e, "Error updating resource with ID {ID}.", id);
                 await resourceManager.Rollback();
@@ -387,7 +409,7 @@ namespace KnowledgeBank.Controllers
             }
         }
         #endregion
-        
+
         #region Exists
         /// <summary>
         /// Checks if a resource already exists in the database
@@ -400,23 +422,23 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(200, "Response with boolean indicating if resource exists.", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult>Exists([FromQuery] string? hash, [FromQuery] string? url) 
+        public async Task<IActionResult> Exists([FromQuery] string? hash, [FromQuery] string? url)
         {
             // Check for null
             if (string.IsNullOrEmpty(hash) && string.IsNullOrEmpty(url))
                 return BadRequest(new ApiResponse(false, "No value given."));
-        
-            try 
+
+            try
             {
                 // Retrieve the ID of the resource if it already exists
                 Guid resourceId = Guid.Empty;
-            
+
                 // Handle hash for files
-                if (!string.IsNullOrEmpty(hash)) 
+                if (!string.IsNullOrEmpty(hash))
                     resourceId = await resourceManager.GetResourcePropertyOrDefaultAsync(predicate: r => r.Hash == hash, selector: r => r.Id);
-                
+
                 // Handle URL for websites
-                else if (!string.IsNullOrEmpty(url)) 
+                else if (!string.IsNullOrEmpty(url))
                     resourceId = await resourceManager.GetWebsiteMetadataPropertyOrDefaultAsync(predicate: m => m.Url == url, selector: m => m.ResourceId);
 
 
@@ -428,14 +450,14 @@ namespace KnowledgeBank.Controllers
                 // ID was not empty, so resource already exists, return the ID
                 return Ok(new ApiResponse(true, "Resource already exists.", new { exists = true, id = resourceId.ToString() }));
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 logger.Error(e, "Error checking if resource exists.");
                 return StatusCode(500, new ApiResponse(false, "Error checking if resource exists", e.Message));
             }
         }
         #endregion
-        
+
         #region Info
         /// <summary>
         /// Gets the information of the resource (database row)
@@ -447,13 +469,13 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(404, "Resource Not Found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Info(string id) 
+        public async Task<IActionResult> Info(string id)
         {
             // Check if ID is valid
             if (!ValidityUtil.IsValidId(id))
                 return BadRequest(new ApiResponse(false, "ID is invalid."));
-                
-            try 
+
+            try
             {
                 // Retrieve the resource
                 Resource? resource = await resourceManager.GetResourceAsync(id);
@@ -461,18 +483,18 @@ namespace KnowledgeBank.Controllers
                 // If null, the resource was not found
                 if (resource == null)
                     return NotFound(new ApiResponse(false, "The resource was not found."));
-                
+
                 // Return the resource
                 return Ok(new ApiResponse(true, "Resource was found.", resource));
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 logger.Error(e, "Error retrieving resource info.");
                 return StatusCode(500, new ApiResponse(false, "Error retrieving resource info.", e.Message));
             }
         }
         #endregion
-        
+
         #region List
         /// <summary>
         /// Retrieves a list or page of all resources
@@ -484,7 +506,7 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(200, "A list or page of all the resources in the archive", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> List(int? pageIndex, int? pageSize) 
+        public async Task<IActionResult> List(int? pageIndex, int? pageSize)
         {
             // Verification
             if (pageIndex != null && pageIndex < 1)
@@ -496,8 +518,8 @@ namespace KnowledgeBank.Controllers
             // Set defaults
             if (pageIndex != null && pageSize == null) pageSize = 100;
             if (pageSize != null && pageIndex == null) pageIndex = 1;
-                
-            try 
+
+            try
             {
                 // All resources to be returned
                 Resource[] resources = [];
@@ -513,14 +535,14 @@ namespace KnowledgeBank.Controllers
                 // Return found resources
                 return Ok(new ApiResponse(true, $"Found {resources.Length} resources", resources));
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 logger.Error(e, "Error listing resources.");
                 return StatusCode(500, new ApiResponse(false, "Error listing resources.", e.Message));
             }
         }
         #endregion
-        
+
         #region Types New
         /// <summary>
         /// Creates a new resource type
@@ -531,35 +553,35 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(409, "Resource type already exists", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> TypesNew([FromBody] ResourceTypeCreateDto dto) 
+        public async Task<IActionResult> TypesNew([FromBody] ResourceTypeCreateDto dto)
         {
             // Validation
             if (string.IsNullOrEmpty(dto.Name))
                 return BadRequest(new ApiResponse(false, "Invalid name"));
-                
-            try 
+
+            try
             {
                 // Check if resource type already exists
                 if (await resourceManager.ResourceTypeExistsAsync(rt => rt.Name == dto.Name))
                     return Conflict(new ApiResponse(false, "Resource type already exists"));
 
                 logger.Information("Creating resource type with name '{Name}'", dto.Name);
-            
+
                 // Create resource type and return ID
                 Guid id = await resourceManager.CreateResourceTypeAsync(dto);
 
                 logger.Information("Resource type with name '{Name}' created successfully", dto.Name);
-                
+
                 return Ok(new ApiResponse(true, "Resource type created successfully", id));
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 logger.Error(e, "Error creating resource type.");
                 return StatusCode(500, new ApiResponse(false, "Error creating resource type.", e.Message));
             }
         }
         #endregion
-        
+
         #region Types Fetch
         /// <summary>
         /// Retrieves a list of all resource types
@@ -568,52 +590,52 @@ namespace KnowledgeBank.Controllers
         [SwaggerOperation(Summary = "Retrieves a list of all resource types")]
         [SwaggerResponse(200, "A list of all the resource types", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> TypesFetch() 
+        public async Task<IActionResult> TypesFetch()
         {
-            try 
+            try
             {
                 // Fetch the resource types
                 ResourceType[] types = await resourceManager.GetAllResourceTypesAsync();
-                
+
                 // Return the resource types
                 return Ok(new ApiResponse(true, $"Found {types.Length} resource types", types));
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 logger.Error(e, "Error listing resource types");
                 return StatusCode(500, new ApiResponse(false, "Error listing resource types", e.Message));
             }
         }
         #endregion
-        
+
         #region Filetype Support fetch
         [HttpGet("supported_extensions")]
         [SwaggerOperation(Summary = "Retrieves a dictionary of all supported file extensions per uploadtype")]
         [SwaggerResponse(200, "A dictionary of all supported file extensions per upload type", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public IActionResult FiletypeSupportFetch() 
+        public IActionResult FiletypeSupportFetch()
         {
-            try 
+            try
             {
                 // Return the dictionary
                 return Ok(new ApiResponse(true, "Fetch successfull", Filetype.SupportedExtensions));
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 logger.Error(e, "Error fetching supported extensions");
                 return StatusCode(500, new ApiResponse(false, "Error fetching supported extensions", e.Message));
             }
         }
         #endregion
-        
-        
+
+
         #region Helper Functions
         // ---------------------------
         // Helper functions
         // ---------------------------
-        
+
         // Helper function to add file to dto
-        private FileResourceCreateDto? DeserializeWithFile(string uploadType, string jsonDto, IFormFile file) 
+        private FileResourceCreateDto? DeserializeWithFile(string uploadType, string jsonDto, IFormFile file)
         {
             return uploadType switch
             {
@@ -623,31 +645,31 @@ namespace KnowledgeBank.Controllers
                 _ => DeserializeAndAssignFile<FileResourceCreateDto>(jsonDto, file)
             };
         }
-        
-        private T? DeserializeAndAssignFile<T>(string jsonDto, IFormFile file) where T : FileResourceCreateDto 
+
+        private T? DeserializeAndAssignFile<T>(string jsonDto, IFormFile file) where T : FileResourceCreateDto
         {
             T? dto = JsonSerializer.Deserialize<T>(jsonDto);
-            
+
             if (dto != null)
                 dto.File = file;
 
             return dto;
         }
-        
+
         // Helper method to update a property
-        private async Task UpdateProperty<TSet, TProperty>(string id, string propertyName, TProperty newValue) where TSet : class 
+        private async Task UpdateProperty<TSet, TProperty>(string id, string propertyName, TProperty newValue) where TSet : class
         {
             Type setType = typeof(TSet);
-        
+
             // Update the appropiate property based on the type
             await (setType switch
             {
                 // If type is Resource
                 Type t when t == typeof(Resource) => resourceManager.UpdateResourceAsync(id, PropertyUpdateUtil.CreatePropertySelector<Resource, TProperty>(propertyName), newValue),
-                
+
                 // If type is WebsiteMetadata
                 Type t when t == typeof(WebsiteMetadata) => resourceManager.UpdateWebsiteMetadataAsync(id, PropertyUpdateUtil.CreatePropertySelector<WebsiteMetadata, TProperty>(propertyName), newValue),
-                
+
                 // If type is DocumentMetadata
                 Type t when t == typeof(DocumentMetadata) => resourceManager.UpdateDocumentMetadataAsync(id, PropertyUpdateUtil.CreatePropertySelector<DocumentMetadata, TProperty>(propertyName), newValue),
 
@@ -656,12 +678,12 @@ namespace KnowledgeBank.Controllers
 
                 // If type is AudioMetadata
                 Type t when t == typeof(AudioMetadata) => resourceManager.UpdateAudioMetadataAsync(id, PropertyUpdateUtil.CreatePropertySelector<AudioMetadata, TProperty>(propertyName), newValue),
-                
+
                 // Default
                 _ => throw new ArgumentException($"Unsupported type: {setType.Name}")
             });
         }
-        
+
         // Makes a valid filename
         private static string SanitizeFileName(string fileName, bool preserveSpaces = true)
         {

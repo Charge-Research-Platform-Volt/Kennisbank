@@ -5,13 +5,13 @@
     /// </summary>
     public static class Filetype
     {
-        public struct UploadType 
+        public struct UploadType
         {
             public const string Document = "document";
             public const string Audio = "audio";
             public const string Video = "video";
         }
-    
+
         private static readonly Dictionary<string, string> extToType = new()
         {
             // Document
@@ -39,7 +39,7 @@
         /// </summary>
         /// <param name="extension">The full extension (.pdf for example)</param>
         /// <returns></returns>
-        private static string trimExtension(string extension)
+        public static string trimExtension(string extension)
         {
             return extension.Replace(".", "").Trim();
         }
@@ -63,13 +63,13 @@
         {
             return extToType.ContainsKey(trimExtension(extension));
         }
-        
+
         /// <summary>
         /// Retrieve the supported extensions
         /// </summary>
-        public static Dictionary<string, string[]> SupportedExtensions 
+        public static Dictionary<string, string[]> SupportedExtensions
         {
-            get 
+            get
             {
                 return extToType.GroupBy(pair => pair.Value).ToDictionary(group => group.Key, group => group.Select(pair => pair.Key).ToArray());
             }
