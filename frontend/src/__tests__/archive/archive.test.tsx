@@ -81,7 +81,7 @@ describe("Rendering fetch results", () => {
 
     const { getByText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchivePage /></SidebarProvider>);
 
-    await awaitFetchResolve(1);
+    await awaitFetchResolve(2);
 
     expect(getByText(testFile.title)).toBeInTheDocument();
     expect(getByText(testFile.description)).toBeInTheDocument();
@@ -95,9 +95,9 @@ describe("Rendering fetch results", () => {
 
     const { getByText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchivePage /></SidebarProvider>);
 
-    await awaitFetchResolve(1);
+    await awaitFetchResolve(2);
 
-    expect(getByText("An error occurred while fetching initial files.")).toBeInTheDocument();
+    expect(getByText("An error occurred while fetching search results.")).toBeInTheDocument();
   });
 
   test("renders error message when search fetch fails", async () => {
@@ -137,7 +137,7 @@ describe("Rendering fetch results", () => {
 
     await awaitDebouncedChange(() => fireEvent.change(searchInput, { target: { value: "nothing" } }), 2);
 
-    expect(getByText("No Rows To Show")).toBeInTheDocument();
+    expect(getByText("No results found")).toBeInTheDocument();
 
     await awaitDebouncedChange(() => fireEvent.change(searchInput, { target: { value: "test" } }), 3);
 

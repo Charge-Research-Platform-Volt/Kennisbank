@@ -82,6 +82,8 @@ namespace KnowledgeBank
                 options.ValueLengthLimit = int.MaxValue;
                 options.MultipartHeadersLengthLimit = int.MaxValue;
             });
+
+            builder.Services.AddHostedService<TrashbinCleanupService>(); // Add the background service for cleaning up the trashbin
             
             builder.WebHost.ConfigureKestrel(serverOptions =>
             {

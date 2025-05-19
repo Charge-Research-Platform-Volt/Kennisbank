@@ -2,7 +2,6 @@ using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Mvc;
 using backend.Tests.Infrastructure;
 using KnowledgeBank.Controllers;
-using KnowledgeBank.Models;
 using KnowledgeBank.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
