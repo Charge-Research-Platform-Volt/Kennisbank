@@ -45,7 +45,7 @@ services:
       - /app/bin
       - /app/obj
       - ./testdata:/app/testdata
-    command: dotnet watch --project backend.csproj run --urls http://+:${PORT:-8080} # Use dotnet watch for hot reload, PORT is set in the dockerfile
+    command: dotnet watch --project backend.csproj run --urls http://+:8080 # Use dotnet watch for hot reload, PORT is set in the dockerfile
     <<: *network
   
   frontend:
