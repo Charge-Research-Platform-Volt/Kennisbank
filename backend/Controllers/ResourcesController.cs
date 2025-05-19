@@ -696,6 +696,9 @@ namespace KnowledgeBank.Controllers
             if (Request.Body == null)
                 return BadRequest(new ApiResponse(false, "No chunk data was provided."));
                 
+            if (Request.ContentLength == null || Request.ContentLength == 0)
+                return BadRequest(new ApiResponse(false, "The chunk data was empty."));
+                
             if (string.IsNullOrEmpty(resourceId) || !ValidityUtil.IsValidId(resourceId))
                 return BadRequest(new ApiResponse(false, "Invalid resource ID."));
                 
@@ -718,12 +721,7 @@ namespace KnowledgeBank.Controllers
                 
                 // Get container
                 BlobContainerClient container = await blobService.GetOrCreateContainerAsync(fileType);
-                
-                // Check if container exists
-                bool containerExists = await container.ExistsAsync();
-                if (!containerExists)
-                    return NotFound(new ApiResponse(false, "Container could not be found."));
-                    
+                   
                 // Get block blob client
                 BlockBlobClient blockBlobClient = container.GetBlockBlobClient(resourceId);
                 

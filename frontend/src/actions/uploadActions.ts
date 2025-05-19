@@ -3,6 +3,7 @@ import { ResourceCreateDto, WebsiteCreateDto, DocumentCreateDto, VideoCreateDto,
 import { resourceCreateFormSchema } from "@/components/new/NewResource"
 import { ApiResponse } from "@/types/apiResponse.type";
 
+const 
 
 /**
  * Helper function to convert dates to UTC ISO strings
@@ -249,8 +250,7 @@ async function RevertChunkUploads(resourceId: string, fileType: string): Promise
  * @param form The form of the NewResource page
  * @returns The ID of the new resource
  */
-export async function UploadNewLargeResource(form: z.infer<typeof resourceCreateFormSchema>, MAX_FILE_SIZE: number): Promise<string> {
-  const chunkSize = MAX_FILE_SIZE * 0.9; // Make sure there's enough room for headers etc
+export async function UploadNewLargeResource(form: z.infer<typeof resourceCreateFormSchema>, MAX_CHUNK_SIZE: number): Promise<string> {
   const file = form.file;
   const fileName = file.name;
   const fileType = form.uploadType;
@@ -262,24 +262,23 @@ export async function UploadNewLargeResource(form: z.infer<typeof resourceCreate
     throw new Error(`Failed to initialize upload: ${error}`);
   }  
 
-  const numberOfChunks = Math.ceil(file.size / chunkSize);
   const blockIds: string[] = [];
 
   try {
-    for (let i = 0; i < numberOfChunks; i++) {
-      const start = i * chunkSize;
-      const end = Math.min(start + chunkSize, file.size);
+    for (let start = 0; start < file.size; start += MAX_CHUNK_SIZE) {
+      const end = Math.min(start += MAX_CHUNK_SIZE, file.size);
       const chunk = file.slice(start, end);
 
-      const blockId = Buffer.from(`block-${i}`).toString('base64');
+      const blockId = Buffer.from(`block-${start / MAX_CHUNK_SIZE}`).toString('base64');
       blockIds.push(blockId);
 
       try {
         await UploadChunk(resourceId, fileType, blockId, chunk);
       } catch {
-        throw new Error(`Failed to upload chunk ${i+1}/${numberOfChunks}`);
+        throw new Error(`Failed to upload chunk ${start / MAX_CHUNK_SIZE + 1}/${Math.ceil(file.size / MAX_CHUNK_SIZE)}`);
       }
     }
+
 
     const finalizeDto: LargeFileFinalizeDto = {
       ResourceId: resourceId,

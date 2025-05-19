@@ -40,6 +40,7 @@ export const UploadTypeEnum = z.enum(["document", "website", "audio", "video"])
 const urlDefault = "http://no.url/"
 const fileDefault = new File([""], "placeholder.txt", { type: "text/plain" });
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
+const MAX_CHUNK_SIZE = 0.9 * MAX_FILE_SIZE; // 90% of the max file size
 
 export const resourceCreateFormSchema = z.object(
 {
