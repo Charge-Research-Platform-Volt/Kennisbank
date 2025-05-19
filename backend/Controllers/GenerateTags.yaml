@@ -1,0 +1,33 @@
+name: GenerateTags
+description: A function that generates tags for a given content.
+template_format: handlebars
+input_variables:
+  - name: documentInfo
+    description: Information about the document.
+    is_required: true
+  - name: content
+    description: The content for which tags need to be generated.
+    is_required: true
+output_variable:
+  description: List of tags generated from the content.
+  json_schema: |
+    {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "A list of relevant tags generated from the document content"
+    }
+template: |
+  Generate tags for the document based on the content provided. The tags should be relevant to the content.
+  The Document Information:
+  Title: {{documentInfo.title}}
+  The Content:
+  {{#each content}}
+  {{ChunkText}}
+  ---
+  {{/each}}
+execution_settings:
+  service1:  
+    model_id: llama3.1:8b
+    temperature: 0.6
