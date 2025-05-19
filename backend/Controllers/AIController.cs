@@ -1,11 +1,11 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using KnowledgeBank.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.Ollama;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
+
 using OpenAI.Chat;
 using Serilog;
 
@@ -13,7 +13,7 @@ namespace KnowledgeBank.Controllers;
 #pragma warning disable SKEXP0001, SKEXP0010, SKEXP0020, SKEXP0050, SKEXP0070
 
 [ApiController]
-// [Authorize]
+[Authorize]
 [Route("[controller]")]
 [Produces("application/json")]
 public class AIController : ControllerBase
