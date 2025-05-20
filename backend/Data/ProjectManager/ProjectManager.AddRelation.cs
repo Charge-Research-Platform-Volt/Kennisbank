@@ -156,7 +156,7 @@ namespace KnowledgeBank.Data
                 resourceRelations[i] = new()
                 {
                     ProjectId = projectId,
-                    ResourceId = resourceIds[i],
+                    ResourceId = resourceIds[i]
                 };
             }
 

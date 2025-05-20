@@ -318,7 +318,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     #region List
 
     /// <summary>
-    /// Retrieves projects, given a query, and a dto to filter on.
+    /// Retrieves projects, given a dto to filter on.
     /// The query is a string that is used to search for projects by title.
     /// </summary>
     /// <param name="dto"></param>
@@ -328,7 +328,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     [HttpPost("list")]
     [SwaggerOperation(
         Summary = "Retrieves projects",
-        Description = "Retrieves projects, given a query, and a dto to filter on"
+        Description = "Retrieves projects, given a dto to filter on"
     )]
     [SwaggerResponse(200, "Projects fetched")]
     [SwaggerResponse(400, "Bad request")]
@@ -347,10 +347,12 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                     return BadRequest(new ApiResponse(false, "PAge size cannot be lower than 1."));
             }
 
+            // Build the predicate used to filter the projects by giving it to the BuildPredicate function
             Expression<Func<Project, bool>> predicate = BuildPredicate(dto);
-            
+
             Project[]? projects;
-            
+
+            // Projects retrieved differs based on whether or not paging is used
             if (dto.UsePaging)
             {
                 projects = await projectManager.GetProjectPageAsync(
@@ -367,6 +369,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                     includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations"]
                 );
             }
+
+            // If no projects are found, that is valid unless paging is bigger than 1
             if (projects == null || projects.Length == 0)
             {
                 if (dto.UsePaging && dto.PageIndex > 1)
@@ -379,22 +383,24 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
             if (dto.UsePaging)
             {
-                // calculate the total number of projects
+                // Calculate the total number of projects and return a ProjectPageResponse
                 int totalCount = await projectManager.ProjectCount(predicate);
                 int pageCount = (int)Math.Ceiling((double)totalCount / dto.PageSize);
                 return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", new ProjectPageResponse(projects, dto.PageIndex, dto.PageSize, pageCount)));
             }
+
             return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", projects));
         }
+
         catch (Exception e)
         {
             Log.Error(e, "Failed to fetch folders");
             return StatusCode(500, new ApiResponse(false, "Internal server error"));
         }
     }
-    
-    #endregion 
-    
+
+    #endregion
+
     #region Update
 
     /// <summary>
@@ -489,11 +495,11 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return StatusCode(500, new ApiResponse(false, "Internal server error."));
         }
     }
-    
+
     #endregion
-    
+
     #region Info
-    
+
     /// <summary>
     /// Gets the project and its direct children (resources and folders).
     /// </summary>
@@ -516,15 +522,15 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         try
         {
             Project? project = await projectManager.GetProjectChildrenAsync(id);
-                
+
             // Check if the project was found
             if (project == null)
                 return NotFound(new ApiResponse(false, "Project not found."));
-            
+
             // Extract the resources and folders from the project
             List<Resource?>? resources = project.ProjectResourcesRelations?.Select(r => r.Resource).ToList() ?? [];
             List<Project?>? folders = project.ChildFolders?.Select(f => f.ChildFolder).ToList() ?? [];
-                
+
             // Create the DTO
             ProjectInfoDto projectInfo = new()
             {
@@ -546,12 +552,11 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return StatusCode(500, new ApiResponse(false, "Internal server error.", e.Message));
         }
     }
-    
+
     #endregion
 
-    
     #region Add Folder
-    
+
     /// <summary>
     /// Adds a new folder given a name and parent.
     /// </summary>
@@ -592,7 +597,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
         // Get parent project and user ID
         Project? parent = await projectManager.GetProjectAsync(parentId, includeProperties: "ProjectCreatorRelations");
-        
+
         if (parent == null)
         {
             Log.Error("Parent component does not exist.");
@@ -624,7 +629,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
         try
         {
-            // create folder and add to parent with a relation
+            // Create folder and add to parent with a relation
             Guid folderId = await projectManager.CreateProject(newFolder);
             await projectManager.AddFolderToProjectAsync(parentId, folderId);
 
@@ -639,9 +644,9 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return StatusCode(500, new ApiResponse(false, "Internal server error"));
         }
     }
-    
+
     #endregion
-    
+
     #region Add Resource
 
     /// <summary>
@@ -664,6 +669,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     public async Task<IActionResult> AddResource(string projectId, string resourceId)
     {
         Log.Information("Adding resource to project");
+
+        // If the project or resource id is invalid, abort
         if (string.IsNullOrEmpty(projectId) || string.IsNullOrEmpty(resourceId))
         {
             Log.Error("Id of either project or resource invalid");
@@ -810,9 +817,14 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         });
     }
 
+    /// <summary>
+    /// Gets the user authorization level for a project, given the project and the user
+    /// </summary>
+    /// <param name="user">The user id to verify the authorization level</param>
+    /// <param name="project">The project id to verify the authorization level</param>
+    /// <returns>authorization level</returns>
     private string ProjectAuthorizationLevel(Guid? user, Project project)
     {
-        // TODO: make constants of these
         if (user == null)
             return "unauthorized";
         if (User.IsInRole("admin"))
@@ -823,6 +835,13 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         return level;
     }
 
+    /// <summary>
+    /// Checks if update is valid or not
+    /// </summary>
+    /// <param name="prop">Property of update</param>
+    /// <param name="val">Value of update</param>
+    /// <returns>Boolean indicating whether or not the update is valid</returns>
+    /// <exception cref="ArgumentException">Thrown if the property itself is invalid</exception>
     private bool ValidUpdate(string prop, object val)
     {
         switch (prop)
@@ -839,6 +858,11 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         ;
     }
 
+    /// <summary>
+    /// Builds a predicate using a FilterProjectDto, similar to the function of the same name in TagsController
+    /// </summary>
+    /// <param name="dto">Dto used for constructing the predicate</param>
+    /// <returns>Predicate built from the dto</returns>
     private Expression<Func<Project, bool>> BuildPredicate(FilterProjectDto dto)
     {
         Expression<Func<Project, bool>>? predicate = null;
