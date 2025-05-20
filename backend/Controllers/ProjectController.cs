@@ -516,6 +516,56 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         }
     }
     #endregion
+    
+    #region Info
+    
+    [HttpGet("info/{id}")]
+    [SwaggerOperation(Summary = "Get the direct children of the project")]
+    [SwaggerResponse(200, "Project Information", typeof(ApiResponse))]
+    [SwaggerResponse(404, "Project Not Found", typeof(ApiResponse))]
+    [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
+    [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+    public async Task<IActionResult> Info(string id)
+    {
+        // Check if ID is valid
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "ID is invalid."));
+
+        try
+        {
+            Project? project = await projectManager.GetProjectChildrenAsync(id);
+                
+            // Check if the project was found
+            if (project == null)
+                return NotFound(new ApiResponse(false, "Project not found."));
+            
+            // Extract the resources and folders from the project
+            List<Resource?>? resources = project.ProjectResourcesRelations?.Select(r => r.Resource).ToList() ?? [];
+            List<Project?>? folders = project.ChildFolders?.Select(f => f.ChildFolder).ToList() ?? [];
+                
+            // Create the DTO
+            ProjectInfoDto projectInfo = new()
+            {
+                Project = project,
+                Resources = resources,
+                Folders = folders
+            };
+
+            // If null, the project was not found
+            if (project == null)
+                return NotFound(new ApiResponse(false, "Project not found."));
+
+            // Return the project and its children
+            return Ok(new ApiResponse(true, "Project found.", projectInfo));
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Error getting project {id}", id);
+            return StatusCode(500, new ApiResponse(false, "Internal server error.", e.Message));
+        }
+    }
+    
+    #endregion
 
     // TODO
     // get contents of project, with paging, filtering, search, etc. (applies to both folders and resources)
