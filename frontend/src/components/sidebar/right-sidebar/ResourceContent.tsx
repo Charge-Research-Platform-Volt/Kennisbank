@@ -147,7 +147,7 @@ export function ResourceContent()
     return (
         <>
             {resourceType === "website" ? (
-                <a href={url} target="_blank" rel="noreferror">
+                <a href={url} className="select-none" target="_blank" rel="noreferror">
                     <h1 className="pb-2 font-bold select-none">{title || <Skeleton />}</h1>
                     <h1 className="pb-2 select-none">{url || <Skeleton />}</h1>
                 </a>

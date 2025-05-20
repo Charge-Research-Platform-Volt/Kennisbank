@@ -59,7 +59,7 @@ export default function Expandable({
                 </CollapsibleTrigger>
                 
                 <CollapsibleContent>
-                    <div className={`w-full mt-2 ${isHorizontal ? "flex flex-wrap gap-2" : ""}`}>
+                    <div className={`w-full mt-2 select-none ${isHorizontal ? "flex flex-wrap gap-2" : ""}`}>
                         {children}
                     </div>
                 </CollapsibleContent>
@@ -68,7 +68,7 @@ export default function Expandable({
             {!open && !isHorizontal && (
                 // Vertical variant
                 <div 
-                    className="relative mt-2 w-full overflow-hidden"
+                    className="relative mt-2 w-full overflow-hidden select-none"
                     style={{ maxHeight: `${collapsedHeight}px` }}
                 >
                     <div className="w-full">
@@ -86,7 +86,7 @@ export default function Expandable({
             
             {!open && isHorizontal && (
                 // Horizontal variant
-                <div className="relative mt-2 w-full">
+                <div className="relative mt-2 w-full select-none">
                     <div 
                         className="overflow-hidden"
                         style={{ maxHeight: `${collapsedHeight}px` }}

@@ -9,6 +9,7 @@ import { OctagonAlert } from "lucide-react";
 import FilterButton from "./components/filter-button";
 import { ResourcePageWithTagsResponse } from "@/types/resource.type";
 import ListResources from "@/components/list-resources";
+import { useArchive } from "@/context/archive-provider";
 
 type filterDto = {
   tagFilters: string[];
@@ -17,11 +18,13 @@ type filterDto = {
 };
 
 export default function ArchivePage() {
+  //archive provider
+  const { tagFilters, setTagFilters } = useArchive();
+  
   // State for search results, is null when no fetch has been completed yet, a string when an error occurs, or the fetch response.
   const [searchResults, setSearchResults] = useState<ResourcePageWithTagsResponse | null | string>(null);
   const [startYear, setStartYear] = useState<number | null>(null);
   const [endYear, setEndYear] = useState<number | null>(null);
-  const [tagFilters, setTagFilters] = useState<string[]>([]);
   const [currentQuery, setCurrentQuery] = useState<string>("");
   const [refreshKey, setRefreshKey] = useState<number>(0); // Key to trigger re-fetching of data
 

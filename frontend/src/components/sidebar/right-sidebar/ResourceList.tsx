@@ -40,18 +40,18 @@ export default function ResourceList({resources, header} : {resources: ListItem[
 
     return (
         <>
-        <div className="w-full flex items-center gap-2">
+        <div className="w-full flex items-center gap-2 select-none">
             <span>{header}</span>
                 <div className="flex-1 h-px bg-gray-300" />
         </div>
         {resources && resources.length === 0 ? (
-            <div className=" text-gray-500 text-center">No resources available</div>
+            <div className=" text-gray-500 text-center select-none">No resources available</div>
         ) : (
         <Table className="bg-gray-200 rounded-2xl table-fixed select-none">
             {!resources || (maxLength && length < 6) ? (<TableCaption></TableCaption>) : (<>{maxLength ? (
             <TableCaption className={`hover:underline cursor-pointer select-none`} onClick={() => hideRows()}>Hide</TableCaption>) : (
             <TableCaption className={`hover:underline cursor-pointer select-none`} onClick={() => addRows()}>Load more</TableCaption>)}</>)}
-            <TableBody>
+            <TableBody className="select-none">
                 {resources ? ( resources.slice(0, length).map((item: ListItem) => (
                     <TableRow key={item.id || item.name} onClick={() => navigateTo(item.id)} className="cursor-pointer select-none">
                         <TableCell className="select-none overflow-hidden text-ellipsis w-[93%]"><>{item.name}</></TableCell>

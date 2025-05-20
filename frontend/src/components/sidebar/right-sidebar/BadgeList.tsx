@@ -7,6 +7,7 @@ import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 import New from "@/icons/new"
 import NewBadge from "./NewBadge"
+import { useArchive } from "@/context/archive-provider"
 
 export interface ListItem
 {
@@ -36,6 +37,7 @@ export default function BadgeList({
 } : BadgeListProps)
 {
     const { navigate } = useSidebar();
+    const { setTagFilters } = useArchive();
     
     async function navigateTo(id: string, type: string)
     {
@@ -47,6 +49,7 @@ export default function BadgeList({
         else if (type == "tag")
         {
             // Add here: apply tag filter on archive
+            setTagFilters([id]);
         }
     }
 
