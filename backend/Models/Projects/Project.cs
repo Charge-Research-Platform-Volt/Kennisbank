@@ -4,6 +4,11 @@ using System.Text.Json.Serialization;
 
 namespace KnowledgeBank.Models;
 
+/// <summary>
+/// A project is a structure that is defined by its ID, and has an unique title. A description is optional, and a creation
+/// date / deletion date is always given at its creation (deletion date due to it not being implemented at the moment). Project type
+/// is always either root project or a folder, which is a project, without the optional description and no tags.
+/// </summary>
 [Table("projects")]
 public class Project
 {
@@ -25,7 +30,7 @@ public class Project
 
     [Column("project-type")]
     [MaxLength(10)]
-    public required string ProjectType { get; set; } // Either "project" or "folder"
+    public required string ProjectType { get; set; } // Either "root" or "folder"
 
     #region Relation navigation properties
     // Navigation properties for the relations a object can have (1:m)
@@ -51,6 +56,9 @@ public class ProjectCreateDto // Data Transfer Object (DTO)
     public string[] Creators { get; set; } = [];
 }
 
+/// <summary>
+/// Dto containing properties used for filtering projects, such as a search query or pagination
+/// </summary>
 public class FilterProjectDto
 {
     // Pagination
@@ -66,13 +74,16 @@ public class FilterProjectDto
     public Guid[]? Tags { get; set; } = null;
 }
 
+/// <summary>
+/// Page response for fetching projects
+/// </summary>
 public class ProjectPageResponse
 {
     public Project[] Projects { get; set; } = [];
     public int? PageIndex { get; set; }
     public int? PageSize { get; set; }
     public int? PageCount { get; set; }
-    public ProjectPageResponse( Project[] projects, int? pageIndex = null, int? pageSize = null, int? pageCount = null)
+    public ProjectPageResponse(Project[] projects, int? pageIndex = null, int? pageSize = null, int? pageCount = null)
     {
         this.PageIndex = pageIndex;
         this.PageSize = pageSize;
@@ -81,7 +92,10 @@ public class ProjectPageResponse
     }
 }
 
-public class ProjectInfoDto 
+/// <summary>
+/// Dto containing information about the project / folder for fetching content
+/// </summary>
+public class ProjectInfoDto
 {
     public Project? Project { get; set; } = null;
     public List<Project?> Folders { get; set; } = [];

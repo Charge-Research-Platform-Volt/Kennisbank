@@ -65,189 +65,41 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return Conflict(new ApiResponse(false, "Project already exists."));
         }
 
-        // Add the project to the database using the ProjectManager class
-        try
+        // If tags are added, make sure that they exist
+        if (dto.Tags != null && dto.Tags.Length > 0)
         {
-            // Create the project
-            Guid projectId = await projectManager.CreateProject(dto);
-
-            // Adding the project was successful
-            Log.Information("New project added to database.");
-            return Ok(new ApiResponse(true, "Project added successfully.", projectId));
-        }
-        catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
-        {
-            // The project already exists
-            Log.Error(e, "Project already exists.");
-            return Conflict(new ApiResponse(false, "Project already exists."));
-        }
-        catch (Exception e)
-        {
-            // Something else went wrong
-            Log.Error(e, "Failed to add project.");
-            return StatusCode(500, new ApiResponse(false, "Internal server error"));
-        }
-    }
-
-    /// <summary>
-    /// Gets projects given a dto for filtering.
-    /// </summary>
-    /// <param name="dto">The DTO for project filtering.</param>
-    /// <returns>
-    /// Returns a 200 OK response containing the projects filtered by the dto given.
-    /// </returns>
-    [HttpPost("get-project")]
-    [SwaggerOperation(
-        Summary = "Retrieves projects",
-        Description = "Retrieves projects, given a dto (query, paging, tags) to filter on"
-    )]
-    [SwaggerResponse(200, "Projects fetched")]
-    [SwaggerResponse(400, "Bad request")]
-    [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> GetProjects([FromBody] FilterProjectDto dto)
-    {
-        try
-        {
-            // Validate paging parameters if using paging
-            if (dto.UsePaging)
+            foreach (string tagId in dto.Tags)
             {
-                if (dto.PageIndex < 1)
-                    return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1."));
-
-                if (dto.PageSize < 1)
-                    return BadRequest(new ApiResponse(false, "PAge size cannot be lower than 1."));
-            }
-
-            // Build the predicate used to filter the projects by giving it to the BuildPredicate function
-            Expression<Func<Project, bool>> predicate = BuildPredicate(dto);
-
-            // Projects retrieved differs based on whether or not paging is used
-            Project[]? projects;
-            if (dto.UsePaging)
-            {
-                projects = await projectManager.GetProjectPageAsync(
-                    pageIndex: dto.PageIndex,
-                    pageSize: dto.PageSize,
-                    predicate: predicate,
-                    includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations"]
-                );
-            }
-            else
-            {
-                projects = await projectManager.GetAllProjectsAsync(
-                    predicate: predicate,
-                    includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations"]
-                );
-            }
-
-            // If no projects are found, that is valid unless paging is bigger than 1
-            if (projects == null || projects.Length == 0)
-            {
-                if (dto.UsePaging && dto.PageIndex > 1)
-                    return BadRequest(new ApiResponse(false, "The page index is invalid"));
-                else
+                if (!await resourceManager.TagExistsAsync(tagId))
                 {
-                    return Ok(new ApiResponse(true, "No projects found"));
+                    Log.Error("One or more tags do not exist");
+                    return BadRequest(new ApiResponse(false, "One or more tags do not exist"));
                 }
             }
+        }
 
-            if (dto.UsePaging)
+        // Add the project to the database using the ProjectManager class
+            try
             {
-                // calculate the total number of projects and return a ProjectPageResponse
-                int totalCount = await projectManager.ProjectCount(predicate);
-                int pageCount = (int)Math.Ceiling((double)totalCount / dto.PageSize);
-                return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", new ProjectPageResponse(projects, dto.PageIndex, dto.PageSize, pageCount)));
+                // Create the project
+                Guid projectId = await projectManager.CreateProject(dto);
+
+                // Adding the project was successful
+                Log.Information("New project added to database.");
+                return Ok(new ApiResponse(true, "Project added successfully.", projectId));
             }
-            return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", projects));
-        }
-
-        catch (Exception e)
-        {
-            Log.Error(e, "Failed to fetch folders");
-            return StatusCode(500, new ApiResponse(false, "Internal server error"));
-        }
-    }
-
-    /// <summary>
-    /// Adds a new folder given a name and parent.
-    /// </summary>
-    /// <param name="folderName">Name of the new folder.</param>
-    /// <param name="parentId">Id of parent component.</param>
-    /// <returns>
-    /// Returns a 200 OK response containing an Id of the added folder.
-    /// </returns>
-    [HttpPut("add-folder/{folderName}/{parentId}")]
-    [SwaggerOperation(
-        Summary = "Adds a folder to a parent project or folder.",
-        Description = "Creates an empty folder to a root folder or project. Does not contain tags. Creators are the creators of the parent component + whoever created this"
-    )]
-    [SwaggerResponse(200, "Folder created")]
-    [SwaggerResponse(400, "Bad request")]
-    [SwaggerResponse(404, "Project not found")]
-    [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> CreateFolder(string folderName, string parentId)
-    {
-        Log.Information("Creating a new folder");
-
-        // Make sure we have the required fields
-        if (string.IsNullOrEmpty(folderName))
-        {
-            Log.Error("Title is required");
-            return BadRequest(new ApiResponse(false, "Title is required"));
-        }
-
-
-        // If the parent does not exist, we cannot create a folder
-        bool parentExists = await projectManager.ProjectExistsAsync(parentId);
-
-        if (!parentExists)
-        {
-            Log.Error("Parent component does not exist.");
-            return NotFound(new ApiResponse(false, "Parent component does not exist"));
-        }
-
-        // Get parent project and user ID
-        Project? parent = await projectManager.GetProjectAsync(parentId, includeProperties: "ProjectCreatorRelations");
-
-        Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
-
-        // If there is somehow no user found calling this action, abort
-        if (userId == null)
-        {
-            Log.Error("Failed to add folder.");
-            return StatusCode(500, new ApiResponse(false, "Internal server error"));
-        }
-
-        // Otherwise grab the creators of the parent component, add the current user to that set and then create an empty folder with the name given and same language code
-        HashSet<string> creators = parent.ProjectCreatorRelations?.Select(relation => relation.CreatorId).ToHashSet() ?? [];
-        creators.Add(userId.ToString());
-
-        // Folders don't have descriptions (for now)
-        ProjectCreateDto newFolder = new()
-        {
-            Title = folderName,
-            CreationDate = DateTime.UtcNow,
-            DeletionDate = DateTime.UtcNow,
-            ProjectType = "folder",
-            Creators = creators.ToArray()
-        };
-
-        try
-        {
-            // Create folder and add to parent with a relation
-            Guid folderId = await projectManager.CreateProject(newFolder);
-            await projectManager.AddFolderToProjectAsync(parentId, folderId);
-
-            Log.Information("New folder {folderId} added to parent {parentId}.", folderId, parentId);
-            return Ok(new ApiResponse(true, "Folder added successfully.", folderId));
-        }
-
-        catch (Exception e)
-        {
-            // Something else went wrong
-            Log.Error(e, "Failed to add folder.");
-            return StatusCode(500, new ApiResponse(false, "Internal server error"));
-        }
+            catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
+            {
+                // The project already exists
+                Log.Error(e, "Project already exists.");
+                return Conflict(new ApiResponse(false, "Project already exists."));
+            }
+            catch (Exception e)
+            {
+                // Something else went wrong
+                Log.Error(e, "Failed to add project.");
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
     }
 
     /// <summary>
