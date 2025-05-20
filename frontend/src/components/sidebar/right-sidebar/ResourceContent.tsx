@@ -4,15 +4,12 @@ import LoremIpsum from "@/utils/lorem-ipsum"
 import Expandable from "./expandable"
 import BadgeList from "./BadgeList"
 import { ListItem } from "./BadgeList"
-import { Badge } from "@/components/ui/badge"
 import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider"
 import { getProperties, getRelatedDocuments, getRelation } from "@/actions/right-sidebarActions"
-import { ApiResponse } from "@/types/apiResponse.type"
 import { useState, use, useEffect } from "react"
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 import ResourceList from "./ResourceList"
-import Link from "next/link"
 
 
 export function ResourceContent()
