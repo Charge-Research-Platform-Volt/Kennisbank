@@ -1,6 +1,7 @@
 using KnowledgeBank.Models;
 using KnowledgeBank.Utils;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Asn1.Cmp;
 using System.Linq.Expressions;
 
 namespace KnowledgeBank.Data
@@ -146,7 +147,6 @@ namespace KnowledgeBank.Data
 
         public async Task<Project?> GetProjectAsync(string id, params string[] includeProperties)
         { return await GetProjectAsync(Guid.Parse(id), projectDefaultOrderBy, projectDefaultOrderDescending, includeProperties); }
-
         #endregion
 
         #region Fetching multiple projects
@@ -236,6 +236,17 @@ namespace KnowledgeBank.Data
         public async Task<TResult[]> GetProjectPageAsync<TResult>(Expression<Func<Project, TResult>> projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.Projects, projection, pageIndex, pageSize, projectDefaultOrderBy, projectDefaultOrderDescending, null, includeProperties); }
 
+        #endregion
+
+
+        #region Get Project Children
+
+        public async Task<Project?> GetProjectChildrenAsync(Guid id)
+        { return await GetProjectAsync(id, includeProperties: ["ProjectResourcesRelations.Resource", "ChildFolders.ChildFolder"]); }
+
+        public async Task<Project?> GetProjectChildrenAsync(string id)
+        { return await GetProjectChildrenAsync(Guid.Parse(id)); }
+        
         #endregion
 
 
