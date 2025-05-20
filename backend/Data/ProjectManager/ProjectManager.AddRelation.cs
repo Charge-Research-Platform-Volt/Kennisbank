@@ -143,7 +143,7 @@ namespace KnowledgeBank.Data
         #region project-resource
 
         // Range
-        public async Task AddResourceToProjectRangeAsync(Guid projectId, Guid[] resourceIds)
+        public async Task AddResourceToProjectRangeAsync(Guid projectId, Guid[] resourceIds, Guid addedBy)
         {
             if (resourceIds.Length == 0) return;
 
@@ -156,7 +156,8 @@ namespace KnowledgeBank.Data
                 resourceRelations[i] = new()
                 {
                     ProjectId = projectId,
-                    ResourceId = resourceIds[i]
+                    ResourceId = resourceIds[i],
+                    AddedBy = addedBy
                 };
             }
 
@@ -165,27 +166,27 @@ namespace KnowledgeBank.Data
             if (startedTransaction) await Commit();
         }
 
-        public async Task AddResourceToProjectRangeAsync(Guid projectId, string[] resourceIds)
-        { await AddResourceToProjectRangeAsync(projectId, StringToGuidArray(resourceIds)); }
+        public async Task AddResourceToProjectRangeAsync(Guid projectId, string[] resourceIds, Guid addedBy)
+        { await AddResourceToProjectRangeAsync(projectId, StringToGuidArray(resourceIds), addedBy); }
 
-        public async Task AddResourceToProjectRangeAsync(string projectId, Guid[] resourceIds)
-        { await AddResourceToProjectRangeAsync(Guid.Parse(projectId), resourceIds); }
+        public async Task AddResourceToProjectRangeAsync(string projectId, Guid[] resourceIds, Guid addedBy)
+        { await AddResourceToProjectRangeAsync(Guid.Parse(projectId), resourceIds, addedBy); }
 
-        public async Task AddResourceToProjectRangeAsync(string projectId, string[] resourceIds)
-        { await AddResourceToProjectRangeAsync(Guid.Parse(projectId), StringToGuidArray(resourceIds)); }
+        public async Task AddResourceToProjectRangeAsync(string projectId, string[] resourceIds, Guid addedBy)
+        { await AddResourceToProjectRangeAsync(Guid.Parse(projectId), StringToGuidArray(resourceIds), addedBy); }
 
         // Single
-        public async Task AddResourceToProjectAsync(Guid projectId, Guid resourceId)
-        { await AddResourceToProjectRangeAsync(projectId, [resourceId]); }
+        public async Task AddResourceToProjectAsync(Guid projectId, Guid resourceId, Guid addedBy)
+        { await AddResourceToProjectRangeAsync(projectId, [resourceId], addedBy); }
 
-        public async Task AddResourceToProjectAsync(string projectId, Guid resourceId)
-        { await AddResourceToProjectAsync(Guid.Parse(projectId), resourceId); }
+        public async Task AddResourceToProjectAsync(string projectId, Guid resourceId, Guid addedBy)
+        { await AddResourceToProjectAsync(Guid.Parse(projectId), resourceId, addedBy); }
 
-        public async Task AddResourceToProjectAsync(Guid projectId, string resourceId)
-        { await AddResourceToProjectAsync(projectId, Guid.Parse(resourceId)); }
+        public async Task AddResourceToProjectAsync(Guid projectId, string resourceId, Guid addedBy)
+        { await AddResourceToProjectAsync(projectId, Guid.Parse(resourceId), addedBy); }
 
-        public async Task AddResourceToProjectAsync(string projectId, string resourceId)
-        { await AddResourceToProjectAsync(Guid.Parse(projectId), Guid.Parse(resourceId)); }
+        public async Task AddResourceToProjectAsync(string projectId, string resourceId, Guid addedBy)
+        { await AddResourceToProjectAsync(Guid.Parse(projectId), Guid.Parse(resourceId), addedBy); }
 
         #endregion
     }

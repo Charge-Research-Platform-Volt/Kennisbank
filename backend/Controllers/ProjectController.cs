@@ -312,9 +312,9 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return StatusCode(500, new ApiResponse(false, "Internal server error."));
         }
     }
-    
+
     #endregion
-    
+
     #region List
 
     /// <summary>
@@ -692,15 +692,24 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                 return NotFound(new ApiResponse(false, "Resource not found."));
             }
 
+            Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
+
+            // If there is somehow no user found calling this action, abort
+            if (userId == null)
+            {
+                Log.Error("Failed to add folder.");
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
+
             // Also abort if the link already exists
-            //TODO: this could be moved to projectmanager.info probably, but for now it's fine
             if ((await projectManager.GetAllResources(predicate: relation => relation.ProjectId == Guid.Parse(projectId) && relation.ResourceId == Guid.Parse(resourceId))).Length != 0)
             {
                 Log.Error("Resource-project link already exists.");
                 return BadRequest(new ApiResponse(false, "Resource already in project / folder."));
             }
 
-            await projectManager.AddResourceToProjectAsync(projectId, resourceId); //TODO: add added-by property to function with deletes
+            // Now userId always has a value so we can safely take it
+            await projectManager.AddResourceToProjectAsync(projectId, resourceId, userId.Value);
             return Ok(new ApiResponse(true, "Successfully added resource to project"));
         }
 
@@ -711,9 +720,9 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return StatusCode(500, new ApiResponse(false, "Internal server error"));
         }
     }
-    
+
     #endregion
-    
+
     #region Remove Resource
 
     /// <summary>
@@ -790,11 +799,11 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return StatusCode(500, new ApiResponse(false, "Internal server error."));
         }
     }
-    
+
     #endregion
-    
+
     #region Helper Methods
-    
+
     // Keep in mind, updates to tags and creators are done by just supplying the new tags + creators, so just delete the old ones and make new links
     private async Task UpdateProperty(Project project, string property, object newValue)
     {
