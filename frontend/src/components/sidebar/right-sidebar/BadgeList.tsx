@@ -13,7 +13,7 @@ export interface ListItem
 {
     id: string,
     name: string,
-    type: string,
+    type: string, //if "tag" it applies the tag as filter, if "source" it opens the url in a new tab, else it navigates to selected source,organisation,person
 }
 
 interface BadgeListProps
@@ -50,6 +50,10 @@ export default function BadgeList({
         {
             // Add here: apply tag filter on archive
             setTagFilters([id]);
+        }
+        else if (type = "source")
+        {
+            window.open(id)?.focus();
         }
     }
 

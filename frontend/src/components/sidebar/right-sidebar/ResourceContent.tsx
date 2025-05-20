@@ -18,31 +18,35 @@ import Link from "next/link"
 export function ResourceContent()
 {
     const { currentId, rightSidebarOpen } = useSidebar();
-    const [ resourceType, setResourceType] = useState<string | null>(null);
+    const [ fileType, setFileType] = useState<string | null>(null);
     const [ title, setTitle ] = useState<string | null>(null);
     const [ url, setUrl ] = useState<string | undefined>(undefined);
     const [ description, setDescription ] = useState<string | null>(null);
+    const [ note, setNote ] = useState<string | null>(null);
     const [ authors, setAuthors ] = useState<ListItem[] | null>(null);
     const [ tags, setTags ] = useState<ListItem[] | null>(null);
     const [ organisations, setOrganisations ] = useState<ListItem[] | null>(null);
     const [ relatedOrganisations, setRelatedOrganisations ] = useState<ListItem[] | null>(null);
     const [ relatedPersons, setRelatedPersons ] = useState<ListItem[] | null>(null);
     const [ relatedResources, setRelatedResources ] = useState<ListItem[] | null>(null);
+    const [ sourceList, setSourceList ] = useState<ListItem[] | null>(null);
 
 
 
     useEffect(() => {
         if (rightSidebarOpen) {
-        setResourceType(null);
+        setFileType(null);
         setUrl(undefined);
         setTitle(null);
         setDescription(null);
+        setNote(null);
         setAuthors(null);
         setTags(null);
         setOrganisations(null);
         setRelatedOrganisations(null);
         setRelatedPersons(null);
         setRelatedResources(null);
+        setSourceList(null);
         loadInformation(); }
     }, [currentId])
 
@@ -54,9 +58,10 @@ export function ResourceContent()
         const relatedOrganisationsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "relatedOrganisation");
         const relatedPersonsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "relatedPerson");
         const relatedResourcesPromise = getRelatedDocuments(currentId, 10);
+        const sourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "source");
     
         infoPromise.then(response => {
-            setResourceType(response.body.fileType);
+            setFileType(response.body.fileType);
             if (response.body.fileType === "website") {
                 const websitePromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "website");
                 
@@ -66,14 +71,16 @@ export function ResourceContent()
             }
             setTitle(response.body.title);
             if (response.body.description) {
-                setDescription(response.body.description)
+                setDescription(response.body.description);
+            }
+            if (response.body.note) {
+                setNote(response.body.note);
             }
 
             else {setDescription("No description.")}
         }).catch(error => {
             console.error("Error loading information: ", error);
         });
-        
         
 
         authorsPromise.then(response => {
@@ -141,12 +148,23 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading related resources: ", error);
         });
+
+        sourceListPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: {resourceid: any; url: any}) => ({
+                id: item.url,
+                name: item.url,
+                type: "source",
+            }))
+            setSourceList(list);
+        }).catch(error => {
+            console.error("Error loading sources: ", error);
+        });
     }
     
 
     return (
         <>
-            {resourceType === "website" ? (
+            {fileType === "website" ? (
                 <a href={url} className="select-none" target="_blank" rel="noreferror">
                     <h1 className="pb-2 font-bold select-none">{title || <Skeleton />}</h1>
                     <h1 className="pb-2 select-none">{url || <Skeleton />}</h1>
@@ -180,7 +198,21 @@ export function ResourceContent()
 
             <ResourceList header="Related" resources={relatedResources}/>
 
-            {resourceType}
+            <Expandable variant="horizontal" title="Sources">
+                <BadgeList listType="source" emptyMessage={"No sources recorded"} itemList={sourceList}/>
+            </Expandable>
+
+            {/* {resourceType === "Scientific Article" && (
+                <Expandable title="Abstract" collapsedHeight={100}>
+                    {<>insert abstract</> || <Skeleton />}
+                </Expandable> 
+            )} */}
+
+            <Expandable title="Notes" collapsedHeight={100}>
+                {note || <Skeleton />}
+            </Expandable>            
+            
+            {fileType}
         </>
     )
 }
