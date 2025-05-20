@@ -9,12 +9,7 @@ using System.Security.Claims;
 using System.Linq.Expressions;
 using KnowledgeBank.Utils;
 using KnowledgeBank.Responses;
-using System.Threading.Tasks;
-using System.Reflection.Metadata.Ecma335;
-using Microsoft.EntityFrameworkCore.Storage.Json;
 using System.Text.Json;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace KnowledgeBank.Controllers;
 
@@ -54,6 +49,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return BadRequest(new ApiResponse(false, "Title is required"));
         }
 
+        // If the project type is empty or is not root, it is not a new project, but a folder or something else
         if (string.IsNullOrEmpty(dto.ProjectType) || dto.ProjectType != "root")
         {
             Log.Error("Type invalid");
@@ -93,10 +89,17 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         }
     }
 
+    /// <summary>
+    /// Gets projects given a dto for filtering.
+    /// </summary>
+    /// <param name="dto">The DTO for project filtering.</param>
+    /// <returns>
+    /// Returns a 200 OK response containing the projects filtered by the dto given.
+    /// </returns>
     [HttpPost("get-project")]
     [SwaggerOperation(
         Summary = "Retrieves projects",
-        Description = "Retrieves projects, given a query, and a dto to filter on"
+        Description = "Retrieves projects, given a dto (query, paging, tags) to filter on"
     )]
     [SwaggerResponse(200, "Projects fetched")]
     [SwaggerResponse(400, "Bad request")]
@@ -115,7 +118,10 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                     return BadRequest(new ApiResponse(false, "PAge size cannot be lower than 1."));
             }
 
+            // Build the predicate used to filter the projects by giving it to the BuildPredicate function
             Expression<Func<Project, bool>> predicate = BuildPredicate(dto);
+
+            // Projects retrieved differs based on whether or not paging is used
             Project[]? projects;
             if (dto.UsePaging)
             {
@@ -133,6 +139,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                     includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations"]
                 );
             }
+
+            // If no projects are found, that is valid unless paging is bigger than 1
             if (projects == null || projects.Length == 0)
             {
                 if (dto.UsePaging && dto.PageIndex > 1)
@@ -145,19 +153,21 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
             if (dto.UsePaging)
             {
-                // calculate the total number of projects
+                // calculate the total number of projects and return a ProjectPageResponse
                 int totalCount = await projectManager.ProjectCount(predicate);
                 int pageCount = (int)Math.Ceiling((double)totalCount / dto.PageSize);
                 return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", new ProjectPageResponse(projects, dto.PageIndex, dto.PageSize, pageCount)));
             }
             return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", projects));
         }
+
         catch (Exception e)
         {
             Log.Error(e, "Failed to fetch folders");
             return StatusCode(500, new ApiResponse(false, "Internal server error"));
         }
     }
+
     /// <summary>
     /// Adds a new folder given a name and parent.
     /// </summary>
@@ -224,7 +234,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
         try
         {
-            // create folder and add to parent with a relation
+            // Create folder and add to parent with a relation
             Guid folderId = await projectManager.CreateProject(newFolder);
             await projectManager.AddFolderToProjectAsync(parentId, folderId);
 
@@ -250,8 +260,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     [HttpDelete("delete/{projectId}")]
     [Authorize]
     [SwaggerOperation(
-            Summary = "Deletes a project.",
-            Description = "Only creators of the folder / project OR admins are able to delete it."
+            Summary = "Deletes a project (or folder).",
+            Description = "Only creators of the project / folder OR admins are able to delete it."
         )]
     [SwaggerResponse(200, "Project deleted")]
     [SwaggerResponse(400, "Bad request")]
@@ -289,7 +299,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                 Log.Warning("User {UserId} attempted to delete {id} without permissions.", userId, projectId);
                 return StatusCode(403, new ApiResponse(false, "User cannot delete this project or folder."));
             }
-            // Delete project / folder and all its subfolders and resources links
+            // Delete project / folder and all its subfolders and resources, creators, tags links
             if (await projectManager.DeleteProject(projectId))
                 return Ok(new ApiResponse(true, "Project deleted."));
 
