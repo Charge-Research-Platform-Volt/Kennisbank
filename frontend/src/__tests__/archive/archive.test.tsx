@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test, it, vi, beforeAll } from "vitest";
 import { render, fireEvent, waitFor, act } from "@testing-library/react";
 import ArchivePage from "@/app/(knowledgebank)/archive/page";
 import { SidebarProvider } from "@/context/sidebar-provider";
+import { ArchiveProvider, useArchive } from "@/context/archive-provider";
 
 const filterButtonApplyMock = vi.fn();
 
@@ -59,7 +60,7 @@ describe("ArchivePage", () => {
   it("renders the search component and document list", async () => {
     global.fetch = vi.fn().mockResolvedValueOnce(newDataResponsePromise([]));
 
-    const { container, getByText, getByRole, getByPlaceholderText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchivePage /></SidebarProvider>);
+    const { container, getByText, getByRole, getByPlaceholderText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchiveProvider><ArchivePage /></ArchiveProvider></SidebarProvider>);
     expect(container.querySelector(`svg[xmlns="http://www.w3.org/2000/svg"]`)).toBeInTheDocument();
     expect(getByPlaceholderText("Search")).toBeInTheDocument();
     expect(getByText("Filter Button Mock")).toBeInTheDocument();
@@ -79,7 +80,7 @@ describe("Rendering fetch results", () => {
   test("renders initial documents correctly", async () => {
     global.fetch = vi.fn(() => (newDataResponsePromise([testFile])));
 
-    const { getByText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchivePage /></SidebarProvider>);
+    const { getByText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchiveProvider><ArchivePage /></ArchiveProvider></SidebarProvider>);
 
     await waitFor(() => {
       expect(getByText(testFile.title)).toBeInTheDocument();
@@ -93,7 +94,7 @@ describe("Rendering fetch results", () => {
   test("renders error message when fetch fails", async () => {
     global.fetch = vi.fn(() => (newErrorResponsePromise()));
 
-    const { getByText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchivePage /></SidebarProvider>);
+    const { getByText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchiveProvider><ArchivePage /></ArchiveProvider></SidebarProvider>);
 
     await awaitFetchResolve(1);
 
@@ -103,7 +104,7 @@ describe("Rendering fetch results", () => {
   test("renders error message when search fetch fails", async () => {
     global.fetch = vi.fn(() => (newErrorResponsePromise()));
 
-    const { getByText, getByPlaceholderText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchivePage /></SidebarProvider>);
+    const { getByText, getByPlaceholderText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchiveProvider><ArchivePage /></ArchiveProvider></SidebarProvider>);
 
     const searchInput = getByPlaceholderText("Search");
 
@@ -127,7 +128,7 @@ describe("Rendering fetch results", () => {
       throw new Error("Unexpected fetch call");
     });
 
-    const { getByText, getByPlaceholderText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchivePage /></SidebarProvider>);
+    const { getByText, getByPlaceholderText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchiveProvider><ArchivePage /></ArchiveProvider></SidebarProvider>);
 
     const searchInput = getByPlaceholderText("Search");
 
@@ -175,7 +176,7 @@ describe("Rendering fetch results", () => {
       throw new Error("Unexpected fetch call");
     });
 
-    const { getByText, queryByText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchivePage /></SidebarProvider>);
+    const { getByText, queryByText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchiveProvider><ArchivePage /></ArchiveProvider></SidebarProvider>);
 
     await awaitFetchResolve(1);
 
