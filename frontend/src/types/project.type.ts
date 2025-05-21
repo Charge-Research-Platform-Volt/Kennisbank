@@ -28,7 +28,7 @@ export const ProjectArraySchema = z.array(ProjectSchema);
 export const ProjectCreateDtoSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().nullable(),
-  creationDate: z.string().min(1, { message: "Created at is required" }),
+  creationDate: z.string().optional(),
   deletionDate: z.string().optional(),
   projectType: z.string().refine(val => val === "root" || val === "folder", {
     message: "Project type must be either 'root' or 'folder'"
