@@ -179,11 +179,11 @@ public class UserController : ControllerBase
     public async Task<IActionResult> GetUsersPaged(int pageIndex = 1, int pageSize = 100, string? searchQuery = null)
     {
         if (pageIndex < 1)
-                return BadRequest(new StorageResponse("Page index cannot be lower than 1."));
+            return BadRequest(new StorageResponse("Page index cannot be lower than 1."));
 
         if (pageSize < 1)
             return BadRequest(new StorageResponse("Page size cannot be lower than 1."));
-        
+
         try
         {
             // Calculate how many records we need to skip
@@ -191,7 +191,7 @@ public class UserController : ControllerBase
 
             // filter based on the search query
             IQueryable<User> filteredUsers;
-            if(!string.IsNullOrEmpty(searchQuery))
+            if (!string.IsNullOrEmpty(searchQuery))
                 filteredUsers = database.AppUsers.Where(u => EF.Functions.ILike(u.Email ?? "", $"%{searchQuery}%"));
             else
                 filteredUsers = database.AppUsers;
@@ -202,7 +202,7 @@ public class UserController : ControllerBase
             // Calculate total amount of pages
             int totalUsers = await database.AppUsers.CountAsync();
             int pageCount = (int)Math.Ceiling((double)totalUsers / pageSize);
-            
+
             // Create the response
             UserResponse[]? userResponses = new UserResponse[users.Length];
             for (int i = 0; i < users.Length; i++)
@@ -216,15 +216,15 @@ public class UserController : ControllerBase
             if (users == null)
                 return Ok(new UserPageResponse("No users on this page.", pageIndex, pageSize, pageCount, Array.Empty<UserResponse>()));
 
-            return Ok(new UserPageResponse($"{users.Length} users found.", pageIndex, pageSize,  pageCount, userResponses));
+            return Ok(new UserPageResponse($"{users.Length} users found.", pageIndex, pageSize, pageCount, userResponses));
         }
         catch (Exception e)
         {
             logger.Error(e, "Error listing users on page {PageIndex} of size {PageSize}.", pageIndex, pageSize);
             return StatusCode(500, new StorageResponse("Error listing users."));
         }
-    }    
-    
+    }
+
     [HttpPatch("update-mail")]
     [SwaggerOperation(
         Summary = "Updates the user email.",
@@ -245,7 +245,7 @@ public class UserController : ControllerBase
 
             if (user.Email == dto.Email)
                 return BadRequest($"User has already the email '{dto.Email}'.");
-                
+
             using (Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction = await database.Database.BeginTransactionAsync())
             {
                 try
@@ -253,7 +253,7 @@ public class UserController : ControllerBase
                     string token = await userManager.GenerateChangeEmailTokenAsync(user, dto.Email);
                     IdentityResult emailResponse = await userManager.ChangeEmailAsync(user, dto.Email, token);
 
-                    if(!emailResponse.Succeeded)
+                    if (!emailResponse.Succeeded)
                         return BadRequest(emailResponse.Errors);
 
                     IdentityResult usernameResponse = await userManager.SetUserNameAsync(user, dto.Email);
@@ -264,10 +264,10 @@ public class UserController : ControllerBase
                     await database.SaveChangesAsync();
                     await transaction.CommitAsync();
                     logger.Information("User email changed successfully. User ID: {UserId}, New email: {Email}", user.Id, dto.Email);
-                    
-                    return Ok(new { message = $"User email changed successfully."});
-                }   
-                 catch(Exception e)
+
+                    return Ok(new { message = $"User email changed successfully." });
+                }
+                catch (Exception e)
                 {
                     await transaction.RollbackAsync();
                     logger.Error(e, "Error changing the email for user {UserId}.", user.Id);
@@ -278,6 +278,65 @@ public class UserController : ControllerBase
         catch (Exception e)
         {
             logger.Error(e, "Error changing the email.");
+            return StatusCode(500, "Internal server error.");
+        }
+    }
+
+    [HttpPut("update")]
+    [SwaggerOperation(
+        Summary = "Update the current user.",
+        Description = "Updates the current user's information."
+    )]
+    [SwaggerResponse(200, "User updated successfully.")]
+    [SwaggerResponse(400, "User email already exists.")]
+    [SwaggerResponse(404, "User not found.")]
+    [SwaggerResponse(500, "Internal server error.")]
+    public async Task<IActionResult> Update([FromBody] UpdateUserDto dto)
+    {
+        try
+        {
+            string userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+
+            User user = (await userManager.FindByIdAsync(userId))!;
+
+            using (Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction = await database.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    user.FirstName = dto.FirstName;
+                    user.LastName = dto.LastName;
+                    IdentityResult updateResponse = await userManager.UpdateAsync(user);
+
+                    if (!updateResponse.Succeeded)
+                        return Ok(new ApiResponse(false, "Failed to update the data."));
+
+                    string token = await userManager.GenerateChangeEmailTokenAsync(user, dto.Email);
+                    IdentityResult emailResponse = await userManager.ChangeEmailAsync(user, dto.Email, token);
+
+                    if (!emailResponse.Succeeded)
+                        return Ok(new ApiResponse(false, "User email already exists."));
+
+                    IdentityResult usernameResponse = await userManager.SetUserNameAsync(user, dto.Email);
+
+                    if (!usernameResponse.Succeeded)
+                        return Ok(new ApiResponse(false, "User email already exists."));
+
+                    await database.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return Ok(new ApiResponse(true, "User updated successfully."));
+                }
+                catch (Exception e)
+                {
+                    await transaction.RollbackAsync();
+                    logger.Error(e, "Error updating the user.", user.Id);
+                    return StatusCode(500, "Internal server error.");
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            logger.Error(e, "Error updating the user.");
             return StatusCode(500, "Internal server error.");
         }
     }
@@ -301,10 +360,10 @@ public class UserController : ControllerBase
 
             IdentityResult response = await userManager.DeleteAsync(user);
 
-            if(!response.Succeeded)
+            if (!response.Succeeded)
                 return BadRequest(response.Errors);
 
-            return Ok(new { message = $"User deleted succesfully."});
+            return Ok(new { message = $"User deleted succesfully." });
         }
         catch (Exception e)
         {
@@ -312,6 +371,7 @@ public class UserController : ControllerBase
             return StatusCode(500, "Internal server error.");
         }
     }
+    
 }
 
 

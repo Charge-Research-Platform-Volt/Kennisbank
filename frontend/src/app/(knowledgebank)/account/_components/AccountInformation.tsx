@@ -10,6 +10,7 @@ import { UpdateAccountDto } from "@/types/user.type";
 import { useState } from "react";
 import { UploadWithDto } from "@/actions/uploadActions";
 import { toast } from "sonner";
+import { Label } from "@radix-ui/react-label";
 
 export const AccountInformationFormSchema = z.object(
 {
@@ -39,13 +40,18 @@ export default function AccountInformation({firstName, lastName, email}: {firstN
 
         try
         {
-            const response = await UploadWithDto("/api/user/update", dto);
+            await UploadWithDto("/api/user/update", dto);
             toast.success("Account information updated successfully");
         }
         catch (error)
         {
             console.error("Error updating account information:", error);
-            toast.error("Failed to update account information");
+            if(error instanceof Error && !error.message.toLowerCase().includes("json"))
+                toast.error(error.message);
+            else if (typeof error === "string" && !error.toLowerCase().includes("json"))
+                toast.error(error);
+            else
+                toast.error("Failed to update account information");
         }
         finally
         {
@@ -77,7 +83,7 @@ export default function AccountInformation({firstName, lastName, email}: {firstN
                     {/* Last name input */}
                     <FormField control={form.control} name="lastName" render={({ field }) => (
                         <FormItem>
-                            <FormLabel>First name</FormLabel>
+                            <FormLabel>Last name</FormLabel>
                             <FormControl>
                                 <Input placeholder="Last name" {...field} />
                             </FormControl>
@@ -95,6 +101,18 @@ export default function AccountInformation({firstName, lastName, email}: {firstN
                             <FormMessage />
                         </FormItem>
                     )} />
+
+                    {/* Change password button */}
+                    <FormItem>  
+                        <div className="flex gap-2">
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                                <Label className="text-sm text-blue-600 hover:text-blue-800 cursor-pointer ml-auto" htmlFor="change-password">
+                                    <a href="/account/change-password">Change password</a>
+                                </Label>
+                            </FormControl>
+                        </div>
+                    </FormItem>
 
                     {/* Submit button */}
                     <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? "Saving..." : "Save"}</Button>
