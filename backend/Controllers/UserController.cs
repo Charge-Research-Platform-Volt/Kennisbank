@@ -37,7 +37,7 @@ public class UserController : ControllerBase
         Summary = "Get current user's name.",
         Description = "Returns the current user's name or an empty string if not authenticated"
     )]
-    [SwaggerResponse(200, "The current user's role.")]
+    [SwaggerResponse(200, "The current user's name.")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> GetCurrentUserName()
     {
@@ -58,6 +58,76 @@ public class UserController : ControllerBase
                 return Ok(new { name = "", isAuthenticated = true });
 
             return Ok(new { name = user.FirstName + " " + user.LastName, isAuthenticated = true });
+        }
+        catch (Exception e)
+        {
+            logger.Error(e, "Error retrieving current user's name");
+            return StatusCode(500, "Internal server error.");
+        }
+    }
+
+    [HttpGet("current-user-first-name")]
+    [AllowAnonymous]
+    [SwaggerOperation(
+        Summary = "Get current user's first name.",
+        Description = "Returns the current user's first name or an empty string if not authenticated"
+    )]
+    [SwaggerResponse(200, "The current user's first name.")]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetCurrentUserFirstName()
+    {
+        try
+        {
+            // Check if user is authenticated
+            if (User.Identity == null || !User.Identity.IsAuthenticated)
+                return Ok(new { firstName = "", isAuthenticated = false });
+
+            string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+                return Ok(new { firstName = "", isAuthenticated = true });
+
+            User? user = await userManager.FindByIdAsync(userId);
+
+            if (user == null)
+                return Ok(new { firstName = "", isAuthenticated = true });
+
+            return Ok(new { firstName = user.FirstName, isAuthenticated = true });
+        }
+        catch (Exception e)
+        {
+            logger.Error(e, "Error retrieving current user's name");
+            return StatusCode(500, "Internal server error.");
+        }
+    }
+
+    [HttpGet("current-user-last-name")]
+    [AllowAnonymous]
+    [SwaggerOperation(
+        Summary = "Get current user's last name.",
+        Description = "Returns the current user's name or an empty string if not authenticated"
+    )]
+    [SwaggerResponse(200, "The current user's last name.")]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetCurrentUserLastName()
+    {
+        try
+        {
+            // Check if user is authenticated
+            if (User.Identity == null || !User.Identity.IsAuthenticated)
+                return Ok(new { lastName = "", isAuthenticated = false });
+
+            string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+                return Ok(new { lastName = "", isAuthenticated = true });
+
+            User? user = await userManager.FindByIdAsync(userId);
+
+            if (user == null)
+                return Ok(new { lastName = "", isAuthenticated = true });
+
+            return Ok(new { lastName = user.LastName, isAuthenticated = true });
         }
         catch (Exception e)
         {
