@@ -1013,7 +1013,7 @@ namespace KnowledgeBank.Controllers
             {
                 // Delete the database entry
                 await resourceManager.BeginTransaction();
-                string? fileType = await resourceManager.GetResourcePropertyOrDefaultAsync(parsedResourceId.ToString(), r => r.FileType);
+                string? fileType = await resourceManager.GetResourcePropertyOrDefaultAsync(parsedResourceId.ToString(), "FileType");
                 if (fileType is not null)
                 {
                     BLOB_STATUSCODE code = await blobService.CommitBlockListAsync(resourceId.ToString(), fileType, [], new());
