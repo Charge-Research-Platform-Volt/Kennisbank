@@ -17,8 +17,8 @@ namespace KnowledgeBank.Data
                 Id = projectId,
                 Title = dto.Title,
                 Description = dto.Description,
-                CreationDate = dto.CreationDate,
-                DeletionDate = dto.DeletionDate,
+                CreationDate = DateTime.UtcNow,
+                DeletionDate = DateTime.UtcNow, // TODO: what do we do with this?
                 ProjectType = dto.ProjectType
             };
 

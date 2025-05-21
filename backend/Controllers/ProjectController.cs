@@ -191,7 +191,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
             Expression<Func<Project, bool>> predicate = BuildPredicate(dto);
             
-            Project[]? projects;
+            Project[] projects = [];
             
             if (dto.UsePaging)
             {
@@ -209,13 +209,13 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                     includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations"]
                 );
             }
-            if (projects == null || projects.Length == 0)
+            if (projects.Length == 0)
             {
                 if (dto.UsePaging && dto.PageIndex > 1)
                     return BadRequest(new ApiResponse(false, "The page index is invalid"));
                 else
                 {
-                    return Ok(new ApiResponse(true, "No projects found"));
+                    return Ok(new ApiResponse(true, "No projects found", projects));
                 }
             }
 
@@ -422,7 +422,6 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return BadRequest(new ApiResponse(false, "Title is required"));
         }
 
-
         // If the parent does not exist, we cannot create a folder
         bool parentExists = await projectManager.ProjectExistsAsync(parentId);
 
@@ -458,8 +457,6 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         ProjectCreateDto newFolder = new()
         {
             Title = folderName,
-            CreationDate = DateTime.UtcNow,
-            DeletionDate = DateTime.UtcNow,
             ProjectType = "folder",
             Creators = creators.ToArray()
         };
