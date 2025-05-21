@@ -5,10 +5,18 @@ import { Input } from "@/components/ui/input";
 import Search from "@/icons/search-icon";
 import ListProjects from "@/components/list-projects";
 import { Project } from "@/types/project.type";
+import { Resource } from "@/types/resource.type";
+import { getProjectContentById } from "@/actions/projectActions";
 
-export default function ProjectSearchClient({ projects }: { projects: Project[] }) {
+interface ProjectSearchClientProps {
+  projects: Project[];
+  resources?: Resource[];
+}
+
+export default function ProjectSearchClient({ projects, resources = [] }: ProjectSearchClientProps) {
   const [currentQuery, setCurrentQuery] = useState("");
 
+  // Filter projects based on search query
   const filteredProjects = projects.filter(project =>
     project.title.toLowerCase().includes(currentQuery.toLowerCase())
   );
@@ -31,8 +39,12 @@ export default function ProjectSearchClient({ projects }: { projects: Project[] 
         </div>
       </div>
 
-      <div className="flex pt-2">
-        <ListProjects projects={filteredProjects} level={0} resources={[]} />
+      <div className="flex pt-2 flex-grow h-[calc(100vh-8rem)]">
+        <ListProjects 
+          initialResources={resources} 
+          initialProjects={filteredProjects} 
+          fetchProjectContent={getProjectContentById}
+        />
       </div>
     </>
   );
