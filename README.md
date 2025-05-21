@@ -3,11 +3,32 @@
 Welcome to the Knowledgebank!
 
 ## Docker
-Docker Development Compose:
-docker compose -f docker-compose.dev.yml up --build
+To compose the services you can use the npm scripts
 
-Docker Production Compose:
-docker compose -f docker-compose.prod.yml up --build
+Compose Development:\
+npm run dev
+
+Compose Production:\
+npm run prod
+
+Delete images and containers:\
+npm run down
+
+Which will work regardless of future changes, but the command prompt behaves somewhat strange after calling Ctrl+C.
+
+
+Alternatively, call docker compose directly
+
+Compose Development:\
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
+Compose Production:\
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+
+Delete images and containers:\
+docker compose down --rmi local
+
+If these are outdated, you can copy them from package.json (which is where the scripts are stored)
 
 ## Extensions
 ### VSCode Extensions
