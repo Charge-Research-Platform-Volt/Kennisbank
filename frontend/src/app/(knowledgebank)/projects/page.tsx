@@ -1,0 +1,18 @@
+import ProjectSearchClient from "./components/project-search-client";
+import { ListProjectsPaged } from "@/actions/projectActions";
+import { ApiResponse } from "@/types/apiResponse.type";
+import { Project } from "@/types/project.type";
+
+export default async function ProjectsPage() {
+  const projectFetch: ApiResponse = await ListProjectsPaged(1, "");
+
+  if (!projectFetch.success) {
+    throw new Error(projectFetch.message || "Failed to fetch projects");
+  }
+
+  const projects: Project[] = projectFetch.body.projects;
+
+  return (
+    <ProjectSearchClient projects={projects} />
+  );
+}
