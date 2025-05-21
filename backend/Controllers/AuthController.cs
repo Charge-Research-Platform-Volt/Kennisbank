@@ -120,7 +120,9 @@ namespace KnowledgeBank.Controllers
                     User user = new User
                     {
                         Email = signUpDto.Email,
-                        UserName = signUpDto.Email
+                        UserName = signUpDto.Email,
+                        FirstName = signUpDto.FirstName,
+                        LastName = signUpDto.LastName,
                     };
 
                     // save the user

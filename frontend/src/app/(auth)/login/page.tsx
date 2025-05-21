@@ -45,11 +45,11 @@ export default function LoginPage() {
                         </div>
                         <div>
                             <label htmlFor="email" className="font-bold">EMAIL</label>
-                            <Input value={email} type="text" placeholder="Email" name="email" onChange={(e) => setEmail(e.target.value.trim())} required/>
+                            <Input value={email} type="text" placeholder="Email" name="email" id="email" onChange={(e) => setEmail(e.target.value.trim())} required/>
                         </div>
                         <div>
                             <label htmlFor="password" className="font-bold">PASSWORD</label>
-                            <Input value={password} type="password" placeholder="Password" name="password" onChange={(e) => setPassword(e.target.value.trim())} required/>
+                            <Input value={password} type="password" placeholder="Password" name="password" id="password" onChange={(e) => setPassword(e.target.value.trim())} required/>
                         </div>
                         <Button type="submit" className="w-full" disabled={password == "" || email == "" || state.success || isPending}>{isPending || state.success ? "Signing in..." : "Sign in"}</Button>
                     </form>

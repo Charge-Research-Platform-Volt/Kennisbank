@@ -5,7 +5,8 @@ namespace KnowledgeBank.Models;
 
 public class User : IdentityUser
 {
-    // Add more fields here if needed
+    public required string FirstName { get; set; }
+    public required string LastName { get; set; }
 }
 
 public class UpdateEmailDto
@@ -18,6 +19,8 @@ public class UpdateEmailDto
 
 public class SignUpDto
 {
+    public required string FirstName { get; set; }
+    public required string LastName { get; set; }
     public required string Email { get; set; }
     public required string Password { get; set; }
     public required string Token { get; set; }
