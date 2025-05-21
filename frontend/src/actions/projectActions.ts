@@ -1,7 +1,7 @@
 "use server";
 
 import { ApiResponse, ApiResponseSchema } from "@/types/apiResponse.type";
-import { FilterProjectDto, ProjectPageResponse } from "@/types/project.type";
+import { FilterProjectDto, ProjectCreateDto, ProjectPageResponse } from "@/types/project.type";
 import { Resource } from "@/types/resource.type";
 import { Project } from "@/types/project.type";
 import type { FormResponse } from "@/types/return.type";
@@ -81,3 +81,74 @@ export const getProjectContentById = async (projectId: string): Promise<{ resour
         throw error; 
     }
 };
+
+
+export const createNewProject = async (data: ProjectCreateDto): Promise<ApiResponse> => {
+  const cookieHeader = await cookies();
+  try {
+    const response = await fetch(`${process.env.API_URL}/Project/create`, { 
+      method: 'PUT', 
+      credentials: 'include',
+      headers: { 
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader.toString() || "" 
+      },
+      body: JSON.stringify(data),
+    });
+
+    const result: ApiResponse = await response.json();
+
+    return result;
+
+  } catch (error) {
+    console.error("Error creating new project in action:", error);
+    if (error instanceof Error) {
+        return { success: false, message: error.message };
+    }
+    return { success: false, message: "An unknown error occurred while creating the project." };
+  }
+};
+
+
+/**
+ * Creates a new folder within a parent project or folder
+ * @param folderName Name of the new folder
+ * @param parentId ID of the parent project or folder
+ * @returns API response with the created folder ID
+ */
+export async function createFolder(folderName: string, parentId: string): Promise<ApiResponse> {
+  const cookieHeader = await cookies();
+  try {
+    // Call the backend PUT endpoint to create a folder
+    const response = await fetch(`${process.env.API_URL}/Project/add-folder/${encodeURIComponent(folderName)}/${encodeURIComponent(parentId)}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader.toString() || "" 
+      },
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      // Return error response
+      return {
+        success: false,
+        message: data.message || `Failed to create folder. Status: ${response.status}`,
+      };
+    }
+
+    // Return success response with folder ID
+    return {
+      success: true,
+      message: 'Folder created successfully',
+      body: { folderId: data.body },
+    };
+  } catch (error) {
+    console.error('Error creating folder:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'An unexpected error occurred',
+    };
+  }
+}
