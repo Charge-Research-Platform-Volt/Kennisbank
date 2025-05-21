@@ -150,70 +150,71 @@ namespace KnowledgeBank.Data
                         // Create resource if it does not exist
                         if (await resourceManager.ResourceExistsAsync(r => r.Title == dto.Title)) continue;
                         Guid resourceId = await resourceManager.CreateResourceAsync(dto);
-                        
+
                         // Then upload to blob storage
                         Dictionary<string, string> metadata = new Dictionary<string, string> { { "extension", extension } };
                         BLOB_STATUSCODE result = await blobService.UploadBlobAsync(fileType, resourceId.ToString(), metadata, File.OpenRead(filePath), false);
 
-                        
+
                         // If the resource has tags, add them
                         if (record.Tags != null && record.Tags.Length > 0)
                         {
                             // Get the tag names and capitalize all words
                             List<string> tags = record.Tags.Split(',').Select(s => CapitalizeWords(s.Trim())).ToList();
-                                                        
+
                             foreach (string tagName in tags)
                             {
                                 Tag? tag = await resourceManager.GetTagAsync(t => t.Name == tagName);
-                                
+
                                 // If the tag does not exist, create it
-                                Guid tagId = tag?.Id 
-                                    ?? await resourceManager.CreateTagAsync(new TagCreateDto 
-                                        { 
-                                            Name = tagName, 
-                                            CreatedBy = systemAdminId, 
-                                        }, isStandardized: true);
-                            
+                                Guid tagId = tag?.Id
+                                    ?? await resourceManager.CreateTagAsync(new TagCreateDto
+                                    {
+                                        Name = tagName,
+                                        CreatedBy = systemAdminId,
+                                    }, isStandardized: true);
+
                                 // Add the tag to the resource
                                 await resourceManager.AddTagToResourceAsync(resourceId, tagId);
                             }
                         }
-                        
+
                         // If the resource has authors, add them
                         if (record.Authors != null && record.Authors.Length > 0)
                         {
                             // Get the author names and capitalize all words
                             List<string> authors = record.Authors.Split(',').Select(s => CapitalizeWords(s.Trim())).ToList();
-                            
+
                             foreach (string authorName in authors)
-                            {                                
+                            {
                                 // Get the author and add it to the resource
                                 Person? author = await resourceManager.GetPersonAsync(p => p.Name == authorName);
-                                
+
                                 // Add the person to the resource
                                 if (author != null)
                                     await resourceManager.AddRelatedPersonToResourceAsync(resourceId, author.Id);
                             }
                         }
-                        
+
                         // If the resource has organisations, add them
                         if (record.ResourceOrganisationRelations != null && record.ResourceOrganisationRelations.Length > 0)
                         {
                             // Get the organisation names and capitalize all words
                             List<string> organisations = record.ResourceOrganisationRelations.Split(',').ToList();
-                            
+
                             foreach (string organisationName in organisations)
                             {
                                 // Get the organisation and add it to the resource
                                 Organisation? organisation = await resourceManager.GetOrganisationAsync(o => o.Name == organisationName);
-                                
+
                                 // Add the organisation to the resource
                                 if (organisation != null)
                                     await resourceManager.AddOrganisationToResourceAsync(resourceId, organisation.Id);
                             }
                         }
-                        
+
                         await resourceManager.Commit();
+                        await resourceManager.UpdateResourceAsync(resourceId, r => r.FileType, fileType);
                     }
                     catch (Exception e)
                     {

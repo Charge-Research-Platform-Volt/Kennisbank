@@ -180,6 +180,86 @@ namespace KnowledgeBank.Controllers
             }
         }
         #endregion
+
+        #region Archive
+        /// <summary>
+        /// Archives a resource
+        /// </summary>
+        /// <param name="id">The ID of the resource</param>
+        [HttpPatch("archive/{id}")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Archives a resource.")]
+        [SwaggerResponse(200, "Resource archived successfully", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Archive(string id) 
+        {
+            // Check if the ID is valid
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID."));
+                
+            try 
+            {
+                // Check if the resource exists
+                if (!await resourceManager.ResourceExistsAsync(id))
+                    return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
+
+                logger.Information("Archiving resource with ID: {ID}", id);
+                    
+                // Archive the resource
+                await resourceManager.ArchiveResourceAsync(id);
+
+                logger.Information("Archived resource with ID '{ID}' successfully.", id);
+                return Ok(new ApiResponse(true, "Resource archived successfully."));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error archiving resource with ID {ID}.", id);
+                return StatusCode(500, new ApiResponse(false, "Error archiving resource", e.Message));
+            }
+        }
+        #endregion
+
+        #region Unarchive
+        /// <summary>
+        /// Unarchives a resource
+        /// </summary>
+        /// <param name="id">The ID of the resource</param>
+        [HttpPatch("unarchive/{id}")]
+        [Authorize(Policy = "RequireAdminRole")]
+        [SwaggerOperation(Summary = "Unarchives a resource.")]
+        [SwaggerResponse(200, "Resource unarchived successfully", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Unarchive(string id) 
+        {
+            // Check if the ID is valid
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID."));
+                
+            try 
+            {
+                // Check if the resource exists
+                if (!await resourceManager.ResourceExistsAsync(id))
+                    return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
+
+                logger.Information("Unarchiving resource with ID: {ID}", id);
+                    
+                // Unarchive the resource
+                await resourceManager.UnarchiveResourceAsync(id);
+
+                logger.Information("Unarchived resource with ID '{ID}' successfully.", id);
+                return Ok(new ApiResponse(true, "Resource unarchived successfully."));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error unarchiving resource with ID {ID}.", id);
+                return StatusCode(500, new ApiResponse(false, "Error unarchiving resource", e.Message));
+            }
+        }
+        #endregion
         
         #region Download
         /// <summary>
@@ -484,13 +564,17 @@ namespace KnowledgeBank.Controllers
         /// </summary>
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
+        /// <param name="archived">(Optional) Whether to show archived resources or non archived resources</param>
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all resources")]
         [SwaggerResponse(200, "A list or page of all the resources in the archive", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> List(int? pageIndex, int? pageSize) 
+        public async Task<IActionResult> List(int? pageIndex, int? pageSize, bool archived = false) 
         {
+            if(archived && !User.IsInRole("admin"))
+                return Unauthorized(new ApiResponse(false, "You are not authorized to view archived resources."));
+
             // Verification
             if (pageIndex != null && pageIndex < 1)
                 return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1."));
@@ -509,11 +593,11 @@ namespace KnowledgeBank.Controllers
 
                 // No paging requested, list all resources
                 if (pageIndex == null || pageSize == null)
-                    resources = await resourceManager.GetAllResourcesAsync();
+                    resources = await resourceManager.GetAllResourcesAsync(predicate: r => r.Archived == archived);
 
                 // Paging requested, retrieve resources on that page
                 else
-                    resources = await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize);
+                    resources = await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize, predicate: r => !r.Archived);
 
                 // Return found resources
                 return Ok(new ApiResponse(true, $"Found {resources.Length} resources", resources));
