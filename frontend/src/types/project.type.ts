@@ -8,8 +8,8 @@ export const ProjectBaseSchema = z.object({
   description: z.string().nullable(),
   creationDate: z.string().min(1, { message: "Created at is required" }),
   deletionDate: z.string().optional(),
-  projectType: z.string().max(10).refine(val => val === "project" || val === "folder", {
-    message: "Project type must be either 'project' or 'folder'"
+  projectType: z.string().max(10).refine(val => val === "root" || val === "folder", {
+    message: "Project type must be either 'root' or 'folder'"
   })
 });
 
@@ -30,8 +30,8 @@ export const ProjectCreateDtoSchema = z.object({
   description: z.string().nullable(),
   creationDate: z.string().min(1, { message: "Created at is required" }),
   deletionDate: z.string().optional(),
-  projectType: z.string().refine(val => val === "project" || val === "folder", {
-    message: "Project type must be either 'project' or 'folder'"
+  projectType: z.string().refine(val => val === "root" || val === "folder", {
+    message: "Project type must be either 'root' or 'folder'"
   }),
   tags: z.array(z.string()),
   creators: z.array(z.string())
