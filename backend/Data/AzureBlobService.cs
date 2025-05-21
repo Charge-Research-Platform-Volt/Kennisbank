@@ -1,6 +1,7 @@
 ﻿using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure.Storage.Blobs.Specialized;
 using Serilog;
 
 namespace KnowledgeBank.Data
@@ -145,6 +146,16 @@ namespace KnowledgeBank.Data
         /// <param name="prefix">A prefix to filter results</param>
         /// <returns>A BlobPage which contains the current page, the total amount of pages and the list of blobs on the current page</returns>
         Task<BlobPageResponse> ListBlobsPagedAsync(string containerName, int pageSize, string? continuationToken = null, string prefix = "");
+        
+        /// <summary>
+        /// Commits a list of previously uploaded blocks to form a complete blob
+        /// </summary>
+        /// <param name="resourceId">The unique identifier of the blob</param>
+        /// <param name="containerName">The name of the container where the blob is stored</param>
+        /// <param name="blockIds">The list of Base64-encoded block IDs in the correct order</param>
+        /// <param name="metadata">Optional metadata to associate with the blob</param>
+        /// <returns>If the operation was successful</returns>
+        Task<BLOB_STATUSCODE> CommitBlockListAsync(string resourceId, string containerName, List<string> blockIds, Dictionary<string, string> metadata);
     }
 
     /// <summary>
@@ -407,6 +418,31 @@ namespace KnowledgeBank.Data
 
             logger.Information("Listed {Count} blobs in container {ContainerName}{PrefixInfo}", blobs.Count, containerName, prefix != null ? $" with prefix {prefix}" : "");
             return new BlobPageResponse(BLOB_STATUSCODE.OK, $"Listed {blobs.Count} blobs.", page.ContinuationToken, blobs.ToArray());
+        }
+
+        /// <inheritdoc/>
+        public async Task<BLOB_STATUSCODE> CommitBlockListAsync(string resourceId, string containerName, List<string> blockIds, Dictionary<string, string> metadata)
+        {
+            BlobContainerClient container = await GetOrCreateContainerAsync(containerName);
+            BlockBlobClient blockBlobClient = container.GetBlockBlobClient(resourceId);
+            
+            if (!await container.ExistsAsync())
+            {
+                logger.Information("The container {ContainerName} does not exist.", containerName);
+                return BLOB_STATUSCODE.NOTFOUND;
+            }
+            
+            // Try committing the blocks
+            try
+            {
+                await blockBlobClient.CommitBlockListAsync(blockIds, new BlobHttpHeaders(), metadata);
+                return BLOB_STATUSCODE.OK;
+            }
+            catch (Exception e)
+            {
+                logger.Error("Committing the blocks failed", e.Message);
+                return BLOB_STATUSCODE.FAILED;
+            }
         }
     }
 }

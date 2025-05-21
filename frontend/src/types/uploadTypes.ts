@@ -177,3 +177,21 @@ export const RegionCreateDtoSchema = z.object(
  * DTO to send to backend to create a region
  */
 export type RegionCreateDto = z.infer<typeof RegionCreateDtoSchema>;
+
+
+
+/**
+ * Schema for finalizing a large file upload
+ */
+export const LargeFileFinalizeDtoSchema = z.object(
+{
+    ResourceId: z.string().uuid("Invalid UUID").min(1, "Please provide an ID"),
+    FileType: z.string().min(1, "FileType is required"),
+    FileName: z.string().min(1, "FileName is required"),
+    BlockIds: z.array(z.string())
+});
+
+/**
+ * DTO to send to backend to finalize large file upload
+ */
+export type LargeFileFinalizeDto = z.infer<typeof LargeFileFinalizeDtoSchema>;

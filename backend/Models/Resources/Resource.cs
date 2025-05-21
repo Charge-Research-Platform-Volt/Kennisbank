@@ -123,6 +123,14 @@ public class FileResourceCreateDto : ResourceCreateDto
     public IFormFile? File { get; set; }
 }
 
+public class LargeFileFinalizeDto
+{
+    public required string ResourceId { get; set; }
+    public required string FileType { get; set; }
+    public required string FileName { get; set; }
+    public List<string> BlockIds { get; set; } = new();
+}
+
 public class ResourceUploadDto 
 {
     public required string Dto { get; set; }
