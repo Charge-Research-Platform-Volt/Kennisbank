@@ -1,20 +1,17 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef } from "react";
-import { useState } from "react";
-
-// Table imports
 import { AgGridReact } from "ag-grid-react";
 import type { ColDef, GridApi, GridReadyEvent, RowClickedEvent, RowSelectionOptions } from "ag-grid-community";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
-import { ResourcePageWithTagsResponse, ResourceResponse } from "@/types/resource.type";
-import { ProjectPageResponse, Project } from "@/types/project.type";
+import { Resource } from "@/types/resource.type";
+import { Project } from "@/types/project.type";
 import { tableTheme } from "@/lib/tableConfig";
 import GetFileIcon from "./getFileIcon";
 import { format, parseISO } from "date-fns";
 import OpenFileButton from "./open-file-button";
 import { useSidebar } from "@/context/sidebar-provider";
-import { FolderIcon } from "lucide-react";
+import { FolderIcon, SparklesIcon } from "lucide-react";
 
 // Register all modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -24,89 +21,80 @@ interface ProjectOrResource {
   id: string;
   title: string; 
   description: string;
-  itemType: "project" | "resource"; // To differentiate between projects and resources
   creationDate?: string;
+  itemType?: 'project' | 'folder' | 'resource';
   publicationDate?: string;
   fileType?: string;
-  // Add other common properties as needed
 }
 
 interface ListProjectsProps {
-  data: ProjectPageResponse | { resources: ResourceResponse[], projects: ProjectPageResponse[] };
+  resources: Resource[];
+  projects: Project[];
   level: number;
   onNavigateToProject?: (projectId: string) => void;
 }
 
 /**
  * Component for listing projects and resources in a table
- * @param data - Data to display in the table, either from project list API or project info API
+ * @param resources - Array of resources to display
+ * @param projects - Array of projects to display
  * @param level - Current navigation level (0 for root level, >0 for subfolder levels)
  * @param onNavigateToProject - Callback function when a project/folder is clicked
  * @returns A table representation of the data
  */
-export default function ListProjects({ data, level, onNavigateToProject }: ListProjectsProps) {
+export default function ListProjects({ resources, projects, level, onNavigateToProject }: ListProjectsProps) {
   // Transform the data into a unified format for the table
   const tableData = useMemo(() => {
-    const items: ProjectOrResource[] = [];
-    
-    // Add projects/folders if they exist
-    if ('projects' in data && Array.isArray(data.projects)) {
-      (data.projects as Project[]).forEach((project) => {
-        items.push({
-          id: project.id,
-          title: project.title,
-          description: project.description || '',
-          itemType: 'project',
-          creationDate: project.creationDate
-        });
-      });
-    }
-    
-    // Add resources if they exist
-    if ('resources' in data && Array.isArray(data.resources)) {
-      data.resources.forEach(resource => {
-        items.push({
-          id: resource.id,
-          title: resource.title,
-          description: resource.description || '',
-          fileType: resource.fileType,
-          itemType: 'resource',
-          creationDate: resource.creationDate,
-          publicationDate: resource.publicationDate
-        });
-      });
-    }
-    
-    return items;
-  }, [data]);
+  const items: ProjectOrResource[] = [];
+  
+  // Add projects/folders
+  projects.forEach((project) => {
+    items.push({
+      id: project.id,
+      title: project.title,
+      description: project.description || '',
+      creationDate: project.creationDate,
+      itemType: project.projectType === 'root' ? 'project' : 'folder',
+    });
+  });
+  
+  // Add resources
+  resources.forEach(resource => {
+    items.push({
+      id: resource.id,
+      title: resource.title,
+      description: resource.description || '',
+      itemType: 'resource',
+    });
+  });
+  
+  return items;
+  }, [projects, resources]);
 
   // Column definitions
   const columnDefs = useMemo<ColDef[]>(() => [
     { 
       field: "title", 
       cellRenderer: (params: any) => <ItemRenderer {...params} />,
-      minWidth: 500, 
-      flex: 3, 
+      minWidth: 200,
+      flex: 1, 
       resizable: true 
     },
-    { field: "description", minWidth: 300, flex: 2, resizable: true },
+    { field: "description", minWidth: 500, flex: 3, resizable: true },
     { 
       field: "itemType", 
       headerName: "Type", 
-      minWidth: 70, 
-      flex: 1, 
+      minWidth: 80, 
       resizable: true,
-      valueFormatter: (params) => params.value === 'project' ? 'Folder' : (params.data.fileType || '')
+      valueFormatter: (params) => 
+        params.value === 'project' ? 'Project'
+        : params.value === 'folder' ? 'Folder'
+        : params.value === 'resource' ? 
+            params.data.fileType : ''
     },
     { 
       field: "creationDate", 
-      minWidth: 160, 
-      valueFormatter: (params) => params.value ? format(parseISO(params.value), "yyyy-MM-dd HH:mm") : '', 
-      resizable: true 
-    },
-    { 
-      field: "publicationDate", 
-      minWidth: 160, 
+      minWidth: 150, 
       valueFormatter: (params) => params.value ? format(parseISO(params.value), "yyyy-MM-dd HH:mm") : '', 
       resizable: true 
     },
@@ -144,7 +132,7 @@ export default function ListProjects({ data, level, onNavigateToProject }: ListP
 
     const rowData = e.data as ProjectOrResource;
     
-    if (rowData.itemType === 'project' && onNavigateToProject) {
+    if (rowData.itemType === "project" && onNavigateToProject) {
       // Navigate to the project/folder
       onNavigateToProject(rowData.id);
     } else if (rowData.itemType === 'resource') {
@@ -186,7 +174,9 @@ function ItemRenderer(params: { data: ProjectOrResource; value: string }) {
   return (
     <div className="flex items-center" data-testid="item-entry">
       {params.data.itemType === 'project' ? (
-        <FolderIcon size={20} className="text-yellow-500" />
+        <SparklesIcon size={20} className="text-yellow-500" />
+      ) : params.data.itemType === 'folder' ? (
+        <FolderIcon size={20} className="text-blue-500" />
       ) : (
         <GetFileIcon fileType={params.data.fileType || ''} />
       )}
