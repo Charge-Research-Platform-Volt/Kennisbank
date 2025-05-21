@@ -11,8 +11,14 @@ import GetFileIcon from "./getFileIcon";
 import { format, parseISO } from "date-fns";
 import OpenFileButton from "./open-file-button";
 import { useSidebar } from "@/context/sidebar-provider";
-import { ArrowLeftIcon, FolderIcon, HomeIcon, SparklesIcon } from "lucide-react";
+import { ArrowLeftIcon, FolderIcon, HomeIcon, SparklesIcon, CirclePlusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ListProjectsPaged } from "@/actions/projectActions";
+import { ApiResponse } from "@/types/apiResponse.type";
+import CreateProjectModal from "@/app/(knowledgebank)/projects/components/create-project-modal";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
+import { ProjectActionsDropdown } from "./projects-dropdown";
+import CreateFolderModal from "@/app/(knowledgebank)/projects/components/create-folder-modal";
 
 // Register all modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -58,6 +64,11 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   // Navigation history/breadcrumbs
   const [navigationPath, setNavigationPath] = useState<BreadcrumbItem[]>([]);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+
+  // State for modal visibility
+  const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
+  const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
+
 
   // Transform the data into a unified format for the table
   const tableData = useMemo(() => {
@@ -144,6 +155,57 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
 
 
   // #region Page Navigation
+
+  // Function to refresh the current list of projects, especially for the root level
+  const fetchAndSetRootProjects = async () => {
+    setIsLoading(true);
+    try {
+      const projectFetch: ApiResponse = await ListProjectsPaged(1, ""); 
+      if (projectFetch.success && projectFetch.body?.projects) {
+
+        // Clear focus before changing data, otherwise throws error
+        if (gridApiRef.current) {
+          gridApiRef.current.clearFocusedCell(); 
+        }
+
+        setProjects(projectFetch.body.projects);
+        
+        setResources(initialResources); 
+        setNavigationPath([]);
+        setCurrentProjectId(null);
+        setCurrentLevel(0);
+      } else {
+        console.error("Failed to fetch root projects:", projectFetch.message);
+      }
+    } catch (error) {
+      console.error("Error fetching root projects:", error);
+    } finally {
+      console.log("Loading set to false!");
+      setIsLoading(false);
+    }
+  };
+
+  // Function to refresh the current project contents
+  const refreshCurrentProject = async () => {
+    if (!currentProjectId) return;
+    
+    try {
+      setIsLoading(true);
+      const { resources: newResources, projects: newProjects } = await fetchProjectContent(currentProjectId);
+      
+      // Clear focus
+      if (gridApiRef.current) {
+        gridApiRef.current.clearFocusedCell();
+      }
+      
+      setResources(newResources);
+      setProjects(newProjects);
+    } catch (error) {
+      console.error("Error refreshing current project:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   /**
    * Navigate to a specific project and load its contents
@@ -267,6 +329,36 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     }
   };
 
+  // #region Creation
+
+  // Project creation handlers
+  const handleOpenCreateProjectModal = () => {
+    setIsCreateProjectModalOpen(true);
+  };
+  
+  const handleCloseCreateProjectModal = () => {
+    setIsCreateProjectModalOpen(false);
+  };
+  
+  const handleProjectCreationSuccess = () => {
+    handleCloseCreateProjectModal();
+    fetchAndSetRootProjects();
+  };
+
+  // Folder creation handlers
+  const handleOpenCreateFolderModal = () => {
+    setIsCreateFolderModalOpen(true);
+  };
+  
+  const handleCloseCreateFolderModal = () => {
+    setIsCreateFolderModalOpen(false);
+  };
+  
+  const handleFolderCreationSuccess = () => {
+    handleCloseCreateFolderModal();
+    refreshCurrentProject();
+  };
+
   // #region Page Rendering
 
   // Unselect all rows when the sidebar is closed
@@ -278,8 +370,17 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
 
   return (
     <div className="flex flex-col h-full w-full">
-      {/* Navigation Controls */}
       <div className="mb-4 flex items-center space-x-1">
+
+        {/* Dropdown to create projects ec */}
+        <ProjectActionsDropdown 
+          currentLevel={currentLevel} 
+          isLoading={isLoading}
+          onCreateProject={handleOpenCreateProjectModal}
+          onCreateFolder={handleOpenCreateFolderModal}
+          />
+
+        {/* Navigation Controls */}
         <Button 
           variant="outline" 
           size="sm" 
@@ -287,7 +388,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
           disabled={currentLevel === 0 || isLoading}
         >
           <HomeIcon size={16} className="mr-1" />
-          Home
+          Projects
         </Button>
         
         {currentLevel > 0 && (
@@ -329,7 +430,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
           <div className="ml-2 text-sm text-gray-500">Loading...</div>
         )}
       </div>
-      
+
       {/* Table */}
       <div className="h-[calc(100vh-6rem)] w-full">
         <AgGridReact
@@ -346,6 +447,21 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
           loading={isLoading}
         />
       </div>
+
+      {/* Project creation modal */}
+      <CreateProjectModal 
+        isOpen={isCreateProjectModalOpen}
+        onClose={handleCloseCreateProjectModal}
+        onSuccess={handleProjectCreationSuccess}
+      />
+
+      {/* Folder creation modal - only enabled when inside a project */}
+      <CreateFolderModal 
+        isOpen={isCreateFolderModalOpen}
+        onClose={handleCloseCreateFolderModal}
+        onSuccess={handleFolderCreationSuccess}
+        parentProjectId={currentProjectId}
+      />
     </div>
   );
 }
