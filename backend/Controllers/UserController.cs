@@ -96,7 +96,7 @@ public class UserController : ControllerBase
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error retrieving current user's name");
+            logger.Error(e, "Error retrieving current user's first name");
             return StatusCode(500, "Internal server error.");
         }
     }
@@ -131,7 +131,7 @@ public class UserController : ControllerBase
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error retrieving current user's name");
+            logger.Error(e, "Error retrieving current user's last name");
             return StatusCode(500, "Internal server error.");
         }
     }
