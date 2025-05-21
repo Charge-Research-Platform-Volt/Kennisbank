@@ -96,9 +96,9 @@ describe("Rendering fetch results", () => {
 
     const { getByText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchiveProvider><ArchivePage /></ArchiveProvider></SidebarProvider>);
 
-    await awaitFetchResolve(1);
+    await awaitFetchResolve(2);
 
-    expect(getByText("An error occurred while fetching initial files.")).toBeInTheDocument();
+    expect(getByText("An error occurred while fetching search results.")).toBeInTheDocument();
   });
 
   test("renders error message when search fetch fails", async () => {
@@ -134,15 +134,15 @@ describe("Rendering fetch results", () => {
 
     await awaitFetchResolve(1);
 
-    expect(getByText(testFile.title)).toBeInTheDocument();
+    await waitFor(() => expect(getByText(testFile.title)).toBeInTheDocument());
 
     await awaitDebouncedChange(() => fireEvent.change(searchInput, { target: { value: "nothing" } }), 2);
 
-    expect(getByText("No Rows To Show")).toBeInTheDocument();
+    await waitFor(() => expect(getByText("No results found")).toBeInTheDocument());
 
     await awaitDebouncedChange(() => fireEvent.change(searchInput, { target: { value: "test" } }), 3);
 
-    expect(getByText(testFile.title)).toBeInTheDocument();
+    await waitFor(() => expect(getByText(testFile.title)).toBeInTheDocument());
   });
 
   test("renders different documents when filters are applied", async () => {
@@ -178,33 +178,31 @@ describe("Rendering fetch results", () => {
 
     const { getByText, queryByText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchiveProvider><ArchivePage /></ArchiveProvider></SidebarProvider>);
 
-    await awaitFetchResolve(1);
-
-    expect(getByText(title1)).toBeInTheDocument();
-    expect(getByText(title2)).toBeInTheDocument();
-    expect(getByText(title3)).toBeInTheDocument();
-    expect(getByText(title4)).toBeInTheDocument();
+    await waitFor(() => expect(getByText(title1)).toBeInTheDocument());
+    await waitFor(() => expect(getByText(title2)).toBeInTheDocument());
+    await waitFor(() => expect(getByText(title3)).toBeInTheDocument());
+    await waitFor(() => expect(getByText(title4)).toBeInTheDocument());
 
     await awaitDebouncedChange(() => filterButtonApplyMock(["tag1"], null, null), 2);
 
     await waitFor(() => expect(queryByText(title1)).not.toBeInTheDocument());
-    expect(getByText(title2)).toBeInTheDocument();
-    expect(getByText(title3)).toBeInTheDocument();
-    expect(getByText(title4)).toBeInTheDocument();
+    await waitFor(() => expect(getByText(title2)).toBeInTheDocument());
+    await waitFor(() => expect(getByText(title3)).toBeInTheDocument());
+    await waitFor(() => expect(getByText(title4)).toBeInTheDocument());
 
     await awaitDebouncedChange(() => filterButtonApplyMock(["tag1"], 2025, null), 3);
 
     await waitFor(() => expect(queryByText(title1)).not.toBeInTheDocument());
     await waitFor(() => expect(queryByText(title2)).not.toBeInTheDocument());
-    expect(getByText(title3)).toBeInTheDocument();
-    expect(getByText(title4)).toBeInTheDocument();
+    await waitFor(() => expect(getByText(title3)).toBeInTheDocument());
+    await waitFor(() => expect(getByText(title4)).toBeInTheDocument());
 
     await awaitDebouncedChange(() => filterButtonApplyMock(["tag1"], 2025, 2027), 4);
 
     await waitFor(() => expect(queryByText(title1)).not.toBeInTheDocument());
     await waitFor(() => expect(queryByText(title2)).not.toBeInTheDocument());
     await waitFor(() => expect(queryByText(title3)).not.toBeInTheDocument());
-    expect(getByText(title4)).toBeInTheDocument();
+    await waitFor(() => expect(getByText(title4)).toBeInTheDocument());
   });
 });
 

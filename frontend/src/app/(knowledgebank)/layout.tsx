@@ -5,14 +5,14 @@ import { ArchiveProvider } from "@/context/archive-provider";
 
 export default async function KnowledgeBankLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <QuickSearchProvider>
-      <ArchiveProvider>
+       <QuickSearchProvider>
+        <ArchiveProvider>
       <div className="flex h-screen w-full">
-        <LeftSidebarServer />
-        <main className="w-full overflow-y-auto p-2">{children}</main>
-        <RightSidebar />
-      </div>
-      </ArchiveProvider>
+          <LeftSidebarServer />
+          <main className="w-full overflow-y-auto p-2">{children}</main>
+          <RightSidebar />
+        </div>
+        </ArchiveProvider>
     </QuickSearchProvider>
   );
 }

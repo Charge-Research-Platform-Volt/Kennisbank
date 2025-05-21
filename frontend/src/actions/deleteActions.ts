@@ -1,0 +1,44 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
+import { cookies } from "next/headers";
+
+export const DeleteResource = async (id: string) => {
+    try {
+        // Send the data to the backend.
+        const cookieHeader : ReadonlyRequestCookies = await cookies();
+        const response : Response = await fetch(`${process.env.API_URL}/Resources/delete/${encodeURIComponent(id)}`, {
+            method: "DELETE",
+            credentials: "include",
+            headers: { Cookie: cookieHeader.toString() || "" },
+        });
+        
+        const data = await response.json();
+
+        // Check if the request was successful, if not, return an error.
+        if (!response.ok) {
+            console.log("Something failed");
+            console.log(data);
+            return {
+                success: false,
+                message: data.message,
+            };
+        }
+
+        // Revalidate the cache for the archive page.
+        revalidatePath("/archive");
+
+        return {
+            success: true,
+            message: data.message,
+        };
+    } catch (error) {
+        //Log.error(`An error occurred: ${error}`);
+        console.log(error);
+        return {
+            success: false,
+            message: "An error occurred.",
+        };
+    }
+};
