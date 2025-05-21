@@ -18,7 +18,7 @@ export const getProperties = async (
 
     if (type === "resource") {endPoint = "resources/info"}
     else if (type === "person") {endPoint = "persons/info"}
-    else if (type === "organisation") {endPoint = "organisation/info"}
+    else if (type === "organisation") {endPoint = "organisations/info"}
 
     const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response = await fetch(

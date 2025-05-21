@@ -48,7 +48,7 @@ export default function Expandable({
         : fadeColor;
     
     return (
-        <div className="w-full relative">
+        <div className="w-full relative mb-2">
             <Collapsible open={open} onOpenChange={setOpen} className="w-full">
                 <CollapsibleTrigger className="w-full cursor-pointer">
                     <div className="w-full flex items-center gap-2">

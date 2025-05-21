@@ -18,8 +18,8 @@ export function PersonContent()
             setName(null);
             setDescription(null);
             setOccupation(null);
+            loadInformation();
         }
-        loadInformation();
     }, [currentId])
 
     const loadInformation = async () => {
@@ -30,16 +30,21 @@ export function PersonContent()
             if (response.body.description) {
                 setDescription(response.body.description);
             }
-            setOccupation(response.body.occupation)
+            else {setDescription("No Description")}
+
+            if (response.body.occupation) {
+                setOccupation(response.body.occupation);
+            }
+            else {setOccupation("No Occupation")}
         }).catch(error => {
-            console.error("Error loading information: ", error);
+            console.error("Error loading person information: ", error);
         });
     }
 
     return (
         <>
             <h1 className="pb-2 font-bold select-none">{name || <Skeleton />}</h1>
-            <h1 className="p-1 pl-2 select-none bg-gray-300 rounded-md">{occupation || <Skeleton />}</h1>
+            <h1 className="p-1 pl-2 mb-2 select-none bg-gray-200 rounded-md">{occupation || <Skeleton />}</h1>
              <Expandable title="Description" collapsedHeight={100}>
                     {description || <Skeleton />}
             </Expandable>

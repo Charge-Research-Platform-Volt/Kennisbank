@@ -22,7 +22,7 @@ export default function ResourceList({resources, header} : {resources: ListItem[
 
     function addRows () {
         let r = resources as ListItem[];
-        if (length + 5 > r.length) {
+        if (length + 5 >= r.length) {
             setLength(r.length);
             setMaxLength(true);
         }

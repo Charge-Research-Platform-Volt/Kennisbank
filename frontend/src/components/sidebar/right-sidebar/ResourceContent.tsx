@@ -70,11 +70,11 @@ export function ResourceContent()
             if (response.body.description) {
                 setDescription(response.body.description);
             }
+            else {setDescription("No description.")}
             if (response.body.note) {
                 setNote(response.body.note);
             }
 
-            else {setDescription("No description.")}
         }).catch(error => {
             console.error("Error loading information: ", error);
         });
@@ -164,7 +164,7 @@ export function ResourceContent()
             {fileType === "website" ? (
                 <a href={url} className="select-none" target="_blank" rel="noreferror">
                     <h1 className="pb-2 font-bold select-none">{title || <Skeleton />}</h1>
-                    <h1 className="pb-2 select-none">{url || <Skeleton />}</h1>
+                    <h1 className="p-1 pl-2 mb-2 bg-gray-200 rounded-md select-none">{url || <Skeleton />}</h1>
                 </a>
 
             ) : ( <h1 className="pb-2 font-bold select-none">{title || <Skeleton />}</h1> )}
