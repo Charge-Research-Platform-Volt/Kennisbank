@@ -29,7 +29,7 @@ public class TrashbinCleanupService : BackgroundService
         {
             await WaitUntilUtils.WaitUntilTime(new TimeSpan(0, 0, 0), stoppingToken); // Run at midnight
 
-            using (var scope = _serviceProvider.CreateScope())
+            using (IServiceScope scope = _serviceProvider.CreateScope())
             {
                 DatabaseContext dbContext = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
 
