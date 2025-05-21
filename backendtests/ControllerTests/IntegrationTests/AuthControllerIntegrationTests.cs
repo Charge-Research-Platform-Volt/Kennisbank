@@ -129,10 +129,13 @@ public class AuthControllerTests : TestBase
         await Context.SaveChangesAsync();
 
         // Act
-        IActionResult result = await _controller.Register(new SignUpDto(){
+        IActionResult result = await _controller.Register(new SignUpDto()
+        {
             Email = "wrong@email.com",
             Password = "Test123!",
             Token = token,
+            FirstName = "Test",
+            LastName = "User"
         });
 
         // Assert
@@ -163,10 +166,13 @@ public class AuthControllerTests : TestBase
         await Context.SaveChangesAsync();
 
         // Act
-        IActionResult result = await _controller.Register(new SignUpDto(){
+        IActionResult result = await _controller.Register(new SignUpDto()
+        {
             Email = email,
             Password = "Test123!",
             Token = "wrongtoken",
+            FirstName = "Test",
+            LastName = "User"
         });
 
         // Assert
@@ -209,10 +215,13 @@ public class AuthControllerTests : TestBase
         await Context.SaveChangesAsync();
 
         // Act
-        IActionResult result = await _controller.Register(new SignUpDto(){
+        IActionResult result = await _controller.Register(new SignUpDto()
+        {
             Email = email1,
             Password = "Test123!",
             Token = token2,
+            FirstName = "Test",
+            LastName = "User"
         });
 
         // Assert
@@ -245,10 +254,13 @@ public class AuthControllerTests : TestBase
         await Context.SaveChangesAsync();
 
         // Act
-        IActionResult result = await _controller.Register(new SignUpDto(){
+        IActionResult result = await _controller.Register(new SignUpDto()
+        {
             Email = email,
             Password = "Test123!",
             Token = token,
+            FirstName = "Test",
+            LastName = "User"
         });
 
         // Assert
@@ -279,10 +291,13 @@ public class AuthControllerTests : TestBase
         await Context.SaveChangesAsync();
 
         // Act
-        IActionResult result = await _controller.Register(new SignUpDto(){
+        IActionResult result = await _controller.Register(new SignUpDto()
+        {
             Email = email,
             Password = "Test123!",
             Token = token,
+            FirstName = "Test",
+            LastName = "User"
         });
 
         // Assert
@@ -300,10 +315,13 @@ public class AuthControllerTests : TestBase
         string password = "Test123!";
 
         // Act
-        IActionResult result = await _controller.Register(new SignUpDto(){
+        IActionResult result = await _controller.Register(new SignUpDto()
+        {
             Email = email,
             Password = password,
-            Token = ""
+            Token = "",
+            FirstName = "Test",
+            LastName = "User"
         });
 
         // Assert
