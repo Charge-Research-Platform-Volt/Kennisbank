@@ -7,6 +7,7 @@ using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace KnowledgeBank.Controllers;
 
@@ -28,6 +29,41 @@ public class UserController : ControllerBase
         this.logger = Log.ForContext<UserController>();
         this.database = databaseContext;
         this.userManager = userManager;
+    }
+
+    [HttpGet("current-user-name")]
+    [AllowAnonymous]
+    [SwaggerOperation(
+        Summary = "Get current user's name.",
+        Description = "Returns the current user's name or an empty string if not authenticated"
+    )]
+    [SwaggerResponse(200, "The current user's role.")]
+    [SwaggerResponse(500, "Internal server error")]
+    public async Task<IActionResult> GetCurrentUserName()
+    {
+        try
+        {
+            // Check if user is authenticated
+            if (User.Identity == null || !User.Identity.IsAuthenticated)
+                return Ok(new { name = "", isAuthenticated = false });
+
+            string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+                return Ok(new { name = "", isAuthenticated = true });
+
+            User? user = await userManager.FindByIdAsync(userId);
+
+            if (user == null)
+                return Ok(new { name = "", isAuthenticated = true });
+
+            return Ok(new { name = user.FirstName + " " + user.LastName, isAuthenticated = true });
+        }
+        catch (Exception e)
+        {
+            logger.Error(e, "Error retrieving current user's name");
+            return StatusCode(500, "Internal server error.");
+        }
     }
 
     [HttpGet("all-users")]
