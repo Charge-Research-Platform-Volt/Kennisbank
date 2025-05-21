@@ -17,7 +17,7 @@ export default function ProjectSearchClient({ projects, resources = [] }: Projec
   const [currentQuery, setCurrentQuery] = useState("");
 
   // Filter projects based on search query
-  const filteredProjects = projects.filter(project =>
+  const filteredProjects = (projects ?? []).filter(project =>
     project.title.toLowerCase().includes(currentQuery.toLowerCase())
   );
 
