@@ -13,12 +13,14 @@ import OpenFileButton from "./open-file-button";
 import { useSidebar } from "@/context/sidebar-provider";
 import { ArrowLeftIcon, FolderIcon, HomeIcon, SparklesIcon, CirclePlusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ListProjectsPaged } from "@/actions/projectActions";
+import { addResourceToProject, fetchAllResources, ListProjectsPaged } from "@/actions/projectActions";
 import { ApiResponse } from "@/types/apiResponse.type";
 import CreateProjectModal from "@/app/(knowledgebank)/projects/components/create-project-modal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
-import { ProjectActionsDropdown } from "./projects-dropdown";
+import { ProjectActionsDropdown } from "../app/(knowledgebank)/projects/components/projects-dropdown";
 import CreateFolderModal from "@/app/(knowledgebank)/projects/components/create-folder-modal";
+import { Input } from "@/components/ui/input";
+import Search from "@/icons/search-icon";
 
 // Register all modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -55,6 +57,8 @@ interface ListProjectsProps {
  * @returns A navigable table representation of projects and resources
  */
 export default function ListProjects({initialResources, initialProjects, fetchProjectContent}: ListProjectsProps) {
+  // Query for searching
+  const [currentQuery, setCurrentQuery] = useState<string>("");
   // State for current projects and resources being displayed
   const [resources, setResources] = useState<Resource[]>(initialResources);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
@@ -69,13 +73,41 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
 
+  // State for resource add mode
+  const [isAddResourceMode, setIsAddResourceMode] = useState(false);
+  const [allResources, setAllResources] = useState<Resource[]>([]);
+  const [selectedResourceIds, setSelectedResourceIds] = useState<Set<string>>(new Set());
 
-  // Transform the data into a unified format for the table
+  // Handles filtering the projects and resources based on the current query
+  const filteredItems = useMemo(() => {
+    const lowerCaseQuery = currentQuery.toLowerCase();
+    
+    if (isAddResourceMode) {
+      // In add resource mode, only show filtered resources from allResources
+      const filteredResources = allResources.filter(resource =>
+        resource.title.toLowerCase().includes(lowerCaseQuery) ||
+        (resource.description && resource.description.toLowerCase().includes(lowerCaseQuery))
+      );
+      return { projects: [], resources: filteredResources };
+    }
+    
+    // Normal mode - filter current projects and resources
+    const filteredProjects = projects.filter(project =>
+      project.title.toLowerCase().includes(lowerCaseQuery) ||
+      (project.description && project.description.toLowerCase().includes(lowerCaseQuery))
+    );
+    const filteredResources = resources.filter(resource =>
+      resource.title.toLowerCase().includes(lowerCaseQuery) ||
+      (resource.description && resource.description.toLowerCase().includes(lowerCaseQuery))
+    );
+    return { projects: filteredProjects, resources: filteredResources };
+  }, [projects, resources, allResources, currentQuery, isAddResourceMode]);
+
   const tableData = useMemo(() => {
     const items: ProjectOrResource[] = [];
     
-    // Add projects/folders
-    projects.forEach((project) => {
+    // Add filtered projects/folders
+    filteredItems.projects.forEach((project) => {
       items.push({
         id: project.id,
         title: project.title,
@@ -86,8 +118,8 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
       });
     });
     
-    // Add resources
-    resources.forEach(resource => {
+    // Add filtered resources
+    filteredItems.resources.forEach(resource => {
       items.push({
         id: resource.id,
         title: resource.title,
@@ -97,43 +129,57 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     });
     
     return items;
-  }, [projects, resources]);
+  }, [filteredItems]);
 
   // Column definitions
-  const columnDefs = useMemo<ColDef[]>(() => [
-    { 
-      field: "title", 
-      cellRenderer: (params: any) => <ItemRenderer {...params} />,
-      minWidth: 200,
-      flex: 1, 
-      resizable: true 
-    },
-    { field: "description", minWidth: 500, flex: 3, resizable: true },
-    { 
-      field: "itemType", 
-      headerName: "Type", 
-      minWidth: 80, 
-      resizable: true,
-      valueFormatter: (params) => 
-        params.value === 'project' ? 'Project'
-        : params.value === 'folder' ? 'Folder'
-        : params.value === 'resource' ? 
-            params.data.fileType : ''
-    },
-    { 
-      field: "creationDate", 
-      minWidth: 150, 
-      valueFormatter: (params) => params.value ? format(parseISO(params.value), "yyyy-MM-dd HH:mm") : '', 
-      resizable: true 
-    },
-    { 
-      field: "", 
-      minWidth: 30, 
-      maxWidth: 50, 
-      cellRenderer: (params: any) => params.data.itemType === 'resource' ? <DownloadRenderer data={params.data} /> : null, 
-      resizable: true 
-    },
-  ], []);
+  const columnDefs = useMemo<ColDef[]>(() => {
+    const baseColumns: ColDef[] = [
+      { 
+        field: "title", 
+        cellRenderer: (params: any) => <ItemRenderer {...params} />,
+        minWidth: 200,
+        flex: 1, 
+        resizable: true 
+      },
+      { field: "description", minWidth: 500, flex: 3, resizable: true },
+    ];
+
+    // Add type and date columns only when not in add resource mode
+    if (!isAddResourceMode) {
+      baseColumns.push(
+        { 
+          field: "itemType", 
+          headerName: "Type", 
+          minWidth: 80, 
+          resizable: true,
+          valueFormatter: (params) => 
+            params.value === 'project' ? 'Project'
+            : params.value === 'folder' ? 'Folder'
+            : params.value === 'resource' ? 
+                params.data.fileType : ''
+        },
+        { 
+          field: "creationDate", 
+          minWidth: 150, 
+          valueFormatter: (params) => params.value ? format(parseISO(params.value), "yyyy-MM-dd HH:mm") : '', 
+          resizable: true 
+        }
+      );
+    }
+
+    // Add download column only when not in add resource mode
+    if (!isAddResourceMode) {
+      baseColumns.push({
+        field: "", 
+        minWidth: 30, 
+        maxWidth: 50, 
+        cellRenderer: (params: any) => params.data.itemType === 'resource' ? <DownloadRenderer data={params.data} /> : null, 
+        resizable: true 
+      });
+    }
+
+    return baseColumns;
+  }, [isAddResourceMode]);
 
   const gridApiRef = useRef<GridApi | null>(null);
 
@@ -147,16 +193,71 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
 
   // Row selection
   const rowSelection = useMemo<RowSelectionOptions>(() => {
+    if (isAddResourceMode) {
+      return {
+        checkboxes: true,
+        mode: "multiRow",
+      };
+    }
+    
     return {
       checkboxes: false,
       mode: "singleRow",
     };
-  }, []);
+  }, [isAddResourceMode]);
 
+  // Add handler for selection changes in add resource mode:
+  const onSelectionChanged = (event: any) => {
+    if (isAddResourceMode) {
+      const selectedNodes = event.api.getSelectedNodes();
+      const newlySelectedIds = new Set<string>(selectedNodes.map((node: any) => node.data.id));
+
+      setSelectedResourceIds(prev => {
+        // Start with the previous set
+        const updated = new Set(prev);
+
+        // Get all visible node IDs
+        const visibleNodeIds = new Set<string>();
+        event.api.forEachNode((node: any) => {
+          visibleNodeIds.add(node.data.id);
+        });
+
+        // Remove any visible IDs that are no longer selected
+        for (const id of visibleNodeIds) {
+          if (!newlySelectedIds.has(id)) {
+            updated.delete(id);
+          }
+        }
+
+        // Add all newly selected IDs
+        for (const id of newlySelectedIds) {
+          updated.add(id);
+        }
+
+        return updated;
+      });
+    }
+  };
+  
+  // Handler to restore selection after grid data changes (e.g., filtering/searching)
+  const restoreSelection = () => {
+    if (isAddResourceMode && gridApiRef.current) {
+      gridApiRef.current.forEachNode((node) => {
+        node.setSelected(selectedResourceIds.has(node.data.id), false);
+      });
+    }
+  };
+
+  // Restore selection whenever tableData or selectedResourceIds changes in add resource mode
+  useEffect(() => {
+    console.log("Restoring selection: ", selectedResourceIds);
+    restoreSelection();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tableData, selectedResourceIds, isAddResourceMode]);
 
   // #region Page Navigation
 
-  // Function to refresh the current list of projects, especially for the root level
+  // Function to refresh the current list of projects, for the root level
   const fetchAndSetRootProjects = async () => {
     setIsLoading(true);
     try {
@@ -206,6 +307,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
       setIsLoading(false);
     }
   };
+
 
   /**
    * Navigate to a specific project and load its contents
@@ -304,16 +406,48 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   /**
    * Navigate back to the root level
    */
-  const navigateToRoot = () => {
+  const navigateToRoot = async () => {
+  setIsLoading(true);
+  try {
+    const projectFetch: ApiResponse = await ListProjectsPaged(1, ""); 
+    if (projectFetch.success && projectFetch.body?.projects) {
+      // Clear focus before changing data
+      if (gridApiRef.current) {
+        gridApiRef.current.clearFocusedCell(); 
+      }
+
+      setProjects(projectFetch.body.projects);
+      setResources(initialResources);
+      setNavigationPath([]);
+      setCurrentProjectId(null);
+      setCurrentLevel(0);
+    } else {
+      console.error("Failed to fetch root projects:", projectFetch.message);
+      // Fallback to initial data if fetch fails
+      setResources(initialResources);
+      setProjects(initialProjects);
+      setNavigationPath([]);
+      setCurrentProjectId(null);
+      setCurrentLevel(0);
+    }
+  } catch (error) {
+    console.error("Error fetching root projects:", error);
+    // Fallback to initial data if there's an error
     setResources(initialResources);
     setProjects(initialProjects);
     setNavigationPath([]);
     setCurrentProjectId(null);
     setCurrentLevel(0);
-  };
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // If on row clicked, handle navigation for projects or toggle sidebar for resources
   const onRowClicked = (e: RowClickedEvent) => {
+    // Do nothing if in add resource mode, let checkboxes handle selection
+    if (isAddResourceMode) return;
+    
     // Do nothing if the download button is clicked
     if ((e.event?.target as HTMLElement)?.closest(".download-button")) return;
 
@@ -359,6 +493,59 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     refreshCurrentProject();
   };
 
+  // Update the handleOpenAddResourceModal function:
+  const handleAddResources = async () => {
+    setIsAddResourceMode(true);
+    setIsLoading(true);
+    const newResources: Resource[] = await fetchAllResources();
+    setIsLoading(false);
+    setAllResources(newResources);
+  };
+
+  // Add new handler functions:
+  const handleCancelAddResource = () => {
+    setIsAddResourceMode(false);
+    setSelectedResourceIds(new Set());
+    setAllResources([]);
+  };
+
+  const handleConfirmAddResource = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Convert selected IDs to array
+      const selectedIds = Array.from(selectedResourceIds);
+      
+      if (selectedIds.length === 0) {
+        handleCancelAddResource();
+        return;
+      }
+
+      const projectId: string = currentProjectId || "";
+      
+      for (const id of selectedIds) {
+        await addResourceToProject(projectId, id);
+      }
+      
+      // Exit add resource mode and refresh
+      setIsAddResourceMode(false);
+      setSelectedResourceIds(new Set());
+      setAllResources([]);
+      
+      // Refresh current project content
+      if (currentProjectId) {
+        await refreshCurrentProject();
+      } else {
+        await fetchAndSetRootProjects();
+      }
+      
+    } catch (error) {
+      console.error("Error adding resources:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // #region Page Rendering
 
   // Unselect all rows when the sidebar is closed
@@ -370,65 +557,110 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
 
   return (
     <div className="flex flex-col h-full w-full">
-      <div className="mb-4 flex items-center space-x-1">
-
-        {/* Dropdown to create projects ec */}
-        <ProjectActionsDropdown 
-          currentLevel={currentLevel} 
-          isLoading={isLoading}
-          onCreateProject={handleOpenCreateProjectModal}
-          onCreateFolder={handleOpenCreateFolderModal}
+      {/* Search bar */}
+      <div className="mb-4">
+        <div className="relative w-full mb-2"> 
+          <Input
+            className="peer h-10 ps-9"
+            placeholder="Search"
+            type="text"
+            value={currentQuery}
+            onChange={(e) => setCurrentQuery(e.target.value)}
           />
-
-        {/* Navigation Controls */}
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={navigateToRoot}
-          disabled={currentLevel === 0 || isLoading}
-        >
-          <HomeIcon size={16} className="mr-1" />
-          Projects
-        </Button>
-        
-        {currentLevel > 0 && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={navigateBack}
-            disabled={isLoading}
-          >
-            <ArrowLeftIcon size={16} className="mr-1" />
-            Back
-          </Button>
-        )}
-        
-        {/* Breadcrumbs, used to navigate back */}
-        {navigationPath.length > 0 && (
-          <div className="flex items-center overflow-x-auto px-2">
-            {navigationPath.map((item, index) => (
-              <React.Fragment key={item.id}>
-                {index > 0 && <span className="mx-1 text-gray-500">/</span>}
-                <button
-                  onClick={() => navigateToBreadcrumb(index)}
-                  disabled={isLoading || index === navigationPath.length - 1}
-                  className={`text-sm hover:underline ${
-                    index === navigationPath.length - 1 
-                      ? 'font-semibold text-blue-600 cursor-default'
-                      : 'text-blue-500'
-                  }`}
-                >
-                  {item.title}
-                </button>
-              </React.Fragment>
-            ))}
+          <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
+            <Search className="h-4 w-4" aria-hidden="true" fill="currentColor" />
           </div>
-        )}
-        
-        {/* Loading indicator */}
-        {isLoading && (
-          <div className="ml-2 text-sm text-gray-500">Loading...</div>
-        )}
+        </div>
+
+        {/* Controls section - buttons, dropdown, breadcrumbs */}
+        <div className="flex items-center space-x-2 flex-wrap">
+          {isAddResourceMode ? (
+            // Add Resource Mode Controls
+            <>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleCancelAddResource}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={handleConfirmAddResource}
+                disabled={isLoading || selectedResourceIds.size === 0}
+              >
+                Add Selected ({selectedResourceIds.size})
+              </Button>
+              {isLoading && (
+                <div className="ml-2 text-sm text-gray-500">Loading resources...</div>
+              )}
+            </>
+          ) : (
+            // Normal Mode Controls
+            <>
+              {/* Dropdown to create projects etc */}
+              <ProjectActionsDropdown 
+                currentLevel={currentLevel} 
+                isLoading={isLoading}
+                onCreateProject={handleOpenCreateProjectModal}
+                onCreateFolder={handleOpenCreateFolderModal}
+                onAddResource={handleAddResources}
+              />
+
+              {/* Navigation Controls */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={navigateToRoot}
+                disabled={currentLevel === 0 || isLoading}
+              >
+                <HomeIcon size={16} className="mr-1" />
+                Projects
+              </Button>
+              
+              {currentLevel > 0 && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={navigateBack}
+                  disabled={isLoading}
+                >
+                  <ArrowLeftIcon size={16} className="mr-1" />
+                  Back
+                </Button>
+              )}
+              
+              {/* Breadcrumbs, used to navigate back */}
+              {navigationPath.length > 0 && (
+                <div className="flex items-center overflow-x-auto px-2">
+                  {navigationPath.map((item, index) => (
+                    <React.Fragment key={item.id}>
+                      {index > 0 && <span className="mx-1 text-gray-500">/</span>}
+                      <button
+                        onClick={() => navigateToBreadcrumb(index)}
+                        disabled={isLoading || index === navigationPath.length - 1}
+                        className={`text-sm hover:underline ${
+                          index === navigationPath.length - 1 
+                            ? 'font-semibold text-blue-600 cursor-default'
+                            : 'text-blue-500'
+                        }`}
+                      >
+                        {item.title}
+                      </button>
+                    </React.Fragment>
+                  ))}
+                </div>
+              )}
+              
+              {/* Loading indicator */}
+              {isLoading && (
+                <div className="ml-2 text-sm text-gray-500">Loading...</div>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Table */}
@@ -442,8 +674,12 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
           onGridReady={onGridReady}
           rowSelection={rowSelection}
           onRowClicked={onRowClicked}
+          onSelectionChanged={onSelectionChanged}
           overlayLoadingTemplate="<span class='ag-overlay-loading-center'>Loading content...</span>"
-          overlayNoRowsTemplate="<span class='ag-overlay-no-rows-center'>No items found in this location</span>"
+          overlayNoRowsTemplate={isAddResourceMode ? 
+            "<span class='ag-overlay-no-rows-center'>No resources found</span>" : 
+            "<span class='ag-overlay-no-rows-center'>No items found in this location</span>"
+          }
           loading={isLoading}
         />
       </div>
