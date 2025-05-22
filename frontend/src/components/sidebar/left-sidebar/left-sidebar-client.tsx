@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { SidebarItem } from "@/types/sidebar";
 import { Logout } from "@/actions/authActions";
 import { Sidebar } from "@/components/ui/sidebar";
@@ -20,7 +20,6 @@ import { usePathname, useSearchParams } from "next/navigation";
  *
  * @param userEmail - Email of the user
  * @param userRole - Role of the user (admin or user currently)
- * @param open - Boolean determining whether the side bar is open or folded
  * @param menuItems - Menu items to display (home, archive, tags)
  * @param projects - Recent projects to display
  * @param bottomMenuItems - Items at the bottom of the sidebar (settings, help)
@@ -43,6 +42,38 @@ export default function LeftSidebarClient({
   const { toggleLeftSidebar, leftSidebarOpen: open } = useSidebar();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const sidebarPartsRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuScrollbarWidth, setMenuScrollbarWidth] = useState(0);
+  const [sidebarPartsScrollbarWidth, setSidebarPartsScrollbarWidth] = useState(0);
+
+  // Check if the sidebar parts and menu need scrollbars
+  useEffect(() => {
+    const sidebarParts = sidebarPartsRef.current;
+    const menu = menuRef.current;
+    if (!sidebarParts || !menu) return;
+
+    const checkScrollbar = () => {
+      if (!sidebarParts || !menu) return;
+      
+      // Get the scrollbar width of the sidebar parts
+      const _sidebarScrollbarWidth = sidebarParts.offsetWidth - sidebarParts.clientWidth;
+      setSidebarPartsScrollbarWidth(_sidebarScrollbarWidth);
+
+      // Get the scrollbar width of the menu
+      const _menuScrollbarWidth = menu.offsetWidth - sidebarParts.clientWidth - _sidebarScrollbarWidth - 13;
+      setMenuScrollbarWidth(_menuScrollbarWidth);
+    };
+
+    checkScrollbar();
+
+    // Add event listeners for resize
+    const observer = new ResizeObserver(checkScrollbar);
+    observer.observe(sidebarParts);
+    observer.observe(menu);
+
+    return () => observer.disconnect();
+  }, []);
 
   const handleLogout = async () => {
     const result = await Logout();
@@ -80,7 +111,13 @@ export default function LeftSidebarClient({
     : '/new';
     
   return (
-    <Sidebar side="left" width="300px" collapsible="icon" className={`${open ? "p-2" : "px-1.5 pt-2"}`}>
+    <Sidebar ref={menuRef} 
+      collapsedWidth={menuScrollbarWidth + sidebarPartsScrollbarWidth + 48 + "px"} 
+      side="left" 
+      width="300px" 
+      collapsible="icon" 
+      className={`overflow-x-hidden ${open ? "p-2" : "px-1.5 pt-2"}`}
+    >
       {/* Header */}
       <div className={"flex items-center justify-between pb-4"}>
         {/* KnowledgeBase title */}
@@ -96,13 +133,14 @@ export default function LeftSidebarClient({
           onClick={() => {
             toggleLeftSidebar();
           }}
+          style={{ marginRight: `${!open ? sidebarPartsScrollbarWidth : 0}px` }}
         >
           <HideMenu />
         </Button>
       </div>
 
       {/* Menu items */}
-      <nav className="mb-10 flex-grow flex-col gap-2">
+      <nav className="mb-10 flex flex-col gap-2">
         {/* New button */}
         <Link href={newPageUrl}>
           <Button variant="default" className={`flex w-full items-center justify-start overflow-hidden p-2 transition-all duration-200 ${!open && "w-9"}`} data-testid="sidebar_new">
@@ -118,7 +156,7 @@ export default function LeftSidebarClient({
       </nav>
 
       {/* Menu and project parts */}
-      <nav className="h-full min-h-20 flex-grow overflow-y-auto">
+      <nav ref={sidebarPartsRef} className="h-full min-h-20 flex-grow overflow-y-auto overflow-x-hidden">
         <SidebarPart name="Menu" items={menuItems} minimize={open} />
         <SidebarPart name="Projects" items={projects} minimize={open} />
       </nav>
