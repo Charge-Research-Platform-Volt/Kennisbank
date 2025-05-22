@@ -55,15 +55,26 @@ export default function LeftSidebarClient({
     if (!sidebarParts || !menu) return;
 
     const checkScrollbar = () => {
-      if (!sidebarParts || !menu) return;
-      
-      // Get the scrollbar width of the sidebar parts
-      const _sidebarScrollbarWidth = sidebarParts.offsetWidth - sidebarParts.clientWidth;
-      setSidebarPartsScrollbarWidth(_sidebarScrollbarWidth);
+      const timeoutId = setTimeout(() => {
+        if (!sidebarParts || !menu) return;
+        const sidebarScroll = sidebarParts.scrollHeight > sidebarParts.clientHeight;
+        if(!sidebarScroll)
+        {
+          setSidebarPartsScrollbarWidth(0);
+          setMenuScrollbarWidth(0);
+          return;
+        }
+        
+        // Get the scrollbar width of the sidebar parts
+        const _sidebarScrollbarWidth = sidebarParts.offsetWidth - sidebarParts.clientWidth;
+        setSidebarPartsScrollbarWidth(_sidebarScrollbarWidth);
 
-      // Get the scrollbar width of the menu
-      const _menuScrollbarWidth = menu.offsetWidth - sidebarParts.clientWidth - _sidebarScrollbarWidth - 13;
-      setMenuScrollbarWidth(_menuScrollbarWidth);
+        // Get the scrollbar width of the menu
+        const _menuScrollbarWidth = menu.offsetWidth - sidebarParts.clientWidth - _sidebarScrollbarWidth - 13;
+        setMenuScrollbarWidth(_menuScrollbarWidth);
+      }, 150);
+
+      return () => clearTimeout(timeoutId);
     };
 
     checkScrollbar();
