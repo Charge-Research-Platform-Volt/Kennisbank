@@ -10,7 +10,7 @@ import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adap
 import { cookies } from "next/headers";
 
 /**
- * 
+ * Lists all projects with pagination and search functionality.
  * @param pageIndex - The page to fetch
  * @param query - Query to filter the projects with
  * @returns - A promise with the projects and the page information
@@ -42,8 +42,8 @@ export const ListProjectsPaged = async (pageIndex: number, searchQuery: string):
 }
 
 /**
- * Fetches the content (resources and sub-projects/folders) of a specific project.
- * @param projectId - The ID of the project to fetch content for.
+ * Fetches the content (resources and sub-folders) of a specific project/folder.
+ * @param projectId - The ID of the project/folder to fetch content for.
  * @returns An object containing resources and projects (folders).
  */
 export const getProjectContentById = async (projectId: string): Promise<{ resources: Resource[], projects: Project[] }> => {
@@ -82,7 +82,11 @@ export const getProjectContentById = async (projectId: string): Promise<{ resour
     }
 };
 
-
+/**
+ * Creates a new project at the root level
+ * @param data - The data to create a new project
+ * @returns API response with the created project ID
+ */
 export const createNewProject = async (data: ProjectCreateDto): Promise<ApiResponse> => {
   const cookieHeader = await cookies();
   try {
@@ -150,5 +154,68 @@ export async function createFolder(folderName: string, parentId: string): Promis
       success: false,
       message: error instanceof Error ? error.message : 'An unexpected error occurred',
     };
+  }
+}
+
+export async function fetchAllResources(): Promise<Resource[]> {
+  const cookieHeader = await cookies();
+  try {
+    const response = await fetch(`${process.env.API_URL}/Resources/list`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader.toString() || "" 
+      },
+    });
+
+    const data: ApiResponse = await response.json();
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Failed to fetch project content: ${response.status} ${response.statusText}`, errorText);
+      throw new Error(`Failed to fetch project content: ${response.status}`);
+    }
+
+    console.log("Fetched resources:", data.body);
+
+    if (data.success && data.body) {
+      return data.body || [];
+    } else {
+        console.error("Failed to retrieve project content from API response:", data.message);
+        throw new Error(data.message || "Failed to retrieve project content due to API error");
+    }
+
+  } catch (error) {
+        console.error("Error in getProjectContentById action:", error);
+        throw error; 
+    }
+}
+
+export async function addResourceToProject(projectId: string, resourceId: string): Promise<ApiResponse> {
+  const cookieHeader = await cookies();
+  try {
+    const response = await fetch(`${process.env.API_URL}/Project/add-resource/${projectId}/${resourceId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader.toString() || "" 
+      },
+    });
+
+    const data: ApiResponse = await response.json();
+
+    if (!response.ok) {
+      return { 
+        success: false, 
+        message: data.message || "Failed to add resource to project" };
+    }
+
+    return { 
+      success: true,
+      message: data.message || "Resource added successfully", 
+      body: data.body };
+  } catch (error) {
+    console.error("Error adding resource to project:", error);
+    return { success: false, message: error instanceof Error ? error.message : "An unexpected error occurred" };
   }
 }
