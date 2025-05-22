@@ -102,7 +102,7 @@ export default function LeftSidebarClient({
       </div>
 
       {/* Menu items */}
-      <nav className="mb-10 flex flex-col gap-2">
+      <nav className="mb-10 flex-grow flex-col gap-2">
         {/* New button */}
         <Link href={newPageUrl}>
           <Button variant="default" className={`flex w-full items-center justify-start overflow-hidden p-2 transition-all duration-200 ${!open && "w-9"}`} data-testid="sidebar_new">
@@ -118,7 +118,7 @@ export default function LeftSidebarClient({
       </nav>
 
       {/* Menu and project parts */}
-      <nav className="h-full min-h-20 flex-grow">
+      <nav className="h-full min-h-20 flex-grow overflow-y-auto">
         <SidebarPart name="Menu" items={menuItems} minimize={open} />
         <SidebarPart name="Projects" items={projects} minimize={open} />
       </nav>
