@@ -31,6 +31,10 @@ public class UserController : ControllerBase
         this.userManager = userManager;
     }
 
+    /// <summary>
+    /// Gets the current user's full name.
+    /// </summary>
+    /// <returns>The user's full name.</returns>
     [HttpGet("current-user-name")]
     [AllowAnonymous]
     [SwaggerOperation(
@@ -47,16 +51,21 @@ public class UserController : ControllerBase
             if (User.Identity == null || !User.Identity.IsAuthenticated)
                 return Ok(new { name = "", isAuthenticated = false });
 
+            // Get the user ID from the claims
             string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
+            // Check if the user ID is null or empty
             if (string.IsNullOrEmpty(userId))
                 return Ok(new { name = "", isAuthenticated = true });
 
+            // Find the user by ID
             User? user = await userManager.FindByIdAsync(userId);
 
+            // Check if the user exists
             if (user == null)
                 return Ok(new { name = "", isAuthenticated = true });
-
+            
+            // Return the user's full name
             return Ok(new { name = user.FirstName + " " + user.LastName, isAuthenticated = true });
         }
         catch (Exception e)
@@ -66,6 +75,10 @@ public class UserController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Gets the current user's first name.
+    /// </summary>
+    /// <returns>The user's first name.</returns>
     [HttpGet("current-user-first-name")]
     [AllowAnonymous]
     [SwaggerOperation(
@@ -82,16 +95,21 @@ public class UserController : ControllerBase
             if (User.Identity == null || !User.Identity.IsAuthenticated)
                 return Ok(new { firstName = "", isAuthenticated = false });
 
+            // Get the user ID from the claims
             string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
+            // Check if the user ID is null or empty
             if (string.IsNullOrEmpty(userId))
                 return Ok(new { firstName = "", isAuthenticated = true });
 
+            // Find the user by ID
             User? user = await userManager.FindByIdAsync(userId);
 
+            // Check if the user exists
             if (user == null)
                 return Ok(new { firstName = "", isAuthenticated = true });
 
+            // Return the user's first name
             return Ok(new { firstName = user.FirstName, isAuthenticated = true });
         }
         catch (Exception e)
@@ -101,6 +119,10 @@ public class UserController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Gets the current user's last name.
+    /// </summary>
+    /// <returns>The user's last name</returns>
     [HttpGet("current-user-last-name")]
     [AllowAnonymous]
     [SwaggerOperation(
@@ -117,16 +139,21 @@ public class UserController : ControllerBase
             if (User.Identity == null || !User.Identity.IsAuthenticated)
                 return Ok(new { lastName = "", isAuthenticated = false });
 
+            // Get the user ID from the claims
             string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
+            // Check if the user ID is null or empty
             if (string.IsNullOrEmpty(userId))
                 return Ok(new { lastName = "", isAuthenticated = true });
 
+            // Find the user by ID
             User? user = await userManager.FindByIdAsync(userId);
 
+            // Check if the user exists
             if (user == null)
                 return Ok(new { lastName = "", isAuthenticated = true });
 
+            // Return the user's last name
             return Ok(new { lastName = user.LastName, isAuthenticated = true });
         }
         catch (Exception e)
@@ -282,6 +309,13 @@ public class UserController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Updates the current user.
+    /// This method updates the current user's information, including their first name, last name, and email.
+    /// It requires the user to be authenticated.
+    /// </summary>
+    /// <param name="dto">The data transfer object containing the user's updated information.</param>
+    /// <returns>An IActionResult with information about the success of the action.</returns>
     [HttpPut("update")]
     [SwaggerOperation(
         Summary = "Update the current user.",
@@ -295,41 +329,63 @@ public class UserController : ControllerBase
     {
         try
         {
+            logger.Information("Updating user information.");
+
+            // Check if user is authenticated
+            if (User.Identity == null || !User.Identity.IsAuthenticated)
+                return BadRequest("User not authenticated.");
+            
+            // Get the user ID from the claims
             string userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
+            // Check if the user ID is null or empty
             if (string.IsNullOrEmpty(userId))
                 return BadRequest("User not found.");
 
+            // Find the user by ID
             User user = (await userManager.FindByIdAsync(userId))!;
 
+            // Check if the user exists
             if (user == null)
                 return NotFound("User not found.");
 
+            // Use a transaction to ensure that all changes are saved or none
             using (Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction = await database.Database.BeginTransactionAsync())
             {
                 try
                 {
+                    // Update the first and last name
                     user.FirstName = dto.FirstName;
                     user.LastName = dto.LastName;
                     IdentityResult updateResponse = await userManager.UpdateAsync(user);
 
+                    // Check if the update was successful
                     if (!updateResponse.Succeeded)
                         return Ok(new ApiResponse(false, "Failed to update the data."));
 
+                    // Update the email
                     string token = await userManager.GenerateChangeEmailTokenAsync(user, dto.Email);
                     IdentityResult emailResponse = await userManager.ChangeEmailAsync(user, dto.Email, token);
 
+                    // Check if the email update was successful
                     if (!emailResponse.Succeeded)
                         return Ok(new ApiResponse(false, "User email already exists."));
 
+                    // Update the username
                     IdentityResult usernameResponse = await userManager.SetUserNameAsync(user, dto.Email);
 
+                    // Check if the username update was successful
                     if (!usernameResponse.Succeeded)
                         return Ok(new ApiResponse(false, "User email already exists."));
 
+                    // Save the changes to the database
                     await database.SaveChangesAsync();
                     await transaction.CommitAsync();
 
+                    // Log the successful update
+                    logger.Information("User updated successfully.");
+
+                    // Return a success response
                     return Ok(new ApiResponse(true, "User updated successfully."));
                 }
                 catch (Exception e)
