@@ -1,6 +1,8 @@
 "use server";
 
 import { ApiResponse, ApiResponseSchema } from "@/types/apiResponse.type";
+import { TagFilterOptions } from "@/types/tag.type";
+import { revalidatePath } from "next/cache";
 import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 import { cookies } from "next/headers";
 
@@ -90,6 +92,55 @@ export const getRelatedDocuments = async (
     
     const rawData = await response.json();
     const data = ApiResponseSchema.parse(rawData);
+    return data;
+}
+
+export const newRelationSearchResults = async (
+    searchQuery: string,
+    type: resourceRelation,
+    K?: number,
+) => {
+    let endPoint;
+    let path: string = "";
+
+    const tagFilterOptions : TagFilterOptions = {
+        usePaging: true,
+        pageIndex: 1,
+        pageSize: K,
+        searchQuery: searchQuery,
+        onlyOwnedByCurrentUser: false,
+        includeUsageCount: false,
+        includeCanEditAndDelete: false,
+        sortDescending: true,
+        weightedSort: "IsStandardized:2,IsApproved:1,UsageCount:0.5",
+      }
+
+    if (type === "tag") {
+    endPoint = 'Tags/tags';
+    path = '/tags';
+    }
+
+     const cookieHeader : ReadonlyRequestCookies = await cookies();
+    const response = await fetch(
+      `${process.env.API_URL}/${endPoint}`,
+      {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+          body: JSON.stringify(tagFilterOptions),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Problem finding");
+    }
+  
+    const rawData = await response.json();
+    const data = ApiResponseSchema.parse(rawData);
+  
+    revalidatePath(path);
+  
+    // Check if the request was succesful, if not, return an error
     return data;
 }
 
