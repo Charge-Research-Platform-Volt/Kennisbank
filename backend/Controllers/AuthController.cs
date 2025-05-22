@@ -156,9 +156,15 @@ namespace KnowledgeBank.Controllers
         {
             try
             {
-                string userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+                string userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-                User user = (await _signInManager.UserManager.FindByIdAsync(userId))!;
+                if (userId == null)
+                    return BadRequest(new ApiResponse(false, "User not found"));
+
+                User user = (await _signInManager.UserManager.FindByIdAsync(userId));
+
+                if (user == null)
+                    return NotFound("User not found.");
 
                 IdentityResult updateResponse = await _signInManager.UserManager.ChangePasswordAsync(
                     user,

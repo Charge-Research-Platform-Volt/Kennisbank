@@ -295,9 +295,15 @@ public class UserController : ControllerBase
     {
         try
         {
-            string userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+            string userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+                return BadRequest("User not found.");
 
             User user = (await userManager.FindByIdAsync(userId))!;
+
+            if (user == null)
+                return NotFound("User not found.");
 
             using (Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction = await database.Database.BeginTransactionAsync())
             {
