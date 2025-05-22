@@ -4,7 +4,7 @@ using KnowledgeBank.Utils;
 using KnowledgeBank.Models;
 
 /// <summary>
-/// A background service that runs daily to clean up archived resources from the database.
+/// A background service that runs daily to clean up invitations older than 7 days from the database.
 /// </summary>
 public class InvitationsCleanupService : BackgroundService
 {
