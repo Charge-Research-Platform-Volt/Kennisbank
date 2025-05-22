@@ -15,6 +15,7 @@ import Divider from "../divider";
 import ProfileDropdown from "./profile-dropdown";
 import { cn } from "@/lib/utils";
 import { usePathname, useSearchParams } from "next/navigation";
+import ShowMenu from "@/icons/menu/show-menu";
 
 /**
  *
@@ -135,7 +136,7 @@ export default function LeftSidebarClient({
           }}
           style={{ marginRight: `${!open ? sidebarPartsScrollbarWidth : 0}px` }}
         >
-          <HideMenu />
+          {open ? <HideMenu /> : <ShowMenu /> }
         </Button>
       </div>
 
