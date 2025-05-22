@@ -14,16 +14,10 @@ interface ProjectSearchClientProps {
 }
 
 export default function ProjectSearchClient({ projects, resources = [] }: ProjectSearchClientProps) {
-  const [currentQuery, setCurrentQuery] = useState("");
-
-  // Filter projects based on search query
-  const filteredProjects = (projects ?? []).filter(project =>
-    project.title.toLowerCase().includes(currentQuery.toLowerCase())
-  );
 
   return (
     <>
-      <div className="*:not-first:mt-2">
+      {/* <div className="*:not-first:mt-2">
         <div className="relative w-full">
           <Input
             className="peer h-10 ps-9"
@@ -37,12 +31,12 @@ export default function ProjectSearchClient({ projects, resources = [] }: Projec
             <Search className="h-4 w-4" aria-hidden="true" fill="currentColor" />
           </div>
         </div>
-      </div>
+      </div> */}
 
       <div className="flex pt-2 flex-grow h-[calc(100vh-8rem)]">
         <ListProjects 
           initialResources={resources} 
-          initialProjects={filteredProjects} 
+          initialProjects={projects} 
           fetchProjectContent={getProjectContentById}
         />
       </div>
