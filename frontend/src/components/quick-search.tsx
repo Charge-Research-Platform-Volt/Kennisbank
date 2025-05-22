@@ -22,16 +22,11 @@ import { Button } from "./ui/button";
  */
 export default function QuickSearch({ minimize = false }: { minimize?: boolean }) {
   const { isOpen, setIsOpen } = useQuickSearch();
-  const [shortcut, setShortcut] = useState("Cmd + K");
   const [searchResults, setSearchResults] = useState<ResourceResponse[]>([]);
 
   // Keyboard shortcut
   useHotkeys("mod+k", () => setIsOpen(true), { preventDefault: true });
-
-  useLayoutEffect(() => {
-    const isMac = navigator.userAgent.includes("Mac");
-    setShortcut(isMac ? "Cmd + K" : "Ctrl + K");
-  }, []);
+  const shortcut = navigator.userAgent.includes("Mac") ? "⌘ + K" : "Ctrl + K";
 
   // Fetch search results
   const fetchSearchResults = async (query?: string) => {
