@@ -4,13 +4,13 @@ import RightSidebar from "@/components/sidebar/right-sidebar/right-sidebar";
 
 export default async function KnowledgeBankLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <QuickSearchProvider>
-      <div className="flex h-screen w-full">
-        <LeftSidebarServer />
-        <main className="w-full overflow-y-auto p-2">{children}</main>
-        <RightSidebar />
-      </div>
-    </QuickSearchProvider>
+       <QuickSearchProvider>
+        <div className="flex h-screen w-full">
+          <LeftSidebarServer />
+          <main className="w-full overflow-y-auto p-2">{children}</main>
+          <RightSidebar />
+        </div>
+      </QuickSearchProvider>
   );
 }
 
