@@ -157,7 +157,7 @@ export default function LeftSidebarClient({
         <Link href={newPageUrl}>
           <Button variant="default" className={`flex w-full items-center justify-start overflow-hidden p-2 transition-all duration-200 ${!open && "w-9"}`} data-testid="sidebar_new">
             <New className="h-4 w-4" />
-            <div data-testid="button_text" className={`pb-0.5 ml-2 ${!open && "hidden"}`}>
+            <div data-testid="button_text" className={`pb-0.5 ${!open && "hidden"}`}>
               New
             </div>
           </Button>
