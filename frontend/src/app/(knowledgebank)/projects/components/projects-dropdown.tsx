@@ -15,7 +15,7 @@ interface ProjectActionsDropdownProps {
   isLoading: boolean;
   onCreateProject: () => void;
   onCreateFolder: () => void;
-  onAddResource?: () => void;
+  onAddResource: () => void;
 }
 
 export function ProjectActionsDropdown({ 
@@ -71,11 +71,10 @@ export function ProjectActionsDropdown({
               className="cursor-pointer px-3 py-2 text-sm hover:bg-muted hover:text-foreground"
               onSelect={() => {
                 setOpen(false);
-                if (onAddResource) onAddResource();
+                onAddResource();
               }}
-              disabled={!onAddResource}
             >
-              Add Resource {!onAddResource && "(soon)"}
+              Add Resource
             </DropdownMenuItem>
           </>
         )}
