@@ -44,6 +44,10 @@ public class Resource
     [Column("filetype")]
     [MaxLength(50)]
     public required string FileType { get; set; }
+    
+    [Column("file-ext")]
+    [MaxLength(5)]
+    public string? FileExt { get; set; }
 
     [Column("hash")]
     [MaxLength(64)]

@@ -6,4 +6,5 @@ public class ResourceGridItem
     public string Name { get; set; } = string.Empty;
     public DateTime? PublicationDate { get; set; }
     public string Type { get; set; } = string.Empty;
+    public string FileType { get; set; } = string.Empty;
 }

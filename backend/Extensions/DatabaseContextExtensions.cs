@@ -40,7 +40,12 @@ public static class DatabaseContextExtensions
                     ""id"" as ""Id"",
                     ""title"" as ""Name"",
                     ""publication-date"" as ""PublicationDate"",
-                    'resource' as ""Type""
+                    'resource' as ""Type"",
+                    CASE
+                        WHEN ""filetype"" = 'website' THEN 'website'
+                        WHEN ""file-ext"" = NULL THEN 'document'
+                        ELSE ""file-ext""
+                    END as ""FileType""
                 FROM ""resources""
                 WHERE ""archived"" = false
                 
@@ -50,7 +55,8 @@ public static class DatabaseContextExtensions
                     ""id"" as ""Id"",
                     ""name"" as ""Name"",
                     NULL as ""PublicationDate"",
-                    'person' as ""Type""
+                    'person' as ""Type"",
+                    'person' as ""FileType""
                 FROM ""persons""
                 
                 UNION ALL
@@ -59,7 +65,8 @@ public static class DatabaseContextExtensions
                     ""id"" as ""Id"",
                     ""name"" as ""Name"",
                     NULL as ""PublicationDate"",
-                    'organisation' as ""Type""
+                    'organisation' as ""Type"",
+                    'organisation' as ""FileType""
                 FROM ""organisations"";");
 
             // Step 3: Create indexes

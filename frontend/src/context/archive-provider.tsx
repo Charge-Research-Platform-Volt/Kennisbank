@@ -1,5 +1,6 @@
 'use client'
 
+import { RowItem } from '@/components/archive/resources-grid';
 import React from 'react';
 
 export type ArchiveContextType = {
@@ -23,7 +24,6 @@ export const useArchive = (): ArchiveContextType =>
 export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
 {
     const [tagFilters, setTagFilters] = React.useState<string[]>([]);
-
 
     return (
         <ArchiveContext.Provider 

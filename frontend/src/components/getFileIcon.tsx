@@ -3,6 +3,8 @@ import PdfIcon from "@/icons/file-type-icons/pdf-icon";
 import WebsiteIcon from "@/icons/file-type-icons/website-icon";
 import WordIcon from "@/icons/file-type-icons/word-icon";
 import ZipIcon from "@/icons/file-type-icons/zip-icon";
+import OrganisationIcon from "@/icons/organisation-icon";
+import PersonIcon from "@/icons/person-icon";
 import { cn } from "@/lib/utils";
 import { FileIcon } from "lucide-react";
 
@@ -29,6 +31,10 @@ export default function GetFileIcon({ fileType, className }: { fileType: string;
     case "jpg":
     case "png":
       return <ImgIcon className={cn("flex-shrink-0", className)} />;
+    case "person":
+      return <PersonIcon width={18} height={18} className={cn("flex-shrink-0", className)} />;
+    case "organisation":
+      return <OrganisationIcon width={18} height={18} className={cn("flex-shrink-0", className)} />;
     default:
       return <FileIcon size={18} className={cn("flex-shrink-0", className)} />;
   }

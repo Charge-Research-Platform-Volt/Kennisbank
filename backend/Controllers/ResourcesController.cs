@@ -171,6 +171,11 @@ namespace KnowledgeBank.Controllers
 
                 // Commit changes to the database and return success response
                 await resourceManager.Commit();
+                if (dto is FileResourceCreateDto fileDto && fileDto.File != null) 
+                {
+                    string extension = Path.GetExtension(fileDto.File.FileName).Replace(".", "");
+                    await resourceManager.UpdateResourceAsync(id, r => r.FileExt, extension);
+                }
                 logger.Information("Resource '{Title}' created successfully.", dto.Title);
                 return Ok(new ApiResponse(true, "Resource created successfully.", id));
             }

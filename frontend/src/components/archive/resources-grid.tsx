@@ -9,7 +9,7 @@ import { tableTheme } from "@/lib/tableConfig";
 import { ArchiveRestore } from "lucide-react";
 import { MetadataTypeEnum, useSidebar } from "@/context/sidebar-provider";
 import { useUserRole } from "@/context/user-role-context";
-import { ApiResponse } from "@/types/apiResponse.type";
+import GetFileIcon from "../getFileIcon";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -19,6 +19,7 @@ export type RowItem =
     publicationDate: string;
     id: string;
     type: MetadataTypeEnum;
+    fileType: string;
 }
 
 export default function ResourcesGrid({items}: {items: RowItem[]}) 
@@ -34,8 +35,16 @@ export default function ResourcesGrid({items}: {items: RowItem[]})
     
     // Column definitions
     const columnDefs: ColDef[] = [
-        { field: 'name', headerName: 'Name' },
-        { field: 'publicationDate', headerName: 'Publication Date' },
+        { field: 'name', headerName: 'Name', cellRenderer: renderResourceIcon },
+        { field: 'publicationDate', headerName: 'Publication Date', maxWidth: 200, valueFormatter: (params) => 
+        {
+            if (!params.value) return '-';
+            
+            // Extract data part before T and reverse
+            const datePart = params.value.split('T')[0];
+            const [year, month, day] = datePart.split('-');
+            return `${day}-${month}-${year}`;
+        } },
         { field: "", minWidth: 50, maxWidth: 50, cellRenderer:renderRowButton(), resizable: false}
     ];
     
@@ -48,14 +57,12 @@ export default function ResourcesGrid({items}: {items: RowItem[]})
     // On row clicked event
     const onRowClicked = React.useCallback((event: RowClickedEvent) => 
     {
-        console.log('Row clicked: ', event.data);
         const rowItem: RowItem = event.data;
         openRightSidebar(rowItem.id, rowItem.type);
     }, []);
     
     return (
-        <div className={`h-[calc(100vh-4rem)] w-full`}>
-            <AgGridReact
+        <AgGridReact
                 ref={gridRef}
                 rowData={rowData}
                 columnDefs={columnDefs}
@@ -73,13 +80,22 @@ export default function ResourcesGrid({items}: {items: RowItem[]})
                 theme={tableTheme}
                 suppressCellFocus={true}
             />
+    )
+}
+
+function renderResourceIcon(params: { data: RowItem; value: string }) 
+{
+    return (
+        <div className="flex items-center justify-start gap-2">
+            <GetFileIcon fileType={params.data.fileType} />
+            <span className="">{params.value}</span>
         </div>
     )
 }
 
 function renderRowButton() 
 {
-    return function rowButtonRenderer(params: {data: RowItem[]}) 
+    return function rowButtonRenderer(params: {data: RowItem}) 
     {
         return (
             <div className="flex w-full h-full items-center justify-center cursor-pointer">

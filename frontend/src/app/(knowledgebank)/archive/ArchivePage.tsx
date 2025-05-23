@@ -118,7 +118,7 @@ export default function ArchivePage() {
                 {showArchived ? "Close trashbin" : "Show trashbin"}
             </Button>
         )}
-        </div>
+      </div>
 
 
       <div className="flex pt-2">
