@@ -51,14 +51,14 @@ export function ResourceContent()
 
     const loadInformation = async () => {
         const infoPromise = getProperties(currentId, MetadataTypeEnum.RESOURCE);
-        const authorsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "author");
-        const tagsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "tag");
-        const organisationsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "organisation");
-        const relatedOrganisationsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "relatedOrganisation");
-        const relatedPersonsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "relatedPerson");
+        const authorsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "authors");
+        const tagsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "tags");
+        const organisationsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "organisations");
+        const relatedOrganisationsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-organisations");
+        const relatedPersonsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-persons");
         const relatedResourcesPromise = getRelatedDocuments(currentId, 10);
-        const sourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "source");
-        const regionsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "region");
+        const sourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "sources");
+        const regionsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "regions");
     
         infoPromise.then(response => {
             setFileType(response.body.fileType);
@@ -87,7 +87,7 @@ export function ResourceContent()
             const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
                 id: item.id,
                 name: item.name,
-                type: "person",
+                type: "authors",
             }))
             setAuthors(list);
         }).catch(error => {
@@ -98,7 +98,7 @@ export function ResourceContent()
             const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
                 id: item.id,
                 name: item.name,
-                type: "tag",
+                type: "tags",
             }))
             setTags(list);
         }).catch(error => {
@@ -120,7 +120,7 @@ export function ResourceContent()
             const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
                 id: item.id,
                 name: item.name,
-                type: "person",
+                type: "related-persons",
             }))
             setRelatedPersons(list);
         }).catch(error => {
@@ -131,7 +131,7 @@ export function ResourceContent()
             const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
                 id: item.id,
                 name: item.name,
-                type: "organisation",
+                type: "related-organisations",
             }))
             setRelatedOrganisations(list);
         }).catch(error => {
@@ -153,7 +153,7 @@ export function ResourceContent()
             const list: ListItem[] = response.body.map((item: {resourceid: any; url: any}) => ({
                 id: item.url,
                 name: item.url,
-                type: "source",
+                type: "sources",
             }))
             setSourceList(list);
         }).catch(error => {
@@ -164,7 +164,7 @@ export function ResourceContent()
             const list: ListItem[] = response.body.map((item: {id: any; name: any}) => ({
                 id: item.id,
                 name: item.name,
-                type: "region",
+                type: "regions",
             }))
             setRegions(list);
         }).catch(error => {
@@ -188,33 +188,33 @@ export function ResourceContent()
             </Expandable>
             
             <Expandable variant="horizontal" title="Tags">
-                <BadgeList listType="tag" emptyMessage={"No Tags recorded"} itemList={tags}/>
+                <BadgeList listType="tags" emptyMessage={"No Tags recorded"} itemList={tags}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Authors">
-                <BadgeList listType="author" emptyMessage={"No Authors recorded"} itemList={authors}/>
+                <BadgeList listType="authors" emptyMessage={"No Authors recorded"} itemList={authors}/>
             </Expandable>
             
             <Expandable variant="horizontal" title="Organisations">
-                <BadgeList listType="organisation" emptyMessage={"No Organisations recorded"} itemList={organisations}/>
+                <BadgeList listType="organisations" emptyMessage={"No Organisations recorded"} itemList={organisations}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Related People">
-                <BadgeList listType="relatedPerson" emptyMessage={"No related persons recorded"} itemList={relatedPersons}/>
+                <BadgeList listType="related-persons" emptyMessage={"No related persons recorded"} itemList={relatedPersons}/>
             </Expandable>
             
             <Expandable variant="horizontal" title="Related Organisations">
-                <BadgeList listType="relatedOrganisation" emptyMessage={"No related organisations recorded"} itemList={relatedOrganisations}/>
+                <BadgeList listType="related-organisations" emptyMessage={"No related organisations recorded"} itemList={relatedOrganisations}/>
             </Expandable>
 
             <ResourceList header="Related" resources={relatedResources}/>
 
             <Expandable variant="horizontal" title="Sources">
-                <BadgeList listType="source" emptyMessage={"No sources recorded"} itemList={sourceList}/>
+                <BadgeList listType="sources" emptyMessage={"No sources recorded"} itemList={sourceList}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Regions">
-                <BadgeList listType="regiom" emptyMessage={"No regions recorded"} itemList={regions}/>
+                <BadgeList listType="regions" emptyMessage={"No regions recorded"} itemList={regions}/>
             </Expandable>
 
             {/* {resourceType === "Scientific Article" && (

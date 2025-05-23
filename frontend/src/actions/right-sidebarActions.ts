@@ -6,10 +6,10 @@ import { revalidatePath } from "next/cache";
 import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 import { cookies } from "next/headers";
 
-type resourceRelation = "author" | "organisation" |
-                        "region" | "relatedOrganisation" |
-                        "relatedSource" | "source" |
-                        "tag" | "relatedPerson" | "website"; 
+type resourceRelation = "authors" | "organisations" |
+                        "regions" | "related-organisations" |
+                        "related-sources" | "sources" |
+                        "tags" | "related-persons" | "website"; 
 
 export const getProperties = async (
     id: string,
@@ -48,13 +48,13 @@ export const getRelation = async (
 ) => {
 
     let endPoint;
-    if (type === "resource") {endPoint = "resources/relation"}
-    else if (type === "person") {endPoint = "persons/..."}
-    else if (type === "organisation") {endPoint = "organisation/..."}
+    if (type === "resource") {endPoint = `resources/${encodeURIComponent(id)}/relations`}
+    else if (type === "person") {endPoint = `persons/${encodeURIComponent(id)}/relations`}
+    else if (type === "organisation") {endPoint = `organisation/${encodeURIComponent(id)}/relations`}
 
     const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response = await fetch(
-        `${process.env.API_URL}/${endPoint}/${encodeURIComponent(id)}/${encodeURIComponent(relation)}`,
+        `${process.env.API_URL}/${endPoint}/${encodeURIComponent(relation)}`,
             {
                 method: "GET",
                 credentials: "include",
@@ -118,7 +118,7 @@ export const newRelationSearchResults = async (
     const cookieHeader : ReadonlyRequestCookies = await cookies();
     let fetchContents: any;
 
-    if (type === "tag") {
+    if (type === "tags") {
     endPoint = 'Tags/tags';
     path = '/tags';
     fetchContents = {
@@ -128,7 +128,7 @@ export const newRelationSearchResults = async (
         body: JSON.stringify(tagFilterOptions),
     };
     }
-    else if (type === "author" || "relatedPerson" ) {
+    else if (type === "authors" || type === "related-persons" ) {
         endPoint = `Persons/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
         path = '/list';
         fetchContents = {
@@ -137,7 +137,7 @@ export const newRelationSearchResults = async (
             headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
         };
     }
-    else if (type === "relatedOrganisation" || "organisation") {
+    else if (type === "related-organisations" || type === "organisations") {
         endPoint = `Organisations/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
         path = '/list';
         fetchContents = {
@@ -146,7 +146,7 @@ export const newRelationSearchResults = async (
             headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
         };
     }
-    else if (type === "region") {
+    else if (type === "regions") {
         endPoint = `Regions/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
         path = '/list';
         fetchContents = {
