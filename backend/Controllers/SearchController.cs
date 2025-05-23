@@ -232,7 +232,7 @@ public class SearchController : ControllerBase
             .ToArrayAsync();
 
             if (items == null)
-                return Ok(new ResourceInfoResponse("No resources found", null));
+                return Ok(new ResourceInfoResponse("No resources found", ""));
 
             return Ok(new ResourceInfoResponse("Oldest resources found", items[0].PublicationDate.Year));
         }
