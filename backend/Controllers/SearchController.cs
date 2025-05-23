@@ -23,7 +23,7 @@ public class SearchController : ControllerBase
     public SearchController(IAzureBlobService blobService, DatabaseContext databaseContext)
     {
         this.blobService = blobService;
-        this.logger = Log.ForContext<StorageController>();
+        this.logger = Log.ForContext<ResourcesController>();
         this.database = databaseContext;
     }
 
