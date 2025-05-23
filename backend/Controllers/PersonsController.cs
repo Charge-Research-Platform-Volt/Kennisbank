@@ -359,9 +359,9 @@ namespace KnowledgeBank.Controllers
                     "related-resources" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllResourceRelatedPersonRelationsAsync(r => r.PersonId == Guid.Parse(id)) :
                         await resourceManager.GetAllResourceRelatedPersonRelationsAsync(predicate: r => r.PersonId == Guid.Parse(id), projection: $"new({properties})"),
-                    
+
                     // Related persons
-                    "persons" => string.IsNullOrEmpty(properties) ?
+                    "person-related-persons" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllPersonRelationshipsAsync(predicate: p => p.SourcePersonId == Guid.Parse(id) || p.TargetPersonId == Guid.Parse(id)) :
                         await resourceManager.GetAllPersonRelationshipsAsync(predicate: p => p.SourcePersonId == Guid.Parse(id) || p.TargetPersonId == Guid.Parse(id), projection: $"new({properties})"),
                         

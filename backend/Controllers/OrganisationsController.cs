@@ -359,7 +359,7 @@ namespace KnowledgeBank.Controllers
                         await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(predicate: r => r.OrganisationId == Guid.Parse(id), projection: $"new({properties})"),
                     
                     // Related organisations
-                    "organisations" => string.IsNullOrEmpty(properties) ?
+                    "organisation-related-organisations" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllOrganisationRelationshipsAsync(predicate: p => p.SourceOrganisationId == Guid.Parse(id) || p.TargetOrganisationId == Guid.Parse(id)) :
                         await resourceManager.GetAllOrganisationRelationshipsAsync(predicate: p => p.SourceOrganisationId == Guid.Parse(id) || p.TargetOrganisationId == Guid.Parse(id), projection: $"new({properties})"),
                         

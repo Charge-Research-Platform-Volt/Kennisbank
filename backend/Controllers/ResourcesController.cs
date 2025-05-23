@@ -280,6 +280,8 @@ namespace KnowledgeBank.Controllers
             if (!ValidityUtil.IsValidId(id))
                 return BadRequest(new ApiResponse(false, "Invalid ID."));
 
+            logger.Information("gucci 1");
+
             try
             {
                 // Check if the resource exists
@@ -289,7 +291,7 @@ namespace KnowledgeBank.Controllers
                 logger.Information("Downloding resource with ID: {ID}", id);
 
                 // Get the filetype from the database
-                string filetype = await resourceManager.GetResourcePropertyAsync(id, "new(FileType as FileType)");
+                string filetype = await resourceManager.GetResourcePropertyAsync(id, "FileType");
 
                 // If website, we cannot download, return BadRequest
                 if (filetype.Equals("website", StringComparison.CurrentCultureIgnoreCase))
@@ -297,6 +299,7 @@ namespace KnowledgeBank.Controllers
 
                 // Try to retrieve the file
                 BlobDownloadResponse? maybeResponse = await blobService.DownloadBlobAsync(filetype, id);
+                logger.Information("gucci 2");
 
                 // If response is empty, the file does not exist in storage
                 if (maybeResponse == null)
@@ -307,9 +310,10 @@ namespace KnowledgeBank.Controllers
 
                 // Set the contentType and generate a filename from the title
                 string contentType = "application/octet-stream";
-                string title = await resourceManager.GetResourcePropertyAsync(id, "new(Title as Title)");
+                string title = await resourceManager.GetResourcePropertyAsync(id, "Title");
                 string extension = response.Metadata["extension"];
                 string fileName = SanitizeFileName(title) + extension;
+                logger.Information("gucci 3");
 
                 // Try to get contentType from the extension
                 if (Path.HasExtension(fileName))
@@ -326,7 +330,7 @@ namespace KnowledgeBank.Controllers
             catch (Exception e)
             {
                 logger.Error(e, "Error downloading resource with ID {ID}.", id);
-                return StatusCode(500, new ApiResponse(false, "Error downloading resource", e.Message));
+                return StatusCode(500, new ApiResponse(false, "Error downloading resource", e.Message + e.StackTrace));
             }
         }
         #endregion
@@ -563,93 +567,6 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
 
-        #region Get Related Resources
-
-        /// <summary>
-        /// Retrieves a list of related resources based on tag connections (will need to be changed to use the vectors)
-        /// </summary>
-        /// <param name="id">The ID of the resource</param>
-        /// <param name="listSize">The size of the list of related resources</param>
-        [HttpGet("related-resources/{id}/{listSize}")]
-        [SwaggerOperation(Summary = "Retrieves a list of related resources based on tag connections")]
-        [SwaggerResponse(200, "A list containing related resources", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> RelatedResources(string id, int listSize)
-        {
-            // Check if the ID is valid
-            if (!ValidityUtil.IsValidId(id))
-                return BadRequest(new ApiResponse(false, "Invalid ID."));
-
-            double standardizedTagWeight = 3.0;
-            double approvedTagWeight = 2.0;
-            double regularTagWeight = 1.0;
-
-            try
-            {
-                // Check if the resource exists
-                if (!await resourceManager.ResourceExistsAsync(id))
-                    return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
-
-                ResourceTagRelation[] resourceTags = await resourceManager.GetAllResourceTagRelationsAsync(
-                    predicate: r => r.ResourceId.ToString() == id,
-                    includeProperties: new[] { "Tag" });
-
-
-                if (resourceTags.Length == 0)
-                    return Ok(new ApiResponse(true, "No tags found for resource", Array.Empty<Resource>()));
-
-                // Retrieve resources with at least one common tag
-                var documentTagIds = resourceTags.Select(r => r.TagId).ToHashSet();
-
-                ResourceTagRelation[] resourceTagRelations = await resourceManager.GetAllResourceTagRelationsAsync(
-                    predicate: r => documentTagIds.Contains(r.TagId) && r.ResourceId.ToString() != id,
-                    includeProperties: new[] { "Tag", "Resource" });
-
-                // Group by resource, and calculate similarity score
-                Resource[] relatedResources = resourceTagRelations
-                    .GroupBy(r => r.ResourceId)
-                    .Select(group =>
-                    {
-                        // Get resource
-                        var resource = group.First().Resource!;
-
-                        double similarityScore = 0;
-                        foreach (var r in group)
-                        {
-                            // Check to avoid possible errors
-                            if (r.Tag == null) continue;
-
-                            // Add appropriate weight
-                            if (r.Tag.IsStandardized) similarityScore += standardizedTagWeight;
-                            else if (r.Tag.IsApproved) similarityScore += approvedTagWeight;
-                            else similarityScore += regularTagWeight;
-                        }
-
-                        return new { Resource = resource, SimlarityScore = similarityScore };
-                    })
-                    .OrderByDescending(item => item.SimlarityScore)
-                    .Take(listSize)
-                    .Select(item => item.Resource)
-                    .ToArray();
-
-
-                if (relatedResources.Count() == 0)
-                    return NotFound(new ApiResponse(true, "No related resources found", Array.Empty<Resource>()));
-
-                return Ok(new ApiResponse(true, "Related resources found", relatedResources));
-
-            }
-            
-            catch (Exception e)
-            {
-                return StatusCode(500, new ApiResponse(false, "Error finding related resources.", e.Message));
-            }
-        }
-
-        #endregion
-
         #region List
         /// <summary>
         /// Retrieves a list or page of all resources
@@ -823,47 +740,55 @@ namespace KnowledgeBank.Controllers
 
             try 
             {
+                if (relation == "resource-related-resources")
+                {
+                    return (await GetRelatedResources(id));
+                }
+
                 object? result = relation switch
                 {
                     // Authors
                     "authors" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllResourceAuthorRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
                         await resourceManager.GetAllResourceAuthorRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
-                    
+
                     // Organisations
                     "organisations" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllResourceOrganisationRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
                         await resourceManager.GetAllResourceOrganisationRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
-                        
+
                     // Regions
                     "regions" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllResourceRegionRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
                         await resourceManager.GetAllResourceRegionRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
-                        
+
                     // Related Organisations
-                    "related-organisations" => string.IsNullOrEmpty(properties) ? 
+                    "related-organisations" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
                         await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
-                        
+
                     // Related Persons
                     "related-persons" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllResourceRelatedPersonRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
                         await resourceManager.GetAllResourceRelatedPersonRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
-                        
+
                     // Sources
                     "sources" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllResourceSourceRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
                         await resourceManager.GetAllResourceSourceRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
-                        
+
                     // Tags
                     "tags" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllResourceTagRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
                         await resourceManager.GetAllResourceTagRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
-                    
+
+                    // Tags
+                    "website" => await resourceManager.GetWebsiteMetadataAsync(r => r.ResourceId == Guid.Parse(id)),
+
                     // Default
                     _ => null
                 };
-
+                
                 if (result == null)
                     return NotFound(new ApiResponse(false, "ID or relation not found"));
 
@@ -872,7 +797,7 @@ namespace KnowledgeBank.Controllers
             catch (Exception e) 
             {
                 logger.Error(e, "Error retrieving relation '{Relation}' for resource with ID '{Id}'", relation, id);
-                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message ));
             }
         }
         #endregion
@@ -1316,6 +1241,78 @@ namespace KnowledgeBank.Controllers
             // Return result + extension
             return result + extension;
         }
+
+        private async Task<IActionResult> GetRelatedResources(string id)
+        {
+            double standardizedTagWeight = 3.0;
+            double approvedTagWeight = 2.0;
+            double regularTagWeight = 1.0;
+
+            try
+            {
+                // Check if the resource exists
+                if (!await resourceManager.ResourceExistsAsync(id))
+                    return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
+
+                ResourceTagRelation[] resourceTags = await resourceManager.GetAllResourceTagRelationsAsync(
+                    predicate: r => r.ResourceId.ToString() == id,
+                    includeProperties: new[] { "Tag" });
+
+
+                if (resourceTags.Length == 0)
+                    return Ok(new ApiResponse(true, "No tags found for resource", Array.Empty<Resource>()));
+
+                // Retrieve resources with at least one common tag
+                var documentTagIds = resourceTags.Select(r => r.TagId).ToHashSet();
+
+                ResourceTagRelation[] resourceTagRelations = await resourceManager.GetAllResourceTagRelationsAsync(
+                    predicate: r => documentTagIds.Contains(r.TagId) && r.ResourceId.ToString() != id,
+                    includeProperties: new[] { "Tag", "Resource" });
+
+                // Group by resource, and calculate similarity score
+                Resource[] relatedResources = resourceTagRelations
+                    .GroupBy(r => r.ResourceId)
+                    .Select(group =>
+                    {
+                        // Get resource
+                        var resource = group.First().Resource!;
+
+                        double similarityScore = 0;
+                        foreach (var r in group)
+                        {
+                            // Check to avoid possible errors
+                            if (r.Tag == null) continue;
+
+                            // Add appropriate weight
+                            if (r.Tag.IsStandardized) similarityScore += standardizedTagWeight;
+                            else if (r.Tag.IsApproved) similarityScore += approvedTagWeight;
+                            else similarityScore += regularTagWeight;
+                        }
+
+                        return new { Resource = resource, SimilarityScore = similarityScore };
+                    })
+                    .OrderByDescending(item => item.SimilarityScore)
+                    .Select(item => item.Resource)
+                    .Take(18)
+                    .ToArray();
+
+
+                if (relatedResources.Count() == 0)
+                    return NotFound(new ApiResponse(true, "No related resources found", Array.Empty<Resource>()));
+
+                return Ok(new ApiResponse(true, "Related resources found", relatedResources));
+
+            }
+
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error retrieving relation 'resource-related-resources' for resource with ID '{Id}'", id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error: Related Resources", ex.Message));
+            }
+
+        }
+
+
         #endregion
     }
 }

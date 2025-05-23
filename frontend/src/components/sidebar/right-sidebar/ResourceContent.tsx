@@ -5,7 +5,7 @@ import Expandable from "./expandable"
 import BadgeList from "./BadgeList"
 import { ListItem } from "./BadgeList"
 import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider"
-import { getProperties, getRelatedDocuments, getRelation } from "@/actions/right-sidebarActions"
+import { getProperties, getRelation } from "@/actions/right-sidebarActions"
 import { useState, use, useEffect } from "react"
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
@@ -56,7 +56,7 @@ export function ResourceContent()
         const organisationsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "organisations");
         const relatedOrganisationsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-organisations");
         const relatedPersonsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-persons");
-        const relatedResourcesPromise = getRelatedDocuments(currentId, 10);
+        const relatedResourcesPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "resource-related-resources");
         const sourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "sources");
         const regionsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "regions");
     
@@ -66,7 +66,7 @@ export function ResourceContent()
                 const websitePromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "website");
                 
                 websitePromise.then(response => {
-                    setUrl(response.body[0].url);
+                    setUrl(response.body.url);
                 }).catch(error => {console.error("Error loading url: ", error);})
             }
             setTitle(response.body.title);
@@ -77,6 +77,7 @@ export function ResourceContent()
             if (response.body.note) {
                 setNote(response.body.note);
             }
+            else {setNote("No notes.")}
 
         }).catch(error => {
             console.error("Error loading information: ", error);
@@ -87,7 +88,7 @@ export function ResourceContent()
             const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
                 id: item.id,
                 name: item.name,
-                type: "authors",
+                type: "person",
             }))
             setAuthors(list);
         }).catch(error => {
@@ -98,7 +99,7 @@ export function ResourceContent()
             const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
                 id: item.id,
                 name: item.name,
-                type: "tags",
+                type: "tag",
             }))
             setTags(list);
         }).catch(error => {
@@ -120,7 +121,7 @@ export function ResourceContent()
             const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
                 id: item.id,
                 name: item.name,
-                type: "related-persons",
+                type: "person",
             }))
             setRelatedPersons(list);
         }).catch(error => {
@@ -131,7 +132,7 @@ export function ResourceContent()
             const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
                 id: item.id,
                 name: item.name,
-                type: "related-organisations",
+                type: "organisation",
             }))
             setRelatedOrganisations(list);
         }).catch(error => {
@@ -139,10 +140,11 @@ export function ResourceContent()
         });
 
         relatedResourcesPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; title: any;  }) => ({
+            console.log(response.body[0].fileType)
+            const list: ListItem[] = response.body.map((item: { id: any; title: any; fileType: any }) => ({
                 id: item.id,
                 name: item.title,
-                type: "pdf",
+                type: item.fileType,
             }))
             setRelatedResources(list);
         }).catch(error => {
@@ -153,7 +155,7 @@ export function ResourceContent()
             const list: ListItem[] = response.body.map((item: {resourceid: any; url: any}) => ({
                 id: item.url,
                 name: item.url,
-                type: "sources",
+                type: "source",
             }))
             setSourceList(list);
         }).catch(error => {
@@ -164,7 +166,7 @@ export function ResourceContent()
             const list: ListItem[] = response.body.map((item: {id: any; name: any}) => ({
                 id: item.id,
                 name: item.name,
-                type: "regions",
+                type: "region",
             }))
             setRegions(list);
         }).catch(error => {

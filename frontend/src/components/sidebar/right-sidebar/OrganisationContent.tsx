@@ -2,9 +2,10 @@
 
 import { MetadataTypeEnum, useSidebar } from "@/context/sidebar-provider";
 import { useEffect, useState } from "react";
-import { getProperties } from "@/actions/right-sidebarActions";
+import { getProperties, getRelation } from "@/actions/right-sidebarActions";
 import Skeleton from 'react-loading-skeleton';
 import Expandable from "./expandable";
+import BadgeList, { ListItem } from "./BadgeList";
 
 export function OrganisationContent() 
 {
@@ -12,6 +13,10 @@ export function OrganisationContent()
     const [ name, setName ] = useState<string | null>(null);
     const [ url, setUrl ] = useState<string | undefined>(undefined);
     const [ description, setDescription ] = useState<string | null>(null);
+    const [ resources, setResources ] = useState<ListItem[] | null>(null);
+    const [ relatedResources, setRelatedResources ] = useState<ListItem[] | null>(null);
+    const [ organisations, setOrganisations ] = useState<ListItem[] | null>(null);
+    const [ persons, setPersons ] = useState<ListItem[] | null>(null);
 
 
     useEffect(() => {
@@ -19,12 +24,20 @@ export function OrganisationContent()
             setName(null);
             setUrl(undefined);
             setDescription(null);
+            setResources(null);
+            setRelatedResources(null);
+            setOrganisations(null);
+            setPersons(null);
             loadInformation();
         }
     }, [currentId])
     
     const loadInformation = async () => {
         const infoPromise = getProperties(currentId, MetadataTypeEnum.ORGANISTATION);
+        const resourcesPromise = getRelation(currentId, MetadataTypeEnum.ORGANISTATION, "direct-resources");
+        const relatedResourcsePromise = getRelation(currentId, MetadataTypeEnum.ORGANISTATION, "related-resources");
+        const organisationsPromise = getRelation(currentId, MetadataTypeEnum.ORGANISTATION, "organisation-related-organisations");
+        const personsPromise = getRelation(currentId, MetadataTypeEnum.ORGANISTATION, "persons");
 
         infoPromise.then(response => {
             setName(response.body.name);
@@ -39,6 +52,52 @@ export function OrganisationContent()
         }).catch(error => {
             console.error("Error loading organisation information:", error);
         })
+
+        resourcesPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+                id: item.id,
+                name: item.name,
+                type: "resource",
+            }))
+            setResources(list);
+        }).catch(error => {
+            console.error("Error loading resources: ", error);
+        });
+
+        relatedResourcsePromise.then(response => {
+            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+                id: item.id,
+                name: item.name,
+                type: "resource",
+            }))
+            setRelatedResources(list);
+        }).catch(error => {
+            console.error("Error loading related resources: ", error);
+        });
+
+
+        organisationsPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: { targetid: any; targetname: any, sourceid: any, sourcename: any }) => ({
+                id: item.targetid === currentId ? item.sourceid : item.targetid,
+                name: item.targetid === currentId ? item.sourcename : item.targetname,
+                type: "organisation",
+            }))
+            setOrganisations(list);
+        }).catch(error => {
+            console.error("Error loading related organisations: ", error);
+        });
+
+        personsPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+                id: item.id,
+                name: item.name,
+                type: "person",
+            }))
+            setPersons(list);
+        }).catch(error => {
+            console.error("Error loading related persons: ", error);
+        });
+
     }
 
     return (
@@ -50,6 +109,22 @@ export function OrganisationContent()
 
             <Expandable title="Description" collapsedHeight={100}>
                 {description || <Skeleton />}
+            </Expandable>
+            
+            <Expandable variant="horizontal" title="Published">
+                <BadgeList listType="direct-resources" emptyMessage={"No resources recorded"} itemList={resources}/>
+            </Expandable>
+
+            <Expandable variant="horizontal" title="Related">
+                <BadgeList listType="related-resources" emptyMessage={"No resources recorded"} itemList={relatedResources}/>
+            </Expandable>
+
+            <Expandable variant="horizontal" title="Related Organisations">
+                <BadgeList listType="organisation-related-organisations" emptyMessage={"No organisations recorded"} itemList={organisations}/>
+            </Expandable>
+
+            <Expandable variant="horizontal" title="Related People">
+                <BadgeList listType="persons" emptyMessage={"No persons recorded"} itemList={persons}/>
             </Expandable>
         </>
     )
