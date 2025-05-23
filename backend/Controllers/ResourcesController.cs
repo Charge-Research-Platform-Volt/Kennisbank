@@ -568,8 +568,8 @@ namespace KnowledgeBank.Controllers
         /// <summary>
         /// Retrieves a list of related resources based on tag connections (will need to be changed to use the vectors)
         /// </summary>
-        /// <param name="pageIndex"></param>
-        /// <param name="pageSize"></param>
+        /// <param name="id">The ID of the resource</param>
+        /// <param name="listSize">The size of the list of related resources</param>
         [HttpGet("related-resources/{id}/{listSize}")]
         [SwaggerOperation(Summary = "Retrieves a list of related resources based on tag connections")]
         [SwaggerResponse(200, "A list containing related resources", typeof(ApiResponse))]
@@ -644,7 +644,7 @@ namespace KnowledgeBank.Controllers
             
             catch (Exception e)
             {
-                return StatusCode(500, new ApiResponse(false, "Error finding related resources."));
+                return StatusCode(500, new ApiResponse(false, "Error finding related resources.", e.Message));
             }
         }
 
