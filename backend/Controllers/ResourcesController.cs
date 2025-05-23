@@ -805,7 +805,6 @@ namespace KnowledgeBank.Controllers
         /// <param name="relation">The relation to retrieve</param>
         /// <param name="id">The ID of the resource</param>
         /// <param name="properties">(Optional) The properties to select from the result</param>
-        /// <returns></returns>
         [HttpGet("{id}/relations/{relation}")]
         [SwaggerOperation(Summary = "Retrieves all relations of the given type for the given resource ID")]
         [SwaggerResponse(200, "The relations", typeof(ApiResponse))]
@@ -873,6 +872,84 @@ namespace KnowledgeBank.Controllers
             catch (Exception e) 
             {
                 logger.Error(e, "Error retrieving relation '{Relation}' for resource with ID '{Id}'", relation, id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        #endregion
+        
+        #region Add Relations
+        /// <summary>
+        /// Adds a relation for this resource
+        /// </summary>
+        /// <param name="id">The ID of the resource</param>
+        /// <param name="relation">The relation to be made</param>
+        /// <param name="targetId">The ID of the other item in the relation</param>
+        /// <param name="relationInfo">(Optional) Extra information over the relation</param>
+        [HttpGet("{id}/relations/add/{relation}/{targetId}")]
+        [SwaggerOperation(Summary = "Adds a relation to the resource")]
+        [SwaggerResponse(200, "Successfully added relation", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> AddRelation(string id, string relation, string targetId, [FromQuery]string? relationInfo) 
+        {
+            // Check if relation is filled in
+            if (string.IsNullOrEmpty(relation))
+                return BadRequest(new ApiResponse(false, "Invalid relation"));
+
+            // Check if ids are valid
+            if (!ValidityUtil.IsValidId(id)) return BadRequest(new ApiResponse(false, "Invalid ID"));
+            if (!ValidityUtil.IsValidId(targetId) && !ValidityUtil.IsValidUrl(targetId)) return BadRequest(new ApiResponse(false, "Invalid target ID/URL"));
+            
+            try 
+            {
+                switch (relation) 
+                {
+                    // Authors
+                    case "authors":
+                        await resourceManager.AddAuthorToResourceAsync(id, targetId);
+                        break;
+                        
+                    // Organisations
+                    case "organisations":
+                        await resourceManager.AddOrganisationToResourceAsync(id, targetId, relationInfo ?? "");
+                        break;
+                    
+                    // Regions
+                    case "regions":
+                        await resourceManager.AddRegionToResourceAsync(id, targetId);
+                        break;
+                    
+                    // Related organisations
+                    case "related-organisations":
+                        await resourceManager.AddRelatedOrganisationToResourceAsync(id, targetId, relationInfo ?? "");
+                        break;
+                    
+                    // Related persons
+                    case "related-persons":
+                        await resourceManager.AddRelatedPersonToResourceAsync(id, targetId, relationInfo);
+                        break;
+                    
+                    // Sources
+                    case "sources":
+                        await resourceManager.AddSourceToResourceAsync(id, targetId);
+                        break;
+                    
+                    // Tags
+                    case "tags":
+                        await resourceManager.AddTagToResourceAsync(id, targetId);
+                        break;
+                        
+                    // Default
+                    default:
+                        return BadRequest(new ApiResponse(false, "Invalid relation"));
+                }
+
+                return Ok(new ApiResponse(true, "Relation added successfully"));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error creating relation '{Relation}' for person with ID '{Id}'", relation, id);
                 return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
             }
         }
