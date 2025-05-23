@@ -60,6 +60,8 @@ export const Register = async (
                 email: rawData.email,
                 password: rawData.password,
                 token: rawData.token,
+                firstName: rawData.firstname,
+                lastName: rawData.lastname,
             }),
             headers: { "Content-Type": "application/json" },
         });
