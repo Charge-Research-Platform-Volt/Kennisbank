@@ -49,6 +49,12 @@ public class Resource
     [MaxLength(64)]
     public string? Hash { get; set; }
 
+    [Column("archived")]
+    public bool Archived { get; set; } = false;
+
+    [Column("archive-date")]
+    public DateTime? ArchiveDate { get; set; } = null;
+
     #region Direct navigation properties
     // Navigation property for Vector (one to one). JsonIgnore excludes it from response bodies.
     [JsonIgnore] public ResourceVector? Vector { get; set; }
@@ -115,6 +121,14 @@ public class FileResourceCreateDto : ResourceCreateDto
 {
     public string? Hash { get; set; } = null;
     public IFormFile? File { get; set; }
+}
+
+public class LargeFileFinalizeDto
+{
+    public required string ResourceId { get; set; }
+    public required string FileType { get; set; }
+    public required string FileName { get; set; }
+    public List<string> BlockIds { get; set; } = new();
 }
 
 public class ResourceUploadDto 

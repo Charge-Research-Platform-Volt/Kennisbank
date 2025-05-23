@@ -17,6 +17,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using System.Text.Json;
+using System.Buffers.Text;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Specialized;
+using Azure.Storage.Blobs.Models;
+using System.Threading.Tasks;
 
 namespace KnowledgeBank.Controllers 
 {
@@ -178,6 +183,86 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
 
+        #region Archive
+        /// <summary>
+        /// Archives a resource
+        /// </summary>
+        /// <param name="id">The ID of the resource</param>
+        [HttpPatch("archive/{id}")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Archives a resource.")]
+        [SwaggerResponse(200, "Resource archived successfully", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Archive(string id) 
+        {
+            // Check if the ID is valid
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID."));
+                
+            try 
+            {
+                // Check if the resource exists
+                if (!await resourceManager.ResourceExistsAsync(id))
+                    return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
+
+                logger.Information("Archiving resource with ID: {ID}", id);
+                    
+                // Archive the resource
+                await resourceManager.ArchiveResourceAsync(id);
+
+                logger.Information("Archived resource with ID '{ID}' successfully.", id);
+                return Ok(new ApiResponse(true, "Resource archived successfully."));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error archiving resource with ID {ID}.", id);
+                return StatusCode(500, new ApiResponse(false, "Error archiving resource", e.Message));
+            }
+        }
+        #endregion
+
+        #region Unarchive
+        /// <summary>
+        /// Unarchives a resource
+        /// </summary>
+        /// <param name="id">The ID of the resource</param>
+        [HttpPatch("unarchive/{id}")]
+        [Authorize(Policy = "RequireAdminRole")]
+        [SwaggerOperation(Summary = "Unarchives a resource.")]
+        [SwaggerResponse(200, "Resource unarchived successfully", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Unarchive(string id) 
+        {
+            // Check if the ID is valid
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID."));
+                
+            try 
+            {
+                // Check if the resource exists
+                if (!await resourceManager.ResourceExistsAsync(id))
+                    return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
+
+                logger.Information("Unarchiving resource with ID: {ID}", id);
+                    
+                // Unarchive the resource
+                await resourceManager.UnarchiveResourceAsync(id);
+
+                logger.Information("Unarchived resource with ID '{ID}' successfully.", id);
+                return Ok(new ApiResponse(true, "Resource unarchived successfully."));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error unarchiving resource with ID {ID}.", id);
+                return StatusCode(500, new ApiResponse(false, "Error unarchiving resource", e.Message));
+            }
+        }
+        #endregion
+        
         #region Download
         /// <summary>
         /// Downloads a resource
@@ -478,6 +563,93 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
 
+        #region Get Related Resources
+
+        /// <summary>
+        /// Retrieves a list of related resources based on tag connections (will need to be changed to use the vectors)
+        /// </summary>
+        /// <param name="pageIndex"></param>
+        /// <param name="pageSize"></param>
+        [HttpGet("related-resources/{id}/{listSize}")]
+        [SwaggerOperation(Summary = "Retrieves a list of related resources based on tag connections")]
+        [SwaggerResponse(200, "A list containing related resources", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> RelatedResources(string id, int listSize)
+        {
+            // Check if the ID is valid
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID."));
+
+            double standardizedTagWeight = 3.0;
+            double approvedTagWeight = 2.0;
+            double regularTagWeight = 1.0;
+
+            try
+            {
+                // Check if the resource exists
+                if (!await resourceManager.ResourceExistsAsync(id))
+                    return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
+
+                ResourceTagRelation[] resourceTags = await resourceManager.GetAllResourceTagRelationsAsync(
+                    predicate: r => r.ResourceId.ToString() == id,
+                    includeProperties: new[] { "Tag" });
+
+
+                if (resourceTags.Length == 0)
+                    return Ok(new ApiResponse(true, "No tags found for resource", Array.Empty<Resource>()));
+
+                // Retrieve resources with at least one common tag
+                var documentTagIds = resourceTags.Select(r => r.TagId).ToHashSet();
+
+                ResourceTagRelation[] resourceTagRelations = await resourceManager.GetAllResourceTagRelationsAsync(
+                    predicate: r => documentTagIds.Contains(r.TagId) && r.ResourceId.ToString() != id,
+                    includeProperties: new[] { "Tag", "Resource" });
+
+                // Group by resource, and calculate similarity score
+                Resource[] relatedResources = resourceTagRelations
+                    .GroupBy(r => r.ResourceId)
+                    .Select(group =>
+                    {
+                        // Get resource
+                        var resource = group.First().Resource!;
+
+                        double similarityScore = 0;
+                        foreach (var r in group)
+                        {
+                            // Check to avoid possible errors
+                            if (r.Tag == null) continue;
+
+                            // Add appropriate weight
+                            if (r.Tag.IsStandardized) similarityScore += standardizedTagWeight;
+                            else if (r.Tag.IsApproved) similarityScore += approvedTagWeight;
+                            else similarityScore += regularTagWeight;
+                        }
+
+                        return new { Resource = resource, SimlarityScore = similarityScore };
+                    })
+                    .OrderByDescending(item => item.SimlarityScore)
+                    .Take(listSize)
+                    .Select(item => item.Resource)
+                    .ToArray();
+
+
+                if (relatedResources.Count() == 0)
+                    return NotFound(new ApiResponse(true, "No related resources found", Array.Empty<Resource>()));
+
+                return Ok(new ApiResponse(true, "Related resources found", relatedResources));
+
+            }
+            
+            catch (Exception e)
+            {
+                return StatusCode(500, new ApiResponse(false, "Error finding related resources."));
+            }
+        }
+
+        #endregion
+
         #region List
         /// <summary>
         /// Retrieves a list or page of all resources
@@ -485,13 +657,17 @@ namespace KnowledgeBank.Controllers
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
         /// <param name="properties">(Optional) The properties to select, separated by comma</param>
+        /// <param name="archived">(Optional) Whether to show archived resources or non archived resources</param>
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all resources")]
         [SwaggerResponse(200, "A list or page of all the resources in the archive", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties)
+        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties, bool archived = false)
         {
+            if(archived && !User.IsInRole("admin"))
+                return Unauthorized(new ApiResponse(false, "You are not authorized to view archived resources."));
+
             // Verification
             if (pageIndex != null && pageIndex < 1)
                 return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1."));
@@ -513,14 +689,14 @@ namespace KnowledgeBank.Controllers
                 // No paging requested, list all resources
                 if (pageIndex == null || pageSize == null)
                     resources = string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetAllResourcesAsync() :
-                        await resourceManager.GetAllResourcesAsync(projection: projectionString);
+                        await resourceManager.GetAllResourcesAsync(predicate: r => r.Archived == archived) :
+                        await resourceManager.GetAllResourcesAsync(predicate: r => r.Archived == archived, projection: projectionString);
 
                 // Paging requested, retrieve resources on that page
                 else
                     resources = string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize) :
-                        await resourceManager.GetResourcePageAsync(projectionString, (int)pageIndex, (int)pageSize);
+                        await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize, predicate: r => !r.Archived) :
+                        await resourceManager.GetResourcePageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: r => !r.Archived);
 
                 // Return found resources
                 return Ok(new ApiResponse(true, $"Found {resources.Length} resources", resources));
@@ -702,6 +878,260 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
 
+        #region Large File Upload
+        
+        /// <summary>
+        /// Initializes a large file upload session
+        /// </summary>
+        /// <param name="uploadDto">DTO containing resource metadata and file info</param>
+        /// <returns>Resource ID if successful</returns>
+        [HttpPut("large/init")]
+        [SwaggerOperation(Summary = "Initialize a large file upload session")]
+        [SwaggerResponse(200, "Upload session initialized", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> InitLargeFileUpload([FromForm] ResourceUploadDto uploadDto)
+        {        
+            ResourceCreateDto? dto = null;
+            
+            if (uploadDto.UploadType == "website")
+                dto = JsonSerializer.Deserialize<WebsiteCreateDto>(uploadDto.Dto);
+            else if (uploadDto.File != null)
+                dto = DeserializeWithFile(uploadDto.UploadType, uploadDto.Dto, uploadDto.File);
+            
+            if (dto == null)
+                return BadRequest(new ApiResponse(false, "Invalid DTO sent"));
+        
+            // Check if there is a title
+            if (string.IsNullOrEmpty(dto.Title))
+                return BadRequest(new ApiResponse(false, "No name was provided."));
+
+            // Check if there is a typeId
+            if (string.IsNullOrEmpty(dto.TypeId))
+                return BadRequest(new ApiResponse(false, "No type ID was provided."));
+
+            // Check if there is a language code
+            if (string.IsNullOrEmpty(dto.LanguageCode))
+                return BadRequest(new ApiResponse(false, "No language code was provided"));
+
+            // Check if there is a publication date
+            if (dto.PublicationDate == DateTime.MinValue)
+                return BadRequest(new ApiResponse(false, "No publication date was provided"));
+                
+            logger.Information("Creating resource '{Title}'...", dto.Title);
+            
+            try 
+            {
+                // Start a transaction on the database, since we are going to perform multiple actions
+                await resourceManager.BeginTransaction();
+
+                // Create the resource in the database and retrieve the ID
+                Guid id = uploadDto.UploadType switch 
+                {
+                    "document" => await resourceManager.CreateDocumentAsync((DocumentCreateDto)dto),
+                    "audio" => await resourceManager.CreateAudioAsync((AudioCreateDto)dto),
+                    "video" => await resourceManager.CreateVideoAsync((VideoCreateDto)dto),
+                    _ => await resourceManager.CreateResourceAsync(dto)
+                };
+
+                await resourceManager.Commit();
+                
+                // Return the resource Id
+                return Ok(new ApiResponse(true, "Upload session initialized", id));
+            }
+            catch (Exception e) 
+            {
+                await resourceManager.Rollback();
+                logger.Error(e, "Error initializing large file upload for resource {Title}.", dto.Title);
+                return StatusCode(500, new ApiResponse(false, "Error initializing upload session", e.Message));
+            }
+        }
+
+        /// <summary>
+        /// Uploads a chunk (block) of a large file
+        /// </summary>
+        /// <param name="blockId">Unique ID for this block (must be base64 encoded)</param>
+        /// <param name="resourceId">Resource ID from initialization</param>
+        /// <param name="fileType">File type container name</param>
+        [HttpPost("large/chunk/{resourceId}/{fileType}/{blockId}")]
+        [SwaggerOperation(Summary = "Upload a chunk of a large file")]
+        [SwaggerResponse(200, "Chunk uploaded successfully", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> UploadChunk(string resourceId, string fileType, string blockId)
+        {
+            if (Request.Body == null)
+                return BadRequest(new ApiResponse(false, "No chunk data was provided."));
+                
+            if (string.IsNullOrEmpty(resourceId) || !ValidityUtil.IsValidId(resourceId))
+                return BadRequest(new ApiResponse(false, "Invalid resource ID."));
+                
+            if (string.IsNullOrEmpty(fileType))
+                return BadRequest(new ApiResponse(false, "No file type was provided."));
+                
+            if (string.IsNullOrEmpty(blockId))
+                return BadRequest(new ApiResponse(false, "No block ID was provided."));
+                
+            try
+            {
+                Guid parsedResourceId = Guid.Parse(resourceId);
+                
+                // Make sure blockId is base64 encoded
+                string base64BlockId = blockId;
+                if (!Base64.IsValid(blockId))
+                {
+                    base64BlockId = Convert.ToBase64String(Encoding.UTF8.GetBytes(blockId));
+                }
+                
+                // Get container
+                BlobContainerClient container = await blobService.GetOrCreateContainerAsync(fileType);
+                   
+                // Get block blob client
+                BlockBlobClient blockBlobClient = container.GetBlockBlobClient(resourceId);
+                
+                // Parse request body to a memorystream
+                MemoryStream memoryStream = new MemoryStream();
+                await Request.Body.CopyToAsync(memoryStream);
+                memoryStream.Position = 0;
+                                
+                // Stage the current chunk
+                await blockBlobClient.StageBlockAsync(base64BlockId, memoryStream);
+                
+                logger.Information("Chunk {BlockId} uploaded for resource {ResourceId}", blockId, resourceId);
+                
+                return Ok(new ApiResponse(true, "Chunk uploaded successfully"));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error uploading chunk {BlockId} for resource {ResourceId}", blockId, resourceId);
+                return StatusCode(500, new ApiResponse(false, "Error uploading chunk", e.Message));
+            }
+        }
+        
+        /// <summary>
+        /// Finalizes a large file upload by committing all uploaded blocks
+        /// </summary>
+        /// <param name="finalizeDto">Finalization information and resource metadata</param>
+        [HttpPut("large/finalize")]
+        [SwaggerOperation(Summary = "Finalize a large file upload")]
+        [SwaggerResponse(200, "File upload finalized successfully", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> FinalizeLargeFileUpload([FromForm] LargeFileFinalizeDto finalizeDto)
+        {
+            if (string.IsNullOrEmpty(finalizeDto.ResourceId) || !ValidityUtil.IsValidId(finalizeDto.ResourceId))
+                return BadRequest(new ApiResponse(false, "Invalid resource ID."));
+                
+            if (string.IsNullOrEmpty(finalizeDto.FileType))
+                return BadRequest(new ApiResponse(false, "No file type was provided."));
+                
+            if (string.IsNullOrEmpty(finalizeDto.FileName))
+                return BadRequest(new ApiResponse(false, "No file name was provided."));
+                
+            if (finalizeDto.BlockIds == null || finalizeDto.BlockIds.Count == 0)
+                return BadRequest(new ApiResponse(false, "No block IDs were provided."));
+
+            // Get the resource ID
+            Guid resourceId = Guid.Parse(finalizeDto.ResourceId);
+                        
+            try
+            {
+                logger.Information("Finalizing large file upload for resource {ResourceId}", resourceId);
+                                
+                string extension = Path.GetExtension(finalizeDto.FileName);
+                string fileType = Filetype.ConvertExtensionToFiletype(extension);
+                
+                // Convert blockIds to base64 if needed
+                List<string> base64BlockIds = finalizeDto.BlockIds.Select(id => 
+                    Base64.IsValid(id) ? id : Convert.ToBase64String(Encoding.UTF8.GetBytes(id))).ToList();
+                
+                // Create metadata to add to blob
+                Dictionary<string, string> metadata = new() { { "extension", extension } };
+                
+                BLOB_STATUSCODE code = await blobService.CommitBlockListAsync(resourceId.ToString(), fileType, base64BlockIds, metadata);
+                
+                logger.Information("Large file upload finalized for resource {ResourceId}", resourceId);
+                
+                return Ok(new ApiResponse(true, "File upload finalized successfully", resourceId));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error finalizing large file upload for resource {ResourceId}", resourceId);
+                await resourceManager.Rollback();
+                return StatusCode(500, new ApiResponse(false, "Error finalizing upload", e.Message));
+            }
+        }
+        
+        /// <summary>
+        /// Cleans up a failed large file upload by deleting database entry. Cleaning of block blobs
+        /// is automatically handled, uncommitted blocks are deleted.
+        /// </summary>
+        /// <param name="resourceId">Resource ID to clean up</param>
+        [HttpDelete("large/cleanup/{resourceId}")]
+        [SwaggerOperation(Summary = "Clean up a failed large file upload")]
+        [SwaggerResponse(200, "Upload cleaned up successfully", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> CleanupFailedUpload(string resourceId)
+        {
+            if (string.IsNullOrEmpty(resourceId) || !ValidityUtil.IsValidId(resourceId))
+                return BadRequest(new ApiResponse(false, "Invalid resource ID."));
+                
+            Guid parsedResourceId;
+            try
+            {
+                parsedResourceId = Guid.Parse(resourceId);
+            }
+            catch (Exception)
+            {
+                return BadRequest(new ApiResponse(false, "Invalid resource ID format."));
+            }
+
+            try
+            {
+                // Delete the database entry
+                await resourceManager.BeginTransaction();
+                string? fileType = await resourceManager.GetResourcePropertyOrDefaultAsync(parsedResourceId.ToString(), "FileType");
+                if (fileType is not null)
+                {
+                    BLOB_STATUSCODE code = await blobService.CommitBlockListAsync(resourceId.ToString(), fileType, [], new());
+                    if (code == BLOB_STATUSCODE.OK)
+                    {
+                        await blobService.DeleteBlobAsync(fileType, resourceId.ToString());
+                        await resourceManager.DeleteResourceAsync(parsedResourceId.ToString());
+                        logger.Information("Successfully cleaned up resource {ResourceId}", resourceId);
+                        return Ok(new ApiResponse(true, "Upload cleaned up successfully"));
+                    }
+                    else if (code == BLOB_STATUSCODE.NOTFOUND)
+                    {
+                        await resourceManager.DeleteResourceAsync(parsedResourceId.ToString());
+                        logger.Warning("Blob {RecourseId} not found during cleanup", resourceId);
+                        return Ok(new ApiResponse(true, "Blob not found, but database entry removed, cleanup completed"));
+                    }
+                    else
+                    {
+                        logger.Error("Error deleting blob {ResourceId} in storage", resourceId);
+                        return StatusCode(500, new ApiResponse(false, "Error deleting blob in storage"));
+                    }
+            
+                }
+                else
+                {
+                    logger.Warning("Resource {ResourceId} not found during cleanup", resourceId);
+                    return Ok(new ApiResponse(true, "Resource not found, but cleanup completed"));
+                }
+            }
+            catch (Exception e)
+            {
+                await resourceManager.Rollback();
+                logger.Error(e, "Error cleaning up for resource {ResourceId}", resourceId);
+                return StatusCode(500, new ApiResponse(false, "Error cleaning up upload", e.Message));
+            }
+        }
+        
+        #endregion
+        
+        
         #region Helper Functions
         // ---------------------------
         // Helper functions

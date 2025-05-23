@@ -14,6 +14,12 @@ vi.mock('next/navigation', () => ({
     refresh: vi.fn(),
     replace: vi.fn() 
   }),
+  useSearchParams: vi.fn().mockReturnValue({
+    get: vi.fn((key: string) => {
+      if (key === 'redirect') return '/'; 
+      return null;
+    }),
+  }),
 }));
 
 describe('Log in page', () => {

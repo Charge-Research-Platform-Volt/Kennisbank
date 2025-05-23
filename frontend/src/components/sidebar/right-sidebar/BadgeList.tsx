@@ -7,12 +7,13 @@ import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 import New from "@/icons/new"
 import NewBadge from "./NewBadge"
+import { useArchive } from "@/context/archive-provider"
 
 export interface ListItem
 {
     id: string,
     name: string,
-    type: string,
+    type: string, //if "tag" it applies the tag as filter, if "source" it opens the url in a new tab, else it navigates to selected source,organisation,person
 }
 
 interface BadgeListProps
@@ -29,13 +30,14 @@ const skeletonList = [1,2,3,4,5,6,7,8]
 
 export default function BadgeList({
     variant = "outline",
-    className = "p-2",
+    className = "p-2 select-none",
     listType = null, //can be overridden, is used to identify what relation you can add with the plus button
     emptyMessage = "None found",
     itemList,
 } : BadgeListProps)
 {
     const { navigate } = useSidebar();
+    const { setTagFilters } = useArchive();
     
     async function navigateTo(id: string, type: string)
     {
@@ -47,6 +49,11 @@ export default function BadgeList({
         else if (type == "tag")
         {
             // Add here: apply tag filter on archive
+            setTagFilters([id]);
+        }
+        else if (type = "source")
+        {
+            window.open(id)?.focus();
         }
     }
 
