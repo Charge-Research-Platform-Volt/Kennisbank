@@ -320,6 +320,133 @@ namespace KnowledgeBank.Controllers
             }
         }
         #endregion
+        
+        #region Relation fetches
+        /// <summary>
+        /// Retrieves all relations of the given type for the given organisation ID
+        /// </summary>
+        /// <param name="relation">The relation to retrieve</param>
+        /// <param name="id">The ID of the organisation</param>
+        /// <param name="properties">(Optional) The properties to select from the result</param>
+        [HttpGet("{id}/relations/{relation}")]
+        [SwaggerOperation(Summary = "Retrieves all relations of the given type for the given organisation ID")]
+        [SwaggerResponse(200, "The relations", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Relations(string relation, string id, string? properties) 
+        {
+            // Check if relation is filled in
+            if (string.IsNullOrEmpty(relation))
+                return BadRequest(new ApiResponse(false, "Invalid relation"));
+
+            // Check ID
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID"));
+                
+            try 
+            {
+                object? result = relation switch
+                {
+                    // Directly related resources resources
+                    "direct-resources" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceOrganisationRelationsAsync(r => r.OrganisationId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceOrganisationRelationsAsync(predicate: r => r.OrganisationId == Guid.Parse(id), projection: $"new({properties})"),
+
+                    // Related resources
+                    "related-resources" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(r => r.OrganisationId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(predicate: r => r.OrganisationId == Guid.Parse(id), projection: $"new({properties})"),
+                    
+                    // Related organisations
+                    "organisations" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllOrganisationRelationshipsAsync(predicate: p => p.SourceOrganisationId == Guid.Parse(id) || p.TargetOrganisationId == Guid.Parse(id)) :
+                        await resourceManager.GetAllOrganisationRelationshipsAsync(predicate: p => p.SourceOrganisationId == Guid.Parse(id) || p.TargetOrganisationId == Guid.Parse(id), projection: $"new({properties})"),
+                        
+                    // Related persons
+                    "persons" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllPersonOrganisationRelationsAsync(predicate: p => p.OrganisationId == Guid.Parse(id)) :
+                        await resourceManager.GetAllPersonOrganisationRelationsAsync(predicate: p => p.OrganisationId == Guid.Parse(id), projection: $"new({properties})"),
+                    
+                    // Default
+                    _ => null
+                };
+
+                if (result == null)
+                    return NotFound(new ApiResponse(false, "ID or relation not found"));
+
+                return Ok(new ApiResponse(true, "Successfully retrieved relations", result));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error retrieving relation '{Relation}' for organisation with ID '{Id}'", relation, id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        #endregion
+        
+        #region Add Relations
+        /// <summary>
+        /// Adds a relation for this organisation
+        /// </summary>
+        /// <param name="id">The ID of the organisation</param>
+        /// <param name="relation">The relation to be made</param>
+        /// <param name="targetId">The ID of the other item in the relation</param>
+        /// <param name="relationInfo">(Optional) Extra information over the relation</param>
+        [HttpGet("{id}/relations/add/{relation}/{targetId}")]
+        [SwaggerOperation(Summary = "Adds a relation to the organisation")]
+        [SwaggerResponse(200, "Successfully added relation", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> AddRelation(string id, string relation, string targetId, [FromQuery]string? relationInfo) 
+        {
+            // Check if relation is filled in
+            if (string.IsNullOrEmpty(relation))
+                return BadRequest(new ApiResponse(false, "Invalid relation"));
+
+            // Check if ids are valid
+            if (!ValidityUtil.IsValidId(id)) return BadRequest(new ApiResponse(false, "Invalid ID"));
+            if (!ValidityUtil.IsValidId(targetId)) return BadRequest(new ApiResponse(false, "Invalid target ID"));
+            
+            try 
+            {
+                switch (relation) 
+                {
+                    // Direct resources
+                    case "direct-resources":
+                        await resourceManager.AddOrganisationToResourceAsync(targetId, id, relationInfo ?? "");
+                        break;
+                    
+                    // Related resources
+                    case "related-resources":
+                        await resourceManager.AddRelatedOrganisationToResourceAsync(targetId, id, relationInfo ?? "");
+                        break;
+                    
+                    // Organisations
+                    case "organisations":
+                        await resourceManager.AddOrganisationRelationshipAsync(id, relationInfo, targetId);
+                        break;
+                    
+                    // Persons
+                    case "persons":
+                        await resourceManager.AddPersonToOrganisationAsync(targetId, relationInfo, id);
+                        break;
+                        
+                    // Default
+                    default:
+                        return BadRequest(new ApiResponse(false, "Invalid relation"));
+                }
+
+                return Ok(new ApiResponse(true, "Relation added successfully"));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error creating relation '{Relation}' for person with ID '{Id}'", relation, id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        #endregion
 
         #region Helper Functions
         // ---------------------------
