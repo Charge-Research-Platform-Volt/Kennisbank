@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { MetadataTypeEnum, useSidebar } from "@/context/sidebar-provider";
-import { getProperties } from "@/actions/right-sidebarActions";
+import { getProperties, getRelation } from "@/actions/right-sidebarActions";
 import Skeleton from 'react-loading-skeleton'
 import Expandable from "./expandable"
+import BadgeList, { ListItem } from "./BadgeList";
 
 export function PersonContent() 
 {
@@ -12,18 +13,30 @@ export function PersonContent()
     const [ name, setName ] = useState<string | null>(null);  
     const [ description, setDescription ] = useState<string | null>(null);
     const [ occupation, setOccupation ] = useState<string | null>(null);
+    const [ authored, setAuthored ] = useState<ListItem[] | null>(null); 
+    const [ related, setRelated ] = useState<ListItem[] | null>(null); 
+    const [ persons, setPersons ] = useState<ListItem[] | null>(null); 
+    const [ organisations, setOrganisations ] = useState<ListItem[] | null>(null); 
 
     useEffect(() => {
         if (rightSidebarOpen) {
             setName(null);
             setDescription(null);
             setOccupation(null);
+            setAuthored(null);
+            setRelated(null);
+            setPersons(null);
+            setOrganisations(null);
             loadInformation();
         }
     }, [currentId])
 
     const loadInformation = async () => {
         const infoPromise = getProperties(currentId, MetadataTypeEnum.PERSON);
+        const authoredPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "authored-resources");
+        const relatedPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "related-resources");
+        const personsPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "persons");
+        const organisationsPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "organisations");
     
         infoPromise.then(response => {
             setName(response.body.name);
@@ -39,6 +52,50 @@ export function PersonContent()
         }).catch(error => {
             console.error("Error loading person information: ", error);
         });
+
+        authoredPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+                id: item.id,
+                name: item.name,
+                type: "authored-resources",
+            }))
+            setAuthored(list);
+        }).catch(error => {
+            console.error("Error loading authored-resources: ", error);
+        });
+
+        relatedPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+                id: item.id,
+                name: item.name,
+                type: "related-resources",
+            }))
+            setRelated(list);
+        }).catch(error => {
+            console.error("Error loading related resource: ", error);
+        });
+
+        personsPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+                id: item.id,
+                name: item.name,
+                type: "persons",
+            }))
+            setPersons(list);
+        }).catch(error => {
+            console.error("Error loading related persons: ", error);
+        });
+
+        organisationsPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+                id: item.id,
+                name: item.name,
+                type: "organisations",
+            }))
+            setOrganisations(list);
+        }).catch(error => {
+            console.error("Error loading organisations: ", error);
+        });
     }
 
     return (
@@ -47,6 +104,22 @@ export function PersonContent()
             <h1 className="p-1 pl-2 mb-2 select-none bg-gray-200 rounded-md">{occupation || <Skeleton />}</h1>
              <Expandable title="Description" collapsedHeight={100}>
                     {description || <Skeleton />}
+            </Expandable>
+
+            <Expandable variant="horizontal" title="Authored">
+                <BadgeList listType="authored-resources" emptyMessage={"No resources recorded"} itemList={authored}/>
+            </Expandable>
+
+            <Expandable variant="horizontal" title="Related">
+                <BadgeList listType="related-resources" emptyMessage={"No resources recorded"} itemList={related}/>
+            </Expandable>
+
+            <Expandable variant="horizontal" title="Related Persons">
+                <BadgeList listType="persons" emptyMessage={"No persons recorded"} itemList={persons}/>
+            </Expandable>
+
+            <Expandable variant="horizontal" title="Related Organisations">
+                <BadgeList listType="organisations" emptyMessage={"No organisations recorded"} itemList={organisations}/>
             </Expandable>
         </>
     )

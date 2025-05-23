@@ -6,13 +6,17 @@ import { revalidatePath } from "next/cache";
 import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 import { cookies } from "next/headers";
 
+
+// declare relation types for resource
 type resourceRelation = "authors" | "organisations" |
                         "regions" | "related-organisations" |
                         "related-sources" | "sources" |
                         "tags" | "related-persons" | "website"; 
 
+// declare relation types for persons
 type personRelation = "authored-resources" | "related-resources" | "persons" | "organisations";
 
+// declare relation types for organisations
 type organisationRelation = "direct-resources" | "related-resources"| "organisations" | "persons";
 
 export const getProperties = async (
@@ -51,6 +55,7 @@ export const getRelation = async (
     relation: resourceRelation | personRelation | organisationRelation,
 ) => {
 
+    // get endpoint based on the type (resource,person or organisation)
     let endPoint;
     if (type === "resource") {endPoint = `resources/${encodeURIComponent(id)}/relations`}
     else if (type === "person") {endPoint = `persons/${encodeURIComponent(id)}/relations`}
@@ -58,7 +63,7 @@ export const getRelation = async (
 
     const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response = await fetch(
-        `${process.env.API_URL}/${endPoint}/${encodeURIComponent(relation)}?properties=${encodeURIComponent("Id,Name")}`,
+        `${process.env.API_URL}/${endPoint}/${encodeURIComponent(relation)}?properties=${encodeURIComponent("Id,Name")}`, //Take only Id and Name from relation
             {
                 method: "GET",
                 credentials: "include",
@@ -107,6 +112,7 @@ export const newRelationSearchResults = async (
     let endPoint;
     let path: string = "";
 
+    //Set up tagfilter options to get tags when searching
     const tagFilterOptions : TagFilterOptions = {
         usePaging: true,
         pageIndex: 1,
@@ -122,6 +128,7 @@ export const newRelationSearchResults = async (
     const cookieHeader : ReadonlyRequestCookies = await cookies();
     let fetchContents: any;
 
+    // switch fetchContents and endpoint depending on what relation is being sought
     if (type === "tags") {
     endPoint = 'Tags/tags';
     path = '/tags';
