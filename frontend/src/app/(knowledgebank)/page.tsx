@@ -1,16 +1,16 @@
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
-import { ResourcePageResponseSchema } from "@/types/resource.type";
 import Link from "next/link";
 import Greeting from "../_components/greating-text";
 import Archive from "@/icons/archive";
 import GetFileIcon from "@/components/getFileIcon";
 import OpenFileButton from "@/components/open-file-button";
 import SearchButton from "../_components/search-button";
+import { ApiResponseSchema } from "@/types/apiResponse.type";
 
 export default async function Home() {
   // fetches all documents
-  const result = await FetchWithValidation(ResourcePageResponseSchema, `${process.env.API_URL}/Storage/list-paged?pageIndex=1&pageSize=4`);
-  let files = result.data?.resources ?? [];
+  const result = await FetchWithValidation(ApiResponseSchema, `${process.env.API_URL}/resources/list?pageIndex=1&pageSize=4`);
+  let files = result.data?.body ?? [];
 
   // only display first 4 files, needs to be updated to display recently opened files
   if (files.length > 4) {
@@ -52,7 +52,7 @@ export default async function Home() {
         <div className="mx-auto w-full max-w-xl rounded-lg bg-gray-100 p-1">
           <h2 className="mt-1 mb-1 text-xl font-semibold">Files</h2>
           <div className="flex flex-col">
-            {files.map((file, index) => (
+            {files.map((file: any, index: number) => (
               <div
                 key={file.id}
                 className={`flex items-center justify-between gap-2 border bg-white p-2 hover:bg-gray-200 ${index === 0 ? "rounded-t-lg" : ""} ${index === files.length - 1 ? "rounded-b-lg" : ""} ${index !== 0 ? "border-t-0" : ""} `}
