@@ -11,13 +11,13 @@ import { cookies } from "next/headers";
 type resourceRelation = "authors" | "organisations" |
                         "regions" | "related-organisations" |
                         "related-sources" | "sources" |
-                        "tags" | "related-persons" | "website"; 
+                        "tags" | "related-persons" | "website" | "resource-related-resources"; 
 
 // declare relation types for persons
-type personRelation = "authored-resources" | "related-resources" | "persons" | "organisations";
+type personRelation = "authored-resources" | "related-resources" | "person-related-persons" | "organisations";
 
 // declare relation types for organisations
-type organisationRelation = "direct-resources" | "related-resources"| "organisations" | "persons";
+type organisationRelation = "direct-resources" | "related-resources"| "organisation-related-organisations" | "persons";
 
 export const getProperties = async (
     id: string,
@@ -59,23 +59,26 @@ export const getRelation = async (
     let endPoint;
     if (type === "resource") {endPoint = `resources/${encodeURIComponent(id)}/relations`}
     else if (type === "person") {endPoint = `persons/${encodeURIComponent(id)}/relations`}
-    else if (type === "organisation") {endPoint = `organisation/${encodeURIComponent(id)}/relations`}
+    else if (type === "organisation") {endPoint = `organisations/${encodeURIComponent(id)}/relations`}
 
     const properties =
     {
-        "authors": "PersonId as id,Person.Name as name",
+        "authors": "PersonId as id, Person.Name as name",
         "authored-resources": "ResourceId as id,Resource.Title as name",
         "direct-resources": "ResourceId as id,Resource.Title as name",
         "organisations": "OrganisationId as id,Organisation.Name as name",
+        "organisation-related-organisations": "TargetOrganisationId as targetid,TargetOrganisation.Name as targetname,SourceOrganisationId as sourceid,SourceOrganisation.Name as sourcename",
         "persons": "PersonId as id,Person.Name as name",
+        "person-related-persons": "TargetPersonId as targetid,TargetPerson.Name as targetname,SourcePersonId as sourceid,SourcePerson.Name as sourcename",
         "regions": "RegionId as id,Region.Name as name",
         "related-organisations": "OrganisationId as id,Organisation.Name as name",
         "related-persons": "PersonId as id,Person.Name as name",
-        "related-resources": "",
-        "related-sources": "",
-        "sources": "URL as id,URL as name",
+        "related-resources": "ResourceId as id,Resource.Title as name",
+        "resource-related-resources": "Id as id,Title as name,FileType as fileType",
+        "related-sources": "Url as id,Url as name",
+        "sources": "Url as id,Url as name",
         "tags": "TagId as id,Tag.Name as name",
-        "website": ""
+        "website": "Url as id, Url as name"
     }[relation];
     
     const cookieHeader : ReadonlyRequestCookies = await cookies();
@@ -93,30 +96,6 @@ export const getRelation = async (
         throw new Error(`Problem with finding relation: ${relation}`);
     }
         
-    const rawData = await response.json();
-    const data = ApiResponseSchema.parse(rawData);
-    return data;
-}
-
-export const getRelatedDocuments = async (
-    id: string,
-    listSize: number,
-) => {
-    let endPoint = `resources/related-resources/${id}/${listSize}`
-
-    const cookieHeader : ReadonlyRequestCookies = await cookies();
-    const response = await fetch(`${process.env.API_URL}/${endPoint}`,
-        {
-            method: "GET",
-            credentials: "include",
-            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
-        }
-    )
-
-    if (!response.ok) {
-        throw new Error(`Problem with getting related resources`);
-    }
-    
     const rawData = await response.json();
     const data = ApiResponseSchema.parse(rawData);
     return data;
@@ -201,7 +180,7 @@ export const newRelationSearchResults = async (
     );
 
     if (!response.ok) {
-      throw new Error("Problem getting resuts");
+      throw new Error("Problem getting results");
     }
   
     const rawData = await response.json();

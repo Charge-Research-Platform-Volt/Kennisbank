@@ -35,7 +35,7 @@ export function PersonContent()
         const infoPromise = getProperties(currentId, MetadataTypeEnum.PERSON);
         const authoredPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "authored-resources");
         const relatedPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "related-resources");
-        const personsPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "persons");
+        const personsPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "person-related-persons");
         const organisationsPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "organisations");
     
         infoPromise.then(response => {
@@ -57,7 +57,7 @@ export function PersonContent()
             const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
                 id: item.id,
                 name: item.name,
-                type: "authored-resources",
+                type: "resource",
             }))
             setAuthored(list);
         }).catch(error => {
@@ -68,7 +68,7 @@ export function PersonContent()
             const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
                 id: item.id,
                 name: item.name,
-                type: "related-resources",
+                type: "resource",
             }))
             setRelated(list);
         }).catch(error => {
@@ -76,10 +76,10 @@ export function PersonContent()
         });
 
         personsPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
-                id: item.id,
-                name: item.name,
-                type: "persons",
+            const list: ListItem[] = response.body.map((item: { targetid: any; targetname: any, sourceid: any, sourcename: any }) => ({
+                id: item.targetid === currentId ? item.sourceid : item.targetid,
+                name: item.targetid === currentId ? item.sourcename : item.targetname,
+                type: "person",
             }))
             setPersons(list);
         }).catch(error => {
@@ -90,7 +90,7 @@ export function PersonContent()
             const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
                 id: item.id,
                 name: item.name,
-                type: "organisations",
+                type: "organisation",
             }))
             setOrganisations(list);
         }).catch(error => {
@@ -114,7 +114,7 @@ export function PersonContent()
                 <BadgeList listType="related-resources" emptyMessage={"No resources recorded"} itemList={related}/>
             </Expandable>
 
-            <Expandable variant="horizontal" title="Related Persons">
+            <Expandable variant="horizontal" title="Related People">
                 <BadgeList listType="persons" emptyMessage={"No persons recorded"} itemList={persons}/>
             </Expandable>
 

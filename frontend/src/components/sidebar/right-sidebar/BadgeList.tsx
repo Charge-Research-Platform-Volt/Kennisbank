@@ -46,12 +46,12 @@ export default function BadgeList({
             const nType: MetadataTypeEnum = type as MetadataTypeEnum;
             navigate(id, nType)
         }
-        else if (type == "tags")
+        else if (type == "tag")
         {
             // Add here: apply tag filter on archive
             setTagFilters([id]);
         }
-        else if (type = "sources")
+        else if (type = "source")
         {
             window.open(id)?.focus();
         }
