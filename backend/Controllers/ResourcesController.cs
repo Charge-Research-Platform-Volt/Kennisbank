@@ -1133,6 +1133,39 @@ namespace KnowledgeBank.Controllers
         
         #endregion
         
+        #region Archive Grid
+        /// <summary>
+        /// Retrieves the resource grid items which are displayed on the archive page
+        /// </summary>
+        /// <param name="pageIndex">The index of the page</param>
+        /// <param name="pageSize">The size of the page</param>
+        [HttpGet("grid")]
+        [SwaggerOperation(Summary = "Retrieves the resource grid items which are displayed on the archive page")]
+        [SwaggerResponse(200, "The list of ResourceGridItems", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> GetGrid(int pageIndex = 1, int pageSize = 50) 
+        {
+            // Check page settings
+            if (pageIndex < 1)
+                return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1"));
+
+            if (pageSize < 1)
+                return BadRequest(new ApiResponse(false, "Page size cannot be lower than 1"));
+                
+            try 
+            {
+                ResourceGridItem[] items = await resourceManager.GetResourceGridItemsPageAsync(pageIndex, pageSize);
+                return Ok(new ApiResponse(true, $"Found {items.Length} items", items));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Failed to fetch resource grid");
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        #endregion
+        
         
         #region Helper Functions
         // ---------------------------

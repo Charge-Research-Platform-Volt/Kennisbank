@@ -6,7 +6,7 @@ import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { OctagonAlert } from "lucide-react";
-import FilterButton from "./components/filter-button";
+import FilterButton from "../../../components/archive/filter-button";
 import { ResourcePageWithTagsResponse } from "@/types/resource.type";
 import ListResources from "@/components/list-resources";
 import { useUserRole } from "@/context/user-role-context";

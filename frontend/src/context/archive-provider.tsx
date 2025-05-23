@@ -30,7 +30,6 @@ export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
             value={{
                 tagFilters,
                 setTagFilters,
-
             }}>
         {children}
         </ArchiveContext.Provider>
