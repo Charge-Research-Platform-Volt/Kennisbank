@@ -17,7 +17,7 @@ export const handleOpenFile = async (file: ResourceResponse) => {
 
     // Anything but a website at the moment we'll just open from the storage
     if(file.fileType != "website"){
-        url = `/api/storage/download/${file.id}`;
+        url = `/api/resources/download/${file.id}`;
         try {
             const response : Response = await fetch(url, {
                 method: 'GET',
