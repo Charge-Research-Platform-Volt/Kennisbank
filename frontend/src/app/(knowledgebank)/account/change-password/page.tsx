@@ -79,8 +79,14 @@ export default function AccountInformation() {
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl mt-5">
+            <Button variant="link" className="mb-4 p-0 ml-0" onClick={() => window.history.back()}>
+                <span className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                    &#x25c0; Back
+                </span>
+            </Button>
+            
             <h1 className="text-2xl tracking-tight text-gray-900 dark:text-gray-100 md:text-3xl lg:text-4xl mb-2">
-                Account information
+                Change password
             </h1>
             
             <hr className="mb-4" />
