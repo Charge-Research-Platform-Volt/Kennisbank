@@ -61,9 +61,26 @@ export const getRelation = async (
     else if (type === "person") {endPoint = `persons/${encodeURIComponent(id)}/relations`}
     else if (type === "organisation") {endPoint = `organisation/${encodeURIComponent(id)}/relations`}
 
+    const properties =
+    {
+        "authors": "PersonId as id,Person.Name as name",
+        "authored-resources": "ResourceId as id,Resource.Title as name",
+        "direct-resources": "ResourceId as id,Resource.Title as name",
+        "organisations": "OrganisationId as id,Organisation.Name as name",
+        "persons": "PersonId as id,Person.Name as name",
+        "regions": "RegionId as id,Region.Name as name",
+        "related-organisations": "OrganisationId as id,Organisation.Name as name",
+        "related-persons": "PersonId as id,Person.Name as name",
+        "related-resources": "",
+        "related-sources": "",
+        "sources": "URL as id,URL as name",
+        "tags": "TagId as id,Tag.Name as name",
+        "website": ""
+    }[relation];
+    
     const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response = await fetch(
-        `${process.env.API_URL}/${endPoint}/${encodeURIComponent(relation)}?properties=${encodeURIComponent("Id,Name")}`, //Take only Id and Name from relation
+        `${process.env.API_URL}/${endPoint}/${encodeURIComponent(relation)}?properties=${encodeURIComponent(properties)}`, //Take only Id and Name from relation
             {
                 method: "GET",
                 credentials: "include",
