@@ -11,6 +11,10 @@ type resourceRelation = "authors" | "organisations" |
                         "related-sources" | "sources" |
                         "tags" | "related-persons" | "website"; 
 
+type personRelation = "authored-resources" | "related-resources" | "persons" | "organisations";
+
+type organisationRelation = "direct-resources" | "related-resources"| "organisations" | "persons";
+
 export const getProperties = async (
     id: string,
     type: string,
@@ -44,7 +48,7 @@ export const getProperties = async (
 export const getRelation = async (
     id: string,
     type: string,
-    relation: resourceRelation,
+    relation: resourceRelation | personRelation | organisationRelation,
 ) => {
 
     let endPoint;
@@ -54,7 +58,7 @@ export const getRelation = async (
 
     const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response = await fetch(
-        `${process.env.API_URL}/${endPoint}/${encodeURIComponent(relation)}`,
+        `${process.env.API_URL}/${endPoint}/${encodeURIComponent(relation)}?properties=${encodeURIComponent("Id,Name")}`,
             {
                 method: "GET",
                 credentials: "include",
@@ -97,7 +101,7 @@ export const getRelatedDocuments = async (
 
 export const newRelationSearchResults = async (
     searchQuery: string,
-    type: resourceRelation,
+    type: resourceRelation | personRelation | organisationRelation,
     K: number = 6,
 ) => {
     let endPoint;
@@ -128,7 +132,7 @@ export const newRelationSearchResults = async (
         body: JSON.stringify(tagFilterOptions),
     };
     }
-    else if (type === "authors" || type === "related-persons" ) {
+    else if (type === "authors" || type === "related-persons" || type === "persons" ) {
         endPoint = `Persons/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
         path = '/list';
         fetchContents = {
@@ -148,6 +152,15 @@ export const newRelationSearchResults = async (
     }
     else if (type === "regions") {
         endPoint = `Regions/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
+        path = '/list';
+        fetchContents = {
+            method: "Get",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+        };
+    }
+    else if (type === "authored-resources" || type === "related-resources" || type === "direct-resources") {
+        endPoint = `Resources/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
         path = '/list';
         fetchContents = {
             method: "Get",
