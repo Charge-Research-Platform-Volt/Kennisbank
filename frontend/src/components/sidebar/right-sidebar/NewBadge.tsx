@@ -41,8 +41,8 @@ export default function NewBadge({
 
             setIsLoading(true);
             try {
-                const response = await newRelationSearchResults(query, type as any, 10);
-                setSearchResults(response.body.tags || []);
+                const response = await newRelationSearchResults(query, type as any, 6);
+                setSearchResults(response.body || []);
             } catch (error) {
                 console.error("Search error:", error);
                 setSearchResults([]);

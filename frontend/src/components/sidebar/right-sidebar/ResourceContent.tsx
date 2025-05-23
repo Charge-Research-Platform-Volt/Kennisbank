@@ -27,6 +27,7 @@ export function ResourceContent()
     const [ relatedPersons, setRelatedPersons ] = useState<ListItem[] | null>(null);
     const [ relatedResources, setRelatedResources ] = useState<ListItem[] | null>(null);
     const [ sourceList, setSourceList ] = useState<ListItem[] | null>(null);
+    const [ regions, setRegions ] = useState<ListItem[] | null>(null);
 
 
 
@@ -44,6 +45,7 @@ export function ResourceContent()
         setRelatedPersons(null);
         setRelatedResources(null);
         setSourceList(null);
+        setRegions(null);
         loadInformation(); }
     }, [currentId])
 
@@ -56,6 +58,7 @@ export function ResourceContent()
         const relatedPersonsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "relatedPerson");
         const relatedResourcesPromise = getRelatedDocuments(currentId, 10);
         const sourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "source");
+        const regionsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "region");
     
         infoPromise.then(response => {
             setFileType(response.body.fileType);
@@ -156,6 +159,17 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading sources: ", error);
         });
+
+        regionsPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: {id: any; name: any}) => ({
+                id: item.id,
+                name: item.name,
+                type: "region",
+            }))
+            setRegions(list);
+        }).catch(error => {
+            console.error("Error loading regions: ", error);
+        });
     }
     
 
@@ -197,6 +211,10 @@ export function ResourceContent()
 
             <Expandable variant="horizontal" title="Sources">
                 <BadgeList listType="source" emptyMessage={"No sources recorded"} itemList={sourceList}/>
+            </Expandable>
+
+            <Expandable variant="horizontal" title="Regions">
+                <BadgeList listType="regiom" emptyMessage={"No regions recorded"} itemList={regions}/>
             </Expandable>
 
             {/* {resourceType === "Scientific Article" && (

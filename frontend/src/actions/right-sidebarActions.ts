@@ -98,7 +98,7 @@ export const getRelatedDocuments = async (
 export const newRelationSearchResults = async (
     searchQuery: string,
     type: resourceRelation,
-    K?: number,
+    K: number = 6,
 ) => {
     let endPoint;
     let path: string = "";
@@ -115,24 +115,55 @@ export const newRelationSearchResults = async (
         weightedSort: "IsStandardized:2,IsApproved:1,UsageCount:0.5",
       }
 
+    const cookieHeader : ReadonlyRequestCookies = await cookies();
+    let fetchContents: any;
+
     if (type === "tag") {
     endPoint = 'Tags/tags';
     path = '/tags';
+    fetchContents = {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+        body: JSON.stringify(tagFilterOptions),
+    };
     }
+    else if (type === "author" || "relatedPerson" ) {
+        endPoint = `Persons/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
+        path = '/list';
+        fetchContents = {
+            method: "Get",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+        };
+    }
+    else if (type === "relatedOrganisation" || "organisation") {
+        endPoint = `Organisations/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
+        path = '/list';
+        fetchContents = {
+            method: "Get",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+        };
+    }
+    else if (type === "region") {
+        endPoint = `Regions/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
+        path = '/list';
+        fetchContents = {
+            method: "Get",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+        };
+    }
+    
 
-     const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response = await fetch(
       `${process.env.API_URL}/${endPoint}`,
-      {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
-          body: JSON.stringify(tagFilterOptions),
-      },
+      fetchContents,
     );
 
     if (!response.ok) {
-      throw new Error("Problem finding");
+      throw new Error("Problem getting resuts");
     }
   
     const rawData = await response.json();

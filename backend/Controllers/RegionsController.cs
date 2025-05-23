@@ -2,7 +2,6 @@
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
 //
-// Author: Abel Dieterich
 
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
@@ -268,12 +267,13 @@ namespace KnowledgeBank.Controllers
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
         /// <param name="properties">(Optional) The properties to select, separated by comma</param>
+        /// <param name="searchQuery">(Optional) Filter on search query </param>
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all regions")]
         [SwaggerResponse(200, "A list or page of all the regions in the archive", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties)
+        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties, string? searchQuery)
         {
             // Verification
             if (pageIndex != null && pageIndex < 1)
@@ -296,14 +296,18 @@ namespace KnowledgeBank.Controllers
                 // No paging requested, list all regions
                 if (pageIndex == null || pageSize == null)
                     regions = string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetAllRegionsAsync() :
-                        await resourceManager.GetAllRegionsAsync(projection: projectionString);
+                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllRegionsAsync() :
+                        await resourceManager.GetAllRegionsAsync(predicate: r => r.Name.Contains(searchQuery))) :
+                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllRegionsAsync(projection: projectionString) :
+                        await resourceManager.GetAllRegionsAsync(projection: projectionString, predicate: r => r.Name.Contains(searchQuery)));
 
                 // Paging requested, retrieve regions on that page
                 else
                     regions = string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetRegionPageAsync((int)pageIndex, (int)pageSize) : 
-                        await resourceManager.GetRegionPageAsync(projectionString, (int)pageIndex, (int)pageSize);
+                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetRegionPageAsync((int)pageIndex, (int)pageSize) :
+                        await resourceManager.GetRegionPageAsync((int)pageIndex, (int)pageSize, predicate: r => r.Name.Contains(searchQuery))) :
+                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetRegionPageAsync(projectionString, (int)pageIndex, (int)pageSize) :
+                        await resourceManager.GetRegionPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: r => r.Name.Contains(searchQuery)));
 
                 // Return found regions
                 return Ok(new ApiResponse(true, $"Found {regions.Length} regions", regions));

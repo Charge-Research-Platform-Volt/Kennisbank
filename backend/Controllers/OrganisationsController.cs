@@ -2,7 +2,6 @@
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
 //
-// Author: Abel Dieterich
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
@@ -269,12 +268,13 @@ namespace KnowledgeBank.Controllers
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
         /// <param name="properties">(Optional) The properties to select, separated by comma</param>
+        /// <param name="searchQuery">(Optional) Filter on search query </param>
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all organisations")]
         [SwaggerResponse(200, "A list or page of all the organisations in the archive", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties)
+        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties, string? searchQuery)
         {
             // Verification
             if (pageIndex != null && pageIndex < 1)
@@ -293,18 +293,22 @@ namespace KnowledgeBank.Controllers
                 object[]? organisations = [];
                 
                 string projectionString = $"new({properties})";
-                
+
                 // No paging requested, list all organisations
                 if (pageIndex == null || pageSize == null)
                     organisations = string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetAllOrganisationsAsync() :
-                        await resourceManager.GetAllOrganisationsAsync(projection: projectionString);
+                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllOrganisationsAsync() :
+                        await resourceManager.GetAllOrganisationsAsync(predicate: r => r.Name.Contains(searchQuery))) :
+                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllOrganisationsAsync(projection: projectionString) :
+                        await resourceManager.GetAllOrganisationsAsync(projection: projectionString, predicate: r => r.Name.Contains(searchQuery)));
 
                 // Paging requested, retrieve organisations on that page
                 else
                     organisations = string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetOrganisationPageAsync((int)pageIndex, (int)pageSize) :
-                        await resourceManager.GetOrganisationPageAsync(projectionString, (int)pageIndex, (int)pageSize);
+                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetOrganisationPageAsync((int)pageIndex, (int)pageSize) :
+                        await resourceManager.GetOrganisationPageAsync((int)pageIndex, (int)pageSize, predicate: r => r.Name.Contains(searchQuery))) :
+                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetOrganisationPageAsync(projectionString, (int)pageIndex, (int)pageSize) :
+                        await resourceManager.GetOrganisationPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: r => r.Name.Contains(searchQuery)));
 
                 // Return found organisations
                 return Ok(new ApiResponse(true, $"Found {organisations.Length} organisations", organisations));
