@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
-
+using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
 using OpenAI.Chat;
 using Serilog;
 
@@ -53,9 +53,9 @@ public class AIController : ControllerBase
         // ----
 
 
-        // var handlebarsPromptYaml = EmbeddedResource.Read("GenerateTags.yaml");
-        // var templateFactory = new HandlebarsPromptTemplateFactory();
-        // var function = _ragSystem.Kernel.CreateFunctionFromPromptYaml(handlebarsPromptYaml, templateFactory);
+        var handlebarsPromptYaml = EmbeddedResource.Read("GenerateTags.yaml");
+        var templateFactory = new HandlebarsPromptTemplateFactory();
+        var function = _ragSystem.Kernel.CreateFunctionFromPromptYaml(handlebarsPromptYaml, templateFactory);
 
 
         // var arguments = new KernelArguments()
@@ -83,29 +83,20 @@ public class AIController : ControllerBase
 
 
         ChatResponseFormat chatResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
-            jsonSchemaFormatName: "movie_result",
+            jsonSchemaFormatName: "tags",
             jsonSchema: BinaryData.FromString("""
         {
             "type": "object",
             "properties": {
-                "Movies": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "Title": { "type": "string" },
-                            "Director": { "type": "string" },
-                            "ReleaseYear": { "type": "integer" },
-                            "Rating": { "type": "number" },
-                            "IsAvailableOnStreaming": { "type": "boolean" },
-                            "Tags": { "type": "array", "items": { "type": "string" } }
-                        },
-                        "required": ["Title", "Director", "ReleaseYear", "Rating", "IsAvailableOnStreaming", "Tags"],
-                        "additionalProperties": false
-                    }
-                }
+            "Tags": {
+                "type": "array",
+                "items": {
+                "type": "string"
+                },
+                "description": "A list of relevant tags for the document"
+            }
             },
-            "required": ["Movies"],
+            "required": ["Tags", "Categories"],
             "additionalProperties": false
         }
         """),
@@ -114,9 +105,17 @@ public class AIController : ControllerBase
         var executionSettings = new OpenAIPromptExecutionSettings
         {
             ResponseFormat = chatResponseFormat
+
         };
 
-        var result = await _ragSystem.Kernel.InvokePromptAsync("What are the top 10 movies of all time?", new(executionSettings));
+        var arguments = new KernelArguments(executionSettings) //executionSettings executionSettings
+        {
+            { "documentInfo", new{ title = "Text title"}},
+            { "content", searchResults.ToList() },
+        };
+
+
+        var result = await _ragSystem.Kernel.InvokePromptAsync(handlebarsPromptYaml, arguments, "handlebars", templateFactory);
         Console.WriteLine(result);
 
 

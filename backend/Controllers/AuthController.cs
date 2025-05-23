@@ -52,6 +52,7 @@ namespace KnowledgeBank.Controllers
         public IActionResult Ping()
         {
             string? email = User.FindFirstValue(ClaimTypes.Email);
+
             return Ok(new { Email = email });
         }
 
@@ -66,7 +67,7 @@ namespace KnowledgeBank.Controllers
             {
                 // generate a token
                 Guid token = Guid.NewGuid();
-                
+
                 // save the invitation
                 _context.Invitations.Add(new Invitation
                 {
@@ -76,16 +77,16 @@ namespace KnowledgeBank.Controllers
                     CreatedAt = DateTime.UtcNow
                 });
                 await _context.SaveChangesAsync();
-                
+
                 // send the email
                 MailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: {Program.HostUrl}/signup?token={token}");
             }
             catch (Exception e)
             {
                 _logger.Error(e, "Failed to send email");
-                return BadRequest(new {message = "Failed to send email"});
+                return BadRequest(new { message = "Failed to send email" });
             }
-            
+
             return Ok();
         }
 
@@ -100,12 +101,12 @@ namespace KnowledgeBank.Controllers
                 try
                 {
                     // check if there is a recent invitation for the email and token
-                    Invitation? invitation = _context.Invitations.FirstOrDefault(i => i.Email == ShaUtils.Sha256(signUpDto.Email) 
-                                                                            && i.Token == ShaUtils.Sha256(signUpDto.Token) 
+                    Invitation? invitation = _context.Invitations.FirstOrDefault(i => i.Email == ShaUtils.Sha256(signUpDto.Email)
+                                                                            && i.Token == ShaUtils.Sha256(signUpDto.Token)
                                                                             && i.CreatedAt > DateTime.UtcNow.AddHours(-168));
                     if (invitation == null)
                     {
-                        return BadRequest(new {message = "Invalid invitation"});
+                        return BadRequest(new { message = "Invalid invitation" });
                     }
 
                     // Remove user
@@ -122,13 +123,13 @@ namespace KnowledgeBank.Controllers
                     // save the user
                     IdentityResult result = await _signInManager.UserManager.CreateAsync(user, signUpDto.Password);
                     if (!result.Succeeded)
-                        return BadRequest(new {message = string.Join(" ", result.Errors.Select(e => e.Description))});
+                        return BadRequest(new { message = string.Join(" ", result.Errors.Select(e => e.Description)) });
 
                     IdentityResult roleResult = await _signInManager.UserManager.AddToRoleAsync(user, "user");
 
                     if (!roleResult.Succeeded)
-                        return BadRequest(new {message = string.Join(" ", roleResult.Errors.Select(e => e.Description))});
-                    
+                        return BadRequest(new { message = string.Join(" ", roleResult.Errors.Select(e => e.Description)) });
+
                     await transaction.CommitAsync();
                     return Ok(new { message = $"User '{user.UserName}' created succesfully." });
                 }

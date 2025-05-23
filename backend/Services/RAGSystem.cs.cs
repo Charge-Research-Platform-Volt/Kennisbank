@@ -1,5 +1,6 @@
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.VectorData;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -7,7 +8,7 @@ using Microsoft.SemanticKernel.Data;
 using Microsoft.SemanticKernel.Embeddings;
 using Serilog;
 
-#pragma warning disable SKEXP0070, SKEXP0001
+#pragma warning disable SKEXP0001, SKEXP0010, SKEXP0070
 
 namespace KnowledgeBank.Services;
 
@@ -77,14 +78,15 @@ public class RAGSystem : IRAGSystem
         builder.AddOllamaTextEmbeddingGeneration(endpoint: OLLAMA_ENDPOINT, modelId: "paraphrase-multilingual:latest");
 
         // Add Ollama chat completion
-        builder.AddOllamaChatCompletion(endpoint: OLLAMA_ENDPOINT, modelId: "llama3.1:8b");
-        builder.Services.AddQdrantVectorStore(host: "qdrant");
+        // builder.AddOllamaChatCompletion(endpoint: OLLAMA_ENDPOINT, modelId: "llama3.1:8b");
 
-        // builder.AddOpenAIChatCompletion(
-        //     modelId: "llama3.1:8b",
-        //     apiKey: null,
-        //     endpoint: OLLAMA_ENDPOINT
-        // );
+        builder.AddOpenAIChatCompletion(
+            endpoint: new Uri("http://host.docker.internal:11434/v1"),
+            apiKey: "ollama",
+            modelId: "llama3.1:8b"
+        );
+
+        builder.Services.AddQdrantVectorStore(host: "qdrant");
 
         // Build the kernel
         _kernel = builder.Build();
