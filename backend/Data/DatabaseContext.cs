@@ -35,6 +35,9 @@ namespace KnowledgeBank.Data
         public DbSet<ResourceRegionRelation> ResourceRegionRelations { get; set; }
         public DbSet<ResourceSourceRelation> ResourceSourceRelations { get; set; }
         public DbSet<ResourceRelatedSourceRelation> ResourceRelatedSourceRelations { get; set; }
+        
+        
+        public DbSet<ResourceGridItem> ResourceGridItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -96,6 +99,12 @@ namespace KnowledgeBank.Data
                 .HasOne(or => or.TargetPerson)
                 .WithMany(o => o.SourceRelationships)
                 .HasForeignKey(or => or.TargetPersonId);
+
+            modelBuilder.Entity<ResourceGridItem>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToView("resourcegridview");
+            });
 
             base.OnModelCreating(modelBuilder);
         }

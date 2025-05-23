@@ -1614,6 +1614,35 @@ namespace KnowledgeBank.Data
         }
 
         #endregion
+
+        #region Resource Grid
+        private readonly Expression<Func<ResourceGridItem, dynamic>> resourceGridDefaultOrder = rg => rg.Name;
+        private const bool resourceGridDefaultOrderDescending = false;
+        
+        // Get all
+        public async Task<ResourceGridItem[]> GetAllResourceGridItemsAsync(Expression<Func<ResourceGridItem, dynamic>>? orderBy = null, bool? orderDescending = null, Expression<Func<ResourceGridItem, bool>>? predicate = null, params string[] includeProperties) 
+        {
+            return await GetAllAsync(database.ResourceGridItems, orderBy ?? resourceGridDefaultOrder, orderDescending ?? resourceGridDefaultOrderDescending, predicate, includeProperties);
+        }
+        
+        // Get all paged
+        public async Task<ResourceGridItem[]> GetResourceGridItemsPageAsync(int pageIndex, int pageSize, Expression<Func<ResourceGridItem, dynamic>>? orderBy = null, bool? orderDescending = null, Expression<Func<ResourceGridItem, bool>>? predicate = null, params string[] includeProperties) 
+        {
+            return await GetPageAsync(database.ResourceGridItems, pageIndex, pageSize, orderBy ?? resourceGridDefaultOrder, orderDescending ?? resourceGridDefaultOrderDescending, predicate, includeProperties);
+        }
+        
+        // Get all with projection
+        public async Task<dynamic[]> GetAllResourceGridItemsAsync(string projection, Expression<Func<ResourceGridItem, dynamic>>? orderBy = null, bool? orderDescending = null, Expression<Func<ResourceGridItem, bool>>? predicate = null, params string[] includeProperties) 
+        {
+            return await GetAllAsync(database.ResourceGridItems, projection, orderBy ?? resourceGridDefaultOrder, orderDescending ?? resourceGridDefaultOrderDescending, predicate, includeProperties);
+        }
+        
+        // Get all paged with projection
+        public async Task<dynamic[]> GetResourceGridItemsPageAsync(int pageIndex, int pageSize, string projection, Expression<Func<ResourceGridItem, dynamic>>? orderBy = null, bool? orderDescending = null, Expression<Func<ResourceGridItem, bool>>? predicate = null, params string[] includeProperties) 
+        {
+            return await GetPageAsync(database.ResourceGridItems, projection, pageIndex, pageSize, orderBy ?? resourceGridDefaultOrder, orderDescending ?? resourceGridDefaultOrderDescending, predicate, includeProperties);
+        }
+        #endregion
     }
 }
 

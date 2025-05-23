@@ -89,6 +89,7 @@ export const getRelation = async (
     );
     
     if (!response.ok) {
+        console.log(response);
         throw new Error(`Problem with finding relation: ${relation}`);
     }
         
