@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AgGridReact } from "ag-grid-react";
 import type { ColDef, GridApi, GridReadyEvent, RowClickedEvent, RowSelectionOptions } from "ag-grid-community";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
@@ -11,9 +11,9 @@ import GetFileIcon from "./getFileIcon";
 import { format, parseISO } from "date-fns";
 import OpenFileButton from "./open-file-button";
 import { useSidebar } from "@/context/sidebar-provider";
-import { ArrowLeftIcon, FolderIcon, HomeIcon, SparklesIcon, CirclePlusIcon } from "lucide-react";
+import { ArrowLeftIcon, FolderIcon, HomeIcon, SparklesIcon, CirclePlusIcon, CircleXIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { addResourceToProject, fetchAllResources, ListProjectsPaged } from "@/actions/projectActions";
+import { addResourceToProject, fetchAllResources, ListProjectsPaged, removeResourceFromProject, deleteProject } from "@/actions/projectActions";
 import { ApiResponse } from "@/types/apiResponse.type";
 import CreateProjectModal from "@/app/(knowledgebank)/projects/components/create-project-modal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
@@ -42,6 +42,12 @@ interface BreadcrumbItem {
   title: string;
 }
 
+interface NavigationState {
+  currentProjectId: string | null;
+  currentLevel: number;
+  navigationPath: BreadcrumbItem[];
+}
+
 interface ListProjectsProps {
   initialResources: Resource[];
   initialProjects: Project[];
@@ -62,12 +68,16 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   // State for current projects and resources being displayed
   const [resources, setResources] = useState<Resource[]>(initialResources);
   const [projects, setProjects] = useState<Project[]>(initialProjects);
-  const [currentLevel, setCurrentLevel] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  
-  // Navigation history/breadcrumbs
-  const [navigationPath, setNavigationPath] = useState<BreadcrumbItem[]>([]);
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+
+  // State for navigation - current project ID, level, and breadcrumb path
+  const [navigationState, setNavigationState] = useState<NavigationState>({
+    currentProjectId: null,
+    currentLevel: 0,
+    navigationPath: []
+  });
+  // Ref to keep track of the current navigation state
+  const navigationRef = useRef<NavigationState>(navigationState);
 
   // State for modal visibility
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
@@ -77,6 +87,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   const [isAddResourceMode, setIsAddResourceMode] = useState(false);
   const [allResources, setAllResources] = useState<Resource[]>([]);
   const [selectedResourceIds, setSelectedResourceIds] = useState<Set<string>>(new Set());
+
 
   // Handles filtering the projects and resources based on the current query
   const filteredItems = useMemo(() => {
@@ -102,6 +113,11 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     );
     return { projects: filteredProjects, resources: filteredResources };
   }, [projects, resources, allResources, currentQuery, isAddResourceMode]);
+
+
+  useEffect(() => {
+    navigationRef.current = navigationState;
+  }, [navigationState]);
 
   const tableData = useMemo(() => {
     const items: ProjectOrResource[] = [];
@@ -178,6 +194,17 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
       });
     }
 
+    baseColumns.push(
+      {
+      field: "",
+      minWidth: 30,
+      maxWidth: 50,
+      cellRenderer: (params: any) => (<RemoveRenderer data={params.data} onRemove={handleRemove} isLoading={isLoading} />),
+      cellStyle: { display: "flex", alignItems: "center", justifyContent: "center", padding: 0 },
+      resizable: true
+      }
+    )
+
     return baseColumns;
   }, [isAddResourceMode]);
 
@@ -250,17 +277,22 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
 
   // Restore selection whenever tableData or selectedResourceIds changes in add resource mode
   useEffect(() => {
-    console.log("Restoring selection: ", selectedResourceIds);
     restoreSelection();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableData, selectedResourceIds, isAddResourceMode]);
 
   // #region Page Navigation
 
   // Function to refresh the current list of projects, for the root level
-  const fetchAndSetRootProjects = async () => {
+  const navigateToRoot = async () => {
     setIsLoading(true);
     try {
+
+      setNavigationState({
+        currentProjectId: null,
+        currentLevel: 0,
+        navigationPath: []
+      });
+
       const projectFetch: ApiResponse = await ListProjectsPaged(1, ""); 
       if (projectFetch.success && projectFetch.body?.projects) {
 
@@ -270,29 +302,24 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
         }
 
         setProjects(projectFetch.body.projects);
-        
         setResources(initialResources); 
-        setNavigationPath([]);
-        setCurrentProjectId(null);
-        setCurrentLevel(0);
       } else {
         console.error("Failed to fetch root projects:", projectFetch.message);
       }
     } catch (error) {
       console.error("Error fetching root projects:", error);
     } finally {
-      console.log("Loading set to false!");
       setIsLoading(false);
     }
   };
 
   // Function to refresh the current project contents
   const refreshCurrentProject = async () => {
-    if (!currentProjectId) return;
+    if (!navigationState.currentProjectId) return;
     
     try {
       setIsLoading(true);
-      const { resources: newResources, projects: newProjects } = await fetchProjectContent(currentProjectId);
+      const { resources: newResources, projects: newProjects } = await fetchProjectContent(navigationState.currentProjectId);
       
       // Clear focus
       if (gridApiRef.current) {
@@ -318,17 +345,20 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     try {
       setIsLoading(true);
 
+      setNavigationState(prev => ({
+        currentProjectId: projectId,
+        currentLevel: prev.currentLevel + 1,
+        navigationPath: [...prev.navigationPath, { id: projectId, title: projectTitle }]
+      }));
+
       const { resources: newResources, projects: newProjects } = await fetchProjectContent(projectId);
 
       // Clear focus before changing data, otherwise throws error
       if (gridApiRef.current) {
         gridApiRef.current.clearFocusedCell(); 
       }
-      setNavigationPath(prev => [...prev, { id: projectId, title: projectTitle }]);
-      setCurrentProjectId(projectId);
       setResources(newResources);
       setProjects(newProjects);
-      setCurrentLevel(prev => prev + 1);
       setIsLoading(false); 
 
     } catch (error) {
@@ -343,7 +373,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
    */
   const navigateBack = async () => {
     // Can't go back if at root level
-    if (navigationPath.length <= 1) {
+    if (navigationState.navigationPath.length <= 1) {
       return navigateToRoot();
     }
     
@@ -351,19 +381,22 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
       setIsLoading(true);
       
       // Get the parent project ID
-      const newPath = [...navigationPath];
+      const newPath = [...navigationState.navigationPath];
       newPath.pop(); // Remove current
       const parentItem = newPath[newPath.length - 1];
-      
+
+      setNavigationState({
+        currentProjectId: parentItem.id,
+        currentLevel: newPath.length - 1,
+        navigationPath: newPath
+      })
+
       // Fetch the parent project content
       const { resources: newResources, projects: newProjects } = await fetchProjectContent(parentItem.id);
       
       // Update state
-      setNavigationPath(newPath);
-      setCurrentProjectId(parentItem.id);
       setResources(newResources);
       setProjects(newProjects);
-      setCurrentLevel(prev => prev - 1);
 
     } catch (error) {
       console.error("Error navigating back:", error);
@@ -382,18 +415,21 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
       setIsLoading(true);
       
       // Get the target project
-      const targetPath = navigationPath.slice(0, index + 1);
+      const targetPath = navigationState.navigationPath.slice(0, index + 1);
       const targetItem = targetPath[targetPath.length - 1];
       
+      setNavigationState({
+        currentProjectId: targetItem.id,
+        currentLevel: index + 1,
+        navigationPath: targetPath
+      });
+
       // Fetch the project content
       const { resources: newResources, projects: newProjects } = await fetchProjectContent(targetItem.id);
       
       // Update state
-      setNavigationPath(targetPath);
-      setCurrentProjectId(targetItem.id);
       setResources(newResources);
       setProjects(newProjects);
-      setCurrentLevel(index + 1);
 
     } catch (error) {
       console.error("Error navigating to breadcrumb:", error);
@@ -403,59 +439,23 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     }
   };
 
-  /**
-   * Navigate back to the root level
-   */
-  const navigateToRoot = async () => {
-  setIsLoading(true);
-  try {
-    const projectFetch: ApiResponse = await ListProjectsPaged(1, ""); 
-    if (projectFetch.success && projectFetch.body?.projects) {
-      // Clear focus before changing data
-      if (gridApiRef.current) {
-        gridApiRef.current.clearFocusedCell(); 
-      }
-
-      setProjects(projectFetch.body.projects);
-      setResources(initialResources);
-      setNavigationPath([]);
-      setCurrentProjectId(null);
-      setCurrentLevel(0);
-    } else {
-      console.error("Failed to fetch root projects:", projectFetch.message);
-      // Fallback to initial data if fetch fails
-      setResources(initialResources);
-      setProjects(initialProjects);
-      setNavigationPath([]);
-      setCurrentProjectId(null);
-      setCurrentLevel(0);
-    }
-  } catch (error) {
-    console.error("Error fetching root projects:", error);
-    // Fallback to initial data if there's an error
-    setResources(initialResources);
-    setProjects(initialProjects);
-    setNavigationPath([]);
-    setCurrentProjectId(null);
-    setCurrentLevel(0);
-  } finally {
-    setIsLoading(false);
-  }
-};
 
   // If on row clicked, handle navigation for projects or toggle sidebar for resources
-  const onRowClicked = (e: RowClickedEvent) => {
+  const onRowClicked = async (e: RowClickedEvent) => {
     // Do nothing if in add resource mode, let checkboxes handle selection
     if (isAddResourceMode) return;
     
     // Do nothing if the download button is clicked
     if ((e.event?.target as HTMLElement)?.closest(".download-button")) return;
 
+    // Do nothing if the remove button is clicked
+    if ((e.event?.target as HTMLElement)?.closest(".remove-button")) return;
+
     const rowData = e.data as ProjectOrResource;
     
     if ((rowData.itemType === 'project' || rowData.itemType === 'folder')) {
       // Navigate to the project/folder
-      navigateToProject(rowData.id, rowData.title);
+      await navigateToProject(rowData.id, rowData.title);
     } else if (rowData.itemType === 'resource') {
       // Toggle sidebar for resources
       toggleRightSidebar(e.data);
@@ -463,7 +463,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     }
   };
 
-  // #region Creation
+  // #region Creation / Deletion
 
   // Project creation handlers
   const handleOpenCreateProjectModal = () => {
@@ -474,9 +474,9 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     setIsCreateProjectModalOpen(false);
   };
   
-  const handleProjectCreationSuccess = () => {
+  const handleProjectCreationSuccess = async () => {
     handleCloseCreateProjectModal();
-    fetchAndSetRootProjects();
+    await navigateToRoot();
   };
 
   // Folder creation handlers
@@ -488,9 +488,9 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     setIsCreateFolderModalOpen(false);
   };
   
-  const handleFolderCreationSuccess = () => {
+  const handleFolderCreationSuccess = async () => {
     handleCloseCreateFolderModal();
-    refreshCurrentProject();
+    await refreshCurrentProject();
   };
 
   // Update the handleOpenAddResourceModal function:
@@ -521,7 +521,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
         return;
       }
 
-      const projectId: string = currentProjectId || "";
+      const projectId: string = navigationState.currentProjectId || "";
       
       for (const id of selectedIds) {
         await addResourceToProject(projectId, id);
@@ -533,14 +533,39 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
       setAllResources([]);
       
       // Refresh current project content
-      if (currentProjectId) {
+      if (navigationState.currentProjectId) {
         await refreshCurrentProject();
       } else {
-        await fetchAndSetRootProjects();
+        await navigateToRoot();
       }
       
     } catch (error) {
       console.error("Error adding resources:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Remove handler
+const handleRemove = async (item: ProjectOrResource) => {
+    const projectId = navigationRef.current.currentProjectId;
+
+    if (!projectId) {
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      (item.itemType == "resource") 
+        ? await removeResourceFromProject(projectId, item.id)
+        : await deleteProject(item.id);
+        
+      const { resources, projects } = await fetchProjectContent(projectId);
+      setResources(resources);
+      setProjects(projects);
+    } catch (err) {
+      console.error("Remove failed:", err);
     } finally {
       setIsLoading(false);
     }
@@ -602,7 +627,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
             <>
               {/* Dropdown to create projects etc */}
               <ProjectActionsDropdown 
-                currentLevel={currentLevel} 
+                currentLevel={navigationState.currentLevel} 
                 isLoading={isLoading}
                 onCreateProject={handleOpenCreateProjectModal}
                 onCreateFolder={handleOpenCreateFolderModal}
@@ -614,13 +639,13 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
                 variant="outline" 
                 size="sm" 
                 onClick={navigateToRoot}
-                disabled={currentLevel === 0 || isLoading}
+                disabled={navigationState.currentLevel === 0 || isLoading}
               >
                 <HomeIcon size={16} className="mr-1" />
                 Projects
               </Button>
               
-              {currentLevel > 0 && (
+              {navigationState.currentLevel > 0 && (
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -633,16 +658,16 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
               )}
               
               {/* Breadcrumbs, used to navigate back */}
-              {navigationPath.length > 0 && (
+              {navigationState.navigationPath.length > 0 && (
                 <div className="flex items-center overflow-x-auto px-2">
-                  {navigationPath.map((item, index) => (
+                  {navigationState.navigationPath.map((item, index) => (
                     <React.Fragment key={item.id}>
                       {index > 0 && <span className="mx-1 text-gray-500">/</span>}
                       <button
                         onClick={() => navigateToBreadcrumb(index)}
-                        disabled={isLoading || index === navigationPath.length - 1}
+                        disabled={isLoading || index === navigationState.navigationPath.length - 1}
                         className={`text-sm hover:underline ${
-                          index === navigationPath.length - 1 
+                          index === navigationState.navigationPath.length - 1 
                             ? 'font-semibold text-blue-600 cursor-default'
                             : 'text-blue-500'
                         }`}
@@ -696,7 +721,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
         isOpen={isCreateFolderModalOpen}
         onClose={handleCloseCreateFolderModal}
         onSuccess={handleFolderCreationSuccess}
-        parentProjectId={currentProjectId}
+        parentProjectId={navigationState.currentProjectId}
       />
     </div>
   );
@@ -731,6 +756,28 @@ function DownloadRenderer({ data }: { data: any }) {
   return (
     <div className="download-button flex items-center justify-center">
       <OpenFileButton file={data} asIcon={true} />
+    </div>
+  );
+}
+
+function RemoveRenderer({ data, onRemove, isLoading }: { 
+  data: any; 
+  onRemove: (item: ProjectOrResource) => void; 
+  isLoading: boolean; 
+}) {
+  return (
+    <div className="remove-button flex items-center justify-center w-full h-full">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="flex items-center justify-center"
+        title="Remove"
+        onClick={() => onRemove(data)}
+        disabled={isLoading}
+        aria-label="Remove"
+      >
+        <CircleXIcon size={18} />
+      </Button>
     </div>
   );
 }
