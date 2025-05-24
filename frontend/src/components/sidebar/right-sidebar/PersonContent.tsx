@@ -6,6 +6,7 @@ import { getProperties, getRelation } from "@/actions/right-sidebarActions";
 import Skeleton from 'react-loading-skeleton'
 import Expandable from "./expandable"
 import BadgeList, { ListItem } from "./BadgeList";
+import ResourceList from "./ResourceList";
 
 export function PersonContent() 
 {
@@ -110,12 +111,10 @@ export function PersonContent()
                 <BadgeList listType="authored-resources" emptyMessage={"No resources recorded"} itemList={authored}/>
             </Expandable>
 
-            <Expandable variant="horizontal" title="Related">
-                <BadgeList listType="related-resources" emptyMessage={"No resources recorded"} itemList={related}/>
-            </Expandable>
+            <ResourceList header="Related" resources={related}/>
 
             <Expandable variant="horizontal" title="Related People">
-                <BadgeList listType="persons" emptyMessage={"No persons recorded"} itemList={persons}/>
+                <BadgeList listType="person-related-persons" emptyMessage={"No persons recorded"} itemList={persons}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Related Organisations">

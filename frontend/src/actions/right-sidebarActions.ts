@@ -136,8 +136,8 @@ export const newRelationSearchResults = async (
         body: JSON.stringify(tagFilterOptions),
     };
     }
-    else if (type === "authors" || type === "related-persons" || type === "persons" ) {
-        endPoint = `Persons/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
+    else if (type === "authors" || type === "related-persons" || type === "persons" || type === "person-related-persons") {
+        endPoint = `persons/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
         path = '/list';
         fetchContents = {
             method: "Get",
@@ -145,8 +145,8 @@ export const newRelationSearchResults = async (
             headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
         };
     }
-    else if (type === "related-organisations" || type === "organisations") {
-        endPoint = `Organisations/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
+    else if (type === "related-organisations" || type === "organisations" || type === "organisation-related-organisations") {
+        endPoint = `organisations/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
         path = '/list';
         fetchContents = {
             method: "Get",
@@ -155,7 +155,7 @@ export const newRelationSearchResults = async (
         };
     }
     else if (type === "regions") {
-        endPoint = `Regions/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
+        endPoint = `regions/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
         path = '/list';
         fetchContents = {
             method: "Get",
@@ -163,8 +163,8 @@ export const newRelationSearchResults = async (
             headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
         };
     }
-    else if (type === "authored-resources" || type === "related-resources" || type === "direct-resources") {
-        endPoint = `Resources/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
+    else if (type === "authored-resources" || type === "related-resources" || type === "direct-resources" || type == "resource-related-resources") {
+        endPoint = `resources/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
         path = '/list';
         fetchContents = {
             method: "Get",

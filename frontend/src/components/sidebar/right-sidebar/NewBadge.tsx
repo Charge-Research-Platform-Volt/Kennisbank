@@ -6,6 +6,7 @@ import New from "@/icons/new"
 import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { newRelationSearchResults } from "@/actions/right-sidebarActions";
+import { Button } from "@/components/ui/button";
 
 interface NewBadgeProps
 {
@@ -28,6 +29,7 @@ export default function NewBadge({
     const [container, setContainer] = useState<any>(null);
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+    const [selected, setSelected] = useState<SearchResult[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isOpen, setIsOpen] = useState<boolean>(false);
 
@@ -41,8 +43,8 @@ export default function NewBadge({
 
             setIsLoading(true);
             try {
-                const response = await newRelationSearchResults(query, type as any, 6);
-                setSearchResults(response.body || []);
+                const response = await newRelationSearchResults(query, type as any, 10);
+                setSearchResults(response.body.tags || []);
             } catch (error) {
                 console.error("Search error:", error);
                 setSearchResults([]);
@@ -60,10 +62,33 @@ export default function NewBadge({
 
 
     function handleResultSelect(result: SearchResult) {
-        // Handle selection logic here
-        console.log("Selected:", result);
+        setSelected( prev => {
+            const isSelected = prev.some(item => item.id === result.id); // check if the clicked option is already selected 
+            if (isSelected) {
+                return prev.filter(item => item.id === result.id); // if so remove it
+            } else {
+                return [...prev, result]; // else add it
+            }
+        })
+    }
+
+    function handleClose() {
         setIsOpen(false);
         setSearchQuery("");
+        setSelected([]);
+    }
+
+    function handleAdd() {
+        
+        //add
+        
+        setIsOpen(false);
+        setSearchQuery("");
+        setSelected([]);
+    }
+
+    function isItemSelected(result: SearchResult): boolean {
+        return selected.some(item => item.id === result.id);
     }
 
 
@@ -77,7 +102,7 @@ export default function NewBadge({
                 className="w-80 p-3 rounded-md" 
                 container={container} 
                 forceMount>
-                <div className="w-full h-60 flex flex-col">
+                <div className="w-full h-80 flex flex-col">
                     {/* Search Input */}
                     <div className="mb-3">
                         <Input
@@ -121,6 +146,25 @@ export default function NewBadge({
                             </div>
                         )}
                     </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                        <Button 
+                            variant="outline" 
+                            onClick={handleClose}
+                            className="flex-1"
+                        >
+                            Close
+                        </Button>
+                        <Button 
+                            onClick={handleAdd}
+                            disabled={selected.length === 0}
+                            className="flex-1"
+                        >
+                            Add
+                        </Button>
+                    </div>
+
                 </div>
             </PopoverContent>
         </Popover>
