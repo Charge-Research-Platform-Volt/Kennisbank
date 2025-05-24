@@ -31,15 +31,33 @@ namespace KnowledgeBank.Data
             foldersToRemove.Push(folderId);
             while(foldersToRemove.Count != 0)
             {
-                Project curFolder = await GetProjectAsync(foldersToRemove.Pop());
-
-                await RemoveAllResourcesFromProject(curFolder.Id); // delete all resources in this folder
-                await DeleteAsync(database.Projects, project => project.Id == curFolder.Id); // delete yourself from the projects folder
-                await DeleteAsync(database.ProjectFolderRelations, relation => relation.ChildId == curFolder.Id); // delete references to yourself from root
-                List<Project> newFolders = (await GetAllFolders(project => project.ParentId == curFolder.Id)).Select(relation => relation.ChildFolder).ToList(); //get potential subfolders
-                foreach (Project folder in newFolders) // Add new subfolders to the remove list
+                Project? currentFolder = await GetProjectAsync(foldersToRemove.Pop());
+                
+                if (currentFolder != null)
                 {
-                    foldersToRemove.Push(folder.Id);
+                    // Delete all resources in this folder
+                    await RemoveAllResourcesFromProject(currentFolder.Id); 
+                    
+                    // Delete the folder itself
+                    await DeleteAsync(database.Projects, project => project.Id == currentFolder.Id);
+                    
+                    // Delete all references to this folder in the project folder relations
+                    await DeleteAsync(database.ProjectFolderRelations, relation => relation.ChildId == currentFolder.Id);
+                    
+                    // Get potential subfolders and add them to the remove list
+                    List<Project?> newFolders = (await GetAllFolders(project => project.ParentId == currentFolder.Id)).Select(relation => relation.ChildFolder).ToList(); 
+                    
+                    if (newFolders != null)
+                    {
+                        // Add new subfolders to the remove list
+                        foreach (Project? folder in newFolders) 
+                        {
+                            if (folder != null)
+                            {
+                                foldersToRemove.Push(folder.Id);
+                            }
+                        }
+                    }
                 }
             }
 
