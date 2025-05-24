@@ -111,7 +111,7 @@ export default function AccountInformation({firstName, lastName, email}: {firstN
                         <div className="flex gap-2 w-full mb-2 mt-2">
                             <FormLabel>Password</FormLabel>
                             <FormControl>
-                                <Button type="button" className="ml-auto" onClick={() => router.push("account/change-password")} > ChangePassword </Button>
+                                <Button type="button" className="ml-auto" onClick={() => router.push("account/change-password")} > Change Password </Button>
                             </FormControl>
                         </div>
                     </FormItem>
