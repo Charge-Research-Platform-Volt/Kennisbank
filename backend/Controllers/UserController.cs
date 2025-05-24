@@ -15,7 +15,6 @@ namespace KnowledgeBank.Controllers;
 /// Controller for all sorts of functionality that 
 /// might be of use during the Development stage.
 /// </summary>
-[Authorize(Policy = "RequireAdminRole")]
 [ApiController]
 [Route("[controller]")]
 public class UserController : ControllerBase
@@ -164,6 +163,7 @@ public class UserController : ControllerBase
     }
 
     [HttpGet("all-users")]
+    [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
         Summary = "Gets all users",
         Description = "Gets a list of all users."
@@ -197,6 +197,7 @@ public class UserController : ControllerBase
     }
 
     [HttpGet("list-paged")]
+    [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
         Summary = "Gets a page of users",
         Description = "Gets a page of users."
@@ -253,6 +254,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPatch("update-mail")]
+    [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
         Summary = "Updates the user email.",
         Description = "Updates the email of the user."
@@ -404,6 +406,7 @@ public class UserController : ControllerBase
     }
 
     [HttpDelete("delete")]
+    [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
         Summary = "Delete a user.",
         Description = "Deletes a user by ID."
