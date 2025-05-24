@@ -219,3 +219,63 @@ export async function addResourceToProject(projectId: string, resourceId: string
     return { success: false, message: error instanceof Error ? error.message : "An unexpected error occurred" };
   }
 }
+
+export async function removeResourceFromProject(projectId: string, resourceId: string): Promise<ApiResponse> {
+  const cookieHeader = await cookies();
+  try {
+    const response = await fetch(`${process.env.API_URL}/Project/remove-resource/${projectId}/${resourceId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader.toString() || "" 
+      },
+    });
+
+    const data: ApiResponse = await response.json();
+
+    if (!response.ok) {
+      return { 
+        success: false, 
+        message: data.message || "Failed to remove resource from project" };
+    }
+
+    return { 
+      success: true,
+      message: data.message || "Resource removed successfully", 
+      body: data.body };
+  } catch (error) {
+    console.error("Error removing resource from project:", error);
+    return { success: false, message: error instanceof Error ? error.message : "An unexpected error occurred" };
+  }
+}
+
+export async function deleteProject(projectId: string): Promise<ApiResponse> {
+  const cookieHeader = await cookies();
+  try {
+    const response = await fetch(`${process.env.API_URL}/Project/delete/${projectId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader.toString() || "" 
+      },
+    });
+
+    const data: ApiResponse = await response.json();
+
+    if (!response.ok) {
+      return { 
+        success: false, 
+        message: data.message || "Failed to delete project" };
+    }
+
+    revalidatePath("/projects");
+
+    return { 
+      success: true,
+      message: data.message || "Project deleted successfully", 
+      body: data.body };
+  } catch (error) {
+    console.error("Error deleting project:", error);
+    return { success: false, message: error instanceof Error ? error.message : "An unexpected error occurred" };
+  }
+}
