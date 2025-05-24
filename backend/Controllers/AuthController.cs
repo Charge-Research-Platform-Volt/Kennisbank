@@ -56,8 +56,16 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(401, "The user is not authenticated")]
         public IActionResult Ping()
         {
-            string? email = User.FindFirstValue(ClaimTypes.Email);
-            return Ok(new { Email = email });
+            string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (userId == null)
+                return Unauthorized(new { message = "User not authenticated" });
+
+            User? user = _signInManager.UserManager.FindByIdAsync(userId).Result;
+            if (user == null)
+                return Unauthorized(new { message = "User not found" });
+
+            return Ok(new { Email = user.Email });
         }
 
         [HttpPost("invite")]

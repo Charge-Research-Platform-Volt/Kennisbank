@@ -11,6 +11,7 @@ import { useState } from "react";
 import { UploadWithDto } from "@/actions/uploadActions";
 import { toast } from "sonner";
 import { Label } from "@radix-ui/react-label";
+import { RevalidatePathFromClient } from "@/utils/revalidatePathFromClient";
 
 export const AccountInformationFormSchema = z.object(
 {
@@ -42,6 +43,7 @@ export default function AccountInformation({firstName, lastName, email}: {firstN
         {
             await UploadWithDto("/api/user/update", dto);
             toast.success("Account information updated successfully");
+            RevalidatePathFromClient("/account");
         }
         catch (error)
         {

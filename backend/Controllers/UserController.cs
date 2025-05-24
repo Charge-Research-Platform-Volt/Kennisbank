@@ -338,7 +338,7 @@ public class UserController : ControllerBase
                 return BadRequest("User not authenticated.");
             
             // Get the user ID from the claims
-            string userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             // Check if the user ID is null or empty
             if (string.IsNullOrEmpty(userId))
