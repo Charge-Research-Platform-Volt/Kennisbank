@@ -412,19 +412,37 @@ public class AuthControllerTests : TestBase
     {
         // Arrange
         string email = "test@test.nl";
+        string userId = Guid.NewGuid().ToString();
         object expectedReturnValue = new { Email = email };
 
-        // Create an authenticated user with the email claim
-        List<Claim> claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.Email, email)
-        };
+        // Mock the user manager
+        var mockUserStore = new Mock<IUserStore<User>>();
+        var mockUserManager = new Mock<UserManager<User>>(
+            mockUserStore.Object, null, null, null, null, null, null, null, null
+        );
 
-        ClaimsIdentity identity = new ClaimsIdentity(claims, IdentityConstants.ApplicationScheme);
-        ClaimsPrincipal principal = new ClaimsPrincipal(identity);
+        // Mock the FindByIdAsync method to return a user with the specified email
+        mockUserManager
+            .Setup(um => um.FindByIdAsync(userId))
+            .ReturnsAsync(new User { Id = userId, Email = email, UserName = email, FirstName = "Test", LastName = "User",  });
 
-        // Set up the mock HttpContext with the authenticated user
-        Mock<HttpContext> mockHttpContext = new Mock<HttpContext>();
+        // Mock de SignInManager en geef de gemockte UserManager mee
+        var mockSignInManager = new Mock<SignInManager<User>>(
+            mockUserManager.Object,
+            _mockHttpContextAccessor.Object,
+            _mockUserClaimsPrincipalFactory.Object,
+            null, null, null, null
+        );
+
+        // Create the controller with the mocked SignInManager
+        _controller = new AuthController(_mockConfig.Object, mockSignInManager.Object, Context, _mockMailUtils.Object);
+
+        // Simulate an authenticated user
+        var claims = new List<Claim> { new Claim(ClaimTypes.NameIdentifier, userId) };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
+
+        var mockHttpContext = new Mock<HttpContext>();
         mockHttpContext.Setup(c => c.User).Returns(principal);
 
         _controller.ControllerContext = new ControllerContext
@@ -437,12 +455,11 @@ public class AuthControllerTests : TestBase
 
         // Assert
         Assert.That(result, Is.TypeOf<OkObjectResult>(), "The result must be an OkObjectResult.");
-        OkObjectResult? okResult = result as OkObjectResult;
+        var okResult = result as OkObjectResult;
         Assert.That(okResult?.StatusCode, Is.EqualTo((int)HttpStatusCode.OK));
-
-        // Verify the email is returned in the response
-        Assert.That(ObjectComparer.AreObjectsEqual(okResult.Value, expectedReturnValue),
+        Assert.That(ObjectComparer.AreObjectsEqual(okResult?.Value, expectedReturnValue),
             "The response should contain the user's email.");
+
     }
 
     [Test]

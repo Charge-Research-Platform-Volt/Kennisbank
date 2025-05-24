@@ -12,6 +12,7 @@ import { UploadWithDto } from "@/actions/uploadActions";
 import { toast } from "sonner";
 import { Label } from "@radix-ui/react-label";
 import { RevalidatePathFromClient } from "@/utils/revalidatePathFromClient";
+import { useRouter } from "next/navigation";
 
 export const AccountInformationFormSchema = z.object(
 {
@@ -23,6 +24,7 @@ export const AccountInformationFormSchema = z.object(
 
 export default function AccountInformation({firstName, lastName, email}: {firstName: string; lastName: string; email: string}) {
     const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
 
     // Define the form
     const form = useForm<z.infer<typeof AccountInformationFormSchema>>({
@@ -106,12 +108,10 @@ export default function AccountInformation({firstName, lastName, email}: {firstN
 
                     {/* Change password button */}
                     <FormItem>  
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 w-full mb-2 mt-2">
                             <FormLabel>Password</FormLabel>
                             <FormControl>
-                                <Label className="text-sm text-blue-600 hover:text-blue-800 cursor-pointer ml-auto" htmlFor="change-password">
-                                    <a href="/account/change-password">Change password</a>
-                                </Label>
+                                <Button type="button" className="ml-auto" onClick={() => router.push("account/change-password")} > ChangePassword </Button>
                             </FormControl>
                         </div>
                     </FormItem>
