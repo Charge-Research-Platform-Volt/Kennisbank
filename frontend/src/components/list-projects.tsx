@@ -119,6 +119,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     navigationRef.current = navigationState;
   }, [navigationState]);
 
+
   const tableData = useMemo(() => {
     const items: ProjectOrResource[] = [];
     
@@ -199,7 +200,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
       field: "",
       minWidth: 30,
       maxWidth: 50,
-      cellRenderer: (params: any) => (<RemoveRenderer data={params.data} onRemove={handleRemove} isLoading={isLoading} />),
+      cellRenderer: (params: any) => (<RemoveRenderer data={params.data} onRemove={handleRemove} isAddResourceMode={isAddResourceMode} />),
       cellStyle: { display: "flex", alignItems: "center", justifyContent: "center", padding: 0 },
       resizable: true
       }
@@ -759,21 +760,20 @@ function DownloadRenderer({ data }: { data: any }) {
     </div>
   );
 }
-
-function RemoveRenderer({ data, onRemove, isLoading }: { 
+function RemoveRenderer({ data, onRemove, isAddResourceMode }: { 
   data: any; 
   onRemove: (item: ProjectOrResource) => void; 
-  isLoading: boolean; 
+  isAddResourceMode: boolean; 
 }) {
+  if (isAddResourceMode) return null;
   return (
     <div className="remove-button flex items-center justify-center w-full h-full">
       <Button
         variant="ghost"
         size="icon"
-        className="flex items-center justify-center"
+        className="flex items-center justify-center hover:bg-gray-200 text-muted-foreground"
         title="Remove"
         onClick={() => onRemove(data)}
-        disabled={isLoading}
         aria-label="Remove"
       >
         <CircleXIcon size={18} />
