@@ -84,7 +84,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     
     if (isAddResourceMode) {
       // In add resource mode, only show filtered resources from allResources
-      const filteredResources = allResources.filter(resource =>
+      const filteredResources = (allResources ?? []).filter(resource =>
         resource.title.toLowerCase().includes(lowerCaseQuery) ||
         (resource.description && resource.description.toLowerCase().includes(lowerCaseQuery))
       );
@@ -92,11 +92,11 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     }
     
     // Normal mode - filter current projects and resources
-    const filteredProjects = projects.filter(project =>
+    const filteredProjects = (projects ?? []).filter(project =>
       project.title.toLowerCase().includes(lowerCaseQuery) ||
       (project.description && project.description.toLowerCase().includes(lowerCaseQuery))
     );
-    const filteredResources = resources.filter(resource =>
+    const filteredResources = (resources ?? []).filter(resource =>
       resource.title.toLowerCase().includes(lowerCaseQuery) ||
       (resource.description && resource.description.toLowerCase().includes(lowerCaseQuery))
     );
