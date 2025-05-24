@@ -101,7 +101,9 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                 return StatusCode(500, new ApiResponse(false, "Internal server error"));
             }
     }
+    #endregion
 
+    #region Delete
     /// <summary>
     /// Deletes a project or folder from the database.
     /// </summary>
@@ -517,6 +519,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     [SwaggerResponse(200, "Resource added")]
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(404, "Project / Resource not found")]
+    [SwaggerResponse(409, "Resource already linked")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> AddResource(string projectId, string resourceId)
     {
@@ -557,7 +560,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             if ((await projectManager.GetAllResources(predicate: relation => relation.ProjectId == Guid.Parse(projectId) && relation.ResourceId == Guid.Parse(resourceId))).Length != 0)
             {
                 Log.Error("Resource-project link already exists.");
-                return BadRequest(new ApiResponse(false, "Resource already in project / folder."));
+                return Conflict(new ApiResponse(false, "Resource already in project / folder."));
             }
 
             // Now userId always has a value so we can safely take it
@@ -629,7 +632,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             }
 
             // Check if user is creator of relation or creator of folder where the resource is in
-            bool userValidation = (project.ProjectResourcesRelations?.Any(relation => relation.AddedBy == userId) ?? false) || ProjectAuthorizationLevel(userId, project) == "unauthorized";
+            bool userValidation = (project.ProjectResourcesRelations?.Any(relation => relation.AddedBy == userId) ?? false) || !(ProjectAuthorizationLevel(userId, project) == "unauthorized");
 
             // Check if the user has permission to delete this project
             if (!userIsAdmin && !userValidation)

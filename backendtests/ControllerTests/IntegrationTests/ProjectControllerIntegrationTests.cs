@@ -8,6 +8,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using KnowledgeBank.Responses;
 using NUnit.Framework.Internal;
+using System.Xml;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace backend.Tests.Integration;
 
@@ -18,6 +21,8 @@ public class ProjectControllerTests : TestBase
     private ProjectController _controller;
     private ResourceManager _resourceManager;
     private ProjectManager _projectManager;
+    private UserStore<User> _userStore;
+    private UserManager<User> _userManager;
     private ClaimsPrincipal _regularUser;
     private ClaimsPrincipal _adminUser;
     private Guid _regularUserId;
@@ -42,6 +47,20 @@ public class ProjectControllerTests : TestBase
             ],
             "mock"));
 
+        _userStore = new UserStore<User>(Context);
+
+        _userManager = new UserManager<User>(
+           _userStore,
+            null,
+            new PasswordHasher<User>(),
+            new[] { new UserValidator<User>() },
+            new[] { new PasswordValidator<User>() },
+            new UpperInvariantLookupNormalizer(),
+            new IdentityErrorDescriber(),
+            null,
+            null
+        );
+
         _resourceManager = new ResourceManager(Context);
         _projectManager = new ProjectManager(Context);
         _controller = new ProjectController(_projectManager, _resourceManager);
@@ -64,6 +83,13 @@ public class ProjectControllerTests : TestBase
             HttpContext = new DefaultHttpContext { User = user }
         };
     }
+    protected override Task OnTestTearDown()
+    {
+        _userManager?.Dispose();
+        _userStore?.Dispose();
+        return base.OnTestTearDown();
+    }
+
     #region Test Data
     private static ProjectCreateDto ValidProject = new()
     {
@@ -105,6 +131,14 @@ public class ProjectControllerTests : TestBase
         ProjectType = "This is NOT a valid type",
         Tags = ["ced98544-b8fe-4d1c-b9d1-d04c099c8b5c"],
         Creators = []
+    };
+
+    private static ResourceCreateDto MockResource = new()
+    {
+        Title = "mock resource",
+        TypeId = DatabaseSeeder.UnknownResourceTypeId,
+        LanguageCode = "NL",
+        PublicationDate = DateTime.UtcNow,
     };
 
     // Static method to provide test cases
@@ -177,6 +211,7 @@ public class ProjectControllerTests : TestBase
     #endregion
 
     #region Delete project
+
     [Test]
     [Description("Unable to delete project when it doesn't exist or the ID is invalid")]
     public async Task DeleteProjectFailTest()
@@ -189,19 +224,223 @@ public class ProjectControllerTests : TestBase
 
         objRes = (ObjectResult)await _controller.Delete("ced98544-b8fe-4d1c-b9d1-d04c099d8b5c");
         Assert.That(objRes.StatusCode ?? -1, Is.EqualTo(404)); // Valid GUID, but doesn't exist
+
+        OkObjectResult res = (OkObjectResult)await _controller.Create(ValidProject);
+        ApiResponse response = (ApiResponse)res.Value;
+        string projectId = response.Body.ToString();
+
+        objRes = (ObjectResult)await _controller.Delete(projectId);
+        Assert.That(objRes.StatusCode, Is.EqualTo(403)); // Project has no creators and user is not logged in so he cannot delete the project
     }
 
     [Test]
     [Description("Deleting project deletes subfolders, and all references of itself and the subfolders")]
     public async Task DeleteProjectOk()
     {
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = _adminUser }
+        };
+        OkObjectResult res = (OkObjectResult)await _controller.Create(ValidProject);
+        ApiResponse response = (ApiResponse)res.Value;
+        string projectId = response.Body.ToString();
 
+        ObjectResult objRes = (ObjectResult)await _controller.Delete(projectId);
+        Assert.That(objRes.StatusCode, Is.EqualTo(200));
+        Assert.That(Context.Projects.Count() == 0);
     }
 
-    
+    [Test]
+    [Description("Tests if the delete is cascading and deletes all references (project-folder, project-tag, project-creator and project-resource)")]
+    public async Task DeleteProjectReferencesSuccess()
+    {
+        // Add one-time user to database for lookup functions used in projects controller, not used anywhere else
+        User creatorUser = new User { Email = "test@test.nl", UserName = "test@test.nl" };
+        await _userManager.CreateAsync(creatorUser, "Test123!");
+        string userId = Context.Users.First().Id;
 
-    // test delete statuscodes
-    // test normal delete deletes all references
-    // test cascading delete deleetes everything as well
+        ClaimsPrincipal _testUser = new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.NameIdentifier, userId),
+                new Claim(ClaimTypes.Role, "admin")
+            ],
+            "mock"));
+
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = _testUser }
+        };
+
+        TagCreateDto newTag = new()
+        {
+            Name = "Amazing tag",
+            CreatedBy = _regularUserId.ToString()
+        };
+
+        Guid tagId = await _resourceManager.CreateTagAsync(newTag); // Add a tag and creator to the root
+        ProjectCreateDto dto = ValidProject;
+        dto.Tags = [tagId.ToString()];
+        dto.Creators = [userId];
+
+        OkObjectResult res = (OkObjectResult)await _controller.Create(ValidProject);
+        ApiResponse response = (ApiResponse)res.Value;
+        string projectId = response.Body.ToString();
+
+        ObjectResult folderRes = (ObjectResult)await _controller.AddFolder("testfolder", projectId); // Add a folder to the root
+        string folderId = ((ApiResponse)folderRes.Value).Body.ToString();
+
+        Guid resourceId = await _resourceManager.CreateResourceAsync(MockResource);
+        await _controller.AddResource(projectId, resourceId.ToString()); // Add a resource to the project
+        await _controller.AddResource(folderId, resourceId.ToString()); // Add a resource to the folder
+
+        await _controller.Delete(projectId); // Delete root folder
+
+        // Now all tables relating to folders should be empty
+        Assert.That(Context.Projects.Count() == 0);
+        Assert.That(Context.ProjectCreatorRelations.Count() == 0);
+        Assert.That(Context.ProjectFolderRelations.Count() == 0);
+        Assert.That(Context.ProjectResourceRelations.Count() == 0);
+        Assert.That(Context.ProjectTagRelations.Count() == 0);
+
+        // Reset values since dto is just a reference
+        dto.Tags = [];
+        dto.Creators = [];
+    }
+
+    #endregion
+
+    #region project-resource
+
+    [Test]
+    [Description("Tests if adding a valid resource results in a 200 status code and the relation can be found")]
+    public async Task AddResourceOk()
+    {
+        OkObjectResult res = (OkObjectResult)await _controller.Create(ValidProject);
+        ApiResponse response = (ApiResponse)res.Value;
+        string projectId = response.Body.ToString();
+
+        Guid resourceId = await _resourceManager.CreateResourceAsync(MockResource);
+        ObjectResult addRes = (ObjectResult)await _controller.AddResource(projectId, resourceId.ToString()); // Add a resource to the project
+
+        Assert.That(addRes.StatusCode, Is.EqualTo(200));
+        Assert.That(Context.ProjectResourceRelations.Count() == 1);
+        Assert.That(Context.ProjectResourceRelations.First().ResourceId == resourceId);
+    }
+
+    [Test]
+    [Description("Tests for failed resource linking")]
+    public async Task AddResourceFail()
+    {
+        ObjectResult addRes;
+
+        // 400 status codes
+        addRes = (ObjectResult)await _controller.AddResource(null, "id"); // invalid project id should be caught
+        Assert.That(addRes.StatusCode, Is.EqualTo(400));
+
+        addRes = (ObjectResult)await _controller.AddResource("id", null); // invalid resource id should be caught
+        Assert.That(addRes.StatusCode, Is.EqualTo(400));
+
+        // 404 status codes
+        addRes = (ObjectResult)await _controller.AddResource("b8b73c43-4e81-4e09-adef-8a80f1c0da07", "38c89782-ebd4-4b20-94e4-50493e92c5cb"); // project id not found
+        Assert.That(addRes.StatusCode, Is.EqualTo(404));
+
+        OkObjectResult res = (OkObjectResult)await _controller.Create(ValidProject);
+        ApiResponse response = (ApiResponse)res.Value;
+        string projectId = response.Body.ToString();
+        addRes = (ObjectResult)await _controller.AddResource(projectId, "38c89782-ebd4-4b20-94e4-50493e92c5cb"); // resource id not found
+        Assert.That(addRes.StatusCode, Is.EqualTo(404));
+
+        // 409 status codes
+        Guid resourceId = await _resourceManager.CreateResourceAsync(MockResource);
+        await _controller.AddResource(projectId, resourceId.ToString()); // Add a resource to the project
+        addRes = (ObjectResult)await _controller.AddResource(projectId, resourceId.ToString()); // Add a resource to the project AGAIN, which should result in a conflict
+        Assert.That(addRes.StatusCode, Is.EqualTo(409));
+    }
+
+    [Test]
+    [Description("Tests for failed resource deletion")]
+    public async Task DeleteResourceFail()
+    {
+        ObjectResult delRes;
+
+        // 400 status codes
+        delRes = (ObjectResult)await _controller.RemoveResource(null, "id"); // invalid project id should be caught
+        Assert.That(delRes.StatusCode, Is.EqualTo(400));
+
+        delRes = (ObjectResult)await _controller.RemoveResource("id", null); // invalid resource id should be caught
+        Assert.That(delRes.StatusCode, Is.EqualTo(400));
+
+        // 404 status codes
+        delRes = (ObjectResult)await _controller.RemoveResource("b8b73c43-4e81-4e09-adef-8a80f1c0da07", "38c89782-ebd4-4b20-94e4-50493e92c5cb"); // project id not found
+        Assert.That(delRes.StatusCode, Is.EqualTo(404));
+
+        ObjectResult res = (ObjectResult)await _controller.Create(ValidProject);
+        ApiResponse response = (ApiResponse)res.Value;
+        string projectId = response.Body.ToString();
+        delRes = (ObjectResult)await _controller.RemoveResource(projectId, "38c89782-ebd4-4b20-94e4-50493e92c5cb"); // resource id not found
+        Assert.That(delRes.StatusCode, Is.EqualTo(404));
+    }
+
+    [Test]
+    [Description("Tests if resource link deletion goes through given valid resource & project id")]
+    public async Task DeleteResourceAdminOk()
+    {
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = _adminUser }
+        };
+
+        ObjectResult res = (ObjectResult)await _controller.Create(ValidProject); // Create project
+        ApiResponse response = (ApiResponse)res.Value;
+        string projectId = response.Body.ToString();
+
+        Guid resourceId = await _resourceManager.CreateResourceAsync(MockResource);
+        await _controller.AddResource(projectId, resourceId.ToString()); // Add a resource to the project
+
+        ObjectResult delRes = (ObjectResult)await _controller.RemoveResource(projectId, resourceId.ToString()); // resource id not found
+        Assert.That(delRes.StatusCode, Is.EqualTo(200));
+        Assert.That(Context.ProjectResourceRelations.Count() == 0);
+    }
+
+    [Test]
+    [Description("Tests if resource deletion fails if user is not creator of resource and not an admin")]
+    public async Task DeleteResourceCreatorCheckFail()
+    {
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = _regularUser }
+        };
+
+        ObjectResult res = (ObjectResult)await _controller.Create(ValidProject); // Create project
+        ApiResponse response = (ApiResponse)res.Value;
+        string projectId = response.Body.ToString();
+
+        Guid resourceId = await _resourceManager.CreateResourceAsync(MockResource);
+        await _projectManager.AddResourceToProjectAsync(projectId, resourceId, _adminUserId); // Suppose it WAS added by someone else
+
+        ObjectResult delRes = (ObjectResult)await _controller.RemoveResource(projectId, resourceId.ToString()); // now try to delete someone else's resource
+        Assert.That(delRes.StatusCode, Is.EqualTo(403));
+    }
+
+    [Test]
+    [Description("Tests if resource deletion succeeds if user is creator of resource and not an admin")]
+    public async Task DeleteResourceCreatorCheckOk()
+    {
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = _regularUser }
+        };
+
+        ObjectResult res = (ObjectResult)await _controller.Create(ValidProject); // Create project
+        ApiResponse response = (ApiResponse)res.Value;
+        string projectId = response.Body.ToString();
+
+        Guid resourceId = await _resourceManager.CreateResourceAsync(MockResource);
+        await _controller.AddResource(projectId, resourceId.ToString());
+
+        ObjectResult delRes = (ObjectResult)await _controller.RemoveResource(projectId, resourceId.ToString()); // now try to delete your own resource
+        Assert.That(delRes.StatusCode, Is.EqualTo(200));
+        Assert.That(Context.ProjectResourceRelations.Count() == 0);
+    }
     #endregion
 }
