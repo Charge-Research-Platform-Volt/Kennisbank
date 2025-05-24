@@ -237,10 +237,7 @@ public class ProjectControllerTests : TestBase
     [Description("Deleting project deletes subfolders, and all references of itself and the subfolders")]
     public async Task DeleteProjectOk()
     {
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext { User = _adminUser }
-        };
+        SetControllerUser(_adminUser);
         OkObjectResult res = (OkObjectResult)await _controller.Create(ValidProject);
         ApiResponse response = (ApiResponse)res.Value;
         string projectId = response.Body.ToString();
@@ -254,7 +251,7 @@ public class ProjectControllerTests : TestBase
     [Description("Tests if the delete is cascading and deletes all references (project-folder, project-tag, project-creator and project-resource)")]
     public async Task DeleteProjectReferencesSuccess()
     {
-        // Add one-time user to database for lookup functions used in projects controller, not used anywhere else
+        // Add one-time user to database for lookup functions used in projects controller
         User creatorUser = new User { Email = "test@test.nl", UserName = "test@test.nl" };
         await _userManager.CreateAsync(creatorUser, "Test123!");
         string userId = Context.Users.First().Id;
@@ -266,10 +263,7 @@ public class ProjectControllerTests : TestBase
             ],
             "mock"));
 
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext { User = _testUser }
-        };
+        SetControllerUser(_testUser);
 
         TagCreateDto newTag = new()
         {
@@ -385,10 +379,7 @@ public class ProjectControllerTests : TestBase
     [Description("Tests if resource link deletion goes through given valid resource & project id")]
     public async Task DeleteResourceAdminOk()
     {
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext { User = _adminUser }
-        };
+        SetControllerUser(_adminUser);
 
         ObjectResult res = (ObjectResult)await _controller.Create(ValidProject); // Create project
         ApiResponse response = (ApiResponse)res.Value;
@@ -406,11 +397,6 @@ public class ProjectControllerTests : TestBase
     [Description("Tests if resource deletion fails if user is not creator of resource and not an admin")]
     public async Task DeleteResourceCreatorCheckFail()
     {
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext { User = _regularUser }
-        };
-
         ObjectResult res = (ObjectResult)await _controller.Create(ValidProject); // Create project
         ApiResponse response = (ApiResponse)res.Value;
         string projectId = response.Body.ToString();
@@ -426,11 +412,6 @@ public class ProjectControllerTests : TestBase
     [Description("Tests if resource deletion succeeds if user is creator of resource and not an admin")]
     public async Task DeleteResourceCreatorCheckOk()
     {
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext { User = _regularUser }
-        };
-
         ObjectResult res = (ObjectResult)await _controller.Create(ValidProject); // Create project
         ApiResponse response = (ApiResponse)res.Value;
         string projectId = response.Body.ToString();
@@ -442,5 +423,62 @@ public class ProjectControllerTests : TestBase
         Assert.That(delRes.StatusCode, Is.EqualTo(200));
         Assert.That(Context.ProjectResourceRelations.Count() == 0);
     }
+    #endregion
+
+    #region Fetch projects
+    #endregion
+
+    #region Updating projects
+    #endregion
+
+    #region Adding folders
+
+    [Test]
+    [Description("Adding folder results in a 200 status code")]
+    public async Task AddFolderOk()
+    {
+        // We need the custom user again since it'll auto add the current user when creating a folder
+        User creatorUser = new User { Email = "test@test.nl", UserName = "test@test.nl" };
+        await _userManager.CreateAsync(creatorUser, "Test123!");
+        string userId = Context.Users.First().Id;
+
+        ClaimsPrincipal _testUser = new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.NameIdentifier, userId),
+                new Claim(ClaimTypes.Role, "admin")
+            ],
+            "mock"));
+
+        SetControllerUser(_testUser);
+
+        ObjectResult res = (ObjectResult)await _controller.Create(ValidProject); // Create project
+        ApiResponse response = (ApiResponse)res.Value;
+        string projectId = response.Body.ToString();
+
+        ObjectResult addRes = (ObjectResult)await _controller.AddFolder("Just a great folder name to put in a test that is about 10 lines", projectId);
+
+        Assert.That(addRes.StatusCode, Is.EqualTo(200));
+        Assert.That(Context.ProjectFolderRelations.Count() == 1);
+        Assert.That(Context.ProjectFolderRelations.First().ChildId.ToString() == ((ApiResponse)addRes.Value).Body.ToString());
+    }
+
+    [Test]
+    [Description("Adding folder fails correctly")]
+    public async Task AddFolderFail()
+    {
+        ObjectResult addRes;
+
+        // 400 status codes
+        addRes = (ObjectResult)await _controller.AddFolder(null, "id"); // invalid folder name should be caught
+        Assert.That(addRes.StatusCode, Is.EqualTo(400));
+
+        addRes = (ObjectResult)await _controller.AddFolder("id", null); // invalid project id should be caught
+        Assert.That(addRes.StatusCode, Is.EqualTo(400));
+
+        // 404 status codes
+        addRes = (ObjectResult)await _controller.AddFolder("perfedtly fine fdler name", "bea642fe-2e58-48b1-83cd-8711e8635064"); // project id never added
+        Assert.That(addRes.StatusCode, Is.EqualTo(404));
+    }
+
     #endregion
 }

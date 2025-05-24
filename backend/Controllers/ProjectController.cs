@@ -433,7 +433,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         Log.Information("Creating a new folder");
 
         // Make sure we have the required fields
-        if (string.IsNullOrEmpty(folderName))
+        if (string.IsNullOrEmpty(folderName) || string.IsNullOrEmpty(parentId))
         {
             Log.Error("Title is required");
             return BadRequest(new ApiResponse(false, "Title is required"));
