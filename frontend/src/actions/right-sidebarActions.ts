@@ -1,5 +1,6 @@
 "use server";
 
+import { MetadataTypeEnum } from "@/context/sidebar-provider";
 import { ApiResponse, ApiResponseSchema } from "@/types/apiResponse.type";
 import { TagFilterOptions } from "@/types/tag.type";
 import { revalidatePath } from "next/cache";
@@ -191,6 +192,43 @@ export const newRelationSearchResults = async (
     // Check if the request was succesful, if not, return an error
     return data;
 }
+
+export const addRelation = async (
+    relation: resourceRelation | personRelation | organisationRelation,
+    type: MetadataTypeEnum,
+    id: string,
+    targetId: string,
+) => {
+    let endPoint;
+    const cookieHeader : ReadonlyRequestCookies = await cookies();
+
+    if (type === MetadataTypeEnum.RESOURCE) {
+        endPoint = `resources/${encodeURIComponent(id)}/relations/add/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`
+    }
+
+    else if (type === MetadataTypeEnum.PERSON) {
+        endPoint = `persons/${encodeURIComponent(id)}/relations/add/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`
+    }
+
+    else if (type === MetadataTypeEnum.ORGANISTATION) {
+        endPoint = `organisations/${encodeURIComponent(id)}/relations/add/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`
+    }
+
+
+    const response = await fetch(
+        `${process.env.API_URL}/${endPoint}`,
+        {
+            method: "Get",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+        }
+    )
+
+    if (!response.ok) {
+      throw new Error("Problem adding relation");
+    }
+}
+
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.

@@ -424,7 +424,7 @@ namespace KnowledgeBank.Controllers
                         break;
                     
                     // Organisations
-                    case "organisations":
+                    case "organisation-related-organisations":
                         await resourceManager.AddOrganisationRelationshipAsync(id, relationInfo, targetId);
                         break;
                     

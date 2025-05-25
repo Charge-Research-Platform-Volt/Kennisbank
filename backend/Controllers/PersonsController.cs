@@ -295,6 +295,8 @@ namespace KnowledgeBank.Controllers
 
                 string projectionString = $"new({properties})";
 
+                logger.Information("Start listing");
+
                 // No paging requested, list all persons
                 if (pageIndex == null || pageSize == null)
                     persons = string.IsNullOrEmpty(properties) ?
@@ -310,6 +312,8 @@ namespace KnowledgeBank.Controllers
                         await resourceManager.GetPersonPageAsync((int)pageIndex, (int)pageSize, predicate: r => r.Name.Contains(searchQuery))) :
                         (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetPersonPageAsync(projectionString, (int)pageIndex, (int)pageSize) :
                         await resourceManager.GetPersonPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: r => r.Name.Contains(searchQuery)));
+
+                logger.Information("end listing");
 
                 // Return found persons
                 return Ok(new ApiResponse(true, $"Found {persons.Length} persons", persons));
@@ -427,7 +431,7 @@ namespace KnowledgeBank.Controllers
                         break;
                     
                     // Persons
-                    case "persons":
+                    case "person-related-persons":
                         await resourceManager.AddPersonRelationshipAsync(id, relationInfo, targetId);
                         break;
                     
