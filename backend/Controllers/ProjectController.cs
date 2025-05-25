@@ -129,7 +129,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             Log.Information("Deleting project.");
 
             // Make sure we have the required fields
-            if (string.IsNullOrEmpty(projectId))
+            if (string.IsNullOrEmpty(projectId) || !ValidityUtil.IsValidId(projectId))
             {
                 Log.Error("Id is required");
                 return BadRequest(new ApiResponse(false, "Id is required"));
@@ -283,7 +283,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             Log.Information("Updating project.");
 
             // Make sure we have the required fields
-            if (string.IsNullOrEmpty(projectId))
+            if (!ValidityUtil.IsValidId(projectId))
             {
                 Log.Error("Id is required");
                 return BadRequest(new ApiResponse(false, "Id is required"));
@@ -433,7 +433,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         Log.Information("Creating a new folder");
 
         // Make sure we have the required fields
-        if (string.IsNullOrEmpty(folderName) || string.IsNullOrEmpty(parentId))
+        if (string.IsNullOrEmpty(folderName) || !ValidityUtil.IsValidId(parentId))
         {
             Log.Error("Title is required");
             return BadRequest(new ApiResponse(false, "Title is required"));
@@ -526,7 +526,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         Log.Information("Adding resource to project");
 
         // If the project or resource id is invalid, abort
-        if (string.IsNullOrEmpty(projectId) || string.IsNullOrEmpty(resourceId))
+        if (!ValidityUtil.IsValidId(projectId) || !ValidityUtil.IsValidId(resourceId))
         {
             Log.Error("Id of either project or resource invalid");
             return BadRequest(new ApiResponse(false, "Id missing."));
@@ -606,7 +606,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             Log.Information("Deleting resource from project.");
 
             // Make sure we have the required fields
-            if (string.IsNullOrEmpty(projectId) || string.IsNullOrEmpty(resourceId))
+            if (!ValidityUtil.IsValidId(projectId) || !ValidityUtil.IsValidId(resourceId))
             {
                 Log.Error("Id is required");
                 return BadRequest(new ApiResponse(false, "Id is required"));
@@ -712,7 +712,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         {
             case "title":
             case "description":
-                return string.IsNullOrEmpty(val.ToString());
+                return !string.IsNullOrEmpty(val.ToString());
             case "creators":
             case "tags":
                 return ((List<string>)val).Count > 0;

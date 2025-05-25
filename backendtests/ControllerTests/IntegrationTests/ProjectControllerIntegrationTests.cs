@@ -11,6 +11,7 @@ using NUnit.Framework.Internal;
 using System.Xml;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace backend.Tests.Integration;
 
@@ -217,7 +218,7 @@ public class ProjectControllerTests : TestBase
     public async Task DeleteProjectFailTest()
     {
         ObjectResult objRes = (ObjectResult)await _controller.Delete("this is not a valid ID at ALL");
-        Assert.That(objRes.StatusCode ?? -1, Is.EqualTo(500)); // Cannot parse to GUID
+        Assert.That(objRes.StatusCode ?? -1, Is.EqualTo(400)); // Cannot parse to GUID
 
         objRes = (ObjectResult)await _controller.Delete(null);
         Assert.That(objRes.StatusCode ?? -1, Is.EqualTo(400)); // Handled by the first case
@@ -426,9 +427,225 @@ public class ProjectControllerTests : TestBase
     #endregion
 
     #region Fetch projects
+    // fetch fail
+    // fetch success without paging
+    // fetch success with paging
+    #endregion
+
+    #region Get content
+    // fetch fail
+    // fetch success
     #endregion
 
     #region Updating projects
+    [Test]
+    [Description("Tests if the update function fails under specific conditions")]
+    public async Task UpdateProjectFail()
+    {
+        // 400 status codes
+        ObjectResult updateRes = (ObjectResult)await _controller.Update(null, new Dictionary<string, object>()); // resource id invalid
+        Assert.That(updateRes.StatusCode, Is.EqualTo(400));
+
+        updateRes = (ObjectResult)await _controller.Update("3e0b6ade-9936-43f6-9890-c7e36a00ad7d", null); // invalid updates
+        Assert.That(updateRes.StatusCode, Is.EqualTo(400));
+
+        updateRes = (ObjectResult)await _controller.Update("3e0b6ade-9936-43f6-9890-c7e36a00ad7d", new Dictionary<string, object>()); // updates empty
+        Assert.That(updateRes.StatusCode, Is.EqualTo(400));
+
+        Dictionary<string, object> testDict = new();
+        testDict.Add("", "");
+
+        ObjectResult res = (ObjectResult)await _controller.Create(ValidProject); // Create project
+        ApiResponse response = (ApiResponse)res.Value;
+        string projectId = response.Body.ToString();
+
+        updateRes = (ObjectResult)await _controller.Update(projectId, testDict); // catches invalid key
+        Assert.That(updateRes.StatusCode, Is.EqualTo(400));
+
+        testDict.Clear();
+        testDict.Add("title", null);
+
+        updateRes = (ObjectResult)await _controller.Update(projectId, testDict); // catches invalid value
+        Assert.That(updateRes.StatusCode, Is.EqualTo(400));
+
+        // 404 status codes
+        updateRes = (ObjectResult)await _controller.Update("3e0b6ade-9936-43f6-9890-c7e36a00ad7d", testDict); // catches non-existent project first
+        Assert.That(updateRes.StatusCode, Is.EqualTo(404));
+
+        // 403 status codes
+        // project is created without creators property, thus no one outside of admins has permission to update
+        testDict.Clear();
+        testDict.Add("title", "nopermissions?");
+
+        updateRes = (ObjectResult)await _controller.Update(projectId, testDict); // catches permission denied
+        Assert.That(updateRes.StatusCode, Is.EqualTo(403));
+    }
+
+    [TestCase("title", "testtesttest")]
+    [TestCase("title", "new title who dis")]
+    [Description("Tests if description updating goes well")]
+    public async Task UpdateTitleSuccess(string property, object newValue)
+    {
+        SetControllerUser(_adminUser);
+
+        ObjectResult res = (ObjectResult)await _controller.Create(ValidProject); // Create project
+        ApiResponse response = (ApiResponse)res.Value;
+        string projectId = response.Body.ToString();
+
+        Dictionary<string, object> testDict = new()
+        {
+            { property, newValue }
+        };
+
+        ObjectResult updateRes = (ObjectResult)await _controller.Update(projectId, testDict);
+        Assert.That(updateRes.StatusCode, Is.EqualTo(200));
+        Assert.That(Context.Projects.Count() == 1);
+
+        Project updated = await _projectManager.GetProjectAsync(projectId);
+        Assert.That(updated.Title == newValue.ToString());
+    }
+
+    [TestCase("description", "testtesttest")]
+    [TestCase("description", "new description who dis")]
+    [Description("Tests if description updating goes well")]
+    public async Task UpdateDescriptionSuccess(string property, object newValue)
+    {
+        SetControllerUser(_adminUser);
+
+        ObjectResult res = (ObjectResult)await _controller.Create(ValidProject); // Create project
+        ApiResponse response = (ApiResponse)res.Value;
+        string projectId = response.Body.ToString();
+
+        Dictionary<string, object> testDict = new()
+        {
+            { property, newValue }
+        };
+
+        ObjectResult updateRes = (ObjectResult)await _controller.Update(projectId, testDict);
+        Assert.That(updateRes.StatusCode, Is.EqualTo(200));
+        Assert.That(Context.Projects.Count() == 1);
+
+        Project updated = await _projectManager.GetProjectAsync(projectId);
+        Assert.That(updated.Description == newValue.ToString());
+    }
+
+    [Test]
+    [Description("Tests if tags updating goes well")]
+    public async Task UpdateTagsSuccess()
+    {
+        SetControllerUser(_adminUser);
+
+        ObjectResult res = (ObjectResult)await _controller.Create(ValidProject); // Create project
+        ApiResponse response = (ApiResponse)res.Value;
+        string projectId = response.Body.ToString();
+
+        TagCreateDto dto = new()
+        {
+            Name = "tag",
+            CreatedBy = _adminUserId.ToString(),
+            IsApproved = false,
+        };
+        Guid tagId = await _resourceManager.CreateTagAsync(dto);
+
+        Dictionary<string, object> testDict = new()
+        {
+            { "tags", JsonDocument.Parse(JsonSerializer.Serialize(new List<string>{tagId.ToString()})).RootElement }
+        };
+
+        ObjectResult updateRes = (ObjectResult)await _controller.Update(projectId, testDict);
+        Assert.That(updateRes.StatusCode, Is.EqualTo(200));
+        Assert.That(Context.Projects.Count() == 1);
+
+        Project updated = await _projectManager.GetProjectAsync(projectId, includeProperties: ["ProjectTagRelations"]);
+        Assert.That(updated.ProjectTagRelations.First().TagId == tagId);
+    }
+
+    [Test]
+    [Description("Tests if creators updating goes well")]
+    public async Task UpdateCreatorsSuccess()
+    {
+        // We need the custom user again since it is neccesary for a user being in the database
+        User creatorUser = new User { Email = "test@test.nl", UserName = "test@test.nl" };
+        await _userManager.CreateAsync(creatorUser, "Test123!");
+        string userId = Context.Users.First().Id;
+
+        ClaimsPrincipal _testUser = new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.NameIdentifier, userId),
+                new Claim(ClaimTypes.Role, "admin")
+            ],
+            "mock"));
+
+        SetControllerUser(_testUser);
+
+        ObjectResult res = (ObjectResult)await _controller.Create(ValidProject); // Create project
+        ApiResponse response = (ApiResponse)res.Value;
+        string projectId = response.Body.ToString();
+
+        Dictionary<string, object> testDict = new()
+        {
+            { "creators", JsonDocument.Parse(JsonSerializer.Serialize(new List<string>{userId.ToString()})).RootElement }
+        };
+
+        ObjectResult updateRes = (ObjectResult)await _controller.Update(projectId, testDict);
+        Assert.That(updateRes.StatusCode, Is.EqualTo(200));
+        Assert.That(Context.Projects.Count() == 1);
+
+        Project updated = await _projectManager.GetProjectAsync(projectId, includeProperties: ["ProjectCreatorRelations"]);
+        Assert.That(updated.ProjectCreatorRelations.First().CreatorId == userId);
+    }
+
+    [Test]
+    [Description("Tests if multiple updates work")]
+    public async Task MultiUpdateSuccess()
+    {
+        // We need the custom user again since it is neccesary for a user being in the database
+        User creatorUser = new User { Email = "test@test.nl", UserName = "test@test.nl" };
+        await _userManager.CreateAsync(creatorUser, "Test123!");
+        string userId = Context.Users.First().Id;
+
+        ClaimsPrincipal _testUser = new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.NameIdentifier, userId),
+                new Claim(ClaimTypes.Role, "admin")
+            ],
+            "mock"));
+
+        SetControllerUser(_testUser);
+
+        TagCreateDto dto = new()
+        {
+            Name = "tag",
+            CreatedBy = _adminUserId.ToString(),
+            IsApproved = false,
+        };
+
+        Guid tagId = await _resourceManager.CreateTagAsync(dto);
+
+        ObjectResult res = (ObjectResult)await _controller.Create(ValidProject); // Create project
+        ApiResponse response = (ApiResponse)res.Value;
+        string projectId = response.Body.ToString();
+
+        Dictionary<string, object> testDict = new()
+        {
+            { "creators", JsonDocument.Parse(JsonSerializer.Serialize(new List<string>{userId.ToString()})).RootElement },
+            { "tags", JsonDocument.Parse(JsonSerializer.Serialize(new List<string>{tagId.ToString()})).RootElement },
+            { "title", "newtitle" },
+            { "description", "newdesc" }
+        };
+
+        ObjectResult updateRes = (ObjectResult)await _controller.Update(projectId, testDict);
+        Assert.That(updateRes.StatusCode, Is.EqualTo(200));
+        Assert.That(Context.Projects.Count() == 1);
+
+        Project updated = await _projectManager.GetProjectAsync(projectId, includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations"]);
+        Assert.That(updated.ProjectTagRelations.First().TagId == tagId);
+        Assert.That(updated.ProjectCreatorRelations.First().CreatorId == userId);
+        Assert.That(updated.Title == "newtitle");
+        Assert.That(updated.Description == "newdesc");
+
+    }
+
     #endregion
 
     #region Adding folders

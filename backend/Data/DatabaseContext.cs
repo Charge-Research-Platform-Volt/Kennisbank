@@ -153,6 +153,19 @@ namespace KnowledgeBank.Data
         }
 
         /// <summary>
+        /// Same as above, just for projects so it doesn't have to check for updating resource vectors.
+        /// </summary>
+        /// <param name="cancellationToken">A token used to observe operation cancellation.</param>
+        /// <returns>The number of state entries written to the database.</returns>
+        public async Task<int> SaveProjectChangesAsync(CancellationToken cancellationToken = default)
+        {
+            // Save the changes to the database
+            int result = await base.SaveChangesAsync(cancellationToken);
+
+            return result;
+        }
+
+        /// <summary>
         /// Updates or inserts full-text search vectors for the given list of updated FileItem entities. 
         /// If a vector already exists for a file, it is updated. Otherwise, a new vector is inserted.
         /// </summary>
