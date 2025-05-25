@@ -211,7 +211,7 @@ public class ProjectControllerTests : TestBase
 
     #endregion
 
-    #region Delete project
+    #region Delete Project
 
     [Test]
     [Description("Unable to delete project when it doesn't exist or the ID is invalid")]
@@ -245,7 +245,7 @@ public class ProjectControllerTests : TestBase
 
         ObjectResult objRes = (ObjectResult)await _controller.Delete(projectId);
         Assert.That(objRes.StatusCode, Is.EqualTo(200));
-        Assert.That(Context.Projects.Count() == 0);
+        Assert.That(Context.Projects.Count, Is.EqualTo(0));
     }
 
     [Test]
@@ -291,11 +291,11 @@ public class ProjectControllerTests : TestBase
         await _controller.Delete(projectId); // Delete root folder
 
         // Now all tables relating to folders should be empty
-        Assert.That(Context.Projects.Count() == 0);
-        Assert.That(Context.ProjectCreatorRelations.Count() == 0);
-        Assert.That(Context.ProjectFolderRelations.Count() == 0);
-        Assert.That(Context.ProjectResourceRelations.Count() == 0);
-        Assert.That(Context.ProjectTagRelations.Count() == 0);
+        Assert.That(Context.Projects.Count, Is.EqualTo(0));
+        Assert.That(Context.ProjectCreatorRelations.Count, Is.EqualTo(0));
+        Assert.That(Context.ProjectFolderRelations.Count, Is.EqualTo(0));
+        Assert.That(Context.ProjectResourceRelations.Count, Is.EqualTo(0));
+        Assert.That(Context.ProjectTagRelations.Count, Is.EqualTo(0));
 
         // Reset values since dto is just a reference
         dto.Tags = [];
@@ -304,7 +304,7 @@ public class ProjectControllerTests : TestBase
 
     #endregion
 
-    #region project-resource
+    #region Project-Resource
 
     [Test]
     [Description("Tests if adding a valid resource results in a 200 status code and the relation can be found")]
@@ -318,7 +318,7 @@ public class ProjectControllerTests : TestBase
         ObjectResult addRes = (ObjectResult)await _controller.AddResource(projectId, resourceId.ToString()); // Add a resource to the project
 
         Assert.That(addRes.StatusCode, Is.EqualTo(200));
-        Assert.That(Context.ProjectResourceRelations.Count() == 1);
+        Assert.That(Context.ProjectResourceRelations.Count, Is.EqualTo(1));
         Assert.That(Context.ProjectResourceRelations.First().ResourceId == resourceId);
     }
 
@@ -391,7 +391,7 @@ public class ProjectControllerTests : TestBase
 
         ObjectResult delRes = (ObjectResult)await _controller.RemoveResource(projectId, resourceId.ToString()); // resource id not found
         Assert.That(delRes.StatusCode, Is.EqualTo(200));
-        Assert.That(Context.ProjectResourceRelations.Count() == 0);
+        Assert.That(Context.ProjectResourceRelations.Count, Is.EqualTo(0));
     }
 
     [Test]
@@ -422,19 +422,79 @@ public class ProjectControllerTests : TestBase
 
         ObjectResult delRes = (ObjectResult)await _controller.RemoveResource(projectId, resourceId.ToString()); // now try to delete your own resource
         Assert.That(delRes.StatusCode, Is.EqualTo(200));
-        Assert.That(Context.ProjectResourceRelations.Count() == 0);
+        Assert.That(Context.ProjectResourceRelations.Count, Is.EqualTo(0));
     }
     #endregion
 
-    #region Fetch projects
+    #region Fetch Projects
     // fetch fail
     // fetch success without paging
     // fetch success with paging
     #endregion
 
-    #region Get content
-    // fetch fail
-    // fetch success
+    #region Get Content
+    [Test]
+    [Description("Fetching of content fails")]
+    public async Task FetchProjectContentFail()
+    {
+        // 400 status codes
+        ObjectResult fetchRes = (ObjectResult)await _controller.Info(null);
+        Assert.That(fetchRes.StatusCode, Is.EqualTo(400));
+
+        // 404 status codes
+        fetchRes = (ObjectResult)await _controller.Info("77c74225-ce6c-478c-b2cb-87eaefab8e79");
+        Assert.That(fetchRes.StatusCode, Is.EqualTo(404));
+    }
+
+    [Test]
+    [Description("Tests if the fetching of content works correctly, resources of child folders should NOT be fetched")]
+    public async Task FetchProjectContentSuccess()
+    {
+        // We need the custom user again since it'll auto add the current user when creating a folder
+        User creatorUser = new User { Email = "test@test.nl", UserName = "test@test.nl" };
+        await _userManager.CreateAsync(creatorUser, "Test123!");
+        string userId = Context.Users.First().Id;
+
+        ClaimsPrincipal _testUser = new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.NameIdentifier, userId),
+                new Claim(ClaimTypes.Role, "admin")
+            ],
+            "mock"));
+
+        SetControllerUser(_testUser);
+
+        ObjectResult res = (ObjectResult)await _controller.Create(ValidProject); // Create project
+        ApiResponse response = (ApiResponse)res.Value;
+        string projectId = response.Body.ToString();
+
+        ObjectResult addRes = (ObjectResult)await _controller.AddFolder("Just a great folder name to put in a test that is about 10 lines", projectId); // create folder in project
+        ApiResponse addResp = (ApiResponse)addRes.Value;
+        string folderId = addResp.Body.ToString();
+
+        Guid resourceId = await _resourceManager.CreateResourceAsync(MockResource);
+        await _controller.AddResource(projectId, resourceId.ToString()); // Add a resource to the project
+
+        Guid resourceId2 = await _resourceManager.CreateResourceAsync(MockResource);
+        await _controller.AddResource(((ApiResponse)addRes.Value).Body.ToString(), resourceId2.ToString()); // Add a resource to the subfolder
+
+        // Check if root fetch of content is correct
+        ObjectResult fetchRes = (ObjectResult)await _controller.Info(projectId);
+        ProjectInfoDto dto = (ProjectInfoDto)((ApiResponse)fetchRes.Value).Body;
+        Assert.That(dto.Project.Id.ToString(), Is.EqualTo(projectId));
+        Assert.That(dto.Folders.Count, Is.EqualTo(1));
+        Assert.That(dto.Folders.First().Id.ToString, Is.EqualTo(folderId));
+        Assert.That(dto.Resources.Count, Is.EqualTo(1));
+        Assert.That(dto.Resources.First().Id, Is.EqualTo(resourceId));
+
+        // Then check if fetching content from the folder in root goes correctly
+        fetchRes = (ObjectResult)await _controller.Info(folderId);
+        dto = (ProjectInfoDto)((ApiResponse)fetchRes.Value).Body;
+        Assert.That(dto.Project.Id.ToString(), Is.EqualTo(folderId));
+        Assert.That(dto.Folders.Count, Is.EqualTo(0));
+        Assert.That(dto.Resources.Count, Is.EqualTo(1));
+        Assert.That(dto.Resources.First().Id, Is.EqualTo(resourceId2));
+    }
     #endregion
 
     #region Updating projects
@@ -499,7 +559,7 @@ public class ProjectControllerTests : TestBase
 
         ObjectResult updateRes = (ObjectResult)await _controller.Update(projectId, testDict);
         Assert.That(updateRes.StatusCode, Is.EqualTo(200));
-        Assert.That(Context.Projects.Count() == 1);
+        Assert.That(Context.Projects.Count, Is.EqualTo(1));
 
         Project updated = await _projectManager.GetProjectAsync(projectId);
         Assert.That(updated.Title == newValue.ToString());
@@ -523,7 +583,7 @@ public class ProjectControllerTests : TestBase
 
         ObjectResult updateRes = (ObjectResult)await _controller.Update(projectId, testDict);
         Assert.That(updateRes.StatusCode, Is.EqualTo(200));
-        Assert.That(Context.Projects.Count() == 1);
+        Assert.That(Context.Projects.Count, Is.EqualTo(1));
 
         Project updated = await _projectManager.GetProjectAsync(projectId);
         Assert.That(updated.Description == newValue.ToString());
@@ -554,7 +614,7 @@ public class ProjectControllerTests : TestBase
 
         ObjectResult updateRes = (ObjectResult)await _controller.Update(projectId, testDict);
         Assert.That(updateRes.StatusCode, Is.EqualTo(200));
-        Assert.That(Context.Projects.Count() == 1);
+        Assert.That(Context.Projects.Count, Is.EqualTo(1));
 
         Project updated = await _projectManager.GetProjectAsync(projectId, includeProperties: ["ProjectTagRelations"]);
         Assert.That(updated.ProjectTagRelations.First().TagId == tagId);
@@ -589,7 +649,7 @@ public class ProjectControllerTests : TestBase
 
         ObjectResult updateRes = (ObjectResult)await _controller.Update(projectId, testDict);
         Assert.That(updateRes.StatusCode, Is.EqualTo(200));
-        Assert.That(Context.Projects.Count() == 1);
+        Assert.That(Context.Projects.Count, Is.EqualTo(1));
 
         Project updated = await _projectManager.GetProjectAsync(projectId, includeProperties: ["ProjectCreatorRelations"]);
         Assert.That(updated.ProjectCreatorRelations.First().CreatorId == userId);
@@ -636,7 +696,7 @@ public class ProjectControllerTests : TestBase
 
         ObjectResult updateRes = (ObjectResult)await _controller.Update(projectId, testDict);
         Assert.That(updateRes.StatusCode, Is.EqualTo(200));
-        Assert.That(Context.Projects.Count() == 1);
+        Assert.That(Context.Projects.Count, Is.EqualTo(1));
 
         Project updated = await _projectManager.GetProjectAsync(projectId, includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations"]);
         Assert.That(updated.ProjectTagRelations.First().TagId == tagId);
@@ -675,7 +735,7 @@ public class ProjectControllerTests : TestBase
         ObjectResult addRes = (ObjectResult)await _controller.AddFolder("Just a great folder name to put in a test that is about 10 lines", projectId);
 
         Assert.That(addRes.StatusCode, Is.EqualTo(200));
-        Assert.That(Context.ProjectFolderRelations.Count() == 1);
+        Assert.That(Context.ProjectFolderRelations.Count, Is.EqualTo(1));
         Assert.That(Context.ProjectFolderRelations.First().ChildId.ToString() == ((ApiResponse)addRes.Value).Body.ToString());
     }
 
