@@ -5,13 +5,13 @@ import { Input } from "@/components/ui/input"
 import New from "@/icons/new"
 import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { newRelationSearchResults } from "@/actions/right-sidebarActions";
+import { newRelationSearchResults, organisationRelation, personRelation, resourceRelation } from "@/actions/right-sidebarActions";
 import { Button } from "@/components/ui/button";
 
 interface NewBadgeProps
 {
     variant?: "outline" | "default" | "secondary" | "destructive";
-    type: string | null;
+    type: resourceRelation | personRelation | organisationRelation;
 }
 
 interface SearchResult {
@@ -44,7 +44,7 @@ export default function NewBadge({
             setIsLoading(true);
             try {
                 const response = await newRelationSearchResults(query, type as any, 10);
-                setSearchResults(response.body.tags || []);
+                setSearchResults(response.body || []);
             } catch (error) {
                 console.error("Search error:", error);
                 setSearchResults([]);
@@ -94,7 +94,7 @@ export default function NewBadge({
 
 
     return(
-        <Popover>
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
             <PopoverTrigger>
                 <Badge key={-1} variant={variant} style={{ width: '2.1rem', height: '2.1rem', userSelect: 'none'}} ><New style={{ width: '1.7rem', height: '1.7rem' }} className=" text-black" /></Badge>
             </PopoverTrigger>

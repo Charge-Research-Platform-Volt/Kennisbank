@@ -116,7 +116,9 @@ export function OrganisationContent()
                 <BadgeList listType="direct-resources" emptyMessage={"No resources recorded"} itemList={resources}/>
             </Expandable>
 
-            <ResourceList header="Related" resources={relatedResources}/>
+            <Expandable variant="horizontal" title="Related">
+                <BadgeList listType="related-resources" emptyMessage={"No related resources recorded"} itemList={relatedResources}/>
+            </Expandable>
 
             <Expandable variant="horizontal" title="Related Organisations">
                 <BadgeList listType="organisation-related-organisations" emptyMessage={"No organisations recorded"} itemList={organisations}/>

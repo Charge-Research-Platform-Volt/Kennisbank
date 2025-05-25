@@ -9,16 +9,16 @@ import { cookies } from "next/headers";
 
 
 // declare relation types for resource
-type resourceRelation = "authors" | "organisations" |
+export type resourceRelation = "authors" | "organisations" |
                         "regions" | "related-organisations" |
                         "related-sources" | "sources" |
                         "tags" | "related-persons" | "website" | "resource-related-resources"; 
 
 // declare relation types for persons
-type personRelation = "authored-resources" | "related-resources" | "person-related-persons" | "organisations";
+export type personRelation = "authored-resources" | "related-resources" | "person-related-persons" | "organisations";
 
 // declare relation types for organisations
-type organisationRelation = "direct-resources" | "related-resources"| "organisation-related-organisations" | "persons";
+export type organisationRelation = "direct-resources" | "related-resources"| "organisation-related-organisations" | "persons";
 
 export const getProperties = async (
     id: string,

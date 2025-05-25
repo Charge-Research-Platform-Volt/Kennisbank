@@ -111,7 +111,9 @@ export function PersonContent()
                 <BadgeList listType="authored-resources" emptyMessage={"No resources recorded"} itemList={authored}/>
             </Expandable>
 
-            <ResourceList header="Related" resources={related}/>
+            <Expandable variant="horizontal" title="Related">
+                <BadgeList listType="related-resources" emptyMessage={"No related resources recorded"} itemList={related}/>
+            </Expandable>
 
             <Expandable variant="horizontal" title="Related People">
                 <BadgeList listType="person-related-persons" emptyMessage={"No persons recorded"} itemList={persons}/>
