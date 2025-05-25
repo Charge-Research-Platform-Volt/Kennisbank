@@ -231,7 +231,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                     return BadRequest(new ApiResponse(false, "The page index is invalid"));
                 else
                 {
-                    return Ok(new ApiResponse(true, "No projects found"));
+                    return Ok(new ApiResponse(true, "No projects found", new ProjectPageResponse([])));
                 }
             }
 
@@ -243,7 +243,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                 return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", new ProjectPageResponse(projects, dto.PageIndex, dto.PageSize, pageCount)));
             }
 
-            return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", projects));
+            return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", new ProjectPageResponse(projects)));
         }
 
         catch (Exception e)
@@ -744,7 +744,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
         if (!string.IsNullOrEmpty(dto.SearchQuery))
         {
-            predicate = PredicateBuilder.AddAnd(predicate, project => project.Title.Contains(dto.SearchQuery));
+            predicate = PredicateBuilder.AddAnd(predicate, project => project.Title.ToUpper().Contains(dto.SearchQuery.ToUpper()));
         }
 
         if (dto.Tags != null)

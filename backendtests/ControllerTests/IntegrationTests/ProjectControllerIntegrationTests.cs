@@ -103,6 +103,17 @@ public class ProjectControllerTests : TestBase
         Creators = []
     };
 
+    private static ProjectCreateDto ValidProject2 = new()
+    {
+        Title = "The (second) most valid project ever",
+        Description = "With a (less) GREAT description",
+        CreationDate = DateTime.UtcNow,
+        DeletionDate = DateTime.UtcNow,
+        ProjectType = "root",
+        Tags = [],
+        Creators = []
+    };
+
     private static ProjectCreateDto NoTitleProject = new()
     {
         Title = "",
@@ -427,9 +438,429 @@ public class ProjectControllerTests : TestBase
     #endregion
 
     #region Fetch Projects
-    // fetch fail
-    // fetch success without paging
-    // fetch success with paging
+
+    [Test]
+    [Description("Get function returns all projects when no filters are applied")]
+    public async Task ListProjects_NoFilters_ReturnsAllProjects()
+    {
+        // Add a project and a folder to test on
+        ObjectResult res = (ObjectResult)await _controller.Create(ValidProject);
+        ApiResponse response = (ApiResponse)res.Value;
+        string projectId = response.Body.ToString();
+        await _controller.Create(ValidProject2);
+        await _controller.AddFolder("NOT ROOT", projectId);
+
+        // Call list with no filters
+        FilterProjectDto filterOptions = new FilterProjectDto();
+        OkObjectResult? result = await _controller.List(filterOptions) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+
+        response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+
+        ProjectPageResponse projectPageResponse = (ProjectPageResponse)response.Body;
+        Project[] projects = projectPageResponse.Projects;
+        Assert.That(projects, Is.Not.Null);
+        Assert.That(projects.Length, Is.EqualTo(2));
+        Assert.That(projects.Select(t => t.Title), Does.Contain("The most valid project ever"));
+        Assert.That(projects.Select(t => t.Title), Does.Contain("The (second) most valid project ever"));
+    }
+
+    [Test]
+    [Description("Get function returns empty array when no projects exist")]
+    public async Task GetProjects_NoProjects_ReturnsEmptyArray()
+    {
+        // Call List with no filters
+        FilterProjectDto filterOptions = new FilterProjectDto();
+        OkObjectResult? result = await _controller.List(filterOptions) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        ProjectPageResponse tagPageResponse = (ProjectPageResponse)response.Body;
+
+        Project[] projects = tagPageResponse.Projects;
+        Assert.That(projects, Is.Not.Null);
+        Assert.That(projects.Length, Is.EqualTo(0));
+    }
+
+    [Test]
+    [Description("Get function with paging returns correct page of projects")]
+    public async Task GetProjects_WithPaging_ReturnsCorrectPage()
+    {
+        // Add 25 projects
+        for (int i = 1; i <= 25; i++)
+        {
+            await _controller.Create(new ProjectCreateDto
+            {
+                Title = $"Project {i}",
+                CreationDate = DateTime.UtcNow,
+                DeletionDate = DateTime.UtcNow,
+                ProjectType = "root"
+            });
+        }
+
+        // Request second page with 10 items per page
+        FilterProjectDto filterOptions = new FilterProjectDto
+        {
+            UsePaging = true,
+            PageIndex = 2,
+            PageSize = 10
+        };
+
+        OkObjectResult? result = await _controller.List(filterOptions) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+
+        ProjectPageResponse projectPageResponse = (ProjectPageResponse)response.Body;
+        Project[] projects = projectPageResponse.Projects;
+        Assert.That(projects, Is.Not.Null);
+        Assert.That(projects.Length, Is.EqualTo(10));
+        Assert.That(projects[0].Title, Is.EqualTo("Project 11"));
+        Assert.That(projects[9].Title, Is.EqualTo("Project 20"));
+    }
+
+    [Test]
+    [Description("Get function with paging returns partial page of projects when there aren't enough items")]
+    public async Task GetProjects_WithPaging_ReturnsPartialPage_WhenNotEnoughItems()
+    {
+        // Add 5 projects
+        for (int i = 1; i <= 5; i++)
+        {
+            await _controller.Create(new ProjectCreateDto
+            {
+                Title = $"Project {i}",
+                CreationDate = DateTime.UtcNow,
+                DeletionDate = DateTime.UtcNow,
+                ProjectType = "root"
+            });
+        }
+
+        // Request first page with 10 items per page
+        FilterProjectDto filterOptions = new FilterProjectDto
+        {
+            UsePaging = true,
+            PageIndex = 1,
+            PageSize = 10
+        };
+
+        OkObjectResult? result = await _controller.List(filterOptions) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+
+        ProjectPageResponse projectPageResponse = (ProjectPageResponse)response.Body;
+        Project[] projects = projectPageResponse.Projects;
+        Assert.That(projects, Is.Not.Null);
+        Assert.That(projects.Length, Is.EqualTo(5));
+        Assert.That(projects[0].Title, Is.EqualTo("Project 1"));
+        Assert.That(projects[4].Title, Is.EqualTo("Project 5"));
+    }
+
+    [Test]
+    [Description("Get function with paging returns bad request if page index is invalid")]
+    public async Task GetProjects_WithPaging_Returns400_WithInvalidPageIndex()
+    {
+        // Add 5 projects
+        for (int i = 1; i <= 5; i++)
+        {
+            await _controller.Create(new ProjectCreateDto
+            {
+                Title = $"Project {i}",
+                CreationDate = DateTime.UtcNow,
+                DeletionDate = DateTime.UtcNow,
+                ProjectType = "root"
+            });
+        }
+
+        // Request third page
+        FilterProjectDto filterOptions = new FilterProjectDto
+        {
+            UsePaging = true,
+            PageIndex = 3,
+            PageSize = 10
+        };
+
+        BadRequestObjectResult? result = await _controller.List(filterOptions) as BadRequestObjectResult;
+
+        // Assert
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+    }
+
+    [Test]
+    [Description("Get function with paging returns bad request if the filter is not correct")]
+    public async Task GetProjects_WithPaging_Returns400_WithInvalidFilterParams()
+    {
+        // Request page 0
+        FilterProjectDto filterOptions = new FilterProjectDto
+        {
+            UsePaging = true,
+            PageIndex = 0,
+            PageSize = 15
+        };
+
+        BadRequestObjectResult? result = await _controller.List(filterOptions) as BadRequestObjectResult;
+
+        // Assert
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+
+        // Request size 0
+        filterOptions = new FilterProjectDto
+        {
+            UsePaging = true,
+            PageIndex = 1,
+            PageSize = 0
+        };
+
+        result = await _controller.List(filterOptions) as BadRequestObjectResult;
+
+        // Assert again
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+    }
+
+    [Test]
+    [Description("Get function filters correctly on projects given tags")]
+    public async Task GetProjects_FiltersCorrectly_UsingTags()
+    {
+        TagCreateDto newTag = new()
+        {
+            Name = "Amazing tag",
+            CreatedBy = _regularUserId.ToString()
+        };
+
+        Guid tagId = await _resourceManager.CreateTagAsync(newTag);
+
+        // Create a project with this tag and one without
+        ObjectResult res = (ObjectResult)await _controller.Create(new ProjectCreateDto
+        {
+            Title = "test project",
+            CreationDate = DateTime.UtcNow,
+            DeletionDate = DateTime.UtcNow,
+            ProjectType = "root",
+            Tags = [tagId.ToString()]
+        });
+
+        await _controller.Create(ValidProject2);
+        FilterProjectDto filterOptions = new FilterProjectDto
+        {
+            Tags = [tagId]
+        };
+
+        OkObjectResult? result = await _controller.List(filterOptions) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+
+        ProjectPageResponse projectPageResponse = (ProjectPageResponse)response.Body;
+        Project[] projects = projectPageResponse.Projects;
+        Assert.That(projects, Is.Not.Null);
+        Assert.That(projects.Length, Is.EqualTo(1));
+        Assert.That(projects[0].Title, Is.EqualTo("test project"));
+    }
+
+    [Test]
+    [Description("Get function filters correctly on projects given creators")]
+    public async Task GetProjects_filtersCorrectly_UsingCreators()
+    {
+        // We need the custom user again since it is neccesary for a user being in the database
+        User creatorUser = new User { Email = "test@test.nl", UserName = "test@test.nl" };
+        await _userManager.CreateAsync(creatorUser, "Test123!");
+        string userId = Context.Users.First().Id;
+
+        // Create a project with this creator and one without
+        ObjectResult res = (ObjectResult)await _controller.Create(new ProjectCreateDto
+        {
+            Title = "test project",
+            CreationDate = DateTime.UtcNow,
+            DeletionDate = DateTime.UtcNow,
+            ProjectType = "root",
+            Creators = [userId.ToString()]
+        });
+
+        await _controller.Create(ValidProject2);
+
+        FilterProjectDto filterOptions = new FilterProjectDto
+        {
+            CreatedBy = userId.ToString()
+        };
+
+        OkObjectResult? result = await _controller.List(filterOptions) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+
+        ProjectPageResponse projectPageResponse = (ProjectPageResponse)response.Body;
+        Project[] projects = projectPageResponse.Projects;
+        Assert.That(projects, Is.Not.Null);
+        Assert.That(projects.Length, Is.EqualTo(1));
+        Assert.That(projects[0].Title, Is.EqualTo("test project"));
+    }
+
+    [Test]
+    [Description("Get function filters correctly on projects given dates to filter between")]
+    public async Task GetProjects_filtersCorrectly_UsingDateTime()
+    {
+        // Create a project with some date 10 years ago and one with current date
+        DateTime creationDate = DateTime.Parse("Jan 31, 2009").ToUniversalTime();
+        ObjectResult res = (ObjectResult)await _controller.Create(new ProjectCreateDto
+        {
+            Title = "test project",
+            CreationDate = creationDate,
+            DeletionDate = DateTime.UtcNow,
+            ProjectType = "root",
+        });
+
+        await _controller.Create(ValidProject2);
+
+        FilterProjectDto filterOptions = new FilterProjectDto
+        {
+            StartDate = DateTime.Parse("Jan 1, 2009").ToUniversalTime(),
+            EndDate = DateTime.Parse("Feb 1, 2009").ToUniversalTime()
+        };
+
+        OkObjectResult? result = await _controller.List(filterOptions) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+
+        ProjectPageResponse projectPageResponse = (ProjectPageResponse)response.Body;
+        Project[] projects = projectPageResponse.Projects;
+        Assert.That(projects, Is.Not.Null);
+        Assert.That(projects.Length, Is.EqualTo(1));
+        Assert.That(projects[0].Title, Is.EqualTo("test project"));
+    }
+
+    [Test]
+    [Description("Get function filters correctly on projects given a search query to filter on")]
+    public async Task GetProjects_filtersCorrectly_UsingSearchQuery()
+    {
+        await _controller.Create(ValidProject);
+        await _controller.Create(ValidProject2);
+
+        FilterProjectDto filterOptions = new FilterProjectDto
+        {
+            SearchQuery = "ThE MoSt"
+        };
+
+        OkObjectResult? result = await _controller.List(filterOptions) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+
+        ProjectPageResponse projectPageResponse = (ProjectPageResponse)response.Body;
+        Project[] projects = projectPageResponse.Projects;
+        Assert.That(projects, Is.Not.Null);
+        Assert.That(projects.Length, Is.EqualTo(1));
+        Assert.That(projects[0].Title, Is.EqualTo(ValidProject.Title));
+    }
+
+    [Test]
+    [Description("Get function filters correctly using multiple filters and paging")]
+    public async Task GetProjects_filtersCorrectly_UsingMultiple_AndPaging()
+    {
+        // We need the custom user again since it is neccesary for a user being in the database
+        User creatorUser = new User { Email = "test@test.nl", UserName = "test@test.nl" };
+        await _userManager.CreateAsync(creatorUser, "Test123!");
+        string userId = Context.Users.First().Id;
+
+        TagCreateDto newTag = new()
+        {
+            Name = "Amazing tag",
+            CreatedBy = _regularUserId.ToString()
+        };
+
+        Guid tagId = await _resourceManager.CreateTagAsync(newTag);
+
+        // Add 25 projects, giving uneven numbered projects the same tag
+        for (int i = 1; i <= 25; i++)
+        {
+            if (i % 2 == 0)
+            {
+                await _controller.Create(new ProjectCreateDto
+                {
+                    Title = $"Project {i}",
+                    CreationDate = DateTime.UtcNow,
+                    DeletionDate = DateTime.UtcNow,
+                    ProjectType = "root",
+                    Creators = [userId]
+                });
+            }
+            else
+            {
+                await _controller.Create(new ProjectCreateDto
+                {
+                    Title = $"Project {i}",
+                    CreationDate = DateTime.UtcNow,
+                    DeletionDate = DateTime.UtcNow,
+                    ProjectType = "root",
+                    Tags = [tagId.ToString()],
+                    Creators = [userId]
+                });
+            }
+        }
+
+        // Search on tag + creator + search query of starting with 1
+        // Returns 1, 11, 13, 15, 17 and 19
+
+        // Request second page with 10 items per page
+        FilterProjectDto filterOptions = new FilterProjectDto
+        {
+            UsePaging = true,
+            PageIndex = 2,
+            PageSize = 3,
+            SearchQuery = "PrOjeCt 1",
+            Tags = [tagId],
+            CreatedBy = userId
+        };
+
+        OkObjectResult? result = await _controller.List(filterOptions) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+
+        ApiResponse response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+
+        ProjectPageResponse projectPageResponse = (ProjectPageResponse)response.Body;
+        Project[] projects = projectPageResponse.Projects;
+        Assert.That(projects, Is.Not.Null);
+        Assert.That(projects.Length, Is.EqualTo(3));
+        Assert.That(projects[0].Title, Is.EqualTo("Project 15"));
+        Assert.That(projects[2].Title, Is.EqualTo("Project 19"));
+    }
+
     #endregion
 
     #region Get Content
@@ -468,7 +899,7 @@ public class ProjectControllerTests : TestBase
         ApiResponse response = (ApiResponse)res.Value;
         string projectId = response.Body.ToString();
 
-        ObjectResult addRes = (ObjectResult)await _controller.AddFolder("Just a great folder name to put in a test that is about 10 lines", projectId); // create folder in project
+        ObjectResult addRes = (ObjectResult)await _controller.AddFolder("folder", projectId); // create folder in project
         ApiResponse addResp = (ApiResponse)addRes.Value;
         string folderId = addResp.Body.ToString();
 
