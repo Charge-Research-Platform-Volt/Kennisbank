@@ -117,10 +117,9 @@ export const newRelationSearchResults = async (
         pageSize: K,
         searchQuery: searchQuery,
         onlyOwnedByCurrentUser: false,
-        includeUsageCount: false,
+        includeUsageCount: true,
         includeCanEditAndDelete: false,
-        sortDescending: true,
-        weightedSort: "IsStandardized:2,IsApproved:1,UsageCount:0.5",
+        sortDescending: false,
       }
 
     const cookieHeader : ReadonlyRequestCookies = await cookies();
