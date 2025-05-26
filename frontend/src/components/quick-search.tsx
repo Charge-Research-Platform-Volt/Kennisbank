@@ -26,7 +26,7 @@ export default function QuickSearch({ minimize = false }: { minimize?: boolean }
 
   // Keyboard shortcut
   useHotkeys("mod+k", () => setIsOpen(true), { preventDefault: true });
-  const shortcut = navigator.userAgent.includes("Mac") ? "⌘ + K" : "Ctrl + K";
+  const shortcut = navigator.userAgent.includes("Mac") ? "Cmd + K" : "Ctrl + K";
 
   // Fetch search results
   const fetchSearchResults = async (query?: string) => {
