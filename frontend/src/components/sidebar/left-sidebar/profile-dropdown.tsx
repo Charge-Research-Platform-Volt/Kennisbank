@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 
 /**
@@ -51,6 +51,7 @@ export default function ProfileDropdown({ handleLogoutAction, userEmail = "", us
         <DropdownMenuItem onClick={() => router.push("/account")} className="cursor-pointer">
           Account settings
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogoutAction} className="cursor-pointer">
           Log out
         </DropdownMenuItem>
