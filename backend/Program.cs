@@ -90,6 +90,7 @@ namespace KnowledgeBank
             });
 
             builder.Services.AddHostedService<TrashbinCleanupService>(); // Add the background service for cleaning up the trashbin
+            builder.Services.AddHostedService<InvitationsCleanupService>(); // Add the background service for cleaning up invitations
             
             builder.WebHost.ConfigureKestrel(serverOptions =>
             {
