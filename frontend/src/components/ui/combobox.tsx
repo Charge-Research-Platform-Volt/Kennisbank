@@ -13,15 +13,22 @@ export interface ComboboxProps
     id?: string;
     className?: string;
     options: SelectOption[];
+    value?: string[];
     hasSearch?: boolean;
     multiSelect?: boolean;
     enabledByDefault?: boolean;
     onValueChange?: (values: string[]) => void;
 }
 
-export function Combobox({options, hasSearch = false, multiSelect = false, enabledByDefault = false, onValueChange, className, id}: ComboboxProps) {
+export function Combobox({options, hasSearch = false, multiSelect = false, enabledByDefault = false, onValueChange, className, id, value}: ComboboxProps) {
     const [open, setOpen] = React.useState(false);
-    const [selectedValues, setSelectedValues] = React.useState<string[]>(enabledByDefault ? options.map((option) => option.value) : []);
+    const [selectedValues, setSelectedValues] = React.useState<string[]>(value ? value : enabledByDefault ? options.map((option) => option.value) : []);
+    
+    React.useEffect(() => 
+    {
+        if (value !== undefined)
+            setSelectedValues(value);
+    }, [value]);
     
     React.useEffect(() => 
     {
