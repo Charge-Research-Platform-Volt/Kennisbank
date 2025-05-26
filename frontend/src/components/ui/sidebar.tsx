@@ -22,7 +22,7 @@ export function Sidebar({
 
   return (
     <div
-      className="group peer text-sidebar-foreground md:block overflow-y-auto"
+      className="group peer text-sidebar-foreground md:block"
       data-state={state}
       data-collapsible={state === "collapsed" ? collapsible : ""}
       data-variant="sidebar"
