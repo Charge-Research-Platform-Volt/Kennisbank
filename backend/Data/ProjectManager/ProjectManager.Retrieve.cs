@@ -108,7 +108,7 @@ namespace KnowledgeBank.Data
         }
 
         private readonly Expression<Func<Project, object>> projectDefaultOrderBy = project => project.CreationDate;
-        private const bool projectDefaultOrderDescending = true;
+        private const bool projectDefaultOrderDescending = false;
 
         #endregion
 

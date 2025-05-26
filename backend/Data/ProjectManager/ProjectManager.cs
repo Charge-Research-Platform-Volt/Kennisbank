@@ -38,7 +38,7 @@ namespace KnowledgeBank.Data
             // Commit changes from transaction to database
             if (database.Database.CurrentTransaction != null) 
             {
-                await database.SaveResourceChangesAsync();
+                await database.SaveProjectChangesAsync();
                 await database.Database.CurrentTransaction.CommitAsync();
             }
         }

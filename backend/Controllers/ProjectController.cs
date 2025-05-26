@@ -49,6 +49,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return BadRequest(new ApiResponse(false, "Title is required"));
         }
 
+        // If the project type is empty or is not root, it is not a new project, but a folder or something else
         if (string.IsNullOrEmpty(dto.ProjectType) || dto.ProjectType != "root")
         {
             Log.Error("Type invalid");
@@ -64,34 +65,45 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return Conflict(new ApiResponse(false, "Project already exists."));
         }
 
+        // If tags are added, make sure that they exist
+        if (dto.Tags != null && dto.Tags.Length > 0)
+        {
+            foreach (string tagId in dto.Tags)
+            {
+                if (!await resourceManager.TagExistsAsync(tagId))
+                {
+                    Log.Error("One or more tags do not exist");
+                    return BadRequest(new ApiResponse(false, "One or more tags do not exist"));
+                }
+            }
+        }
+
         // Add the project to the database using the ProjectManager class
-        try
-        {
-            // Create the project
-            Guid projectId = await projectManager.CreateProject(dto);
+            try
+            {
+                // Create the project
+                Guid projectId = await projectManager.CreateProject(dto);
 
-            // Adding the project was successful
-            Log.Information("New project added to database.");
-            return Ok(new ApiResponse(true, "Project added successfully.", projectId));
-        }
-        catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
-        {
-            // The project already exists
-            Log.Error(e, "Project already exists.");
-            return Conflict(new ApiResponse(false, "Project already exists."));
-        }
-        catch (Exception e)
-        {
-            // Something else went wrong
-            Log.Error(e, "Failed to add project.");
-            return StatusCode(500, new ApiResponse(false, "Internal server error"));
-        }
+                // Adding the project was successful
+                Log.Information("New project added to database.");
+                return Ok(new ApiResponse(true, "Project added successfully.", projectId));
+            }
+            catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
+            {
+                // The project already exists
+                Log.Error(e, "Project already exists.");
+                return Conflict(new ApiResponse(false, "Project already exists."));
+            }
+            catch (Exception e)
+            {
+                // Something else went wrong
+                Log.Error(e, "Failed to add project.");
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
     }
-    
     #endregion
-    
-        #region Delete
 
+    #region Delete
     /// <summary>
     /// Deletes a project or folder from the database.
     /// </summary>
@@ -102,8 +114,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     [HttpDelete("delete/{projectId}")]
     [Authorize]
     [SwaggerOperation(
-            Summary = "Deletes a project.",
-            Description = "Only creators of the folder / project OR admins are able to delete it."
+            Summary = "Deletes a project (or folder).",
+            Description = "Only creators of the project / folder OR admins are able to delete it."
         )]
     [SwaggerResponse(200, "Project deleted")]
     [SwaggerResponse(400, "Bad request")]
@@ -117,7 +129,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             Log.Information("Deleting project.");
 
             // Make sure we have the required fields
-            if (string.IsNullOrEmpty(projectId))
+            if (string.IsNullOrEmpty(projectId) || !ValidityUtil.IsValidId(projectId))
             {
                 Log.Error("Id is required");
                 return BadRequest(new ApiResponse(false, "Id is required"));
@@ -141,7 +153,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                 Log.Warning("User {UserId} attempted to delete {id} without permissions.", userId, projectId);
                 return StatusCode(403, new ApiResponse(false, "User cannot delete this project or folder."));
             }
-            // Delete project / folder and all its subfolders and resources links
+            // Delete project / folder and all its subfolders and resources, creators, tags links
             if (await projectManager.DeleteProject(projectId))
                 return Ok(new ApiResponse(true, "Project deleted."));
 
@@ -154,13 +166,13 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return StatusCode(500, new ApiResponse(false, "Internal server error."));
         }
     }
-    
+
     #endregion
-    
+
     #region List
 
     /// <summary>
-    /// Retrieves projects, given a query, and a dto to filter on.
+    /// Retrieves projects, given a dto to filter on.
     /// The query is a string that is used to search for projects by title.
     /// </summary>
     /// <param name="dto"></param>
@@ -170,7 +182,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     [HttpPost("list")]
     [SwaggerOperation(
         Summary = "Retrieves projects",
-        Description = "Retrieves projects, given a query, and a dto to filter on"
+        Description = "Retrieves projects, given a dto to filter on"
     )]
     [SwaggerResponse(200, "Projects fetched")]
     [SwaggerResponse(400, "Bad request")]
@@ -189,6 +201,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                     return BadRequest(new ApiResponse(false, "PAge size cannot be lower than 1."));
             }
 
+            // Build the predicate used to filter the projects by giving it to the BuildPredicate function
             Expression<Func<Project, bool>> predicate = BuildPredicate(dto);
             
             Project[] projects = [];
@@ -221,22 +234,24 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
             if (dto.UsePaging)
             {
-                // calculate the total number of projects
+                // Calculate the total number of projects and return a ProjectPageResponse
                 int totalCount = await projectManager.ProjectCount(predicate);
                 int pageCount = (int)Math.Ceiling((double)totalCount / dto.PageSize);
                 return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", new ProjectPageResponse(projects, dto.PageIndex, dto.PageSize, pageCount)));
             }
-            return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", projects));
+
+            return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", new ProjectPageResponse(projects)));
         }
+
         catch (Exception e)
         {
             Log.Error(e, "Failed to fetch folders");
             return StatusCode(500, new ApiResponse(false, "Internal server error"));
         }
     }
-    
-    #endregion 
-    
+
+    #endregion
+
     #region Update
 
     /// <summary>
@@ -265,7 +280,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             Log.Information("Updating project.");
 
             // Make sure we have the required fields
-            if (string.IsNullOrEmpty(projectId))
+            if (!ValidityUtil.IsValidId(projectId))
             {
                 Log.Error("Id is required");
                 return BadRequest(new ApiResponse(false, "Id is required"));
@@ -331,11 +346,11 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return StatusCode(500, new ApiResponse(false, "Internal server error."));
         }
     }
-    
+
     #endregion
-    
+
     #region Info
-    
+
     /// <summary>
     /// Gets the project and its direct children (resources and folders).
     /// </summary>
@@ -358,15 +373,15 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         try
         {
             Project? project = await projectManager.GetProjectChildrenAsync(id);
-                
+
             // Check if the project was found
             if (project == null)
                 return NotFound(new ApiResponse(false, "Project not found."));
-            
+
             // Extract the resources and folders from the project
             List<Resource?>? resources = project.ProjectResourcesRelations?.Select(r => r.Resource).ToList() ?? [];
             List<Project?>? folders = project.ChildFolders?.Select(f => f.ChildFolder).ToList() ?? [];
-                
+
             // Create the DTO
             ProjectInfoDto projectInfo = new()
             {
@@ -388,12 +403,11 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return StatusCode(500, new ApiResponse(false, "Internal server error.", e.Message));
         }
     }
-    
+
     #endregion
 
-    
     #region Add Folder
-    
+
     /// <summary>
     /// Adds a new folder given a name and parent.
     /// </summary>
@@ -416,7 +430,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         Log.Information("Creating a new folder");
 
         // Make sure we have the required fields
-        if (string.IsNullOrEmpty(folderName))
+        if (string.IsNullOrEmpty(folderName) || !ValidityUtil.IsValidId(parentId))
         {
             Log.Error("Title is required");
             return BadRequest(new ApiResponse(false, "Title is required"));
@@ -433,7 +447,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
         // Get parent project and user ID
         Project? parent = await projectManager.GetProjectAsync(parentId, includeProperties: "ProjectCreatorRelations");
-        
+
         if (parent == null)
         {
             Log.Error("Parent component does not exist.");
@@ -463,7 +477,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
         try
         {
-            // create folder and add to parent with a relation
+            // Create folder and add to parent with a relation
             Guid folderId = await projectManager.CreateProject(newFolder);
             await projectManager.AddFolderToProjectAsync(parentId, folderId);
 
@@ -478,9 +492,9 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return StatusCode(500, new ApiResponse(false, "Internal server error"));
         }
     }
-    
+
     #endregion
-    
+
     #region Add Resource
 
     /// <summary>
@@ -499,11 +513,14 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     [SwaggerResponse(200, "Resource added")]
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(404, "Project / Resource not found")]
+    [SwaggerResponse(409, "Resource already linked")]
     [SwaggerResponse(500, "Internal server error")]
     public async Task<IActionResult> AddResource(string projectId, string resourceId)
     {
         Log.Information("Adding resource to project");
-        if (string.IsNullOrEmpty(projectId) || string.IsNullOrEmpty(resourceId))
+
+        // If the project or resource id is invalid, abort
+        if (!ValidityUtil.IsValidId(projectId) || !ValidityUtil.IsValidId(resourceId))
         {
             Log.Error("Id of either project or resource invalid");
             return BadRequest(new ApiResponse(false, "Id missing."));
@@ -524,15 +541,24 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                 return NotFound(new ApiResponse(false, "Resource not found."));
             }
 
+            Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
+
+            // If there is somehow no user found calling this action, abort
+            if (userId == null)
+            {
+                Log.Error("Failed to add folder.");
+                return StatusCode(500, new ApiResponse(false, "Internal server error"));
+            }
+
             // Also abort if the link already exists
-            //TODO: this could be moved to projectmanager.info probably, but for now it's fine
             if ((await projectManager.GetAllResources(predicate: relation => relation.ProjectId == Guid.Parse(projectId) && relation.ResourceId == Guid.Parse(resourceId))).Length != 0)
             {
                 Log.Error("Resource-project link already exists.");
-                return BadRequest(new ApiResponse(false, "Resource already in project / folder."));
+                return Conflict(new ApiResponse(false, "Resource already in project / folder."));
             }
 
-            await projectManager.AddResourceToProjectAsync(projectId, resourceId); //TODO: add added-by property to function with deletes
+            // Now userId always has a value so we can safely take it
+            await projectManager.AddResourceToProjectAsync(projectId, resourceId, userId.Value);
             return Ok(new ApiResponse(true, "Successfully added resource to project"));
         }
 
@@ -543,9 +569,9 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return StatusCode(500, new ApiResponse(false, "Internal server error"));
         }
     }
-    
+
     #endregion
-    
+
     #region Remove Resource
 
     /// <summary>
@@ -574,7 +600,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             Log.Information("Deleting resource from project.");
 
             // Make sure we have the required fields
-            if (string.IsNullOrEmpty(projectId) || string.IsNullOrEmpty(resourceId))
+            if (!ValidityUtil.IsValidId(projectId) || !ValidityUtil.IsValidId(resourceId))
             {
                 Log.Error("Id is required");
                 return BadRequest(new ApiResponse(false, "Id is required"));
@@ -600,7 +626,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             }
 
             // Check if user is creator of relation or creator of folder where the resource is in
-            bool userValidation = (project.ProjectResourcesRelations?.Any(relation => relation.AddedBy == userId) ?? false) || ProjectAuthorizationLevel(userId, project) == "unauthorized";
+            bool userValidation = (project.ProjectResourcesRelations?.Any(relation => relation.AddedBy == userId) ?? false) || !(ProjectAuthorizationLevel(userId, project) == "unauthorized");
 
             // Check if the user has permission to delete this project
             if (!userIsAdmin && !userValidation)
@@ -622,11 +648,11 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             return StatusCode(500, new ApiResponse(false, "Internal server error."));
         }
     }
-    
+
     #endregion
-    
+
     #region Helper Methods
-    
+
     // Keep in mind, updates to tags and creators are done by just supplying the new tags + creators, so just delete the old ones and make new links
     private async Task UpdateProperty(Project project, string property, object newValue)
     {
@@ -649,9 +675,14 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         });
     }
 
+    /// <summary>
+    /// Gets the user authorization level for a project, given the project and the user
+    /// </summary>
+    /// <param name="user">The user id to verify the authorization level</param>
+    /// <param name="project">The project id to verify the authorization level</param>
+    /// <returns>authorization level</returns>
     private string ProjectAuthorizationLevel(Guid? user, Project project)
     {
-        // TODO: make constants of these
         if (user == null)
             return "unauthorized";
         if (User.IsInRole("admin"))
@@ -662,13 +693,20 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         return level;
     }
 
+    /// <summary>
+    /// Checks if update is valid or not
+    /// </summary>
+    /// <param name="prop">Property of update</param>
+    /// <param name="val">Value of update</param>
+    /// <returns>Boolean indicating whether or not the update is valid</returns>
+    /// <exception cref="ArgumentException">Thrown if the property itself is invalid</exception>
     private bool ValidUpdate(string prop, object val)
     {
         switch (prop)
         {
             case "title":
             case "description":
-                return string.IsNullOrEmpty(val.ToString());
+                return !string.IsNullOrEmpty(val.ToString());
             case "creators":
             case "tags":
                 return ((List<string>)val).Count > 0;
@@ -678,6 +716,11 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         ;
     }
 
+    /// <summary>
+    /// Builds a predicate using a FilterProjectDto, similar to the function of the same name in TagsController
+    /// </summary>
+    /// <param name="dto">Dto used for constructing the predicate</param>
+    /// <returns>Predicate built from the dto</returns>
     private Expression<Func<Project, bool>> BuildPredicate(FilterProjectDto dto)
     {
         Expression<Func<Project, bool>>? predicate = null;
@@ -695,7 +738,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
         if (!string.IsNullOrEmpty(dto.SearchQuery))
         {
-            predicate = PredicateBuilder.AddAnd(predicate, project => project.Title.Contains(dto.SearchQuery));
+            predicate = PredicateBuilder.AddAnd(predicate, project => project.Title.ToUpper().Contains(dto.SearchQuery.ToUpper()));
         }
 
         if (dto.Tags != null)
