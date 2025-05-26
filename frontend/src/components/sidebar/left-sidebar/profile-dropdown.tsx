@@ -20,10 +20,14 @@ export default function ProfileDropdown({ handleLogoutAction, userEmail = "", us
   const router = useRouter();
 
   useEffect(() => {
-    if (profileButtonRef.current) {
-      setProfileButtonWidth(profileButtonRef.current.offsetWidth);
-    }
-  }, []);
+    const timeoutId = setTimeout(() => {
+      if (profileButtonRef.current) {
+        setProfileButtonWidth(profileButtonRef.current.offsetWidth);
+      }
+    }, 150);
+
+    return () => clearTimeout(timeoutId);
+  }, [minimize]);
 
   return (
     <DropdownMenu>
@@ -44,10 +48,6 @@ export default function ProfileDropdown({ handleLogoutAction, userEmail = "", us
 
       {/* Dropdown menu */}
       <DropdownMenuContent side="top" style={{ width: profileButtonWidth }}>
-        {/* <DropdownMenuItem className="cursor-pointer">
-                Profile
-            </DropdownMenuItem>
-            <DropdownMenuSeparator /> */}
         <DropdownMenuItem onClick={() => router.push("/account")} className="cursor-pointer">
           Account settings
         </DropdownMenuItem>
