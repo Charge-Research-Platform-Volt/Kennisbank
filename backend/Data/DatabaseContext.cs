@@ -38,6 +38,7 @@ namespace KnowledgeBank.Data
         
         
         public DbSet<ResourceGridItem> ResourceGridItems { get; set; }
+        public DbSet<ResourceGridSearchResult> ResourceGridSearchResults { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -104,6 +105,12 @@ namespace KnowledgeBank.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.ToView("resourcegridview");
+            });
+
+            modelBuilder.Entity<ResourceGridSearchResult>(entity =>
+            {
+                entity.HasNoKey();
+                entity.ToView(null);
             });
 
             base.OnModelCreating(modelBuilder);

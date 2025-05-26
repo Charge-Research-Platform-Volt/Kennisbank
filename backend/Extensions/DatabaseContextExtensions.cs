@@ -45,7 +45,14 @@ public static class DatabaseContextExtensions
                         WHEN ""filetype"" = 'website' THEN 'website'
                         WHEN ""file-ext"" = NULL THEN 'document'
                         ELSE ""file-ext""
-                    END as ""FileType""
+                    END as ""FileType"",
+                    ""creation-date"" as ""CreationDate"",
+                    
+                    -- Create search vector from multiple fields
+                    to_tsvector(
+                        coalesce(""title"", '') || ' ' ||
+                        coalesce(""description"", '') || ' '
+                    ) as ""SearchVector""
                 FROM ""resources""
                 WHERE ""archived"" = false
                 
@@ -56,7 +63,16 @@ public static class DatabaseContextExtensions
                     ""name"" as ""Name"",
                     NULL as ""PublicationDate"",
                     'person' as ""Type"",
-                    'person' as ""FileType""
+                    'person' as ""FileType"",
+                    ""creation-date"" as ""CreationDate"",
+                    
+                    -- Create search vector from multiple fields
+                    to_tsvector(
+                        coalesce(""name"", '') || ' ' ||
+                        coalesce(""description"", '') || ' ' ||
+                        coalesce(""email-address"", '') || ' ' ||
+                        coalesce(""occupation"", '') || ' '
+                    ) as ""SearchVector""
                 FROM ""persons""
                 
                 UNION ALL
@@ -66,7 +82,16 @@ public static class DatabaseContextExtensions
                     ""name"" as ""Name"",
                     NULL as ""PublicationDate"",
                     'organisation' as ""Type"",
-                    'organisation' as ""FileType""
+                    'organisation' as ""FileType"",
+                    ""creation-date"" as ""CreationDate"",
+                    
+                    -- Create search vector from multiple fields
+                    to_tsvector(
+                        coalesce(""name"", '') || ' ' ||
+                        coalesce(""description"", '') || ' ' ||
+                        coalesce(""email-address"", '') || ' ' ||
+                        coalesce(""website"", '') || ' '
+                    ) as ""SearchVector""
                 FROM ""organisations"";");
 
             // Step 3: Create indexes
@@ -78,6 +103,9 @@ public static class DatabaseContextExtensions
             
             await context.Database.ExecuteSqlRawAsync(@"
                 CREATE INDEX idx_resourcegridview_name ON ResourceGridView(""Name"");");
+                
+            await context.Database.ExecuteSqlRawAsync(@"
+                CREATE INDEX idx_resourcegridview_search ON ResourceGridView USING GIN(""SearchVector"");");
 
             // Step 4: Create refresh function
             await context.Database.ExecuteSqlRawAsync(@"

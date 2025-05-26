@@ -206,6 +206,7 @@ namespace KnowledgeBank.Data
                 Description = dto.Description,
                 EmailAddress = dto.EmailAddress,
                 Linkedin = dto.Linkedin,
+                CreationDate = DateTime.UtcNow,
             };
 
             // Add person to database
@@ -239,6 +240,7 @@ namespace KnowledgeBank.Data
                 Description = dto.Description,
                 Website = dto.Website,
                 EmailAddress = dto.EmailAddress,
+                CreationDate = DateTime.UtcNow,
             };
 
             // Add organisation to database

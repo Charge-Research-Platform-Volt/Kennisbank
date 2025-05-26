@@ -20,8 +20,6 @@ using System.Text.Json;
 using System.Buffers.Text;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
-using Azure.Storage.Blobs.Models;
-using System.Threading.Tasks;
 
 namespace KnowledgeBank.Controllers 
 {
@@ -1149,7 +1147,15 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(200, "The list of ResourceGridItems", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> GetGrid(int pageIndex = 1, int pageSize = 50) 
+        public async Task<IActionResult> GetGrid(
+            int pageIndex = 1,
+            int pageSize = 50,
+            string? query = null,
+            string? sortBy = null,
+            string? sortDirection = null,
+            string? filter_name = null,
+            string? filter_type = null
+        ) 
         {
             // Check page settings
             if (pageIndex < 1)
@@ -1160,8 +1166,14 @@ namespace KnowledgeBank.Controllers
                 
             try 
             {
-                ResourceGridItem[] items = await resourceManager.GetResourceGridItemsPageAsync(pageIndex, pageSize);
-                return Ok(new ApiResponse(true, $"Found {items.Length} items", items));
+                GridSearchResult searchResult = await resourceManager.SearchResourceGridAsync(pageIndex, pageSize, query, sortBy, sortDirection, filter_name, filter_type);
+                
+                // Add logging to debug
+                logger.Information($"Search returned {searchResult.Items?.Length ?? 0} items");
+                logger.Information($"TotalCount: {searchResult.TotalCount}");
+                logger.Information($"First item: {searchResult.Items?.FirstOrDefault()?.Name ?? "null"}");
+                
+                return Ok(new ApiResponse(true, $"Found {searchResult.Items.Length} items", searchResult));
             }
             catch (Exception e) 
             {

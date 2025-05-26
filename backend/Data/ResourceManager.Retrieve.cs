@@ -8,6 +8,7 @@ using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using System.Linq.Dynamic.Core;
+using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 
 namespace KnowledgeBank.Data
 {
@@ -1616,7 +1617,7 @@ namespace KnowledgeBank.Data
         #endregion
 
         #region Resource Grid
-        private readonly Expression<Func<ResourceGridItem, dynamic>> resourceGridDefaultOrder = rg => rg.Name;
+        private readonly Expression<Func<ResourceGridItem, dynamic>> resourceGridDefaultOrder = rg => rg.CreationDate;
         private const bool resourceGridDefaultOrderDescending = false;
         
         // Get all

@@ -22,7 +22,7 @@ function ResourcesLoader() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    async function fetchResources(pageIndex: number = 1, pageSize: number = 500): Promise<RowItem[]> 
+    async function fetchResources(pageIndex: number = 1, pageSize: number = 50): Promise<RowItem[]> 
     {
         try {
             const response = await fetch(`/api/resources/grid?pageIndex=${pageIndex}&pageSize=${pageSize}`);
@@ -81,7 +81,7 @@ export default function Page() {
                 </div>
             </div>
             <div className="h-[calc(100vh-5rem)] w-full">
-                <ResourcesLoader />  
+                <ResourcesGrid items={[]} />
             </div>
         </>
     )

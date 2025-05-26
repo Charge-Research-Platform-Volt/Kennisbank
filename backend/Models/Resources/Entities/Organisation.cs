@@ -24,6 +24,9 @@ public class Organisation
     
     [Column("email-address")]
     public string? EmailAddress { get; set; }
+    
+    [Column("creation-date")]
+    public required DateTime CreationDate { get; set; }
 
     // Navigation properties
     [JsonIgnore] public ICollection<ResourceOrganisationRelation>? ResourceOrganisationRelations { get; set; }

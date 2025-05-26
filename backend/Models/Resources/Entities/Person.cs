@@ -27,6 +27,9 @@ public class Person
     
     [Column("linkedin")]
     public string? Linkedin { get; set; }
+    
+    [Column("creation-date")]
+    public required DateTime CreationDate { get; set; }
 
     // Navigation property for the Author Resource Relation (1:m)
     [JsonIgnore] public ICollection<ResourceAuthorRelation>? ResourceAuthorRelations { get; set; }
