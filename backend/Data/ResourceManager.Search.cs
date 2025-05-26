@@ -220,16 +220,57 @@ public partial class ResourceManager
         private readonly List<string> whereConditions = new();
         private readonly List<object> parameters = new();
         private int paramIndex = 1;
+        private string? searchTerm;
         
         /// <summary>
-        /// Adds a search condition to the query
+        /// Adds a search condition to the query. This is fuzzy and will handle typos and partial matches
         /// </summary>
         /// <param name="searchTerm">The search query</param>
         /// <returns>Itself with the search condition added</returns>
         public SearchQueryBuilder AddSearchCondition(string searchTerm) 
         {
-            whereConditions.Add(@"""SearchVector"" @@ plainto_tsquery('english', {0})");
+            this.searchTerm = searchTerm;
+
+            List<string> searchConditions = new List<string>();
+
+            // Strategy 1: Exact phrase match (highest priority)
+            searchConditions.Add(@"""SearchVector"" @@ phraseto_tsquery('english', {0})");
+
+            // Strategy 2: All words must be present (websearch_to_tsquery handles quotes, AND, OR, etc.)
+            searchConditions.Add(@"""SearchVector"" @@ websearch_to_tsquery('english', {0})");
+
+            // Strategy 3: Prefix matching for partial words
+            string[] words = searchTerm.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length > 0) 
+            {
+                // Create prefix queries for each word
+                string prefixQuery = string.Join(" & ", words.Select(w => $"{w}:*"));
+                searchConditions.Add(@"""SearchVector"" @@ to_tsquery('english', {1})");
+                parameters.Add(prefixQuery);
+                paramIndex++;
+            }
+
+            // Strategy 4: Fuzzy matching using similarity
+            searchConditions.Add(@"(
+                similarity(""Name"", {" + paramIndex + @"}) > 0.3 OR
+                similarity(coalesce(""Description"", ''), {" + paramIndex + @"}) > 0.2
+            )");
             parameters.Add(searchTerm);
+            paramIndex++;
+
+            // Strategy 5: ILIKE for substring matching
+            searchConditions.Add(@"(
+                ""Name"" ILIKE {" + paramIndex + @"} OR
+                coalesce(""Description"", '') ILIKE {" + paramIndex + @"}
+            )");
+            parameters.Add($"%{searchTerm}%");
+            paramIndex++;
+
+            parameters.Add($"{searchTerm}%");
+            paramIndex++;
+            
+            whereConditions.Add($"({string.Join(" OR ", searchConditions)})");
+            parameters.Insert(0, searchTerm);
             return this;
         }
         
@@ -322,7 +363,26 @@ public partial class ResourceManager
 
             string sql = $@"
                 SELECT ""Id"", ""Name"", ""PublicationDate"", ""Type"", ""FileType"", ""CreationDate"",
-                    ts_rank(""SearchVector"", plainto_tsquery('english', {{0}})) as ""Relevance""
+                    (
+                        -- Exact phrase match gets highest score
+                        CASE WHEN ""SearchVector"" @@ phraseto_tsquery('english', {{0}}) THEN 10.0 ELSE 0.0 END +
+                        
+                        -- Full-text search relevance
+                        CASE WHEN ""SearchVector"" @@ websearch_to_tsquery('english', {{0}})
+                            THEN ts_rank(""SearchVector"", websearch_to_tsquery('english', {{0}})) * 5.0
+                            ELSE 0.0 END +
+                        
+                        -- Prefix matching
+                        CASE WHEN ""SearchVector"" @@ to_tsquery('english', {{1}})
+                            THEN ts_rank(""SearchVector"", to_tsquery('english', {{1}}))
+                            ELSE 0.0 END +
+                        
+                        -- Name similarity bonus
+                        similarity(""Name"", {{2}}) * 2.0 +
+                        
+                        -- Name starts with search term bonus
+                        CASE WHEN ""Name"" ILIKE {{4}} THEN 1.0 ELSE 0.0 END
+                    ) as ""Relevance""
                 FROM ResourceGridView
                 WHERE {whereClause}
                 ORDER BY {orderByClause}
@@ -366,7 +426,7 @@ public partial class ResourceManager
                 "type" => $@"""Type"" {direction}",
                 "publicationDate" => $@"""PublicationDate"" {direction}",
                 "creationDate" => $@"""CreationDate"" {direction}",
-                _ => $@"ts_rank(""SearchVector"", plainto_tsquery('english', {{0}})) DESC, ""CreationDate"" DESC"
+                _ => @"""Relevance"" DESC, ""CreationDate"" DESC"
             };
         }
     }
