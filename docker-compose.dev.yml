@@ -66,27 +66,27 @@ services:
       start_period: 150s
 
   # Start frontend after backend
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #     target: development
-  #     no_cache: true
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     - API_URL=${API_URL}
-  #     - NODE_ENV=development
-  #     - WATCHPACK_POLLING=true
-  #   volumes:
-  #     - ./frontend:/app
-  #     - /app/node_modules
-  #     - /app/.next
-  #   depends_on:
-  #     backend:
-  #       condition: service_healthy
-  #   networks:
-  #     - my_network
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+      no_cache: true
+    ports:
+      - "3000:3000"
+    environment:
+      - API_URL=${API_URL}
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - dev_network
   
   # Start website after backend
   # website:
