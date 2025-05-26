@@ -7,12 +7,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button";
 import { UpdateAccountDto } from "@/types/user.type";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UploadWithDto } from "@/actions/uploadActions";
 import { toast } from "sonner";
-import { Label } from "@radix-ui/react-label";
 import { RevalidatePathFromClient } from "@/utils/revalidatePathFromClient";
 import { useRouter } from "next/navigation";
+import Divider from "@/components/sidebar/divider";
 
 export const AccountInformationFormSchema = z.object(
 {
@@ -21,9 +21,21 @@ export const AccountInformationFormSchema = z.object(
     email: z.string().min(1, { message: "Email is required" }),
 });
 
+export const ChangePasswordFormSchema = z.object(
+    {
+        currentPassword: z.string().min(1, { message: "Current password is required" }),
+        newPassword: z.string().min(1, { message: "New password is required" }),
+        newPasswordRepeat: z.string().min(1, { message: "New password repeat is required" }),
+    }).refine((data) => data.newPassword === data.newPasswordRepeat, {
+        path: ["newPasswordRepeat"],
+        message: "Passwords do not match",
+    });
+
+type ChangePasswordDto = z.infer<typeof ChangePasswordFormSchema>;
 
 export default function AccountInformation({firstName, lastName, email}: {firstName: string; lastName: string; email: string}) {
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingPassword, setIsLoadingPassword] = useState(false);
     const router = useRouter();
 
     // Define the form
@@ -60,6 +72,57 @@ export default function AccountInformation({firstName, lastName, email}: {firstN
         finally
         {
             setIsLoading(false);
+        }
+    };
+
+    const formPassword = useForm<z.infer<typeof ChangePasswordFormSchema>>({
+        resolver: zodResolver(ChangePasswordFormSchema),
+        defaultValues: {
+            currentPassword: "",
+            newPassword: "",
+            newPasswordRepeat: "",
+        },
+    });
+
+    // Function to update the password match error if the new password changes
+    const newPassword = formPassword.watch("newPassword");
+    const newPasswordRepeat = formPassword.watch("newPasswordRepeat");
+    useEffect(() => {
+        if(!newPasswordRepeat) return;
+
+        if (newPassword !== newPasswordRepeat) {
+        formPassword.setError("newPasswordRepeat", {
+            type: "manual",
+            message: "Passwords do not match",
+        });
+        } else {
+        formPassword.clearErrors("newPasswordRepeat");
+        }
+    }, [newPassword, newPasswordRepeat, formPassword]);
+
+    // Function to be called when the form is submitted
+    async function onSubmitPassword(dto: ChangePasswordDto) 
+    {
+        setIsLoadingPassword(true);
+
+        try
+        {
+            await UploadWithDto("/api/auth/update-password", dto);
+            toast.success("Password updated successfully");
+        }
+        catch (error)
+        {
+            console.error("Error updating password:", error);
+            if(error instanceof Error && !error.message.toLowerCase().includes("json"))
+                toast.error(error.message);
+            else if (typeof error === "string" && !error.toLowerCase().includes("json"))
+                toast.error(error);
+            else
+                toast.error("Failed to update password");
+        }
+        finally
+        {
+            setIsLoadingPassword(false);
         }
     };
 
@@ -106,18 +169,54 @@ export default function AccountInformation({firstName, lastName, email}: {firstN
                         </FormItem>
                     )} />
 
-                    {/* Change password button */}
-                    <FormItem>  
-                        <div className="flex gap-2 w-full mb-2 mt-2">
-                            <FormLabel>Password</FormLabel>
-                            <FormControl>
-                                <Button type="button" className="ml-auto" onClick={() => router.push("account/change-password")} > Change Password </Button>
-                            </FormControl>
-                        </div>
-                    </FormItem>
-
                     {/* Submit button */}
                     <Button type="submit" className="w-full" disabled={isLoading}>{isLoading ? "Saving..." : "Save"}</Button>
+                </form>
+            </Form>
+            <Divider className="my-8" />
+        <h1 className="text-2xl tracking-tight text-gray-900 dark:text-gray-100 md:text-3xl lg:text-4xl mb-2">
+            Change password
+        </h1>
+        
+        <hr className="mb-4" />
+
+            <Form {...formPassword}>
+                <form onSubmit={formPassword.handleSubmit(onSubmitPassword)} className="flex flex-col gap-2">
+                    {/* Current password input */}
+                    <FormField control={formPassword.control} name="currentPassword" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Current password</FormLabel>
+                            <FormControl>
+                                <Input type="password" placeholder="Current password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+
+                    {/* New password input */}
+                    <FormField control={formPassword.control} name="newPassword" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>New password</FormLabel>
+                            <FormControl>
+                                <Input type="password" placeholder="Password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+
+                    {/* Repeat password input */}
+                    <FormField control={formPassword.control} name="newPasswordRepeat" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Repeat new password</FormLabel>
+                            <FormControl>
+                                <Input type="password" placeholder="Password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+
+                    {/* Submit button */}
+                    <Button type="submit" className="w-full" disabled={isLoadingPassword}>{isLoadingPassword ? "Saving..." : "Save"}</Button>
                 </form>
             </Form>
         </div>
