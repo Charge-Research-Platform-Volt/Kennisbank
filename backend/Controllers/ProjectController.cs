@@ -228,7 +228,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                     return BadRequest(new ApiResponse(false, "The page index is invalid"));
                 else
                 {
-                    return Ok(new ApiResponse(true, "No projects found", projects));
+                    return Ok(new ApiResponse(true, "No projects found", new ProjectPageResponse([])));
                 }
             }
 

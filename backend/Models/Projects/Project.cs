@@ -23,10 +23,10 @@ public class Project
     public string? Description { get; set; }
 
     [Column("creation-date")]
-    public required DateTime CreationDate { get; set; }
+    public required DateTime CreationDate { get; set; } = DateTime.UtcNow;
 
     [Column("deletion-date")]
-    public required DateTime DeletionDate { get; set; }
+    public required DateTime DeletionDate { get; set; } = DateTime.UtcNow;
 
     [Column("project-type")]
     [MaxLength(10)]

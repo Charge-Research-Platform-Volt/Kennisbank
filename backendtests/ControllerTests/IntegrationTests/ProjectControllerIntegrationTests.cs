@@ -96,8 +96,6 @@ public class ProjectControllerTests : TestBase
     {
         Title = "The most valid project ever",
         Description = "With a GREAT description to boot as well",
-        CreationDate = DateTime.UtcNow,
-        DeletionDate = DateTime.UtcNow,
         ProjectType = "root",
         Tags = [],
         Creators = []
@@ -107,8 +105,6 @@ public class ProjectControllerTests : TestBase
     {
         Title = "The (second) most valid project ever",
         Description = "With a (less) GREAT description",
-        CreationDate = DateTime.UtcNow,
-        DeletionDate = DateTime.UtcNow,
         ProjectType = "root",
         Tags = [],
         Creators = []
@@ -118,8 +114,6 @@ public class ProjectControllerTests : TestBase
     {
         Title = "",
         Description = "Well I guess there is no title now, should be invalid",
-        CreationDate = DateTime.UtcNow,
-        DeletionDate = DateTime.UtcNow,
         ProjectType = "root",
         Tags = [],
         Creators = []
@@ -128,8 +122,6 @@ public class ProjectControllerTests : TestBase
     private static ProjectCreateDto WrongTypeProject = new()
     {
         Title = "At least this one has a title",
-        CreationDate = DateTime.UtcNow,
-        DeletionDate = DateTime.UtcNow,
         ProjectType = "This is NOT a valid type",
         Tags = [],
         Creators = []
@@ -138,8 +130,6 @@ public class ProjectControllerTests : TestBase
     private static ProjectCreateDto InvalidTagsProject = new()
     {
         Title = "At least this one has a title",
-        CreationDate = DateTime.UtcNow,
-        DeletionDate = DateTime.UtcNow,
         ProjectType = "This is NOT a valid type",
         Tags = ["ced98544-b8fe-4d1c-b9d1-d04c099c8b5c"],
         Creators = []
@@ -202,8 +192,6 @@ public class ProjectControllerTests : TestBase
         {
             Title = "The (second) most valid project ever",
             Description = "With a (less) GREAT description to boot as well",
-            CreationDate = DateTime.UtcNow,
-            DeletionDate = DateTime.UtcNow,
             ProjectType = "root",
             Tags = [tagId.ToString()],
             Creators = []
@@ -500,8 +488,6 @@ public class ProjectControllerTests : TestBase
             await _controller.Create(new ProjectCreateDto
             {
                 Title = $"Project {i}",
-                CreationDate = DateTime.UtcNow,
-                DeletionDate = DateTime.UtcNow,
                 ProjectType = "root"
             });
         }
@@ -541,8 +527,6 @@ public class ProjectControllerTests : TestBase
             await _controller.Create(new ProjectCreateDto
             {
                 Title = $"Project {i}",
-                CreationDate = DateTime.UtcNow,
-                DeletionDate = DateTime.UtcNow,
                 ProjectType = "root"
             });
         }
@@ -582,8 +566,6 @@ public class ProjectControllerTests : TestBase
             await _controller.Create(new ProjectCreateDto
             {
                 Title = $"Project {i}",
-                CreationDate = DateTime.UtcNow,
-                DeletionDate = DateTime.UtcNow,
                 ProjectType = "root"
             });
         }
@@ -649,8 +631,6 @@ public class ProjectControllerTests : TestBase
         ObjectResult res = (ObjectResult)await _controller.Create(new ProjectCreateDto
         {
             Title = "test project",
-            CreationDate = DateTime.UtcNow,
-            DeletionDate = DateTime.UtcNow,
             ProjectType = "root",
             Tags = [tagId.ToString()]
         });
@@ -690,8 +670,6 @@ public class ProjectControllerTests : TestBase
         ObjectResult res = (ObjectResult)await _controller.Create(new ProjectCreateDto
         {
             Title = "test project",
-            CreationDate = DateTime.UtcNow,
-            DeletionDate = DateTime.UtcNow,
             ProjectType = "root",
             Creators = [userId.ToString()]
         });
@@ -728,10 +706,11 @@ public class ProjectControllerTests : TestBase
         ObjectResult res = (ObjectResult)await _controller.Create(new ProjectCreateDto
         {
             Title = "test project",
-            CreationDate = creationDate,
-            DeletionDate = DateTime.UtcNow,
             ProjectType = "root",
         });
+
+        // Manually alter creation date for filtering purposes
+        await _projectManager.UpdateProjectAsync(((ApiResponse)res.Value).Body.ToString(), t => t.CreationDate, creationDate);
 
         await _controller.Create(ValidProject2);
 
@@ -810,8 +789,6 @@ public class ProjectControllerTests : TestBase
                 await _controller.Create(new ProjectCreateDto
                 {
                     Title = $"Project {i}",
-                    CreationDate = DateTime.UtcNow,
-                    DeletionDate = DateTime.UtcNow,
                     ProjectType = "root",
                     Creators = [userId]
                 });
@@ -821,8 +798,6 @@ public class ProjectControllerTests : TestBase
                 await _controller.Create(new ProjectCreateDto
                 {
                     Title = $"Project {i}",
-                    CreationDate = DateTime.UtcNow,
-                    DeletionDate = DateTime.UtcNow,
                     ProjectType = "root",
                     Tags = [tagId.ToString()],
                     Creators = [userId]
