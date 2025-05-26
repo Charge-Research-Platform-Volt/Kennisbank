@@ -19,6 +19,9 @@ export function OrganisationContent()
     const [ organisations, setOrganisations ] = useState<ListItem[] | null>(null);
     const [ persons, setPersons ] = useState<ListItem[] | null>(null);
 
+    
+    const [shouldRefresh, setUpdateTrigger] = useState(false);
+    const triggerRefresh = () => setUpdateTrigger(prev => !prev);   
 
     useEffect(() => {
         if (rightSidebarOpen) {
@@ -113,19 +116,19 @@ export function OrganisationContent()
             </Expandable>
             
             <Expandable variant="horizontal" title="Published">
-                <BadgeList listType="direct-resources" emptyMessage={"No resources recorded"} itemList={resources}/>
+                <BadgeList listType="direct-resources" emptyMessage={"No resources recorded"} itemList={resources} onUpdate={triggerRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Related">
-                <BadgeList listType="related-resources" emptyMessage={"No related resources recorded"} itemList={relatedResources}/>
+                <BadgeList listType="related-resources" emptyMessage={"No related resources recorded"} itemList={relatedResources} onUpdate={triggerRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Related Organisations">
-                <BadgeList listType="organisation-related-organisations" emptyMessage={"No organisations recorded"} itemList={organisations}/>
+                <BadgeList listType="organisation-related-organisations" emptyMessage={"No organisations recorded"} itemList={organisations} onUpdate={triggerRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Related People">
-                <BadgeList listType="persons" emptyMessage={"No persons recorded"} itemList={persons}/>
+                <BadgeList listType="persons" emptyMessage={"No persons recorded"} itemList={persons} onUpdate={triggerRefresh}/>
             </Expandable>
         </>
     )

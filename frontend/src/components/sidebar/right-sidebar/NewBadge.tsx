@@ -5,27 +5,31 @@ import { Input } from "@/components/ui/input"
 import New from "@/icons/new"
 import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { newRelationSearchResults, organisationRelation, personRelation, resourceRelation } from "@/actions/right-sidebarActions";
+import { newRelationSearchResults, organisationRelation, personRelation, resourceRelation, addRelation } from "@/actions/right-sidebarActions";
 import { Button } from "@/components/ui/button";
+import { ListItem } from "./BadgeList";
 
 interface NewBadgeProps
 {
     variant?: "outline" | "default" | "secondary" | "destructive";
-    type: resourceRelation | personRelation | organisationRelation;
+    relation: resourceRelation | personRelation | organisationRelation;
+    onUpdate: () => void;
+    alreadyRelated: ListItem[];
 }
 
 interface SearchResult {
     id: string;
     name: string;
-    // Add other properties based on your API response structure
 }
 
 export default function NewBadge({
     variant = "outline",
-    type,
+    relation,
+    onUpdate,
+    alreadyRelated,
 } : NewBadgeProps)
 {
-    const { currentId, navigate } = useSidebar();
+    const { currentId, currentType, navigate } = useSidebar();
     const [container, setContainer] = useState<any>(null);
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -36,18 +40,18 @@ export default function NewBadge({
     // Debounced search function
     const debouncedSearch = useCallback(
         debounce(async (query: string) => {
-            if (!query.trim() || !type) {
+            if (!query.trim() || !relation) {
                 setSearchResults([]);
                 return;
             }
 
             setIsLoading(true);
             try {
-                const response = await newRelationSearchResults(query, type as any, 10);
-                if (type === "tags") {
-                    setSearchResults(response.body.tags || [])
+                const response = await newRelationSearchResults(query, relation as any, 10);
+                if (relation === "tags") {
+                    setSearchResults(response.body.tags.filter((item: { id: string; name: string;}) => !(alreadyRelated.some(i => i.id === item.id))) || [])
                 }
-                else setSearchResults(response.body || []);
+                else setSearchResults(response.body.filter((item: { id: string; name: string;}) => !(alreadyRelated.some(i => i.id === item.id))) || []);
             } catch (error) {
                 console.error("Search error:", error);
                 setSearchResults([]);
@@ -55,7 +59,7 @@ export default function NewBadge({
                 setIsLoading(false);
             }
         }, 300),
-        [type]
+        [relation, alreadyRelated]
     );
 
 
@@ -68,7 +72,7 @@ export default function NewBadge({
         setSelected( prev => {
             const isSelected = prev.some(item => item.id === result.id); // check if the clicked option is already selected 
             if (isSelected) {
-                return prev.filter(item => item.id === result.id); // if so remove it
+                return prev.filter(item => item.id !== result.id); // if so remove it
             } else {
                 return [...prev, result]; // else add it
             }
@@ -81,10 +85,15 @@ export default function NewBadge({
         setSelected([]);
     }
 
-    function handleAdd() {
+    async function handleAdd() {
         
-        //add
+        const relations = selected.map(item => 
+            addRelation(relation, currentType, currentId, item.id)
+        );
         
+        await Promise.all(relations);
+        onUpdate();
+
         setIsOpen(false);
         setSearchQuery("");
         setSelected([]);
@@ -110,7 +119,7 @@ export default function NewBadge({
                     <div className="mb-3">
                         <Input
                             type="text"
-                            placeholder={`Search ${type || 'items'}...`}
+                            placeholder={`Search ${relation || 'items'}...`}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full"
@@ -132,10 +141,16 @@ export default function NewBadge({
                                         className="p-2 hover:bg-gray-50 cursor-pointer transition-colors"
                                         onClick={() => handleResultSelect(result)}
                                     >
-                                        <div className="text-sm font-medium">
-                                            {result.name}
+                                        <div className="flex items-center justify-between">
+                                            <div className="text-sm font-medium">
+                                                {result.name}
+                                            </div>
+                                            {isItemSelected(result) && (
+                                                <div className="text-xs mr-2 font-semibold">
+                                                    ✓
+                                                </div>
+                                            )}
                                         </div>
-                                        {/* Add additional result information here if needed */}
                                     </div>
                                 ))}
                             </div>
