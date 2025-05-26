@@ -578,15 +578,17 @@ namespace KnowledgeBank.Controllers
         /// <param name="pageSize">(Optional) The size of the page</param>
         /// <param name="properties">(Optional) The properties to select, separated by comma</param>
         /// <param name="archived">(Optional) Whether to show archived resources or non archived resources</param>
+        /// <param name="searchQuery">(Optional) Filter on search query </param>
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all resources")]
         [SwaggerResponse(200, "A list or page of all the resources in the archive", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties, bool archived = false)
+        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties, string? searchQuery, bool archived = false)
         {
             if(archived && !User.IsInRole("admin"))
                 return Unauthorized(new ApiResponse(false, "You are not authorized to view archived resources."));
+            logger.Information("Check 1");
 
             // Verification
             if (pageIndex != null && pageIndex < 1)
@@ -609,14 +611,19 @@ namespace KnowledgeBank.Controllers
                 // No paging requested, list all resources
                 if (pageIndex == null || pageSize == null)
                     resources = string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetAllResourcesAsync(predicate: r => r.Archived == archived) :
-                        await resourceManager.GetAllResourcesAsync(predicate: r => r.Archived == archived, projection: projectionString);
+                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllResourcesAsync(predicate: r => r.Archived == archived) :
+                        await resourceManager.GetAllResourcesAsync(predicate: r => r.Title.Contains(searchQuery) && r.Archived == archived)) :
+                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllResourcesAsync(projection: projectionString, predicate: r => r.Archived == archived) :
+                        await resourceManager.GetAllResourcesAsync(projection: projectionString, predicate: r => r.Title.Contains(searchQuery) && r.Archived == archived));
+
 
                 // Paging requested, retrieve resources on that page
                 else
                     resources = string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize, predicate: r => !r.Archived) :
-                        await resourceManager.GetResourcePageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: r => !r.Archived);
+                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize, predicate: r => !r.Archived) :
+                        await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize, predicate: r => r.Title.Contains(searchQuery) && r.Archived == archived)) :
+                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetResourcePageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: r => !r.Archived) :
+                        await resourceManager.GetResourcePageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: r => r.Title.Contains(searchQuery) && r.Archived == archived));
 
                 // Return found resources
                 return Ok(new ApiResponse(true, $"Found {resources.Length} resources", resources));

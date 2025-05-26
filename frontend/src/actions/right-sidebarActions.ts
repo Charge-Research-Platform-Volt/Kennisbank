@@ -1,5 +1,6 @@
 "use server";
 
+import { MetadataTypeEnum } from "@/context/sidebar-provider";
 import { ApiResponse, ApiResponseSchema } from "@/types/apiResponse.type";
 import { TagFilterOptions } from "@/types/tag.type";
 import { revalidatePath } from "next/cache";
@@ -8,16 +9,16 @@ import { cookies } from "next/headers";
 
 
 // declare relation types for resource
-type resourceRelation = "authors" | "organisations" |
+export type resourceRelation = "authors" | "organisations" |
                         "regions" | "related-organisations" |
                         "related-sources" | "sources" |
                         "tags" | "related-persons" | "website" | "resource-related-resources"; 
 
 // declare relation types for persons
-type personRelation = "authored-resources" | "related-resources" | "person-related-persons" | "organisations";
+export type personRelation = "authored-resources" | "related-resources" | "person-related-persons" | "organisations";
 
 // declare relation types for organisations
-type organisationRelation = "direct-resources" | "related-resources"| "organisation-related-organisations" | "persons";
+export type organisationRelation = "direct-resources" | "related-resources"| "organisation-related-organisations" | "persons";
 
 export const getProperties = async (
     id: string,
@@ -116,10 +117,9 @@ export const newRelationSearchResults = async (
         pageSize: K,
         searchQuery: searchQuery,
         onlyOwnedByCurrentUser: false,
-        includeUsageCount: false,
+        includeUsageCount: true,
         includeCanEditAndDelete: false,
-        sortDescending: true,
-        weightedSort: "IsStandardized:2,IsApproved:1,UsageCount:0.5",
+        sortDescending: false,
       }
 
     const cookieHeader : ReadonlyRequestCookies = await cookies();
@@ -136,8 +136,8 @@ export const newRelationSearchResults = async (
         body: JSON.stringify(tagFilterOptions),
     };
     }
-    else if (type === "authors" || type === "related-persons" || type === "persons" ) {
-        endPoint = `Persons/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
+    else if (type === "authors" || type === "related-persons" || type === "persons" || type === "person-related-persons") {
+        endPoint = `persons/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
         path = '/list';
         fetchContents = {
             method: "Get",
@@ -145,8 +145,8 @@ export const newRelationSearchResults = async (
             headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
         };
     }
-    else if (type === "related-organisations" || type === "organisations") {
-        endPoint = `Organisations/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
+    else if (type === "related-organisations" || type === "organisations" || type === "organisation-related-organisations") {
+        endPoint = `organisations/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
         path = '/list';
         fetchContents = {
             method: "Get",
@@ -155,7 +155,7 @@ export const newRelationSearchResults = async (
         };
     }
     else if (type === "regions") {
-        endPoint = `Regions/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
+        endPoint = `regions/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
         path = '/list';
         fetchContents = {
             method: "Get",
@@ -163,8 +163,8 @@ export const newRelationSearchResults = async (
             headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
         };
     }
-    else if (type === "authored-resources" || type === "related-resources" || type === "direct-resources") {
-        endPoint = `Resources/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
+    else if (type === "authored-resources" || type === "related-resources" || type === "direct-resources" || type == "resource-related-resources") {
+        endPoint = `resources/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
         path = '/list';
         fetchContents = {
             method: "Get",
@@ -191,6 +191,43 @@ export const newRelationSearchResults = async (
     // Check if the request was succesful, if not, return an error
     return data;
 }
+
+export const addRelation = async (
+    relation: resourceRelation | personRelation | organisationRelation,
+    type: MetadataTypeEnum,
+    id: string,
+    targetId: string,
+) => {
+    let endPoint;
+    const cookieHeader : ReadonlyRequestCookies = await cookies();
+
+    if (type === MetadataTypeEnum.RESOURCE) {
+        endPoint = `resources/${encodeURIComponent(id)}/relations/add/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`
+    }
+
+    else if (type === MetadataTypeEnum.PERSON) {
+        endPoint = `persons/${encodeURIComponent(id)}/relations/add/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`
+    }
+
+    else if (type === MetadataTypeEnum.ORGANISTATION) {
+        endPoint = `organisations/${encodeURIComponent(id)}/relations/add/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`
+    }
+
+
+    const response = await fetch(
+        `${process.env.API_URL}/${endPoint}`,
+        {
+            method: "Get",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+        }
+    )
+
+    if (!response.ok) {
+      throw new Error("Problem adding relation");
+    }
+}
+
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.

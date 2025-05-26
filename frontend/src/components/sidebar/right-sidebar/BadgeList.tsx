@@ -8,6 +8,7 @@ import 'react-loading-skeleton/dist/skeleton.css'
 import New from "@/icons/new"
 import NewBadge from "./NewBadge"
 import { useArchive } from "@/context/archive-provider"
+import { organisationRelation, personRelation, resourceRelation } from "@/actions/right-sidebarActions";
 
 export interface ListItem
 {
@@ -20,7 +21,7 @@ interface BadgeListProps
 {
     variant?: "outline" | "default" | "secondary" | "destructive";
     className?: string;
-    listType: string | null;
+    listType: resourceRelation | personRelation | organisationRelation;
     emptyMessage: string;
     itemList: ListItem[] | null;
 }
@@ -31,7 +32,7 @@ const skeletonList = [1,2,3,4,5,6,7,8]
 export default function BadgeList({
     variant = "outline",
     className = "p-2 select-none",
-    listType = null, //can be overridden, is used to identify what relation you can add with the plus button
+    listType, //can be overridden, is used to identify what relation you can add with the plus button
     emptyMessage = "None found",
     itemList,
 } : BadgeListProps)

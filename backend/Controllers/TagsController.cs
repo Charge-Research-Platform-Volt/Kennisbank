@@ -41,6 +41,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     {
         try
         {
+            Log.Information("Start getting tags");
             // Validate paging parameters if using paging
             if (filterOptions.UsePaging)
             {
@@ -54,6 +55,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             // Build the predicate based on filter parameters
             Expression<Func<Tag, bool>>? predicate = BuildPredicate(filterOptions);
 
+            Log.Information("Getting tags 0");
             // Get filtered tags based on whether we're using paging
             Tag[]? tags;
             if (filterOptions.UsePaging)
@@ -62,16 +64,18 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                     pageIndex: filterOptions.PageIndex,
                     pageSize: filterOptions.PageSize,
                     predicate: predicate,
-                    includeProperties: filterOptions.IncludeUsageCount ? "ResourceTagRelations" : string.Empty
+                    includeProperties: filterOptions.IncludeUsageCount ? "ResourceTagRelations" : string.Empty // fails if IncludeUsageCount is false
                 );
             }
             else
             {
                 tags = await resourceManager.GetAllTagsAsync(
                     predicate: predicate,
-                    includeProperties: filterOptions.IncludeUsageCount ? "ResourceTagRelations": string.Empty
+                    includeProperties: filterOptions.IncludeUsageCount ? "ResourceTagRelations": string.Empty // fails if IncludeUsageCount is false
                 );
             }
+
+            Log.Information("Getting tags 1");
 
             // Handle empty result
             if (tags == null || tags.Length == 0)
@@ -107,6 +111,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                     }
                 }
             }
+            Log.Information("Getting tags 2");
 
             // Apply weighted sorting if specified
             if (!string.IsNullOrEmpty(filterOptions.WeightedSort) && !string.IsNullOrEmpty(filterOptions.SortBy))
@@ -119,7 +124,9 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                 tags = PropertyMatcher.SortByProperty(tags, filterOptions.SortBy, filterOptions.SortDescending, filterOptions.SortBy).ToArray();
             }
 
-            if(filterOptions.UsePaging)
+            Log.Information("Getting tags 3");
+
+            if (filterOptions.UsePaging)
             {
                 // calculate the total number of tags
                 int totalCount = await resourceManager.TagCountAsync(predicate);
