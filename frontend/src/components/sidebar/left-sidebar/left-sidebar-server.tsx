@@ -55,7 +55,7 @@ export default async function LeftSidebarServer() {
   // If admin: add settings to the bottom menu items at index 0
   if (userRole.data.role === "admin") {
     menuItems.splice(menuItems.length, 0, {
-      id: 4,
+      id: 5,
       path: "/users",
       icon: <Users color="black" className="h-4 w-4" />,
       name: "Users",
