@@ -1149,6 +1149,13 @@ namespace KnowledgeBank.Controllers
         /// </summary>
         /// <param name="pageIndex">The index of the page</param>
         /// <param name="pageSize">The size of the page</param>
+        /// <param name="query">The search query to be applied</param>
+        /// <param name="sortBy">The attribute to sort by</param>
+        /// <param name="sortDirection">The direction to sort in (asc or desc)</param>
+        /// <param name="filter_name">The filter to apply to the name</param>
+        /// <param name="filter_type">The filter to apply to the type</param>
+        /// <param name="filter_pubdate_max">The maximum publication date</param>
+        /// <param name="filter_pubdate_min">The minimum publication date</param>
         [HttpGet("grid")]
         [SwaggerOperation(Summary = "Retrieves the resource grid items which are displayed on the archive page")]
         [SwaggerResponse(200, "The list of ResourceGridItems", typeof(ApiResponse))]
@@ -1161,7 +1168,9 @@ namespace KnowledgeBank.Controllers
             string? sortBy = null,
             string? sortDirection = null,
             string? filter_name = null,
-            string? filter_type = null
+            string? filter_type = null,
+            string? filter_pubdate_min = null,
+            string? filter_pubdate_max = null
         ) 
         {
             // Check page settings
@@ -1173,14 +1182,21 @@ namespace KnowledgeBank.Controllers
                 
             try 
             {
-                GridSearchResult searchResult = await resourceManager.SearchResourceGridAsync(pageIndex, pageSize, query, sortBy, sortDirection, filter_name, filter_type);
+                // Execute the search
+                GridSearchResult searchResult = await resourceManager.SearchResourceGridAsync(
+                    pageIndex,
+                    pageSize,
+                    query,
+                    sortBy,
+                    sortDirection,
+                    filter_name,
+                    filter_type,
+                    filter_pubdate_min,
+                    filter_pubdate_max
+                );
                 
-                // Add logging to debug
-                logger.Information($"Search returned {searchResult.Items?.Length ?? 0} items");
-                logger.Information($"TotalCount: {searchResult.TotalCount}");
-                logger.Information($"First item: {searchResult.Items?.FirstOrDefault()?.Name ?? "null"}");
-                
-                return Ok(new ApiResponse(true, $"Found {searchResult.Items.Length} items", searchResult));
+                // Return result
+                return Ok(new ApiResponse(true, $"Found {searchResult.Items?.Length ?? 0} items", searchResult));
             }
             catch (Exception e) 
             {
