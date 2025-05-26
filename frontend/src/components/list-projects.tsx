@@ -388,9 +388,13 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
 
       setNavigationState({
         currentProjectId: parentItem.id,
-        currentLevel: newPath.length - 1,
+        currentLevel: newPath.length,
         navigationPath: newPath
       })
+
+      if (gridApiRef.current) {
+        gridApiRef.current.clearFocusedCell(); 
+      }
 
       // Fetch the parent project content
       const { resources: newResources, projects: newProjects } = await fetchProjectContent(parentItem.id);
@@ -424,6 +428,10 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
         currentLevel: index + 1,
         navigationPath: targetPath
       });
+
+      if (gridApiRef.current) {
+        gridApiRef.current.clearFocusedCell(); 
+      }
 
       // Fetch the project content
       const { resources: newResources, projects: newProjects } = await fetchProjectContent(targetItem.id);
@@ -548,7 +556,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   };
 
   // Remove handler
-const handleRemove = async (item: ProjectOrResource) => {
+  const handleRemove = async (item: ProjectOrResource) => {
     const projectId = navigationRef.current.currentProjectId;
 
     if (!projectId) {
