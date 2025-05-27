@@ -11,7 +11,7 @@ import GetFileIcon from "./getFileIcon";
 import { format, parseISO } from "date-fns";
 import OpenFileButton from "./open-file-button";
 import { useSidebar } from "@/context/sidebar-provider";
-import { ArrowLeftIcon, FolderIcon, HomeIcon, SparklesIcon, CirclePlusIcon, CircleXIcon } from "lucide-react";
+import { ArrowLeftIcon, FolderIcon, HomeIcon, SparklesIcon, CirclePlusIcon, CircleXIcon, EditIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { addResourceToProject, fetchAllResources, ListProjectsPaged, removeResourceFromProject, deleteProject } from "@/actions/projectActions";
 import { ApiResponse } from "@/types/apiResponse.type";
@@ -21,6 +21,7 @@ import { ProjectActionsDropdown } from "../app/(knowledgebank)/projects/componen
 import CreateFolderModal from "@/app/(knowledgebank)/projects/components/create-folder-modal";
 import { Input } from "@/components/ui/input";
 import Search from "@/icons/search-icon";
+import EditProjectModal from "@/app/(knowledgebank)/projects/components/edit-project-modal";
 
 // Register all modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -82,6 +83,8 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   // State for modal visibility
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedProjectForEdit, setSelectedProjectForEdit] = useState<Project | null>(null);
 
   // State for resource add mode
   const [isAddResourceMode, setIsAddResourceMode] = useState(false);
@@ -187,11 +190,19 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     // Add download column only when not in add resource mode
     if (!isAddResourceMode) {
       baseColumns.push({
-        field: "", 
-        minWidth: 30, 
-        maxWidth: 50, 
-        cellRenderer: (params: any) => params.data.itemType === 'resource' ? <DownloadRenderer data={params.data} /> : null, 
-        resizable: true 
+      field: "", 
+      minWidth: 30, 
+      maxWidth: 50, 
+      cellRenderer: (params: any) => {
+        if (params.data.itemType === 'resource') {
+        return <DownloadRenderer data={params.data} />;
+        }
+        if (params.data.itemType === 'folder' || params.data.itemType === 'project') {
+        return <EditRenderer data={params.data} onEdit={handleEdit} />;
+        }
+        return null;
+      }, 
+      resizable: true 
       });
     }
 
@@ -459,6 +470,9 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
 
     // Do nothing if the remove button is clicked
     if ((e.event?.target as HTMLElement)?.closest(".remove-button")) return;
+    
+    // Do nothing if the edit button is clicked
+    if ((e.event?.target as HTMLElement)?.closest(".edit-button")) return;
 
     const rowData = e.data as ProjectOrResource;
     
@@ -564,6 +578,12 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     }
 
     setIsLoading(true);
+
+    // Clear any selection and focus before removing
+    if (gridApiRef.current) {
+      gridApiRef.current.deselectAll();
+      gridApiRef.current.clearFocusedCell();
+    }
     
     try {
       (item.itemType == "resource") 
@@ -577,6 +597,31 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
       console.error("Remove failed:", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleEdit = async (item: ProjectOrResource) => {
+    setSelectedProjectForEdit({
+      id: item.id,
+      title: item.title,
+      description: item.description || '',
+      projectType: item.projectType
+    } as Project);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedProjectForEdit(null);
+  };
+
+  const handleEditSuccess = async () => {
+    handleCloseEditModal();
+    // Refresh the current view
+    if (navigationState.currentProjectId) {
+      await refreshCurrentProject();
+    } else {
+      await navigateToRoot();
     }
   };
 
@@ -732,6 +777,14 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
         onSuccess={handleFolderCreationSuccess}
         parentProjectId={navigationState.currentProjectId}
       />
+
+      {/* Project edit modal - only enabled when clicking edit button */}
+      <EditProjectModal 
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        onSuccess={handleEditSuccess}
+        project={selectedProjectForEdit}
+      />
     </div>
   );
 }
@@ -768,6 +821,8 @@ function DownloadRenderer({ data }: { data: any }) {
     </div>
   );
 }
+
+
 function RemoveRenderer({ data, onRemove, isAddResourceMode }: { 
   data: any; 
   onRemove: (item: ProjectOrResource) => void; 
@@ -790,6 +845,22 @@ function RemoveRenderer({ data, onRemove, isAddResourceMode }: {
   );
 }
 
+function EditRenderer({ data, onEdit }: { data: any, onEdit: (item: ProjectOrResource) => void }) {
+  return (
+    <div className="edit-button flex items-center justify-center w-full h-full">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="flex items-center justify-center hover:bg-gray-200 text-muted-foreground"
+        title="Edit"
+        onClick={() => onEdit(data)}
+        aria-label="Edit"
+      >
+        <EditIcon size={18} />
+      </Button>
+    </div>
+  );
+}
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
