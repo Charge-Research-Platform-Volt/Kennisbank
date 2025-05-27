@@ -29,6 +29,9 @@ export function ResourceContent()
     const [ sourceList, setSourceList ] = useState<ListItem[] | null>(null);
     const [ regions, setRegions ] = useState<ListItem[] | null>(null);
 
+    const [shouldRefresh, setUpdateTrigger] = useState(false);
+    const triggerRefresh = () => setUpdateTrigger(prev => !prev);  
+
 
 
     useEffect(() => {
@@ -60,6 +63,9 @@ export function ResourceContent()
         const sourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "sources");
         const regionsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "regions");
     
+ 
+
+
         infoPromise.then(response => {
             setFileType(response.body.fileType);
             if (response.body.fileType === "website") {
@@ -190,33 +196,33 @@ export function ResourceContent()
             </Expandable>
             
             <Expandable variant="horizontal" title="Tags">
-                <BadgeList listType="tags" emptyMessage={"No Tags recorded"} itemList={tags}/>
+                <BadgeList listType="tags" emptyMessage={"No Tags recorded"} itemList={tags} onUpdate={triggerRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Authors">
-                <BadgeList listType="authors" emptyMessage={"No Authors recorded"} itemList={authors}/>
+                <BadgeList listType="authors" emptyMessage={"No Authors recorded"} itemList={authors} onUpdate={triggerRefresh}/>
             </Expandable>
             
             <Expandable variant="horizontal" title="Organisations">
-                <BadgeList listType="organisations" emptyMessage={"No Organisations recorded"} itemList={organisations}/>
+                <BadgeList listType="organisations" emptyMessage={"No Organisations recorded"} itemList={organisations} onUpdate={triggerRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Related People">
-                <BadgeList listType="related-persons" emptyMessage={"No related persons recorded"} itemList={relatedPersons}/>
+                <BadgeList listType="related-persons" emptyMessage={"No related persons recorded"} itemList={relatedPersons} onUpdate={triggerRefresh}/>
             </Expandable>
             
             <Expandable variant="horizontal" title="Related Organisations">
-                <BadgeList listType="related-organisations" emptyMessage={"No related organisations recorded"} itemList={relatedOrganisations}/>
+                <BadgeList listType="related-organisations" emptyMessage={"No related organisations recorded"} itemList={relatedOrganisations} onUpdate={triggerRefresh}/>
             </Expandable>
 
             <ResourceList header="Related" resources={relatedResources}/>
 
             <Expandable variant="horizontal" title="Sources">
-                <BadgeList listType="sources" emptyMessage={"No sources recorded"} itemList={sourceList}/>
+                <BadgeList listType="sources" emptyMessage={"No sources recorded"} itemList={sourceList} onUpdate={triggerRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Regions">
-                <BadgeList listType="regions" emptyMessage={"No regions recorded"} itemList={regions}/>
+                <BadgeList listType="regions" emptyMessage={"No regions recorded"} itemList={regions} onUpdate={triggerRefresh}/>
             </Expandable>
 
             {/* {resourceType === "Scientific Article" && (

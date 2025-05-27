@@ -24,6 +24,7 @@ interface BadgeListProps
     listType: resourceRelation | personRelation | organisationRelation;
     emptyMessage: string;
     itemList: ListItem[] | null;
+    onUpdate: () => void;
 }
 
 const skeletonList = [1,2,3,4,5,6,7,8]
@@ -35,6 +36,7 @@ export default function BadgeList({
     listType, //can be overridden, is used to identify what relation you can add with the plus button
     emptyMessage = "None found",
     itemList,
+    onUpdate,
 } : BadgeListProps)
 {
     const { navigate } = useSidebar();
@@ -76,10 +78,10 @@ export default function BadgeList({
                     {itemList.map((item, index) =>(
                         <Badge key={index} onClick={() => navigateTo(item.id, item.type)} variant={variant} className={className}>{item.name}</Badge>
                     ))}
-                    <NewBadge type={listType} />
+                    <NewBadge relation={listType} onUpdate={onUpdate} alreadyRelated={itemList}/>
                 </>
             ) : (
-                <NewBadge type={listType} />
+                <NewBadge relation={listType} onUpdate={onUpdate}  alreadyRelated={[]}/>
                 
             )}
         </>
