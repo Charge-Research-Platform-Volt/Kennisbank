@@ -10,9 +10,6 @@
     <RootNamespace>KnowledgeBank</RootNamespace>
   </PropertyGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="Controllers/GenerateTags.yaml" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Azure.AI.Inference" Version="1.0.0-beta.5" />

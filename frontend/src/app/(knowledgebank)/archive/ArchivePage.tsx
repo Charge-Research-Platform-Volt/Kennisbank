@@ -6,7 +6,7 @@ import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { OctagonAlert } from "lucide-react";
-import FilterButton from "./components/filter-button";
+import FilterButton from "./_components/filter-button";
 import { ResourcePageWithTagsResponse } from "@/types/resource.type";
 import ListResources from "@/components/list-resources";
 import { useUserRole } from "@/context/user-role-context";
@@ -30,7 +30,7 @@ export default function ArchivePage() {
   const [initialLoadingComplete, setInitialLoadingComplete] = useState<boolean>(false); // State to track if initial loading is complete
   const [showArchived, setShowArchived] = useState<boolean>(false); // State to track if archived items should be shown
   const { userRole } = useUserRole();
-  
+
   // Fetch search results
   async function fetchQuery(query: string = currentQuery, tags: string[] = tagFilters, start: number | null = startYear, end: number | null = endYear) {
     query = query.trim();
@@ -55,17 +55,17 @@ export default function ArchivePage() {
 
   // Listen for resource list updates
   useEffect(() => {
-      const handleResourceListUpdated = () => {
-          setRefreshKey((prevKey) => (prevKey) + 1); // increment the refresh key to trigger a re-fetch
-      };
+    const handleResourceListUpdated = () => {
+      setRefreshKey((prevKey) => prevKey + 1); // increment the refresh key to trigger a re-fetch
+    };
 
-      // Add the event listener to the window object
-      window.addEventListener("resourceListUpdated", handleResourceListUpdated);
+    // Add the event listener to the window object
+    window.addEventListener("resourceListUpdated", handleResourceListUpdated);
 
-      // Cleanup the event listener on component unmount
-      return () => {
-          window.removeEventListener("resourceListUpdated", handleResourceListUpdated);
-      };
+    // Cleanup the event listener on component unmount
+    return () => {
+      window.removeEventListener("resourceListUpdated", handleResourceListUpdated);
+    };
   }, []);
 
   // Respond to search input changes
@@ -86,37 +86,40 @@ export default function ArchivePage() {
     <>
       <div className="flex w-full items-center gap-2">
         <div className="relative flex-grow">
-            <Input
+          <Input
             className="peer h-10 ps-9"
             placeholder="Search"
             type="text"
             onChange={(e) => {
-                setCurrentQuery(e.target.value);
+              setCurrentQuery(e.target.value);
             }}
-            />
-            <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
+          />
+          <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
             <Search className="h-4 w-4" aria-hidden="true" fill="currentColor" />
-            </div>
-            <FilterButton
+          </div>
+          <FilterButton
             onApplyAction={(tagFilters, startDate, endDate) => {
-                setTagFilters(tagFilters);
-                setStartYear(startDate);
-                setEndYear(endDate);
+              setTagFilters(tagFilters);
+              setStartYear(startDate);
+              setEndYear(endDate);
             }}
-            />
+          />
         </div>
 
         {userRole == "admin" && (
-            <Button
-            onClick={() => { setShowArchived((prev) => !prev); setInitialLoadingComplete(false); setSearchResults(null); }}
+          <Button
+            onClick={() => {
+              setShowArchived((prev) => !prev);
+              setInitialLoadingComplete(false);
+              setSearchResults(null);
+            }}
             variant="outline"
-            className="h-10 whitespace-nowrap w-36"
-            >
-                {showArchived ? "Close trashbin" : "Show trashbin"}
-            </Button>
+            className="h-10 w-36 whitespace-nowrap"
+          >
+            {showArchived ? "Close trashbin" : "Show trashbin"}
+          </Button>
         )}
-        </div>
-
+      </div>
 
       <div className="flex pt-2">
         {typeof searchResults === "string" || searchResults instanceof String ? (
