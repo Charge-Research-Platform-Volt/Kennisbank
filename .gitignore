@@ -1,3 +1,12 @@
+# Ignore environment variables file
+.env
+
+# Ignore environment variables file for development
+.env.development
+
+# Ignore environment variables file for production
+.env.production
+
 /database
 /storage
 /storage/*
