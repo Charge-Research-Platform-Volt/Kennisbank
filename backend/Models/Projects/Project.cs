@@ -98,6 +98,8 @@ public class ProjectInfoDto
     public Project? Project { get; set; } = null;
     public List<Project?> Folders { get; set; } = [];
     public List<Resource?> Resources { get; set; } = [];
+    public List<string?> Creators { get; set; } = [];
+    public List<Tag?> Tags { get; set; } = [];
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

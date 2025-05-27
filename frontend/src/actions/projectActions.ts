@@ -8,6 +8,8 @@ import type { FormResponse } from "@/types/return.type";
 import { revalidatePath } from "next/cache";
 import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 import { cookies } from "next/headers";
+import { User } from "@/types/user.type";
+import { Tag } from "@/types/tag.type";
 
 /**
  * Lists all projects with pagination and search functionality.
@@ -46,7 +48,7 @@ export const ListProjectsPaged = async (pageIndex: number, searchQuery: string):
  * @param projectId - The ID of the project/folder to fetch content for.
  * @returns An object containing resources and projects (folders).
  */
-export const getProjectContentById = async (projectId: string): Promise<{ resources: Resource[], projects: Project[] }> => {
+export const getProjectContentById = async (projectId: string): Promise<{ resources: Resource[], projects: Project[], creators: User[], tags: Tag[] }> => {
     try {
         const cookieHeader = await cookies();
         const response = await fetch(`${process.env.API_URL}/Project/info/${projectId}`, {
@@ -69,7 +71,9 @@ export const getProjectContentById = async (projectId: string): Promise<{ resour
         if (data.success && data.body) {
             return {
                 resources: data.body.resources || [],
-                projects: data.body.folders || []
+                projects: data.body.folders || [],
+                creators: data.body.creators || [],
+                tags: data.body.tags || []
             };
         } else {
             console.error("Failed to retrieve project content from API response:", data.message);
@@ -88,6 +92,7 @@ export const getProjectContentById = async (projectId: string): Promise<{ resour
  * @returns API response with the created project ID
  */
 export const createNewProject = async (data: ProjectCreateDto): Promise<ApiResponse> => {
+  console.log(data);
   const cookieHeader = await cookies();
   try {
     const response = await fetch(`${process.env.API_URL}/Project/create`, { 

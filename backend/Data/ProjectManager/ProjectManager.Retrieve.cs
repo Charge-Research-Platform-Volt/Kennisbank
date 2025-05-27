@@ -240,7 +240,7 @@ namespace KnowledgeBank.Data
         #region Get Project Children
 
         public async Task<Project?> GetProjectChildrenAsync(Guid id)
-        { return await GetProjectAsync(id, includeProperties: ["ProjectResourcesRelations.Resource", "ChildFolders.ChildFolder"]); }
+        { return await GetProjectAsync(id, includeProperties: ["ProjectResourcesRelations.Resource", "ChildFolders.ChildFolder", "ProjectTagRelations.Tag", "ProjectCreatorRelations.Creator"]); }
 
         public async Task<Project?> GetProjectChildrenAsync(string id)
         { return await GetProjectChildrenAsync(Guid.Parse(id)); }

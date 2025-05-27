@@ -381,13 +381,17 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             // Extract the resources and folders from the project
             List<Resource?>? resources = project.ProjectResourcesRelations?.Select(r => r.Resource).ToList() ?? [];
             List<Project?>? folders = project.ChildFolders?.Select(f => f.ChildFolder).ToList() ?? [];
+            List<string?>? creatorNames = project.ProjectCreatorRelations?.Select(r => r.Creator.UserName).ToList() ?? [];
+            List<Tag?>? tags = project.ProjectTagRelations?.Select(r => r.Tag).ToList() ?? [];
 
             // Create the DTO
             ProjectInfoDto projectInfo = new()
             {
                 Project = project,
                 Resources = resources,
-                Folders = folders
+                Folders = folders,
+                Creators = creatorNames,
+                Tags = tags
             };
 
             // If null, the project was not found

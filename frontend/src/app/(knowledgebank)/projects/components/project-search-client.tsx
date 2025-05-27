@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import Search from "@/icons/search-icon";
-import ListProjects from "@/components/list-projects";
+import ListProjects from "@/components/projects/list-projects";
 import { Project } from "@/types/project.type";
 import { Resource } from "@/types/resource.type";
 import { getProjectContentById } from "@/actions/projectActions";

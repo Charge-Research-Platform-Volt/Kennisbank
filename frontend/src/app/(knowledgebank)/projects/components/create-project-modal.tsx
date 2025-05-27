@@ -17,6 +17,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { createNewProject } from '@/actions/projectActions';
 import { ProjectCreateDto } from '@/types/project.type'; 
 import { ApiResponse } from '@/types/apiResponse.type';
+import SelectTagDropdown from '../../tags/components/select-tag-dropdown';
+import { Tag } from '@/types/tag.type';
+import SelectUserDropdown from '../../../../components/projects/select-user-dropdown';
+import { User } from '@/types/user.type';
 
 interface CreateProjectModalProps {
   isOpen: boolean;
@@ -29,6 +33,8 @@ export default function CreateProjectModal({ isOpen, onClose, onSuccess }: Creat
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [creators, setCreators] = useState<User[]>([]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,10 +49,10 @@ export default function CreateProjectModal({ isOpen, onClose, onSuccess }: Creat
 
     const projectData: ProjectCreateDto = {
         title: title.trim(),
-        description: description.trim() || null, 
+        description: description.trim() || null,
         projectType: 'root',
-        tags: [],
-        creators: [],
+        tags: tags.map(t => t.id),
+        creators: creators.map(t => t.id),
     };
 
     try {
@@ -111,6 +117,27 @@ export default function CreateProjectModal({ isOpen, onClose, onSuccess }: Creat
                 className="col-span-3"
                 placeholder="Optional project description"
               />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              {/**creators */}
+              <Label htmlFor="creators" className="text-right">
+                Creators
+              </Label>
+              <SelectUserDropdown
+                className="col-span-3"
+                selectMult={true}
+                onChangeAction={setCreators}
+              ></SelectUserDropdown>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              {/**tags */}
+              <Label htmlFor="tags" className="text-right">
+                Tags
+              </Label>
+              <SelectTagDropdown 
+                className="col-span-3"
+                selectMult={true}
+                onChangeAction={setTags}></SelectTagDropdown>
             </div>
             {error && (
               <p className="col-span-4 text-sm text-red-500 text-center">{error}</p>
