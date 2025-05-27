@@ -13,9 +13,9 @@ namespace KnowledgeBank.Controllers;
 public class VectorSearchController : ControllerBase
 {
     private readonly Serilog.ILogger _logger;
-    private readonly IRAGSystem _ragSystem;
+    private readonly RAGSystem _ragSystem;
 
-    public VectorSearchController(IRAGSystem ragSystem)
+    public VectorSearchController(RAGSystem ragSystem)
     {
         _logger = Log.ForContext<VectorSearchController>();
         _ragSystem = ragSystem;

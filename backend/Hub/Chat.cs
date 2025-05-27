@@ -1,10 +1,12 @@
+using System.ClientModel;
 using System.Runtime.CompilerServices;
+using Azure;
+using Azure.AI.Inference;
+using HandlebarsDotNet;
+using KnowledgeBank.Models;
 using KnowledgeBank.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
+using OpenAI.Chat;
 using SignalRSwaggerGen.Attributes;
 
 namespace Hubs;
@@ -17,11 +19,11 @@ namespace Hubs;
 public class Chat : Hub
 {
     private readonly Serilog.ILogger _logger;
-    private readonly IRAGSystem _ragSystem;
+    private readonly RAGSystem _ragSystem;
 
 
 
-    public Chat(IRAGSystem ragSystem)
+    public Chat(RAGSystem ragSystem)
     {
         _logger = Serilog.Log.ForContext<Chat>();
         _ragSystem = ragSystem;
@@ -57,6 +59,9 @@ public class Chat : Hub
             _logger.Warning("Received empty message from {UserIdentifier}", Context.UserIdentifier);
             yield break;
         }
+
+        // Messages
+
 
         if (contentBased)
         {
@@ -98,37 +103,83 @@ public class Chat : Hub
     {
         _logger.Information("Content-based Ai initiated with query: {Query}", query);
 
-        // Create a Handlebars prompt template
-        string promptTemplate = """
-{{#with (SearchPlugin-GetTextSearchResults query)}}  
-    {{#each this}}  
-    Name: {{Name}}
-    Value: {{Value}}
-    Link: {{Link}}
-    -----------------
-    {{/each}}  
-{{/with}}  
+        EmbeddingsOptions requestOptions = new EmbeddingsOptions(new List<string> { query });
+        Response<EmbeddingsResult> response = await _ragSystem.EmbeddingsClient.EmbedAsync(requestOptions);
 
+        // Console.WriteLine("Generating embedding...");
+        // Console.WriteLine(response.Value.Data[0].Embedding.Length);
+        float[]? embeddingData = response.Value.Data[0].Embedding.ToObjectFromJson<float[]>();
+        if (embeddingData == null)
+        {
+            _logger.Error("Embedding data is null.");
+            yield break;
+        }
+
+        var search = await _ragSystem.QdrantClient.QueryAsync(
+            RAGSystem.COLLECTION_NAME,
+            query: embeddingData,
+            limit: 10
+        );
+
+        // print the search results
+        Console.WriteLine($"Found {search.Count} results:");
+        foreach (var result2 in search)
+        {
+            var chunkText = result2.Payload.TryGetValue("chunkText", out var ctValue) ? ctValue.StringValue : "N/A";
+            Console.WriteLine(result2);
+        }
+
+        string source =
+@"You are provided with a question and a set of relevant information sources. Answer the question using the information provided.
+For each statement or claim in your answer, include an in-text citation referencing the specific source(s) (using the provided links) that support your response.
+
+The question:
 {{query}}
 
-Include citations to the relevant information where it is referenced in the response.
-""";
+Relevant Information:
+{{#each content}}
+Text: {{text}}
+Link: {{link}}
+--- 
+{{/each}}
 
-        KernelArguments arguments = new() { { "query", query } };
-        HandlebarsPromptTemplateFactory promptTemplateFactory = new();
+Instructions:
+- Base your answer on the provided information.
+- Be concise, accurate, and directly address the question.
+- If the information does not answer the question, state that explicitly and do not include any citations.
+- For each fact or claim, include a citation in the format: [Source Number](Source Link). Source Number corresponds to the link, two sources with the same link should have the same number.
+";
+
+        var template = Handlebars.Compile(source);
+
+        var data = new
+        {
+            query,
+            content = search.Select(item =>
+            {
+                var payload = CustomPayload.FromPayload(item.Payload);
+                return new
+                {
+                    Text = payload.ChunkText,
+                    link = "/archive?id=" + payload.ResourceId,
+                };
+            }).ToList()
+        };
+        var result = template(data);
+        Console.WriteLine(result);
+
+
+        List<ChatMessage> messages = new List<ChatMessage>
+        {
+            new SystemChatMessage(@"An AI assistant that answers questions based on the provided information."),
+            new UserChatMessage(result)
+        };
 
         // Stream the response
-        IAsyncEnumerable<StreamingKernelContent> streamingResponse;
-
+        AsyncCollectionResult<StreamingChatCompletionUpdate> responseStreaming;
         try
         {
-            streamingResponse = _ragSystem.Kernel.InvokePromptStreamingAsync(
-                promptTemplate,
-                arguments,
-                templateFormat: HandlebarsPromptTemplateFactory.HandlebarsTemplateFormat,
-                promptTemplateFactory: promptTemplateFactory,
-                cancellationToken: cancellationToken
-            );
+            responseStreaming = _ragSystem.ChatClient.CompleteChatStreamingAsync(messages, cancellationToken: cancellationToken);
         }
         catch (Exception ex)
         {
@@ -136,11 +187,12 @@ Include citations to the relevant information where it is referenced in the resp
             yield break;
         }
 
-        await foreach (var update in streamingResponse)
+
+        await foreach (StreamingChatCompletionUpdate update in responseStreaming)
         {
-            if (update.ToString() is string content)
+            foreach (ChatMessageContentPart updatePart in update.ContentUpdate)
             {
-                yield return content;
+                yield return updatePart.Text;
             }
         }
     }
@@ -172,28 +224,24 @@ Include citations to the relevant information where it is referenced in the resp
     {
         _logger.Information("Standard Ai initiated with message: {Message}", message);
 
-
-        // Truncates chat history if it exceeds the threshold
-        ChatHistoryTruncationReducer reducer = new ChatHistoryTruncationReducer(targetCount: 10, thresholdCount: 5);
-
-        var chatHistory = new ChatHistory("You are a helpful AI assistant. Answer in Markdown format.");
-        chatHistory.AddUserMessage(message);
-
-        IEnumerable<ChatMessageContent>? reducedMessages = await reducer.ReduceAsync(chatHistory);
-
-        if (reducedMessages is not null)
+        List<ChatMessage> messages = new List<ChatMessage>
         {
-            chatHistory = [.. reducedMessages];
+            new SystemChatMessage(@"You are an AI assistant that helps people find information."),
+            new UserChatMessage(message)
+        };
+
+        // Todo: reduce the chat history if it exceeds a certain threshold
+        if (messages.Count > 20)
+        {
+            messages = messages.Skip(messages.Count - 20).ToList();
         }
 
+
         // Stream the response
-        IAsyncEnumerable<StreamingChatMessageContent> streamingResponse;
+        AsyncCollectionResult<StreamingChatCompletionUpdate> response;
         try
         {
-            streamingResponse = _ragSystem.ChatCompletionService.GetStreamingChatMessageContentsAsync(
-                chatHistory,
-                kernel: _ragSystem.Kernel,
-                cancellationToken: cancellationToken);
+            response = _ragSystem.ChatClient.CompleteChatStreamingAsync(messages, cancellationToken: cancellationToken);
         }
         catch (Exception ex)
         {
@@ -201,11 +249,12 @@ Include citations to the relevant information where it is referenced in the resp
             yield break;
         }
 
-        await foreach (var update in streamingResponse)
+
+        await foreach (StreamingChatCompletionUpdate update in response)
         {
-            if (update.Content != null)
+            foreach (ChatMessageContentPart updatePart in update.ContentUpdate)
             {
-                yield return update.Content;
+                yield return updatePart.Text;
             }
         }
     }

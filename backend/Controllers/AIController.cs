@@ -1,16 +1,15 @@
-using System.Linq.Expressions;
-using System.Reflection;
+
 using KnowledgeBank.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
 using OpenAI.Chat;
 using Serilog;
+using static Qdrant.Client.Grpc.Conditions;
+using KnowledgeBank.Models;
+using System.Text.Json;
+using HandlebarsDotNet;
 
 namespace KnowledgeBank.Controllers;
-#pragma warning disable SKEXP0001, SKEXP0010, SKEXP0020, SKEXP0050, SKEXP0070
 
 [ApiController]
 [Authorize]
@@ -19,9 +18,9 @@ namespace KnowledgeBank.Controllers;
 public class AIController : ControllerBase
 {
     private readonly Serilog.ILogger _logger;
-    private readonly IRAGSystem _ragSystem;
+    private readonly RAGSystem _ragSystem;
 
-    public AIController(IRAGSystem ragSystem)
+    public AIController(RAGSystem ragSystem)
     {
         _logger = Log.ForContext<AIController>();
         _ragSystem = ragSystem;
@@ -29,129 +28,136 @@ public class AIController : ControllerBase
 
 
     [HttpPost("generate-tags")]
-    public async Task<IActionResult> GenerateTags(string id = "8ab383a0-2091-44e6-8a8b-bebdf9b647b7")
+    public async Task<IActionResult> GenerateTags(string id = "0d4dfb35-3b75-4729-a7cf-92f4823b1b5c")
     {
-        _logger.Information("Generating tags for file with ID: {Id}", id);
+        ulong offset = 0;
+        ulong limit = 20;
+        HashSet<string> uniqueTags = [];
 
-        // ------------------
-        Expression<Func<ResourceVectorStoreRecord, bool>> filter = x => x.ResourceId == id;
-        IAsyncEnumerable<ResourceVectorStoreRecord> searchResult = _ragSystem.Collection.GetAsync(filter: filter, top: 10);
+        string source =
+@"You are tasked with generating relevant tags for a large document, which is provided to you in smaller chunks. For each batch, you will receive:
+- A list of tags that have already been generated for the document.
+- The current group of content chunks.
 
-        var searchResults = await searchResult.ToListAsync();
+Instructions:
+1. Carefully read the provided content chunks.
+2. Generate new, relevant tags that accurately reflect the content of these chunks.
+3. Do not repeat or include any tags that have already been generated (see the list below).
+4. Ensure all tags are concise, specific, and directly related to the content.
 
-        // console log the results
-        Console.WriteLine(searchResults.Count());
-        // foreach (var result in searchResults)
-        // {
-        //     Console.WriteLine($"ResourceId: {result.ResourceId}, Content: {result.ChunkText}");
-        // }
+Previously Generated Tags:
+{{tags}}
 
-        // console log searchResults as json
-        // var json = System.Text.Json.JsonSerializer.Serialize(searchResults);
-        // Console.WriteLine(json);
+Current Document Chunks:
+{{#each content}}
+{{text}}
+---
+{{/each}}";
 
-        // ----
+        var template = Handlebars.Compile(source);
 
-
-        var handlebarsPromptYaml = EmbeddedResource.Read("GenerateTags.yaml");
-        var templateFactory = new HandlebarsPromptTemplateFactory();
-        var function = _ragSystem.Kernel.CreateFunctionFromPromptYaml(handlebarsPromptYaml, templateFactory);
-
-
-        // var arguments = new KernelArguments()
-        // {
-        //     { "documentInfo", new{ title = "Text title"}},
-        //     { "content", searchResults.ToList() },
-        // };
-
-        // var promptTemplateConfig = new PromptTemplateConfig()
-        // {
-        //     Template = handlebarsPromptYaml,
-        //     TemplateFormat = "handlebars",
-        //     Name = "GenerateTags",
-        // };
-
-
-
-        // var promptTemplate = templateFactory.Create(promptTemplateConfig);
-        // var renderedPrompt = await promptTemplate.RenderAsync(_ragSystem.Kernel, arguments);
-        // Console.WriteLine($"Rendered Prompt:\n{renderedPrompt}\n");
-
-        // var response = await _ragSystem.Kernel.InvokeAsync(function, arguments);
-        // Console.WriteLine(response);
-        // ----
-
-
-        ChatResponseFormat chatResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
-            jsonSchemaFormatName: "tags",
-            jsonSchema: BinaryData.FromString("""
+        var jsonSchema = """
         {
+            "title": "Tags Extraction",
             "type": "object",
             "properties": {
-            "Tags": {
-                "type": "array",
-                "items": {
-                "type": "string"
-                },
-                "description": "A list of relevant tags for the document"
-            }
+                "Tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "A list of tags extracted from the document chunks.",
+                    "example": ["tag1", "tag2", "tag3"]
+                }
             },
-            "required": ["Tags", "Categories"],
-            "additionalProperties": false
+            "required": ["Tags"]
         }
-        """),
-            jsonSchemaIsStrict: true);
+        """;
 
-        var executionSettings = new OpenAIPromptExecutionSettings
+
+
+        ChatCompletionOptions options = new ChatCompletionOptions()
         {
-            ResponseFormat = chatResponseFormat
-
+            ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat("TagsExtraction", BinaryData.FromString(jsonSchema))
         };
 
-        var arguments = new KernelArguments(executionSettings) //executionSettings executionSettings
+        while (true)
         {
-            { "documentInfo", new{ title = "Text title"}},
-            { "content", searchResults.ToList() },
-        };
+            // Perform a vector search to retrieve results
+            var results = await _ragSystem.QdrantClient.QueryAsync(
+                RAGSystem.COLLECTION_NAME,
+                filter: MatchKeyword("resourceId", id),
+                limit: limit,
+                offset: offset
+            );
+
+            // If no results are returned, break the loop
+            if (results.Count == 0) break;
+
+            // Prepare the data for the template
+            var data = new
+            {
+                tags = uniqueTags.Count == 0 ? "No tags generated yet." : string.Join(", ", uniqueTags),
+                content = results.Select(item =>
+                {
+                    var payload = CustomPayload.FromPayload(item.Payload);
+                    return new { text = payload.ChunkText };
+                }).ToList()
+            };
+            var result = template(data);
+            Console.WriteLine(result);
+
+            var chat = new List<ChatMessage>()
+            {
+                new SystemChatMessage("You are a helpful AI assistant that extracts tags from a document and returns them as a JSON"),
+                new UserChatMessage(result)
+            };
+
+            // Get a completion with structured output
+            var response = await _ragSystem.ChatClient.CompleteChatAsync(chat, options);
+            Console.WriteLine(response.Value.Content[0].Text);
+
+            var jsonOutput = response.Value.Content[0].Text;
+            var tagsExtraction = JsonSerializer.Deserialize<TagsExtraction>(jsonOutput);
+            if (tagsExtraction == null || tagsExtraction.Tags == null) continue;
+
+            _logger.Information("Extracted tags: {Tags}", string.Join(", ", tagsExtraction.Tags));
+            // Add the tags to the unique set
+            foreach (var tag in tagsExtraction.Tags)
+            {
+                if (!string.IsNullOrWhiteSpace(tag))
+                {
+                    var unique = uniqueTags.Add(tag.Trim().ToLowerInvariant());
+                    if (unique)
+                    {
+                        _logger.Information("New tag added: {Tag}", tag.Trim());
+                    }
+                    else
+                    {
+                        _logger.Information("Tag already exists: {Tag}", tag.Trim());
+                    }
+                }
+            }
 
 
-        var result = await _ragSystem.Kernel.InvokePromptAsync(handlebarsPromptYaml, arguments, "handlebars", templateFactory);
-        Console.WriteLine(result);
+            // Increment the offset for the next batch
+            offset += limit;
+        }
 
 
-
-        // ------------------
+        // print the unique tags
+        _logger.Information("Unique tags extracted: {Tags}", string.Join(", ", uniqueTags));
 
 
         return Ok(new
         {
-            Message = "Vector search initiated",
-            Query = id
+            Tags = uniqueTags.ToList(),
         });
     }
 }
 
-
-public static class EmbeddedResource
+public class TagsExtraction
 {
-    private static readonly string? s_namespace = typeof(EmbeddedResource).Namespace;
-
-    internal static string Read(string fileName)
-    {
-        // Get the current assembly. Note: this class is in the same assembly where the embedded resources are stored.
-        Assembly assembly =
-            typeof(EmbeddedResource).GetTypeInfo().Assembly ??
-            throw new InvalidOperationException($"[{s_namespace}] {fileName} assembly not found");
-
-        // Resources are mapped like types, using the namespace and appending "." (dot) and the file name
-        var resourceName = $"{s_namespace}." + fileName;
-        using Stream resource =
-            assembly.GetManifestResourceStream(resourceName) ??
-            throw new InvalidOperationException($"{resourceName} resource not found");
-
-        // Return the resource content, in text format.
-        using var reader = new StreamReader(resource);
-
-        return reader.ReadToEnd();
-    }
+    public required List<string> Tags { get; set; }
 }
+

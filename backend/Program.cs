@@ -12,19 +12,25 @@ using Swashbuckle.AspNetCore.SwaggerUI;
 using KnowledgeBank.BackgroundServices;
 using KnowledgeBank.Services;
 using Hubs;
+
 using Microsoft.AspNetCore.Http.Features;
+using KnowledgeBank.Utils;
 
 namespace KnowledgeBank
 {
     public class Program
     {
-        public static string HostUrl { get; private set; } = "http://localhost:3000";
-
         public static async Task Main(string[] args)
         {
+            // Ensure the current directory is set to the directory of the executable
             // # Builder
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
             ConfigureLogging();
+
+            // The environment variables are loaded from the .env file configured in the docker-compose file.
+            EnvironmentConfig environmentConfig = new EnvironmentConfig(builder.Configuration);
+            environmentConfig.CheckEnvironmentVariables();
+            builder.Services.AddSingleton(environmentConfig);
 
             // # Services
             builder.Services.AddControllers();
@@ -54,7 +60,7 @@ namespace KnowledgeBank
 
 
             // Retrieval Augmented Generation system
-            builder.Services.AddSingleton<IRAGSystem, RAGSystem>();
+            builder.Services.AddSingleton<RAGSystem, RAGSystem>();
 
             // Background services
             builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
@@ -67,11 +73,9 @@ namespace KnowledgeBank
 
             // # Database context
             builder.Services.AddDbContext<DatabaseContext>(
-                // CONNECTION_STRING is set in docker-compose.dev.yml file
-                options => options.UseNpgsql(builder.Configuration.GetValue<string>("CONNECTION_STRING")
-            ));
+                options => options.UseNpgsql(environmentConfig.GetVariableValue(EnvironmentVariable.CONNECTION_STRING))
+            );
 
-            HostUrl = builder.Configuration.GetValue<string>("HOST_URL") ?? HostUrl;
 
             builder.Services.AddScoped<ResourceManager>();
 
