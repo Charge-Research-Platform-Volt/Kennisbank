@@ -131,6 +131,21 @@ export default function NewBadge({
         }
     }
 
+    async function handleAddRegion() {
+        try {
+            // create new Region with sonner notification
+            await addRelation(relation, currentType, currentId, source);
+            onUpdate();
+
+            setIsOpen(false);
+            setSearchQuery("");
+            setSelected([]);
+            setSource("");
+        } catch (error) {
+            console.error("Error adding region:", error);
+        }
+    }
+
     function isItemSelected(result: SearchResult): boolean {
         return selected.some(item => item.id === result.id);
     }
@@ -146,6 +161,7 @@ export default function NewBadge({
                 className="w-80 p-3 rounded-md" 
                 container={container} 
                 forceMount>
+
                 {relation === "sources" || relation === "related-sources" ? (
                     <div className="w-full h-20 flex flex-col"> {/* purely add space */}
                         {/* Search Input */}
@@ -162,20 +178,15 @@ export default function NewBadge({
                         <Button 
                             onClick={handleAddSource}
                             className="flex-1"
-                            disabled={!source || !URL.canParse(source)}
+                            disabled={!URL.canParse(source)}
                         >
                             Add
                         </Button>
                     </div>
-                ) : relation === "regions" ? (
-                    <> {/* normal interface with add button */}
-                    </>
+
                 ) : (
 
-
-
-
-                <div className="w-full h-80 flex flex-col">
+                <div className="w-full h-90 flex flex-col">
                     {/* Search Input */}
                     <div className="mb-3">
                         <Input
@@ -227,7 +238,7 @@ export default function NewBadge({
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 mt-1">
                         <Button 
                             variant="outline" 
                             onClick={handleClose}
@@ -243,6 +254,15 @@ export default function NewBadge({
                             Add
                         </Button>
                     </div>
+                    {relation === "regions" && (
+                        <Button 
+                            onClick={handleAddRegion}
+                            className="flex mt-1 h-10"
+                            disabled={searchQuery.length === 0}
+                        >
+                            Add New
+                        </Button>
+                    )}
                 </div>) }
 
 
