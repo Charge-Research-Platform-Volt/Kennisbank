@@ -25,6 +25,7 @@ public class Tools : ITools
     public Tools()
     {
         _logger = Log.ForContext<Tools>();
+        _logger.Information("Tools successfully initialized");
     }
 
 
