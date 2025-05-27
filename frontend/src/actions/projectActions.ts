@@ -273,14 +273,44 @@ export async function deleteProject(projectId: string): Promise<ApiResponse> {
         message: data.message || "Failed to delete project" };
     }
 
-    revalidatePath("/projects");
-
     return { 
       success: true,
       message: data.message || "Project deleted successfully", 
       body: data.body };
   } catch (error) {
     console.error("Error deleting project:", error);
+    return { success: false, message: error instanceof Error ? error.message : "An unexpected error occurred" };
+  }
+}
+
+export async function updateProject(projectId: string, data: Record<string, unknown>): Promise<ApiResponse> {
+  const cookieHeader = await cookies();
+
+  try {
+    console.log("Data to update project:", data);
+    const response = await fetch(`${process.env.API_URL}/Project/update/${projectId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader.toString() || "" 
+      },
+      body: JSON.stringify(data),
+    });
+
+    const result: ApiResponse = await response.json();
+
+    if (!response.ok) {
+      return { 
+        success: false, 
+        message: result.message || "Failed to update project" };
+    }
+
+    return { 
+      success: true,
+      message: result.message || "Project updated successfully", 
+      body: result.body };
+  } catch (error) {
+    console.error("Error updating project:", error);
     return { success: false, message: error instanceof Error ? error.message : "An unexpected error occurred" };
   }
 }

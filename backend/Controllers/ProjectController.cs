@@ -79,27 +79,27 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         }
 
         // Add the project to the database using the ProjectManager class
-            try
-            {
-                // Create the project
-                Guid projectId = await projectManager.CreateProject(dto);
+        try
+        {
+            // Create the project
+            Guid projectId = await projectManager.CreateProject(dto);
 
-                // Adding the project was successful
-                Log.Information("New project added to database.");
-                return Ok(new ApiResponse(true, "Project added successfully.", projectId));
-            }
-            catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
-            {
-                // The project already exists
-                Log.Error(e, "Project already exists.");
-                return Conflict(new ApiResponse(false, "Project already exists."));
-            }
-            catch (Exception e)
-            {
-                // Something else went wrong
-                Log.Error(e, "Failed to add project.");
-                return StatusCode(500, new ApiResponse(false, "Internal server error"));
-            }
+            // Adding the project was successful
+            Log.Information("New project added to database.");
+            return Ok(new ApiResponse(true, "Project added successfully.", projectId));
+        }
+        catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
+        {
+            // The project already exists
+            Log.Error(e, "Project already exists.");
+            return Conflict(new ApiResponse(false, "Project already exists."));
+        }
+        catch (Exception e)
+        {
+            // Something else went wrong
+            Log.Error(e, "Failed to add project.");
+            return StatusCode(500, new ApiResponse(false, "Internal server error"));
+        }
     }
     #endregion
 
@@ -278,7 +278,6 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         try
         {
             Log.Information("Updating project.");
-
             // Make sure we have the required fields
             if (!ValidityUtil.IsValidId(projectId))
             {
@@ -710,14 +709,14 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         {
             case "title":
             case "description":
-                return !string.IsNullOrEmpty(val.ToString());
+                return !string.IsNullOrEmpty(val?.ToString());
             case "creators":
-            case "tags":
                 return ((List<string>)val).Count > 0;
+            case "tags":
+                return ((List<string>)val).Count >= 0;
             default:
                 throw new ArgumentException($"Cannot update property: {prop}");
         }
-        ;
     }
 
     /// <summary>
