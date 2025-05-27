@@ -19,14 +19,14 @@ namespace KnowledgeBank.Controllers
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class StorageController(IAzureBlobService blobService, ResourceManager resourceManager, IBackgroundTaskQueue taskQueue, IRAGSystem ragSystem) : ControllerBase
+    public class StorageController(IAzureBlobService blobService, ResourceManager resourceManager, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem) : ControllerBase
     {
         private readonly IAzureBlobService blobService = blobService;
         private readonly Serilog.ILogger logger = Log.ForContext<StorageController>();
         private readonly ResourceManager resourceManager = resourceManager;
 
 
-        private readonly IRAGSystem _ragSystem = ragSystem;
+        private readonly RAGSystem _ragSystem = ragSystem;
         private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
 
 

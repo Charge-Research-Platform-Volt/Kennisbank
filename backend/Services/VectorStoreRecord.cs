@@ -13,24 +13,24 @@ public enum ChunkType { ContentText, MetaData }
 // Represents a record in the vector store.
 public class ResourceVectorStoreRecord
 {
-    [VectorStoreRecordKey]
+    [VectorStoreKey]
     [TextSearchResultName]
     public required Guid Id { get; set; }
 
-    [VectorStoreRecordData(IsIndexed = true)]
+    [VectorStoreData(IsIndexed = true)]
     [TextSearchResultLink]
     public required string ResourceId { get; set; }
 
     // ----
 
-    [VectorStoreRecordData(IsIndexed = false)]
+    [VectorStoreData(IsIndexed = false)]
     public required string ChunkType { get; set; }
 
-    [VectorStoreRecordData(IsFullTextIndexed = true)]
+    [VectorStoreData(IsFullTextIndexed = true)]
     [TextSearchResultValue]
     public required string ChunkText { get; set; }
 
-    [VectorStoreRecordVector(Dimensions: RAGSystem.EMBEDDING_DIMENSIONS, DistanceFunction = DistanceFunction.CosineSimilarity, IndexKind = IndexKind.Hnsw)]
+    [VectorStoreVector(Dimensions: RAGSystem.EMBEDDING_DIMENSIONS, DistanceFunction = DistanceFunction.CosineSimilarity, IndexKind = IndexKind.Hnsw)]
     public required ReadOnlyMemory<float> ChunkEmbedding { get; set; }
 
 
@@ -51,15 +51,15 @@ public class ResourceVectorStoreRecord
 
 public class MetadataVectorStoreRecord
 {
-    [VectorStoreRecordKey]
+    [VectorStoreKey]
     public required Guid Id { get; set; }
 
-    [VectorStoreRecordData]
+    [VectorStoreData]
     public required string ResourceId { get; set; }
 
     // ----
 
-    [VectorStoreRecordVector(Dimensions: 768, DistanceFunction = DistanceFunction.CosineSimilarity, IndexKind = IndexKind.Hnsw)]
+    [VectorStoreVector(Dimensions: 768, DistanceFunction = DistanceFunction.CosineSimilarity, IndexKind = IndexKind.Hnsw)]
     public required ReadOnlyMemory<float> Embedding { get; set; }
 }
 

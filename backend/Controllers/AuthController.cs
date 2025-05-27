@@ -18,12 +18,15 @@ namespace KnowledgeBank.Controllers
         private readonly Serilog.ILogger _logger;
         private readonly SignInManager<User> _signInManager;
         private readonly DatabaseContext _context;
+        private readonly EnvironmentConfig _environmentConfig;
 
-        public AuthController(SignInManager<User> signInManager, DatabaseContext context)
+
+        public AuthController(SignInManager<User> signInManager, DatabaseContext context, EnvironmentConfig environmentConfig)
         {
             _signInManager = signInManager;
             _logger = Log.ForContext<AuthController>();
             _context = context;
+            _environmentConfig = environmentConfig;
         }
 
         [HttpPost]
@@ -79,7 +82,7 @@ namespace KnowledgeBank.Controllers
                 await _context.SaveChangesAsync();
 
                 // send the email
-                MailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: {Program.HostUrl}/signup?token={token}");
+                MailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: {_environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL)}/signup?token={token}");
             }
             catch (Exception e)
             {

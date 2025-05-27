@@ -1,6 +1,7 @@
 ﻿using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using KnowledgeBank.Utils;
 using Serilog;
 
 namespace KnowledgeBank.Data
@@ -159,16 +160,11 @@ namespace KnowledgeBank.Data
         /// Initializes a new instance of AzureBlobService
         /// </summary>
         /// <param name="configuration">Application configuration</param>
-        /// <exception cref="InvalidOperationException">Thown when no Azure Storage connection string is configured</exception>
-        public AzureBlobService(IConfiguration configuration)
+        /// <param name="environmentConfig">Environment configuration for accessing environment variables</param>
+        public AzureBlobService(IConfiguration configuration, EnvironmentConfig environmentConfig)
         {
-            string? connectionString = configuration["AZURE_STORAGE_CONNECTION_STRING"];
-
-            if (string.IsNullOrEmpty(connectionString))
-                throw new InvalidOperationException("Azure Storage connection string not configured.");
-
-            this.blobService = new BlobServiceClient(connectionString);
-            this.logger = Log.ForContext<AzureBlobService>();
+            blobService = new BlobServiceClient(environmentConfig.GetVariableValue(EnvironmentVariable.AZURE_STORAGE_CONNECTION_STRING));
+            logger = Log.ForContext<AzureBlobService>();
         }
 
         /// <inheritdoc/>
