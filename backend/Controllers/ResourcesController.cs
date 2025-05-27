@@ -786,6 +786,11 @@ namespace KnowledgeBank.Controllers
                     "sources" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllResourceSourceRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
                         await resourceManager.GetAllResourceSourceRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
+                    
+                    // Sources
+                    "related-sources" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceRelatedSourceRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceRelatedSourceRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
 
                     // Tags
                     "tags" => string.IsNullOrEmpty(properties) ?
@@ -835,7 +840,7 @@ namespace KnowledgeBank.Controllers
             // Check if ids are valid
             if (!ValidityUtil.IsValidId(id)) return BadRequest(new ApiResponse(false, "Invalid ID"));
             if (!ValidityUtil.IsValidId(targetId) && !ValidityUtil.IsValidUrl(targetId)) return BadRequest(new ApiResponse(false, "Invalid target ID/URL"));
-            
+
             try 
             {
                 switch (relation) 
@@ -867,9 +872,14 @@ namespace KnowledgeBank.Controllers
                     
                     // Sources
                     case "sources":
-                        await resourceManager.AddSourceToResourceAsync(id, targetId);
+                        await resourceManager.AddSourceToResourceAsync(id, System.Net.WebUtility.UrlDecode(targetId));
                         break;
-                    
+
+                    // Related Sources
+                    case "related-sources":
+                        await resourceManager.AddRelatedSourceToResourceAsync(id, System.Net.WebUtility.UrlDecode(targetId));
+                        break;
+
                     // Tags
                     case "tags":
                         await resourceManager.AddTagToResourceAsync(id, targetId);

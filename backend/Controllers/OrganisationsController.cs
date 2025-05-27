@@ -110,14 +110,14 @@ namespace KnowledgeBank.Controllers
         /// <summary>
         /// Updates a organistation
         /// </summary>
-        /// <param name="id">The ID of the organistation</param>
+        /// <param name="id">The ID of the organisation</param>
         /// <param name="updates">The dictionary of propertynames to update and their new values</param>
         [HttpPatch("update/{id}")]
         [Authorize(Policy = "RequireAdminRole")]
-        [SwaggerOperation(Summary = "Updates an organistation")]
-        [SwaggerResponse(200, "Organistation updated", typeof(ApiResponse))]
+        [SwaggerOperation(Summary = "Updates an organisation")]
+        [SwaggerResponse(200, "Organisation updated", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Organistation not found", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
         [SwaggerResponse(409, "Already exists", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
         public async Task<IActionResult> Update(string id, [FromBody] Dictionary<string, object> updates)
@@ -134,7 +134,7 @@ namespace KnowledgeBank.Controllers
 
             try
             {
-                // Check if organistation exsists
+                // Check if organisation exsists
                 if (!await resourceManager.OrganisationExistsAsync(id))
                     return NotFound(new ApiResponse(false, "The organisation does not exist"));
 

@@ -57,7 +57,7 @@ export default function RightSidebar()
 							return <ResourceContent />
 						case MetadataTypeEnum.PERSON:
 							return <PersonContent />
-						case MetadataTypeEnum.ORGANISTATION:
+						case MetadataTypeEnum.ORGANISATION:
 							return <OrganisationContent />
 						default:
 							<h1>Error displaying content.</h1>

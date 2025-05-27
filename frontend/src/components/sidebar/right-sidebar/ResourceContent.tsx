@@ -28,6 +28,7 @@ export function ResourceContent()
     const [ relatedResources, setRelatedResources ] = useState<ListItem[] | null>(null);
     const [ sourceList, setSourceList ] = useState<ListItem[] | null>(null);
     const [ regions, setRegions ] = useState<ListItem[] | null>(null);
+    const [ relatedSourceList, setRelatedSourceList ] = useState<ListItem[] | null>(null);
 
     const [shouldRefresh, setUpdateTrigger] = useState(false);
     const triggerRefresh = () => setUpdateTrigger(prev => !prev);  
@@ -50,7 +51,7 @@ export function ResourceContent()
         setSourceList(null);
         setRegions(null);
         loadInformation(); }
-    }, [currentId])
+    }, [currentId, shouldRefresh])
 
     const loadInformation = async () => {
         const infoPromise = getProperties(currentId, MetadataTypeEnum.RESOURCE);
@@ -62,6 +63,7 @@ export function ResourceContent()
         const relatedResourcesPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "resource-related-resources");
         const sourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "sources");
         const regionsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "regions");
+        const relatedSourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-sources");
     
  
 
@@ -158,9 +160,9 @@ export function ResourceContent()
         });
 
         sourceListPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: {resourceid: any; url: any}) => ({
-                id: item.url,
-                name: item.url,
+            const list: ListItem[] = response.body.map((item: {id: any; name: any}) => ({
+                id: decodeURIComponent(item.id),
+                name: decodeURIComponent(item.name),
                 type: "source",
             }))
             setSourceList(list);
@@ -178,6 +180,18 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading regions: ", error);
         });
+        
+        relatedSourceListPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: {id: any; name: any}) => ({
+                id: decodeURIComponent(item.id),
+                name: decodeURIComponent(item.name),
+                type: "source",
+            }))
+            setRelatedSourceList(list);
+        }).catch(error => {
+            console.error("Error loading sources: ", error);
+        });
+
     }
     
 
@@ -233,7 +247,11 @@ export function ResourceContent()
 
             <Expandable title="Notes" collapsedHeight={100}>
                 {note || <Skeleton />}
-            </Expandable>            
+            </Expandable>
+
+            <Expandable variant="horizontal" title="Related Sources">
+                <BadgeList listType="related-sources" emptyMessage={"No sources recorded"} itemList={relatedSourceList} onUpdate={triggerRefresh}/>
+            </Expandable> 
             
             {fileType}
         </>

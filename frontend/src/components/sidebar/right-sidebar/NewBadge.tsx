@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import New from "@/icons/new"
@@ -36,22 +36,35 @@ export default function NewBadge({
     const [selected, setSelected] = useState<SearchResult[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isOpen, setIsOpen] = useState<boolean>(false);
+    const [source, setSource] = useState<string>("");
+
+    // use refs to avoid rerenders
+    const latestRelation = useRef(relation);
+    const latestAlreadyRelated = useRef(alreadyRelated);
+
+    //
+    useEffect(() => {
+        latestRelation.current = relation;
+        latestAlreadyRelated.current = alreadyRelated;
+    }, [relation, alreadyRelated]);
 
     // Debounced search function
     const debouncedSearch = useCallback(
         debounce(async (query: string) => {
-            if (!query.trim() || !relation) {
+            if (!query.trim() || !latestAlreadyRelated.current) {
                 setSearchResults([]);
                 return;
             }
 
             setIsLoading(true);
             try {
-                const response = await newRelationSearchResults(query, relation as any, 10);
-                if (relation === "tags") {
-                    setSearchResults(response.body.tags.filter((item: { id: string; name: string;}) => !(alreadyRelated.some(i => i.id === item.id))) || [])
+                const response = await newRelationSearchResults(query, latestRelation.current as any, 10);
+                if (latestRelation.current === "tags") {
+                    setSearchResults(response.body.tags.filter((item: { id: string; name: string;}) => 
+                        !(latestAlreadyRelated.current.some(i => i.id === item.id))) || [])
                 }
-                else setSearchResults(response.body.filter((item: { id: string; name: string;}) => !(alreadyRelated.some(i => i.id === item.id))) || []);
+                else setSearchResults(response.body.filter((item: { id: string; name: string;}) => 
+                    !(latestAlreadyRelated.current.some(i => i.id === item.id))) || []);
             } catch (error) {
                 console.error("Search error:", error);
                 setSearchResults([]);
@@ -59,7 +72,7 @@ export default function NewBadge({
                 setIsLoading(false);
             }
         }, 300),
-        [relation, alreadyRelated]
+        []
     );
 
 
@@ -83,20 +96,39 @@ export default function NewBadge({
         setIsOpen(false);
         setSearchQuery("");
         setSelected([]);
+        setSource("");
     }
 
     async function handleAdd() {
-        
-        const relations = selected.map(item => 
-            addRelation(relation, currentType, currentId, item.id)
-        );
-        
-        await Promise.all(relations);
-        onUpdate();
+        try {
+            const relations = selected.map(item => 
+                addRelation(relation, currentType, currentId, item.id)
+            );
+            
+            await Promise.all(relations);
+            onUpdate();
 
-        setIsOpen(false);
-        setSearchQuery("");
-        setSelected([]);
+            setIsOpen(false);
+            setSearchQuery("");
+            setSelected([]);
+            setSource("");
+        } catch (error) {
+            console.error("Error adding relations:", error);
+        }
+    }
+
+    async function handleAddSource() {
+        try {
+            await addRelation(relation, currentType, currentId, source);
+            onUpdate();
+
+            setIsOpen(false);
+            setSearchQuery("");
+            setSelected([]);
+            setSource("");
+        } catch (error) {
+            console.error("Error adding source:", error);
+        }
     }
 
     function isItemSelected(result: SearchResult): boolean {
@@ -114,6 +146,35 @@ export default function NewBadge({
                 className="w-80 p-3 rounded-md" 
                 container={container} 
                 forceMount>
+                {relation === "sources" || relation === "related-sources" ? (
+                    <div className="w-full h-20 flex flex-col"> {/* purely add space */}
+                        {/* Search Input */}
+                        <div className="mb-3">
+                            <Input
+                                type="text" 
+                                placeholder={`Add valid URL...`}
+                                value={source}
+                                onChange={(e) => setSource(e.target.value)}
+                                className="w-full"
+                                autoFocus
+                            />
+                        </div>
+                        <Button 
+                            onClick={handleAddSource}
+                            className="flex-1"
+                            disabled={!source || !URL.canParse(source)}
+                        >
+                            Add
+                        </Button>
+                    </div>
+                ) : relation === "regions" ? (
+                    <> {/* normal interface with add button */}
+                    </>
+                ) : (
+
+
+
+
                 <div className="w-full h-80 flex flex-col">
                     {/* Search Input */}
                     <div className="mb-3">
@@ -182,8 +243,11 @@ export default function NewBadge({
                             Add
                         </Button>
                     </div>
+                </div>) }
 
-                </div>
+
+
+
             </PopoverContent>
         </Popover>
     );
