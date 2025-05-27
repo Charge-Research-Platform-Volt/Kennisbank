@@ -3,79 +3,58 @@ networks:
     name: dev_network
     driver: bridge
 
+x-network: &network
+  networks:
+    - dev_network
+
+# Target to use for building the images
+x-target: &target
+  target: development
+
+# For the java script end, we have to turn on WATCHPACK_POLLING and turn of the cache,
+# otherwise hot reload does not work on windows
+# Base args for the js code bases
+x-jsbase: &jsbase
+  build:
+    <<: *target
+    no_cache: true
+  environment:
+    - WATCHPACK_POLLING=true
+  <<: *network
+
 services:
-  # Start database
+  # Set up temporary folders for storages
   database:
-    image: postgres:latest
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=postgres
     tmpfs:
       - /var/lib/postgresql/data
-    networks:
-      - dev_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+    <<: *network
 
-  # Start storage
   storage:
-    image: mcr.microsoft.com/azure-storage/azurite
-    ports:
-      - "10000:10000"
     tmpfs:
       - /data
-    networks:
-      - dev_network
+    <<: *network
 
-  # Start backend after database and storage
+  # For our dev environment we need to extend all coded services with volumes for hot reload
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: development
-    ports:
-      - "8080:8080"
+      <<: *target
     env_file:
       - path: .env.development
         required: true
+    environment:
+      - DOTNET_WATCH_RESTART_ON_RUDE_EDIT=true # Also restart for outside changes
     volumes:
       - ./backend:/app
       - /app/bin
       - /app/obj
       - ./testdata:/app/testdata
-    depends_on:
-      database:
-        condition: service_healthy
-      storage:
-        condition: service_started
-    networks:
-      - dev_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/status"]
-      interval: 10s
-      timeout: 10s
-      retries: 5
-      start_period: 150s
+    command: dotnet watch --project backend.csproj run --urls http://+:8080 # Use dotnet watch for hot reload, PORT is set in the dockerfile
+    <<: *network
 
-  # Start frontend after backend
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: development
-      no_cache: true
-    ports:
-      - "3000:3000"
-    environment:
-      - API_URL=${API_URL}
-      - NODE_ENV=development
-      - WATCHPACK_POLLING=true
+    <<: *jsbase
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -83,33 +62,14 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    networks:
-      - dev_network
 
   # Start website after backend
   website:
-    build:
-      context: ./website
-      dockerfile: Dockerfile
-      target: development
-      no_cache: true
-    ports:
-      - "3001:3001"
-    environment:
-      - API_URL=${API_URL}
-      - HELP_URL=${HELP_URL}
-      - NEXT_PUBLIC_TIMEZONE=${NEXT_PUBLIC_TIMEZONE}
-      - NODE_ENV=development
-      - WATCHPACK_POLLING=true
+    <<: *jsbase
     volumes:
       - ./website:/app
       - /app/node_modules
       - /app/.next
-    depends_on:
-      backend:
-        condition: service_healthy
-    networks:
-      - dev_network
 
   qdrant:
     image: qdrant/qdrant:latest

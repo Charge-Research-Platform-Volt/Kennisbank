@@ -106,3 +106,8 @@
     opacity: 1;
   }
 }
+
+.disabled-grid {
+  pointer-events: none;
+  opacity: 0.5; /* optioneel */
+}

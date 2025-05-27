@@ -55,7 +55,7 @@ public abstract class TestBaseBlob : TestBase
                 // Configure Azurite blob storage emulator connection string
                 config.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    { "AZURE_STORAGE_CONNECTION_STRING", $"DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://{storageHost}:10000/devstoreaccount1;" }
+                    { "STORAGE_CONNECTION_STRING", $"DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://{storageHost}:10000/devstoreaccount1;" }
                 });
             })
             .ConfigureServices(services =>

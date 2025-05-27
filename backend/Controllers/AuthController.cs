@@ -19,13 +19,14 @@ namespace KnowledgeBank.Controllers
         private readonly SignInManager<User> _signInManager;
         private readonly DatabaseContext _context;
         private readonly EnvironmentConfig _environmentConfig;
-
-
-        public AuthController(SignInManager<User> signInManager, DatabaseContext context, EnvironmentConfig environmentConfig)
+        private readonly MailUtils _mailUtils;
+        private readonly string _frontendDomain;
+        public AuthController(SignInManager<User> signInManager, DatabaseContext context, EnvironmentConfig environmentConfig, MailUtils mailUtils)
         {
             _signInManager = signInManager;
             _logger = Log.ForContext<AuthController>();
             _context = context;
+            _mailUtils = mailUtils;
             _environmentConfig = environmentConfig;
         }
 
@@ -79,10 +80,11 @@ namespace KnowledgeBank.Controllers
                     Token = ShaUtils.Sha256(token.ToString()),
                     CreatedAt = DateTime.UtcNow
                 });
+
                 await _context.SaveChangesAsync();
 
                 // send the email
-                MailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: {_environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL)}/signup?token={token}");
+                _mailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: {_environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL)}/signup?token={token}");
             }
             catch (Exception e)
             {

@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import type { Tag } from "@/types/tag.type";
 import EditIcon from "@/icons/edit-icon";
 import { ApproveTagButton, DeleteTagButton, ConvertTagButton } from "./tag-list-buttons";
+import { useUserRole } from "@/context/user-role-context";
 interface TagActionButtonsProps {
   tag: Tag;
   onEditClick: (e: React.MouseEvent) => void;
-  userRole: string;
 }
 
 /**
@@ -21,7 +21,9 @@ interface TagActionButtonsProps {
  * @param {TagActionButtonsProps} props - The component props
  * @returns {ReactElement} - The rendered action buttons
  */
-export function TagActionButtons({ tag, onEditClick, userRole }: TagActionButtonsProps) {
+export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
+  const { userRole } = useUserRole();
+
   // Common Edit Button that appears for all tag types
   const EditButton = () =>
     tag.canEditAndDelete || userRole == "admin" ? (
@@ -43,7 +45,7 @@ export function TagActionButtons({ tag, onEditClick, userRole }: TagActionButton
       <div className="flex">
         <UsageCount />
         <EditButton />
-        <DeleteTagButton tag={tag} userRole={userRole} />
+        <DeleteTagButton tag={tag} />
       </div>
     );
   }
@@ -57,7 +59,23 @@ export function TagActionButtons({ tag, onEditClick, userRole }: TagActionButton
             <UsageCount />
             <ApproveTagButton tag={tag} />
             <EditButton />
-            <DeleteTagButton tag={tag} userRole={userRole} />
+            <DeleteTagButton tag={tag} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // If unapproved user tag
+  if (!tag.isStandardized && !tag.isApproved) {
+    return (
+      <div>
+        {userRole == "admin" && (
+          <div className="flex">
+            <UsageCount />
+            <ApproveTagButton tag={tag} />
+            <EditButton />
+            <DeleteTagButton tag={tag} />
           </div>
         )}
       </div>
@@ -73,7 +91,7 @@ export function TagActionButtons({ tag, onEditClick, userRole }: TagActionButton
             <UsageCount />
             <ConvertTagButton tag={tag} />
             <EditButton />
-            <DeleteTagButton tag={tag} userRole={userRole} />
+            <DeleteTagButton tag={tag} />
           </div>
         )}
       </div>
@@ -88,7 +106,7 @@ export function TagActionButtons({ tag, onEditClick, userRole }: TagActionButton
           <div className="flex">
             <UsageCount />
             <EditButton />
-            <DeleteTagButton tag={tag} userRole={userRole} />
+            <DeleteTagButton tag={tag} />
           </div>
         )}
       </div>

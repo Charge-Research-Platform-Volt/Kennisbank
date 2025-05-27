@@ -16,7 +16,7 @@ import Search from "@/icons/search-icon";
  * @param userRole - Role of current user
  * @returns A page where the user, dependent on whether or not its an admin, can see, edit, promote, add, delete and search on tags
  */
-export default function ListTags({userRole} : {userRole : string}) {
+export default function ListTags() {
 
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -141,7 +141,7 @@ export default function ListTags({userRole} : {userRole : string}) {
                     {tags.map((tag) => (
                         <div key={tag.id} className="mb-2 flex justify-between items-center w-full">
                             {
-                                <TagListItem key={tag.id} tag={tag} userRole={userRole}/>
+                                <TagListItem key={tag.id} tag={tag}/>
                             }
                         </div>
                     ))}
