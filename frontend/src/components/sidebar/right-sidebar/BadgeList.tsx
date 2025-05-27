@@ -38,7 +38,7 @@ export default function BadgeList({
 } : BadgeListProps)
 {
     const { navigate } = useSidebar();
-    const { setTagFilters } = useArchive();
+    const { setTagFilter: setTagFilters } = useArchive();
     
     async function navigateTo(id: string, type: string)
     {

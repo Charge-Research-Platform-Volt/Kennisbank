@@ -1,7 +1,35 @@
 using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Crypto.Engines;
 
 namespace KnowledgeBank.Data;
+
+/// <summary>
+/// DTO for making a grid request
+/// </summary>
+public class GridRequest 
+{
+    public required int PageIndex { get; set; }
+    public required int PageSize { get; set; }
+    public string? SearchQuery { get; set; }
+    public string? SortBy { get; set; }
+    public string? SortDirection { get; set; }
+    public GridFilterOptions? FilterOptions { get; set; }
+}
+
+/// <summary>
+/// DTO for setting filters in grid request
+/// </summary>
+public class GridFilterOptions 
+{
+    public string[]? TypeFilter { get; set; }
+    public string? PubdateMin { get; set; }
+    public string? PubdateMax { get; set; }
+    public string[]? TagFilter { get; set; }
+    public string? TagFilterMode { get; set; } = "any";
+    public string[]? RegionFilter { get; set; }
+    public string? RegionFilterMode { get; set; } = "any";
+}
 
 /// <summary>
 /// Class to hold data for a search result on the grid
@@ -21,54 +49,44 @@ public partial class ResourceManager
     /// <summary>
     /// Searches all resources, persons and organisations using the given parameters
     /// </summary>
-    /// <param name="pageIndex">The index of the page to retrieve</param>
-    /// <param name="pageSize">The size of a page</param>
-    /// <param name="search">The search query</param>
-    /// <param name="sortBy">The attribute to sort by</param>
-    /// <param name="sortDirection">The search direction (asc or desc)</param>
-    /// <param name="filter_name">Filter to apply to the names</param>
-    /// <param name="filter_type">Filter to apply to the type</param>
-    /// <param name="filter_pubdate_max">The maximum publication date</param>
-    /// <param name="filter_pubdate_min">The minimum publication date</param>
+    /// <param name="request">The request DTO</param>
     /// <returns>The result of the search</returns>
-    public async Task<GridSearchResult> SearchResourceGridAsync(
-        int pageIndex,
-        int pageSize,
-        string? search = null,
-        string? sortBy = null,
-        string? sortDirection = null,
-        string? filter_name = null,
-        string? filter_type = null,
-        string? filter_pubdate_min = null,
-        string? filter_pubdate_max = null
-    ) 
+    public async Task<GridSearchResult> SearchResourceGridAsync(GridRequest request) 
     {
         // Parse date filters
         DateTime? minDate = null;
         DateTime? maxDate = null;
 
-        if (!string.IsNullOrEmpty(filter_pubdate_min) && DateTime.TryParse(filter_pubdate_min, out var parsedMin))
+        if (!string.IsNullOrEmpty(request.FilterOptions?.PubdateMin) && DateTime.TryParse(request.FilterOptions?.PubdateMin, out var parsedMin))
             minDate = DateTime.SpecifyKind(parsedMin, DateTimeKind.Utc);
 
-        if (!string.IsNullOrEmpty(filter_pubdate_max) && DateTime.TryParse(filter_pubdate_max, out var parsedMax))
+        if (!string.IsNullOrEmpty(request.FilterOptions?.PubdateMax) && DateTime.TryParse(request.FilterOptions?.PubdateMax, out var parsedMax))
             maxDate = DateTime.SpecifyKind(parsedMax, DateTimeKind.Utc);
-    
+
+        // Parse GUID filters
+        Guid[] tagGuids = StringToGuidArray(request.FilterOptions?.TagFilter);
+        Guid[] regionGuids = StringToGuidArray(request.FilterOptions?.RegionFilter);
+        
         // Store filters in dictionary
+        // Add the filter here and add functionality both in ApplyFilters (EF Core) and AddFilters (Raw SQL)
         Dictionary<string, object?> filters = new Dictionary<string, object?>
         {
-            { "name", filter_name },
-            { "type", filter_type },
+            { "type", request.FilterOptions?.TypeFilter },
             { "pubdate_min", minDate },
             { "pubdate_max", maxDate },
+            { "tag_ids", tagGuids},
+            { "tag_filter_mode", request.FilterOptions?.TagFilterMode },
+            { "region_ids", regionGuids },
+            { "region_filter_mode", request.FilterOptions?.RegionFilterMode },
         };
 
         // If there is a search query, execute search
-        if (!string.IsNullOrEmpty(search))
-            return await ExecuteSearchQuery(pageIndex, pageSize, search, sortBy, sortDirection, filters);
+        if (!string.IsNullOrEmpty(request.SearchQuery))
+            return await ExecuteSearchQuery(request.PageIndex, request.PageSize, request.SearchQuery, request.SortBy, request.SortDirection, filters);
 
         // If not, execute regular query
         else
-            return await ExecuteRegularQuery(pageIndex, pageSize, sortBy, sortDirection, filters);
+            return await ExecuteRegularQuery(request.PageIndex, request.PageSize, request.SortBy, request.SortDirection, filters);
     }
     
     /// <summary>
@@ -130,17 +148,9 @@ public partial class ResourceManager
     /// <returns>A new query with the filters applied</returns>
     private IQueryable<ResourceGridItem> ApplyFilters(IQueryable<ResourceGridItem> query, Dictionary<string, object?> filters) 
     {
-        // Apply name filter
-        if (filters.TryGetValue("name", out var nameFilter) && !string.IsNullOrEmpty(nameFilter?.ToString()))
-            query = query.Where(x => EF.Functions.Like(x.Name, $"%{nameFilter}%"));
-
         // Apply type filter
-        if (filters.TryGetValue("type", out var typeFilter) && typeFilter != null && !string.IsNullOrEmpty(typeFilter.ToString())) 
-        {
-            string[] allowedTypes = typeFilter.ToString().Split(',').Select(x => x.Trim()).ToArray();
-        
-            query = query.Where(x => allowedTypes.Contains(x.Type));
-        }
+        if (filters.TryGetValue("type", out var typeFilter) && typeFilter != null && ((string[])typeFilter).Length > 0) 
+            query = query.Where(x => ((string[])typeFilter).Contains(x.Type));
 
         // Apply minimum publication date filter
         if (filters.TryGetValue("pubdate_min", out var minDateFilter) && minDateFilter is DateTime minDate)
@@ -149,6 +159,49 @@ public partial class ResourceManager
         // Apply maximum publication date filter
         if (filters.TryGetValue("pubdate_max", out var maxDateFilter) && maxDateFilter is DateTime maxDate)
             query = query.Where(x => x.PublicationDate <= maxDate);
+
+        // Apply tag filter
+        query = ApplyRelationFilter(query, filters, "tag_ids", "tag_filter_mode", "tag");
+
+        // Apply region filter
+        query = ApplyRelationFilter(query, filters, "region_ids", "region_filter_mode", "region");
+        
+        return query;
+    }
+
+    private IQueryable<ResourceGridItem> ApplyRelationFilter(IQueryable<ResourceGridItem> query, Dictionary<string, object?> filters, string idsKey, string modeKey, string relationType)
+    {
+        if (!filters.TryGetValue(idsKey, out var idsFilter) || idsFilter is not Guid[] ids || ids.Length == 0)
+            return query;
+
+        string filterMode = filters.TryGetValue(modeKey, out var mode) && mode is string modeStr ? modeStr : "any";
+        
+        // Resource must have ALL specified IDs
+        if (filterMode.ToLower() == "all") 
+        {
+            foreach (Guid id in ids) 
+            {
+                // Tag filter
+                if (relationType == "tag") 
+                    query = query.Where(x => x.Type != "resource" || database.ResourceTagRelations.Any(rt => rt.TagId == id && rt.ResourceId == x.Id));
+
+                // Region filter
+                if (relationType == "region")
+                    query = query.Where(x => x.Type != "resource" || database.ResourceRegionRelations.Any(rr => rr.RegionId == id && rr.ResourceId == x.Id));
+            }
+        }
+        
+        // Resource must have ANY of the specified IDs
+        else 
+        {
+            // Tag filter
+            if (relationType == "tag")
+                query = query.Where(x => x.Type != "resource" || database.ResourceTagRelations.Any(rt => ids.Contains(rt.TagId) && rt.ResourceId == x.Id));
+
+            // Region filter
+            if (relationType == "region")
+                query = query.Where(x => x.Type != "resource" || database.ResourceRegionRelations.Any(rr => ids.Contains(rr.RegionId) && rr.ResourceId == x.Id));
+        }
 
         return query;
     }
@@ -220,7 +273,6 @@ public partial class ResourceManager
         private readonly List<string> whereConditions = new();
         private readonly List<object> parameters = new();
         private int paramIndex = 1;
-        private string? searchTerm;
         
         /// <summary>
         /// Adds a search condition to the query. This is fuzzy and will handle typos and partial matches
@@ -229,15 +281,14 @@ public partial class ResourceManager
         /// <returns>Itself with the search condition added</returns>
         public SearchQueryBuilder AddSearchCondition(string searchTerm) 
         {
-            this.searchTerm = searchTerm;
-
-            List<string> searchConditions = new List<string>();
-
-            // Strategy 1: Exact phrase match (highest priority)
-            searchConditions.Add(@"""SearchVector"" @@ phraseto_tsquery('english', {0})");
-
-            // Strategy 2: All words must be present (websearch_to_tsquery handles quotes, AND, OR, etc.)
-            searchConditions.Add(@"""SearchVector"" @@ websearch_to_tsquery('english', {0})");
+            List<string> searchConditions =
+            [
+                // Strategy 1: Exact phrase match (highest priority)
+                @"""SearchVector"" @@ phraseto_tsquery('english', {0})",
+                
+                // Strategy 2: All words must be present (websearch_to_tsquery handles quotes, AND, OR, etc.)
+                @"""SearchVector"" @@ websearch_to_tsquery('english', {0})",
+            ];
 
             // Strategy 3: Prefix matching for partial words
             string[] words = searchTerm.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -287,24 +338,15 @@ public partial class ResourceManager
                 
                 switch (key.ToLower()) 
                 {
-                    case "name":
-                        if (!string.IsNullOrEmpty(value.ToString())) 
-                        {
-                            whereConditions.Add($@"""Name"" ILIKE {{{paramIndex}}}");
-                            parameters.Add($"%{value}%");
-                            paramIndex++;
-                        }
-                        break;
-                    
                     case "type":
-                        if (!string.IsNullOrEmpty(value.ToString())) 
+                        if (value != null && ((string[])value).Length > 0) 
                         {
-                            string[] allowedTypes = value.ToString().Split(',').Select(t => t.Trim()).ToArray();
+                            string[] allowedTypes = (string[])value;
 
                             if (allowedTypes.Length == 1) 
                             {
                                 whereConditions.Add($@"""Type"" = {{{paramIndex}}}");
-                                parameters.Add(value.ToString());
+                                parameters.Add(allowedTypes[0]);
                                 paramIndex++;
                             }
                             else 
@@ -340,10 +382,65 @@ public partial class ResourceManager
                             paramIndex++;
                         }
                         break;
+                        
+                    case "tag_ids":
+                        AddRelationFilter(value, filters, "tag_filter_mode", "resource-tag", "tag-id");
+                        break;
+                        
+                    case "region_ids":
+                        AddRelationFilter(value, filters, "region_filter_mode", "resource-region", "region-id");
+                        break;
                 }
             }
 
             return this;
+        }
+        
+        private void AddRelationFilter(object? value, Dictionary<string, object?> filters, string modeKey, string tableName, string columnName) 
+        {
+            if (value is not Guid[] ids || ids.Length == 0) return;
+
+            string filterMode = "any";
+            if (filters.TryGetValue(modeKey, out var mode) && mode is string modeStr)
+                filterMode = modeStr.ToLower();
+                
+            // Resource must have ALL specified IDs
+            if (filterMode == "all") 
+            {
+                List<string> idParams = new List<string>();
+                foreach (Guid id in ids) 
+                {
+                    idParams.Add($"{{{paramIndex}}}");
+                    parameters.Add(id);
+                    paramIndex++;
+                }
+
+                whereConditions.Add($@"(
+                    ""Type"" != 'resource' OR
+                    (SELECT COUNT(*) FROM ""{tableName}""
+                    WHERE ""resource-id"" = ""Id"" AND ""{columnName}"" IN ({string.Join(", ", idParams)})) = {{{paramIndex}}}
+                )");
+                parameters.Add(ids.Length);
+                paramIndex++;
+            }
+            
+            // Resource must have ANY of the specified IDs
+            else 
+            {
+                List<string> idParams = new List<string>();
+                foreach (Guid id in ids) 
+                {
+                    idParams.Add($"{{{paramIndex}}}");
+                    parameters.Add(id);
+                    paramIndex++;
+                }
+
+                whereConditions.Add($@"(
+                    ""Type"" != 'resource' OR
+                    EXISTS (SELECT 1 FROM ""{tableName}""
+                        WHERE ""resource-id"" = ""Id"" AND ""{columnName}"" IN ({string.Join(", ", idParams)}))
+                )");
+            }
         }
         
         /// <summary>
@@ -362,7 +459,7 @@ public partial class ResourceManager
             object[] allParams = parameters.Concat(new object[] { offset, pageSize }).ToArray();
 
             string sql = $@"
-                SELECT ""Id"", ""Name"", ""PublicationDate"", ""Type"", ""FileType"", ""CreationDate"",
+                SELECT ""Id"", ""Name"", ""Description"", ""PublicationDate"", ""Type"", ""FileType"", ""CreationDate"",
                     (
                         -- Exact phrase match gets highest score
                         CASE WHEN ""SearchVector"" @@ phraseto_tsquery('english', {{0}}) THEN 10.0 ELSE 0.0 END +

@@ -12,6 +12,7 @@ import { useUserRole } from "@/context/user-role-context";
 import GetFileIcon from "../getFileIcon";
 import { ApiResponse } from "@/types/apiResponse.type";
 import { useArchive } from "@/context/archive-provider";
+import { GridRequest, GridRequestSchema } from "@/types/gridRequest.type";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -34,10 +35,11 @@ export default function ResourcesGrid()
         currentPage,
         pageSize,
         setTotalItems,
-        nameFilter,
         typeFilter,
         publicationDateRangeMin,
-        publicationDateRangeMax
+        publicationDateRangeMax,
+        tagFilter,
+        regionFilter,
     } = useArchive();
 
     // Data for grid
@@ -72,28 +74,35 @@ export default function ResourcesGrid()
         setLoading(true);
         
         try 
-        {
-            const params = new URLSearchParams(
+        {   
+            // Create the request
+            const request: GridRequest = GridRequestSchema.parse(
+            {
+                pageIndex: currentPage,
+                pageSize: pageSize,
+                searchQuery: searchQuery || undefined,
+                sortBy: sortBy || undefined,
+                sortDirection: sortDirection || undefined,
+                filterOptions:
                 {
-                    pageIndex: currentPage.toString(),
-                    pageSize: pageSize.toString(),
-                });
+                    typeFilter: typeFilter || undefined,
+                    pubdateMin: publicationDateRangeMin || undefined,
+                    pubdateMax: publicationDateRangeMax || undefined,
+                    tagFilter: tagFilter || undefined,
+                    regionFilter: regionFilter || undefined,
+                },
+            });
             
-            // Add filters and search
-            if (searchQuery) params.append('query', searchQuery);
-            if (nameFilter) params.append('filter_name', nameFilter);
-            if (typeFilter) params.append('filter_type', typeFilter);
-            if (publicationDateRangeMin) params.append('filter_pubdate_min', publicationDateRangeMin);
-            if (publicationDateRangeMax) params.append('filter_pubdate_max', publicationDateRangeMax);
-            if (sortBy) 
+            // Fetch the data from the backend
+            const response = await fetch(`/api/resources/grid`,
             {
-                params.append('sortBy', sortBy);
-                params.append('sortDirection', sortDirection);
-            }
-            
-            const response = await fetch(`/api/resources/grid?${params}`,
-            {
+                method: 'POST',
                 credentials: 'include',
+                headers: 
+                {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(request),
             });
             
             if (!response.ok)
@@ -123,7 +132,18 @@ export default function ResourcesGrid()
         {
             setLoading(false);
         }
-    }, [currentPage, pageSize, searchQuery, nameFilter, typeFilter, publicationDateRangeMax, publicationDateRangeMin, sortBy, sortDirection]);
+    }, [
+        currentPage,
+        pageSize,
+        searchQuery,
+        typeFilter,
+        publicationDateRangeMax,
+        publicationDateRangeMin,
+        sortBy,
+        sortDirection,
+        tagFilter,
+        regionFilter
+    ]);
     
     // Fetch data when dependencies change
     React.useEffect(() => 

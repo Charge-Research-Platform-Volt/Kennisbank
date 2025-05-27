@@ -5,16 +5,16 @@ import React from 'react';
 export type ArchiveContextType = {
 
     // Filters
-    tagFilters: string[];
-    setTagFilters: (filters: string[]) => void;
-    nameFilter: string;
-    setNameFilter: (nameFilter: string) => void;
-    typeFilter: string;
-    setTypeFilter: (typeFilter: string) => void;
+    tagFilter: string[];
+    setTagFilter: (filter: string[]) => void;
+    typeFilter: string[];
+    setTypeFilter: (typeFilter: string[]) => void;
     publicationDateRangeMin: string;
     setPublicationDateRangeMin: (publicationDateRangeMin: string) => void;
     publicationDateRangeMax: string;
     setPublicationDateRangeMax: (publicationDateRangeMax: string) => void;
+    regionFilter: string[];
+    setRegionFilter: (filter: string[]) => void;
     
     // Search
     searchQuery: string;
@@ -45,11 +45,11 @@ export const useArchive = (): ArchiveContextType =>
 export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
 {
     // Filters
-    const [tagFilters, setTagFilters] = React.useState<string[]>([]);
-    const [nameFilter, setNameFilter] = React.useState<string>('');
-    const [typeFilter, setTypeFilter] = React.useState<string>('');
+    const [tagFilter, setTagFilter] = React.useState<string[]>([]);
+    const [typeFilter, setTypeFilter] = React.useState<string[]>(['resource', 'person', 'organisation']);
     const [publicationDateRangeMin, setPublicationDateRangeMin] = React.useState<string>('');
     const [publicationDateRangeMax, setPublicationDateRangeMax] = React.useState<string>('');
+    const [regionFilter, setRegionFilter] = React.useState<string[]>([]);
     
     // Search
     const [searchInput, setSearchInput] = React.useState<string>('');
@@ -77,7 +77,7 @@ export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
     {
         if (currentPage !== 1)
             setCurrentPage(1);
-    }, [searchQuery, nameFilter, typeFilter, tagFilters, publicationDateRangeMax, publicationDateRangeMin]);
+    }, [searchQuery, typeFilter, tagFilter, publicationDateRangeMax, publicationDateRangeMin]);
     
     // Calculate total pages on total items or page size change
     React.useEffect(() => 
@@ -96,16 +96,16 @@ export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
         <ArchiveContext.Provider 
             value={{
                 // Filters
-                tagFilters,
-                setTagFilters,
-                nameFilter,
-                setNameFilter,
+                tagFilter,
+                setTagFilter: setTagFilter,
                 typeFilter,
                 setTypeFilter,
                 publicationDateRangeMin,
                 setPublicationDateRangeMin,
                 publicationDateRangeMax,
                 setPublicationDateRangeMax,
+                regionFilter,
+                setRegionFilter,
                 
                 // Search
                 searchQuery,

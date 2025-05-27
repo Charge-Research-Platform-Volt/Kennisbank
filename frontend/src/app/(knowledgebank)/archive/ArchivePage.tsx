@@ -22,7 +22,7 @@ type filterDto = {
 
 export default function ArchivePage() {
   //context provider
-  const {tagFilters, setTagFilters} = useArchive();
+  const {tagFilter: tagFilters, setTagFilter: setTagFilters} = useArchive();
 
   // State for search results, is null when no fetch has been completed yet, a string when an error occurs, or the fetch response.
   const [searchResults, setSearchResults] = useState<ResourcePageWithTagsResponse | null | string>(null);

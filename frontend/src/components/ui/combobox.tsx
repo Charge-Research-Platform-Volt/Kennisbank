@@ -20,7 +20,8 @@ export interface ComboboxProps
     onValueChange?: (values: string[]) => void;
 }
 
-export function Combobox({options, hasSearch = false, multiSelect = false, enabledByDefault = false, onValueChange, className, id, value}: ComboboxProps) {
+export function Combobox({options, hasSearch = false, multiSelect = false, enabledByDefault = false, onValueChange, className, id, value}: ComboboxProps)
+{
     const [open, setOpen] = React.useState(false);
     const [selectedValues, setSelectedValues] = React.useState<string[]>(value ? value : enabledByDefault ? options.map((option) => option.value) : []);
     
@@ -38,18 +39,20 @@ export function Combobox({options, hasSearch = false, multiSelect = false, enabl
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                    <Button id={id} variant="outline" role="combobox" aria-expanded={open} className={"justify-between " + className}>
-                        { selectedValues.length == options.length && "All"}
-                        { selectedValues.length > 0 && selectedValues.length < options.length && "Some"}
-                        { selectedValues.length == 0 && "Select something..."}
-                    <ChevronsUpDown className="opacity-50" />
+                <Button id={id} variant="outline" role="combobox" aria-expanded={open} className={`flex justify-between items-center w-full ${className}`}>
+                        <div className="flex-1 truncate text-left mr-2">
+                            { selectedValues.length == options.length && "All"}
+                            { selectedValues.length > 0 && selectedValues.length < options.length && options.filter((option) => selectedValues.includes(option.value)).map((option) => option.label).join(", ")}
+                            { selectedValues.length == 0 && "Select something..."}
+                        </div>
+                    <ChevronsUpDown className="opacity-50 flex-shrink-0" />
                 </Button>
             </PopoverTrigger>
-        <PopoverContent className="w-[200px] p-0">
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
             <Command>
                 { hasSearch && <CommandInput placeholder="Search..." className="h-9" /> }
                 <CommandList>
-                    <CommandEmpty>No framework found.</CommandEmpty>
+                    <CommandEmpty>Nothing here.</CommandEmpty>
                     <CommandGroup>
                     { options.map((option) => (
                         <CommandItem

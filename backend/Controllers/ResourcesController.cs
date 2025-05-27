@@ -1147,53 +1147,25 @@ namespace KnowledgeBank.Controllers
         /// <summary>
         /// Retrieves the resource grid items which are displayed on the archive page
         /// </summary>
-        /// <param name="pageIndex">The index of the page</param>
-        /// <param name="pageSize">The size of the page</param>
-        /// <param name="query">The search query to be applied</param>
-        /// <param name="sortBy">The attribute to sort by</param>
-        /// <param name="sortDirection">The direction to sort in (asc or desc)</param>
-        /// <param name="filter_name">The filter to apply to the name</param>
-        /// <param name="filter_type">The filter to apply to the type</param>
-        /// <param name="filter_pubdate_max">The maximum publication date</param>
-        /// <param name="filter_pubdate_min">The minimum publication date</param>
-        [HttpGet("grid")]
+        /// <param name="request">The request DTO</param>
+        [HttpPost("grid")]
         [SwaggerOperation(Summary = "Retrieves the resource grid items which are displayed on the archive page")]
         [SwaggerResponse(200, "The list of ResourceGridItems", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> GetGrid(
-            int pageIndex = 1,
-            int pageSize = 50,
-            string? query = null,
-            string? sortBy = null,
-            string? sortDirection = null,
-            string? filter_name = null,
-            string? filter_type = null,
-            string? filter_pubdate_min = null,
-            string? filter_pubdate_max = null
-        ) 
+        public async Task<IActionResult> GetGrid([FromBody]GridRequest request) 
         {
             // Check page settings
-            if (pageIndex < 1)
+            if (request.PageIndex < 1)
                 return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1"));
 
-            if (pageSize < 1)
+            if (request.PageSize < 1)
                 return BadRequest(new ApiResponse(false, "Page size cannot be lower than 1"));
                 
             try 
             {
                 // Execute the search
-                GridSearchResult searchResult = await resourceManager.SearchResourceGridAsync(
-                    pageIndex,
-                    pageSize,
-                    query,
-                    sortBy,
-                    sortDirection,
-                    filter_name,
-                    filter_type,
-                    filter_pubdate_min,
-                    filter_pubdate_max
-                );
+                GridSearchResult searchResult = await resourceManager.SearchResourceGridAsync(request);
                 
                 // Return result
                 return Ok(new ApiResponse(true, $"Found {searchResult.Items?.Length ?? 0} items", searchResult));

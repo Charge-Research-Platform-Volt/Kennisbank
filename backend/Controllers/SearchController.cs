@@ -13,6 +13,7 @@ namespace KnowledgeBank.Controllers;
 [ApiController]
 [Authorize]
 [Route("[controller]")]
+[Obsolete]
 [Produces("application/json")]
 public class SearchController : ControllerBase
 {

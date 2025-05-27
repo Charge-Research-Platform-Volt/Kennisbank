@@ -219,7 +219,7 @@ export const ListTagsPaged = async (pageIndex: number, searchQuery: string): Pro
   // Send the data to the backend
   const cookieHeader : ReadonlyRequestCookies = await cookies();
   const response = await fetch(
-      `${process.env.API_URL}/`,
+      `${process.env.API_URL}/tags/tags`,
       {
           method: "POST",
           credentials: "include",

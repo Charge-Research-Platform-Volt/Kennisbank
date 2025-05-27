@@ -42,6 +42,8 @@ namespace KnowledgeBank.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.HasPostgresExtension("pg_trgm");
+        
             modelBuilder.Entity<Resource>()
                 .HasOne(f => f.Vector)
                 .WithOne(v => v.Resource)
@@ -101,6 +103,7 @@ namespace KnowledgeBank.Data
                 .WithMany(o => o.SourceRelationships)
                 .HasForeignKey(or => or.TargetPersonId);
 
+            // Resource grid view
             modelBuilder.Entity<ResourceGridItem>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -112,6 +115,15 @@ namespace KnowledgeBank.Data
                 entity.HasNoKey();
                 entity.ToView(null);
             });
+
+            // Relation indexes for better query performance
+            modelBuilder.Entity<ResourceTagRelation>()
+                .HasIndex(rt => rt.TagId)
+                .HasDatabaseName("idx_resource_tag_tag_id");
+
+            modelBuilder.Entity<ResourceRegionRelation>()
+                .HasIndex(rr => rr.RegionId)
+                .HasDatabaseName("idx_resource_region_region_id");
 
             base.OnModelCreating(modelBuilder);
         }

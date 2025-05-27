@@ -64,14 +64,14 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                     pageIndex: filterOptions.PageIndex,
                     pageSize: filterOptions.PageSize,
                     predicate: predicate,
-                    includeProperties: filterOptions.IncludeUsageCount ? "ResourceTagRelations" : string.Empty // fails if IncludeUsageCount is false
+                    includeProperties: filterOptions.IncludeUsageCount ? ["ResourceTagRelations"] : [] // fails if IncludeUsageCount is false
                 );
             }
             else
             {
                 tags = await resourceManager.GetAllTagsAsync(
                     predicate: predicate,
-                    includeProperties: filterOptions.IncludeUsageCount ? "ResourceTagRelations": string.Empty // fails if IncludeUsageCount is false
+                    includeProperties: filterOptions.IncludeUsageCount ? ["ResourceTagRelations"] : [] // fails if IncludeUsageCount is false
                 );
             }
 

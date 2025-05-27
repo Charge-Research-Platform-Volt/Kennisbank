@@ -13,6 +13,8 @@ using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using System.Reflection;
+using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Controllers
 {
@@ -292,22 +294,26 @@ namespace KnowledgeBank.Controllers
                 object[] regions = [];
 
                 string projectionString = $"new({properties})";
+
+                Expression<Func<Region, bool>>? predicate = searchQuery != null ? r =>  EF.Functions.TrigramsAreSimilar(r.Name, searchQuery) || 
+                                                                                        EF.Functions.ILike(r.Name, $"{searchQuery}%") ||
+                                                                                        EF.Functions.ILike(r.Name, $"%{searchQuery}%") : null;
                 
                 // No paging requested, list all regions
                 if (pageIndex == null || pageSize == null)
                     regions = string.IsNullOrEmpty(properties) ?
                         (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllRegionsAsync() :
-                        await resourceManager.GetAllRegionsAsync(predicate: r => r.Name.Contains(searchQuery))) :
+                        await resourceManager.GetAllRegionsAsync(predicate: predicate)) :
                         (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllRegionsAsync(projection: projectionString) :
-                        await resourceManager.GetAllRegionsAsync(projection: projectionString, predicate: r => r.Name.Contains(searchQuery)));
+                        await resourceManager.GetAllRegionsAsync(projection: projectionString, predicate: predicate));
 
                 // Paging requested, retrieve regions on that page
                 else
                     regions = string.IsNullOrEmpty(properties) ?
                         (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetRegionPageAsync((int)pageIndex, (int)pageSize) :
-                        await resourceManager.GetRegionPageAsync((int)pageIndex, (int)pageSize, predicate: r => r.Name.Contains(searchQuery))) :
+                        await resourceManager.GetRegionPageAsync((int)pageIndex, (int)pageSize, predicate: predicate)) :
                         (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetRegionPageAsync(projectionString, (int)pageIndex, (int)pageSize) :
-                        await resourceManager.GetRegionPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: r => r.Name.Contains(searchQuery)));
+                        await resourceManager.GetRegionPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: predicate));
 
                 // Return found regions
                 return Ok(new ApiResponse(true, $"Found {regions.Length} regions", regions));
