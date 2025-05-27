@@ -5,7 +5,7 @@ export default function ChatIntro() {
   const { setUserInput } = useChat();
 
   const questions = [
-    "What is Change?",
+    "What is Charge?",
     "What are the main political parties in the European Union?",
     "How does the European Parliament work?",
     "What is Brexit and how did it affect Europe?",
