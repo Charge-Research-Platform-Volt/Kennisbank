@@ -38,7 +38,7 @@ export default function GeneratePopup({title, description, content, open, onClos
           </DialogHeader>
           <div className="flex flex-col space-y-2 max-h-full overflow-y-auto overflow-x-auto p-2 border rounded-md bg-gray-50">
           {content.map((t, i)=>
-                <div key={i} className="w-fit inline-flex items-center px-2 whitespace-nowrap gap-2 border rounded-md border-grey-300">
+                <div key={i} className="w-fit inline-flex items-center px-2 py-1 whitespace-nowrap gap-2 border rounded-md border-grey-300 hover:bg-purple-700">
                   {title === "Tags" ? <Tag size={16}/> : (title ==="Creators" ? <User size={16}/> : <></>)}
                   <Label key={t}>{t}</Label>
                 </div>
@@ -47,3 +47,7 @@ export default function GeneratePopup({title, description, content, open, onClos
       </DialogContent>
     </Dialog>)
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
