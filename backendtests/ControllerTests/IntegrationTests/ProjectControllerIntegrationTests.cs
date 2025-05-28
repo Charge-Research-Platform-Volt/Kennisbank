@@ -1,3 +1,5 @@
+#nullable disable
+
 using Microsoft.AspNetCore.Mvc;
 using backend.Tests.Infrastructure;
 using KnowledgeBank.Models;
@@ -882,17 +884,17 @@ public class ProjectControllerTests : TestBase
         await _controller.AddResource(projectId, resourceId.ToString()); // Add a resource to the project
 
         Guid resourceId2 = await _resourceManager.CreateResourceAsync(MockResource);
-        await _controller.AddResource(((ApiResponse)addRes.Value).Body.ToString(), resourceId2.ToString()); // Add a resource to the subfolder
+        await _controller.AddResource(folderId, resourceId2.ToString()); // Add a resource to the subfolder
 
         // Check if root fetch of content is correct
         ObjectResult fetchRes = (ObjectResult)await _controller.Info(projectId);
         ProjectInfoDto dto = (ProjectInfoDto)((ApiResponse)fetchRes.Value).Body;
         Assert.That(dto.Project.Id.ToString(), Is.EqualTo(projectId));
         Assert.That(dto.Folders.Count, Is.EqualTo(1));
-
         Assert.That(dto.Folders.First().Folder.Id.ToString(), Is.EqualTo(folderId));
         Assert.That(dto.Resources.Count, Is.EqualTo(1));
         Assert.That(dto.Resources.First().Resource.Id, Is.EqualTo(resourceId));
+        Assert.That(dto.Resources.First().AddedBy, Is.EqualTo(creatorUser.UserName));
 
         // Then check if fetching content from the folder in root goes correctly
         fetchRes = (ObjectResult)await _controller.Info(folderId);
@@ -901,6 +903,7 @@ public class ProjectControllerTests : TestBase
         Assert.That(dto.Folders.Count, Is.EqualTo(0));
         Assert.That(dto.Resources.Count, Is.EqualTo(1));
         Assert.That(dto.Resources.First().Resource.Id, Is.EqualTo(resourceId2));
+        Assert.That(dto.Resources.First().AddedBy, Is.EqualTo(creatorUser.UserName));
     }
     #endregion
 
