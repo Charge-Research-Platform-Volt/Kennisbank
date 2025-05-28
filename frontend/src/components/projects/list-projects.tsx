@@ -344,7 +344,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
           gridApiRef.current.clearFocusedCell(); 
         }
 
-        setProjects(projectFetch.body.projects.map(p => {return {folder: p, addedBy: ""}}));
+        setProjects(projectFetch.body.projects.map((p: any) => {return {folder: p, addedBy: ""}}));
         setResources(initialResources); 
         setTags([]);
         setCreators([]);
@@ -360,11 +360,11 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
 
   // Function to refresh the current project contents
   const refreshCurrentProject = async () => {
-    if (!navigationState.currentProjectId) return;
+    if (!navigationRef.current.currentProjectId) return;
     
     try {
       setIsLoading(true);
-      const { resources: newResources, projects: newProjects, creators: newCreators, tags: newTags } = await fetchProjectContent(navigationState.currentProjectId);
+      const { resources: newResources, projects: newProjects, creators: newCreators, tags: newTags } = await fetchProjectContent(navigationRef.current.currentProjectId);
       // Clear focus
       if (gridApiRef.current) {
         gridApiRef.current.clearFocusedCell();
@@ -631,7 +631,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
       else {
         // If we delete a project, navigate to the full projects overview, otherwise reload the folder you are in
         await deleteProject(item.id);
-        if(navigationState.currentLevel >= 1) {
+        if(navigationRef.current.currentLevel >= 1) {
           await refreshCurrentProject();
         }
         else {
