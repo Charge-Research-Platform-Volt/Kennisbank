@@ -889,9 +889,10 @@ public class ProjectControllerTests : TestBase
         ProjectInfoDto dto = (ProjectInfoDto)((ApiResponse)fetchRes.Value).Body;
         Assert.That(dto.Project.Id.ToString(), Is.EqualTo(projectId));
         Assert.That(dto.Folders.Count, Is.EqualTo(1));
-        Assert.That(dto.Folders.First().Id.ToString, Is.EqualTo(folderId));
+
+        Assert.That(dto.Folders.First().Folder.Id.ToString(), Is.EqualTo(folderId));
         Assert.That(dto.Resources.Count, Is.EqualTo(1));
-        Assert.That(dto.Resources.First().Id, Is.EqualTo(resourceId));
+        Assert.That(dto.Resources.First().Resource.Id, Is.EqualTo(resourceId));
 
         // Then check if fetching content from the folder in root goes correctly
         fetchRes = (ObjectResult)await _controller.Info(folderId);
@@ -899,7 +900,7 @@ public class ProjectControllerTests : TestBase
         Assert.That(dto.Project.Id.ToString(), Is.EqualTo(folderId));
         Assert.That(dto.Folders.Count, Is.EqualTo(0));
         Assert.That(dto.Resources.Count, Is.EqualTo(1));
-        Assert.That(dto.Resources.First().Id, Is.EqualTo(resourceId2));
+        Assert.That(dto.Resources.First().Resource.Id, Is.EqualTo(resourceId2));
     }
     #endregion
 

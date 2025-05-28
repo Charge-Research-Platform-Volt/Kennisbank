@@ -96,12 +96,33 @@ public class ProjectPageResponse
 public class ProjectInfoDto
 {
     public Project? Project { get; set; } = null;
-    public List<Project?> Folders { get; set; } = [];
-    public List<Resource?> Resources { get; set; } = [];
+    public List<FolderWithAddedBy?> Folders { get; set; } = [];
+    public List<ResourceWithAddedBy?> Resources { get; set; } = [];
     public List<string?> Creators { get; set; } = [];
     public List<Tag?> Tags { get; set; } = [];
 }
 
+/// <summary>
+/// Wrapper for resources containing an Added By property
+/// </summary>
+/// <param name="resource"></param>
+/// <param name="addedBy"></param>
+public class ResourceWithAddedBy(Resource resource, string addedBy)
+{
+    public Resource? Resource { get; set; } = resource;
+    public string? AddedBy { get; set; } = addedBy;
+}
+
+/// <summary>
+/// Wrapper for folders containing an Added By property
+/// </summary>
+/// <param name="folder"></param>
+/// <param name="addedBy"></param>
+public class FolderWithAddedBy(Project folder, string addedBy)
+{
+    public Project? Folder { get; set; } = folder;
+    public string? AddedBy { get; set; } = addedBy;
+}
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)

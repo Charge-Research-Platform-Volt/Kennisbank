@@ -4,13 +4,13 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import Search from "@/icons/search-icon";
 import ListProjects from "@/components/projects/list-projects";
-import { Project } from "@/types/project.type";
-import { Resource } from "@/types/resource.type";
+import { FolderProject, Project } from "@/types/project.type";
+import { Resource, ResourceProject } from "@/types/resource.type";
 import { getProjectContentById } from "@/actions/projectActions";
 
 interface ProjectSearchClientProps {
-  projects: Project[];
-  resources?: Resource[];
+  projects: FolderProject[];
+  resources?: ResourceProject[];
 }
 
 export default function ProjectSearchClient({ projects, resources = [] }: ProjectSearchClientProps) {
@@ -37,7 +37,7 @@ export default function ProjectSearchClient({ projects, resources = [] }: Projec
         <ListProjects 
           initialResources={resources} 
           initialProjects={projects} 
-          fetchProjectContent={getProjectContentById}
+          fetchProjectAction={getProjectContentById}
         />
       </div>
     </>

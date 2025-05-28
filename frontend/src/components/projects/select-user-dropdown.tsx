@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { ChevronsUpDown } from "lucide-react"
 import { User } from "@/types/user.type";
 import { ListUsersPaged } from "@/actions/userActions";
-
 import {
   Command,
   CommandEmpty,
@@ -101,7 +100,8 @@ export default function SelectUserDropdown({ onChangeAction = () => {}, standard
     if(fetchedUsers.users == null || fetchedUsers.users == undefined)
       return;
 
-    // And we update our state, leaving out any users we already have selected
+    // And we update our state, leaving out any users we already have selected and the current user as he will add himself through the backend
+    // TODO:
     setFilteredUsers(fetchedUsers.users.filter(user => !selectedUsers.includes(user)));
   }
   

@@ -113,7 +113,7 @@ namespace KnowledgeBank.Data
 
         #region project-folder
         // Users only add 1 folder at a time, so no need to ever add a range of them
-        public async Task AddFolderToProjectAsync(Guid projectId, Guid folderId)
+        public async Task AddFolderToProjectAsync(Guid projectId, Guid folderId, Guid addedBy)
         {
             if (string.IsNullOrEmpty(folderId.ToString())) return;
 
@@ -122,21 +122,22 @@ namespace KnowledgeBank.Data
             ProjectFolderRelation folderRelation = new()
             {
                 ParentId = projectId,
-                ChildId = folderId
+                ChildId = folderId,
+                AddedBy = addedBy.ToString()
             };
 
             await database.ProjectFolderRelations.AddAsync(folderRelation);
 
             if (startedTransaction) await Commit();
         }
-        public async Task AddFolderToProjectAsync(string projectId, Guid folderId)
-        { await AddFolderToProjectAsync(Guid.Parse(projectId), folderId); }
+        public async Task AddFolderToProjectAsync(string projectId, Guid folderId, Guid addedBy)
+        { await AddFolderToProjectAsync(Guid.Parse(projectId), folderId, addedBy); }
 
-        public async Task AddFolderToProjectAsync(Guid projectId, string folderId)
-        { await AddFolderToProjectAsync(projectId, Guid.Parse(folderId)); }
+        public async Task AddFolderToProjectAsync(Guid projectId, string folderId, Guid addedBy)
+        { await AddFolderToProjectAsync(projectId, Guid.Parse(folderId), addedBy); }
 
-        public async Task AddFolderToProjectAsync(string projectId, string folderId)
-        { await AddFolderToProjectAsync(Guid.Parse(projectId), Guid.Parse(folderId)); }
+        public async Task AddFolderToProjectAsync(string projectId, string folderId, Guid addedBy)
+        { await AddFolderToProjectAsync(Guid.Parse(projectId), Guid.Parse(folderId), addedBy); }
 
         #endregion
 
@@ -157,7 +158,7 @@ namespace KnowledgeBank.Data
                 {
                     ProjectId = projectId,
                     ResourceId = resourceIds[i],
-                    AddedBy = addedBy
+                    AddedBy = addedBy.ToString()
                 };
             }
 

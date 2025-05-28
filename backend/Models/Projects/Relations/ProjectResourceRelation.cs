@@ -14,12 +14,11 @@ public class ProjectResourceRelation
     public required Guid ResourceId { get; set; }
 
     [Column("added-by")]
-    public Guid? AddedBy { get; set; }
+    public string? AddedBy { get; set; }
 
     // Navigation properties
     [JsonIgnore] public Project? Project { get; set; }
-    [JsonIgnore] public Resource? Resource { get; set; }
-}
+    [JsonIgnore] public Resource? Resource { get; set; }}
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.

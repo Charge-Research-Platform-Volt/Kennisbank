@@ -1,8 +1,8 @@
 "use server";
 
 import { ApiResponse, ApiResponseSchema } from "@/types/apiResponse.type";
-import { FilterProjectDto, ProjectCreateDto, ProjectPageResponse } from "@/types/project.type";
-import { Resource } from "@/types/resource.type";
+import { FilterProjectDto, FolderProject, ProjectCreateDto, ProjectPageResponse } from "@/types/project.type";
+import { Resource, ResourceProject } from "@/types/resource.type";
 import { Project } from "@/types/project.type";
 import type { FormResponse } from "@/types/return.type";
 import { revalidatePath } from "next/cache";
@@ -48,7 +48,7 @@ export const ListProjectsPaged = async (pageIndex: number, searchQuery: string):
  * @param projectId - The ID of the project/folder to fetch content for.
  * @returns An object containing resources and projects (folders).
  */
-export const getProjectContentById = async (projectId: string): Promise<{ resources: Resource[], projects: Project[], creators: User[], tags: Tag[] }> => {
+export const getProjectContentById = async (projectId: string): Promise<{ resources: ResourceProject[], projects: FolderProject[], creators: string[], tags: Tag[] }> => {
     try {
         const cookieHeader = await cookies();
         const response = await fetch(`${process.env.API_URL}/Project/info/${projectId}`, {

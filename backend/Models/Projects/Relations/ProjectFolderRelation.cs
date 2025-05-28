@@ -11,6 +11,9 @@ public class ProjectFolderRelation
     [Column("child-id")]
     public required Guid ChildId { get; set; }
 
+    [Column("added-by")]
+    public string? AddedBy { get; set; }
+
     // Navigation properties
     [ForeignKey("ParentId")]
     [JsonIgnore]

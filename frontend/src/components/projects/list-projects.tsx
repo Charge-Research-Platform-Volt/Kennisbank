@@ -1,28 +1,26 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AgGridReact } from "ag-grid-react";
 import type { ColDef, GridApi, GridReadyEvent, RowClickedEvent, RowSelectionOptions } from "ag-grid-community";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
-import { Resource } from "@/types/resource.type";
-import { Project } from "@/types/project.type";
+import { Resource, ResourceProject } from "@/types/resource.type";
+import { FolderProject, Project } from "@/types/project.type";
 import { tableTheme } from "@/lib/tableConfig";
 import GetFileIcon from "../getFileIcon";
 import { format, parseISO } from "date-fns";
 import OpenFileButton from "../open-file-button";
 import { useSidebar } from "@/context/sidebar-provider";
-import { ArrowLeftIcon, FolderIcon, HomeIcon, SparklesIcon, CirclePlusIcon, CircleXIcon, TagsIcon, Users, EditIcon } from "lucide-react";
+import { ArrowLeftIcon, FolderIcon, HomeIcon, SparklesIcon, CircleXIcon, TagsIcon, Users, EditIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { addResourceToProject, fetchAllResources, ListProjectsPaged, removeResourceFromProject, deleteProject } from "@/actions/projectActions";
 import { ApiResponse } from "@/types/apiResponse.type";
 import CreateProjectModal from "@/app/(knowledgebank)/projects/components/create-project-modal";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import { ProjectActionsDropdown } from "../../app/(knowledgebank)/projects/components/projects-dropdown";
 import CreateFolderModal from "@/app/(knowledgebank)/projects/components/create-folder-modal";
 import { Input } from "@/components/ui/input";
 import Search from "@/icons/search-icon";
 import GeneratePopup from "./popup";
-import { User } from "@/types/user.type";
 import { Tag } from "@/types/tag.type";
 import EditProjectModal from "@/app/(knowledgebank)/projects/components/edit-project-modal";
 
@@ -39,6 +37,7 @@ interface ProjectOrResource {
   publicationDate?: string;
   fileType?: string;
   projectType?: string;
+  addedBy? : string;
 }
 
 interface BreadcrumbItem {
@@ -53,10 +52,10 @@ interface NavigationState {
 }
 
 interface ListProjectsProps {
-  initialResources: Resource[];
-  initialProjects: Project[];
+  initialResources: ResourceProject[];
+  initialProjects: FolderProject[];
   // Function to fetch data for a specific project ID
-  fetchProjectContent: (projectId: string) => Promise<{ resources: Resource[], projects: Project[], creators: string[], tags: Tag[] }>;
+  fetchProjectAction: (projectId: string) => Promise<{ resources: ResourceProject[], projects: FolderProject[], creators: string[], tags: Tag[] }>;
 }
 
 /**
@@ -66,12 +65,12 @@ interface ListProjectsProps {
  * @param fetchProjectContent - Function to fetch content of a project when navigating into it
  * @returns A navigable table representation of projects and resources
  */
-export default function ListProjects({initialResources, initialProjects, fetchProjectContent}: ListProjectsProps) {
+export default function ListProjects({initialResources, initialProjects, fetchProjectAction: fetchProjectContent}: ListProjectsProps) {
   // Query for searching
   const [currentQuery, setCurrentQuery] = useState<string>("");
   // State for current projects and resources being displayed
-  const [resources, setResources] = useState<Resource[]>(initialResources);
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [resources, setResources] = useState<ResourceProject[]>(initialResources);
+  const [projects, setProjects] = useState<FolderProject[]>(initialProjects);
   const [creators, setCreators] = useState<string[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -93,7 +92,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
 
   // State for resource add mode
   const [isAddResourceMode, setIsAddResourceMode] = useState(false);
-  const [allResources, setAllResources] = useState<Resource[]>([]);
+  const [allResources, setAllResources] = useState<ResourceProject[]>([]);
   const [selectedResourceIds, setSelectedResourceIds] = useState<Set<string>>(new Set());
 
   // state for project tags and creators popup
@@ -109,20 +108,20 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     if (isAddResourceMode) {
       // In add resource mode, only show filtered resources from allResources
       const filteredResources = (allResources ?? []).filter(resource =>
-        resource.title.toLowerCase().includes(lowerCaseQuery) ||
-        (resource.description && resource.description.toLowerCase().includes(lowerCaseQuery))
+        resource.resource.title.toLowerCase().includes(lowerCaseQuery) ||
+        (resource.resource.description && resource.resource.description.toLowerCase().includes(lowerCaseQuery))
       );
       return { projects: [], resources: filteredResources };
     }
-    
+
     // Normal mode - filter current projects and resources
     const filteredProjects = (projects ?? []).filter(project =>
-      project.title.toLowerCase().includes(lowerCaseQuery) ||
-      (project.description && project.description.toLowerCase().includes(lowerCaseQuery))
+      project.folder.title.toLowerCase().includes(lowerCaseQuery) ||
+      (project.folder.description && project.folder.description.toLowerCase().includes(lowerCaseQuery))
     );
     const filteredResources = (resources ?? []).filter(resource =>
-      resource.title.toLowerCase().includes(lowerCaseQuery) ||
-      (resource.description && resource.description.toLowerCase().includes(lowerCaseQuery))
+      resource.resource.title.toLowerCase().includes(lowerCaseQuery) ||
+      (resource.resource.description && resource.resource.description.toLowerCase().includes(lowerCaseQuery))
     );
     return { projects: filteredProjects, resources: filteredResources };
   }, [projects, resources, allResources, currentQuery, isAddResourceMode]);
@@ -139,21 +138,23 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     // Add filtered projects/folders
     filteredItems.projects.forEach((project) => {
       items.push({
-        id: project.id,
-        title: project.title,
-        description: project.description || '',
-        creationDate: project.creationDate,
-        itemType: project.projectType === 'root' ? 'project' : 'folder',
-        projectType: project.projectType,
+        id: project.folder.id,
+        title: project.folder.title,
+        description: project.folder.description || '',
+        creationDate: project.folder.creationDate,
+        addedBy: project.addedBy || '',
+        itemType: project.folder.projectType === 'root' ? 'project' : 'folder',
+        projectType: project.folder.projectType,
       });
     });
     
     // Add filtered resources
     filteredItems.resources.forEach(resource => {
       items.push({
-        id: resource.id,
-        title: resource.title,
-        description: resource.description || '',
+        id: resource.resource.id,
+        title: resource.resource.title,
+        description: resource.resource.description || '',
+        addedBy: resource.addedBy || '',
         itemType: 'resource',
       });
     });
@@ -188,7 +189,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
             : params.value === 'resource' ? 
                 params.data.fileType : ''
         },
-        { field: "added-by",
+        { field: "addedBy",
           headerName: "Added By",
           minWidth: 50,
           resizable: true
@@ -308,7 +309,22 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   }, [tableData, selectedResourceIds, isAddResourceMode]);
 
   // #region Page Navigation
+  // Modal handlers for opening / closing them
+  const handleOpenProjectTagsModal = () => {
+    setIsProjectTagsModalOpen(true);
+  };
+  
+  const handleCloseProjectTagsModal = () => {
+    setIsProjectTagsModalOpen(false);
+  };
 
+  const handleOpenProjectCreatorsModal = () => {
+    setIsProjectCreatorsModalOpen(true);
+  };
+  
+  const handleCloseProjectCreatorsModal = () => {
+    setIsProjectCreatorsModalOpen(false);
+  };
   // Function to refresh the current list of projects, for the root level
   const navigateToRoot = async () => {
     setIsLoading(true);
@@ -328,7 +344,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
           gridApiRef.current.clearFocusedCell(); 
         }
 
-        setProjects(projectFetch.body.projects);
+        setProjects(projectFetch.body.projects.map(p => {return {folder: p, addedBy: ""}}));
         setResources(initialResources); 
         setTags([]);
         setCreators([]);
@@ -349,12 +365,10 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     try {
       setIsLoading(true);
       const { resources: newResources, projects: newProjects, creators: newCreators, tags: newTags } = await fetchProjectContent(navigationState.currentProjectId);
-      
       // Clear focus
       if (gridApiRef.current) {
         gridApiRef.current.clearFocusedCell();
       }
-      
       setResources(newResources);
       setProjects(newProjects);
       setTags(newTags);
@@ -484,7 +498,6 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     }
   };
 
-
   // If on row clicked, handle navigation for projects or toggle sidebar for resources
   const onRowClicked = async (e: RowClickedEvent) => {
     // Do nothing if in add resource mode, let checkboxes handle selection
@@ -547,7 +560,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     setIsLoading(true);
     const newResources: Resource[] = await fetchAllResources();
     setIsLoading(false);
-    setAllResources(newResources);
+    setAllResources(newResources.map(r => {return {resource: r, addedBy: ""}}));
   };
 
   // Add new handler functions:
@@ -570,7 +583,6 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
       }
 
       const projectId: string = navigationState.currentProjectId || "";
-      
       for (const id of selectedIds) {
         await addResourceToProject(projectId, id);
       }
@@ -598,7 +610,6 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   const handleRemove = async (item: ProjectOrResource) => {
     const projectId = navigationRef.current.currentProjectId;
     console.log("delete")
-    console.log(projectId)
 
     setIsLoading(true);
 
@@ -609,11 +620,8 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     }
     
     try {
-      (item.itemType == "resource") 
-        ? await removeResourceFromProject(projectId ? projectId : "", item.id)
-        : await deleteProject(item.id);
-        
       if (item.itemType == "resource") {
+        await removeResourceFromProject(projectId ? projectId : "", item.id);
         const { resources, projects, creators, tags } = await fetchProjectContent(projectId ? projectId : "");
         setResources(resources);
         setProjects(projects);
@@ -621,7 +629,13 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
         setCreators(creators);
       }
       else {
-        await navigateToRoot();
+        // If we delete a project, navigate to the full projects overview, otherwise reload the folder you are in
+        await deleteProject(item.id);
+        if(navigationState.currentLevel >= 1) {
+          await refreshCurrentProject();
+        }
+        else {
+          await navigateToRoot()};
       }
     } catch (err) {
       console.error("Remove failed:", err);
@@ -656,21 +670,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   };
 
   // #region Page Rendering
-  const handleOpenProjectTagsModal = () => {
-    setIsProjectTagsModalOpen(true);
-  };
-  
-  const handleCloseProjectTagsModal = () => {
-    setIsProjectTagsModalOpen(false);
-  };
 
-  const handleOpenProjectCreatorsModal = () => {
-    setIsProjectCreatorsModalOpen(true);
-  };
-  
-  const handleCloseProjectCreatorsModal = () => {
-    setIsProjectCreatorsModalOpen(false);
-  };
   // Unselect all rows when the sidebar is closed
   useEffect(() => {
     if (!rightSidebarOpen) {
@@ -742,7 +742,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
                 <HomeIcon size={16} className="mr-1" />
                 Projects
               </Button>
-              
+              {/* Back button */}
               {navigationState.currentLevel > 0 && (
                 <Button 
                   variant="outline" 
@@ -754,7 +754,8 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
                   Back
                 </Button>
               )}
-              { navigationState.currentLevel == 1 &&
+              {/* Project Tags Button*/}
+              { navigationState.currentLevel === 1 &&
                 <Button
                   variant="outline"
                   size ="sm"
@@ -764,7 +765,8 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
                   Project Tags
                 </Button>
               }
-              { navigationState.currentLevel == 1 &&
+              {/* Project Creators Button*/}
+              { navigationState.currentLevel === 1 &&
                 <Button
                   variant="outline"
                   size ="sm"
@@ -841,6 +843,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
         parentProjectId={navigationState.currentProjectId}
       />
 
+      {/* Project Tag Modal */}
       <GeneratePopup
         title="Tags"
         description="These are the tags of this project"
@@ -848,6 +851,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
         open={isProjectsTagsModalOpen}
         onClose={handleCloseProjectTagsModal}/>
 
+      {/* Project Creators Modal */}
       <GeneratePopup
         title="Creators"
         description="These are the creators of this project / folder"

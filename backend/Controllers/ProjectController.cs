@@ -377,9 +377,65 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             if (project == null)
                 return NotFound(new ApiResponse(false, "Project not found."));
 
+            // Get all userIds we need
+            HashSet<string> userIds = [];
+            if (project.ProjectResourcesRelations != null)
+                foreach (ProjectResourceRelation prr in project.ProjectResourcesRelations)
+                {
+                    if (prr.AddedBy != null)
+                        userIds.Add(prr.AddedBy);
+                }
+
+            if (project.ChildFolders != null)
+                foreach (ProjectFolderRelation pfr in project.ChildFolders)
+                {
+                    if (pfr.AddedBy != null)
+                        userIds.Add(pfr.AddedBy);
+                }
+
+            // Then fetch the corresponding user names in one go
+            Dictionary<string, string> userNames = await projectManager.GetUserNamesByIds(userIds);
+
             // Extract the resources and folders from the project
-            List<Resource?>? resources = project.ProjectResourcesRelations?.Select(r => r.Resource).ToList() ?? [];
-            List<Project?>? folders = project.ChildFolders?.Select(f => f.ChildFolder).ToList() ?? [];
+            // Get the resources from the relation and use the dictionary user id -> user name to add the addedby property
+            List<ResourceWithAddedBy?> resources = [];
+            if (project.ProjectResourcesRelations != null)
+            {
+                foreach (var relation in project.ProjectResourcesRelations)
+                {
+                    // Skip if relation or resource is somehow null
+                    if (relation != null && relation.Resource != null)
+                    {
+                        string addedByProp = "Unknown";
+                        // If there is no added by property, keep it on unknown, if the user cannot be found, also keep it on unknown
+                        if (relation.AddedBy != null && userNames.TryGetValue(relation.AddedBy, out string? name))
+                            addedByProp = name ?? "Unknown";
+
+                        resources.Add(new ResourceWithAddedBy(relation.Resource, addedByProp));
+                    }
+                }
+            }
+
+            // Get child folders from the relation, and get the corresponding username by using the dictionary of user id => user name
+            List<FolderWithAddedBy?> folders = [];
+            if (project.ChildFolders != null)
+            {
+                foreach (var relation in project.ChildFolders)
+                {
+                    // Skip if relation or folder is somehow null
+                    if (relation != null && relation.ChildFolder != null)
+                    {
+                        string addedByName = "Unknown";
+                        // If there is no added by property, keep it on unknown, if the user cannot be found, also keep it on unknown
+                        if (relation.AddedBy != null && userNames.TryGetValue(relation.AddedBy, out string? name))
+                            addedByName = name ?? "Unknown";
+
+                        folders.Add(new FolderWithAddedBy(relation.ChildFolder, addedByName));
+                    }
+                }
+            }
+
+            // Names of creators
             List<string?>? creatorNames = project.ProjectCreatorRelations?.Select(r => r.Creator.UserName).ToList() ?? [];
             List<Tag?>? tags = project.ProjectTagRelations?.Select(r => r.Tag).ToList() ?? [];
 
@@ -482,7 +538,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         {
             // Create folder and add to parent with a relation
             Guid folderId = await projectManager.CreateProject(newFolder);
-            await projectManager.AddFolderToProjectAsync(parentId, folderId);
+            await projectManager.AddFolderToProjectAsync(parentId, folderId, userId.Value);
 
             Log.Information("New folder {folderId} added to parent {parentId}.", folderId, parentId);
             return Ok(new ApiResponse(true, "Folder added successfully.", folderId));
@@ -629,7 +685,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             }
 
             // Check if user is creator of relation or creator of folder where the resource is in
-            bool userValidation = (project.ProjectResourcesRelations?.Any(relation => relation.AddedBy == userId) ?? false) || !(ProjectAuthorizationLevel(userId, project) == "unauthorized");
+            bool userValidation = (project.ProjectResourcesRelations?.Any(relation => relation.AddedBy == userId.ToString()) ?? false) || !(ProjectAuthorizationLevel(userId, project) == "unauthorized");
 
             // Check if the user has permission to delete this project
             if (!userIsAdmin && !userValidation)

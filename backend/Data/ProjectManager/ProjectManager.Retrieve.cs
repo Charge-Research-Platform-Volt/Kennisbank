@@ -1,5 +1,6 @@
 using KnowledgeBank.Models;
 using KnowledgeBank.Utils;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Asn1.Cmp;
 using System.Linq.Expressions;
@@ -32,7 +33,7 @@ namespace KnowledgeBank.Data
         protected async Task<T?> GetAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate, params string[] includeProperties) where T : class
         { return await GetAsync(dbSet, predicate, null, false, includeProperties); }
 
-        private IQueryable<T> getAllQuery<T>(DbSet<T> dbSet, Expression<Func<T, object>>? orderBy = null, bool orderDescending = false, Expression<Func<T, bool>>? predicate = null, params string[] includeProperties) where T : class 
+        private IQueryable<T> getAllQuery<T>(DbSet<T> dbSet, Expression<Func<T, object>>? orderBy = null, bool orderDescending = false, Expression<Func<T, bool>>? predicate = null, params string[] includeProperties) where T : class
         {
             IQueryable<T> query = dbSet.AsQueryable().AsNoTracking();
 
@@ -91,7 +92,7 @@ namespace KnowledgeBank.Data
         {
             IQueryable<TSet> query = dbSet.Where(predicate);
 
-            if (orderBy != null) 
+            if (orderBy != null)
                 query = orderDescending ? query.OrderByDescending(orderBy) : query.OrderBy(orderBy);
 
             return await query.Select(selector).FirstAsync();
@@ -101,7 +102,7 @@ namespace KnowledgeBank.Data
         {
             IQueryable<TSet> query = dbSet.Where(predicate);
 
-            if (orderBy != null) 
+            if (orderBy != null)
                 query = orderDescending ? query.OrderByDescending(orderBy) : query.OrderBy(orderBy);
 
             return await query.Select(selector).FirstOrDefaultAsync();
@@ -244,9 +245,19 @@ namespace KnowledgeBank.Data
 
         public async Task<Project?> GetProjectChildrenAsync(string id)
         { return await GetProjectChildrenAsync(Guid.Parse(id)); }
-        
+
         #endregion
 
+        #region fetch user
+
+        public async Task<Dictionary<string, string>> GetUserNamesByIds(HashSet<string> ids)
+        {
+            Dictionary<string, string> dict = new();
+            foreach (IdentityUser u in await GetAllAsync(dbSet: database.Users, predicate: user => ids.Contains(user.Id)))
+                dict.Add(u.Id, u.UserName ?? "Unknown");
+            return dict;
+        }
+        #endregion
 
     }
 }

@@ -111,6 +111,15 @@ export const ProjectFolderRelationSchema = z.object({
   childFolderId: z.string().uuid()
 });
 
+/**
+ * folder with added-by property
+ */
+
+export const FolderProjectSchema = z.object({
+  folder: ProjectSchema,
+  addedBy: z.string()
+})
+
 // Type definitions derived from the schemas
 export type ProjectBase = z.infer<typeof ProjectBaseSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
@@ -122,6 +131,7 @@ export type ProjectTagRelation = z.infer<typeof ProjectTagRelationSchema>;
 export type ProjectCreatorRelation = z.infer<typeof ProjectCreatorRelationSchema>;
 export type ProjectResourceRelation = z.infer<typeof ProjectResourceRelationSchema>;
 export type ProjectFolderRelation = z.infer<typeof ProjectFolderRelationSchema>;
+export type FolderProject = z.infer<typeof FolderProjectSchema>
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.

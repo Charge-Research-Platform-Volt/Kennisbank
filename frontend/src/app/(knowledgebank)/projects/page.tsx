@@ -13,6 +13,8 @@ export default async function ProjectsPage() {
   const projects: Project[] = projectFetch.body.projects;
 
   return (
-    <ProjectSearchClient projects={projects} />
+    <ProjectSearchClient projects={projects.map(f => {
+      return {folder: f, addedBy: ""}
+    })} />
   );
 }

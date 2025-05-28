@@ -1,16 +1,13 @@
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogClose,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import React, { useState } from "react";
-import { string } from "zod";
+import { Tag, User } from "lucide-react";
+import React from "react";
 
 interface GeneratePopupProps {
     title: string;
@@ -19,9 +16,17 @@ interface GeneratePopupProps {
     open: boolean; // Prop to control if the dialog is open
     onClose: () => void; // Prop to notify parent of open/close changes
   }
-
+/**
+ *
+ * @param {string} title - Title of the popup
+ * @param {string} description - Description header of the popup
+ * @param {string[]} content - The string content to display
+ * @param {boolean} open = Whether or not the popup should be open or not
+ * @param {() => void} onClose - Function that closes the popup
+ * @returns A popup displaying the content as given, for tags and users it will put an icon before each entry
+ */
 export default function GeneratePopup({title, description, content, open, onClose} : GeneratePopupProps)
-{ 
+{
     return(
     <Dialog open={open} onOpenChange={open => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
@@ -31,9 +36,12 @@ export default function GeneratePopup({title, description, content, open, onClos
               {description}
             </DialogDescription>
           </DialogHeader>
-          <div>
-          {content.map(t=>
-                <Label key={t}>{t}</Label>
+          <div className="flex flex-col space-y-2 max-h-full overflow-y-auto overflow-x-auto p-2 border rounded-md bg-gray-50">
+          {content.map((t, i)=>
+                <div key={i} className="w-fit inline-flex items-center px-2 whitespace-nowrap gap-2 border rounded-md border-grey-300">
+                  {title === "Tags" ? <Tag size={16}/> : (title ==="Creators" ? <User size={16}/> : <></>)}
+                  <Label key={t}>{t}</Label>
+                </div>
             )}
           </div>
       </DialogContent>
