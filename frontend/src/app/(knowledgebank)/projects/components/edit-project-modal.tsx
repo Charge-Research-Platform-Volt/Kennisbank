@@ -8,6 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Project } from '@/types/project.type';
 import { updateProject } from '@/actions/projectActions'; 
+import SelectTagDropdown from '../../tags/components/select-tag-dropdown';
+import { Tag } from '@/types/tag.type';
+import SelectUserDropdown from '@/components/projects/select-user-dropdown';
+import { User } from '@/types/user.type';
 
 interface EditProjectModalProps {
   isOpen: boolean;
@@ -25,6 +29,10 @@ export default function EditProjectModal({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [creators, setCreators] = useState<User[]>([]);
+  
+  
   const [error, setError] = useState('');
 
   // Reset form when modal opens/closes or project changes
@@ -61,6 +69,8 @@ export default function EditProjectModal({
       if (typeof description === 'string' && description.trim() !== (project.description || '')) {
         updates.description = description.trim() || null;
       }
+      // TODO: add creators and tags
+
         // Only send updates if there are changes
       if (Object.keys(updates).length === 0) {
         setIsLoading(false);
@@ -103,43 +113,74 @@ return (
                 </DialogTitle>
             </DialogHeader>
             
-            <div className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="title">
-                        {isFolder ? 'Folder' : 'Project'} Name
-                    </Label>
-                    <Input
-                        id="title"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder={`Enter ${itemType} name`}
-                        disabled={isLoading}
-                        autoFocus
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSubmit(e as any);
-                            }
-                        }}
-                    />
+              <div className="grid gap-4 py-4">
+                {/* Title input (always shown) */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="title" className="text-right">
+                    {isFolder ? 'Folder' : 'Project'} Name
+                  </Label>
+                  <Input
+                    id="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder={`Enter ${itemType} name`}
+                    disabled={isLoading}
+                    autoFocus
+                    className="col-span-3"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSubmit(e as any);
+                      }
+                    }}
+                  />
                 </div>
 
+                {/* Description input (only if not a folder) */}
                 {!isFolder && (
-                    <div className="space-y-2">
-                        <Label htmlFor="description">
-                            Description (optional)
-                        </Label>
-                        <Textarea
-                            id="description"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder={`Enter ${itemType} description`}
-                            disabled={isLoading}
-                            rows={3}
-                        />
-                    </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="description" className="text-right">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder={`Enter ${itemType} description`}
+                    disabled={isLoading}
+                    className="col-span-3"
+                    rows={3}
+                  />
+                  </div>
                 )}
-                
+
+                {/* Creators input (only if not a folder) */}
+                {!isFolder && (
+                  <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="creators" className="text-right">
+                    Creators
+                  </Label>
+                  <SelectUserDropdown
+                    className="col-span-3"
+                    selectMult={true}
+                    onChangeAction={setCreators}
+                  />
+                  </div>
+                )}
+
+                {/* Tags input (only if not a folder) */}
+                {!isFolder && (
+                  <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="tags" className="text-right">
+                    Tags
+                  </Label>
+                  <SelectTagDropdown 
+                    className="col-span-3"
+                    selectMult={true}
+                    onChangeAction={setTags}
+                  />
+                  </div>
+                )}
                 {error && (
                     <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
                         {error}
