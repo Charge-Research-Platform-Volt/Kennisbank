@@ -8,9 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Project } from '@/types/project.type';
 import { updateProject } from '@/actions/projectActions'; 
-import SelectTagDropdown from '../../tags/components/select-tag-dropdown';
+import { SelectTagDropdown, SelectUserDropdown } from '@/components/Selection/SelectionDropdown';
 import { Tag } from '@/types/tag.type';
-import SelectUserDropdown from '@/components/projects/select-user-dropdown';
 import { User } from '@/types/user.type';
 
 interface EditProjectModalProps {
@@ -162,7 +161,7 @@ return (
                   </Label>
                   <SelectUserDropdown
                     className="col-span-3"
-                    selectMult={true}
+                    selectMultiple={true}
                     onChangeAction={setCreators}
                   />
                   </div>
@@ -176,7 +175,7 @@ return (
                   </Label>
                   <SelectTagDropdown 
                     className="col-span-3"
-                    selectMult={true}
+                    selectMultiple={true}
                     onChangeAction={setTags}
                   />
                   </div>

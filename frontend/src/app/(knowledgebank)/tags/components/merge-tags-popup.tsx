@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import SelectTagDropdown from "./select-tag-dropdown";
+import { SelectTagDropdown } from "@/components/Selection/SelectionDropdown";
 import { Tag } from "@/types/tag.type";
 import { useState, useEffect } from "react";
 import { MergeTag } from "@/actions/tagActions";
@@ -98,13 +98,13 @@ export function TagMergeButton({tag, extraTag = null} : {tag:Tag; extraTag?: Tag
                             <Label htmlFor="first tag" className="text-right">
                                 First Tag
                             </Label>
-                            <SelectTagDropdown standardTag={standardTag} onChangeAction={tags => tags.length != 0 ? setTag1(tags[0].id) : setTag1(null)}></SelectTagDropdown>
+                            <SelectTagDropdown selectMultiple={false} standardTag={standardTag ?? undefined} onChangeAction={tags => tags.length != 0 ? setTag1(tags[0].id) : setTag1(null)}></SelectTagDropdown>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="second tag" className="text-right">
                                 Second Tag
                             </Label>
-                            <SelectTagDropdown standardTag={extraTag || emptyTag} onChangeAction={tags => tags.length != 0 ? setTag2(tags[0].id) : setTag2(null)}></SelectTagDropdown>
+                            <SelectTagDropdown selectMultiple={false} standardTag={extraTag ?? (emptyTag ?? undefined)} onChangeAction={tags => tags.length != 0 ? setTag2(tags[0].id) : setTag2(null)}></SelectTagDropdown>
                         </div>
                     </div>
                     {/* Merge button */}

@@ -17,9 +17,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { createNewProject } from '@/actions/projectActions';
 import { ProjectCreateDto } from '@/types/project.type'; 
 import { ApiResponse } from '@/types/apiResponse.type';
-import SelectTagDropdown from '../../tags/components/select-tag-dropdown';
+import { SelectTagDropdown, SelectUserDropdown } from '@/components/Selection/SelectionDropdown';
 import { Tag } from '@/types/tag.type';
-import SelectUserDropdown from '../../../../components/projects/select-user-dropdown';
 import { User } from '@/types/user.type';
 
 interface CreateProjectModalProps {
@@ -125,7 +124,7 @@ export default function CreateProjectModal({ isOpen, onClose, onSuccess }: Creat
               </Label>
               <SelectUserDropdown
                 className="col-span-3"
-                selectMult={true}
+                selectMultiple={true}
                 onChangeAction={setCreators}
               ></SelectUserDropdown>
             </div>
@@ -136,7 +135,7 @@ export default function CreateProjectModal({ isOpen, onClose, onSuccess }: Creat
               </Label>
               <SelectTagDropdown 
                 className="col-span-3"
-                selectMult={true}
+                selectMultiple={true}
                 onChangeAction={setTags}></SelectTagDropdown>
             </div>
             {error && (
