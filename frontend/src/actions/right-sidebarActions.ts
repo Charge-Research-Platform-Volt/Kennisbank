@@ -234,6 +234,48 @@ export const addRelation = async (
     }
 }
 
+export const removeRelation = async (
+    relation: resourceRelation | personRelation | organisationRelation,
+    type: MetadataTypeEnum,
+    id: string,
+    targetId: string,
+) => {
+    let endPoint;
+    const cookieHeader : ReadonlyRequestCookies = await cookies();
+
+    if (type === "resource") {
+        endPoint = `Resources/${encodeURIComponent(id)}/relations/remove/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`
+    }
+
+    else if (type === "person") {
+        endPoint = `Persons/${encodeURIComponent(id)}/relations/remove/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`
+    }
+
+    else if (type === "organisation") {
+        endPoint = `Organisations/${encodeURIComponent(id)}/relations/remove/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`
+    }
+
+
+    const fullUrl = `${process.env.API_URL}/${endPoint}`;
+    
+    
+    const response = await fetch(fullUrl, {
+        method: "GET",
+        credentials: "include",
+        headers: { 
+            "Content-Type": "application/json", 
+            Cookie: cookieHeader.toString() || "" 
+        },
+    });
+    
+    
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error("API Error:", errorText);
+        throw new Error(`Problem removing relation: ${response.status} - ${errorText}`);
+    }
+}
+
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.

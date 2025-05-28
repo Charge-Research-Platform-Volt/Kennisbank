@@ -612,18 +612,18 @@ namespace KnowledgeBank.Controllers
                 if (pageIndex == null || pageSize == null)
                     resources = string.IsNullOrEmpty(properties) ?
                         (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllResourcesAsync(predicate: r => r.Archived == archived) :
-                        await resourceManager.GetAllResourcesAsync(predicate: r => r.Title.Contains(searchQuery) && r.Archived == archived)) :
+                        await resourceManager.GetAllResourcesAsync(predicate: r => r.Title.ToLower().Contains(searchQuery.ToLower()) && r.Archived == archived)) :
                         (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllResourcesAsync(projection: projectionString, predicate: r => r.Archived == archived) :
-                        await resourceManager.GetAllResourcesAsync(projection: projectionString, predicate: r => r.Title.Contains(searchQuery) && r.Archived == archived));
+                        await resourceManager.GetAllResourcesAsync(projection: projectionString, predicate: r => r.Title.ToLower().Contains(searchQuery.ToLower()) && r.Archived == archived));
 
 
                 // Paging requested, retrieve resources on that page
                 else
                     resources = string.IsNullOrEmpty(properties) ?
                         (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize, predicate: r => !r.Archived) :
-                        await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize, predicate: r => r.Title.Contains(searchQuery) && r.Archived == archived)) :
+                        await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize, predicate: r => r.Title.ToLower().Contains(searchQuery.ToLower()) && r.Archived == archived)) :
                         (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetResourcePageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: r => !r.Archived) :
-                        await resourceManager.GetResourcePageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: r => r.Title.Contains(searchQuery) && r.Archived == archived));
+                        await resourceManager.GetResourcePageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: r => r.Title.ToLower().Contains(searchQuery.ToLower()) && r.Archived == archived));
 
                 // Return found resources
                 return Ok(new ApiResponse(true, $"Found {resources.Length} resources", resources));
@@ -900,8 +900,91 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
 
+        #region Remove Relation
+
+        /// <summary>
+        /// Adds a relation for this resource
+        /// </summary>
+        /// <param name="id">The ID of the resource</param>
+        /// <param name="relation">The relation to be removed</param>
+        /// <param name="targetId">The ID of the other item in the relation</param>
+        [HttpGet("{id}/relations/remove/{relation}/{targetId}")]
+        [SwaggerOperation(Summary = "Removes a relation to the resource")]
+        [SwaggerResponse(200, "Successfully removed relation", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> RemoveRelation(string id, string relation, string targetId)
+        {
+            // Check if relation is filled in
+            if (string.IsNullOrEmpty(relation))
+                return BadRequest(new ApiResponse(false, "Invalid relation"));
+
+            // Check if ids are valid
+            if (!ValidityUtil.IsValidId(id)) return BadRequest(new ApiResponse(false, "Invalid ID"));
+            if (!ValidityUtil.IsValidId(targetId) && !ValidityUtil.IsValidUrl(targetId)) return BadRequest(new ApiResponse(false, "Invalid target ID/URL"));
+
+            try
+            {
+                switch (relation)
+                {
+                    // Authors
+                    case "authors":
+                        await resourceManager.RemoveAuthorFromResourceAsync(id, targetId);
+                        break;
+
+                    // Organisations
+                    case "organisations":
+                        await resourceManager.RemoveOrganisationFromResourceAsync(id, targetId);
+                        break;
+
+                    // Regions
+                    case "regions":
+                        await resourceManager.RemoveRegionFromResourceAsync(id, targetId);
+                        break;
+
+                    // Related organisations
+                    case "related-organisations":
+                        await resourceManager.RemoveRelatedOrganisationFromResourceAsync(id, targetId);
+                        break;
+
+                    // Related persons
+                    case "related-persons":
+                        await resourceManager.RemoveRelatedPersonFromResourceAsync(id, targetId);
+                        break;
+
+                    // Sources
+                    case "sources":
+                        await resourceManager.RemoveSourceFromResourceAsync(id, System.Net.WebUtility.UrlDecode(targetId));
+                        break;
+
+                    // Related Sources
+                    case "related-sources":
+                        await resourceManager.RemoveRelatedSourceFromResourceAsync(id, System.Net.WebUtility.UrlDecode(targetId));
+                        break;
+
+                    // Tags
+                    case "tags":
+                        await resourceManager.RemoveTagFromResourceAsync(id, targetId);
+                        break;
+
+                    // Default
+                    default:
+                        return BadRequest(new ApiResponse(false, "Invalid relation"));
+                }
+
+                return Ok(new ApiResponse(true, "Relation removed successfully"));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error removing relation '{Relation}' for person with ID '{Id}'", relation, id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        #endregion
+
         #region Large File Upload
-        
+
         /// <summary>
         /// Initializes a large file upload session
         /// </summary>

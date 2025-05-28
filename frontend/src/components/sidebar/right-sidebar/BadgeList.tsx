@@ -8,7 +8,7 @@ import 'react-loading-skeleton/dist/skeleton.css'
 import New from "@/icons/new"
 import NewBadge from "./NewBadge"
 import { useArchive } from "@/context/archive-provider"
-import { organisationRelation, personRelation, resourceRelation } from "@/actions/right-sidebarActions";
+import { organisationRelation, personRelation, resourceRelation, removeRelation } from "@/actions/right-sidebarActions";
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "@/components/ui/context-menu";
 
 export interface ListItem
@@ -40,7 +40,7 @@ export default function BadgeList({
     onUpdate,
 } : BadgeListProps)
 {
-    const { navigate } = useSidebar();
+    const { navigate, currentId, currentType } = useSidebar();
     const { setTagFilter: setTagFilters } = useArchive();
     
     async function navigateTo(id: string, type: string)
@@ -61,8 +61,15 @@ export default function BadgeList({
         }
     }
 
-    async function removeRelation(id: string, type: string) {
+    async function handleRemove(id: string, type: string) {
+        try {
+            
+            await removeRelation(listType, currentType, currentId, id) 
+            onUpdate();
 
+        } catch (error) {
+            console.error("Error adding relations:", error);
+        }
     }
 
     return (
@@ -81,7 +88,7 @@ export default function BadgeList({
                                 <Badge onClick={() => navigateTo(item.id, item.type)} variant={variant} className={className}>{item.name}</Badge>
                             </ContextMenuTrigger>
                             <ContextMenuContent className="select-none">
-                                <ContextMenuItem className="select-none text-red-600" onClick={() => removeRelation(item.id, item.id)}>
+                                <ContextMenuItem className="select-none text-red-600" onClick={() => handleRemove(item.id, item.id)}>
                                     <div className="select-none cursor-pointer">Remove relation</div>
                                 </ContextMenuItem>
                             </ContextMenuContent>
