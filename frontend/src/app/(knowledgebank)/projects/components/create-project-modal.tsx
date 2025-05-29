@@ -122,7 +122,7 @@ export default function CreateProjectModal({ isOpen, onClose, onSuccess, current
             <div className="grid grid-cols-4 items-center gap-4">
               {/**creators */}
               <Label htmlFor="creators" className="text-right">
-                Creators
+                Co-Creators
               </Label>
               <SelectUserDropdown
                 className="col-span-3"

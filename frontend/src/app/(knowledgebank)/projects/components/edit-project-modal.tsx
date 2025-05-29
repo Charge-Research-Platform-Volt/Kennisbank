@@ -160,7 +160,7 @@ return (
                 {!isFolder && (
                   <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="creators" className="text-right">
-                    Creators
+                    New Creators
                   </Label>
                   <SelectUserDropdown
                     className="col-span-3"
