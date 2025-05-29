@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { useRouter } from "next/navigation";
 
 /**
  *
@@ -12,9 +13,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
  * @param userRole - Current role of the user
  * @returns The profile dropdown, which consists of a clickable profile picture, able to take the user to their profile or log out.
  */
-export default function ProfileDropdown({ handleLogoutAction, userEmail = "", userRole = "", minimize }: { handleLogoutAction: () => void; userEmail?: string; userRole?: string; minimize: boolean }) {
+export default function ProfileDropdown({ handleLogoutAction, userEmail = "", userName = "", minimize }: { handleLogoutAction: () => void; userEmail?: string; userName?: string; minimize: boolean }) {
   const [profileButtonWidth, setProfileButtonWidth] = useState(0);
   const profileButtonRef = React.useRef<HTMLButtonElement>(null);
+
+  const router = useRouter();
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -38,13 +41,17 @@ export default function ProfileDropdown({ handleLogoutAction, userEmail = "", us
 
         {/* Username + email */}
         <div className="flex flex-col items-start justify-center">
-          <p className="text-sm">{"Charge " + String(userRole).charAt(0).toUpperCase() + String(userRole).slice(1)}</p>
+          <p className="text-sm">{userName}</p>
           <p className="text-sm text-gray-500">{userEmail}</p>
         </div>
       </DropdownMenuTrigger>
 
       {/* Dropdown menu */}
       <DropdownMenuContent side="top" style={{ width: profileButtonWidth }}>
+        <DropdownMenuItem onClick={() => router.push("/account")} className="cursor-pointer">
+          Account settings
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogoutAction} className="cursor-pointer">
           Log out
         </DropdownMenuItem>
