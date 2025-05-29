@@ -129,21 +129,91 @@ public class UserControllerTests : TestBase
     }
 
     [Test]
-    public async Task Delete_RemovesUser_WhenSuccessful()
+    public async Task Delete_AdminRemovesUser_WhenSuccessful()
     {
         // Arrange
-        User testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
-        _userManagerMock.Setup(m => m.FindByIdAsync(testUser.Id)).ReturnsAsync(testUser);
-        _userManagerMock.Setup(m => m.DeleteAsync(testUser)).ReturnsAsync(IdentityResult.Success);
+        var currentUserId = Guid.NewGuid().ToString();
+        var testUserId = Guid.NewGuid().ToString();
+
+        var currentUser = new User { Id = currentUserId, UserName = "adminuser", Email = "admin@admin.nl" };
+        var testUser = new User { Id = testUserId, UserName = "testuser", Email = "test@example.com" };
+
+        Context.AppUsers.Add(currentUser);
+        Context.AppUsers.Add(testUser);
         await Context.SaveChangesAsync();
 
+        _userManagerMock.Setup(m => m.FindByIdAsync(currentUserId)).ReturnsAsync(currentUser);
+        _userManagerMock.Setup(m => m.FindByIdAsync(testUserId)).ReturnsAsync(testUser);
+        _userManagerMock.Setup(m => m.GetRolesAsync(currentUser)).ReturnsAsync(new List<string> { "admin" });
+        _userManagerMock.Setup(m => m.DeleteAsync(testUser)).ReturnsAsync(IdentityResult.Success);
+
+        SetUserIdentity(_controller, currentUserId);
+
         // Act
-        IActionResult result = await _controller.Delete(testUser.Id);
+        IActionResult result = await _controller.Delete(testUserId);
 
         // Assert
         OkObjectResult? okResult = result as OkObjectResult;
         Assert.That(okResult, Is.Not.Null);
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
+    }
+
+    [Test]
+    public async Task Delete_UserRemovesSelf_WhenSuccessful()
+    {
+        // Arrange
+        var testUserId = Guid.NewGuid().ToString();
+
+        var testUser = new User { Id = testUserId, UserName = "testuser", Email = "test@example.com" };
+
+        Context.AppUsers.Add(testUser);
+        await Context.SaveChangesAsync();
+
+        _userManagerMock.Setup(m => m.FindByIdAsync(testUserId)).ReturnsAsync(testUser);
+        _userManagerMock.Setup(m => m.FindByIdAsync(testUserId)).ReturnsAsync(testUser);
+        _userManagerMock.Setup(m => m.GetRolesAsync(testUser)).ReturnsAsync(new List<string> { "user" });
+        _userManagerMock.Setup(m => m.DeleteAsync(testUser)).ReturnsAsync(IdentityResult.Success);
+
+        SetUserIdentity(_controller, testUserId);
+
+        // Act
+        IActionResult result = await _controller.Delete(testUserId);
+
+        // Assert
+        OkObjectResult? okResult = result as OkObjectResult;
+        Assert.That(okResult, Is.Not.Null);
+        Assert.That(okResult.StatusCode, Is.EqualTo(200));
+    }
+
+    [Test]
+    public async Task Delete_UserRemovesOther()
+    {
+        // Arrange
+        var testuser1id = Guid.NewGuid().ToString();
+        var testuser2id = Guid.NewGuid().ToString();
+
+        var testuser1 = new User { Id = testuser1id, UserName = "testuser1", Email = "test1@example.nl" };
+        var testuser2 = new User { Id = testuser2id, UserName = "testuser", Email = "test@example.com" };
+
+        Context.AppUsers.Add(testuser1);
+        Context.AppUsers.Add(testuser2);
+        await Context.SaveChangesAsync();
+
+        _userManagerMock.Setup(m => m.FindByIdAsync(testuser1id)).ReturnsAsync(testuser1);
+        _userManagerMock.Setup(m => m.FindByIdAsync(testuser2id)).ReturnsAsync(testuser2);
+        _userManagerMock.Setup(m => m.GetRolesAsync(testuser1)).ReturnsAsync(new List<string> { "user" });
+        _userManagerMock.Setup(m => m.DeleteAsync(testuser2)).ReturnsAsync(IdentityResult.Success);
+
+        SetUserIdentity(_controller, testuser1id);
+
+        // Act
+        IActionResult result = await _controller.Delete(testuser2id);
+
+        // Assert
+        BadRequestObjectResult? brResult = result as BadRequestObjectResult;
+        Assert.That(brResult, Is.Not.Null);
+        Assert.That(brResult.StatusCode, Is.EqualTo(400));
+        Assert.That(brResult.Value, Is.EqualTo("Only admins can delete users."));
     }
 
     [Test]
