@@ -42,7 +42,7 @@ export default function ConfirmDeleteDialog({ open, onOpenChange, onConfirmation
                 <AlertDialogHeader>
                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        This item will be removed to trash and will be permanently deleted after 30 days.
+                        This item will be moved to trash and will be permanently deleted after 30 days.
                         Are you sure you want to continue?
                     </AlertDialogDescription>
                 </AlertDialogHeader>
