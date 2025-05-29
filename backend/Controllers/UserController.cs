@@ -7,6 +7,7 @@ using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace KnowledgeBank.Controllers;
 
@@ -188,6 +189,24 @@ public class UserController : ControllerBase
     {
         try
         {
+            string? currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (currentUserId == null)
+                return BadRequest("Current user ID not found in claims.");
+
+            User? currentUser = await userManager.FindByIdAsync(currentUserId);
+
+            if (currentUser == null)
+                return NotFound("Current user not found.");
+
+            // Prevent deleting the current user
+            if (currentUser.Id != userId)
+            {
+                IList<string> roles = await userManager.GetRolesAsync(currentUser);
+                if (!roles.Contains("admin"))
+                    return BadRequest("Only admins can delete users.");	
+            }
+
             User? user = await userManager.FindByIdAsync(userId);
 
             if (user == null)
