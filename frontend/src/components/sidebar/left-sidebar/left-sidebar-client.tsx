@@ -29,13 +29,13 @@ import ShowMenu from "@/icons/menu/show-menu";
  */
 export default function LeftSidebarClient({
   userEmail,
-  userRole,
+  userName,
   menuItems,
   projects,
   bottomMenuItems,
 }: {
   userEmail: string;
-  userRole: string;
+  userName: string;
   menuItems: SidebarItem[];
   projects: SidebarItem[];
   bottomMenuItems: SidebarItem[];
@@ -192,9 +192,9 @@ export default function LeftSidebarClient({
 
           <Divider className="my-2" />
 
-          {/* Settings and help */}
+          {/* Account settings and help */}
           <li>
-            <ProfileDropdown handleLogoutAction={handleLogout} userEmail={userEmail} userRole={userRole} minimize={open} />
+            <ProfileDropdown handleLogoutAction={handleLogout} userEmail={userEmail} userName={userName} minimize={open} />
           </li>
         </ul>
       </nav>
