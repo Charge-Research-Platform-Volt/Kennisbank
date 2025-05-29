@@ -13,6 +13,7 @@ import GetFileIcon from "../getFileIcon";
 import { ApiResponse } from "@/types/apiResponse.type";
 import { useArchive } from "@/context/archive-provider";
 import { GridRequest, GridRequestSchema } from "@/types/gridRequest.type";
+import OpenFileButton from "../open-file-button";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -65,7 +66,7 @@ export default function ResourcesGrid()
             const [year, month, day] = datePart.split('-');
             return `${day}-${month}-${year}`;
         } },
-        { field: "", minWidth: 50, maxWidth: 50, cellRenderer:renderRowButton(), resizable: false}
+        { field: "", minWidth: 50, maxWidth: 50, cellRenderer:renderRowButton(), resizable: false, cellClass: 'no-row-click' }
     ];
     
     // Fetch data function
@@ -142,7 +143,8 @@ export default function ResourcesGrid()
         sortBy,
         sortDirection,
         tagFilter,
-        regionFilter
+        regionFilter,
+        setTotalItems
     ]);
     
     // Fetch data when dependencies change
@@ -178,9 +180,12 @@ export default function ResourcesGrid()
     // On row clicked event
     const onRowClicked = React.useCallback((event: RowClickedEvent) => 
     {
+        const target = event.event?.target as HTMLElement;
+        if (target?.closest('.no-row-click')) return;
+    
         const rowItem: ResourceGridItem = event.data;
         openRightSidebar(rowItem.id, rowItem.type);
-    }, []);
+    }, [openRightSidebar]);
     
     return (
         <AgGridReact
@@ -222,8 +227,8 @@ function renderRowButton()
     return function rowButtonRenderer(params: {data: ResourceGridItem}) 
     {
         return (
-            <div className="flex w-full h-full items-center justify-center cursor-pointer">
-                <ArchiveRestore />
+            <div className="flex w-full h-full items-center justify-center">
+                { params.data.type === 'resource' && <OpenFileButton id={params.data.id} fileType={params.data.fileType} asIcon={true} />}
             </div>
         )
     }

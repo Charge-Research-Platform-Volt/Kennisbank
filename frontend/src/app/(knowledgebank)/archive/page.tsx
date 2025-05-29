@@ -33,22 +33,14 @@ export default function Page() {
         setTagFilter,
         regionFilter,
         setRegionFilter,
+        resetFilters
     } = useArchive();
     
     // States
     const [filtersOpen, setFiltersOpen] = React.useState<boolean>(false);
     
-    const resetAllFilters = () =>
-    {
-        setTypeFilter(['resource', 'person', 'organisation']);
-        setPublicationDateRangeMax('');
-        setPublicationDateRangeMin('');
-        setTagFilter([]);
-        setRegionFilter([]);
-    };
-    
     // Create tag body function for the dynamic combobox
-    const createTagBody = (searchQuery: string): any => 
+    const createTagBody = (searchQuery: string): unknown => 
     {
         const body: TagFilterOptions = 
         {
@@ -64,20 +56,21 @@ export default function Page() {
     }
     
     // Parse the tag response for the dynamic combobox
-    const parseTagResponse = (response: any): SelectOption[] => 
-    {
-        let options: SelectOption[] = [];
+    const parseTagResponse = (response: unknown): SelectOption[] => {
+        const data = response as { tags: Array<{ id: string | number; name: string }> };
         
-        response.tags.forEach((tag: any) => 
-        {
-            options.push({ value: tag.id, label: tag.name });
-        })
+        if (!data?.tags || !Array.isArray(data.tags)) {
+            return [];
+        }
         
-        return options;
-    }
+        return data.tags.map(tag => ({
+            value: tag.id,
+            label: tag.name
+        })) as SelectOption[];
+    };
     
     // Create region body for dynamic combobox
-    const createRegionBody = (searchQuery: string): any => 
+    const createRegionBody = (searchQuery: string): unknown => 
     {
         const params = new URLSearchParams(
         {
@@ -114,7 +107,7 @@ export default function Page() {
             </div>
             
             {/* Filter selection */}
-            <div hidden={!filtersOpen} className="w-full flex grid grid-cols-4 gap-4 flex-shrink-0 my-3 px-5 pb-2 border-b border-gray-300">
+            <div hidden={!filtersOpen} className="w-full grid grid-cols-4 gap-4 flex-shrink-0 my-3 px-5 pb-2 border-b border-gray-300">
                 {/* Type filter */}
                 <div className="w-full">
                     <Label htmlFor="typeFilter" className="pb-2">Show types:</Label>
@@ -125,7 +118,7 @@ export default function Page() {
                 {/* Publication date range */}
                 <div className="w-full">
                     <Label htmlFor="publicationRange" className="pb-2">Publication date range:</Label>
-                    <div id="publicationRange" className="w-full flex grid grid-cols-2 gap-x-2">
+                    <div id="publicationRange" className="w-full grid grid-cols-2 gap-x-2">
                         <Input type="date" max={publicationDateRangeMax} value={publicationDateRangeMin} onChange={(e) => setPublicationDateRangeMin(e.target.value)} className="cursor-pointer" />
                         <Input type="date" min={publicationDateRangeMin} value={publicationDateRangeMax} onChange={(e) => setPublicationDateRangeMax(e.target.value)} className="cursor-pointer" />
                         <ResetFilter onClick={() => setPublicationDateRangeMin('')} />
@@ -149,7 +142,7 @@ export default function Page() {
                 
                 {/* Reset all and close button */}
                 <div className="col-span-4 flex justify-center gap-4 mt-2">
-                    <Button variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600" onClick={resetAllFilters}>Reset All Filters</Button>
+                    <Button variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600" onClick={resetFilters}>Reset All Filters</Button>
                     <Button variant="outline" onClick={() => setFiltersOpen(false)}>Close</Button>
                 </div>
             </div>

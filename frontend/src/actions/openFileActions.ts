@@ -1,7 +1,6 @@
 "use server";
 
-import { ApiResponse, ApiResponseSchema } from "@/types/apiResponse.type";
-import { ResourceResponse, WebsiteResponseSchema } from "@/types/resource.type";
+import { ApiResponseSchema } from "@/types/apiResponse.type";
 import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 import { cookies } from "next/headers";
 
@@ -16,7 +15,6 @@ export const openFile = async (id: string) : Promise<string | undefined> => {
             headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
         },
     );
-    console.log(response);
 
     if (!response.ok) {
         throw new Error(`Problem with getting filetype`);
@@ -44,7 +42,7 @@ export const openFile = async (id: string) : Promise<string | undefined> => {
     }
 
     else {
-        let endPoint = `${process.env.API_URL}/resources/download/${id}`;
+        const endPoint = `${process.env.API_URL}/resources/download/${id}`;
 
         try {
             const response2 = await fetch(
@@ -72,78 +70,6 @@ export const openFile = async (id: string) : Promise<string | undefined> => {
     }
 
 }
-
-export const handleOpenFile = async (file: ResourceResponse) => {
-
-    let url: string | undefined;
-
-    // If the website is of the form www.input.nl or similar, put https:// before it so it doesn't use the
-    // knowledgebank host as its base
-    function makeValid(input:string):string {
-        const validBeginLink : [string, string] = ["https://", "http://"];
-        for(const element of validBeginLink) {
-            if(input.startsWith(element))
-                return input;
-        };
-        return "https://" + input;
-    }
-
-    // Anything but a website at the moment we'll just open from the storage
-    if(file.fileType != "website"){
-        url = `/api/resources/download/${file.id}`;
-        try {
-            const response : Response = await fetch(url, {
-                method: 'GET',
-                credentials: 'include', // Makes sure cookies are included
-            });
-          
-            if (!response.ok) {
-                console.error(`Error getting file: ${response.statusText}`);
-                return;
-            }
-
-            const blob : Blob = await response.blob();
-            const blobUrl : string = URL.createObjectURL(blob);
-            
-            window.open(blobUrl, '_blank');
-        } catch (error) {
-            console.error("Error getting file:", error);
-        }
-    }
-    // If it is a website, get the url of the archive file and go to that website
-    else{
-        const website = WebsiteResponseSchema.safeParse(file);
-        if(!website.success){
-            console.error(`Error fetching website`);
-            return;
-        }
-        url = `/api/websiteupload/get-website/${file.id}`;
-
-        try {
-            await fetch(url, {
-                method: 'GET',
-                credentials: 'include', // Makes sure cookies are included
-            }).then(response => 
-            {
-                if(!response.ok)
-                    {
-                        console.error(`Error getting website: ${response.statusText}`);
-                        return;
-                    }
-                else {
-                    return response.json()
-                }
-                // if all succeeds open the window, making it valid (otherwise it will direct to our domain + url)
-            }).then(jsonresponse =>
-                {
-                    window.open(makeValid(jsonresponse), '_blank') 
-                })
-        // other errors
-        } catch (error) {
-            console.error("Error getting website:", error);
-        }
-    }
-  }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
