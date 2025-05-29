@@ -185,7 +185,7 @@ public class UserController : ControllerBase
     [SwaggerResponse(200, "User deleted successfully.")]
     [SwaggerResponse(404, "User not found.")]
     [SwaggerResponse(500, "Internal server error.")]
-    public async Task<IActionResult> Delete(string userId)
+    public async Task<IActionResult> Delete(string? userId)
     {
         try
         {
@@ -199,12 +199,17 @@ public class UserController : ControllerBase
             if (currentUser == null)
                 return NotFound("Current user not found.");
 
+            if (string.IsNullOrEmpty(userId))
+            {
+                userId = currentUser.Id;
+            }
+
             // Prevent deleting the current user
             if (currentUser.Id != userId)
             {
                 IList<string> roles = await userManager.GetRolesAsync(currentUser);
                 if (!roles.Contains("admin"))
-                    return BadRequest("Only admins can delete users.");	
+                    return BadRequest("Only admins can delete users.");
             }
 
             User? user = await userManager.FindByIdAsync(userId);
