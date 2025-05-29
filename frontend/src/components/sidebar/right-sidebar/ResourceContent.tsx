@@ -30,6 +30,11 @@ export function ResourceContent()
     const [ sourceList, setSourceList ] = useState<ListItem[] | null>(null);
     const [ regions, setRegions ] = useState<ListItem[] | null>(null);
     const [ relatedSourceList, setRelatedSourceList ] = useState<ListItem[] | null>(null);
+    const [ langCode, setLangCode ] = useState<string | null>(null);
+    const [ pubCode, setPubCode ] = useState<string | null>(null);
+    const [ pubDate, setPubDate ] = useState<Date | null>(null);
+    const [ creationDate, setCreationDate ] = useState<Date | null>(null);
+    const [ license, setLicense ] = useState<string | null>(null);
 
     const [shouldRefresh, setUpdateTrigger] = useState(false);
     const triggerRefresh = () => setUpdateTrigger(prev => !prev);  
@@ -51,6 +56,11 @@ export function ResourceContent()
         setRelatedResources(null);
         setSourceList(null);
         setRegions(null);
+        setLangCode(null);
+        setPubCode(null);
+        setPubDate(null);
+        setCreationDate(null);
+        setLicense(null);
         loadInformation(); }
     }, [currentId, shouldRefresh])
 
@@ -79,6 +89,9 @@ export function ResourceContent()
                     setUrl(response.body.url);
                 }).catch(error => {console.error("Error loading url: ", error);})
             }
+            setLangCode(response.body.languageCode);
+            setPubDate(response.body.publicationDate);
+            setCreationDate(response.body.creationDate);
             setTitle(response.body.title);
             if (response.body.description) {
                 setDescription(response.body.description);
@@ -88,6 +101,17 @@ export function ResourceContent()
                 setNote(response.body.note);
             }
             else {setNote("No notes.")}
+            
+            if (response.body.note) {
+                setNote(response.body.note);
+            }
+            else {setNote("No notes.")}
+
+            if (response.body.note) {
+                setNote(response.body.note);
+            }
+            else {setNote("No notes.")}
+
 
         }).catch(error => {
             console.error("Error loading information: ", error);
