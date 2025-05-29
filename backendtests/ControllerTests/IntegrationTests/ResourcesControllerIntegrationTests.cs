@@ -1703,7 +1703,7 @@ public class ResourcesControllerTests : TestBaseBlob
         string invalidId = "not-a-guid";
 
         // Act
-        IActionResult result = await _controller.Unarchive(invalidId);
+        IActionResult result = await _controller.Untrash(invalidId);
 
         // Assert
         BadRequestObjectResult badResult = result as BadRequestObjectResult;
@@ -1723,7 +1723,7 @@ public class ResourcesControllerTests : TestBaseBlob
         string nonExistentId = Guid.NewGuid().ToString();
 
         // Act
-        IActionResult result = await _controller.Unarchive(nonExistentId);
+        IActionResult result = await _controller.Untrash(nonExistentId);
 
         // Assert
         NotFoundObjectResult notFoundResult = result as NotFoundObjectResult;

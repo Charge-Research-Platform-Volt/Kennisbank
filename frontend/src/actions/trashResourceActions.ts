@@ -1,18 +1,11 @@
-"use server";
+"use client";
 
-import { revalidatePath } from "next/cache";
-import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
-//import { Log } from "../../Pino";
-import { cookies } from "next/headers";
-
-export const ArchiveResource = async (id: string) => {
+export const TrashResource = async (id: string) => {
     try {
         // Send the data to the backend.
-        const cookieHeader : ReadonlyRequestCookies = await cookies();
-        const response : Response = await fetch(`${process.env.API_URL}/Resources/archive/${encodeURIComponent(id)}`, {
+        const response : Response = await fetch(`/api/Resources/trash/${encodeURIComponent(id)}`, {
             method: "PATCH",
             credentials: "include",
-            headers: { Cookie: cookieHeader.toString() || "" },
         });
         
         const data = await response.json();
@@ -26,9 +19,6 @@ export const ArchiveResource = async (id: string) => {
                 message: data.message,
             };
         }
-
-        // Revalidate the cache for the archive page.
-        revalidatePath("/archive");
 
         return {
             success: true,
@@ -44,14 +34,12 @@ export const ArchiveResource = async (id: string) => {
     }
 };
 
-export const UnarchiveResource = async (id: string) => {
+export const UntrashResource = async (id: string) => {
     try {
         // Send the data to the backend.
-        const cookieHeader : ReadonlyRequestCookies = await cookies();
-        const response : Response = await fetch(`${process.env.API_URL}/Resources/unarchive/${encodeURIComponent(id)}`, {
+        const response : Response = await fetch(`/api/resources/untrash/${encodeURIComponent(id)}`, {
             method: "PATCH",
             credentials: "include",
-            headers: { Cookie: cookieHeader.toString() || "" },
         });
         
         const data = await response.json();
@@ -65,9 +53,6 @@ export const UnarchiveResource = async (id: string) => {
                 message: data.message,
             };
         }
-
-        // Revalidate the cache for the archive page.
-        revalidatePath("/archive");
 
         return {
             success: true,

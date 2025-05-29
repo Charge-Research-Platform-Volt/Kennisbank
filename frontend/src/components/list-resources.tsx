@@ -15,7 +15,7 @@ import { format, parseISO } from "date-fns";
 import OpenFileButton from "./open-file-button";
 import { useSidebar } from "@/context/sidebar-provider";
 import { handleOpenFile } from "@/actions/openFileActions";
-import { ArchiveResource, UnarchiveResource } from "@/actions/archiveResourceActions";
+import { TrashResource, UntrashResource } from "@/actions/trashResourceActions";
 import { toast } from "sonner";
 import { useUserRole } from "@/context/user-role-context";
 import { ArchiveRestore } from "lucide-react";
@@ -40,7 +40,7 @@ export default function ListResources({ data, initialLoadingComplete }: { data: 
   const HandleArchive = async () => {
     setResourceListUpdating(true);
 
-    const result = await ArchiveResource(selectedRowData ? selectedRowData.id : "");
+    const result = await TrashResource(selectedRowData ? selectedRowData.id : "");
 
     if(result.success){
       toast.success(result.message);
@@ -56,7 +56,7 @@ export default function ListResources({ data, initialLoadingComplete }: { data: 
   const handleUnarchiveResource = async (id: string) => {
     setResourceListUpdating(true);
 
-    const result = await UnarchiveResource(id);
+    const result = await UntrashResource(id);
 
     if(result.success){
       toast.success(result.message);
@@ -72,7 +72,7 @@ export default function ListResources({ data, initialLoadingComplete }: { data: 
   const HandleRestore = async () => {
     setResourceListUpdating(true);
 
-    const result = await UnarchiveResource(selectedRowData ? selectedRowData.id : "");
+    const result = await UntrashResource(selectedRowData ? selectedRowData.id : "");
 
     if(result.success){
       toast.success(result.message);

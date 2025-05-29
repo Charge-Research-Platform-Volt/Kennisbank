@@ -31,6 +31,10 @@ export type ArchiveContextType = {
     totalItems: number;
     setTotalItems: (totalItems: number) => void;
     totalPages: number;
+    
+    // States
+    trashOpen: boolean;
+    setTrashOpen: (open: boolean) => void;
 };
 
 const ArchiveContext = React.createContext<ArchiveContextType | undefined>(undefined);
@@ -68,6 +72,9 @@ export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
     const [pageSize, setPageSize] = React.useState<number>(20);
     const [totalItems, setTotalItems] = React.useState<number>(0);
     const [totalPages, setTotalPages] = React.useState<number>(1);
+    
+    // States
+    const [trashOpen, setTrashOpen] = React.useState<boolean>(false);
     
     // Update search parameters helper
     const updateParam = React.useCallback((key: string, value?: string | string[] | undefined) => 
@@ -187,6 +194,10 @@ export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
                 totalItems,
                 setTotalItems,
                 totalPages,
+                
+                // States
+                trashOpen,
+                setTrashOpen
             }}>
         {children}
         </ArchiveContext.Provider>

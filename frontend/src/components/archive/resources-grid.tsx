@@ -6,14 +6,15 @@ import { AgGridReact } from "ag-grid-react";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 import type { CellContextMenuEvent, ColDef, GridApi, GridReadyEvent, RowClickedEvent, SortChangedEvent } from "ag-grid-community";
 import { tableTheme } from "@/lib/tableConfig";
-import { ArchiveRestore } from "lucide-react";
 import { MetadataTypeEnum, useSidebar } from "@/context/sidebar-provider";
-import { useUserRole } from "@/context/user-role-context";
 import GetFileIcon from "../getFileIcon";
 import { ApiResponse } from "@/types/apiResponse.type";
 import { useArchive } from "@/context/archive-provider";
 import { GridRequest, GridRequestSchema } from "@/types/gridRequest.type";
 import OpenFileButton from "../open-file-button";
+import RestoreIcon from "@/icons/restore-icon";
+import { Button } from "../ui/button";
+import { TrashResource, UntrashResource } from "@/actions/trashResourceActions";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -41,6 +42,7 @@ export default function ResourcesGrid()
         publicationDateRangeMax,
         tagFilter,
         regionFilter,
+        trashOpen
     } = useArchive();
 
     // Data for grid
@@ -54,23 +56,27 @@ export default function ResourcesGrid()
     // Grid API reference
     const gridRef = React.useRef<AgGridReact>(null);
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dateFormatter = (params: any) =>
+    {
+        if (!params.value) return '';
+        
+        // Extract data part before T and reverse
+        const datePart = params.value.split('T')[0];
+        const [year, month, day] = datePart.split('-');
+        return `${day}-${month}-${year}`;
+    } 
+    
     // Column definitions
     const columnDefs: ColDef[] = [
         { field: 'name', headerName: 'Name', cellRenderer: renderResourceIcon },
-        { field: 'publicationDate', headerName: 'Publication Date', maxWidth: 200, valueFormatter: (params) => 
-        {
-            if (!params.value) return '-';
-            
-            // Extract data part before T and reverse
-            const datePart = params.value.split('T')[0];
-            const [year, month, day] = datePart.split('-');
-            return `${day}-${month}-${year}`;
-        } },
-        { field: "", minWidth: 50, maxWidth: 50, cellRenderer:renderRowButton(), resizable: false, cellClass: 'no-row-click' }
+        { field: 'publicationDate', headerName: 'Publication Date', maxWidth: 200, valueFormatter: dateFormatter},
+        ...(trashOpen ? [{field: 'trashDate', headerName: 'Trash Date', maxWidth: 200, valueFormatter: dateFormatter, sort: 'asc' as const}] : []),
+        { field: "", maxWidth: trashOpen ? 120 : 50, minWidth: trashOpen ? 100 : 50, cellRenderer:renderRowButton(), resizable: false, cellClass: 'no-row-click' }
     ];
     
     // Fetch data function
-    const fetchData = React.useCallback(async (getTrash: boolean = false) => 
+    const fetchData = React.useCallback(async () => 
     {
         setLoading(true);
         
@@ -95,9 +101,13 @@ export default function ResourcesGrid()
             });
             
             // Fetch the data from the backend
-            const response = getTrash ?
-                await fetch(`/api/resources/list`)
-                : await fetch(`/api/resources/grid`,
+            const response = trashOpen ?
+                await fetch(`/api/resources/list?properties=${encodeURIComponent('Id as id,"resource" as type,Title as name,PublicationDate,FileExt as fileType,TrashDate as trashDate')}&trash=true`, 
+                {
+                    credentials: 'include',
+                })
+                :
+                await fetch(`/api/resources/grid`,
                 {
                     method: 'POST',
                     credentials: 'include',
@@ -115,8 +125,8 @@ export default function ResourcesGrid()
             
             if (data.success) 
             {
-                setRowData(data.body.items);
-                setTotalItems(data.body.totalCount);
+                setRowData(trashOpen ? data.body : data.body.items);
+                setTotalItems(trashOpen ? data.body.length : data.body.totalCount);
             }
             else 
             {
@@ -146,7 +156,8 @@ export default function ResourcesGrid()
         sortDirection,
         tagFilter,
         regionFilter,
-        setTotalItems
+        setTotalItems,
+        trashOpen
     ]);
     
     // Fetch data when dependencies change
@@ -212,26 +223,27 @@ export default function ResourcesGrid()
                 domLayout="autoHeight"
             />
     )
-}
-
-function renderResourceIcon(params: { data: ResourceGridItem; value: string }) 
-{
-    return (
-        <div className="flex items-center justify-start gap-2">
-            <GetFileIcon fileType={params.data.fileType} />
-            <span className="">{params.value}</span>
-        </div>
-    )
-}
-
-function renderRowButton() 
-{
-    return function rowButtonRenderer(params: {data: ResourceGridItem}) 
+    
+    function renderResourceIcon(params: { data: ResourceGridItem; value: string }) 
     {
         return (
-            <div className="flex w-full h-full items-center justify-center">
-                { params.data.type === 'resource' && <OpenFileButton id={params.data.id} fileType={params.data.fileType} asIcon={true} />}
+            <div className="flex items-center justify-start gap-2">
+                <GetFileIcon fileType={params.data.fileType} />
+                <span className="">{params.value}</span>
             </div>
         )
+    }
+    
+    function renderRowButton() 
+    {
+        return function rowButtonRenderer(params: {data: ResourceGridItem}) 
+        {
+            return (
+                <div className="flex w-full h-full items-center justify-center">
+                    { params.data.type === 'resource' && <OpenFileButton id={params.data.id} fileType={params.data.fileType} asIcon={true} />}
+                    {trashOpen && <Button variant="ghost" className="hover:bg-gray-200" onClick={async () => { await UntrashResource(params.data.id); await fetchData(); } }><RestoreIcon className="h-10 w-10 text-gray-500" style={{ width: '23px', height: '23px', minWidth: '23px', minHeight: '23px' }} /></Button> }
+                </div>
+            )
+        }
     }
 }
