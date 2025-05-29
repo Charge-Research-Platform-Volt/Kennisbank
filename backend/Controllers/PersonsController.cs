@@ -31,6 +31,8 @@ namespace KnowledgeBank.Controllers
         #region New
         /// <summary>
         /// Creates a new person
+        /// 
+        /// Author: Abel Dieterich
         /// </summary>
         /// <param name="dto">The Data Transfer Object</param>
         [HttpPut("new")]
@@ -69,6 +71,8 @@ namespace KnowledgeBank.Controllers
         #region Delete
         /// <summary>
         /// Deletes a person
+        /// 
+        /// Author: Abel Dieterich
         /// </summary>
         /// <param name="id">The ID of the person</param>
         [HttpDelete("delete/{id}")]
@@ -110,6 +114,8 @@ namespace KnowledgeBank.Controllers
         #region Update
         /// <summary>
         /// Updates a person
+        /// 
+        /// Author: Abel Dieterich
         /// </summary>
         /// <param name="id">The ID of the person</param>
         /// <param name="updates">The dictionary of propertynames to update and their new values</param>
@@ -183,6 +189,8 @@ namespace KnowledgeBank.Controllers
         #region Exists
         /// <summary>
         /// Checks if a person already exists in the database
+        /// 
+        /// Author: Abel Dieterich
         /// </summary>
         /// <param name="name">The name of the person</param>
         [EnableCors("AllowFrontend")]
@@ -226,6 +234,8 @@ namespace KnowledgeBank.Controllers
         #region Info
         /// <summary>
         /// Gets the information of the person (database row)
+        /// 
+        /// Author: Abel Dieterich
         /// </summary>
         /// <param name="id">The ID of the person</param>
         [HttpGet("info/{id}")]
@@ -263,6 +273,8 @@ namespace KnowledgeBank.Controllers
         #region List
         /// <summary>
         /// Retrieves a list or page of all persons
+        /// 
+        /// Author: Abel Dieterich
         /// </summary>
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
@@ -314,7 +326,17 @@ namespace KnowledgeBank.Controllers
         // Helper functions
         // ---------------------------
 
-        // Helper method to update a property
+        /// <summary>
+        /// Helper method to update a property of a person
+        /// 
+        /// Author: Abel Dieterich
+        /// </summary>
+        /// <typeparam name="TSet">TSet</typeparam>
+        /// <typeparam name="TProperty">TProperty</typeparam>
+        /// <param name="id">The ID of the person</param>
+        /// <param name="propertyName"> The name of the property to update</param>
+        /// <param name="newValue"> The new value of the property</param>
+        /// <returns>Task</returns>
         private async Task UpdateProperty<TSet, TProperty>(string id, string propertyName, TProperty newValue) where TSet : class
         {
             await resourceManager.UpdatePersonAsync(id, PropertyUpdateUtil.CreatePropertySelector<Person, TProperty>(propertyName), newValue);

@@ -12,6 +12,12 @@ using KnowledgeBank.Responses;
 
 namespace KnowledgeBank.Controllers;
 
+/// <summary>
+/// This controller manages tags within the KnowledgeBank application.
+/// 
+/// Author: Rens van Moorsel, Jelle van het Schut, Justin Liem
+/// </summary>
+/// <param name="resourceManager">The resource manager for accessing tag data.</param>	
 [ApiController]
 [Route("[controller]")]
 [Produces("application/json")]
@@ -24,7 +30,9 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     // ----------- Endpoints:
     
     /// <summary>
-    /// Retrieves tags with advanced filtering, searching, paging and sorting capabilities
+    /// Retrieves tags with advanced filtering, searching, paging and sorting capabilities.
+    /// 
+    /// Author: Rens van Moorsel, Jelle van het Schut, Abel Dietrich, Justin Liem
     /// </summary>
     /// <returns>
     /// Returns a 200 OK response containing a list of tags.
@@ -138,6 +146,8 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
 
     /// <summary>
     /// Adds a new standard tag to the tag list.
+    /// 
+    /// Author: Rens van Moorsel, Jelle van het Schut, Abel Dietrich, Justin Liem
     /// </summary>
     /// <param name="dto">The DTO for tag creation.</param>
     /// <returns>
@@ -208,6 +218,8 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
 
     /// <summary>
     /// Adds a new tag to the tag list.
+    /// 
+    /// Author: Rens van Moorsel, Jelle van het Schut, Abel Dietrich
     /// </summary>
     /// <returns>
     /// Returns a 200 OK response containing the added tag.
@@ -276,6 +288,8 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
 
     /// <summary>
     /// Deletes a tag from the tag list.
+    /// 
+    /// Author: Rens van Moorsel, Jelle van het Schut, Abel Dietrich, Justin Liem
     /// </summary>
     /// <param name="id">The id of the tag to delete.</param>
     /// <returns>
@@ -343,6 +357,8 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
 
     /// <summary>
     /// Changes the name of a tag.
+    /// 
+    /// Author: Rens van Moorsel, Jelle van het Schut, Abel Dietrich
     /// </summary>
     /// <param name="id">The id of the tag.</param>
     /// <param name="newName">The new name of the tag.</param>
@@ -426,6 +442,13 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Set tag status to approved.
+    /// 
+    /// Author: Rens van Moorsel, Jelle van het Schut, Abel Dietrich, Justin Liem
+    /// </summary>
+    /// <param name="id"> The id of the tag to approve.</param>
+    /// <returns>An IActionResult indicating the result of the approval operation.</returns>
     [HttpPatch("approve-tag/{id}")]
     [Authorize(Policy = "RequireAdminRole")]
     [SwaggerResponse(200, "Tag was approved")]
@@ -459,6 +482,13 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Sets the tag status to standardized.
+    /// 
+    /// Author: Rens van Moorsel, Jelle van het Schut, Abel Dietrich, Justin Liem
+    /// </summary>
+    /// <param name="id">The id of the tag to standardize.</param>
+    /// <returns>An IActionResult indicating the result of the standardization operation.</returns>
     [HttpPatch("make-standardized/{id}")]
     [Authorize(Policy = "RequireAdminRole")]
     [SwaggerResponse(200, "Tag was standardized")]
@@ -492,6 +522,8 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     /// finding all the relations of the second tag, and then transferring
     /// these relations to the first tag. 
     /// <b>Keep in mind that the second tag is deleted after the relations have been transferred.</b>
+    /// 
+    /// Author: Jelle van het Schut, Justin Liem
     /// </summary>
     /// <param name="id1">The id of the first tag.</param>
     /// <param name="id2">The id of the second tag.</param>
@@ -572,6 +604,8 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
     /// Constructs a dynamic predicate expression for filtering <see cref="Tag"/> entities based on the specified filter options.
     /// Each non-null or enabled option in <paramref name="options"/> is translated into a logical condition that is 
     /// combined with the others using a logical OR.
+    /// 
+    /// Author: Jelle van het Schut
     /// </summary>
     /// <param name="options">
     /// The filter criteria used to build the predicate, including creator, approval status, date ranges, and text search.
@@ -649,6 +683,8 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
 
     /// <summary>
     /// Retrieves all tags from the drive.
+    /// 
+    /// Author: Rens van Moorsel, Jelle van het Schut
     /// </summary>
     /// <returns>
     /// Returns a 200 OK response containing a list of all tags.
@@ -674,6 +710,15 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         }
     }
     
+    /// <summary>
+    /// Retrieves a paginated list of tags from the drive, optionally filtered by a search query.
+    /// 
+    /// Author: Rens van Moorsel
+    /// </summary>
+    /// <param name="pageIndex">The index of the page to retrieve (1-based).</param>
+    /// <param name="pageSize"> The number of tags per page.</param>
+    /// <param name="searchQuery">An optional search query to filter tags by name.</param>
+    /// <returns>Returns a 200 OK response containing a paginated list of tags.</returns>
     [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
     [HttpGet("tag-page")]
     [SwaggerOperation(Summary = "List all tags paged.", Description = "List all tags paged.")]
@@ -728,6 +773,8 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
 
     /// <summary>
     /// Retrieves all standardized tags from the drive.
+    /// 
+    /// Author: Rens van Moorsel, Jelle van het Schut
     /// </summary>
     /// <returns>
     /// Returns a 200 OK response containing a list of all tags.
@@ -753,6 +800,14 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Retrieves a paginated list of standardized tags from the drive.
+    /// 
+    /// Author: Rens van Moorsel
+    /// </summary>
+    /// <param name="pageIndex">The index of the page to retrieve (1-based).</param>
+    /// <param name="pageSize">The number of tags per page.</param>	
+    /// <returns>Returns a 200 OK response containing a paginated list of standardized tags.</returns>
     [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
     [HttpGet("standard-tag-page")]
     [SwaggerOperation(Summary = "List all standardized tags paged.", Description = "List all standardized tags paged.")]
@@ -777,6 +832,8 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
 
     /// <summary>
     /// Retrieves all standardized tags from the drive.
+    /// 
+    /// Author: Rens van Moorsel, Jelle van het Schut
     /// </summary>
     /// <returns>
     /// Returns a 200 OK response containing a list of all tags.
@@ -802,6 +859,14 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Retrieves a paginated list of user tags from the drive.
+    /// 
+    /// Author: Rens van Moorsel
+    /// </summary>
+    /// <param name="pageIndex">The index of the page to retrieve (1-based).</param>
+    /// <param name="pageSize">The number of tags per page.</param>
+    /// <returns>Returns a 200 OK response containing a paginated list of user tags.</returns>
     [Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
     [HttpGet("user-tag-page")]
     [SwaggerOperation(Summary = "List all user tags paged.", Description = "List all user tags paged.")]

@@ -20,15 +20,13 @@ using System.Text.Json;
 using System.Buffers.Text;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
-using Azure.Storage.Blobs.Models;
-using System.Threading.Tasks;
 
 namespace KnowledgeBank.Controllers 
 {
     /// <summary>
     /// This controller is responsible for handing API calls to manage resources and their metadata.
     /// 
-    /// Author: Abel Dieterich
+    /// Author: Abel Dieterich, Rens van Moorsel, Jelle van het Schut
     /// </summary>
     /// <param name="resourceManager">The resource manager service for database interactions</param>
     /// <param name="blobService">The Azure Blob Service for file storage</param>
@@ -40,6 +38,8 @@ namespace KnowledgeBank.Controllers
         #region New
         /// <summary>
         /// Creates a new resource
+        /// 
+        /// Author: Abel Dieterich
         /// </summary>
         /// <param name="uploadDto">The Data Transfer Object</param>
         [HttpPut("new")]
@@ -184,6 +184,8 @@ namespace KnowledgeBank.Controllers
         #region Archive
         /// <summary>
         /// Archives a resource
+        /// 
+        /// Author: Rens van Moorsel
         /// </summary>
         /// <param name="id">The ID of the resource</param>
         [HttpPatch("archive/{id}")]
@@ -224,6 +226,8 @@ namespace KnowledgeBank.Controllers
         #region Unarchive
         /// <summary>
         /// Unarchives a resource
+        /// 
+        /// Author: Rens van Moorsel
         /// </summary>
         /// <param name="id">The ID of the resource</param>
         [HttpPatch("unarchive/{id}")]
@@ -264,6 +268,8 @@ namespace KnowledgeBank.Controllers
         #region Download
         /// <summary>
         /// Downloads a resource
+        /// 
+        /// Author: Abel Dieterich
         /// </summary>
         /// <param name="id">The ID of the resource</param>
         [HttpGet("download/{id}")]
@@ -332,6 +338,8 @@ namespace KnowledgeBank.Controllers
         #region Delete
         /// <summary>
         /// Deletes a resource
+        /// 
+        /// Author: Abel Dieterich
         /// </summary>
         /// <param name="id">The ID of the resource</param>
         [HttpDelete("delete/{id}")]
@@ -396,6 +404,8 @@ namespace KnowledgeBank.Controllers
         #region Update
         /// <summary>
         /// Updates the given resource's properties
+        /// 
+        /// Author: Abel Dieterich
         /// </summary>
         /// <param name="id">The ID of the resource</param>
         /// <param name="updates">A dictionary with property names and their new values</param>
@@ -476,6 +486,8 @@ namespace KnowledgeBank.Controllers
         #region Exists
         /// <summary>
         /// Checks if a resource already exists in the database
+        /// 
+        /// Author: Abel Dieterich
         /// </summary>
         /// <param name="hash">(Optional) The hash of the resource</param>
         /// <param name="url">(Optional) The URL of the resource</param>
@@ -524,6 +536,8 @@ namespace KnowledgeBank.Controllers
         #region Info
         /// <summary>
         /// Gets the information of the resource (database row)
+        /// 
+        /// Author: Abel Dieterich
         /// </summary>
         /// <param name="id">The ID of the resource</param>
         [HttpGet("info/{id}")]
@@ -561,6 +575,8 @@ namespace KnowledgeBank.Controllers
         #region List
         /// <summary>
         /// Retrieves a list or page of all resources
+        /// 
+        /// Author: Abel Dieterich
         /// </summary>
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
@@ -613,6 +629,8 @@ namespace KnowledgeBank.Controllers
         #region Types New
         /// <summary>
         /// Creates a new resource type
+        /// 
+        /// Author: Abel Dieterich
         /// </summary>m
         [HttpPut("types/new")]
         [SwaggerOperation(Summary = "Creates a new resource type")]
@@ -652,6 +670,8 @@ namespace KnowledgeBank.Controllers
         #region Types Fetch
         /// <summary>
         /// Retrieves a list of all resource types
+        /// 
+        /// Author: Abel Dieterich
         /// </summary>
         [HttpGet("types/list")]
         [SwaggerOperation(Summary = "Retrieves a list of all resource types")]
@@ -674,8 +694,14 @@ namespace KnowledgeBank.Controllers
             }
         }
         #endregion
-        
+
         #region Filetype Support fetch
+        /// <summary>
+        /// Retrieves a dictionary of all supported file extensions per upload type
+        /// 
+        /// Author: Abel Dieterich
+        /// </summary>
+        /// <returns>A dictionary of all supported file extensions per upload type</returns>
         [HttpGet("supported_extensions")]
         [SwaggerOperation(Summary = "Retrieves a dictionary of all supported file extensions per uploadtype")]
         [SwaggerResponse(200, "A dictionary of all supported file extensions per upload type", typeof(ApiResponse))]
@@ -699,6 +725,8 @@ namespace KnowledgeBank.Controllers
         
         /// <summary>
         /// Initializes a large file upload session
+        /// 
+        /// Author: Jelle van het Schut
         /// </summary>
         /// <param name="uploadDto">DTO containing resource metadata and file info</param>
         /// <returns>Resource ID if successful</returns>
@@ -766,6 +794,8 @@ namespace KnowledgeBank.Controllers
 
         /// <summary>
         /// Uploads a chunk (block) of a large file
+        /// 
+        /// Author: Jelle van het Schut
         /// </summary>
         /// <param name="blockId">Unique ID for this block (must be base64 encoded)</param>
         /// <param name="resourceId">Resource ID from initialization</param>
@@ -827,6 +857,8 @@ namespace KnowledgeBank.Controllers
         
         /// <summary>
         /// Finalizes a large file upload by committing all uploaded blocks
+        /// 
+        /// Author: Jelle van het Schut
         /// </summary>
         /// <param name="finalizeDto">Finalization information and resource metadata</param>
         [HttpPut("large/finalize")]
@@ -882,6 +914,8 @@ namespace KnowledgeBank.Controllers
         /// <summary>
         /// Cleans up a failed large file upload by deleting database entry. Cleaning of block blobs
         /// is automatically handled, uncommitted blocks are deleted.
+        /// 
+        /// Author: Jelle van het Schut
         /// </summary>
         /// <param name="resourceId">Resource ID to clean up</param>
         [HttpDelete("large/cleanup/{resourceId}")]
@@ -954,7 +988,15 @@ namespace KnowledgeBank.Controllers
         // Helper functions
         // ---------------------------
         
-        // Helper function to add file to dto
+        /// <summary>
+        /// Helper function to add file to dto
+        /// 
+        /// Author: Abel Dieterich
+        /// </summary>
+        /// <param name="uploadType">The type of upload</param>
+        /// <param name="jsonDto">JSON serialized DTO string</param>
+        /// <param name="file">File to be uploaded</param>
+        /// <returns>Deserialized DTO with file assigned</returns>
         private FileResourceCreateDto? DeserializeWithFile(string uploadType, string jsonDto, IFormFile file) 
         {
             return uploadType switch
@@ -966,17 +1008,37 @@ namespace KnowledgeBank.Controllers
             };
         }
         
-        private T? DeserializeAndAssignFile<T>(string jsonDto, IFormFile file) where T : FileResourceCreateDto 
+        /// <summary>
+        /// Deserializes a JSON string into a DTO and assigns the provided file to it.
+        /// 
+        /// Author: Abel Dieterich
+        /// </summary>
+        /// <typeparam name="T">The type of the DTO, must inherit from FileResourceCreateDto</typeparam>
+        /// <param name="jsonDto">The JSON string representing the DTO</param>
+        /// <param name="file">The file to be assigned to the DTO</param>
+        /// <returns>A deserialized DTO of type T with the file assigned, or null if deserialization fails</returns>
+        private T? DeserializeAndAssignFile<T>(string jsonDto, IFormFile file) where T : FileResourceCreateDto
         {
             T? dto = JsonSerializer.Deserialize<T>(jsonDto);
-            
+
             if (dto != null)
                 dto.File = file;
 
             return dto;
         }
         
-        // Helper method to update a property
+        /// <summary>
+        /// Helper function to update a property of a resource
+        /// 
+        /// Author: Abel Dieterich
+        /// </summary>
+        /// <typeparam name="TSet">The type of the set to update</typeparam>
+        /// <typeparam name="TProperty"> The type of the property to update</typeparam>
+        /// <param name="id">The ID of the resource to update</param>
+        /// <param name="propertyName">The name of the property to update</param>
+        /// <param name="newValue">The new value to set for the property</param>
+        /// <returns>A task that represents the asynchronous operation</returns>
+        /// <exception cref="ArgumentException">Thrown when the provided type is not supported</exception>
         private async Task UpdateProperty<TSet, TProperty>(string id, string propertyName, TProperty newValue) where TSet : class 
         {
             Type setType = typeof(TSet);
@@ -1004,7 +1066,14 @@ namespace KnowledgeBank.Controllers
             });
         }
         
-        // Makes a valid filename
+        /// <summary>
+        /// Sanitizes a file name by removing invalid characters and limiting its length.
+        /// 
+        /// Author: Abel Dieterich
+        /// </summary>
+        /// <param name="fileName">The original filename</param>
+        /// <param name="preserveSpaces">Whether to preserve spaces in the filename or replace them with underscores</param>
+        /// <returns>The sanitized file name</returns>
         private static string SanitizeFileName(string fileName, bool preserveSpaces = true)
         {
             if (string.IsNullOrEmpty(fileName))

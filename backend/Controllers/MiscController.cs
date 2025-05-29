@@ -6,6 +6,12 @@ using Swashbuckle.AspNetCore.Annotations;
 
 namespace KnowledgeBank.controllers;
 
+/// <summary>
+/// This controller provides miscellaneous endpoints for the KnowledgeBank application.
+/// 
+/// Author: Justin Liem
+/// </summary>
+/// <param name="resourceManager"></param>
 [ApiController]
 [Obsolete]
 [Route("[controller]")]
@@ -16,6 +22,8 @@ public class MiscController(ResourceManager resourceManager) : ControllerBase
 
     /// <summary>
     /// Gets filetype ID from name.
+    /// 
+    /// Author: Justin Liem
     /// </summary>
     /// <returns>
     /// Returns a 200 OK response containing the ID of the filetype.

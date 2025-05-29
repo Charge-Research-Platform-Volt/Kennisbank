@@ -13,6 +13,14 @@ using System.Text.Json;
 
 namespace KnowledgeBank.Controllers
 {
+    /// <summary>
+    /// This controller provides endpoints for managing file storage in Azure Blob Storage.
+    /// It allows for uploading, downloading, deleting, renaming files, checking file existence,
+    /// 
+    /// Author: Abel Dietrich
+    /// </summary>
+    /// <param name="blobService">The service for interacting with Azure Blob Storage.</param>
+    /// <param name="resourceManager">Resource manager for handling blob storage operations related to resources.</param>
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
@@ -23,6 +31,13 @@ namespace KnowledgeBank.Controllers
         private readonly Serilog.ILogger logger = Log.ForContext<StorageController>();
         private readonly ResourceManager resourceManager = resourceManager;
 
+        /// <summary>
+        /// Uploads a file to Azure Blob Storage.
+        /// 
+        /// Author: Abel Dietrich
+        /// </summary>
+        /// <param name="dto">The DTO containing file metadata and the file itself.</param>
+        /// <returns>An IActionResult indicating the result of the upload operation.</returns>
         [HttpPut("upload")]
         [Obsolete]
         [SwaggerOperation(
@@ -106,6 +121,13 @@ namespace KnowledgeBank.Controllers
             }
         }
 
+        /// <summary>
+        /// Downloads a file from Azure Blob Storage.
+        /// 
+        /// Author: Abel Dietrich
+        /// </summary>
+        /// <param name="id">The id of the file.</param>
+        /// <returns>An IActionResult containing the file stream if successful, or an error response.</returns>
         [HttpGet("download/{id}")]
         [SwaggerOperation(
             Summary = "Download a file from storage.",
@@ -153,6 +175,13 @@ namespace KnowledgeBank.Controllers
             }
         }
 
+        /// <summary>
+        /// Deletes a file from Azure Blob Storage.
+        /// 
+        /// Author: Abel Dietrich
+        /// </summary>
+        /// <param name="id">The id of the file to delete.</param>
+        /// <returns>An IActionResult indicating the result of the delete operation.</returns>
         [HttpDelete("delete/{id}")]
         [Authorize(Policy = "RequireAdminRole")]
         [SwaggerOperation(
@@ -199,6 +228,13 @@ namespace KnowledgeBank.Controllers
             }
         }
 
+        /// <summary>
+        /// Renames a file in Azure Blob Storage.
+        /// 
+        /// Author: Abel Dietrich
+        /// </summary>
+        /// <param name="dto">The DTO containing the file ID and the new title.</param>
+        /// <returns>An IActionResult indicating the result of the rename operation.</returns>
         [HttpPatch("rename")]
         [SwaggerOperation(
             Summary = "Renames a file in storage.",
@@ -230,6 +266,13 @@ namespace KnowledgeBank.Controllers
             }
         }
 
+        /// <summary>
+        /// Checks if a file exists in Azure Blob Storage based on its hash.
+        /// 
+        /// Author: Abel Dietrich
+        /// </summary>
+        /// <param name="hash">The hash of the file to check.</param>
+        /// <returns>An IActionResult indicating whether the file exists or not.</returns>
         [EnableCors("AllowFrontend")]
         [HttpGet("exists/{hash}")]
         [SwaggerOperation(
@@ -260,6 +303,13 @@ namespace KnowledgeBank.Controllers
             }
         }
 
+        /// <summary>
+        /// Retrieves information about a file in Azure Blob Storage based on its ID.
+        /// 
+        /// Author: Abel Dietrich
+        /// </summary>
+        /// <param name="id">The ID of the file to retrieve information for.</param>	
+        /// <returns>An IActionResult containing the file information if found, or an error response.</returns>
         [HttpGet("file/{id}")]
         [SwaggerOperation(
             Summary = "Get information of file.",
@@ -290,6 +340,12 @@ namespace KnowledgeBank.Controllers
             }
         }
 
+        /// <summary>
+        /// Lists all files in Azure Blob Storage.
+        /// 
+        /// Author: Abel Dietrich
+        /// </summary>
+        /// <returns>An IActionResult containing a list of all files in storage.</returns>
         [HttpGet("list-all")]
         [SwaggerOperation(
             Summary = "List all files in storage.",
@@ -321,6 +377,14 @@ namespace KnowledgeBank.Controllers
             }
         }
 
+        /// <summary>
+        /// Lists files in Azure Blob Storage on a specific page with a specified size.
+        /// 
+        /// Author: Abel Dietrich
+        /// </summary>
+        /// <param name="pageIndex">The index of the page to retrieve (1-based).</param>
+        /// <param name="pageSize">The number of files to retrieve per page.</param>
+        /// <returns>An IActionResult containing a paginated list of files.</returns>
         [HttpGet("list-paged")]
         [SwaggerOperation(
             Summary = "Lists files paged.",
@@ -353,7 +417,15 @@ namespace KnowledgeBank.Controllers
             }
         }
 
-        // Makes a valid filename
+        /// <summary>
+        /// Sanitizes a file name by removing invalid characters and ensuring it is a valid file name.
+        /// If the name is empty or null, it returns "unnamed" with the original file extension.
+        /// 
+        /// Author: Abel Dietrich
+        /// </summary>
+        /// <param name="fileName">The file name to sanitize.</param>
+        /// <param name="preserveSpaces">If true, spaces are preserved; if false, spaces are replaced with underscores.</param>
+        /// <returns>A sanitized file name that is valid for use in a file system.</returns>
         private static string SanitizeFileName(string fileName, bool preserveSpaces = true)
         {
             if (string.IsNullOrEmpty(fileName))

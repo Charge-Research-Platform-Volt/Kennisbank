@@ -7,9 +7,14 @@ using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
 using KnowledgeBank.Utils;
-
 namespace KnowledgeBank.Controllers
 {
+    /// <summary>
+    /// This controller handles user authentication, including login, logout, and user registration.
+    /// It also allows for inviting new users to the system.
+    /// 
+    /// Author: Elia Jabbour, Rens van Moorsel, Jelle van het Schut
+    /// </summary>
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
@@ -21,6 +26,10 @@ namespace KnowledgeBank.Controllers
         private readonly MailUtils _mailUtils;
         private readonly string _frontendDomain;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AuthController"/> class.
+        /// 
+        /// Author: Rens van Moorsel, Aiden van Dijk
         public AuthController(IConfiguration config, SignInManager<User> signInManager, DatabaseContext context, MailUtils mailUtils)
         {
             _signInManager = signInManager;
@@ -30,6 +39,13 @@ namespace KnowledgeBank.Controllers
             _frontendDomain = config["HOST_URL"] ?? throw new ArgumentNullException("HOST_URL needs to be set");
         }
 
+        /// <summary>
+        /// Logs out the current user.
+        /// 
+        /// Author: Elia Jabbour
+        /// </summary>
+        /// <param name="empty">An empty object to ensure the request is a POST request.</param>
+        /// <returns>An IActionResult indicating the result of the logout operation.</returns>
         [HttpPost]
         [Authorize]
         [Route("logout")]
@@ -47,6 +63,12 @@ namespace KnowledgeBank.Controllers
             return Unauthorized();
         }
 
+        /// <summary>
+        /// Checks if the user is authenticated and returns their email.
+        /// 
+        /// Author: Elia Jabbour, Rens van Moorsel
+        /// </summary>
+        /// <returns>An IActionResult containing the user's email if authenticated, otherwise an Unauthorized result.</returns>
         [HttpGet]
         [Authorize]
         [Route("ping")]
@@ -59,6 +81,13 @@ namespace KnowledgeBank.Controllers
             return Ok(new { Email = email });
         }
 
+        /// <summary>
+        /// Invites a new user to the system by sending an email with a registration link.
+        /// 
+        /// Author: Rens van Moorsel, Jelle van het Schut
+        /// </summary>
+        /// <param name="email">The email address of the user to invite.</param>
+        /// <returns>An IActionResult indicating the result of the invitation operation.</returns>
         [HttpPost("invite")]
         [Authorize(Policy = "RequireAdminRole")]
         [SwaggerOperation(Summary = "Invite a new user", Description = "Invite a new user to the system")]
@@ -70,7 +99,7 @@ namespace KnowledgeBank.Controllers
             {
                 // generate a token
                 Guid token = Guid.NewGuid();
-                
+
                 // save the invitation
                 _context.Invitations.Add(new Invitation
                 {
@@ -80,19 +109,26 @@ namespace KnowledgeBank.Controllers
                     CreatedAt = DateTime.UtcNow
                 });
                 await _context.SaveChangesAsync();
-                
+
                 // send the email
                 _mailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: {_frontendDomain}/signup?token={token}");
             }
             catch (Exception e)
             {
                 _logger.Error(e, "Failed to send email");
-                return BadRequest(new {message = "Failed to send email"});
+                return BadRequest(new { message = "Failed to send email" });
             }
-            
+
             return Ok();
         }
 
+        /// <summary>
+        /// Registers a new user using the provided sign-up details.
+        /// 
+        /// Author: Rens van Moorsel
+        /// </summary>
+        /// <param name="signUpDto">The sign-up details including email, password, and token.</param>
+        /// <returns>An IActionResult indicating the result of the registration operation.</returns>
         [HttpPost("signup")]
         [SwaggerOperation(Summary = "Register a new user", Description = "Register a new user")]
         [SwaggerResponse(200, "The user has been registered")]
@@ -104,12 +140,12 @@ namespace KnowledgeBank.Controllers
                 try
                 {
                     // check if there is a recent invitation for the email and token
-                    Invitation? invitation = _context.Invitations.FirstOrDefault(i => i.Email == ShaUtils.Sha256(signUpDto.Email) 
-                                                                            && i.Token == ShaUtils.Sha256(signUpDto.Token) 
+                    Invitation? invitation = _context.Invitations.FirstOrDefault(i => i.Email == ShaUtils.Sha256(signUpDto.Email)
+                                                                            && i.Token == ShaUtils.Sha256(signUpDto.Token)
                                                                             && i.CreatedAt > DateTime.UtcNow.AddHours(-168));
                     if (invitation == null)
                     {
-                        return BadRequest(new {message = "Invalid invitation"});
+                        return BadRequest(new { message = "Invalid invitation" });
                     }
 
                     // Remove user
@@ -126,13 +162,13 @@ namespace KnowledgeBank.Controllers
                     // save the user
                     IdentityResult result = await _signInManager.UserManager.CreateAsync(user, signUpDto.Password);
                     if (!result.Succeeded)
-                        return BadRequest(new {message = string.Join(" ", result.Errors.Select(e => e.Description))});
+                        return BadRequest(new { message = string.Join(" ", result.Errors.Select(e => e.Description)) });
 
                     IdentityResult roleResult = await _signInManager.UserManager.AddToRoleAsync(user, "user");
 
                     if (!roleResult.Succeeded)
-                        return BadRequest(new {message = string.Join(" ", roleResult.Errors.Select(e => e.Description))});
-                    
+                        return BadRequest(new { message = string.Join(" ", roleResult.Errors.Select(e => e.Description)) });
+
                     await transaction.CommitAsync();
                     return Ok(new { message = $"User '{user.UserName}' created succesfully." });
                 }
