@@ -29,7 +29,9 @@ export function ProjectActionsDropdown({
   
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger
+      data-testid="add"
+      asChild>
         <Button 
           variant="outline"
           size="sm"
@@ -48,6 +50,7 @@ export function ProjectActionsDropdown({
           // Root level, only show project creation
           <DropdownMenuItem 
             className="cursor-pointer px-3 py-2 text-sm hover:bg-muted hover:text-foreground"
+            data-testid="add-project"
             onSelect={() => {
               setOpen(false);
               onCreateProject();
@@ -60,6 +63,7 @@ export function ProjectActionsDropdown({
           <>
             <DropdownMenuItem 
               className="cursor-pointer px-3 py-2 text-sm hover:bg-muted hover:text-foreground"
+              data-testid="add-folder"
               onSelect={() => {
                 setOpen(false);
                 onCreateFolder();
@@ -69,6 +73,7 @@ export function ProjectActionsDropdown({
             </DropdownMenuItem>
             <DropdownMenuItem 
               className="cursor-pointer px-3 py-2 text-sm hover:bg-muted hover:text-foreground"
+              data-testid="add-resource"
               onSelect={() => {
                 setOpen(false);
                 onAddResource();

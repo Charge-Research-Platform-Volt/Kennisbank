@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Tag, TagArraySchema } from "@/types/tag.type";
 import { Button } from "@/components/ui/button";
 import AdminTagIcon from "../../icons/tag-icons/admin-tag"
-import ApprovedTagIcon from "../../icons/tag-icons/aproved-tag"
+import ApprovedTagIcon from "../../icons/tag-icons/approved-tag"
 import { fetchTagSearch } from "@/actions/tagActions";
 import { ChevronsUpDown } from "lucide-react"
 
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/popoverWithoutPortal"
 import { ListUsersPaged } from "@/actions/userActions";
 import { User } from "@/types/user.type";
+import { useDebouncedCallback } from "use-debounce";
 
 // An item here has at least an id or name
 export interface Item {
@@ -54,7 +55,7 @@ interface SelectDropdownProps<T extends Item> {
     // Function used to fetch the data used to make a selection in the dropdown box
     fetchFunction: (inputValue: string) => Promise<T[]>;
     // Function to get the display value for the PopoverTrigger button
-    getTriggerDisplay: (selectedItems: T[], selectMult: boolean, truncateString: (s: string, len: number) => string) => string;
+    getTriggerDisplay: (selectedItems: T[], selectMultiple: boolean, truncateString: (s: string, len: number) => string) => string;
     // Placeholder text for the search input
     placeholder?: string;
     // Optional rendering for items in the filtered list (e.g., icons next to names)
@@ -67,7 +68,7 @@ interface SelectDropdownProps<T extends Item> {
  *
  * @param onChangeAction - Which function to call in another component when a value is changed
  * @param standardTag - Default value
- * @param selectMult - Whether you can select one or multiple values
+ * @param selectMultiple - Whether you can select one or multiple values
  * @param className - Styling from parent component
  *
  * @returns The dropdown box where the user can type and select a item to be merged
@@ -139,7 +140,8 @@ const deleteItem = (id: string) => {
 };
 
 // Filters items to display only those items that correspond with the input value
-async function filterItems() {
+// A debounced callback is used so that the filter doesn't always immediately rerender the whole component
+const filterItems = useDebouncedCallback( async() => {
     // Ensures we don't add more items than allowed and we don't render all items at the start (We want to display filtered items after at least 1 character is in the input)
     if (inputValue == "" || (!selectMultiple && selectedItems.length != 0)) {
         setFilteredItems([]);
@@ -155,7 +157,7 @@ async function filterItems() {
 
     // And we update our state, leaving out any items we already have selected
     setFilteredItems(fetchedItems.filter(item => !selectedItems.includes(item)));
-}
+    }, 200);
 
 
 useEffect(() => {
@@ -163,7 +165,7 @@ useEffect(() => {
         setFilteredItems([])
     else
         filterItems();
-  }, [inputValue]); // Run update on filter when the inputValue changes
+  }, [inputValue, filterItems]); // Run update on filter when the inputValue changes
 
 useEffect(() => {
     updateItems(standardItem ? [standardItem] : [])
@@ -172,7 +174,7 @@ useEffect(() => {
 useEffect(() => {
     // On deletion the selectedTags will be an empty list, otherwise it will contain all selected items and pass that to the parent component in the function
     onChangeAction(selectedItems);
-  }, [selectedItems]); // This effect runs every time selectedTags changes
+  }, [selectedItems, onChangeAction]); // This effect runs every time selectedTags changes
 
 return (
     <div className={className}>
@@ -242,8 +244,8 @@ return (
 )}
 
 /* The following functions are for creating the tag selection dropdown box */
-const displayTags = (selectedTags: Tag[], selectMult: boolean, truncate: (s: string, len: number) => string) => {
-    if (selectedTags.length > 0 && !selectMult) {
+const displayTags = (selectedTags: Tag[], selectMultiple: boolean, truncate: (s: string, len: number) => string) => {
+    if (selectedTags.length > 0 && !selectMultiple) {
         return truncate(selectedTags[0].name, 15);
     }
     return "Select tag(s)...";
@@ -288,8 +290,8 @@ export function SelectTagDropdown({onChangeAction = () => {}, className, selectM
 /* The following functions are for creating the user selection dropdown box */
 type DisplayUser = User & { name: string };
 
-const displayUsers = (selectedUsers: User[], selectMult: boolean, truncate: (s: string, len: number) => string) => {
-    if (selectedUsers.length > 0 && !selectMult) {
+const displayUsers = (selectedUsers: User[], selectMultiple: boolean, truncate: (s: string, len: number) => string) => {
+    if (selectedUsers.length > 0 && !selectMultiple) {
         return truncate(selectedUsers[0].username, 15);
     }
     return "Select user(s)...";

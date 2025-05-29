@@ -102,6 +102,7 @@ export default function CreateProjectModal({ isOpen, onClose, onSuccess }: Creat
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="col-span-3"
+                data-testid="input-project-title"
                 required
               />
             </div>
@@ -148,7 +149,7 @@ export default function CreateProjectModal({ isOpen, onClose, onSuccess }: Creat
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading} data-testid="create-project">
               {isLoading ? 'Creating...' : 'Create'}
             </Button>
           </DialogFooter>

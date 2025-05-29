@@ -8,7 +8,7 @@ import { useActionState, useEffect, useState } from "react";
 import { FormResponse } from "@/types/return.type";
 import { RenameTag } from "@/actions/tagActions";
 import SaveIcon from "@/icons/save-icon";
-import ApprovedTagIcon from "@/icons/tag-icons/aproved-tag";
+import ApprovedTagIcon from "@/icons/tag-icons/approved-tag";
 import AdminIcon from "@/icons/tag-icons/admin-tag";
 import { TagActionButtons } from "./tag-action-buttons";
 import { TagMergeButton } from "./merge-tags-popup";
