@@ -406,7 +406,6 @@ public class UserController : ControllerBase
     }
 
     [HttpDelete("delete")]
-    [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
         Summary = "Delete a user.",
         Description = "Deletes a user by ID."
