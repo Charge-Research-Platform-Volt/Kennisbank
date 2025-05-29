@@ -5,11 +5,15 @@ namespace KnowledgeBank.Data
 {
     /// <summary>
     /// Provides methods to generate DTOs from models with support for nested relations.
+    /// 
+    /// Author: Abel Dietrich
     /// </summary>
     public static class DtoGenerator
     {
         /// <summary>
         /// Converts an entity to a DTO, including specified properties.
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
         /// <typeparam name="T">The entity type</typeparam>
         /// <param name="entity">The entity instance</param>
@@ -28,7 +32,13 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Convert an entity to a DTO, including specified properties.
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
+        /// <param name="entity">The entity instance</param>
+        /// <param name="includePaths">Relations to include in the DTO (supports dot notation like "Authors.Person")</param>
+        /// <param name="useCamelCase">Whether to convert property names to camelCase</param>
+        /// <returns>An object representing the DTO</returns>
         private static Dictionary<string, object?> ConvertEntityToDto(object entity, Dictionary<string, HashSet<string>> includePaths, bool useCamelCase)
         {
             Type entityType = entity.GetType();
@@ -88,7 +98,11 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Converts a string from PascalCase to camelCase
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
+        /// <param name="str">The string to convert</param>
+        /// <returns>The converted string in camelCase</returns>
         private static string ToCamelCase(string str)
         {
             if (string.IsNullOrEmpty(str) || !char.IsUpper(str[0]))
@@ -99,7 +113,11 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Create nested include paths for the next level of relations
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
+        /// <param name="nestedIncludes">The nested include paths to parse</param>
+        /// <returns>A dictionary where keys are root properties and values are sets of nested properties</returns>
         private static Dictionary<string, HashSet<string>> ParseIncludePaths(IEnumerable<string> nestedIncludes)
         {
             Dictionary<string, HashSet<string>> result = [];
@@ -122,7 +140,11 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Check if a type is primitive, string, or other simple type
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
+        /// <param name="type">The type to check</param>
+        /// <returns>True if the type is primitive, string, or a simple type, otherwise false</returns>
         private static bool IsPrimitiveOrString(Type type)
         {
             return type.IsPrimitive ||
@@ -138,7 +160,11 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Check if a type is a generic collection
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
+        /// <param name="type">The type to check</param>
+        /// <returns>True if the type is a collection (array or generic IEnumerable), otherwise false</returns>
         private static bool IsGenericCollection(Type type)
         {
             return type != typeof(string) && (type.IsArray || (type.IsGenericType && (typeof(System.Collections.IEnumerable).IsAssignableFrom(type))));

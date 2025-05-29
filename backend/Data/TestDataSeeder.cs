@@ -7,6 +7,13 @@ using CsvHelper.Configuration.Attributes;
 
 namespace KnowledgeBank.Data
 {
+    /// <summary>
+    /// This class seeds test data into the KnowledgeBank database and blob storage.
+    /// It reads data from CSV files and creates organisations, persons, and resources in the database.
+    /// It also uploads resource files to Azure Blob Storage and associates them with tags, authors, and organisations.
+    /// 
+    /// Author: Abel Dietrich, Jelle van het Schut, Justin Liem, Rens van Moorsel
+    /// </summary>
     public static class TestDataSeeder
     {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
@@ -17,10 +24,12 @@ namespace KnowledgeBank.Data
         private static readonly string systemAdminId = "00000000-0000-0000-0000-000000000001";
 
         /// <summary>
-        /// Adds test data to the database and blob storage
+        /// Adds test data to the database and blob storage.
+        /// 
+        /// Author: Abel Dietrich, Jelle van het Schut
         /// </summary>
         /// <param name="serviceProvider">All services</param>
-        /// <returns></returns>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public static async Task Seed(IServiceProvider serviceProvider)
         {
             using IServiceScope scope = serviceProvider.CreateScope();
@@ -30,13 +39,16 @@ namespace KnowledgeBank.Data
             await SeedOrganisations();
             await SeedPersons();
             await SeedResources();
-        }    
-        
+        }
+
         #region Seed Organisations
-        
+
         /// <summary>
         /// Reads organization data from a CSV file and creates Organisation entities in the database.
+        /// 
+        /// Author: Jelle van het Schut
         /// </summary>
+        /// <returns>A task representing the asynchronous operation.</returns>
         private static async Task SeedOrganisations()
         {
             // Read the CSV file and map it to the OrganisationCreateDto
@@ -48,21 +60,23 @@ namespace KnowledgeBank.Data
                     Description = record.Description,
                     Website = record.Website,
                     EmailAddress = record.EmailAddress,
-            });
-            
+                });
+
             foreach (OrganisationCreateDto dto in organisationDtos)
             {
                 if (await resourceManager.OrganisationExistsAsync(o => o.Name == dto.Name)) continue;
                 await resourceManager.CreateOrganisationAsync(dto);
             }
         }
-        
+
         #endregion
-        
+
         #region Seed Persons
-        
+
         /// <summary>
         /// Reads person data from a CSV file, creates Person entities in the database, and associates them with organizations.
+        /// 
+        /// Author: Jelle van het Schut
         /// </summary>
         private static async Task SeedPersons()
         {
@@ -76,30 +90,30 @@ namespace KnowledgeBank.Data
                     Description = record.Description,
                     EmailAddress = record.EmailAddress,
                     Linkedin = record.Linkedin
-            });
-            
+                });
+
             // Go through all records and create the persons
-            for (int i = 0; i < csvRecords.Count; i++) 
+            for (int i = 0; i < csvRecords.Count; i++)
             {
                 PersonCsvRecord record = csvRecords[i];
                 PersonCreateDto dto = personDtos[i];
-            
+
                 // Create the person if it does not exist
                 if (await resourceManager.PersonExistsAsync(p => p.Name == dto.Name)) continue;
                 Guid personId = await resourceManager.CreatePersonAsync(dto);
-                
+
                 // If the person has organisations, add them
                 if (record.Organisations != null && record.Organisations.Length > 0)
                 {
                     // Get the organisation names
                     List<string> organisations = record.Organisations.Split(',').ToList();
-                    
+
                     // For each organisation, get the organisation and add the person to it
-                    foreach (string organisationName in organisations) 
+                    foreach (string organisationName in organisations)
                     {
                         Organisation? organisation = await resourceManager.GetOrganisationAsync(o => o.Name == organisationName);
-                        
-                        if (organisation != null) 
+
+                        if (organisation != null)
                         {
                             await resourceManager.AddPersonToOrganisationAsync(personId, organisation.Id);
                         }
@@ -107,26 +121,28 @@ namespace KnowledgeBank.Data
                 }
             }
         }
-        
+
         #endregion
-        
+
         #region Seed Resources
 
         /// <summary>
         /// Reads resource data from a CSV file, creates Resource entities in the database, 
         /// and associates them with tags, authors, and organizations.
+        /// 
+        /// Author: Jelle van het Schut, Justin Liem, Rens van Moorsel
         /// </summary>
         private static async Task SeedResources()
         {
             string extension = ".pdf";
             string fileType = Filetype.ConvertExtensionToFiletype(extension);
-        
+
             // Read the CSV file and map it to the ResourceCreateDto
             (List<ResourceCsvRecord> csvRecords, List<ResourceCreateDto> resourceDtos) = CsvReaderHelper.ReadCsvFile<ResourceCsvRecord, ResourceCreateDto>(
                 "Resources.csv",
                 record => new ResourceCreateDto
                 {
-                    Title = record.Title, 
+                    Title = record.Title,
                     Description = record.Description,
                     TypeId = DatabaseSeeder.UnknownResourceTypeId,
                     LanguageCode = "EN",
@@ -134,7 +150,7 @@ namespace KnowledgeBank.Data
                     License = record.License,
                     Note = record.Note
                 });
-            
+
             for (int i = 0; i < csvRecords.Count; i++)
             {
                 ResourceCsvRecord record = csvRecords[i];
@@ -142,7 +158,7 @@ namespace KnowledgeBank.Data
                 string filePath = testDataPath + record.Title.Replace(" ", " ") + extension;
 
                 await resourceManager.BeginTransaction();
-                
+
                 if (File.Exists(filePath))
                 {
                     try
@@ -228,28 +244,32 @@ namespace KnowledgeBank.Data
                 }
             }
         }
-        
+
         #endregion
-        
+
         #region Helper methods
-        
+
         /// <summary>
         /// Helper method to capitalize the first letter of each word in a string
+        /// 
+        /// Author: Jelle van het Schut
         /// </summary>
-        /// <param name="input"></param>
-        /// <returns></returns>
+        /// <param name="input">The input string to capitalize</param>
+        /// <returns>The input string with the first letter of each word capitalized</returns>
         private static string CapitalizeWords(string input)
         {
             return string.Join(" ", input
                 .Split(' ', StringSplitOptions.RemoveEmptyEntries)
                 .Select(word => char.ToUpper(word[0]) + word.Substring(1).ToLower()));
         }
-        
+
         /// <summary>
-        /// Helper class to read CSV files and map them to DTOs
+        /// Helper class to read CSV files and map them to DTOs.
+        /// 
+        /// Author: Jelle van het Schut
         /// </summary>
         private static class CsvReaderHelper
-        {        
+        {
             public static (List<TInput> Records, List<TOutput> Dtos) ReadCsvFile<TInput, TOutput>(
                 string filePath,
                 Func<TInput, TOutput> mapFunc)
@@ -266,13 +286,15 @@ namespace KnowledgeBank.Data
 
                 List<TInput> records = csv.GetRecords<TInput>().ToList();
                 List<TOutput> dtos = records.Select(mapFunc).ToList();
-                
+
                 return (records, dtos);
             }
         }
-        
+
         /// <summary>
-        /// Helper class to map CSV records to PersonCreateDtos
+        /// Helper class to map CSV records to PersonCreateDtos.
+        /// 
+        /// Author: Jelle van het Schut
         /// </summary>
         private class PersonCsvRecord
         {
@@ -288,6 +310,8 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Helper class to map CSV records to OrganisationCreateDtos
+        /// 
+        /// Author: Jelle van het Schut
         /// </summary>
         private class OrganisationCsvRecord
         {
@@ -301,6 +325,8 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Helper class to map CSV records to ResourceCreateDtos
+        /// 
+        /// Author: Jelle van het Schut
         /// </summary>
         private class ResourceCsvRecord
         {
@@ -332,7 +358,7 @@ namespace KnowledgeBank.Data
             public string License { get; set; } = string.Empty;
             public string Note { get; set; } = string.Empty;
         }
-        
+
         #endregion
     }  
 }

@@ -8,12 +8,25 @@ using KnowledgeBank.Models;
 
 namespace KnowledgeBank.Data
 {
-    // This part is for adding relations
+    /// <summary>
+    /// This partial class is for adding relations between resources, organisations, persons, and other entities.
+    /// 
+    /// Author: Abel Dietrich
+    /// </summary>
     public partial class ResourceManager
     {
         #region Organisation-Organisation
 
-        // Range
+        /// <summary>
+        /// Adds a relationships between organisations.
+        /// 
+        /// Author: Abel Dietrich
+        /// </summary>
+        /// <param name="sourceOrganisationId">The ID of the source organisation</param>
+        /// <param name="relations">An array of relations to the target organisations. Can be null if no specific relation is needed.</param>
+        /// <param name="targetOrganisationIds">An array of target organisation IDs to which the source organisation has a relationship.</param>
+        /// <returns>A Task representing the asynchronous operation.</returns>
+        /// <exception cref="Exception">Thrown if the relations and target organisation IDs arrays are not the same size.</exception>
         public async Task AddOrganisationRelationshipRangeAsync(Guid sourceOrganisationId, string?[] relations, Guid[] targetOrganisationIds)
         {
             if (targetOrganisationIds.Length == 0) return;

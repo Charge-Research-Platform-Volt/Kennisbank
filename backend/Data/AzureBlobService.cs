@@ -8,6 +8,12 @@ namespace KnowledgeBank.Data
 {
     public enum BLOB_STATUSCODE { OK, FAILED, NOTFOUND, ALREADYEXISTS, INVALID }
 
+    /// <summary>
+    /// Represents a paginated response for listing blobs in a container.
+    /// Contains the status of the operation, a message, a continuation token for pagination, and the list of blobs.
+    /// 
+    /// Author: Abel Dietrich, Justin Liem
+    /// </summary>
     public struct BlobPageResponse
     {
         public BLOB_STATUSCODE Status { get; }
@@ -15,6 +21,16 @@ namespace KnowledgeBank.Data
         public string? ContinuationToken { get; }
         public string[] Blobs { get; }
 
+
+        /// <summary>
+        /// Initializes a new instance of the BlobPageResponse struct.
+        /// 
+        /// Author: Abel Dietrich, Justin Liem
+        /// </summary>
+        /// <param name="status">The status of the operation.</param>
+        /// <param name="message">A message describing the result of the operation.</param>
+        /// <param name="continuationToken">A continuation token for pagination, or null if there are no more pages.</param>
+        /// <param name="blobs">An array of blob names returned in the current page.</param>
         public BlobPageResponse(BLOB_STATUSCODE status, string message, string? continuationToken, string[] blobs)
         {
             this.Status = status;
@@ -24,6 +40,11 @@ namespace KnowledgeBank.Data
         }
     }
 
+    /// <summary>
+    /// Represents the response for downloading a blob.
+    /// 
+    /// Author: Abel Dietrich
+    /// </summary>
     public struct BlobDownloadResponse
     {
         public Stream FileStream { get; }
@@ -38,11 +59,15 @@ namespace KnowledgeBank.Data
 
     /// <summary>
     /// Service for interacting with Azure Blob Storage
+    /// 
+    /// Author Abel Dietrich
     /// </summary>
     public interface IAzureBlobService
     {
         /// <summary>
         /// Gets or creates a container in the Blob Storage.
+        /// 
+        /// Author Abel Dietrich
         /// </summary>
         /// <param name="containerName">The name of the container.</param>
         /// <returns>The container client</returns>
@@ -52,6 +77,8 @@ namespace KnowledgeBank.Data
         /// Deletes a container in the Blob Storage. <br></br><br></br><br></br>
         /// Note: <br></br>
         /// This action does not require verification and deletes all blobs inside the container. This action is irreversable.
+        /// 
+        /// Author Abel Dietrich
         /// </summary>
         /// <param name="containerName">The name of the container.</param>
         /// <returns>If the operation was successful.</returns>
@@ -59,6 +86,8 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Uploads a blob to the given container.
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
         /// <param name="containerName">The name of the container</param>
         /// <param name="blobName">The name of the blob</param>
@@ -70,6 +99,8 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Downloads a blob from the given container
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
         /// <param name="containerName">The name of the container</param>
         /// <param name="blobName">The name of the blob</param>
@@ -78,6 +109,8 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Deletes a blob from the given container
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
         /// <param name="containerName">The name of the container</param>
         /// <param name="blobName">The name of the blob</param>
@@ -86,6 +119,8 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Checks if a blob exists in a given container
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
         /// <param name="containerName">The name of the container</param>
         /// <param name="blobName">The name of the blob</param>
@@ -95,6 +130,8 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Copies a blob to a new location
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
         /// <param name="currentContainername">The name of the current container</param>
         /// <param name="currentFileName">The name of the current file/blob</param>
@@ -108,6 +145,8 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Moves a blob to a new location
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
         /// <param name="currentContainername">The name of the current container</param>
         /// <param name="currentFileName">The name of the current file/blob</param>
@@ -120,6 +159,8 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Renames a blob in a given container
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
         /// <param name="containerName">The name of the container</param>
         /// <param name="oldFileName">The old name of the blob</param>
@@ -131,6 +172,8 @@ namespace KnowledgeBank.Data
         /// Lists all blobs in a given container <br></br><br></br><br></br>
         /// Note:<br></br>
         /// With large containers this can give a lot of strain on the server.
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
         /// <param name="containerName">The name of the container</param>
         /// <param name="prefix">A prefix to filter results</param>
@@ -139,6 +182,8 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Lists all blobs in a given container on a certain page
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
         /// <param name="containerName">The name of the container</param>
         /// <param name="pageSize">The size of the page</param>
@@ -149,6 +194,8 @@ namespace KnowledgeBank.Data
         
         /// <summary>
         /// Commits a list of previously uploaded blocks to form a complete blob
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
         /// <param name="resourceId">The unique identifier of the blob</param>
         /// <param name="containerName">The name of the container where the blob is stored</param>
@@ -160,6 +207,8 @@ namespace KnowledgeBank.Data
 
     /// <summary>
     /// Implementation of the Azure Blob Storage service
+    /// 
+    /// Author: Abel Dietrich
     /// </summary>
     public class AzureBlobService : IAzureBlobService
     {
@@ -168,6 +217,8 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Initializes a new instance of AzureBlobService
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
         /// <param name="configuration">Application configuration</param>
         /// <exception cref="InvalidOperationException">Thown when no Azure Storage connection string is configured</exception>

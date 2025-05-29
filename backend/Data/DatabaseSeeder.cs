@@ -3,6 +3,11 @@ using Npgsql.Replication;
 
 namespace KnowledgeBank.Data
 {
+    /// <summary>
+    /// This class is responsible for seeding the database with initial data.
+    /// 
+    /// Author: Abel Dietrich
+    /// </summary>
     public static class DatabaseSeeder
     {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
@@ -13,12 +18,14 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Helper method for common seed logic
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A task representing the asynchronous operation.</returns>
         private static async Task SeedData()
         {
             // Seed data (this part is common between both Seed and SeedTemplate methods)
-            
+
             // Add the unknown resource type if it doesn't exist
             if (!await resourceManager.ResourceTypeExistsAsync(UnknownResourceTypeId))
                 await database.ResourceTypes.AddAsync(new() { Id = new Guid(UnknownResourceTypeId), Name = "Unknown" });
@@ -33,9 +40,11 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Method for seeding the database in Program.cs
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
         /// <param name="serviceProvider">All services such as blob, database and resource manager</param>
-        /// <returns></returns>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public static async Task Seed(IServiceProvider serviceProvider)
         {
             // Get database service from the main database
@@ -49,14 +58,16 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Method for seeding the template databases in TestBase
+        /// 
+        /// Author: Abel Dietrich
         /// </summary>
         /// <param name="database">Database to be seeded with a template</param>
-        /// <returns></returns>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public static async Task SeedTemplate(DatabaseContext database)
         {
             DatabaseSeeder.database = database;
             DatabaseSeeder.resourceManager = new ResourceManager(database);
-        
+
             // Call the common seed logic for the template database
             await SeedData();
         }
