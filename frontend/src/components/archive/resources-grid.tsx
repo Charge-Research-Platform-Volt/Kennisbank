@@ -203,26 +203,27 @@ export default function ResourcesGrid()
     
     return (
         <AgGridReact
-                ref={gridRef}
-                rowData={rowData}
-                columnDefs={columnDefs}
-                onGridReady={onGridReady}
-                onRowClicked={onRowClicked}
-                loading={loading}
-                onSortChanged={onSortChanged}
-                defaultColDef={
-                {
-                    resizable: true,
-                    sortable: true,
-                    filter: false,
-                    flex: 1
-                }}
-                animateRows={true}
-                pagination={false}
-                theme={tableTheme}
-                suppressCellFocus={true}
-                domLayout="autoHeight"
-            />
+            ref={gridRef}
+            rowData={rowData}
+            columnDefs={columnDefs}
+            onGridReady={onGridReady}
+            onRowClicked={onRowClicked}
+            loading={loading}
+            onSortChanged={onSortChanged}
+            defaultColDef={
+            {
+                resizable: true,
+                sortable: true,
+                filter: false,
+                flex: 1
+            }}
+            animateRows={true}
+            pagination={false}
+            theme={tableTheme}
+            suppressCellFocus={true}
+            domLayout="autoHeight"
+            overlayNoRowsTemplate='<h1 className="text-2xl"> Nothing here.</h1>'
+        />
     )
     
     function renderResourceIcon(params: { data: ResourceGridItem; value: string }) 

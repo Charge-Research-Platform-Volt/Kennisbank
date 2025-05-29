@@ -1,4 +1,6 @@
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { Button } from "./button";
+import React from "react";
 
 interface ConfirmDeleteDialogProps 
 {
@@ -17,6 +19,23 @@ interface ConfirmDeleteDialogProps
  */
 export default function ConfirmDeleteDialog({ open, onOpenChange, onConfirmation, onCancel }: ConfirmDeleteDialogProps) 
 {
+    const handleClose = () => 
+    {
+        onOpenChange?.(false);
+    }
+    
+    const handleCancel = () => 
+    {
+        handleClose();
+        onCancel?.();
+    }
+    
+    const handleConfirm = () => 
+    {
+        handleClose();
+        onConfirmation?.();
+    }
+
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>
             <AlertDialogContent>
@@ -28,12 +47,10 @@ export default function ConfirmDeleteDialog({ open, onOpenChange, onConfirmation
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => { if (onOpenChange) onOpenChange(false); if (onCancel) onCancel()}} className="cursor-pointer">
+                    <AlertDialogCancel onClick={handleCancel} className="cursor-pointer">
                         Cancel
                     </AlertDialogCancel>
-                    <AlertDialogAction onClick={onConfirmation} className="cursor-pointer">
-                        Delete
-                    </AlertDialogAction>
+                    <Button variant="destructive" onClick={handleConfirm} className="cursor-pointer">Delete</Button>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>

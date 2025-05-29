@@ -216,6 +216,7 @@ export function ResourceContent()
         {
             setRightSidebarOpen(false);
             triggerGridReload();
+            toast.success("Successfully Deleted Resource")
         }
         else 
         {

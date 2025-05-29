@@ -126,7 +126,8 @@ export default function Page() {
                 {
                     userRole === 'admin' &&
                     <Button variant="outline" onClick={() => { setFiltersOpen(false); resetFilters(); setTrashOpen(!trashOpen); setTrashAnimationTrigger(Date.now()); }}>
-                        <TrashIcon key={trashAnimationTrigger} className="text-gray-600" />
+                        {!trashOpen && <TrashIcon key={trashAnimationTrigger} className='text-gray-600' />}
+                        {trashOpen && "Back"}
                     </Button>
                 }
             </div>

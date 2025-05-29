@@ -1,5 +1,7 @@
 "use client";
 
+import { toast } from "sonner";
+
 export const TrashResource = async (id: string) => {
     try {
         // Send the data to the backend.
@@ -54,6 +56,8 @@ export const UntrashResource = async (id: string) => {
             };
         }
 
+        toast.success("Successfully Restored Resource");
+        
         return {
             success: true,
             message: data.message,
