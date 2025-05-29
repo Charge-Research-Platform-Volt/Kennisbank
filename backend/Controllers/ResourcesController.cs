@@ -20,6 +20,7 @@ using System.Text.Json;
 using System.Buffers.Text;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
+using System.Linq.Expressions;
 
 namespace KnowledgeBank.Controllers 
 {
@@ -608,22 +609,24 @@ namespace KnowledgeBank.Controllers
 
                 string projectionString = $"new({properties})";
                 
+                Expression<Func<Resource, bool>>? predicate = searchQuery != null ? r =>    EF.Functions.TrigramsAreSimilar(r.Title, searchQuery) || 
+                                                                                            EF.Functions.ILike(r.Title, $"{searchQuery}%") ||
+                                                                                            EF.Functions.ILike(r.Title, $"%{searchQuery}%")
+                                                                                            && r.Archived == archived
+                                                                                  : r =>    r.Archived == archived;
+                
                 // No paging requested, list all resources
                 if (pageIndex == null || pageSize == null)
                     resources = string.IsNullOrEmpty(properties) ?
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllResourcesAsync(predicate: r => r.Archived == archived) :
-                        await resourceManager.GetAllResourcesAsync(predicate: r => r.Title.Contains(searchQuery) && r.Archived == archived)) :
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllResourcesAsync(projection: projectionString, predicate: r => r.Archived == archived) :
-                        await resourceManager.GetAllResourcesAsync(projection: projectionString, predicate: r => r.Title.Contains(searchQuery) && r.Archived == archived));
+                        await resourceManager.GetAllResourcesAsync(predicate: predicate) :
+                        await resourceManager.GetAllResourcesAsync(projection: projectionString, predicate: predicate);
 
 
                 // Paging requested, retrieve resources on that page
                 else
                     resources = string.IsNullOrEmpty(properties) ?
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize, predicate: r => !r.Archived) :
-                        await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize, predicate: r => r.Title.Contains(searchQuery) && r.Archived == archived)) :
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetResourcePageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: r => !r.Archived) :
-                        await resourceManager.GetResourcePageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: r => r.Title.Contains(searchQuery) && r.Archived == archived));
+                        await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize, predicate: predicate) :
+                        await resourceManager.GetResourcePageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: predicate);
 
                 // Return found resources
                 return Ok(new ApiResponse(true, $"Found {resources.Length} resources", resources));

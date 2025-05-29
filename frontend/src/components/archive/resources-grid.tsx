@@ -70,7 +70,7 @@ export default function ResourcesGrid()
     ];
     
     // Fetch data function
-    const fetchData = React.useCallback(async () => 
+    const fetchData = React.useCallback(async (getTrash: boolean = false) => 
     {
         setLoading(true);
         
@@ -95,16 +95,18 @@ export default function ResourcesGrid()
             });
             
             // Fetch the data from the backend
-            const response = await fetch(`/api/resources/grid`,
-            {
-                method: 'POST',
-                credentials: 'include',
-                headers: 
+            const response = getTrash ?
+                await fetch(`/api/resources/list`)
+                : await fetch(`/api/resources/grid`,
                 {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(request),
-            });
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: 
+                    {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(request),
+                });
             
             if (!response.ok)
                 throw new Error(`HTTP error! Status: ${response.status}`);
