@@ -72,6 +72,18 @@ export default function BadgeList({
         }
     }
 
+    async function handleAddTag(id: string, type: string) {
+        try {
+            // check if tag already exists
+            // if not then create tag
+            // add tag relation
+            onUpdate();
+        }
+        catch (error) {
+            console.error("Error adding recommended tag:", error)
+        }
+    }
+
     return (
         <>
             {itemList === null ? (
@@ -88,17 +100,30 @@ export default function BadgeList({
                                 <Badge onClick={() => navigateTo(item.id, item.type)} variant={variant} className={className}>{item.name}</Badge>
                             </ContextMenuTrigger>
                             <ContextMenuContent className="select-none">
-                                <ContextMenuItem className="select-none text-red-600" onClick={() => handleRemove(item.id, item.id)}>
-                                    <div className="select-none cursor-pointer">Remove relation</div>
-                                </ContextMenuItem>
+                                {listType != "ai-tags" ? (
+                                    <ContextMenuItem className="select-none text-red-600" onClick={() => handleRemove(item.id, item.id)}>
+                                        <div className="select-none cursor-pointer">Remove relation</div>
+                                    </ContextMenuItem>
+                                ) : (
+                                    <ContextMenuItem className="select-none text-[#502379]" onClick={() => handleAddTag(item.id, item.id)}>
+                                        <div className="select-none cursor-pointer">Add tag</div>
+                                    </ContextMenuItem>
+                                )}
+                                
                             </ContextMenuContent>
                         </ContextMenu>
                     ))}
-                    <NewBadge relation={listType} onUpdate={onUpdate} alreadyRelated={itemList}/>
+                    {listType != "ai-tags" && (
+                        <NewBadge relation={listType} onUpdate={onUpdate} alreadyRelated={itemList}/>
+                    )}
+                    
                 </>
             ) : (
-                <NewBadge relation={listType} onUpdate={onUpdate}  alreadyRelated={[]}/>
-                
+                <>
+                {listType != "ai-tags" && (
+                    <NewBadge relation={listType} onUpdate={onUpdate} alreadyRelated={itemList}/>
+                )}
+                </>
             )}
         </>
     )

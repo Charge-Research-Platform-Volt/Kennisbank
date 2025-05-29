@@ -11,7 +11,7 @@ import { cookies } from "next/headers";
 // declare relation types for resource
 export type resourceRelation = "authors" | "organisations" |
                         "regions" | "related-organisations" |
-                        "related-sources" | "sources" |
+                        "related-sources" | "sources" | "ai-tags" |
                         "tags" | "related-persons" | "website" | "resource-related-resources"; 
 
 // declare relation types for persons
@@ -79,7 +79,8 @@ export const getRelation = async (
         "related-sources": "Url as id,Url as name",
         "sources": "Url as id,Url as name",
         "tags": "TagId as id,Tag.Name as name",
-        "website": "Url as id,Url as name"
+        "website": "Url as id,Url as name",
+        "ai-tags": "",
     }[relation];
     
     const cookieHeader : ReadonlyRequestCookies = await cookies();
@@ -247,6 +248,10 @@ export const removeRelation = async (
         endPoint = `Resources/${encodeURIComponent(id)}/relations/remove/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`
     }
 
+    if (type === MetadataTypeEnum.RESOURCE) {
+        endPoint = `Resources/${encodeURIComponent(id)}/relations/remove/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`
+    }
+
     else if (type === "person") {
         endPoint = `Persons/${encodeURIComponent(id)}/relations/remove/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`
     }
@@ -274,6 +279,37 @@ export const removeRelation = async (
         console.error("API Error:", errorText);
         throw new Error(`Problem removing relation: ${response.status} - ${errorText}`);
     }
+}
+
+export const addNewRegion = async(
+    region: string,
+    id: string,
+) => {
+
+    const cookieHeader : ReadonlyRequestCookies = await cookies();
+
+    const response = await fetch(
+        `${process.env.API_URL}/Regions/new`,
+        {
+            method: "PUT",
+            credentials: "include",
+            headers: { "Content-Type": "application/json",
+            Cookie: cookieHeader.toString() || ""  },
+            body: JSON.stringify({name: region}),
+        }
+    )
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error("API Error:", errorText);
+        throw new Error(`Problem creating new region: ${response.status} - ${errorText}`);
+    }
+
+    
+    const rawData = await response.json();
+    const data = ApiResponseSchema.parse(rawData);
+
+    return (data.body);
 }
 
 

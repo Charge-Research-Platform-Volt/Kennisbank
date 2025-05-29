@@ -22,6 +22,7 @@ export function ResourceContent()
     const [ note, setNote ] = useState<string | null>(null);
     const [ authors, setAuthors ] = useState<ListItem[] | null>(null);
     const [ tags, setTags ] = useState<ListItem[] | null>(null);
+    const [ aiTags, setAiTags ] = useState<ListItem[] | null>(null);
     const [ organisations, setOrganisations ] = useState<ListItem[] | null>(null);
     const [ relatedOrganisations, setRelatedOrganisations ] = useState<ListItem[] | null>(null);
     const [ relatedPersons, setRelatedPersons ] = useState<ListItem[] | null>(null);
@@ -64,6 +65,7 @@ export function ResourceContent()
         const sourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "sources");
         const regionsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "regions");
         const relatedSourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-sources");
+        const aiTagsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "ai-tags");
     
  
 
@@ -113,6 +115,18 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading tags: ", error);
         });
+
+        aiTagsPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+                id: item.id,
+                name: item.name,
+                type: "ai-tag",
+            }))
+            setAiTags(list);
+        }).catch(error => {
+            console.error("Error loading tags: ", error);
+        });
+
 
         organisationsPromise.then(response => {
             const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
@@ -211,6 +225,10 @@ export function ResourceContent()
             
             <Expandable variant="horizontal" title="Tags">
                 <BadgeList listType="tags" emptyMessage={"No Tags recorded"} itemList={tags} onUpdate={triggerRefresh}/>
+            </Expandable>
+
+            <Expandable variant="horizontal" title="Recommended Tags">
+                <BadgeList listType="ai-tags" emptyMessage={"No Tags recorded"} itemList={aiTags} onUpdate={triggerRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Authors">
