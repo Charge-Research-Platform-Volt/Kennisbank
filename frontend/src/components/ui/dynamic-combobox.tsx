@@ -18,12 +18,12 @@ export interface DynamicComboboxProps
     onValueChange?: (values: string[]) => void;
     
     endpoint: string;
-    createPayload: (searchQuery: string) => any;
-    parseResponse: (response: any) => SelectOption[];
+    createPayload: (searchQuery: string) => unknown;
+    parseResponse: (response: unknown) => SelectOption[];
     usePost?: boolean;
 }
 
-export function DynamicCombobox({ multiSelect = false, onValueChange, className, id, value, endpoint, createPayload, parseResponse, usePost = false}: DynamicComboboxProps)
+export function DynamicCombobox({ multiSelect = false, onValueChange, className, id, value, endpoint, createPayload, parseResponse, usePost = false }: DynamicComboboxProps)
 {
     const [open, setOpen] = React.useState(false);
     const [searchInput, setSearchInput] = React.useState<string>('');
@@ -31,35 +31,41 @@ export function DynamicCombobox({ multiSelect = false, onValueChange, className,
     const [selectedValues, setSelectedValues] = React.useState<string[]>(value ? value : []);
     const [options, setOptions] = React.useState<SelectOption[]>([]);
     
-    const clearSearch = () => 
+    const clearSearch = React.useCallback(() => 
     {
-        const newOptions: SelectOption[] = options.filter((option) => selectedValues.includes(option.value));
+        setOptions((currentOptions) => currentOptions.filter((option) => selectedValues.includes(option.value)));
         setSearchInput('');
-        setOptions(newOptions);
-    }
+    }, [selectedValues]);
     
-    const updateOptions = (fetchedOptions: SelectOption[]) => 
+    const updateOptions = React.useCallback((fetchedOptions: SelectOption[]) => 
     {
-        const selectedOptions: SelectOption[] = options.filter((option) => selectedValues.includes(option.value));
-        const newOptions: SelectOption[] = selectedOptions.concat(fetchedOptions.filter((option) => !selectedValues.includes(option.value)));
-        setOptions(newOptions);
-    }
+        setOptions((currentOptions) => 
+        {
+            const selectedOptions: SelectOption[] = currentOptions.filter((option) => selectedValues.includes(option.value));
+            const newOptions: SelectOption[] = selectedOptions.concat(fetchedOptions.filter((option) => !selectedValues.includes(option.value)));
+            
+            return newOptions;
+        })
+    }, [selectedValues]);
     
     React.useEffect(() => 
     {
         if (open)
             clearSearch();
-    }, [open]);
+    }, [open, clearSearch]);
     
     React.useEffect(() => 
     {
-        if (value !== undefined) 
+        if (value !== undefined)
             setSelectedValues(value);
     }, [value]);
     
+    const onValueChangeRef = React.useRef(onValueChange);
+    React.useEffect(() => { onValueChangeRef.current = onValueChange });
+    
     React.useEffect(() => 
     {
-        if (onValueChange) onValueChange(selectedValues);
+        if (onValueChangeRef.current) onValueChangeRef.current(selectedValues);
     }, [selectedValues]);
     
     React.useEffect(() => 
@@ -125,7 +131,7 @@ export function DynamicCombobox({ multiSelect = false, onValueChange, className,
      
         // Run the function
         fetchData();   
-    }, [searchQuery]);
+    }, [searchQuery, createPayload, usePost, endpoint, updateOptions, parseResponse]);
 
     return (
         <Popover open={open} onOpenChange={setOpen}>

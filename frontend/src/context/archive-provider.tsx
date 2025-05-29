@@ -1,10 +1,12 @@
 'use client'
 
 import React from 'react';
+import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 
 export type ArchiveContextType = {
 
     // Filters
+    resetFilters: () => void;
     tagFilter: string[];
     setTagFilter: (filter: string[]) => void;
     typeFilter: string[];
@@ -29,6 +31,10 @@ export type ArchiveContextType = {
     totalItems: number;
     setTotalItems: (totalItems: number) => void;
     totalPages: number;
+    
+    // States
+    trashOpen: boolean;
+    setTrashOpen: (open: boolean) => void;
 };
 
 const ArchiveContext = React.createContext<ArchiveContextType | undefined>(undefined);
@@ -44,22 +50,57 @@ export const useArchive = (): ArchiveContextType =>
 
 export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
 {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
+
     // Filters
-    const [tagFilter, setTagFilter] = React.useState<string[]>([]);
-    const [typeFilter, setTypeFilter] = React.useState<string[]>(['resource', 'person', 'organisation']);
-    const [publicationDateRangeMin, setPublicationDateRangeMin] = React.useState<string>('');
-    const [publicationDateRangeMax, setPublicationDateRangeMax] = React.useState<string>('');
-    const [regionFilter, setRegionFilter] = React.useState<string[]>([]);
+    const [tagFilter, setTagFilter] = React.useState<string[]>(searchParams.getAll('tagFilter'));
+    const [typeFilter, setTypeFilter] = React.useState<string[]>(searchParams.getAll('typeFilter').length > 0 ? searchParams.getAll('typeFilter') : ['resource', 'person', 'organisation']);
+    const [publicationDateRangeMin, setPublicationDateRangeMin] = React.useState<string>(searchParams.get('pubdateMin') || '');
+    const [publicationDateRangeMax, setPublicationDateRangeMax] = React.useState<string>(searchParams.get('pubdateMax') || '');
+    const [regionFilter, setRegionFilter] = React.useState<string[]>(searchParams.getAll('regionFilter'));
+    
+    const isResettingRef = React.useRef<boolean>(false);
     
     // Search
-    const [searchInput, setSearchInput] = React.useState<string>('');
-    const [searchQuery, setSearchQuery] = React.useState<string>('');
+    const [searchInput, setSearchInput] = React.useState<string>(searchParams.get('query') || '');
+    const [searchQuery, setSearchQuery] = React.useState<string>(searchParams.get('query') || '');
     
     // Pagination
-    const [currentPage, setCurrentPage] = React.useState<number>(1);
+    const [currentPage, setCurrentPage] = React.useState<number>(Number(searchParams.get('page')) || 1);
     const [pageSize, setPageSize] = React.useState<number>(20);
     const [totalItems, setTotalItems] = React.useState<number>(0);
     const [totalPages, setTotalPages] = React.useState<number>(1);
+    
+    // States
+    const [trashOpen, setTrashOpen] = React.useState<boolean>(false);
+    
+    // Update search parameters helper
+    const updateParam = React.useCallback((key: string, value?: string | string[] | undefined) => 
+    {
+        if (isResettingRef.current) return;
+    
+        const params = new URLSearchParams(searchParams.toString());
+        
+        // Delete existing value
+        params.delete(key);
+        
+        // Only add when value is provided
+        if (value) 
+        {
+            // Handle arrays
+            if (Array.isArray(value))
+                value.forEach((item) => params.append(key, item));
+                
+            // Single item
+            else
+                params.set(key, String(value));
+        }
+        
+        // Update address bar
+        router.replace(`${pathname}?${params.toString()}`);
+    }, [pathname, router, searchParams]);
     
     // Debounce search query
     React.useEffect(() => 
@@ -75,8 +116,7 @@ export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
     // Reset to first page when filters/search change
     React.useEffect(() => 
     {
-        if (currentPage !== 1)
-            setCurrentPage(1);
+        setCurrentPage(prev => prev !== 1 ? 1 : prev);
     }, [searchQuery, typeFilter, tagFilter, publicationDateRangeMax, publicationDateRangeMin]);
     
     // Calculate total pages on total items or page size change
@@ -88,14 +128,48 @@ export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
     // Page helper
     const goToPage = (pageIndex: number) => 
     {
-        if (pageIndex >= 1 && pageIndex <= totalPages)
-            setCurrentPage(pageIndex);
+        if (pageIndex >= 1)
+            setCurrentPage(pageIndex <= totalPages ? pageIndex : totalPages);
     };
+    
+    // Filter reset function
+    const resetFilters = () =>
+    {
+        isResettingRef.current = true
+    
+        setTypeFilter(['resource', 'person', 'organisation']);
+        setPublicationDateRangeMax('');
+        setPublicationDateRangeMin('');
+        setTagFilter([]);
+        setRegionFilter([]);
+        
+        const params = new URLSearchParams();
+        
+        // Only keep non-filter params
+        if (searchQuery) params.set('query', searchQuery);
+        if (currentPage > 1) params.set('page', String(currentPage));
+        
+        // Update address bar
+        router.replace(`${pathname}?${params.toString()}`);
+        
+        // Set isResetting to false in the next tick to prevent race conditions
+        setTimeout(() => isResettingRef.current = false, 0);
+    };
+    
+    // Search param updaters for each filter, search and pagination:
+    React.useEffect(() => updateParam('tagFilter', tagFilter), [updateParam, tagFilter]);
+    React.useEffect(() => updateParam('typeFilter', typeFilter.length === 3 ? undefined : typeFilter), [updateParam, typeFilter]);
+    React.useEffect(() => updateParam('pubdateMin', publicationDateRangeMin), [updateParam, publicationDateRangeMin]);
+    React.useEffect(() => updateParam('pubdateMax', publicationDateRangeMax), [updateParam, publicationDateRangeMax]);
+    React.useEffect(() => updateParam('regionFilter', regionFilter), [updateParam, regionFilter]);
+    React.useEffect(() => updateParam('query', searchQuery), [updateParam, searchQuery]);
+    React.useEffect(() => updateParam('page', currentPage > 1 ? String(currentPage) : undefined), [updateParam, currentPage]);
 
     return (
         <ArchiveContext.Provider 
             value={{
                 // Filters
+                resetFilters,
                 tagFilter,
                 setTagFilter: setTagFilter,
                 typeFilter,
@@ -120,6 +194,10 @@ export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
                 totalItems,
                 setTotalItems,
                 totalPages,
+                
+                // States
+                trashOpen,
+                setTrashOpen
             }}>
         {children}
         </ArchiveContext.Provider>

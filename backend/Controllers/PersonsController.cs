@@ -13,6 +13,8 @@ using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Org.BouncyCastle.Asn1.X509;
+using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Controllers 
 {
@@ -295,22 +297,22 @@ namespace KnowledgeBank.Controllers
 
                 string projectionString = $"new({properties})";
 
+                Expression<Func<Person, bool>>? predicate = searchQuery != null ? p => EF.Functions.TrigramsAreSimilar(p.Name, searchQuery) ||
+                                                                                            EF.Functions.ILike(p.Name, $"{searchQuery}%") ||
+                                                                                            EF.Functions.ILike(p.Name, $"%{searchQuery}%")
+                                                                                : null;
 
                 // No paging requested, list all persons
                 if (pageIndex == null || pageSize == null)
                     persons = string.IsNullOrEmpty(properties) ?
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllPersonsAsync() :
-                        await resourceManager.GetAllPersonsAsync(predicate: r => r.Name.ToLower().Contains(searchQuery.ToLower()))) :
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllPersonsAsync(projection: projectionString) :
-                        await resourceManager.GetAllPersonsAsync(projection: projectionString, predicate: r => r.Name.ToLower().Contains(searchQuery.ToLower())));
+                        await resourceManager.GetAllPersonsAsync(predicate: predicate) :
+                        await resourceManager.GetAllPersonsAsync(projection: projectionString, predicate: predicate);
 
                 // Paging requested, retrieve persons on that page
                 else
                     persons = string.IsNullOrEmpty(properties) ?
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetPersonPageAsync((int)pageIndex, (int)pageSize) :
-                        await resourceManager.GetPersonPageAsync((int)pageIndex, (int)pageSize, predicate: r => r.Name.ToLower().Contains(searchQuery.ToLower()))) :
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetPersonPageAsync(projectionString, (int)pageIndex, (int)pageSize) :
-                        await resourceManager.GetPersonPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: r => r.Name.ToLower().Contains(searchQuery.ToLower())));
+                        await resourceManager.GetPersonPageAsync((int)pageIndex, (int)pageSize, predicate: predicate) :
+                        await resourceManager.GetPersonPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: predicate);
 
 
                 // Return found persons

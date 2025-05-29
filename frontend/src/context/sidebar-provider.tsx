@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import Stack from "@/lib/stack";
 
 // Enumerator for the different types of items to be displayed in the right sidebar
@@ -53,9 +53,10 @@ export const useSidebar = () =>
 export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSidebarDefaultState: boolean; children: React.ReactNode }) =>
 {
     const pathname: string = usePathname();
+    const searchParams = useSearchParams();
 
     // State for the selected item
-    const [currentId, setCurrentId] = React.useState<string>("");
+    const [currentId, setCurrentId] = React.useState<string>(searchParams.get('id') || '');
     const [currentType, setCurrentType] = React.useState<MetadataTypeEnum>(MetadataTypeEnum.RESOURCE);
     
     // States for prevs and nexts stacks
@@ -77,7 +78,7 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
     };
 
     // - State and functions for the right sidebar
-    const [rightSidebarOpen, setRightSidebarOpen] = React.useState<boolean>(false);
+    const [rightSidebarOpen, setRightSidebarOpen] = React.useState<boolean>(searchParams.get('id') ? true : false);
     const rightSidebarState = rightSidebarOpen ? "expanded" : "collapsed";
     const toggleRightSidebar = () =>
     {
@@ -157,7 +158,7 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
             prevs.clear();
             nexts.clear();
         }
-    }, [rightSidebarOpen])
+    }, [rightSidebarOpen, currentId, nexts, prevs])
     
     // Effect for left sidebar open
     React.useEffect(() => 

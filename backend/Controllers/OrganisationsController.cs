@@ -13,6 +13,8 @@ using KnowledgeBank.Models;
 using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
+using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Controllers
 {
@@ -293,22 +295,23 @@ namespace KnowledgeBank.Controllers
                 object[]? organisations = [];
                 
                 string projectionString = $"new({properties})";
+                
+                Expression<Func<Organisation, bool>>? predicate = searchQuery != null ? o =>    EF.Functions.TrigramsAreSimilar(o.Name, searchQuery) ||
+                                                                                                EF.Functions.ILike(o.Name, $"{searchQuery}%") ||
+                                                                                                EF.Functions.ILike(o.Name, $"%{searchQuery}%")
+                                                                                      : null;
 
                 // No paging requested, list all organisations
                 if (pageIndex == null || pageSize == null)
                     organisations = string.IsNullOrEmpty(properties) ?
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllOrganisationsAsync() :
-                        await resourceManager.GetAllOrganisationsAsync(predicate: r => r.Name.ToLower().Contains(searchQuery.ToLower()))) :
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllOrganisationsAsync(projection: projectionString) :
-                        await resourceManager.GetAllOrganisationsAsync(projection: projectionString, predicate: r => r.Name.ToLower().Contains(searchQuery.ToLower())));
+                        await resourceManager.GetAllOrganisationsAsync(predicate: predicate) :
+                        await resourceManager.GetAllOrganisationsAsync(projection: projectionString, predicate: predicate);
 
                 // Paging requested, retrieve organisations on that page
                 else
                     organisations = string.IsNullOrEmpty(properties) ?
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetOrganisationPageAsync((int)pageIndex, (int)pageSize) :
-                        await resourceManager.GetOrganisationPageAsync((int)pageIndex, (int)pageSize, predicate: r => r.Name.ToLower().Contains(searchQuery.ToLower()))) :
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetOrganisationPageAsync(projectionString, (int)pageIndex, (int)pageSize) :
-                        await resourceManager.GetOrganisationPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: r => r.Name.ToLower().Contains(searchQuery.ToLower())));
+                        await resourceManager.GetOrganisationPageAsync((int)pageIndex, (int)pageSize, predicate: predicate) :
+                        await resourceManager.GetOrganisationPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: predicate);
 
                 // Return found organisations
                 return Ok(new ApiResponse(true, $"Found {organisations.Length} organisations", organisations));

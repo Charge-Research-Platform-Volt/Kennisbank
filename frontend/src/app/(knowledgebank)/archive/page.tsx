@@ -14,6 +14,8 @@ import { X } from "lucide-react";
 import { DynamicCombobox } from "@/components/ui/dynamic-combobox";
 import { TagFilterOptions } from "@/types/tag.type";
 import { SelectOption } from "@/components/ui/selection";
+import { useUserRole } from "@/context/user-role-context";
+import TrashIcon from "@/icons/trash-icon";
 
 export default function Page() {
     // Context
@@ -33,22 +35,19 @@ export default function Page() {
         setTagFilter,
         regionFilter,
         setRegionFilter,
+        resetFilters,
+        trashOpen,
+        setTrashOpen
     } = useArchive();
+    
+    const { userRole } = useUserRole();
     
     // States
     const [filtersOpen, setFiltersOpen] = React.useState<boolean>(false);
-    
-    const resetAllFilters = () =>
-    {
-        setTypeFilter(['resource', 'person', 'organisation']);
-        setPublicationDateRangeMax('');
-        setPublicationDateRangeMin('');
-        setTagFilter([]);
-        setRegionFilter([]);
-    };
+    const [trashAnimationTrigger, setTrashAnimationTrigger] = React.useState(Date.now());
     
     // Create tag body function for the dynamic combobox
-    const createTagBody = (searchQuery: string): any => 
+    const createTagBody = (searchQuery: string): unknown => 
     {
         const body: TagFilterOptions = 
         {
@@ -64,20 +63,21 @@ export default function Page() {
     }
     
     // Parse the tag response for the dynamic combobox
-    const parseTagResponse = (response: any): SelectOption[] => 
-    {
-        let options: SelectOption[] = [];
+    const parseTagResponse = (response: unknown): SelectOption[] => {
+        const data = response as { tags: Array<{ id: string | number; name: string }> };
         
-        response.tags.forEach((tag: any) => 
-        {
-            options.push({ value: tag.id, label: tag.name });
-        })
+        if (!data?.tags || !Array.isArray(data.tags)) {
+            return [];
+        }
         
-        return options;
-    }
+        return data.tags.map(tag => ({
+            value: tag.id,
+            label: tag.name
+        })) as SelectOption[];
+    };
     
     // Create region body for dynamic combobox
-    const createRegionBody = (searchQuery: string): any => 
+    const createRegionBody = (searchQuery: string): unknown => 
     {
         const params = new URLSearchParams(
         {
@@ -92,29 +92,47 @@ export default function Page() {
 
     return (
         <div className="flex flex-col h-full w-full">
-            {/* Search bar */}
+            {/* Search bar/Trash title */}
             <div className="w-full h-[4rem] flex items-center gap-2 flex-shrink-0 bg-white z-10">
-                <div className="relative flex-grow">
-                    {/* Search input */}
-                    <Input className="peer h-10 ps-9" placeholder={"Search"} type="text" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
-                    
-                    {/* Search icon */}
-                    <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
-                        <Search className="h-4 w-4" aria-hidden="true" fill="currentColor" />
+                {
+                    !trashOpen &&
+                    <div className="relative flex-grow">
+                        {/* Search input */}
+                        <Input className="peer h-10 ps-9" placeholder={"Search"} type="text" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
+                        
+                        {/* Search icon */}
+                        <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
+                            <Search className="h-4 w-4" aria-hidden="true" fill="currentColor" />
+                        </div>
+                        
+                        {/* Filter and clear input button */}
+                        <div className="absolute inset-y-0 right-0 flex items-center justify-center">
+                            { searchInput !== '' && <X className="text-gray-600 cursor-pointer" onClick={() => setSearchInput('')} />}
+                            <Button variant="ghost" onClick={() => setFiltersOpen(!filtersOpen)}>
+                                <Filter className="h-6 w-4 text-gray-600" aria-hidden="true" fill="currentColor" />
+                            </Button>
+                        </div>
                     </div>
-                    
-                    {/* Filter and clear input button */}
-                    <div className="absolute inset-y-0 right-0 flex items-center justify-center">
-                        { searchInput !== '' && <X className="text-gray-600 cursor-pointer" onClick={() => setSearchInput('')} />}
-                        <Button variant="ghost" onClick={() => setFiltersOpen(!filtersOpen)}>
-                            <Filter className="h-6 w-4 text-gray-600" aria-hidden="true" fill="currentColor" />
-                        </Button>
+                }
+                
+                {
+                    trashOpen &&
+                    <div className="flex-grow flex justify-start items-center gap-3">
+                        <TrashIcon className="ml-3 w-10 h-10 text-gray-600" />
+                        <h1 className="text-3xl font-bold text-gray-900">Trash</h1>
                     </div>
-                </div>
+                }
+                
+                {
+                    userRole === 'admin' &&
+                    <Button variant="outline" onClick={() => { setFiltersOpen(false); resetFilters(); setTrashOpen(!trashOpen); setTrashAnimationTrigger(Date.now()); }}>
+                        <TrashIcon key={trashAnimationTrigger} className="text-gray-600" />
+                    </Button>
+                }
             </div>
             
             {/* Filter selection */}
-            <div hidden={!filtersOpen} className="w-full flex grid grid-cols-4 gap-4 flex-shrink-0 my-3 px-5 pb-2 border-b border-gray-300">
+            <div hidden={!filtersOpen} className="w-full grid grid-cols-4 gap-4 flex-shrink-0 my-3 px-5 pb-2 border-b border-gray-300">
                 {/* Type filter */}
                 <div className="w-full">
                     <Label htmlFor="typeFilter" className="pb-2">Show types:</Label>
@@ -125,7 +143,7 @@ export default function Page() {
                 {/* Publication date range */}
                 <div className="w-full">
                     <Label htmlFor="publicationRange" className="pb-2">Publication date range:</Label>
-                    <div id="publicationRange" className="w-full flex grid grid-cols-2 gap-x-2">
+                    <div id="publicationRange" className="w-full grid grid-cols-2 gap-x-2">
                         <Input type="date" max={publicationDateRangeMax} value={publicationDateRangeMin} onChange={(e) => setPublicationDateRangeMin(e.target.value)} className="cursor-pointer" />
                         <Input type="date" min={publicationDateRangeMin} value={publicationDateRangeMax} onChange={(e) => setPublicationDateRangeMax(e.target.value)} className="cursor-pointer" />
                         <ResetFilter onClick={() => setPublicationDateRangeMin('')} />
@@ -149,7 +167,7 @@ export default function Page() {
                 
                 {/* Reset all and close button */}
                 <div className="col-span-4 flex justify-center gap-4 mt-2">
-                    <Button variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600" onClick={resetAllFilters}>Reset All Filters</Button>
+                    <Button variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600" onClick={resetFilters}>Reset All Filters</Button>
                     <Button variant="outline" onClick={() => setFiltersOpen(false)}>Close</Button>
                 </div>
             </div>

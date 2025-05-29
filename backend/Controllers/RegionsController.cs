@@ -302,18 +302,14 @@ namespace KnowledgeBank.Controllers
                 // No paging requested, list all regions
                 if (pageIndex == null || pageSize == null)
                     regions = string.IsNullOrEmpty(properties) ?
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllRegionsAsync() :
-                        await resourceManager.GetAllRegionsAsync(predicate: predicate)) :
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllRegionsAsync(projection: projectionString) :
-                        await resourceManager.GetAllRegionsAsync(projection: projectionString, predicate: predicate));
+                        await resourceManager.GetAllRegionsAsync(predicate: predicate) :
+                        await resourceManager.GetAllRegionsAsync(projection: projectionString, predicate: predicate);
 
                 // Paging requested, retrieve regions on that page
                 else
                     regions = string.IsNullOrEmpty(properties) ?
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetRegionPageAsync((int)pageIndex, (int)pageSize) :
-                        await resourceManager.GetRegionPageAsync((int)pageIndex, (int)pageSize, predicate: predicate)) :
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetRegionPageAsync(projectionString, (int)pageIndex, (int)pageSize) :
-                        await resourceManager.GetRegionPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: predicate));
+                        await resourceManager.GetRegionPageAsync((int)pageIndex, (int)pageSize, predicate: predicate) :
+                        await resourceManager.GetRegionPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: predicate);
 
                 // Return found regions
                 return Ok(new ApiResponse(true, $"Found {regions.Length} regions", regions));

@@ -59,7 +59,7 @@ public static class DatabaseContextExtensions
                         coalesce(""description"", '') || ' '
                     ) as ""SearchVector""
                 FROM ""resources""
-                WHERE ""archived"" = false
+                WHERE ""trashed"" = false
                 
                 UNION ALL
                 

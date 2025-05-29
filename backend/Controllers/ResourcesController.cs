@@ -20,6 +20,7 @@ using System.Text.Json;
 using System.Buffers.Text;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
+using System.Linq.Expressions;
 
 namespace KnowledgeBank.Controllers 
 {
@@ -186,19 +187,19 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
 
-        #region Archive
+        #region Trash
         /// <summary>
-        /// Archives a resource
+        /// Trashes a resource
         /// </summary>
         /// <param name="id">The ID of the resource</param>
-        [HttpPatch("archive/{id}")]
+        [HttpPatch("trash/{id}")]
         [Authorize]
-        [SwaggerOperation(Summary = "Archives a resource.")]
-        [SwaggerResponse(200, "Resource archived successfully", typeof(ApiResponse))]
+        [SwaggerOperation(Summary = "Trashes a resource.")]
+        [SwaggerResponse(200, "Resource trashed successfully", typeof(ApiResponse))]
         [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Archive(string id) 
+        public async Task<IActionResult> Trash(string id) 
         {
             // Check if the ID is valid
             if (!ValidityUtil.IsValidId(id))
@@ -212,11 +213,11 @@ namespace KnowledgeBank.Controllers
 
                 logger.Information("Archiving resource with ID: {ID}", id);
                     
-                // Archive the resource
-                await resourceManager.ArchiveResourceAsync(id);
+                // Trash the resource
+                await resourceManager.TrashResourceAsync(id);
 
-                logger.Information("Archived resource with ID '{ID}' successfully.", id);
-                return Ok(new ApiResponse(true, "Resource archived successfully."));
+                logger.Information("Trashed resource with ID '{ID}' successfully.", id);
+                return Ok(new ApiResponse(true, "Resource trashed successfully."));
             }
             catch (Exception e) 
             {
@@ -226,19 +227,19 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
 
-        #region Unarchive
+        #region Untrash
         /// <summary>
-        /// Unarchives a resource
+        /// Untrashes a resource
         /// </summary>
         /// <param name="id">The ID of the resource</param>
-        [HttpPatch("unarchive/{id}")]
+        [HttpPatch("untrash/{id}")]
         [Authorize(Policy = "RequireAdminRole")]
-        [SwaggerOperation(Summary = "Unarchives a resource.")]
-        [SwaggerResponse(200, "Resource unarchived successfully", typeof(ApiResponse))]
+        [SwaggerOperation(Summary = "Untrashes a resource.")]
+        [SwaggerResponse(200, "Resource untrashed successfully", typeof(ApiResponse))]
         [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Unarchive(string id) 
+        public async Task<IActionResult> Untrash(string id) 
         {
             // Check if the ID is valid
             if (!ValidityUtil.IsValidId(id))
@@ -252,11 +253,11 @@ namespace KnowledgeBank.Controllers
 
                 logger.Information("Unarchiving resource with ID: {ID}", id);
                     
-                // Unarchive the resource
-                await resourceManager.UnarchiveResourceAsync(id);
+                // Untrash the resource
+                await resourceManager.UntrashResourceAsync(id);
 
-                logger.Information("Unarchived resource with ID '{ID}' successfully.", id);
-                return Ok(new ApiResponse(true, "Resource unarchived successfully."));
+                logger.Information("Untrashed resource with ID '{ID}' successfully.", id);
+                return Ok(new ApiResponse(true, "Resource untrashed successfully."));
             }
             catch (Exception e) 
             {
@@ -577,17 +578,17 @@ namespace KnowledgeBank.Controllers
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
         /// <param name="properties">(Optional) The properties to select, separated by comma</param>
-        /// <param name="archived">(Optional) Whether to show archived resources or non archived resources</param>
+        /// <param name="trash">(Optional) Whether to show trashed resources or non trashed resources</param>
         /// <param name="searchQuery">(Optional) Filter on search query </param>
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all resources")]
         [SwaggerResponse(200, "A list or page of all the resources in the archive", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties, string? searchQuery, bool archived = false)
+        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties, string? searchQuery, bool trash = false)
         {
-            if(archived && !User.IsInRole("admin"))
-                return Unauthorized(new ApiResponse(false, "You are not authorized to view archived resources."));
+            if(trash && !User.IsInRole("admin"))
+                return Unauthorized(new ApiResponse(false, "You are not authorized to view trashed resources."));
             logger.Information("Check 1");
 
             // Verification
@@ -608,22 +609,24 @@ namespace KnowledgeBank.Controllers
 
                 string projectionString = $"new({properties})";
                 
+                Expression<Func<Resource, bool>>? predicate = searchQuery != null ? r =>    EF.Functions.TrigramsAreSimilar(r.Title, searchQuery) || 
+                                                                                            EF.Functions.ILike(r.Title, $"{searchQuery}%") ||
+                                                                                            EF.Functions.ILike(r.Title, $"%{searchQuery}%")
+                                                                                            && r.Trashed == trash
+                                                                                  : r =>    r.Trashed == trash;
+                
                 // No paging requested, list all resources
                 if (pageIndex == null || pageSize == null)
                     resources = string.IsNullOrEmpty(properties) ?
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllResourcesAsync(predicate: r => r.Archived == archived) :
-                        await resourceManager.GetAllResourcesAsync(predicate: r => r.Title.ToLower().Contains(searchQuery.ToLower()) && r.Archived == archived)) :
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetAllResourcesAsync(projection: projectionString, predicate: r => r.Archived == archived) :
-                        await resourceManager.GetAllResourcesAsync(projection: projectionString, predicate: r => r.Title.ToLower().Contains(searchQuery.ToLower()) && r.Archived == archived));
+                        await resourceManager.GetAllResourcesAsync(predicate: predicate) :
+                        await resourceManager.GetAllResourcesAsync(projection: projectionString, predicate: predicate);
 
 
                 // Paging requested, retrieve resources on that page
                 else
                     resources = string.IsNullOrEmpty(properties) ?
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize, predicate: r => !r.Archived) :
-                        await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize, predicate: r => r.Title.ToLower().Contains(searchQuery.ToLower()) && r.Archived == archived)) :
-                        (string.IsNullOrEmpty(searchQuery) ? await resourceManager.GetResourcePageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: r => !r.Archived) :
-                        await resourceManager.GetResourcePageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: r => r.Title.ToLower().Contains(searchQuery.ToLower()) && r.Archived == archived));
+                        await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize, predicate: predicate) :
+                        await resourceManager.GetResourcePageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: predicate);
 
                 // Return found resources
                 return Ok(new ApiResponse(true, $"Found {resources.Length} resources", resources));
