@@ -2,7 +2,8 @@
 
 import { MetadataTypeEnum } from "@/context/sidebar-provider";
 import { ApiResponse, ApiResponseSchema } from "@/types/apiResponse.type";
-import { TagFilterOptions } from "@/types/tag.type";
+import { TagCreateDto, TagFilterOptions } from "@/types/tag.type";
+import { RegionCreateDto } from "@/types/uploadTypes";
 import { revalidatePath } from "next/cache";
 import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 import { cookies } from "next/headers";
@@ -58,9 +59,6 @@ export const getRelation = async (
 
     // get endpoint based on the type (resource,person or organisation)
     let endPoint;
-    if (type === "resource") {endPoint = `resources/${encodeURIComponent(id)}/relations`}
-    else if (type === "person") {endPoint = `persons/${encodeURIComponent(id)}/relations`}
-    else if (type === "organisation") {endPoint = `organisations/${encodeURIComponent(id)}/relations`}
 
     const properties =
     {
@@ -82,10 +80,17 @@ export const getRelation = async (
         "website": "Url as id,Url as name",
         "ai-tags": "",
     }[relation];
+
+    
+    if (relation === "ai-tags") {endPoint = ``} //Add ai tags endpoint here
+    else if (type === "resource") {endPoint = `resources/${encodeURIComponent(id)}/relations/${encodeURIComponent(relation)}?properties=${encodeURIComponent(properties)}`}
+    else if (type === "person") {endPoint = `persons/${encodeURIComponent(id)}/relations/${encodeURIComponent(relation)}?properties=${encodeURIComponent(properties)}`}
+    else if (type === "organisation") {endPoint = `organisations/${encodeURIComponent(id)}/relations/${encodeURIComponent(relation)}?properties=${encodeURIComponent(properties)}`}
+    
     
     const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response = await fetch(
-        `${process.env.API_URL}/${endPoint}/${encodeURIComponent(relation)}?properties=${encodeURIComponent(properties)}`, //Take only Id and Name from relation
+        `${process.env.API_URL}/${endPoint}`, //Take only Id and Name from relation
             {
                 method: "GET",
                 credentials: "include",
@@ -283,10 +288,13 @@ export const removeRelation = async (
 
 export const addNewRegion = async(
     region: string,
-    id: string,
 ) => {
 
     const cookieHeader : ReadonlyRequestCookies = await cookies();
+
+    const rawbody : RegionCreateDto = {
+        Name: region,
+    }
 
     const response = await fetch(
         `${process.env.API_URL}/Regions/new`,
@@ -295,7 +303,7 @@ export const addNewRegion = async(
             credentials: "include",
             headers: { "Content-Type": "application/json",
             Cookie: cookieHeader.toString() || ""  },
-            body: JSON.stringify({name: region}),
+            body: JSON.stringify({name: rawbody}),
         }
     )
 
@@ -310,6 +318,40 @@ export const addNewRegion = async(
     const data = ApiResponseSchema.parse(rawData);
 
     return (data.body);
+}
+
+export const tryAddNewTag = async (
+    tag: string,
+) => {
+    
+    const cookieHeader : ReadonlyRequestCookies = await cookies();
+
+    const rawbody: TagCreateDto = {
+        name: tag,
+      };
+
+    const response = await fetch(
+        `${process.env.API_URL}/Regions/new`,
+        {
+            method: "PUT",
+            credentials: "include",
+            headers: { "Content-Type": "application/json",
+            Cookie: cookieHeader.toString() || ""  },
+            body: JSON.stringify(rawbody),
+        }
+    )
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Tag already exists, returned id");
+    }
+
+    
+    const rawData = await response.json();
+    const data = ApiResponseSchema.parse(rawData);
+
+    return (data.body);
+
 }
 
 

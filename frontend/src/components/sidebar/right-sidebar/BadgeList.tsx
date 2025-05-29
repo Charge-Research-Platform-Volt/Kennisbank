@@ -8,7 +8,7 @@ import 'react-loading-skeleton/dist/skeleton.css'
 import New from "@/icons/new"
 import NewBadge from "./NewBadge"
 import { useArchive } from "@/context/archive-provider"
-import { organisationRelation, personRelation, resourceRelation, removeRelation } from "@/actions/right-sidebarActions";
+import { organisationRelation, personRelation, resourceRelation, removeRelation, tryAddNewTag, addRelation } from "@/actions/right-sidebarActions";
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "@/components/ui/context-menu";
 
 export interface ListItem
@@ -72,11 +72,10 @@ export default function BadgeList({
         }
     }
 
-    async function handleAddTag(id: string, type: string) {
+    async function handleAddTag(id: string, name: string) {
         try {
-            // check if tag already exists
-            // if not then create tag
-            // add tag relation
+            let tagid = await tryAddNewTag(name);
+            await addRelation("tags", currentType, currentId, tagid)
             onUpdate();
         }
         catch (error) {
@@ -101,11 +100,11 @@ export default function BadgeList({
                             </ContextMenuTrigger>
                             <ContextMenuContent className="select-none">
                                 {listType != "ai-tags" ? (
-                                    <ContextMenuItem className="select-none text-red-600" onClick={() => handleRemove(item.id, item.id)}>
+                                    <ContextMenuItem className="select-none text-red-600" onClick={() => handleRemove(item.id, item.type)}>
                                         <div className="select-none cursor-pointer">Remove relation</div>
                                     </ContextMenuItem>
                                 ) : (
-                                    <ContextMenuItem className="select-none text-[#502379]" onClick={() => handleAddTag(item.id, item.id)}>
+                                    <ContextMenuItem className="select-none text-[#502379]" onClick={() => handleAddTag(item.id, item.name)}>
                                         <div className="select-none cursor-pointer">Add tag</div>
                                     </ContextMenuItem>
                                 )}

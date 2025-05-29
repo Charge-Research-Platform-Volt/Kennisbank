@@ -134,7 +134,7 @@ export default function NewBadge({
 
     async function handleAddRegion() {
         try {
-            let addedRegionId = await addNewRegion(searchQuery, currentId);
+            let addedRegionId = await addNewRegion(searchQuery);
             toast.info(`Region created succesfully: ${searchQuery}`);
             await addRelation("regions", currentType, currentId, addedRegionId);
 

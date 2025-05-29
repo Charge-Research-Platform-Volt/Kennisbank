@@ -117,6 +117,7 @@ export function ResourceContent()
         });
 
         aiTagsPromise.then(response => {
+            //Add translation logic from ai tags to ListItem[] here
             const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
                 id: item.id,
                 name: item.name,
