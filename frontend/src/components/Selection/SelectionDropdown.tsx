@@ -297,17 +297,17 @@ const displayUsers = (selectedUsers: User[], selectMultiple: boolean, truncate: 
     return "Select user(s)...";
 };
 
-const fetchUsers = async (inputValue: string): Promise<DisplayUser[]> => {
-    const fetchedUsers = (await ListUsersPaged(1, inputValue)).users ?? [];
+const fetchUsers = async (inputValue: string, exclude?: string): Promise<DisplayUser[]> => {
+    const fetchedUsers = (await ListUsersPaged(1, inputValue)).users?.filter(users => users.id != exclude) ?? [];
     return fetchedUsers.map(user => ({ ...user, name: user.username })); // assign name property so that it can be found in the selection box
 };
 
-export function SelectUserDropdown({onChangeAction = () => {}, className, selectMultiple} : {onChangeAction?: (selectedUser : DisplayUser[]) => void, className: string, selectMultiple: boolean})
+export function SelectUserDropdown({onChangeAction = () => {}, className, selectMultiple, currentUserId} : {onChangeAction?: (selectedUser : DisplayUser[]) => void, className: string, selectMultiple: boolean, currentUserId?: string})
 {
     return(
         <SelectDropDown
             onChangeAction={onChangeAction}
-            fetchFunction={fetchUsers}
+            fetchFunction={val => fetchUsers(val, currentUserId)}
             selectMultiple={selectMultiple}
             className={className ?? ""}
             getTriggerDisplay={displayUsers}

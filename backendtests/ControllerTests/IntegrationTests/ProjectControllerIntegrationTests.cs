@@ -32,24 +32,8 @@ public class ProjectControllerTests : TestBase
     private Guid _adminUserId;
 
     [SetUp]
-    public void SetupController()
+    public async Task SetupController()
     {
-        _regularUserId = Guid.NewGuid();
-        _adminUserId = Guid.NewGuid();
-
-        // Create a regular user
-        _regularUser = new ClaimsPrincipal(new ClaimsIdentity(
-            [new Claim(ClaimTypes.NameIdentifier, _regularUserId.ToString())],
-            "mock"));
-
-        // Create an admin user
-        _adminUser = new ClaimsPrincipal(new ClaimsIdentity(
-            [
-                new Claim(ClaimTypes.NameIdentifier, _adminUserId.ToString()),
-                new Claim(ClaimTypes.Role, "admin")
-            ],
-            "mock"));
-
         _userStore = new UserStore<User>(Context);
 
         _userManager = new UserManager<User>(
@@ -63,6 +47,28 @@ public class ProjectControllerTests : TestBase
             null,
             null
         );
+
+        User admin = new User { Email = "admin@test.nl", UserName = "admin@test.nl" };
+        User user = new User { Email = "user@test.nl", UserName = "user@test.nl" };
+
+        await _userManager.CreateAsync(admin, "Test123!");
+        await _userManager.CreateAsync(user, "Test123!");
+
+        _regularUserId = Guid.Parse(Context.Users.Where(u => u.Email == "user@test.nl").Select(u => u.Id).First());
+        _adminUserId = Guid.Parse(Context.Users.Where(u => u.Email == "admin@test.nl").Select(u => u.Id).First());
+
+        // Create a regular user
+        _regularUser = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim(ClaimTypes.NameIdentifier, _regularUserId.ToString())],
+            "mock"));
+
+        // Create an admin user
+        _adminUser = new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.NameIdentifier, _adminUserId.ToString()),
+                new Claim(ClaimTypes.Role, "admin")
+            ],
+            "mock"));
 
         _resourceManager = new ResourceManager(Context);
         _projectManager = new ProjectManager(Context);
@@ -90,6 +96,8 @@ public class ProjectControllerTests : TestBase
     {
         _userManager?.Dispose();
         _userStore?.Dispose();
+        ValidProject.Creators = [];
+        ValidProject2.Creators = [];
         return base.OnTestTearDown();
     }
 
@@ -203,8 +211,8 @@ public class ProjectControllerTests : TestBase
 
         Assert.That((await _projectManager.GetAllProjectsAsync()).Length, Is.EqualTo(1)); // 1 project was added, we assume this is correct
 
-        Assert.That((await _projectManager.GetAllCreators()).Length, Is.EqualTo(0)); // no added users due to having to create a new one in the database (there is no function for it)
-        Assert.That(Context.ProjectCreatorRelations.Count(rel => rel.CreatorId == _regularUserId.ToString()), Is.EqualTo(0));
+        Assert.That((await _projectManager.GetAllCreators()).Length, Is.EqualTo(1)); // should be 1 creator
+        Assert.That(Context.ProjectCreatorRelations.Count(rel => rel.CreatorId == _regularUserId.ToString()), Is.EqualTo(1));
 
         Assert.That((await _projectManager.GetAllTags()).Length, Is.EqualTo(1)); // only added 1 project-tag relation
         Assert.That(Context.ProjectTagRelations.Count(rel => rel.TagId == tagId), Is.EqualTo(1));
@@ -218,6 +226,7 @@ public class ProjectControllerTests : TestBase
     [Description("Unable to delete project when it doesn't exist or the ID is invalid")]
     public async Task DeleteProjectFailTest()
     {
+        SetControllerUser(_adminUser);
         ObjectResult objRes = (ObjectResult)await _controller.Delete("this is not a valid ID at ALL");
         Assert.That(objRes.StatusCode ?? -1, Is.EqualTo(400)); // Cannot parse to GUID
 
@@ -231,8 +240,10 @@ public class ProjectControllerTests : TestBase
         ApiResponse response = (ApiResponse)res.Value;
         string projectId = response.Body.ToString();
 
+        SetControllerUser(_regularUser);
+
         objRes = (ObjectResult)await _controller.Delete(projectId);
-        Assert.That(objRes.StatusCode, Is.EqualTo(403)); // Project has no creators and user is not logged in so he cannot delete the project
+        Assert.That(objRes.StatusCode, Is.EqualTo(403)); // Wrong user tries to delete the project
     }
 
     [Test]
@@ -253,19 +264,7 @@ public class ProjectControllerTests : TestBase
     [Description("Tests if the delete is cascading and deletes all references (project-folder, project-tag, project-creator and project-resource)")]
     public async Task DeleteProjectReferencesSuccess()
     {
-        // Add one-time user to database for lookup functions used in projects controller
-        User creatorUser = new User { Email = "test@test.nl", UserName = "test@test.nl" };
-        await _userManager.CreateAsync(creatorUser, "Test123!");
-        string userId = Context.Users.First().Id;
-
-        ClaimsPrincipal _testUser = new ClaimsPrincipal(new ClaimsIdentity(
-            [
-                new Claim(ClaimTypes.NameIdentifier, userId),
-                new Claim(ClaimTypes.Role, "admin")
-            ],
-            "mock"));
-
-        SetControllerUser(_testUser);
+        SetControllerUser(_regularUser);
 
         TagCreateDto newTag = new()
         {
@@ -276,7 +275,6 @@ public class ProjectControllerTests : TestBase
         Guid tagId = await _resourceManager.CreateTagAsync(newTag); // Add a tag and creator to the root
         ProjectCreateDto dto = ValidProject;
         dto.Tags = [tagId.ToString()];
-        dto.Creators = [userId];
 
         OkObjectResult res = (OkObjectResult)await _controller.Create(ValidProject);
         ApiResponse response = (ApiResponse)res.Value;
@@ -300,7 +298,6 @@ public class ProjectControllerTests : TestBase
 
         // Reset values since dto is just a reference
         dto.Tags = [];
-        dto.Creators = [];
     }
 
     #endregion
@@ -399,6 +396,7 @@ public class ProjectControllerTests : TestBase
     [Description("Tests if resource deletion fails if user is not creator of resource and not an admin")]
     public async Task DeleteResourceCreatorCheckFail()
     {
+        SetControllerUser(_adminUser);
         ObjectResult res = (ObjectResult)await _controller.Create(ValidProject); // Create project
         ApiResponse response = (ApiResponse)res.Value;
         string projectId = response.Body.ToString();
@@ -406,6 +404,7 @@ public class ProjectControllerTests : TestBase
         Guid resourceId = await _resourceManager.CreateResourceAsync(MockResource);
         await _projectManager.AddResourceToProjectAsync(projectId, resourceId, _adminUserId); // Suppose it WAS added by someone else
 
+        SetControllerUser(_regularUser); // Switch to normal user
         ObjectResult delRes = (ObjectResult)await _controller.RemoveResource(projectId, resourceId.ToString()); // now try to delete someone else's resource
         Assert.That(delRes.StatusCode, Is.EqualTo(403));
     }
@@ -858,20 +857,8 @@ public class ProjectControllerTests : TestBase
     [Description("Tests if the fetching of content works correctly, resources of child folders should NOT be fetched")]
     public async Task FetchProjectContentSuccess()
     {
+        string creatorUserName = Context.Users.Where(u => u.Id == _regularUserId.ToString()).Select(u => u.UserName).ToArray()[0];
         // We need the custom user again since it'll auto add the current user when creating a folder
-        User creatorUser = new User { Email = "test@test.nl", UserName = "test@test.nl" };
-        await _userManager.CreateAsync(creatorUser, "Test123!");
-        string userId = Context.Users.First().Id;
-
-        ClaimsPrincipal _testUser = new ClaimsPrincipal(new ClaimsIdentity(
-            [
-                new Claim(ClaimTypes.NameIdentifier, userId),
-                new Claim(ClaimTypes.Role, "admin")
-            ],
-            "mock"));
-
-        SetControllerUser(_testUser);
-
         ObjectResult res = (ObjectResult)await _controller.Create(ValidProject); // Create project
         ApiResponse response = (ApiResponse)res.Value;
         string projectId = response.Body.ToString();
@@ -894,7 +881,7 @@ public class ProjectControllerTests : TestBase
         Assert.That(dto.Folders.First().Folder.Id.ToString(), Is.EqualTo(folderId));
         Assert.That(dto.Resources.Count, Is.EqualTo(1));
         Assert.That(dto.Resources.First().Resource.Id, Is.EqualTo(resourceId));
-        Assert.That(dto.Resources.First().AddedBy, Is.EqualTo(creatorUser.UserName));
+        Assert.That(dto.Resources.First().AddedBy, Is.EqualTo(creatorUserName));
 
         // Then check if fetching content from the folder in root goes correctly
         fetchRes = (ObjectResult)await _controller.Info(folderId);
@@ -903,7 +890,7 @@ public class ProjectControllerTests : TestBase
         Assert.That(dto.Folders.Count, Is.EqualTo(0));
         Assert.That(dto.Resources.Count, Is.EqualTo(1));
         Assert.That(dto.Resources.First().Resource.Id, Is.EqualTo(resourceId2));
-        Assert.That(dto.Resources.First().AddedBy, Is.EqualTo(creatorUser.UserName));
+        Assert.That(dto.Resources.First().AddedBy, Is.EqualTo(creatorUserName));
     }
     #endregion
 
@@ -912,6 +899,7 @@ public class ProjectControllerTests : TestBase
     [Description("Tests if the update function fails under specific conditions")]
     public async Task UpdateProjectFail()
     {
+        SetControllerUser(_adminUser);
         // 400 status codes
         ObjectResult updateRes = (ObjectResult)await _controller.Update(null, new Dictionary<string, object>()); // resource id invalid
         Assert.That(updateRes.StatusCode, Is.EqualTo(400));
@@ -944,6 +932,7 @@ public class ProjectControllerTests : TestBase
 
         // 403 status codes
         // project is created without creators property, thus no one outside of admins has permission to update
+        SetControllerUser(_regularUser);
         testDict.Clear();
         testDict.Add("title", "nopermissions?");
 
@@ -1034,27 +1023,13 @@ public class ProjectControllerTests : TestBase
     [Description("Tests if creators updating goes well")]
     public async Task UpdateCreatorsSuccess()
     {
-        // We need the custom user again since it is neccesary for a user being in the database
-        User creatorUser = new User { Email = "test@test.nl", UserName = "test@test.nl" };
-        await _userManager.CreateAsync(creatorUser, "Test123!");
-        string userId = Context.Users.First().Id;
-
-        ClaimsPrincipal _testUser = new ClaimsPrincipal(new ClaimsIdentity(
-            [
-                new Claim(ClaimTypes.NameIdentifier, userId),
-                new Claim(ClaimTypes.Role, "admin")
-            ],
-            "mock"));
-
-        SetControllerUser(_testUser);
-
         ObjectResult res = (ObjectResult)await _controller.Create(ValidProject); // Create project
         ApiResponse response = (ApiResponse)res.Value;
         string projectId = response.Body.ToString();
 
         Dictionary<string, object> testDict = new()
         {
-            { "creators", JsonDocument.Parse(JsonSerializer.Serialize(new List<string>{userId.ToString()})).RootElement }
+            { "creators", JsonDocument.Parse(JsonSerializer.Serialize(new List<string>{_adminUserId.ToString()})).RootElement }
         };
 
         ObjectResult updateRes = (ObjectResult)await _controller.Update(projectId, testDict);
@@ -1062,27 +1037,13 @@ public class ProjectControllerTests : TestBase
         Assert.That(Context.Projects.Count, Is.EqualTo(1));
 
         Project updated = await _projectManager.GetProjectAsync(projectId, includeProperties: ["ProjectCreatorRelations"]);
-        Assert.That(updated.ProjectCreatorRelations.First().CreatorId == userId);
+        Assert.That(updated.ProjectCreatorRelations.First().CreatorId == _adminUserId.ToString());
     }
 
     [Test]
     [Description("Tests if multiple updates work")]
     public async Task MultiUpdateSuccess()
     {
-        // We need the custom user again since it is neccesary for a user being in the database
-        User creatorUser = new User { Email = "test@test.nl", UserName = "test@test.nl" };
-        await _userManager.CreateAsync(creatorUser, "Test123!");
-        string userId = Context.Users.First().Id;
-
-        ClaimsPrincipal _testUser = new ClaimsPrincipal(new ClaimsIdentity(
-            [
-                new Claim(ClaimTypes.NameIdentifier, userId),
-                new Claim(ClaimTypes.Role, "admin")
-            ],
-            "mock"));
-
-        SetControllerUser(_testUser);
-
         TagCreateDto dto = new()
         {
             Name = "tag",
@@ -1098,7 +1059,7 @@ public class ProjectControllerTests : TestBase
 
         Dictionary<string, object> testDict = new()
         {
-            { "creators", JsonDocument.Parse(JsonSerializer.Serialize(new List<string>{userId.ToString()})).RootElement },
+            { "creators", JsonDocument.Parse(JsonSerializer.Serialize(new List<string>{_adminUserId.ToString()})).RootElement },
             { "tags", JsonDocument.Parse(JsonSerializer.Serialize(new List<string>{tagId.ToString()})).RootElement },
             { "title", "newtitle" },
             { "description", "newdesc" }
@@ -1110,7 +1071,7 @@ public class ProjectControllerTests : TestBase
 
         Project updated = await _projectManager.GetProjectAsync(projectId, includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations"]);
         Assert.That(updated.ProjectTagRelations.First().TagId == tagId);
-        Assert.That(updated.ProjectCreatorRelations.First().CreatorId == userId);
+        Assert.That(updated.ProjectCreatorRelations.First().CreatorId == _adminUserId.ToString());
         Assert.That(updated.Title == "newtitle");
         Assert.That(updated.Description == "newdesc");
 

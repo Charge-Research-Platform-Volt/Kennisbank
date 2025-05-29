@@ -1,5 +1,6 @@
 import ProjectSearchClient from "./components/project-search-client";
 import { ListProjectsPaged } from "@/actions/projectActions";
+import { GetCurrentUserId } from "@/actions/userActions";
 import { ApiResponse } from "@/types/apiResponse.type";
 import { Project } from "@/types/project.type";
 
@@ -10,11 +11,17 @@ export default async function ProjectsPage() {
     throw new Error(projectFetch.message || "Failed to fetch projects");
   }
 
+  const currentUserId = (await GetCurrentUserId()).body;
+  console.log(currentUserId)
+
   const projects: Project[] = projectFetch.body.projects;
 
   return (
-    <ProjectSearchClient projects={projects.map(f => {
+    <ProjectSearchClient 
+    projects={projects.map(f => {
       return {folder: f, addedBy: ""}
-    })} />
+    })}
+    currentUserId={currentUserId}
+    />
   );
 }

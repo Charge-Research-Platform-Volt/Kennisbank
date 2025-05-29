@@ -17,13 +17,15 @@ interface EditProjectModalProps {
   onClose: () => void;
   onSuccess: () => void;
   project: Project | null;
+  currentUserId: string;
 }
 
 export default function EditProjectModal({
   isOpen,
   onClose,
   onSuccess,
-  project
+  project,
+  currentUserId,
 }: EditProjectModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -120,6 +122,7 @@ return (
                   </Label>
                   <Input
                     id="title"
+                    data-testid="change-project-title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder={`Enter ${itemType} name`}
@@ -163,6 +166,7 @@ return (
                     className="col-span-3"
                     selectMultiple={true}
                     onChangeAction={setCreators}
+                    currentUserId={''} // do not exclude any when updating
                   />
                   </div>
                 )}
@@ -196,6 +200,7 @@ return (
                         Cancel
                     </Button>
                     <Button
+                        data-testid="project-submit-update"
                         onClick={handleSubmit}
                         disabled={isLoading || !title.trim()}
                     >

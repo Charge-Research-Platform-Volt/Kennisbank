@@ -10,6 +10,7 @@ using System.Linq.Expressions;
 using KnowledgeBank.Utils;
 using KnowledgeBank.Responses;
 using System.Text.Json;
+using System.Xml;
 
 namespace KnowledgeBank.Controllers;
 
@@ -77,6 +78,14 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                 }
             }
         }
+
+        Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
+
+        if (userId == null)
+            throw new Exception("No current user found");
+
+        // Always add the actual creator to the list
+        dto.Creators = dto.Creators.Append(userId.ToString()).ToArray();
 
         // Add the project to the database using the ProjectManager class
         try

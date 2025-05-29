@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
 using KnowledgeBank.Utils;
+using KnowledgeBank.Responses;
 
 namespace KnowledgeBank.Controllers
 {
@@ -41,6 +42,20 @@ namespace KnowledgeBank.Controllers
             }
 
             return Unauthorized();
+        }
+
+        [HttpGet("get-user-id")]
+        [SwaggerOperation(
+            Summary = "Gets current user id",
+            Description = "Gets the id of the current user."
+        )]
+        [SwaggerResponse(200, "User id fetched successfully")]
+        [SwaggerResponse(500, "Server error")]
+        public async Task<IActionResult> GetUserId()
+        {
+            string userID = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid.ToString() : null ?? "";
+            Log.Information(userID);
+            return Ok(new ApiResponse(true, "Fetched user id", userID ));
         }
 
         [HttpGet]

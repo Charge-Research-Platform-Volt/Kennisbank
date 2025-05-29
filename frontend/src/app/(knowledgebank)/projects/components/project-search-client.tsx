@@ -8,9 +8,10 @@ import { getProjectContentById } from "@/actions/projectActions";
 interface ProjectSearchClientProps {
   projects: FolderProject[];
   resources?: ResourceProject[];
+  currentUserId: string;
 }
 
-export default function ProjectSearchClient({ projects, resources = [] }: ProjectSearchClientProps) {
+export default function ProjectSearchClient({ projects, resources = [], currentUserId}: ProjectSearchClientProps) {
 
   return (
     <>
@@ -19,6 +20,7 @@ export default function ProjectSearchClient({ projects, resources = [] }: Projec
           initialResources={resources} 
           initialProjects={projects} 
           fetchProjectAction={getProjectContentById}
+          currentUserId={currentUserId}
         />
       </div>
     </>

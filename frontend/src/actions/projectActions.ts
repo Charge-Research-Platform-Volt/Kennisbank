@@ -39,8 +39,7 @@ export const ListProjectsPaged = async (pageIndex: number, searchQuery: string):
     );
 
     const result: ApiResponse = await response.json();
-    console.log(result)
-    
+
     return result;
 }
 

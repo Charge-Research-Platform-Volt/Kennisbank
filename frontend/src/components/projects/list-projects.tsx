@@ -56,6 +56,7 @@ interface ListProjectsProps {
   initialProjects: FolderProject[];
   // Function to fetch data for a specific project ID
   fetchProjectAction: (projectId: string) => Promise<{ resources: ResourceProject[], projects: FolderProject[], creators: string[], tags: Tag[] }>;
+  currentUserId: string;
 }
 
 /**
@@ -65,7 +66,7 @@ interface ListProjectsProps {
  * @param fetchProjectContent - Function to fetch content of a project when navigating into it
  * @returns A navigable table representation of projects and resources
  */
-export default function ListProjects({initialResources, initialProjects, fetchProjectAction: fetchProjectContent}: ListProjectsProps) {
+export default function ListProjects({initialResources, initialProjects, fetchProjectAction: fetchProjectContent, currentUserId}: ListProjectsProps) {
   // Query for searching
   const [currentQuery, setCurrentQuery] = useState<string>("");
   // State for current projects and resources being displayed
@@ -709,6 +710,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
                 Cancel
               </Button>
               <Button 
+                data-testid="confirm-add"
                 variant="default" 
                 size="sm" 
                 onClick={handleConfirmAddResource}
@@ -833,6 +835,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
         isOpen={isCreateProjectModalOpen}
         onClose={handleCloseCreateProjectModal}
         onSuccess={handleProjectCreationSuccess}
+        currentUserId={currentUserId}
       />
 
       {/* Folder creation modal - only enabled when inside a project */}
@@ -865,6 +868,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
         onClose={handleCloseEditModal}
         onSuccess={handleEditSuccess}
         project={selectedProjectForEdit}
+        currentUserId={currentUserId}
       />
     </div>
   );
@@ -913,6 +917,7 @@ function RemoveRenderer({ data, onRemove, isAddResourceMode }: {
   return (
     <div className="remove-button flex items-center justify-center w-full h-full">
       <Button
+        data-testid = "delete-project-or-resource"
         variant="ghost"
         size="icon"
         className="flex items-center justify-center hover:bg-gray-200 text-muted-foreground"
@@ -930,6 +935,7 @@ function EditRenderer({ data, onEdit }: { data: any, onEdit: (item: ProjectOrRes
   return (
     <div className="edit-button flex items-center justify-center w-full h-full">
       <Button
+        data-testid= "edit-project-or-folder"
         variant="ghost"
         size="icon"
         className="flex items-center justify-center hover:bg-gray-200 text-muted-foreground"

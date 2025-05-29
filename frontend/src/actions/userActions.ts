@@ -1,5 +1,6 @@
 "use server";
 
+import { ApiResponse } from "@/types/apiResponse.type";
 import { FormResponse } from "@/types/return.type";
 import { SaveUserResponse, User, UserPageResponse, UsersArraySchema, UserSchema } from "@/types/user.type";
 import { revalidatePath } from "next/cache";
@@ -46,6 +47,35 @@ export const DeleteUser = async (user: User ): Promise<FormResponse<User>> => {
     return {
         success: true,
         message: data.message,
+    };
+};
+
+export const GetCurrentUserId = async (): Promise<ApiResponse> => {
+    const cookieHeader : ReadonlyRequestCookies = await cookies();
+    const response : Response = await fetch(
+        `${process.env.API_URL}/Auth/get-user-id`,
+        {
+            method: "GET",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+        },
+    );
+
+    //parse the data from the response
+    const data = await response.json();
+
+    // Check if the request was succesful, if not, return an error
+    if (!response.ok) {
+        return {
+            success: false,
+            message: "",
+        };
+    }
+
+    return {
+        success: true,
+        message: "",
+        body: data.body
     };
 };
 

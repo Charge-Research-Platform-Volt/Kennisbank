@@ -25,9 +25,10 @@ interface CreateProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  currentUserId: string;
 }
 
-export default function CreateProjectModal({ isOpen, onClose, onSuccess }: CreateProjectModalProps) {
+export default function CreateProjectModal({ isOpen, onClose, onSuccess, currentUserId }: CreateProjectModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -127,6 +128,7 @@ export default function CreateProjectModal({ isOpen, onClose, onSuccess }: Creat
                 className="col-span-3"
                 selectMultiple={true}
                 onChangeAction={setCreators}
+                currentUserId={currentUserId}
               ></SelectUserDropdown>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
