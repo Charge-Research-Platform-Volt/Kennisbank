@@ -9,11 +9,6 @@ using System.Security.Claims;
 
 namespace KnowledgeBank.Controllers
 {
-    /// <summary>
-    /// This controller manages user roles within the KnowledgeBank application.
-    /// 
-    /// Author: Abel Dietrich, Rens van Moorsel
-    /// </summary>
     [ApiController]
     [Route("[controller]")]
     [Authorize(Policy = "RequireAdminRole")]
@@ -23,13 +18,6 @@ namespace KnowledgeBank.Controllers
         private readonly UserManager<User> userManager;
         private readonly Serilog.ILogger logger;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="RolesController"/> class.
-        /// 
-        /// Author: Abel Dietrich
-        /// </summary>
-        /// <param name="roleManager">The role manager for managing roles.</param>
-        /// <param name="userManager">The user manager for managing users.</param>
         public RolesController(RoleManager<IdentityRole> roleManager, UserManager<User> userManager)
         {
             this.roleManager = roleManager;
@@ -37,12 +25,6 @@ namespace KnowledgeBank.Controllers
             this.logger = Log.ForContext<RolesController>();
         }
 
-        /// <summary>
-        /// Gets the current user's role.
-        /// 
-        /// Author: Abel Dietrich
-        /// </summary>
-        /// <returns>The current role of the user.</returns>
         [HttpGet("current")]
         [AllowAnonymous]
         [SwaggerOperation(
@@ -81,11 +63,6 @@ namespace KnowledgeBank.Controllers
             }
         }
 
-        /// <summary>
-        /// Lists all roles available in the application.
-        /// 
-        /// Author: Abel Dietrich
-        /// </summary>
         [HttpGet]
         [SwaggerOperation(
             Summary = "Lists all roles available.",
@@ -107,13 +84,6 @@ namespace KnowledgeBank.Controllers
             }
         }
 
-        /// <summary>
-        /// Assigns a role to a user.
-        /// 
-        /// Author: Abel Dietrich, Rens van Moorsel
-        /// </summary>
-        /// <param name="dto">The role assignment data transfer object containing the user ID and role name.</param>
-        /// <returns>An IActionResult indicating the result of the role assignment operation.</returns>
         [HttpPatch("assign")]
         [SwaggerOperation(
             Summary = "Assigns a role to a user.",
@@ -158,13 +128,6 @@ namespace KnowledgeBank.Controllers
             }
         }
 
-        /// <summary>
-        /// Retrieves the role of a user by their ID.
-        /// 
-        /// Author: Abel Dietrich
-        /// </summary>
-        /// <param name="id">The ID of the user whose role is to be retrieved.</param>
-        /// <returns>An IActionResult containing the role of the user or an error message.</returns>
         [HttpGet("user/{id}")]
         [SwaggerOperation(
             Summary = "Retrieve role of user",
@@ -196,13 +159,6 @@ namespace KnowledgeBank.Controllers
             }
         }
 
-        /// <summary>
-        /// Retrieves all users in a specific role.
-        /// 
-        /// Author: Abel Dietrich
-        /// </summary>
-        /// <param name="roleName">The name of the role for which to retrieve users.</param>
-        /// <returns>An IActionResult containing a list of users in the specified role or an error message.</returns>
         [HttpGet("{roleName}")]
         [SwaggerOperation(
             Summary = "Retrieves users in the given role.",

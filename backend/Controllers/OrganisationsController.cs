@@ -5,6 +5,7 @@
 // Author: Abel Dieterich
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
 using Swashbuckle.AspNetCore.Annotations;
 using Serilog;
 using KnowledgeBank.Responses;
@@ -13,6 +14,7 @@ using KnowledgeBank.Models;
 using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
+using System.Reflection;
 
 namespace KnowledgeBank.Controllers
 {

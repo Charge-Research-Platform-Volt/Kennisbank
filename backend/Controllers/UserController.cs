@@ -12,9 +12,8 @@ using System.Security.Claims;
 namespace KnowledgeBank.Controllers;
 
 /// <summary>
-/// This controller manages user-related operations such as retrieving users, updating user emails, and deleting users.
-/// 
-/// Author: Rens van Moorsel, Jelle van het Schut
+/// Controller for all sorts of functionality that 
+/// might be of use during the Development stage.
 /// </summary>
 [Authorize(Policy = "RequireAdminRole")]
 [ApiController]
@@ -25,13 +24,6 @@ public class UserController : ControllerBase
     private readonly DatabaseContext database;
     private readonly UserManager<User> userManager;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="UserController"/> class.
-    /// 
-    /// Author: Rens van Moorsel
-    /// </summary>
-    /// <param name="databaseContext">The database context for accessing user data.</param>
-    /// <param name="userManager">The user manager for managing user-related operations.</param>
     public UserController(DatabaseContext databaseContext, UserManager<User> userManager)
     {
         this.logger = Log.ForContext<UserController>();
@@ -39,12 +31,6 @@ public class UserController : ControllerBase
         this.userManager = userManager;
     }
 
-    /// <summary>
-    /// Gets all users in the system.
-    /// 
-    /// Author: Jelle van het Schut
-    /// </summary>
-    /// <returns>Returns a list of all users in the system.</returns>
     [HttpGet("all-users")]
     [SwaggerOperation(
         Summary = "Gets all users",
@@ -78,15 +64,6 @@ public class UserController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Gets a paginated list of users.
-    /// 
-    /// Author: Rens van Moorsel
-    /// </summary>
-    /// <param name="pageIndex">The index of the page to retrieve (1-based).</param>
-    /// <param name="pageSize">The number of users to retrieve per page.</param>
-    /// <param name="searchQuery">An optional search query to filter users by email.</param>
-    /// <returns>Returns a paginated list of users.</returns>
     [HttpGet("list-paged")]
     [SwaggerOperation(
         Summary = "Gets a page of users",
@@ -143,13 +120,6 @@ public class UserController : ControllerBase
         }
     }    
     
-    /// <summary>
-    /// Updates the email of a user.
-    /// 
-    /// Author: Rens van Moorsel
-    /// </summary>
-    /// <param name="dto">The data transfer object containing the user ID and new email.</param>
-    /// <returns>Returns an IActionResult indicating the result of the email update operation.</returns>
     [HttpPatch("update-mail")]
     [SwaggerOperation(
         Summary = "Updates the user email.",
@@ -207,14 +177,6 @@ public class UserController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Deletes a user by ID.
-    /// If no user ID is provided, the current user will be deleted.
-    /// 
-    /// Author: Rens van Moorsel
-    /// </summary>
-    /// <param name="userId">Optional user ID to delete. If not provided, the current user's ID will be used.</param>
-    /// <returns>Returns an IActionResult indicating the result of the delete operation.</returns>
     [HttpDelete("delete")]
     [SwaggerOperation(
         Summary = "Delete a user.",

@@ -8,13 +8,6 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace KnowledgeBank.Controllers
 {
-    /// <summary>
-    /// This controller handles the upload and management of websites within the KnowledgeBank application.
-    /// It allows users to upload new websites, retrieve existing websites, delete websites, and modify website metadata.
-    /// 
-    /// Author: Justin Liem, Jason van Otterlo, Abel Dietrich
-    /// </summary>
-    /// <param name="resourceManager">An instance of ResourceManager to handle database operations related to websites.</param>
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
@@ -25,8 +18,6 @@ namespace KnowledgeBank.Controllers
         
         /// <summary>
         /// Checks if the URL is valid
-        /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="URL">URL of the website</param>
         /// <returns>whether or not the URL is valid</returns>
@@ -37,12 +28,6 @@ namespace KnowledgeBank.Controllers
             return URL.Length > 3 && URL.Contains('.');
         }
 
-        /// <summary>
-        /// Retrieves all websites uploaded to the archive.
-        /// 
-        /// Author: Justin Liem
-        /// </summary>
-        /// <returns> Returns a list of websites with their metadata.</returns>
         [HttpGet("all-websites")]
         [SwaggerOperation(
             Summary = "lists all websites",
@@ -64,15 +49,6 @@ namespace KnowledgeBank.Controllers
             }
         }
 
-        /// <summary>
-        /// Retrieves a website by its ID.
-        /// 
-        /// Author: Justin Liem, Abel Dietrich
-        /// </summary>
-        /// <param name="id">The ID of the website to retrieve.</param>
-        /// <returns>
-        /// Returns the URL of the website corresponding to the provided ID.
-        /// </returns>
         [HttpGet("get-website/{id}")]
         [SwaggerOperation(
             Summary = "gets website by id",
@@ -95,8 +71,6 @@ namespace KnowledgeBank.Controllers
 
         /// <summary>
         /// Uploads a new website to the database.
-        /// 
-        /// Author: Justin Liem, Jason van Otterlo
         /// </summary>
         /// <param name="dto">The dto used for adding the website to the db.</param>
         /// <returns>
@@ -144,8 +118,6 @@ namespace KnowledgeBank.Controllers
 
         /// <summary>
         /// Deletes a website.
-        /// 
-        /// Author: Justin Liem, Jason van Otterlo
         /// </summary>
         /// <param name="id">The id of the website to delete.</param>
         /// <returns>
@@ -189,8 +161,6 @@ namespace KnowledgeBank.Controllers
 
         /// <summary>
         /// Changes website entry in the database based on what you want to change
-        /// 
-        /// Author: Justin Liem, Jason van Otterlo, Abel Dietrich
         /// </summary>
         /// <param name="id">id of the website</param>
         /// <param name="newTitleOrURL">the new title or url to change to</param>

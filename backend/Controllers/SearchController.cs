@@ -9,12 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace KnowledgeBank.Controllers;
 
-/// <summary>
-/// This controller provides endpoints for searching resources in the KnowledgeBank application.
-/// It allows searching by title, description, and full-text search across both fields.
-/// 
-/// Author: Rens van Moorsel,
-/// </summary>
+
 [ApiController]
 [Authorize]
 [Route("[controller]")]
@@ -25,13 +20,6 @@ public class SearchController : ControllerBase
     private readonly Serilog.ILogger logger;
     private readonly DatabaseContext database;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="SearchController"/> class.
-    /// 
-    /// Author: Jelle van het Schut, Rens van Moorsel, Abel Dietrich, Elia Jabbour, Justin Liem
-    /// </summary>
-    /// <param name="blobService">The Azure Blob Storage service for handling file operations.</param>
-    /// <param name="databaseContext">The database context for accessing the KnowledgeBank database.</param>
     public SearchController(IAzureBlobService blobService, DatabaseContext databaseContext)
     {
         this.blobService = blobService;
@@ -39,16 +27,6 @@ public class SearchController : ControllerBase
         this.database = databaseContext;
     }
 
-    /// <summary>
-    /// Searches the database by title.
-    /// 
-    /// Author: Jelle van het Schut, Rens van Moorsel
-    /// </summary>
-    /// <param name="query">The search query to filter resources by title.</param>
-    /// <param name="pageIndex">Page index for pagination, starting from 1.</param>
-    /// <param name="pageSize">Page size for pagination, default is 20.</param>
-    /// <param name="filter">Optional filter to apply additional constraints on the search.</param>
-    /// <returns>An IActionResult containing the search results or an error message.</returns>
     [HttpPost("search-title")]
     [SwaggerOperation(
         Summary = "Search database by title.",
@@ -95,16 +73,6 @@ public class SearchController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Searches files based on their description.
-    /// 
-    /// Author: Jelle van het Schut, Rens van Moorsel
-    /// </summary>
-    /// <param name="query">The search query to filter resources by description.</param>
-    /// <param name="pageIndex">Page index for pagination, starting from 1.</param>
-    /// <param name="pageSize">Page size for pagination, default is 20.</param>
-    /// <param name="filter">Optional filter to apply additional constraints on the search.</param>
-    /// <returns>An IActionResult containing the search results or an error message.</returns>
     [HttpPost("search-description")]
     [SwaggerOperation(
         Summary = "Search database by description.",
@@ -151,16 +119,6 @@ public class SearchController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Performs a full-text search on the database by title and description.
-    /// 
-    /// Author: Jelle van het Schut, Rens van Moorsel, Abel Dietrich, Elia Jabbour
-    /// </summary>
-    /// <param name="query">The search query to filter resources by title and description.</param>
-    /// <param name="pageIndex">Page index for pagination, starting from 1.</param>
-    /// <param name="pageSize">Page size for pagination, default is 20.</param>
-    /// <param name="filter">Optional filter to apply additional constraints on the search.</param>
-    /// <returns>An IActionResult containing the search results or an error message.</returns>
     [HttpPost("search-full-text")]
     [SwaggerOperation(
         Summary = "FTS the database by title and description.",
@@ -256,12 +214,6 @@ public class SearchController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Returns the oldest document year from the resources table.
-    /// 
-    /// Author: Justin Liem
-    /// </summary>
-    /// <returns>The year of the oldest document from the resources table.</returns>
     [HttpGet("get-oldest-document")]
     [SwaggerOperation(
         Summary = "Returns the oldest document year.",
