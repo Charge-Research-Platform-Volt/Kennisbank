@@ -85,7 +85,6 @@ public class RAGSystem
         ChatCompletionsClient = new ChatCompletionsClient(chatCompletionsEndpoint, chatCompletionsApiKeyCredential);
         _logger.Information("Chat completions client successfully initialized");
 
-
         _logger.Information("RAG system successfully initialized");
     }
 
@@ -142,9 +141,6 @@ public class RAGSystem
             fieldName: "resourceId"
         );
     }
-
-
-
 
 
 
@@ -222,12 +218,6 @@ public class RAGSystem
 //      fieldName: "resourceId"
 //  );
 
-// var search = await _ragSystem.QdrantClient.QueryGroupsAsync(
-//     collectionName: RAGSystem.COLLECTION_NAME,
-//     filter: MatchKeyword("chunkType", "ContentText"),
-//     groupBy: "resourceId",
-//     limit: 10
-// );
 
 // // print the search results
 // Console.WriteLine($"Found {search.Count} results:");

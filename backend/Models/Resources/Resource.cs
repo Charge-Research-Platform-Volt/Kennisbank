@@ -1,7 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
-using Org.BouncyCastle.Asn1.X509.Qualified;
 
 namespace KnowledgeBank.Models;
 
@@ -40,6 +39,9 @@ public class Resource
 
     [Column("note")]
     public string? Note { get; set; }
+
+    [Column("ai-generated-tags")]
+    public string? AiGeneratedTags { get; set; }
 
     [Column("filetype")]
     [MaxLength(50)]
@@ -88,7 +90,7 @@ public class Resource
     #endregion
 }
 
-public class RelatedEntry 
+public class RelatedEntry
 {
     public required string Id { get; set; }
     public string? Relation { get; set; }
@@ -131,7 +133,7 @@ public class LargeFileFinalizeDto
     public List<string> BlockIds { get; set; } = new();
 }
 
-public class ResourceUploadDto 
+public class ResourceUploadDto
 {
     public required string Dto { get; set; }
     public required string UploadType { get; set; }
