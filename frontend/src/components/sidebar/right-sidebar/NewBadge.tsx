@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { newRelationSearchResults, organisationRelation, personRelation, resourceRelation, addRelation, addNewRegion } from "@/actions/right-sidebarActions";
 import { Button } from "@/components/ui/button";
 import { ListItem } from "./BadgeList";
+import { toast } from "sonner";
 
 interface NewBadgeProps
 {
@@ -134,7 +135,7 @@ export default function NewBadge({
     async function handleAddRegion() {
         try {
             let addedRegionId = await addNewRegion(searchQuery, currentId);
-            
+            toast.info(`Region created succesfully: ${searchQuery}`);
             await addRelation("regions", currentType, currentId, addedRegionId);
 
             setIsOpen(false);
