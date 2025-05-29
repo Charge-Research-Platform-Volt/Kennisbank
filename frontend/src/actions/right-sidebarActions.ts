@@ -303,7 +303,7 @@ export const addNewRegion = async(
             credentials: "include",
             headers: { "Content-Type": "application/json",
             Cookie: cookieHeader.toString() || ""  },
-            body: JSON.stringify({name: rawbody}),
+            body: JSON.stringify(rawbody),
         }
     )
 
