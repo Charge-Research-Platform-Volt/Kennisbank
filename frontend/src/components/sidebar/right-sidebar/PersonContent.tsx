@@ -19,9 +19,19 @@ export function PersonContent()
     const [ persons, setPersons ] = useState<ListItem[] | null>(null); 
     const [ organisations, setOrganisations ] = useState<ListItem[] | null>(null); 
 
-    const [shouldRefresh, setUpdateTrigger] = useState(false);
-    const triggerRefresh = () => setUpdateTrigger(prev => !prev);   
+    const [authoredRefresh, setAuthoredTrigger] = useState(false);
+    const triggerAuthoredRefresh = () => setAuthoredTrigger(prev => !prev);   
+    const [relatedRefresh, setRelatedTrigger] = useState(false);
+    const triggerRelatedRefresh = () => setRelatedTrigger(prev => !prev);   
+    const [personsRefresh, setPersonsTrigger] = useState(false);
+    const triggerPersonsRefresh = () => setPersonsTrigger(prev => !prev);   
+    const [organistationsRefresh, setOrganisationsTrigger] = useState(false);
+    const triggerOrganisationsRefresh = () => setOrganisationsTrigger(prev => !prev);
 
+    useEffect(() => { if (rightSidebarOpen) { setAuthored(null); loadAuthored();  } }, [authoredRefresh]);
+    useEffect(() => { if (rightSidebarOpen) { setRelated(null); loadRelated(); } }, [relatedRefresh]);
+    useEffect(() => { if (rightSidebarOpen) { setPersons(null); loadPersons(); } }, [personsRefresh]);
+    useEffect(() => { if (rightSidebarOpen) { setOrganisations(null); loadOrganisations(); } }, [organistationsRefresh]);
 
     useEffect(() => {
         if (rightSidebarOpen) {
@@ -32,16 +42,77 @@ export function PersonContent()
             setRelated(null);
             setPersons(null);
             setOrganisations(null);
-            loadInformation();
-        }
-    }, [currentId, shouldRefresh])
 
-    const loadInformation = async () => {
-        const infoPromise = getProperties(currentId, MetadataTypeEnum.PERSON);
+            loadProperties();
+            loadAuthored();
+            loadRelated();
+            loadPersons();
+            loadOrganisations();
+        }
+    }, [currentId])
+
+    const loadAuthored = async () => {
         const authoredPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "authored-resources");
+
+        authoredPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+                id: item.id,
+                name: item.name,
+                type: "resource",
+            }))
+            setAuthored(list);
+        }).catch(error => {
+            console.error("Error loading authored-resources: ", error);
+        });
+    }
+
+    const loadRelated = async () => {
         const relatedPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "related-resources");
+
+        relatedPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+                id: item.id,
+                name: item.name,
+                type: "resource",
+            }))
+            setRelated(list);
+        }).catch(error => {
+            console.error("Error loading related resource: ", error);
+        });
+    }
+
+    const loadPersons = async () => {
         const personsPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "person-related-persons");
+
+        personsPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: { targetid: any; targetname: any, sourceid: any, sourcename: any }) => ({
+                id: item.targetid === currentId ? item.sourceid : item.targetid,
+                name: item.targetid === currentId ? item.sourcename : item.targetname,
+                type: "person",
+            }))
+            setPersons(list);
+        }).catch(error => {
+            console.error("Error loading related persons: ", error);
+        });
+    }
+
+    const loadOrganisations = async () => {
         const organisationsPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "organisations");
+
+        organisationsPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+                id: item.id,
+                name: item.name,
+                type: "organisation",
+            }))
+            setOrganisations(list);
+        }).catch(error => {
+            console.error("Error loading organisations: ", error);
+        });
+    }
+
+    const loadProperties = async () => {
+        const infoPromise = getProperties(currentId, MetadataTypeEnum.PERSON);
     
         infoPromise.then(response => {
             setName(response.body.name);
@@ -56,51 +127,7 @@ export function PersonContent()
             else {setOccupation("No Occupation")}
         }).catch(error => {
             console.error("Error loading person information: ", error);
-        });
-
-        authoredPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
-                id: item.id,
-                name: item.name,
-                type: "resource",
-            }))
-            setAuthored(list);
-        }).catch(error => {
-            console.error("Error loading authored-resources: ", error);
-        });
-
-        relatedPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
-                id: item.id,
-                name: item.name,
-                type: "resource",
-            }))
-            setRelated(list);
-        }).catch(error => {
-            console.error("Error loading related resource: ", error);
-        });
-
-        personsPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { targetid: any; targetname: any, sourceid: any, sourcename: any }) => ({
-                id: item.targetid === currentId ? item.sourceid : item.targetid,
-                name: item.targetid === currentId ? item.sourcename : item.targetname,
-                type: "person",
-            }))
-            setPersons(list);
-        }).catch(error => {
-            console.error("Error loading related persons: ", error);
-        });
-
-        organisationsPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
-                id: item.id,
-                name: item.name,
-                type: "organisation",
-            }))
-            setOrganisations(list);
-        }).catch(error => {
-            console.error("Error loading organisations: ", error);
-        });
+        });  
     }
 
     return (
@@ -112,19 +139,19 @@ export function PersonContent()
             </Expandable>
 
             <Expandable variant="horizontal" title="Authored">
-                <BadgeList listType="authored-resources" emptyMessage={"No resources recorded"} itemList={authored} onUpdate={triggerRefresh}/>
+                <BadgeList listType="authored-resources" emptyMessage={"No resources recorded"} itemList={authored} onUpdate={triggerAuthoredRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Related">
-                <BadgeList listType="related-resources" emptyMessage={"No related resources recorded"} itemList={related} onUpdate={triggerRefresh}/>
+                <BadgeList listType="related-resources" emptyMessage={"No related resources recorded"} itemList={related} onUpdate={triggerRelatedRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Related People">
-                <BadgeList listType="person-related-persons" emptyMessage={"No persons recorded"} itemList={persons} onUpdate={triggerRefresh}/>
+                <BadgeList listType="person-related-persons" emptyMessage={"No persons recorded"} itemList={persons} onUpdate={triggerPersonsRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Related Organisations">
-                <BadgeList listType="organisations" emptyMessage={"No organisations recorded"} itemList={organisations} onUpdate={triggerRefresh}/>
+                <BadgeList listType="organisations" emptyMessage={"No organisations recorded"} itemList={organisations} onUpdate={triggerOrganisationsRefresh}/>
             </Expandable>
         </>
     )

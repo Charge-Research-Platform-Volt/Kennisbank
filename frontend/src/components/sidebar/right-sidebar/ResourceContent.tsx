@@ -14,7 +14,7 @@ import ResourceList from "./ResourceList"
 
 export function ResourceContent()
 {
-    const { currentId, rightSidebarOpen } = useSidebar();
+    const { currentId, rightSidebarOpen, currentType } = useSidebar();
     const [ fileType, setFileType] = useState<string | null>(null);
     const [ title, setTitle ] = useState<string | null>(null);
     const [ url, setUrl ] = useState<string | undefined>(undefined);
@@ -36,9 +36,25 @@ export function ResourceContent()
     const [ creationDate, setCreationDate ] = useState<Date | null>(null);
     const [ license, setLicense ] = useState<string | null>(null);
 
-    const [shouldRefresh, setUpdateTrigger] = useState(false);
-    const triggerRefresh = () => setUpdateTrigger(prev => !prev);  
+    const [authorsTrigger, setAuthorsTrigger] = useState(false);
+    const [tagsTrigger, setTagsTrigger] = useState(false);
+    const [organisationsTrigger, setOrganisationsTrigger] = useState(false);
+    const [relatedOrganisationTrigger, setRelatedOrganisationTrigger] = useState(false);
+    const [relatedPersonsTrigger, setRelatedPersonsTrigger] = useState(false);
+    const [regionsTrigger, setRegionsTrigger] = useState(false);
+    const [relatedSourceListTrigger, setRelatedSourceListTrigger] = useState(false);
+    const [aiTagsTrigger, setAiTagsTrigger] = useState(false);
+    const [sourceListTrigger, setSourceListTrigger] = useState(false);
 
+    const triggerAuthorsRefresh = () => setAuthorsTrigger(prev => !prev);
+    const triggerTagsRefresh = () => setTagsTrigger(prev => !prev);
+    const triggerOrganisationsRefresh = () => setOrganisationsTrigger(prev => !prev);
+    const triggerRelatedOrganisationRefresh = () => setRelatedOrganisationTrigger(prev => !prev);
+    const triggerRelatedPersonsRefresh = () => setRelatedPersonsTrigger(prev => !prev);
+    const triggerRegionsRefresh = () => setRegionsTrigger(prev => !prev);
+    const triggerRelatedSourceListRefresh = () => setRelatedSourceListTrigger(prev => !prev);
+    const triggerAiTagsRefresh = () => setAiTagsTrigger(prev => !prev);
+    const triggerSourceListRefresh = () => setSourceListTrigger(prev => !prev);
 
 
     useEffect(() => {
@@ -50,8 +66,10 @@ export function ResourceContent()
         setNote(null);
         setAuthors(null);
         setTags(null);
+        setAiTags(null);
         setOrganisations(null);
         setRelatedOrganisations(null);
+        setRelatedSourceList(null);
         setRelatedPersons(null);
         setRelatedResources(null);
         setSourceList(null);
@@ -61,24 +79,33 @@ export function ResourceContent()
         setPubDate(null);
         setCreationDate(null);
         setLicense(null);
-        loadInformation(); }
-    }, [currentId, shouldRefresh])
 
-    const loadInformation = async () => {
+        loadProperties();
+        loadAuthors();
+        loadTags();
+        loadOrganisations();
+        loadRelatedOrganisation();
+        loadRelatedPersons();
+        loadRelatedResources();
+        loadSourceList();
+        loadRegions();
+        loadRelatedSourceList();
+        loadAiTags(); 
+        }
+    }, [currentId])
+
+    useEffect(() => { if (rightSidebarOpen) { setAuthors(null); loadAuthors();  } }, [authorsTrigger]);
+    useEffect(() => { if (rightSidebarOpen) { setTags(null); loadTags(); } }, [tagsTrigger]);
+    useEffect(() => { if (rightSidebarOpen) { setOrganisations(null); loadOrganisations(); } }, [organisationsTrigger]);
+    useEffect(() => { if (rightSidebarOpen) { setRelatedOrganisations(null); loadRelatedOrganisation(); } }, [relatedOrganisationTrigger]);
+    useEffect(() => { if (rightSidebarOpen) { setRelatedPersons(null); loadRelatedPersons(); } }, [relatedPersonsTrigger]);
+    useEffect(() => { if (rightSidebarOpen) { setRegions(null); loadRegions(); } }, [regionsTrigger]);
+    useEffect(() => { if (rightSidebarOpen) { setRelatedSourceList(null); loadRelatedSourceList(); } }, [relatedSourceListTrigger]);
+    useEffect(() => { if (rightSidebarOpen) { setAiTags(null); loadAiTags(); } }, [aiTagsTrigger]);
+    useEffect(() => { if (rightSidebarOpen) { setSourceList(null); loadSourceList(); } }, [sourceListTrigger]);
+
+    const loadProperties = async () => {
         const infoPromise = getProperties(currentId, MetadataTypeEnum.RESOURCE);
-        const authorsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "authors");
-        const tagsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "tags");
-        const organisationsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "organisations");
-        const relatedOrganisationsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-organisations");
-        const relatedPersonsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-persons");
-        const relatedResourcesPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "resource-related-resources");
-        const sourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "sources");
-        const regionsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "regions");
-        const relatedSourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-sources");
-        const aiTagsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "ai-tags");
-    
- 
-
 
         infoPromise.then(response => {
             setFileType(response.body.fileType);
@@ -116,8 +143,11 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading information: ", error);
         });
-        
+    }
 
+    const loadAuthors = async () => {
+        const authorsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "authors");
+        
         authorsPromise.then(response => {
             const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
                 id: item.id,
@@ -128,6 +158,10 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading authors: ", error);
         });
+    }
+
+    const loadTags = async () => {
+        const tagsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "tags");
 
         tagsPromise.then(response => {
             const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
@@ -139,19 +173,10 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading tags: ", error);
         });
+    }
 
-        aiTagsPromise.then(response => {
-            //Add translation logic from ai tags to ListItem[] here
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
-                id: item.id,
-                name: item.name,
-                type: "ai-tag",
-            }))
-            setAiTags(list);
-        }).catch(error => {
-            console.error("Error loading tags: ", error);
-        });
-
+    const loadOrganisations = async () => {
+        const organisationsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "organisations");
 
         organisationsPromise.then(response => {
             const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
@@ -163,18 +188,11 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading organisations: ", error);
         });
+    }
 
-        relatedPersonsPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
-                id: item.id,
-                name: item.name,
-                type: "person",
-            }))
-            setRelatedPersons(list);
-        }).catch(error => {
-            console.error("Error loading related persons: ", error);
-        });
-        
+    const loadRelatedOrganisation = async () => {
+        const relatedOrganisationsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-organisations");
+
         relatedOrganisationsPromise.then(response => {
             const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
                 id: item.id,
@@ -186,6 +204,26 @@ export function ResourceContent()
             console.error("Error loading related organisations: ", error);
         });
 
+    }
+
+    const loadRelatedPersons = async () => {
+        const relatedPersonsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-persons");
+
+        relatedPersonsPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+                id: item.id,
+                name: item.name,
+                type: "person",
+            }))
+            setRelatedPersons(list);
+        }).catch(error => {
+            console.error("Error loading related persons: ", error);
+        });
+    }
+
+    const loadRelatedResources = async () => {
+        const relatedResourcesPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "resource-related-resources");
+    
         relatedResourcesPromise.then(response => {
             console.log(response.body[0].fileType)
             const list: ListItem[] = response.body.map((item: { id: any; title: any; fileType: any }) => ({
@@ -197,7 +235,11 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading related resources: ", error);
         });
+    }
 
+    const loadSourceList = async () => {
+        const sourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "sources");
+    
         sourceListPromise.then(response => {
             const list: ListItem[] = response.body.map((item: {id: any; name: any}) => ({
                 id: decodeURIComponent(item.id),
@@ -208,6 +250,10 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading sources: ", error);
         });
+    }
+
+    const loadRegions = async () => {
+        const regionsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "regions");
 
         regionsPromise.then(response => {
             const list: ListItem[] = response.body.map((item: {id: any; name: any}) => ({
@@ -219,7 +265,11 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading regions: ", error);
         });
-        
+    }
+
+    const loadRelatedSourceList = async () => {
+        const relatedSourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-sources");
+    
         relatedSourceListPromise.then(response => {
             const list: ListItem[] = response.body.map((item: {id: any; name: any}) => ({
                 id: decodeURIComponent(item.id),
@@ -230,7 +280,22 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading sources: ", error);
         });
+    }
 
+    const loadAiTags = async () => {
+        const aiTagsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "ai-tags");
+    
+        aiTagsPromise.then(response => {
+            //Add translation logic from ai tags to ListItem[] here
+            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+                id: item.id,
+                name: item.name,
+                type: "ai-tag",
+            }))
+            setAiTags(list);
+        }).catch(error => {
+            console.error("Error loading tags: ", error);
+        });
     }
     
 
@@ -249,37 +314,37 @@ export function ResourceContent()
             </Expandable>
             
             <Expandable variant="horizontal" title="Tags">
-                <BadgeList listType="tags" emptyMessage={"No Tags recorded"} itemList={tags} onUpdate={triggerRefresh}/>
+                <BadgeList listType="tags" emptyMessage={"No Tags recorded"} itemList={tags} onUpdate={triggerTagsRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Recommended Tags">
-                <BadgeList listType="ai-tags" emptyMessage={"No Tags recorded"} itemList={aiTags} onUpdate={triggerRefresh}/>
+                <BadgeList listType="ai-tags" emptyMessage={"No Tags recorded"} itemList={aiTags} onUpdate={triggerAiTagsRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Authors">
-                <BadgeList listType="authors" emptyMessage={"No Authors recorded"} itemList={authors} onUpdate={triggerRefresh}/>
+                <BadgeList listType="authors" emptyMessage={"No Authors recorded"} itemList={authors} onUpdate={triggerAuthorsRefresh}/>
             </Expandable>
             
             <Expandable variant="horizontal" title="Organisations">
-                <BadgeList listType="organisations" emptyMessage={"No Organisations recorded"} itemList={organisations} onUpdate={triggerRefresh}/>
+                <BadgeList listType="organisations" emptyMessage={"No Organisations recorded"} itemList={organisations} onUpdate={triggerOrganisationsRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Related People">
-                <BadgeList listType="related-persons" emptyMessage={"No related persons recorded"} itemList={relatedPersons} onUpdate={triggerRefresh}/>
+                <BadgeList listType="related-persons" emptyMessage={"No related persons recorded"} itemList={relatedPersons} onUpdate={triggerRelatedPersonsRefresh}/>
             </Expandable>
             
             <Expandable variant="horizontal" title="Related Organisations">
-                <BadgeList listType="related-organisations" emptyMessage={"No related organisations recorded"} itemList={relatedOrganisations} onUpdate={triggerRefresh}/>
+                <BadgeList listType="related-organisations" emptyMessage={"No related organisations recorded"} itemList={relatedOrganisations} onUpdate={triggerRelatedOrganisationRefresh}/>
             </Expandable>
 
             <ResourceList header="Related" resources={relatedResources}/>
 
             <Expandable variant="horizontal" title="Sources">
-                <BadgeList listType="sources" emptyMessage={"No sources recorded"} itemList={sourceList} onUpdate={triggerRefresh}/>
+                <BadgeList listType="sources" emptyMessage={"No sources recorded"} itemList={sourceList} onUpdate={triggerSourceListRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Regions">
-                <BadgeList listType="regions" emptyMessage={"No regions recorded"} itemList={regions} onUpdate={triggerRefresh}/>
+                <BadgeList listType="regions" emptyMessage={"No regions recorded"} itemList={regions} onUpdate={triggerRegionsRefresh}/>
             </Expandable>
 
             {/* {resourceType === "Scientific Article" && (
@@ -293,7 +358,7 @@ export function ResourceContent()
             </Expandable>
 
             <Expandable variant="horizontal" title="Related Sources">
-                <BadgeList listType="related-sources" emptyMessage={"No sources recorded"} itemList={relatedSourceList} onUpdate={triggerRefresh}/>
+                <BadgeList listType="related-sources" emptyMessage={"No sources recorded"} itemList={relatedSourceList} onUpdate={triggerRelatedSourceListRefresh}/>
             </Expandable> 
             
             {fileType}
