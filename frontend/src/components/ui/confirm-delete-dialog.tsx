@@ -1,6 +1,6 @@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 
-interface UnsavedDialogProps 
+interface ConfirmDeleteDialogProps 
 {
     open?: boolean;
     onOpenChange?: (value: boolean) => void;
@@ -15,7 +15,7 @@ interface UnsavedDialogProps
  * @param onConfirmation This function is called when the confirm button is pressed
  * @param onCancel This function is called when the cancel button is pressed
  */
-export default function UnsavedDialog({ open, onOpenChange, onConfirmation, onCancel }: UnsavedDialogProps) 
+export default function ConfirmDeleteDialog({ open, onOpenChange, onConfirmation, onCancel }: ConfirmDeleteDialogProps) 
 {
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -23,7 +23,7 @@ export default function UnsavedDialog({ open, onOpenChange, onConfirmation, onCa
                 <AlertDialogHeader>
                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        You have unsaved changes that will be lost if you continue.
+                        This item will be removed to trash and will be permanently deleted after 30 days.
                         Are you sure you want to continue?
                     </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -32,7 +32,7 @@ export default function UnsavedDialog({ open, onOpenChange, onConfirmation, onCa
                         Cancel
                     </AlertDialogCancel>
                     <AlertDialogAction onClick={onConfirmation} className="cursor-pointer">
-                        Discard Changes
+                        Delete
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

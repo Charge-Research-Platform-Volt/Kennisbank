@@ -123,6 +123,7 @@ export const newRelationSearchResults = async (
       }
 
     const cookieHeader : ReadonlyRequestCookies = await cookies();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let fetchContents: any;
 
     // switch fetchContents and endpoint depending on what relation is being sought

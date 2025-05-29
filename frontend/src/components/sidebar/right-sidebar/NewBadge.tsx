@@ -154,7 +154,7 @@ export default function NewBadge({
 
     return(
         <Popover open={isOpen} onOpenChange={setIsOpen}>
-            <PopoverTrigger>
+            <PopoverTrigger className="cursor-pointer">
                 <Badge key={-1} variant={variant} style={{ width: '2.1rem', height: '2.1rem', userSelect: 'none'}} ><New style={{ width: '1.7rem', height: '1.7rem' }} className=" text-black" /></Badge>
             </PopoverTrigger>
             <PopoverContent 

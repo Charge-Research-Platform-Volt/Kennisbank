@@ -35,6 +35,10 @@ export type ArchiveContextType = {
     // States
     trashOpen: boolean;
     setTrashOpen: (open: boolean) => void;
+    
+    // Triggers
+    gridReloadTrigger: boolean;
+    triggerGridReload: () => void;
 };
 
 const ArchiveContext = React.createContext<ArchiveContextType | undefined>(undefined);
@@ -75,6 +79,9 @@ export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
     
     // States
     const [trashOpen, setTrashOpen] = React.useState<boolean>(false);
+    
+    // Triggers
+    const [gridReloadTrigger, setGridReloadTrigger] = React.useState<boolean>(false);
     
     // Update search parameters helper
     const updateParam = React.useCallback((key: string, value?: string | string[] | undefined) => 
@@ -165,13 +172,19 @@ export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
     React.useEffect(() => updateParam('query', searchQuery), [updateParam, searchQuery]);
     React.useEffect(() => updateParam('page', currentPage > 1 ? String(currentPage) : undefined), [updateParam, currentPage]);
 
+    // Define triggerse
+    const triggerGridReload = () => 
+    {
+        setGridReloadTrigger(prev => !prev);
+    }
+    
     return (
         <ArchiveContext.Provider 
             value={{
                 // Filters
                 resetFilters,
                 tagFilter,
-                setTagFilter: setTagFilter,
+                setTagFilter,
                 typeFilter,
                 setTypeFilter,
                 publicationDateRangeMin,
@@ -197,7 +210,11 @@ export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
                 
                 // States
                 trashOpen,
-                setTrashOpen
+                setTrashOpen,
+                
+                // Triggers
+                gridReloadTrigger,
+                triggerGridReload,
             }}>
         {children}
         </ArchiveContext.Provider>

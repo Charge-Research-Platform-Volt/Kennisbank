@@ -1,29 +1,114 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import React from "react";
 import { MetadataTypeEnum, useSidebar } from "@/context/sidebar-provider";
 import { getProperties, getRelation } from "@/actions/right-sidebarActions";
 import Skeleton from 'react-loading-skeleton'
 import Expandable from "./expandable"
 import BadgeList, { ListItem } from "./BadgeList";
-import ResourceList from "./ResourceList";
 
 export function PersonContent() 
 {
     const { currentId, rightSidebarOpen } = useSidebar();
-    const [ name, setName ] = useState<string | null>(null);  
-    const [ description, setDescription ] = useState<string | null>(null);
-    const [ occupation, setOccupation ] = useState<string | null>(null);
-    const [ authored, setAuthored ] = useState<ListItem[] | null>(null); 
-    const [ related, setRelated ] = useState<ListItem[] | null>(null); 
-    const [ persons, setPersons ] = useState<ListItem[] | null>(null); 
-    const [ organisations, setOrganisations ] = useState<ListItem[] | null>(null); 
+    const [ name, setName ] = React.useState<string | null>(null);  
+    const [ description, setDescription ] = React.useState<string | null>(null);
+    const [ occupation, setOccupation ] = React.useState<string | null>(null);
+    const [ authored, setAuthored ] = React.useState<ListItem[] | null>(null); 
+    const [ related, setRelated ] = React.useState<ListItem[] | null>(null); 
+    const [ persons, setPersons ] = React.useState<ListItem[] | null>(null); 
+    const [ organisations, setOrganisations ] = React.useState<ListItem[] | null>(null); 
+    const [linkedin, setLinkedin] = React.useState<string>('');
 
-    const [shouldRefresh, setUpdateTrigger] = useState(false);
+    const [shouldRefresh, setUpdateTrigger] = React.useState(false);
     const triggerRefresh = () => setUpdateTrigger(prev => !prev);   
 
 
-    useEffect(() => {
+    const loadInformation = React.useCallback(async () =>
+    {
+        const infoPromise = getProperties(currentId, MetadataTypeEnum.PERSON);
+        const authoredPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "authored-resources");
+        const relatedPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "related-resources");
+        const personsPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "person-related-persons");
+        const organisationsPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "organisations");
+    
+        infoPromise.then(response =>
+        {
+            setName(response.body.name);
+            if (response.body.description)
+            {
+                setDescription(response.body.description);
+            }
+            else { setDescription("No Description") }
+
+            if (response.body.occupation)
+            {
+                setOccupation(response.body.occupation);
+            }
+            else { setOccupation("No Occupation") }
+            
+            if (response.body.linkedin)
+                setLinkedin(response.body.linkedin)
+            else
+                setLinkedin('');
+        }).catch(error =>
+        {
+            console.error("Error loading person information: ", error);
+        });
+
+        authoredPromise.then(response =>
+        {
+            const list: ListItem[] = response.body.map((item: { id: string; name: string }) => ({
+                id: item.id,
+                name: item.name,
+                type: "resource",
+            }))
+            setAuthored(list);
+        }).catch(error =>
+        {
+            console.error("Error loading authored-resources: ", error);
+        });
+
+        relatedPromise.then(response =>
+        {
+            const list: ListItem[] = response.body.map((item: { id: string; name: string }) => ({
+                id: item.id,
+                name: item.name,
+                type: "resource",
+            }))
+            setRelated(list);
+        }).catch(error =>
+        {
+            console.error("Error loading related resource: ", error);
+        });
+
+        personsPromise.then(response =>
+        {
+            const list: ListItem[] = response.body.map((item: { targetid: string; targetname: string, sourceid: string, sourcename: string }) => ({
+                id: item.targetid === currentId ? item.sourceid : item.targetid,
+                name: item.targetid === currentId ? item.sourcename : item.targetname,
+                type: "person",
+            }))
+            setPersons(list);
+        }).catch(error =>
+        {
+            console.error("Error loading related persons: ", error);
+        });
+
+        organisationsPromise.then(response =>
+        {
+            const list: ListItem[] = response.body.map((item: { id: string; name: string }) => ({
+                id: item.id,
+                name: item.name,
+                type: "organisation",
+            }))
+            setOrganisations(list);
+        }).catch(error =>
+        {
+            console.error("Error loading organisations: ", error);
+        });
+    }, [currentId]);
+    
+    React.useEffect(() => {
         if (rightSidebarOpen) {
             setName(null);
             setDescription(null);
@@ -34,97 +119,34 @@ export function PersonContent()
             setOrganisations(null);
             loadInformation();
         }
-    }, [currentId, shouldRefresh])
-
-    const loadInformation = async () => {
-        const infoPromise = getProperties(currentId, MetadataTypeEnum.PERSON);
-        const authoredPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "authored-resources");
-        const relatedPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "related-resources");
-        const personsPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "person-related-persons");
-        const organisationsPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "organisations");
-    
-        infoPromise.then(response => {
-            setName(response.body.name);
-            if (response.body.description) {
-                setDescription(response.body.description);
-            }
-            else {setDescription("No Description")}
-
-            if (response.body.occupation) {
-                setOccupation(response.body.occupation);
-            }
-            else {setOccupation("No Occupation")}
-        }).catch(error => {
-            console.error("Error loading person information: ", error);
-        });
-
-        authoredPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
-                id: item.id,
-                name: item.name,
-                type: "resource",
-            }))
-            setAuthored(list);
-        }).catch(error => {
-            console.error("Error loading authored-resources: ", error);
-        });
-
-        relatedPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
-                id: item.id,
-                name: item.name,
-                type: "resource",
-            }))
-            setRelated(list);
-        }).catch(error => {
-            console.error("Error loading related resource: ", error);
-        });
-
-        personsPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { targetid: any; targetname: any, sourceid: any, sourcename: any }) => ({
-                id: item.targetid === currentId ? item.sourceid : item.targetid,
-                name: item.targetid === currentId ? item.sourcename : item.targetname,
-                type: "person",
-            }))
-            setPersons(list);
-        }).catch(error => {
-            console.error("Error loading related persons: ", error);
-        });
-
-        organisationsPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
-                id: item.id,
-                name: item.name,
-                type: "organisation",
-            }))
-            setOrganisations(list);
-        }).catch(error => {
-            console.error("Error loading organisations: ", error);
-        });
-    }
+    }, [currentId, shouldRefresh, loadInformation, rightSidebarOpen])
 
     return (
         <>
-            <h1 className="pb-2 font-bold select-none">{name || <Skeleton />}</h1>
-            <h1 className="p-1 pl-2 mb-2 select-none bg-gray-200 rounded-md">{occupation || <Skeleton />}</h1>
-             <Expandable title="Description" collapsedHeight={100}>
+            <h1 className="pb-2 font-bold select-none text-2xl">{name || <Skeleton />}</h1>
+            <h2 className="mb-2 select-none">{occupation || <Skeleton />}</h2>
+            <a href={linkedin} className="select-none" target="_blank" rel="noreferror">
+                <h1 className="mb-8 select-none text-blue-500 underline">{linkedin}</h1>
+            </a>
+            
+            <Expandable title="Description" collapsedHeight={100}>
                     {description || <Skeleton />}
             </Expandable>
 
             <Expandable variant="horizontal" title="Authored">
-                <BadgeList listType="authored-resources" emptyMessage={"No resources recorded"} itemList={authored} onUpdate={triggerRefresh}/>
+                <BadgeList listType="authored-resources" itemList={authored} onUpdate={triggerRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Related">
-                <BadgeList listType="related-resources" emptyMessage={"No related resources recorded"} itemList={related} onUpdate={triggerRefresh}/>
+                <BadgeList listType="related-resources" itemList={related} onUpdate={triggerRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Related People">
-                <BadgeList listType="person-related-persons" emptyMessage={"No persons recorded"} itemList={persons} onUpdate={triggerRefresh}/>
+                <BadgeList listType="person-related-persons" itemList={persons} onUpdate={triggerRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Related Organisations">
-                <BadgeList listType="organisations" emptyMessage={"No organisations recorded"} itemList={organisations} onUpdate={triggerRefresh}/>
+                <BadgeList listType="organisations" itemList={organisations} onUpdate={triggerRefresh}/>
             </Expandable>
         </>
     )

@@ -4,7 +4,7 @@ import React from "react";
 import "@/app/globals.css";
 import { AgGridReact } from "ag-grid-react";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
-import type { CellContextMenuEvent, ColDef, GridApi, GridReadyEvent, RowClickedEvent, SortChangedEvent } from "ag-grid-community";
+import type { ColDef, GridReadyEvent, RowClickedEvent, SortChangedEvent } from "ag-grid-community";
 import { tableTheme } from "@/lib/tableConfig";
 import { MetadataTypeEnum, useSidebar } from "@/context/sidebar-provider";
 import GetFileIcon from "../getFileIcon";
@@ -13,8 +13,8 @@ import { useArchive } from "@/context/archive-provider";
 import { GridRequest, GridRequestSchema } from "@/types/gridRequest.type";
 import OpenFileButton from "../open-file-button";
 import RestoreIcon from "@/icons/restore-icon";
-import { Button } from "../ui/button";
-import { TrashResource, UntrashResource } from "@/actions/trashResourceActions";
+import { Button } from "@/components/ui/button";
+import { UntrashResource } from "@/actions/trashResourceActions";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -42,7 +42,8 @@ export default function ResourcesGrid()
         publicationDateRangeMax,
         tagFilter,
         regionFilter,
-        trashOpen
+        trashOpen,
+        gridReloadTrigger
     } = useArchive();
 
     // Data for grid
@@ -160,11 +161,11 @@ export default function ResourcesGrid()
         trashOpen
     ]);
     
-    // Fetch data when dependencies change
+    // Fetch data when dependencies change or when trigger is activated
     React.useEffect(() => 
     {
         fetchData();
-    }, [fetchData]);
+    }, [fetchData, gridReloadTrigger]);
     
     // Handle AgGrid sort changes
     const onSortChanged = React.useCallback((event: SortChangedEvent) => 

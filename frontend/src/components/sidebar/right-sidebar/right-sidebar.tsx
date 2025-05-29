@@ -10,7 +10,6 @@ import { OrganisationContent } from "./OrganisationContent";
 import { Button } from "@/components/ui/button";
 import { openFile } from "@/actions/openFileActions";
 import HideMenu from "@/icons/menu/hide-menu";
-import { ResourceResponse } from "@/types/resource.type";
 
 /**
  *
@@ -22,7 +21,7 @@ export default function RightSidebar()
 
 	const handleOpenClick = () => 
 	{
-		let str = openFile(currentId);
+		const str = openFile(currentId);
 
 		str.then(response => {
 			
@@ -48,7 +47,7 @@ export default function RightSidebar()
 			</div>
 			
 			{/* Content area */}
-			<div className="w-full h-full flex-1 overflow-y-auto p-4">
+			<div className="w-full h-full flex-1 overflow-y-auto p-4 pb-25">
 				{(() => 
 				{
 				    switch (currentType) 
@@ -66,8 +65,11 @@ export default function RightSidebar()
 			</div>
 			
 			{/* Footer */}
-			<div className="w-full flex justify-center p-3">
-				<p>Footer content here</p>
+			<div className="w-full flex justify-center mt-3">
+				{/* Fade */}
+				<div className="absolute bottom-0 right-0 w-full h-15 pointer-events-none" style={{ background: `linear-gradient(to top, rgba(249, 250, 251, 1), transparent)` }} />
+				
+				{/* ADD FOOTER CONTENT HERE */}
 			</div>
 		</Sidebar>
 	);

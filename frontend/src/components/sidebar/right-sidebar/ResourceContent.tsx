@@ -1,59 +1,50 @@
 "use client"
 
-import LoremIpsum from "@/utils/lorem-ipsum"
 import Expandable from "./expandable"
 import BadgeList from "./BadgeList"
 import { ListItem } from "./BadgeList"
 import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider"
 import { getProperties, getRelation } from "@/actions/right-sidebarActions"
-import { useState, use, useEffect } from "react"
+import React from "react"
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 import ResourceList from "./ResourceList"
+import { Button } from "@/components/ui/button"
+import { useUserRole } from "@/context/user-role-context"
+import ConfirmDeleteDialog from "@/components/ui/confirm-delete-dialog"
+import { toast } from "sonner"
+import { ApiResponse } from "@/types/apiResponse.type"
+import { useArchive } from "@/context/archive-provider"
 
 
 export function ResourceContent()
 {
-    const { currentId, rightSidebarOpen } = useSidebar();
-    const [ fileType, setFileType] = useState<string | null>(null);
-    const [ title, setTitle ] = useState<string | null>(null);
-    const [ url, setUrl ] = useState<string | undefined>(undefined);
-    const [ description, setDescription ] = useState<string | null>(null);
-    const [ note, setNote ] = useState<string | null>(null);
-    const [ authors, setAuthors ] = useState<ListItem[] | null>(null);
-    const [ tags, setTags ] = useState<ListItem[] | null>(null);
-    const [ organisations, setOrganisations ] = useState<ListItem[] | null>(null);
-    const [ relatedOrganisations, setRelatedOrganisations ] = useState<ListItem[] | null>(null);
-    const [ relatedPersons, setRelatedPersons ] = useState<ListItem[] | null>(null);
-    const [ relatedResources, setRelatedResources ] = useState<ListItem[] | null>(null);
-    const [ sourceList, setSourceList ] = useState<ListItem[] | null>(null);
-    const [ regions, setRegions ] = useState<ListItem[] | null>(null);
-    const [ relatedSourceList, setRelatedSourceList ] = useState<ListItem[] | null>(null);
+    const { currentId, rightSidebarOpen, setRightSidebarOpen } = useSidebar();
+    const { userRole } = useUserRole();
+    const { triggerGridReload } = useArchive();
+    
+    const [ fileType, setFileType] = React.useState<string | null>(null);
+    const [ title, setTitle ] = React.useState<string | null>(null);
+    const [ url, setUrl ] = React.useState<string | undefined>(undefined);
+    const [ description, setDescription ] = React.useState<string | null>(null);
+    const [ note, setNote ] = React.useState<string | null>(null);
+    const [ authors, setAuthors ] = React.useState<ListItem[] | null>(null);
+    const [ tags, setTags ] = React.useState<ListItem[] | null>(null);
+    const [ organisations, setOrganisations ] = React.useState<ListItem[] | null>(null);
+    const [ relatedOrganisations, setRelatedOrganisations ] = React.useState<ListItem[] | null>(null);
+    const [ relatedPersons, setRelatedPersons ] = React.useState<ListItem[] | null>(null);
+    const [ relatedResources, setRelatedResources ] = React.useState<ListItem[] | null>(null);
+    const [ sourceList, setSourceList ] = React.useState<ListItem[] | null>(null);
+    const [ regions, setRegions ] = React.useState<ListItem[] | null>(null);
 
-    const [shouldRefresh, setUpdateTrigger] = useState(false);
+    const [shouldRefresh, setUpdateTrigger] = React.useState(false);
     const triggerRefresh = () => setUpdateTrigger(prev => !prev);  
 
+    const [confirmDialogOpen, setConfirmDialogOpen] = React.useState<boolean>(false);
 
+    
 
-    useEffect(() => {
-        if (rightSidebarOpen) {
-        setFileType(null);
-        setUrl(undefined);
-        setTitle(null);
-        setDescription(null);
-        setNote(null);
-        setAuthors(null);
-        setTags(null);
-        setOrganisations(null);
-        setRelatedOrganisations(null);
-        setRelatedPersons(null);
-        setRelatedResources(null);
-        setSourceList(null);
-        setRegions(null);
-        loadInformation(); }
-    }, [currentId, shouldRefresh])
-
-    const loadInformation = async () => {
+    const loadInformation = React.useCallback(async () => {
         const infoPromise = getProperties(currentId, MetadataTypeEnum.RESOURCE);
         const authorsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "authors");
         const tagsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "tags");
@@ -63,10 +54,7 @@ export function ResourceContent()
         const relatedResourcesPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "resource-related-resources");
         const sourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "sources");
         const regionsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "regions");
-        const relatedSourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-sources");
-    
- 
-
+        // const relatedSourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-sources");
 
         infoPromise.then(response => {
             setFileType(response.body.fileType);
@@ -82,6 +70,7 @@ export function ResourceContent()
                 setDescription(response.body.description);
             }
             else {setDescription("No description.")}
+            
             if (response.body.note) {
                 setNote(response.body.note);
             }
@@ -93,7 +82,7 @@ export function ResourceContent()
         
 
         authorsPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+            const list: ListItem[] = response.body.map((item: { id: string; name: string }) => ({
                 id: item.id,
                 name: item.name,
                 type: "person",
@@ -104,7 +93,7 @@ export function ResourceContent()
         });
 
         tagsPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+            const list: ListItem[] = response.body.map((item: { id: string; name: string }) => ({
                 id: item.id,
                 name: item.name,
                 type: "tag",
@@ -115,7 +104,7 @@ export function ResourceContent()
         });
 
         organisationsPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+            const list: ListItem[] = response.body.map((item: { id: string; name: string }) => ({
                 id: item.id,
                 name: item.name,
                 type: "organisation",
@@ -126,7 +115,7 @@ export function ResourceContent()
         });
 
         relatedPersonsPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+            const list: ListItem[] = response.body.map((item: { id: string; name: string }) => ({
                 id: item.id,
                 name: item.name,
                 type: "person",
@@ -137,7 +126,7 @@ export function ResourceContent()
         });
         
         relatedOrganisationsPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+            const list: ListItem[] = response.body.map((item: { id: string; name: string }) => ({
                 id: item.id,
                 name: item.name,
                 type: "organisation",
@@ -148,8 +137,7 @@ export function ResourceContent()
         });
 
         relatedResourcesPromise.then(response => {
-            console.log(response.body[0].fileType)
-            const list: ListItem[] = response.body.map((item: { id: any; title: any; fileType: any }) => ({
+            const list: ListItem[] = response.body.map((item: { id: string; title: string; fileType: string }) => ({
                 id: item.id,
                 name: item.title,
                 type: item.fileType,
@@ -160,7 +148,7 @@ export function ResourceContent()
         });
 
         sourceListPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: {id: any; name: any}) => ({
+            const list: ListItem[] = response.body.map((item: {id: string; name: string}) => ({
                 id: decodeURIComponent(item.id),
                 name: decodeURIComponent(item.name),
                 type: "source",
@@ -171,7 +159,7 @@ export function ResourceContent()
         });
 
         regionsPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: {id: any; name: any}) => ({
+            const list: ListItem[] = response.body.map((item: {id: string; name: string}) => ({
                 id: item.id,
                 name: item.name,
                 type: "region",
@@ -181,62 +169,105 @@ export function ResourceContent()
             console.error("Error loading regions: ", error);
         });
         
-        relatedSourceListPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: {id: any; name: any}) => ({
-                id: decodeURIComponent(item.id),
-                name: decodeURIComponent(item.name),
-                type: "source",
-            }))
-            setRelatedSourceList(list);
-        }).catch(error => {
-            console.error("Error loading sources: ", error);
-        });
+        // relatedSourceListPromise.then(response => {
+        //     const list: ListItem[] = response.body.map((item: {id: string; name: string}) => ({
+        //         id: decodeURIComponent(item.id),
+        //         name: decodeURIComponent(item.name),
+        //         type: "source",
+        //     }))
+        //     setRelatedSourceList(list);
+        // }).catch(error => {
+        //     console.error("Error loading sources: ", error);
+        // });
 
-    }
+    }, [currentId])
     
+    React.useEffect(() => {
+        if (rightSidebarOpen) {
+        setFileType(null);
+        setUrl(undefined);
+        setTitle(null);
+        setDescription(null);
+        setNote(null);
+        setAuthors(null);
+        setTags(null);
+        setOrganisations(null);
+        setRelatedOrganisations(null);
+        setRelatedPersons(null);
+        setRelatedResources(null);
+        setSourceList(null);
+        setRegions(null);
+        loadInformation(); }
+    }, [currentId, shouldRefresh, loadInformation, rightSidebarOpen])
+    
+    const confirmDelete = async () => 
+    {
+        const response = await fetch(`/api/resources/trash/${currentId}`, { method: 'PATCH', credentials: 'include' });
+        
+        if (!response.ok) 
+        {
+            toast.error("Error Deleting Resource");
+            return;
+        }
+        
+        const data: ApiResponse = await response.json();
+        
+        if (data.success) 
+        {
+            setRightSidebarOpen(false);
+            triggerGridReload();
+        }
+        else 
+        {
+            toast.error("Error Deleting Resource");
+            console.error(data.message);
+        }
+    }
 
     return (
         <>
-            {fileType === "website" ? (
+            <ConfirmDeleteDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen} onConfirmation={confirmDelete} />
+        
+            <h1 className="pb-2 font-bold select-none text-2xl">{title || <Skeleton />}</h1>
+            
+            { fileType === "website" &&
                 <a href={url} className="select-none" target="_blank" rel="noreferror">
-                    <h1 className="pb-2 font-bold select-none">{title || <Skeleton />}</h1>
-                    <h1 className="p-1 pl-2 mb-2 bg-gray-200 rounded-md select-none">{url || <Skeleton />}</h1>
+                    <h1 className="mb-8 select-none text-blue-500 underline">{url}</h1>
                 </a>
-
-            ) : ( <h1 className="pb-2 font-bold select-none">{title || <Skeleton />}</h1> )}
+            }
         
             <Expandable title="Description" collapsedHeight={100}>
                 {description || <Skeleton />}
             </Expandable>
             
             <Expandable variant="horizontal" title="Tags">
-                <BadgeList listType="tags" emptyMessage={"No Tags recorded"} itemList={tags} onUpdate={triggerRefresh}/>
+                <BadgeList listType="tags" itemList={tags} onUpdate={triggerRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Authors">
-                <BadgeList listType="authors" emptyMessage={"No Authors recorded"} itemList={authors} onUpdate={triggerRefresh}/>
+                <BadgeList listType="authors" itemList={authors} onUpdate={triggerRefresh}/>
             </Expandable>
             
             <Expandable variant="horizontal" title="Organisations">
-                <BadgeList listType="organisations" emptyMessage={"No Organisations recorded"} itemList={organisations} onUpdate={triggerRefresh}/>
+                <BadgeList listType="organisations" itemList={organisations} onUpdate={triggerRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Related People">
-                <BadgeList listType="related-persons" emptyMessage={"No related persons recorded"} itemList={relatedPersons} onUpdate={triggerRefresh}/>
+                <BadgeList listType="related-persons" itemList={relatedPersons} onUpdate={triggerRefresh}/>
             </Expandable>
             
             <Expandable variant="horizontal" title="Related Organisations">
-                <BadgeList listType="related-organisations" emptyMessage={"No related organisations recorded"} itemList={relatedOrganisations} onUpdate={triggerRefresh}/>
+                <BadgeList listType="related-organisations" itemList={relatedOrganisations} onUpdate={triggerRefresh}/>
             </Expandable>
 
-            <ResourceList header="Related" resources={relatedResources}/>
+            <ResourceList header="Related Resources" resources={relatedResources}/>
 
             <Expandable variant="horizontal" title="Sources">
-                <BadgeList listType="sources" emptyMessage={"No sources recorded"} itemList={sourceList} onUpdate={triggerRefresh}/>
+                <BadgeList listType="sources" itemList={sourceList} onUpdate={triggerRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Regions">
-                <BadgeList listType="regions" emptyMessage={"No regions recorded"} itemList={regions} onUpdate={triggerRefresh}/>
+                <BadgeList listType="regions" itemList={regions} onUpdate={triggerRefresh}/>
             </Expandable>
 
             {/* {resourceType === "Scientific Article" && (
@@ -244,16 +275,20 @@ export function ResourceContent()
                     {<>insert abstract</> || <Skeleton />}
                 </Expandable> 
             )} */}
-
+            
             <Expandable title="Notes" collapsedHeight={100}>
                 {note || <Skeleton />}
             </Expandable>
 
-            <Expandable variant="horizontal" title="Related Sources">
+            {/* <Expandable variant="horizontal" title="Related Sources">
                 <BadgeList listType="related-sources" emptyMessage={"No sources recorded"} itemList={relatedSourceList} onUpdate={triggerRefresh}/>
-            </Expandable> 
+            </Expandable> */}
             
-            {fileType}
+            { userRole === 'admin' &&
+                <div className="w-full flex justify-center mt-10">
+                    <Button onClick={() => setConfirmDialogOpen(true)} variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600">Delete Resource</Button>
+                </div>
+            }
         </>
     )
 }

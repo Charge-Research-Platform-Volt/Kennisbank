@@ -1,11 +1,9 @@
-import { Table, TableCaption, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { Table, TableCaption, TableRow, TableBody, TableCell } from "@/components/ui/table";
 import { ListItem } from "./BadgeList";
 import Skeleton from "react-loading-skeleton";
 import { useEffect, useState } from "react";
-import Divider from "../divider";
-import OpenFileButton from "@/components/open-file-button";
-import GetDownloadIcon from "@/components/getDownloadIcon";
 import { MetadataTypeEnum, useSidebar } from "@/context/sidebar-provider";
+import OpenWebsiteIcon from "@/icons/file-type-icons/open-website";
 
 export default function ResourceList({resources, header} : {resources: ListItem[] | null; header: string}) {
     const [length, setLength] = useState<number>(5);
@@ -21,7 +19,7 @@ export default function ResourceList({resources, header} : {resources: ListItem[
 
 
     function addRows () {
-        let r = resources as ListItem[];
+        const r = resources as ListItem[];
         if (length + 5 >= r.length) {
             setLength(r.length);
             setMaxLength(true);
@@ -42,29 +40,33 @@ export default function ResourceList({resources, header} : {resources: ListItem[
         <>
         <div className="w-full flex items-center gap-2 select-none">
             <span>{header}</span>
-                <div className="flex-1 h-px bg-gray-300" />
+            <div className="flex-1 h-px bg-gray-300" />
         </div>
         {resources && resources.length === 0 ? (
             <div className=" text-gray-500 text-center select-none">No resources available</div>
         ) : (
-        <Table className="bg-gray-200 rounded-2xl table-fixed select-none">
+        <Table className="table-fixed select-none">
             {!resources || (maxLength && length < 6) ? (<TableCaption></TableCaption>) : (<>{maxLength ? (
             <TableCaption className={`hover:underline cursor-pointer select-none`} onClick={() => hideRows()}>Hide</TableCaption>) : (
             <TableCaption className={`hover:underline cursor-pointer select-none`} onClick={() => addRows()}>Load more</TableCaption>)}</>)}
             <TableBody className="select-none">
                 {resources ? ( resources.slice(0, length).map((item: ListItem) => (
                     <TableRow key={item.id || item.name} onClick={() => navigateTo(item.id)} className="cursor-pointer select-none">
-                        <TableCell className="select-none overflow-hidden text-ellipsis w-[93%]"><>{item.name}</></TableCell>
-                        <TableCell className="select-none w-[7%]"><GetDownloadIcon fileType={item.type} className="h-5 w-5" /></TableCell>
+                        <TableCell className="select-none overflow-hidden text-ellipsis w-[93%]">
+                            {item.name}
+                        </TableCell>
+                        <TableCell className="select-none w-[7%]">
+                            <OpenWebsiteIcon className="h-5 w-5" />
+                        </TableCell>
                     </TableRow>
                 ))
                 ) : (
                     <>
-                    <TableRow><TableCell><Skeleton /></TableCell></TableRow>
-                    <TableRow><TableCell><Skeleton /></TableCell></TableRow>
-                    <TableRow><TableCell><Skeleton /></TableCell></TableRow>
-                    <TableRow><TableCell><Skeleton /></TableCell></TableRow>
-                    <TableRow><TableCell><Skeleton /></TableCell></TableRow>
+                        <TableRow><TableCell><Skeleton /></TableCell></TableRow>
+                        <TableRow><TableCell><Skeleton /></TableCell></TableRow>
+                        <TableRow><TableCell><Skeleton /></TableCell></TableRow>
+                        <TableRow><TableCell><Skeleton /></TableCell></TableRow>
+                        <TableRow><TableCell><Skeleton /></TableCell></TableRow>
                     </>
                 )}
             </TableBody>

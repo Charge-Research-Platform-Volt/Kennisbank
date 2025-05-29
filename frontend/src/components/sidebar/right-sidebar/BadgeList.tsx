@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge"
 import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider"
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
-import New from "@/icons/new"
 import NewBadge from "./NewBadge"
 import { useArchive } from "@/context/archive-provider"
 import { organisationRelation, personRelation, resourceRelation } from "@/actions/right-sidebarActions";
@@ -23,7 +22,6 @@ interface BadgeListProps
     variant?: "outline" | "default" | "secondary" | "destructive";
     className?: string;
     listType: resourceRelation | personRelation | organisationRelation;
-    emptyMessage: string;
     itemList: ListItem[] | null;
     onUpdate: () => void;
 }
@@ -35,13 +33,12 @@ export default function BadgeList({
     variant = "outline",
     className = "p-2 select-none",
     listType, //can be overridden, is used to identify what relation you can add with the plus button
-    emptyMessage = "None found",
     itemList,
     onUpdate,
 } : BadgeListProps)
 {
     const { navigate } = useSidebar();
-    const { setTagFilter: setTagFilters } = useArchive();
+    const { setTagFilter, setTypeFilter } = useArchive();
     
     async function navigateTo(id: string, type: string)
     {
@@ -52,8 +49,8 @@ export default function BadgeList({
         }
         else if (type == "tag")
         {
-            // Add here: apply tag filter on archive
-            setTagFilters([id]);
+            setTypeFilter(['resource']);
+            setTagFilter([id]);
         }
         else if (type = "source")
         {
@@ -62,7 +59,7 @@ export default function BadgeList({
     }
 
     async function removeRelation(id: string, type: string) {
-
+        return [id, type]
     }
 
     return (
@@ -78,7 +75,7 @@ export default function BadgeList({
                     {itemList.map((item, index) =>(
                         <ContextMenu key={index}>
                             <ContextMenuTrigger>
-                                <Badge onClick={() => navigateTo(item.id, item.type)} variant={variant} className={className}>{item.name}</Badge>
+                                <Badge onClick={() => { navigateTo(item.id, item.type); }} variant={variant} className={className}>{item.name}</Badge>
                             </ContextMenuTrigger>
                             <ContextMenuContent className="select-none">
                                 <ContextMenuItem className="select-none text-red-600" onClick={() => removeRelation(item.id, item.id)}>

@@ -37,7 +37,7 @@ export default function Page() {
         setRegionFilter,
         resetFilters,
         trashOpen,
-        setTrashOpen
+        setTrashOpen,
     } = useArchive();
     
     const { userRole } = useUserRole();
