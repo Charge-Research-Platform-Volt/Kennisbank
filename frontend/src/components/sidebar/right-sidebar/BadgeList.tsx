@@ -9,6 +9,7 @@ import New from "@/icons/new"
 import NewBadge from "./NewBadge"
 import { useArchive } from "@/context/archive-provider"
 import { organisationRelation, personRelation, resourceRelation } from "@/actions/right-sidebarActions";
+import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "@/components/ui/context-menu";
 
 export interface ListItem
 {
@@ -60,8 +61,7 @@ export default function BadgeList({
         }
     }
 
-    function addBadge()
-    {
+    async function removeRelation(id: string, type: string) {
 
     }
 
@@ -76,7 +76,16 @@ export default function BadgeList({
             ) : itemList.length > 0 ? (
                 <>
                     {itemList.map((item, index) =>(
-                        <Badge key={index} onClick={() => navigateTo(item.id, item.type)} variant={variant} className={className}>{item.name}</Badge>
+                        <ContextMenu key={index}>
+                            <ContextMenuTrigger>
+                                <Badge onClick={() => navigateTo(item.id, item.type)} variant={variant} className={className}>{item.name}</Badge>
+                            </ContextMenuTrigger>
+                            <ContextMenuContent className="select-none">
+                                <ContextMenuItem className="select-none text-red-600" onClick={() => removeRelation(item.id, item.id)}>
+                                    <div className="select-none cursor-pointer">Remove relation</div>
+                                </ContextMenuItem>
+                            </ContextMenuContent>
+                        </ContextMenu>
                     ))}
                     <NewBadge relation={listType} onUpdate={onUpdate} alreadyRelated={itemList}/>
                 </>

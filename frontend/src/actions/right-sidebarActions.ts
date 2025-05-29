@@ -75,11 +75,11 @@ export const getRelation = async (
         "related-organisations": "OrganisationId as id,Organisation.Name as name",
         "related-persons": "PersonId as id,Person.Name as name",
         "related-resources": "ResourceId as id,Resource.Title as name",
-        "resource-related-resources": "Id as id,Title as name,FileType as fileType",
+        "resource-related-resources": "Id as id,Title,FileType as fileType",
         "related-sources": "Url as id,Url as name",
         "sources": "Url as id,Url as name",
         "tags": "TagId as id,Tag.Name as name",
-        "website": "Url as id, Url as name"
+        "website": "Url as id,Url as name"
     }[relation];
     
     const cookieHeader : ReadonlyRequestCookies = await cookies();
@@ -163,8 +163,8 @@ export const newRelationSearchResults = async (
             headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
         };
     }
-    else if (type === "authored-resources" || type === "related-resources" || type === "direct-resources" || type == "resource-related-resources") {
-        endPoint = `resources/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Name")}`;
+    else if (type === "authored-resources" || type === "related-resources" || type === "direct-resources") {
+        endPoint = `resources/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Title as name")}`;
         path = '/list';
         fetchContents = {
             method: "Get",
@@ -201,30 +201,36 @@ export const addRelation = async (
     let endPoint;
     const cookieHeader : ReadonlyRequestCookies = await cookies();
 
-    if (type === MetadataTypeEnum.RESOURCE) {
-        endPoint = `resources/${encodeURIComponent(id)}/relations/add/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`
+    if (type === "resource") {
+        endPoint = `Resources/${encodeURIComponent(id)}/relations/add/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`
     }
 
-    else if (type === MetadataTypeEnum.PERSON) {
-        endPoint = `persons/${encodeURIComponent(id)}/relations/add/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`
+    else if (type === "person") {
+        endPoint = `Persons/${encodeURIComponent(id)}/relations/add/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`
     }
 
-    else if (type === MetadataTypeEnum.ORGANISTATION) {
-        endPoint = `organisations/${encodeURIComponent(id)}/relations/add/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`
+    else if (type === "organisation") {
+        endPoint = `Organisations/${encodeURIComponent(id)}/relations/add/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`
     }
 
 
-    const response = await fetch(
-        `${process.env.API_URL}/${endPoint}`,
-        {
-            method: "Get",
-            credentials: "include",
-            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
-        }
-    )
-
+    const fullUrl = `${process.env.API_URL}/${endPoint}`;
+    
+    
+    const response = await fetch(fullUrl, {
+        method: "GET",
+        credentials: "include",
+        headers: { 
+            "Content-Type": "application/json", 
+            Cookie: cookieHeader.toString() || "" 
+        },
+    });
+    
+    
     if (!response.ok) {
-      throw new Error("Problem adding relation");
+        const errorText = await response.text();
+        console.error("API Error:", errorText);
+        throw new Error(`Problem adding relation: ${response.status} - ${errorText}`);
     }
 }
 

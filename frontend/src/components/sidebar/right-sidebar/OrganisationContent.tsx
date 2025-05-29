@@ -34,14 +34,14 @@ export function OrganisationContent()
             setPersons(null);
             loadInformation();
         }
-    }, [currentId])
+    }, [currentId, shouldRefresh])
     
     const loadInformation = async () => {
-        const infoPromise = getProperties(currentId, MetadataTypeEnum.ORGANISTATION);
-        const resourcesPromise = getRelation(currentId, MetadataTypeEnum.ORGANISTATION, "direct-resources");
-        const relatedResourcsePromise = getRelation(currentId, MetadataTypeEnum.ORGANISTATION, "related-resources");
-        const organisationsPromise = getRelation(currentId, MetadataTypeEnum.ORGANISTATION, "organisation-related-organisations");
-        const personsPromise = getRelation(currentId, MetadataTypeEnum.ORGANISTATION, "persons");
+        const infoPromise = getProperties(currentId, MetadataTypeEnum.ORGANISATION);
+        const resourcesPromise = getRelation(currentId, MetadataTypeEnum.ORGANISATION, "direct-resources");
+        const relatedResourcsePromise = getRelation(currentId, MetadataTypeEnum.ORGANISATION, "related-resources");
+        const organisationsPromise = getRelation(currentId, MetadataTypeEnum.ORGANISATION, "organisation-related-organisations");
+        const personsPromise = getRelation(currentId, MetadataTypeEnum.ORGANISATION, "persons");
 
         infoPromise.then(response => {
             setName(response.body.name);

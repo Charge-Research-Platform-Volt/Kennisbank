@@ -34,7 +34,7 @@ export function PersonContent()
             setOrganisations(null);
             loadInformation();
         }
-    }, [currentId])
+    }, [currentId, shouldRefresh])
 
     const loadInformation = async () => {
         const infoPromise = getProperties(currentId, MetadataTypeEnum.PERSON);

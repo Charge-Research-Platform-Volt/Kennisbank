@@ -6,7 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import Stack from "@/lib/stack";
 
 // Enumerator for the different types of items to be displayed in the right sidebar
-export enum MetadataTypeEnum { RESOURCE = "resource", PERSON = "person", ORGANISTATION = "organisation" }
+export enum MetadataTypeEnum { RESOURCE = "resource", PERSON = "person", ORGANISATION = "organisation" }
 
 export type SidebarContextType =
 {
