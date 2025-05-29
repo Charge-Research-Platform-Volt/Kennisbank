@@ -3,12 +3,6 @@ using Microsoft.AspNetCore.Identity;
 
 namespace KnowledgeBank.Data
 {
-    /// <summary>
-    /// Initializes roles in the KnowledgeBank application.
-    /// This class is responsible for creating the default roles and assigning them to users.
-    /// 
-    /// Author: Abel Dietrich, Jason van Otterlo
-    /// </summary>
     public static class RoleInitializer
     {
         public static readonly string[] roleNames =
@@ -17,16 +11,6 @@ namespace KnowledgeBank.Data
             "user"
         };
 
-        /// <summary>
-        /// Initializes the roles in the application.
-        /// This method creates the roles defined in the roleNames array if they do not already exist,
-        /// and creates a default admin user with the "admin" role and a default user with the "user" role.
-        /// It should be called during the application startup to ensure that the roles are set up correctly.
-        /// 
-        /// Author: Abel Dietrich, Jason van Otterlo
-        /// </summary>
-        /// <param name="serviceProvider">The service provider to resolve dependencies.</param>
-        /// <returns>A task representing the asynchronous operation.</returns>
         public static async Task InitializeAsync(IServiceProvider serviceProvider)
         {
             using IServiceScope scope = serviceProvider.CreateScope();

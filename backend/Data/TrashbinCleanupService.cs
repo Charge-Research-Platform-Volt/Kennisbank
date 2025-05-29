@@ -5,8 +5,6 @@ using KnowledgeBank.Models;
 
 /// <summary>
 /// A background service that runs daily to clean up archived resources from the database.
-/// 
-/// Author: Rens van Moorsel
 /// </summary>
 public class TrashbinCleanupService : BackgroundService
 {
@@ -14,8 +12,6 @@ public class TrashbinCleanupService : BackgroundService
 
     /// <summary>
     /// Initializes the cleanup service with the specified service provider.
-    /// 
-    /// Author: Rens van Moorsel
     /// </summary>
     public TrashbinCleanupService(IServiceProvider serviceProvider)
     {
@@ -24,8 +20,6 @@ public class TrashbinCleanupService : BackgroundService
 
     /// <summary>
     /// Executes the cleanup task once every 24 hours or at a scheduled time.
-    /// 
-    /// Author: Rens van Moorsel
     /// </summary>
     /// <param name="stoppingToken">Token used to cancel execution.</param>
     /// <returns>A task representing the asynchronous operation.</returns>

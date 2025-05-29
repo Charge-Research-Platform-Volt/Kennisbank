@@ -5,13 +5,6 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace KnowledgeBank.Data
 {
-    /// <summary>
-    /// Represents the database context for the KnowledgeBank application.
-    /// /// This context is used to interact with the database and manage entities such as resources, tags, users, and their relationships.
-    // It inherits from IdentityDbContext to provide user authentication and authorization features.
-    ///
-    /// Author: Elia Jabbour, Rens van Moorsel, Jelle van het Schut, Aiden van Dijk, Abel Dietrich, Jason van Otterlo, Justin Liem
-    /// </summary>
     public class DatabaseContext : IdentityDbContext
     {
         public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options) { }
@@ -27,7 +20,7 @@ namespace KnowledgeBank.Data
         public DbSet<AudioMetadata> AudioMetadata { get; set; }
         public DbSet<VideoMetadata> VideoMetadata { get; set; }
         public DbSet<Person> Persons { get; set; }
-        public DbSet<Organisation> Organisations { get; set; }
+        public DbSet<Organisation> Organisations {get; set; }
         public DbSet<Region> Regions { get; set; }
         public DbSet<ResourceType> ResourceTypes { get; set; }
 
@@ -36,19 +29,13 @@ namespace KnowledgeBank.Data
         public DbSet<ResourceRelatedPersonRelation> ResourceRelatedPersonRelations { get; set; }
         public DbSet<ResourceOrganisationRelation> ResourceOrganisationRelations { get; set; }
         public DbSet<ResourceRelatedOrganisationRelation> ResourceRelatedOrganisationRelations { get; set; }
-        public DbSet<PersonOrganisationRelation> PersonOrganisationRelations { get; set; }
+        public DbSet<PersonOrganisationRelation> PersonOrganisationRelations { get; set;}
         public DbSet<PersonRelationship> PersonRelationships { get; set; }
         public DbSet<OrganisationRelationship> OrganisationRelationships { get; set; }
         public DbSet<ResourceRegionRelation> ResourceRegionRelations { get; set; }
         public DbSet<ResourceSourceRelation> ResourceSourceRelations { get; set; }
         public DbSet<ResourceRelatedSourceRelation> ResourceRelatedSourceRelations { get; set; }
 
-        /// <summary>
-        /// Configures the model for the database context, including relationships and constraints.
-        /// 
-        /// Author: Elia Jabbour, Abel Dietrich
-        /// </summary>
-        /// <param name="modelBuilder">The model builder used to configure the model.</param>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Resource>()
@@ -61,32 +48,32 @@ namespace KnowledgeBank.Data
                 .HasKey(ft => new { ft.ResourceId, ft.TagId }); // Define composite primary key
 
             modelBuilder.Entity<ResourceAuthorRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.PersonId });
-
+                .HasKey(ft => new { ft.ResourceId, ft.PersonId});
+                
             modelBuilder.Entity<ResourceRelatedPersonRelation>()
-               .HasKey(ft => new { ft.ResourceId, ft.PersonId });
-
+               .HasKey(ft => new { ft.ResourceId, ft.PersonId});
+                
             modelBuilder.Entity<ResourceOrganisationRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.OrganisationId });
+                .HasKey(ft => new { ft.ResourceId, ft.OrganisationId});
 
             modelBuilder.Entity<ResourceRelatedOrganisationRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.OrganisationId });
-
+                .HasKey(ft => new { ft.ResourceId, ft.OrganisationId});
+                
             modelBuilder.Entity<PersonOrganisationRelation>()
-                .HasKey(ft => new { ft.PersonId, ft.OrganisationId });
+                .HasKey(ft => new { ft.PersonId, ft.OrganisationId});
 
             modelBuilder.Entity<PersonRelationship>()
-                .HasKey(ft => new { ft.SourcePersonId, ft.TargetPersonId });
-
+                .HasKey(ft => new { ft.SourcePersonId, ft.TargetPersonId});
+                
             modelBuilder.Entity<OrganisationRelationship>()
-                .HasKey(ft => new { ft.SourceOrganisationId, ft.TargetOrganisationId });
-
+                .HasKey(ft => new { ft.SourceOrganisationId, ft.TargetOrganisationId});
+                
             modelBuilder.Entity<ResourceRegionRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.RegionId });
-
+                .HasKey(ft => new { ft.ResourceId, ft.RegionId});
+                
             modelBuilder.Entity<ResourceSourceRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.Url });
-
+                
             modelBuilder.Entity<ResourceRelatedSourceRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.Url });
 
@@ -116,9 +103,7 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Saves database changes and ensures that any file updates related to FileItem entities 
         /// are processed within the same transaction. This guarantees consistency between the database 
-        /// and the file system and between FileItem entities and their search vectors. 
-        /// 
-        /// Author: Abel Dietrich, Elia Jabbour, Jelle van het Schut       
+        /// and the file system and between FileItem entities and their search vectors.        
         /// </summary>
         /// <param name="cancellationToken">A token used to observe operation cancellation.</param>
         /// <returns>The number of state entries written to the database.</returns>
@@ -142,8 +127,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Updates or inserts full-text search vectors for the given list of updated FileItem entities. 
         /// If a vector already exists for a file, it is updated. Otherwise, a new vector is inserted.
-        /// 
-        /// Author: Abel Dietrich, Jelle van het Schut, Rens van Moorsel
         /// </summary>
         /// <param name="updatedResources">A list of files that were added or modified.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
