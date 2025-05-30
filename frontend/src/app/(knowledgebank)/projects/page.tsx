@@ -12,7 +12,6 @@ export default async function ProjectsPage() {
   }
 
   const currentUserId = (await GetCurrentUserId()).body;
-  console.log(currentUserId)
 
   const projects: Project[] = projectFetch.body.projects;
 

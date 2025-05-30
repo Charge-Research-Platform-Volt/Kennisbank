@@ -48,7 +48,7 @@ export const ListProjectsPaged = async (pageIndex: number, searchQuery: string):
  * @param projectId - The ID of the project/folder to fetch content for.
  * @returns An object containing resources and projects (folders).
  */
-export const getProjectContentById = async (projectId: string): Promise<{ resources: ResourceProject[], projects: FolderProject[], creators: string[], tags: Tag[] }> => {
+export const getProjectContentById = async (projectId: string): Promise<{ resources: ResourceProject[], projects: FolderProject[], creators: User[], tags: Tag[] }> => {
     try {
         const cookieHeader = await cookies();
         const response = await fetch(`${process.env.API_URL}/Project/info/${projectId}`, {

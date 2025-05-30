@@ -129,8 +129,6 @@ const deleteItem = (id: string) => {
 
     // Check if the item to be deleted matches any of the selected item
     selectedItems.forEach(item => {
-        console.log(item.name)
-        console.log(item.id)
         if (item.id == id) {
             updateItems(selectedItems.filter(t => t.id != item.id)); // Return everything aside from this item
             setInputValue("");
@@ -297,8 +295,8 @@ const displayUsers = (selectedUsers: User[], selectMultiple: boolean, truncate: 
     return "Select user(s)...";
 };
 
-const fetchUsers = async (inputValue: string, exclude?: string): Promise<DisplayUser[]> => {
-    const fetchedUsers = (await ListUsersPaged(1, inputValue)).users?.filter(users => users.id != exclude) ?? [];
+const fetchUsers = async (inputValue: string, exclude: string[]): Promise<DisplayUser[]> => {
+    const fetchedUsers = (await ListUsersPaged(1, inputValue)).users?.filter(user => !exclude.includes(user.id)) ?? [];
     return fetchedUsers.map(user => ({ ...user, name: user.username })); // assign name property so that it can be found in the selection box
 };
 
@@ -307,7 +305,34 @@ export function SelectUserDropdown({onChangeAction = () => {}, className, select
     return(
         <SelectDropDown
             onChangeAction={onChangeAction}
-            fetchFunction={val => fetchUsers(val, currentUserId)}
+            fetchFunction={val => fetchUsers(val, [currentUserId ?? ""])}
+            selectMultiple={selectMultiple}
+            className={className ?? ""}
+            getTriggerDisplay={displayUsers}
+            placeholder={"Search for users..."}
+            renderItem={(user) => (
+                <div className="flex items-center gap-2">
+                    <span>{user.name}</span>
+                </div>
+            )}
+            renderSelectedItem={(user: User, onDelete) => (
+                <div className="flex items-center justify-between w-full overflow-x-auto">
+                    <span>{user.username}</span>
+                    <Button onClick={() => onDelete(user.id)} size="sm" className="ml-2 cursor-pointer" type="button">
+                        Delete
+                    </Button>
+                </div>
+            )}></SelectDropDown>
+    )
+}
+
+// Slightly different from above, since it has multiple users to exclude, namely all the creators
+export function AddUserDropdown({onChangeAction = () => {}, className, selectMultiple, currentCreators} : {onChangeAction?: (selectedUser : DisplayUser[]) => void, className: string, selectMultiple: boolean, currentCreators: User[]})
+{
+    return(
+        <SelectDropDown
+            onChangeAction={onChangeAction}
+            fetchFunction={(val => fetchUsers(val, currentCreators.map(c => c.id)))} // filter out any already added creators
             selectMultiple={selectMultiple}
             className={className ?? ""}
             getTriggerDisplay={displayUsers}

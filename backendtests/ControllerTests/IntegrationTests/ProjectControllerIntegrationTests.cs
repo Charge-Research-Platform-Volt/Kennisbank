@@ -1032,12 +1032,14 @@ public class ProjectControllerTests : TestBase
             { "creators", JsonDocument.Parse(JsonSerializer.Serialize(new List<string>{_adminUserId.ToString()})).RootElement }
         };
 
+        // Now we update the creators, which means we add to the existing list. 
         ObjectResult updateRes = (ObjectResult)await _controller.Update(projectId, testDict);
         Assert.That(updateRes.StatusCode, Is.EqualTo(200));
         Assert.That(Context.Projects.Count, Is.EqualTo(1));
 
         Project updated = await _projectManager.GetProjectAsync(projectId, includeProperties: ["ProjectCreatorRelations"]);
-        Assert.That(updated.ProjectCreatorRelations.First().CreatorId == _adminUserId.ToString());
+        Assert.That(updated.ProjectCreatorRelations.Count, Is.EqualTo(2));
+        Assert.That(updated.ProjectCreatorRelations.Select(r => r.CreatorId).Contains(_adminUserId.ToString()));
     }
 
     [Test]
@@ -1071,7 +1073,7 @@ public class ProjectControllerTests : TestBase
 
         Project updated = await _projectManager.GetProjectAsync(projectId, includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations"]);
         Assert.That(updated.ProjectTagRelations.First().TagId == tagId);
-        Assert.That(updated.ProjectCreatorRelations.First().CreatorId == _adminUserId.ToString());
+        Assert.That(updated.ProjectCreatorRelations.Select(r => r.CreatorId).Contains(_adminUserId.ToString()));
         Assert.That(updated.Title == "newtitle");
         Assert.That(updated.Description == "newdesc");
 

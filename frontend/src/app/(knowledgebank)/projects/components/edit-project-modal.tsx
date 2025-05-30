@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Project } from '@/types/project.type';
 import { updateProject } from '@/actions/projectActions'; 
-import { SelectTagDropdown, SelectUserDropdown } from '@/components/Selection/SelectionDropdown';
+import { AddUserDropdown, SelectTagDropdown, SelectUserDropdown } from '@/components/Selection/SelectionDropdown';
 import { Tag } from '@/types/tag.type';
 import { User } from '@/types/user.type';
 
@@ -17,7 +17,7 @@ interface EditProjectModalProps {
   onClose: () => void;
   onSuccess: () => void;
   project: Project | null;
-  currentUserId: string;
+  currentCreators: User[]
 }
 
 export default function EditProjectModal({
@@ -25,13 +25,13 @@ export default function EditProjectModal({
   onClose,
   onSuccess,
   project,
-  currentUserId,
+  currentCreators
 }: EditProjectModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [tags, setTags] = useState<Tag[]>([]);
-  const [creators, setCreators] = useState<User[]>([]);
+  const [creators, setCreators] = useState<User[]>();
   
   
   const [error, setError] = useState('');
@@ -63,6 +63,7 @@ export default function EditProjectModal({
     setError('');
 
     try {
+      console.log("test")
       const updates: Record<string, unknown> = {};
       if (title.trim() && title.trim() !== project.title) {
         updates.title = title.trim();
@@ -70,9 +71,20 @@ export default function EditProjectModal({
       if (typeof description === 'string' && description.trim() !== (project.description || '')) {
         updates.description = description.trim() || null;
       }
-      // TODO: add creators and tags
 
-        // Only send updates if there are changes
+      // Only send updates if there are changes
+
+      if(creators && creators?.length != 0)
+      {
+        updates.creators = creators.map(creator => creator.id);
+      }
+
+      // For tags the user is explicitly asked to enter all new ones so just update those
+      if(tags)
+      {
+        updates.tags = tags.map(tag => tag.id);
+      }
+
       if (Object.keys(updates).length === 0) {
         setIsLoading(false);
         onClose();
@@ -112,6 +124,9 @@ return (
                 <DialogTitle>
                     Edit {isFolder ? 'Folder' : 'Project'}
                 </DialogTitle>
+                <DialogDescription>
+                  Edit details of the selected project. Only creators of the project are allowed to edit these details.
+                </DialogDescription>
             </DialogHeader>
             
               <div className="grid gap-4 py-4">
@@ -160,13 +175,13 @@ return (
                 {!isFolder && (
                   <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="creators" className="text-right">
-                    New Creators
+                    Add Creators
                   </Label>
-                  <SelectUserDropdown
+                  <AddUserDropdown
                     className="col-span-3"
                     selectMultiple={true}
                     onChangeAction={setCreators}
-                    currentUserId={''} // do not exclude any when updating
+                    currentCreators={currentCreators} // exclude current creators when updating
                   />
                   </div>
                 )}
@@ -175,7 +190,7 @@ return (
                 {!isFolder && (
                   <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="tags" className="text-right">
-                    Tags
+                    New Tags
                   </Label>
                   <SelectTagDropdown 
                     className="col-span-3"

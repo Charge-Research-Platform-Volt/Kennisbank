@@ -95,7 +95,7 @@ export default function CreateProjectModal({ isOpen, onClose, onSuccess, current
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-right">
+              <Label htmlFor="title" className="text-left">
                 Title
               </Label>
               <Input
@@ -104,11 +104,12 @@ export default function CreateProjectModal({ isOpen, onClose, onSuccess, current
                 onChange={(e) => setTitle(e.target.value)}
                 className="col-span-3"
                 data-testid="input-project-title"
+                placeholder="Required title for the new project"
                 required
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">
+              <Label htmlFor="description" className="text-left">
                 Description
               </Label>
               <Textarea
@@ -121,7 +122,7 @@ export default function CreateProjectModal({ isOpen, onClose, onSuccess, current
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               {/**creators */}
-              <Label htmlFor="creators" className="text-right">
+              <Label htmlFor="creators" className="text-left">
                 Co-Creators
               </Label>
               <SelectUserDropdown
@@ -133,7 +134,7 @@ export default function CreateProjectModal({ isOpen, onClose, onSuccess, current
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               {/**tags */}
-              <Label htmlFor="tags" className="text-right">
+              <Label htmlFor="tags" className="text-left">
                 Tags
               </Label>
               <SelectTagDropdown 

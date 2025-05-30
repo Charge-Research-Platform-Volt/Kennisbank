@@ -445,7 +445,13 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             }
 
             // Names of creators
-            List<string?>? creatorNames = project.ProjectCreatorRelations?.Select(r => r.Creator.UserName).ToList() ?? [];
+            // new UserResponse(new Guid(user.Id), user.UserName, user.Email, user.EmailConfirmed, roles.FirstOrDefault() ?? "No Role")
+            List<UserResponse>? creatorNames = project.ProjectCreatorRelations?.Select(r => new UserResponse(
+                new Guid(r.Creator.Id),
+                r.Creator.UserName,
+                r.Creator.Email,
+                r.Creator.EmailConfirmed,
+                "No Role")).ToList() ?? [];
             List<Tag?>? tags = project.ProjectTagRelations?.Select(r => r.Tag).ToList() ?? [];
 
             // Create the DTO
@@ -721,7 +727,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
     #region Helper Methods
 
-    // Keep in mind, updates to tags and creators are done by just supplying the new tags + creators, so just delete the old ones and make new links
+    // Keep in mind, updates to tags are done by just supplying the new tags, so just delete the old ones and make new links. Creators are only ever added to.
     private async Task UpdateProperty(Project project, string property, object newValue)
     {
         // Update the appropiate property based on the type

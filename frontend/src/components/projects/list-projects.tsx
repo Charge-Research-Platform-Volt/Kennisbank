@@ -23,6 +23,7 @@ import Search from "@/icons/search-icon";
 import GeneratePopup from "./popup";
 import { Tag } from "@/types/tag.type";
 import EditProjectModal from "@/app/(knowledgebank)/projects/components/edit-project-modal";
+import { User } from "@/types/user.type";
 
 // Register all modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -55,7 +56,7 @@ interface ListProjectsProps {
   initialResources: ResourceProject[];
   initialProjects: FolderProject[];
   // Function to fetch data for a specific project ID
-  fetchProjectAction: (projectId: string) => Promise<{ resources: ResourceProject[], projects: FolderProject[], creators: string[], tags: Tag[] }>;
+  fetchProjectAction: (projectId: string) => Promise<{ resources: ResourceProject[], projects: FolderProject[], creators: User[], tags: Tag[] }>;
   currentUserId: string;
 }
 
@@ -72,7 +73,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   // State for current projects and resources being displayed
   const [resources, setResources] = useState<ResourceProject[]>(initialResources);
   const [projects, setProjects] = useState<FolderProject[]>(initialProjects);
-  const [creators, setCreators] = useState<string[]>([]);
+  const [creators, setCreators] = useState<User[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -98,8 +99,8 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
 
   // state for project tags and creators popup
   const [isProjectsTagsModalOpen, setIsProjectTagsModalOpen] = useState(false);
-
   const [isProjectCreatorsModalOpen, setIsProjectCreatorsModalOpen] = useState(false);
+  const [creatorsEdit, setCreatorsEdit] = useState<User[]>([]);
 
 
   // Handles filtering the projects and resources based on the current query
@@ -655,9 +656,24 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     setIsEditModalOpen(true);
   };
 
+  // For excluding current creators of a project when updating
+  useEffect(() => {
+    const loadProjectContent = async () => {
+      if (selectedProjectForEdit && selectedProjectForEdit.id) {
+        const { resources, projects, creators, tags } = await fetchProjectContent(selectedProjectForEdit.id);
+        setCreatorsEdit(creators ? creators : []);
+      }
+    };
+
+    if (isEditModalOpen) { // Only fetch when the modal is open and selectedProjectForEdit is set
+      loadProjectContent();
+    }
+  }, [selectedProjectForEdit, isEditModalOpen]);
+
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
     setSelectedProjectForEdit(null);
+    setCreatorsEdit([]);
   };
 
   const handleEditSuccess = async () => {
@@ -858,7 +874,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
       <GeneratePopup
         title="Creators"
         description="These are the creators of this project / folder"
-        content={creators}
+        content={creators.map(creator => creator.username)}
         open={isProjectCreatorsModalOpen}
         onClose={handleCloseProjectCreatorsModal}/>
 
@@ -868,7 +884,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
         onClose={handleCloseEditModal}
         onSuccess={handleEditSuccess}
         project={selectedProjectForEdit}
-        currentUserId={currentUserId}
+        currentCreators={creatorsEdit}
       />
     </div>
   );

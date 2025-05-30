@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+using KnowledgeBank.Responses;
 
 namespace KnowledgeBank.Models;
 
@@ -98,7 +99,7 @@ public class ProjectInfoDto
     public Project? Project { get; set; } = null;
     public List<FolderWithAddedBy?> Folders { get; set; } = [];
     public List<ResourceWithAddedBy?> Resources { get; set; } = [];
-    public List<string?> Creators { get; set; } = [];
+    public List<UserResponse> Creators { get; set; } = [];
     public List<Tag?> Tags { get; set; } = [];
 }
 

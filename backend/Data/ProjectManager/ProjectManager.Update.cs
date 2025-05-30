@@ -71,7 +71,7 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> UpdateProjectCreatorsAsync(Guid id, Guid[] newValue)
         {
-            await RemoveAllCreatorsFromProject(id);
+            //await RemoveAllCreatorsFromProject(id);
             await AddCreatorToProjectRangeAsync(id, newValue);
             return true;
         }

@@ -63,6 +63,7 @@ public class UserController : ControllerBase
         }
     }
 
+    [AllowAnonymous]
     [HttpGet("list-paged")]
     [SwaggerOperation(
         Summary = "Gets a page of users",
