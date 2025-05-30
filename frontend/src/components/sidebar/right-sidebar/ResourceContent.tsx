@@ -10,6 +10,7 @@ import { useState, use, useEffect } from "react"
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 import ResourceList from "./ResourceList"
+import Divider from "../divider"
 
 
 export function ResourceContent()
@@ -366,7 +367,12 @@ export function ResourceContent()
                 <BadgeList listType="related-sources" emptyMessage={"No sources recorded"} itemList={relatedSourceList} onUpdate={triggerRelatedSourceListRefresh}/>
             </Expandable> 
             
-            {fileType}
+            <Divider name={"Publication Code"} minimize={true}/>
+            {pubCode}
+
+            <Divider className="mt-2" name={"License Code"} minimize={true}/>
+            {license}
+            
         </>
     )
 }
