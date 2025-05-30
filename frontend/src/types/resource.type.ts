@@ -42,6 +42,8 @@ export const BaseResourceResponseSchema = z.object({
   note: z.string().nullable(),
   creationDate: z.string().min(1, { message: "Created at is required" }),
   publicationDate: z.string().min(1, { message: "Updated at is required" }),
+  archived: z.boolean().nullable().optional(),
+  archivedDate: z.string().nullable().optional(),
 })
 
 export const ResourceResponseSchema = BaseResourceResponseSchema.extend({

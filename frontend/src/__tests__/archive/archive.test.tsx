@@ -81,13 +81,13 @@ describe("Rendering fetch results", () => {
 
     const { getByText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchivePage /></SidebarProvider>);
 
-    await awaitFetchResolve(1);
-
-    expect(getByText(testFile.title)).toBeInTheDocument();
-    expect(getByText(testFile.description)).toBeInTheDocument();
-    expect(getByText(testFile.fileType)).toBeInTheDocument();
-    expect(getByText(getCompareString(testFile.creationDate))).toBeInTheDocument();
-    expect(getByText(getCompareString(testFile.publicationDate))).toBeInTheDocument();
+    await waitFor(() => {
+      expect(getByText(testFile.title)).toBeInTheDocument();
+      expect(getByText(testFile.description)).toBeInTheDocument();
+      expect(getByText(testFile.fileType)).toBeInTheDocument();
+      expect(getByText(getCompareString(testFile.creationDate))).toBeInTheDocument();
+      expect(getByText(getCompareString(testFile.publicationDate))).toBeInTheDocument();
+    });
   });
 
   test("renders error message when fetch fails", async () => {
@@ -95,9 +95,9 @@ describe("Rendering fetch results", () => {
 
     const { getByText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchivePage /></SidebarProvider>);
 
-    await awaitFetchResolve(1);
+    await awaitFetchResolve(2);
 
-    expect(getByText("An error occurred while fetching initial files.")).toBeInTheDocument();
+    expect(getByText("An error occurred while fetching search results.")).toBeInTheDocument();
   });
 
   test("renders error message when search fetch fails", async () => {
@@ -133,15 +133,15 @@ describe("Rendering fetch results", () => {
 
     await awaitFetchResolve(1);
 
-    expect(getByText(testFile.title)).toBeInTheDocument();
+    await waitFor(() => expect(getByText(testFile.title)).toBeInTheDocument());
 
     await awaitDebouncedChange(() => fireEvent.change(searchInput, { target: { value: "nothing" } }), 2);
 
-    expect(getByText("No Rows To Show")).toBeInTheDocument();
+    await waitFor(() => expect(getByText("No results found")).toBeInTheDocument());
 
     await awaitDebouncedChange(() => fireEvent.change(searchInput, { target: { value: "test" } }), 3);
 
-    expect(getByText(testFile.title)).toBeInTheDocument();
+    await waitFor(() => expect(getByText(testFile.title)).toBeInTheDocument());
   });
 
   test("renders different documents when filters are applied", async () => {
@@ -177,33 +177,31 @@ describe("Rendering fetch results", () => {
 
     const { getByText, queryByText } = render(<SidebarProvider leftSidebarDefaultState={true}><ArchivePage /></SidebarProvider>);
 
-    await awaitFetchResolve(1);
-
-    expect(getByText(title1)).toBeInTheDocument();
-    expect(getByText(title2)).toBeInTheDocument();
-    expect(getByText(title3)).toBeInTheDocument();
-    expect(getByText(title4)).toBeInTheDocument();
+    await waitFor(() => expect(getByText(title1)).toBeInTheDocument());
+    await waitFor(() => expect(getByText(title2)).toBeInTheDocument());
+    await waitFor(() => expect(getByText(title3)).toBeInTheDocument());
+    await waitFor(() => expect(getByText(title4)).toBeInTheDocument());
 
     await awaitDebouncedChange(() => filterButtonApplyMock(["tag1"], null, null), 2);
 
     await waitFor(() => expect(queryByText(title1)).not.toBeInTheDocument());
-    expect(getByText(title2)).toBeInTheDocument();
-    expect(getByText(title3)).toBeInTheDocument();
-    expect(getByText(title4)).toBeInTheDocument();
+    await waitFor(() => expect(getByText(title2)).toBeInTheDocument());
+    await waitFor(() => expect(getByText(title3)).toBeInTheDocument());
+    await waitFor(() => expect(getByText(title4)).toBeInTheDocument());
 
     await awaitDebouncedChange(() => filterButtonApplyMock(["tag1"], 2025, null), 3);
 
     await waitFor(() => expect(queryByText(title1)).not.toBeInTheDocument());
     await waitFor(() => expect(queryByText(title2)).not.toBeInTheDocument());
-    expect(getByText(title3)).toBeInTheDocument();
-    expect(getByText(title4)).toBeInTheDocument();
+    await waitFor(() => expect(getByText(title3)).toBeInTheDocument());
+    await waitFor(() => expect(getByText(title4)).toBeInTheDocument());
 
     await awaitDebouncedChange(() => filterButtonApplyMock(["tag1"], 2025, 2027), 4);
 
     await waitFor(() => expect(queryByText(title1)).not.toBeInTheDocument());
     await waitFor(() => expect(queryByText(title2)).not.toBeInTheDocument());
     await waitFor(() => expect(queryByText(title3)).not.toBeInTheDocument());
-    expect(getByText(title4)).toBeInTheDocument();
+    await waitFor(() => expect(getByText(title4)).toBeInTheDocument());
   });
 });
 
@@ -227,9 +225,9 @@ async function awaitFetchResolve(times: number = -1) {
     } else {
       expect(fetch).toHaveResolvedTimes(times);
     }
-    // The fetch response is a Promise, so we need to pass priority to the Promise queue, this can be done with this "hack" (resolving a nothing Promise)
-    await Promise.resolve();
   });
+  // The fetch response is a Promise, so we need to pass priority to the Promise queue, this can be done with this "hack" (resolving a nothing Promise)
+  await Promise.resolve();
 }
 
 // Converts a datestring into a string stored inside the backend

@@ -34,7 +34,8 @@ namespace KnowledgeBank.Data
                 License = dto.License,
                 Note = dto.Note,
                 FileType = "unknown",
-                CreationDate = DateTime.UtcNow
+                CreationDate = DateTime.UtcNow,
+                Archived = false,
             };
 
             // Derive filetype when it is a file resource

@@ -8,6 +8,8 @@ public class FilterDto
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
 
+    public bool? Archived { get; set; } = false;
+
     public IQueryable<Resource> ToQueryBuilder(DatabaseContext database)
     {
         IQueryable<Resource> queryBuilder = database.Resources.AsQueryable();
@@ -31,6 +33,11 @@ public class FilterDto
         if(this.EndDate != null)
         {
             queryBuilder = queryBuilder.Where(f => f.PublicationDate <= this.EndDate);
+        }
+
+        if(this.Archived != null)
+        {
+            queryBuilder = queryBuilder.Where(f => f.Archived == this.Archived);
         }
 
         return queryBuilder;

@@ -19,12 +19,16 @@ namespace KnowledgeBank.Controllers
         private readonly Serilog.ILogger _logger;
         private readonly SignInManager<User> _signInManager;
         private readonly DatabaseContext _context;
+        private readonly MailUtils _mailUtils;
+        private readonly string _frontendDomain;
 
-        public AuthController(SignInManager<User> signInManager, DatabaseContext context)
+        public AuthController(IConfiguration config, SignInManager<User> signInManager, DatabaseContext context, MailUtils mailUtils)
         {
             _signInManager = signInManager;
             _logger = Log.ForContext<AuthController>();
             _context = context;
+            _mailUtils = mailUtils;
+            _frontendDomain = config["HOST_URL"] ?? throw new ArgumentNullException("HOST_URL needs to be set");
         }
 
         [HttpPost]
@@ -66,8 +70,16 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(401, "The user is not authenticated")]
         public IActionResult Ping()
         {
-            string? email = User.FindFirstValue(ClaimTypes.Email);
-            return Ok(new { Email = email });
+            string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (userId == null)
+                return Unauthorized(new { message = "User not authenticated" });
+
+            User? user = _signInManager.UserManager.FindByIdAsync(userId).Result;
+            if (user == null)
+                return Unauthorized(new { message = "User not found" });
+
+            return Ok(new { Email = user.Email });
         }
 
         [HttpPost("invite")]
@@ -81,7 +93,7 @@ namespace KnowledgeBank.Controllers
             {
                 // generate a token
                 Guid token = Guid.NewGuid();
-                
+
                 // save the invitation
                 _context.Invitations.Add(new Invitation
                 {
@@ -91,16 +103,16 @@ namespace KnowledgeBank.Controllers
                     CreatedAt = DateTime.UtcNow
                 });
                 await _context.SaveChangesAsync();
-                
+
                 // send the email
-                MailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: {Program.HostUrl}/signup?token={token}");
+                _mailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: {_frontendDomain}/signup?token={token}");
             }
             catch (Exception e)
             {
                 _logger.Error(e, "Failed to send email");
-                return BadRequest(new {message = "Failed to send email"});
+                return BadRequest(new { message = "Failed to send email" });
             }
-            
+
             return Ok();
         }
 
@@ -115,12 +127,12 @@ namespace KnowledgeBank.Controllers
                 try
                 {
                     // check if there is a recent invitation for the email and token
-                    Invitation? invitation = _context.Invitations.FirstOrDefault(i => i.Email == ShaUtils.Sha256(signUpDto.Email) 
-                                                                            && i.Token == ShaUtils.Sha256(signUpDto.Token) 
+                    Invitation? invitation = _context.Invitations.FirstOrDefault(i => i.Email == ShaUtils.Sha256(signUpDto.Email)
+                                                                            && i.Token == ShaUtils.Sha256(signUpDto.Token)
                                                                             && i.CreatedAt > DateTime.UtcNow.AddHours(-168));
                     if (invitation == null)
                     {
-                        return BadRequest(new {message = "Invalid invitation"});
+                        return BadRequest(new { message = "Invalid invitation" });
                     }
 
                     // Remove user
@@ -131,19 +143,21 @@ namespace KnowledgeBank.Controllers
                     User user = new User
                     {
                         Email = signUpDto.Email,
-                        UserName = signUpDto.Email
+                        UserName = signUpDto.Email,
+                        FirstName = signUpDto.FirstName,
+                        LastName = signUpDto.LastName,
                     };
 
                     // save the user
                     IdentityResult result = await _signInManager.UserManager.CreateAsync(user, signUpDto.Password);
                     if (!result.Succeeded)
-                        return BadRequest(new {message = string.Join(" ", result.Errors.Select(e => e.Description))});
+                        return BadRequest(new { message = string.Join(" ", result.Errors.Select(e => e.Description)) });
 
                     IdentityResult roleResult = await _signInManager.UserManager.AddToRoleAsync(user, "user");
 
                     if (!roleResult.Succeeded)
-                        return BadRequest(new {message = string.Join(" ", roleResult.Errors.Select(e => e.Description))});
-                    
+                        return BadRequest(new { message = string.Join(" ", roleResult.Errors.Select(e => e.Description)) });
+
                     await transaction.CommitAsync();
                     return Ok(new { message = $"User '{user.UserName}' created succesfully." });
                 }
@@ -156,6 +170,41 @@ namespace KnowledgeBank.Controllers
             }
         }
 
+        [HttpPut("update-password")]
+        [SwaggerOperation(Summary = "Updates the user's password", Description = "Updates the user's password")]
+        [SwaggerResponse(200, "The password has been changed")]
+        [SwaggerResponse(400, "Bad request")]
+        public async Task<IActionResult> UpdatePassword([FromBody] ChangePasswordDto changePasswordDto)
+        {
+            try
+            {
+                string userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                if (userId == null)
+                    return BadRequest(new ApiResponse(false, "User not found"));
+
+                User user = (await _signInManager.UserManager.FindByIdAsync(userId));
+
+                if (user == null)
+                    return NotFound("User not found.");
+
+                IdentityResult updateResponse = await _signInManager.UserManager.ChangePasswordAsync(
+                    user,
+                    changePasswordDto.CurrentPassword,
+                    changePasswordDto.NewPassword
+                );
+
+                if (!updateResponse.Succeeded)
+                    return Ok(new ApiResponse(false, string.Join(" ", updateResponse.Errors.Select(e => e.Description))));
+
+                return Ok(new ApiResponse(true, "Password updated successfully"));
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, "Error creating user");
+                return BadRequest(new { message = "Error creating user" });
+            }
+        }
     }
 }
 

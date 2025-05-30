@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { SidebarItem } from "@/types/sidebar";
 import { Logout } from "@/actions/authActions";
 import { Sidebar } from "@/components/ui/sidebar";
@@ -15,12 +15,12 @@ import Divider from "../divider";
 import ProfileDropdown from "./profile-dropdown";
 import { cn } from "@/lib/utils";
 import { usePathname, useSearchParams } from "next/navigation";
+import ShowMenu from "@/icons/menu/show-menu";
 
 /**
  *
  * @param userEmail - Email of the user
  * @param userRole - Role of the user (admin or user currently)
- * @param open - Boolean determining whether the side bar is open or folded
  * @param menuItems - Menu items to display (home, archive, tags)
  * @param projects - Recent projects to display
  * @param bottomMenuItems - Items at the bottom of the sidebar (settings, help)
@@ -29,13 +29,13 @@ import { usePathname, useSearchParams } from "next/navigation";
  */
 export default function LeftSidebarClient({
   userEmail,
-  userRole,
+  userName,
   menuItems,
   projects,
   bottomMenuItems,
 }: {
   userEmail: string;
-  userRole: string;
+  userName: string;
   menuItems: SidebarItem[];
   projects: SidebarItem[];
   bottomMenuItems: SidebarItem[];
@@ -43,6 +43,49 @@ export default function LeftSidebarClient({
   const { toggleLeftSidebar, leftSidebarOpen: open } = useSidebar();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const sidebarPartsRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuScrollbarWidth, setMenuScrollbarWidth] = useState(0);
+  const [sidebarPartsScrollbarWidth, setSidebarPartsScrollbarWidth] = useState(0);
+
+  // Check if the sidebar parts and menu need scrollbars
+  useEffect(() => {
+    const sidebarParts = sidebarPartsRef.current;
+    const menu = menuRef.current;
+    if (!sidebarParts || !menu) return;
+
+    const checkScrollbar = () => {
+      const timeoutId = setTimeout(() => {
+        if (!sidebarParts || !menu) return;
+        const sidebarScroll = sidebarParts.scrollHeight > sidebarParts.clientHeight;
+        if(!sidebarScroll)
+        {
+          setSidebarPartsScrollbarWidth(0);
+          setMenuScrollbarWidth(0);
+          return;
+        }
+        
+        // Get the scrollbar width of the sidebar parts
+        const _sidebarScrollbarWidth = sidebarParts.offsetWidth - sidebarParts.clientWidth;
+        setSidebarPartsScrollbarWidth(_sidebarScrollbarWidth);
+
+        // Get the scrollbar width of the menu
+        const _menuScrollbarWidth = menu.offsetWidth - sidebarParts.clientWidth - _sidebarScrollbarWidth - 13;
+        setMenuScrollbarWidth(_menuScrollbarWidth);
+      }, 150);
+
+      return () => clearTimeout(timeoutId);
+    };
+
+    checkScrollbar();
+
+    // Add event listeners for resize
+    const observer = new ResizeObserver(checkScrollbar);
+    observer.observe(sidebarParts);
+    observer.observe(menu);
+
+    return () => observer.disconnect();
+  }, []);
 
   const handleLogout = async () => {
     const result = await Logout();
@@ -80,7 +123,13 @@ export default function LeftSidebarClient({
     : '/new';
     
   return (
-    <Sidebar side="left" width="300px" collapsible="icon" className={`${open ? "p-2" : "px-1.5 pt-2"}`}>
+    <Sidebar ref={menuRef} 
+      collapsedWidth={menuScrollbarWidth + sidebarPartsScrollbarWidth + 48 + "px"} 
+      side="left" 
+      width="300px" 
+      collapsible="icon" 
+      className={`overflow-x-hidden ${open ? "p-2" : "px-1.5 pt-2"}`}
+    >
       {/* Header */}
       <div className={"flex items-center justify-between pb-4"}>
         {/* KnowledgeBase title */}
@@ -96,8 +145,9 @@ export default function LeftSidebarClient({
           onClick={() => {
             toggleLeftSidebar();
           }}
+          style={{ marginRight: `${!open ? sidebarPartsScrollbarWidth : 0}px` }}
         >
-          <HideMenu />
+          {open ? <HideMenu /> : <ShowMenu /> }
         </Button>
       </div>
 
@@ -107,7 +157,7 @@ export default function LeftSidebarClient({
         <Link href={newPageUrl}>
           <Button variant="default" className={`flex w-full items-center justify-start overflow-hidden p-2 transition-all duration-200 ${!open && "w-9"}`} data-testid="sidebar_new">
             <New className="h-4 w-4" />
-            <div data-testid="button_text" className={`pb-0.5 ml-2 ${!open && "hidden"}`}>
+            <div data-testid="button_text" className={`pb-0.5 ${!open && "hidden"}`}>
               New
             </div>
           </Button>
@@ -118,7 +168,7 @@ export default function LeftSidebarClient({
       </nav>
 
       {/* Menu and project parts */}
-      <nav className="h-full min-h-20 flex-grow">
+      <nav ref={sidebarPartsRef} className="h-full min-h-20 flex-grow overflow-y-auto overflow-x-hidden">
         <SidebarPart name="Menu" items={menuItems} minimize={open} />
         <SidebarPart name="Projects" items={projects} minimize={open} />
       </nav>
@@ -142,9 +192,9 @@ export default function LeftSidebarClient({
 
           <Divider className="my-2" />
 
-          {/* Settings and help */}
+          {/* Account settings and help */}
           <li>
-            <ProfileDropdown handleLogoutAction={handleLogout} userEmail={userEmail} userRole={userRole} minimize={open} />
+            <ProfileDropdown handleLogoutAction={handleLogout} userEmail={userEmail} userName={userName} minimize={open} />
           </li>
         </ul>
       </nav>
