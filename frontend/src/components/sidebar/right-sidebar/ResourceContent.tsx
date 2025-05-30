@@ -30,11 +30,11 @@ export function ResourceContent()
     const [ sourceList, setSourceList ] = useState<ListItem[] | null>(null);
     const [ regions, setRegions ] = useState<ListItem[] | null>(null);
     const [ relatedSourceList, setRelatedSourceList ] = useState<ListItem[] | null>(null);
-    const [ langCode, setLangCode ] = useState<string | null>(null);
-    const [ pubCode, setPubCode ] = useState<string | null>(null);
-    const [ pubDate, setPubDate ] = useState<Date | null>(null);
-    const [ creationDate, setCreationDate ] = useState<Date | null>(null);
-    const [ license, setLicense ] = useState<string | null>(null);
+    const [ langCode, setLangCode ] = useState<string | null>(null); //ToDo
+    const [ pubCode, setPubCode ] = useState<string | null>(null); //ToDo
+    const [ pubDate, setPubDate ] = useState<Date | null>(null); //ToDo
+    const [ creationDate, setCreationDate ] = useState<Date | null>(null); //ToDo
+    const [ license, setLicense ] = useState<string | null>(null); //ToDo
 
     const [authorsTrigger, setAuthorsTrigger] = useState(false);
     const [tagsTrigger, setTagsTrigger] = useState(false);
@@ -124,21 +124,21 @@ export function ResourceContent()
                 setDescription(response.body.description);
             }
             else {setDescription("No description.")}
-            if (response.body.note) {
-                setNote(response.body.note);
-            }
-            else {setNote("No notes.")}
-            
-            if (response.body.note) {
-                setNote(response.body.note);
-            }
-            else {setNote("No notes.")}
 
             if (response.body.note) {
                 setNote(response.body.note);
             }
             else {setNote("No notes.")}
 
+            if (response.body.publicationCode) {
+                setPubCode(response.body.publicationCode);
+            }
+            else {setPubCode("No Publication Code")}
+
+            if (response.body.license) {
+                setLicense(response.body.license);
+            }
+            else {setLicense("No License")}
 
         }).catch(error => {
             console.error("Error loading information: ", error);

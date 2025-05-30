@@ -18,6 +18,8 @@ export function OrganisationContent()
     const [ relatedResources, setRelatedResources ] = useState<ListItem[] | null>(null);
     const [ organisations, setOrganisations ] = useState<ListItem[] | null>(null);
     const [ persons, setPersons ] = useState<ListItem[] | null>(null);
+    const [ email, setEmail ] = useState<string | null>(null); //ToDo
+    const [ creationDate, setCreationDate ] = useState<Date | null>(null); //ToDo
 
     
     const [resourcesRefresh, setResourcesTrigger] = useState(false);
@@ -38,6 +40,8 @@ export function OrganisationContent()
             setRelatedResources(null);
             setOrganisations(null);
             setPersons(null);
+            setEmail(null);
+            setCreationDate(null);
 
             loadProperties();
             loadResources();
@@ -125,6 +129,13 @@ export function OrganisationContent()
                 setDescription(response.body.description);
             }
             else {setDescription("No Description")}
+            if (response.body.emailAddress) {
+                setEmail(response.body.emailAddress);
+            }
+            else { setEmail("No Email")}
+
+            setCreationDate(response.body.creationDate);
+
         }).catch(error => {
             console.error("Error loading organisation information:", error);
         })

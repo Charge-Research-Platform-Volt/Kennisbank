@@ -18,6 +18,9 @@ export function PersonContent()
     const [ related, setRelated ] = useState<ListItem[] | null>(null); 
     const [ persons, setPersons ] = useState<ListItem[] | null>(null); 
     const [ organisations, setOrganisations ] = useState<ListItem[] | null>(null); 
+    const [ email, setEmail ] = useState<string | null>(null); //ToDo
+    const [ linkedIn, setLinkedIn ] = useState<string | null>(null); //ToDo
+    const [ creationDate, setCreationDate ] = useState<Date | null>(null); //ToDo
 
     const [authoredRefresh, setAuthoredTrigger] = useState(false);
     const triggerAuthoredRefresh = () => setAuthoredTrigger(prev => !prev);   
@@ -42,6 +45,9 @@ export function PersonContent()
             setRelated(null);
             setPersons(null);
             setOrganisations(null);
+            setEmail(null);
+            setLinkedIn(null);
+            setCreationDate(null);
 
             loadProperties();
             loadAuthored();
@@ -125,6 +131,19 @@ export function PersonContent()
                 setOccupation(response.body.occupation);
             }
             else {setOccupation("No Occupation")}
+
+            setCreationDate(response.body.creationDate)
+
+            if (response.body.emailAddress) {
+                setEmail(response.body.emailAddress);
+            }
+            else {setEmail("No Email")}
+
+            if (response.body.linkedin) {
+                setLinkedIn(response.body.linkedin);
+            }
+            else {setLinkedIn("No LinkedIn")}
+
         }).catch(error => {
             console.error("Error loading person information: ", error);
         });  
