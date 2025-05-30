@@ -81,21 +81,31 @@ export const getRelation = async (
         "ai-tags": "",
     }[relation];
 
+    const cookieHeader : ReadonlyRequestCookies = await cookies();
+    let fetchContents: any = {
+                method: "GET",
+                credentials: "include",
+                headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+            }
+
     
-    if (relation === "ai-tags") {endPoint = ``} //Add ai tags endpoint here
+    if (relation === "ai-tags") {
+        endPoint = `ai/generate-tags`;
+        fetchContents = {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+            body: { id: id}
+        }
+    } 
     else if (type === "resource") {endPoint = `resources/${encodeURIComponent(id)}/relations/${encodeURIComponent(relation)}?properties=${encodeURIComponent(properties)}`}
     else if (type === "person") {endPoint = `persons/${encodeURIComponent(id)}/relations/${encodeURIComponent(relation)}?properties=${encodeURIComponent(properties)}`}
     else if (type === "organisation") {endPoint = `organisations/${encodeURIComponent(id)}/relations/${encodeURIComponent(relation)}?properties=${encodeURIComponent(properties)}`}
     
     
-    const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response = await fetch(
         `${process.env.API_URL}/${endPoint}`, //Take only Id and Name from relation
-            {
-                method: "GET",
-                credentials: "include",
-                headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
-            },
+            fetchContents,
     );
     
     if (!response.ok) {

@@ -287,12 +287,17 @@ export function ResourceContent()
     
         aiTagsPromise.then(response => {
             //Add translation logic from ai tags to ListItem[] here
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
-                id: item.id,
-                name: item.name,
+            const list: ListItem[] = response.body.map((item: string) => ({
+                id: item,
+                name: item,
                 type: "ai-tag",
             }))
-            setAiTags(list);
+
+            const finalList = list.length > 10 
+            ? list.sort(() => 0.5 - Math.random()).slice(0, 10)
+            : list;
+
+            setAiTags(finalList);
         }).catch(error => {
             console.error("Error loading tags: ", error);
         });
