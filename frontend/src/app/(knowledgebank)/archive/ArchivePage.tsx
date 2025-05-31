@@ -83,7 +83,7 @@ export default function ArchivePage() {
   }, [currentQuery, tagFilters, startYear, endYear, showArchived, refreshKey, handleSearch]);
 
   return (
-    <>
+    <div className="p-2">
       <div className="flex w-full items-center gap-2">
         <div className="relative flex-grow">
           <Input
@@ -130,7 +130,7 @@ export default function ArchivePage() {
           <ListResources data={searchResults ?? { message: "", pageIndex: 0, pageSize: 0, resources: [], responseType: "" }} initialLoadingComplete={initialLoadingComplete} />
         )}
       </div>
-    </>
+    </div>
   );
 
   // Helper function for fetching files

@@ -7,6 +7,7 @@ import { Button } from "../../ui/button";
 import OpenFileButton from "../../open-file-button";
 import Divider from "../divider";
 import Kbd from "@/components/kbd";
+import GenerateAiTags from "@/components/generate-ai-tags";
 
 /**
  *
@@ -55,12 +56,17 @@ export default function RightSidebar() {
                 </div>
               </>
             )}
+
+            <GenerateAiTags documentId={selectedDocument.id} />
           </div>
 
           <div className="bg-sidebar sticky bottom-0 z-10">
             <Divider className="px-2" />
             <div data-slot="sidebar-footer" data-sidebar="footer" className={"flex flex-col gap-1 p-2 text-xs font-medium text-gray-500"}>
               <p>Created At: {selectedDocument.creationDate ? new Date(selectedDocument.creationDate).toLocaleString() : "Not available"}</p>
+              <p onClick={() => navigator.clipboard.writeText(selectedDocument.id)} className="cursor-copy">
+                Document ID: {selectedDocument.id}
+              </p>
             </div>
           </div>
         </>

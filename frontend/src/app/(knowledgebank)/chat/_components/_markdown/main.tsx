@@ -1,4 +1,4 @@
-import type { ExtraProps } from "react-markdown";
+import type { Components, ExtraProps } from "react-markdown";
 import type { ComponentProps, ElementType } from "react";
 import { Heading } from "./heading";
 import { Paragraph } from "./paragraph";
@@ -19,16 +19,21 @@ import { Delete } from "./delete";
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // Do not pass `node` to the components, otherwise it will cause a node="[object Object]" in the DOM
 
-type Components = {
-  [Key in Extract<ElementType, string>]?: ElementType<ComponentProps<Key> & ExtraProps>;
-};
-
 interface CodeProps extends ComponentProps<"code">, ExtraProps {
   inline?: boolean;
   className?: string;
 }
 
-export const components: Components = {
+interface MathProps extends ExtraProps {
+  children?: React.ReactNode;
+}
+
+interface CustomComponents extends Components {
+  math?: React.ComponentType<MathProps>;
+  inlineMath?: React.ComponentType<MathProps>;
+}
+
+export const components: CustomComponents = {
   // Headings
   h1: ({ children, node, ...props }) => (
     <Heading as="h1" {...props}>
@@ -108,7 +113,7 @@ export const components: Components = {
   ),
 
   // BlockQuote
-  blockquote: ({ children, node, ...props }) => <BlockQuote children={children} {...props} />,
+  blockquote: ({ children, node, ...props }) => <BlockQuote {...props}>{children}</BlockQuote>,
 
   // Strong
   strong: ({ children, node, ...props }) => <Strong {...props}>{children}</Strong>,
