@@ -198,6 +198,15 @@ public class RAGSystem
             });
         }
 
+        Response test = await EmbeddingsClient.EmbedAsync(content: resourcMetaData.Title + " " + resourcMetaData.Description);
+
+        pointsList.Add(new PointStruct
+        {
+            Id = Guid.NewGuid(),
+            Vectors = test.Content.ToObjectFromJson<float[]>(),
+            Payload = { ["resourceId"] = resourceId.ToString(), ["chunkType"] = ChunkType.ContentText.ToString(), ["title"] = resourcMetaData.Title, ["description"] = resourcMetaData.Description }
+        });
+
         await QdrantClient.UpsertAsync(COLLECTION_NAME, pointsList);
     }
 }

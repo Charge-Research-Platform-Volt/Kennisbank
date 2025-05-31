@@ -224,9 +224,13 @@ Instructions:
     {
         _logger.Information("Standard Ai initiated with message: {Message}", message);
 
+
+
         List<ChatMessage> messages = new List<ChatMessage>
         {
-            new SystemChatMessage(@"You are an AI assistant that helps people find information."),
+            new SystemChatMessage(@"You are an AI assistant that helps people find information.
+For math use LaTeX syntax. Use double dollar signs for display math, e.g. $$E=mc^2$$, and single dollar signs for inline math, e.g. $x^2 + y^2 = z^2$.
+            "),
             new UserChatMessage(message)
         };
 

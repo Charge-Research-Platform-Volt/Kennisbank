@@ -69,8 +69,9 @@ public class AIController : ControllerBase
                 }
             }
 
-            _logger.Information("Generating new AI tags");
 
+            // If no existing tags, proceed to generate new tags
+            _logger.Information("Generating new AI tags");
 
             ulong offset = 0;
             ulong limit = 20;
@@ -150,10 +151,10 @@ Current Document Chunks:
                 Console.WriteLine(result);
 
                 var chat = new List<ChatMessage>()
-            {
-                new SystemChatMessage("You are a helpful AI assistant that extracts tags from a document and returns them as a JSON"),
-                new UserChatMessage(result)
-            };
+                {
+                    new SystemChatMessage("You are a helpful AI assistant that extracts tags from a document and returns them as a JSON"),
+                    new UserChatMessage(result)
+                };
 
                 // Get a completion with structured output
                 var response = await _ragSystem.ChatClient.CompleteChatAsync(chat, options);
@@ -164,6 +165,7 @@ Current Document Chunks:
                 if (tagsExtraction == null || tagsExtraction.Tags == null) continue;
 
                 _logger.Information("Extracted tags: {Tags}", string.Join(", ", tagsExtraction.Tags));
+
                 // Add the tags to the unique set
                 foreach (var tag in tagsExtraction.Tags)
                 {
@@ -180,7 +182,6 @@ Current Document Chunks:
                         }
                     }
                 }
-
 
                 // Increment the offset for the next batch
                 offset += limit;
