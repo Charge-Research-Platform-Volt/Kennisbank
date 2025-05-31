@@ -30,6 +30,14 @@ export default async function LeftSidebarServer() {
     return <h1>ERROR</h1>;
   }
 
+  const userName = await FetchWithValidation(z.object({ name: z.string(), isAuthenticated: z.boolean() }), `${process.env.API_URL}/user/current-user-name`);
+
+  if (!userName.success) {
+    console.log("Failed to fetch user's name");
+    console.log(userRole);
+    return <h1>ERROR</h1>;
+  }
+
   // Menu items
   const menuItems: SidebarItem[] = [
     { id: 1, name: "Home", path: "/", icon: <Home className="h-4 w-4" /> },
@@ -41,7 +49,7 @@ export default async function LeftSidebarServer() {
   // Projects
   const projects: SidebarItem[] = [];
 
-  // Items at the bottom of the sidebar (settings, help)
+  // Items at the bottom of the sidebar (help)
   const bottomMenuItems: SidebarItem[] = [
     {
       id: 1,
@@ -61,7 +69,7 @@ export default async function LeftSidebarServer() {
     });
   }
 
-  return <LeftSidebarClient userEmail={userEmail.data.email} userRole={userRole.data.role} menuItems={menuItems} projects={projects} bottomMenuItems={bottomMenuItems} />;
+  return <LeftSidebarClient userEmail={userEmail.data.email} userName={userName.data.name} menuItems={menuItems} projects={projects} bottomMenuItems={bottomMenuItems} />;
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

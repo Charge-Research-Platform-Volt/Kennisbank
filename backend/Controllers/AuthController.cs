@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
 using KnowledgeBank.Utils;
+using KnowledgeBank.Responses;
 
 namespace KnowledgeBank.Controllers
 {
@@ -55,9 +56,16 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(401, "The user is not authenticated")]
         public IActionResult Ping()
         {
-            string? email = User.FindFirstValue(ClaimTypes.Email);
+            string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            return Ok(new { Email = email });
+            if (userId == null)
+                return Unauthorized(new { message = "User not authenticated" });
+
+            User? user = _signInManager.UserManager.FindByIdAsync(userId).Result;
+            if (user == null)
+                return Unauthorized(new { message = "User not found" });
+
+            return Ok(new { Email = user.Email });
         }
 
         [HttpPost("invite")]
@@ -122,7 +130,9 @@ namespace KnowledgeBank.Controllers
                     User user = new User
                     {
                         Email = signUpDto.Email,
-                        UserName = signUpDto.Email
+                        UserName = signUpDto.Email,
+                        FirstName = signUpDto.FirstName,
+                        LastName = signUpDto.LastName,
                     };
 
                     // save the user
@@ -147,6 +157,41 @@ namespace KnowledgeBank.Controllers
             }
         }
 
+        [HttpPut("update-password")]
+        [SwaggerOperation(Summary = "Updates the user's password", Description = "Updates the user's password")]
+        [SwaggerResponse(200, "The password has been changed")]
+        [SwaggerResponse(400, "Bad request")]
+        public async Task<IActionResult> UpdatePassword([FromBody] ChangePasswordDto changePasswordDto)
+        {
+            try
+            {
+                string userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                if (userId == null)
+                    return BadRequest(new ApiResponse(false, "User not found"));
+
+                User user = (await _signInManager.UserManager.FindByIdAsync(userId));
+
+                if (user == null)
+                    return NotFound("User not found.");
+
+                IdentityResult updateResponse = await _signInManager.UserManager.ChangePasswordAsync(
+                    user,
+                    changePasswordDto.CurrentPassword,
+                    changePasswordDto.NewPassword
+                );
+
+                if (!updateResponse.Succeeded)
+                    return Ok(new ApiResponse(false, string.Join(" ", updateResponse.Errors.Select(e => e.Description))));
+
+                return Ok(new ApiResponse(true, "Password updated successfully"));
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, "Error creating user");
+                return BadRequest(new { message = "Error creating user" });
+            }
+        }
     }
 }
 

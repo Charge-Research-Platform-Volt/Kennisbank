@@ -36,6 +36,19 @@ export type SaveUserResponse = {
   user: User;
 }
 
+/**
+ * Schema for updating an account DTO
+ */
+export const UpdateAccountDtoSchema = z.object({
+  firstName: z.string().min(1, { message: "First name is required" }),
+  lastName: z.string().min(1, { message: "Last name is required" }),
+  email: z.string().email("Invalid e-mail address").or(z.literal("")).optional()
+});
+
+/**
+ * DTO to send to backend to update an account
+ */
+export type UpdateAccountDto = z.infer<typeof UpdateAccountDtoSchema>;
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.

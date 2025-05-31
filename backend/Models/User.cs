@@ -5,7 +5,8 @@ namespace KnowledgeBank.Models;
 
 public class User : IdentityUser
 {
-    // Add more fields here if needed
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
 }
 
 public class UpdateEmailDto
@@ -18,9 +19,18 @@ public class UpdateEmailDto
 
 public class SignUpDto
 {
+    public required string FirstName { get; set; }
+    public required string LastName { get; set; }
     public required string Email { get; set; }
     public required string Password { get; set; }
     public required string Token { get; set; }
+}
+
+public class UpdateUserDto
+{
+    public required string FirstName { get; set; }
+    public required string LastName { get; set; }
+    public required string Email { get; set; }
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

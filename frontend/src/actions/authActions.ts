@@ -38,6 +38,8 @@ export const Register = async (
             email: (formData.get("email") as string)?.trim(),
             password: (formData.get("password") as string)?.trim(),
             token: (token as string)?.trim(),
+            firstname: (formData.get("firstname") as string)?.trim(),
+            lastname: (formData.get("lastname") as string)?.trim(),
         };
 
         // Validate the raw data, if it fails, return an error.
@@ -58,6 +60,8 @@ export const Register = async (
                 email: rawData.email,
                 password: rawData.password,
                 token: rawData.token,
+                firstName: rawData.firstname,
+                lastName: rawData.lastname,
             }),
             headers: { "Content-Type": "application/json" },
         });
