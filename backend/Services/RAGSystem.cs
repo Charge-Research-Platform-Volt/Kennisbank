@@ -171,41 +171,52 @@ public class RAGSystem
             return;
         }
 
-
         // -- Chunk the extracted text
-        List<string> chunks = _toolbox.SplitTextIntoChunks(extractedText, true);
+        List<string> chunks =
+        [
+            $"{resourcMetaData.Title}\n{resourcMetaData.Description}", // Include metadata in the first chunk
+            .. _toolbox.SplitTextIntoChunks(extractedText, true),
+        ];
 
 
         // -- Generate embeddings for the chunks
-        EmbeddingsOptions requestOptions = new EmbeddingsOptions(chunks);
-        Response<EmbeddingsResult> response = await EmbeddingsClient.EmbedAsync(requestOptions);
-        _logger.Information("Embeddings generated for {Count} chunks", response.Value.Data.Count);
-
-
         List<PointStruct> pointsList = [];
 
-
-        foreach (EmbeddingItem item in response.Value.Data)
+        try
         {
-            float[]? embeddingData = item.Embedding.ToObjectFromJson<float[]>();
-            if (embeddingData == null || embeddingData.Length == 0) continue;
+            EmbeddingsOptions requestOptions = new EmbeddingsOptions(chunks);
+            Response<EmbeddingsResult> response = await EmbeddingsClient.EmbedAsync(requestOptions);
+            _logger.Information("Embeddings generated for {Count} chunks", response.Value.Data.Count);
 
-            pointsList.Add(new PointStruct
+            foreach (EmbeddingItem item in response.Value.Data)
             {
-                Id = Guid.NewGuid(),
-                Vectors = embeddingData,
-                Payload = { ["resourceId"] = resourceId.ToString(), ["chunkType"] = ChunkType.ContentText.ToString(), ["chunkText"] = chunks[item.Index], ["chunkPart"] = item.Index }
-            });
+                float[]? embeddingData = item.Embedding.ToObjectFromJson<float[]>();
+                if (embeddingData == null || embeddingData.Length == 0) continue;
+
+                pointsList.Add(new PointStruct
+                {
+                    Id = Guid.NewGuid(),
+                    Vectors = embeddingData,
+                    Payload = { ["resourceId"] = resourceId.ToString(), ["chunkType"] = ChunkType.ContentText.ToString(), ["chunkText"] = chunks[item.Index], ["chunkPart"] = item.Index }
+                });
+            }
         }
-
-        Response test = await EmbeddingsClient.EmbedAsync(content: resourcMetaData.Title + " " + resourcMetaData.Description);
-
-        pointsList.Add(new PointStruct
+        catch (Exception)
         {
-            Id = Guid.NewGuid(),
-            Vectors = test.Content.ToObjectFromJson<float[]>(),
-            Payload = { ["resourceId"] = resourceId.ToString(), ["chunkType"] = ChunkType.ContentText.ToString(), ["title"] = resourcMetaData.Title, ["description"] = resourcMetaData.Description }
-        });
+            _logger.Error("Failed to generate embeddings for the chunks. Ensure the Azure OpenAI service is configured correctly.");
+            _logger.Information("Indexing only the text without embeddings");
+
+            int index = 0;
+            foreach (string item in chunks)
+            {
+                pointsList.Add(new PointStruct
+                {
+                    Id = Guid.NewGuid(),
+                    Vectors = new float[EMBEDDING_DIMENSIONS], // Placeholder for empty vector
+                    Payload = { ["resourceId"] = resourceId.ToString(), ["chunkType"] = ChunkType.ContentText.ToString(), ["chunkText"] = item, ["chunkPart"] = index++ }
+                });
+            }
+        }
 
         await QdrantClient.UpsertAsync(COLLECTION_NAME, pointsList);
     }

@@ -143,10 +143,6 @@ public class Tools : ITools
 
         return data;
     }
-
-
-
-
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
