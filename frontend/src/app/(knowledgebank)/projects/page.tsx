@@ -2,7 +2,6 @@ import ProjectSearchClient from "./components/project-search-client";
 import { ListProjectsPaged } from "@/actions/projectActions";
 import { GetCurrentUserId } from "@/actions/userActions";
 import { ApiResponse } from "@/types/apiResponse.type";
-import { Project, FolderProject } from "@/types/project.type";
 import { FetchWithValidation } from "@/lib/fetchWithValidation";
 import { z } from "zod";
 
