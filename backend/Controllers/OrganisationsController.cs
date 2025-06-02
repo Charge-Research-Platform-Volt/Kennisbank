@@ -405,7 +405,7 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error retrieving relation '{Relation}' for organisation with ID '{Id}'", relation, id);
+                _logger.Error(e, "Error retrieving relation '{Relation}' for organisation with ID '{Id}'", relation, id);
                 return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
             }
         }
@@ -468,7 +468,7 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error creating relation '{Relation}' for person with ID '{Id}'", relation, id);
+                _logger.Error(e, "Error creating relation '{Relation}' for person with ID '{Id}'", relation, id);
                 return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
             }
         }
@@ -530,7 +530,7 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error removing relation '{Relation}' for person with ID '{Id}'", relation, id);
+                _logger.Error(e, "Error removing relation '{Relation}' for person with ID '{Id}'", relation, id);
                 return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
             }
         }

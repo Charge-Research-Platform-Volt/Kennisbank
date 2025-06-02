@@ -26,7 +26,7 @@ public class SearchController : ControllerBase
 
     public SearchController(DatabaseContext databaseContext, RAGSystem ragSystem)
     {
-        _logger = Log.ForContext<StorageController>();
+        _logger = Log.ForContext<SearchController>();
         _database = databaseContext;
         _ragSystem = ragSystem;
     }
