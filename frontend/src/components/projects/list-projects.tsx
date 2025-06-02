@@ -24,6 +24,10 @@ import GeneratePopup from "./popup";
 import { Tag } from "@/types/tag.type";
 import EditProjectModal from "@/app/(knowledgebank)/projects/components/edit-project-modal";
 import { User } from "@/types/user.type";
+import { FetchWithValidation } from "@/lib/fetchWithValidation";
+import { z } from "zod";
+import { toast } from "sonner";
+
 
 // Register all modules
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -39,6 +43,7 @@ interface ProjectOrResource {
   fileType?: string;
   projectType?: string;
   addedBy? : string;
+  creatorRelations?: any[];
 }
 
 interface BreadcrumbItem {
@@ -58,6 +63,7 @@ interface ListProjectsProps {
   // Function to fetch data for a specific project ID
   fetchProjectAction: (projectId: string) => Promise<{ resources: ResourceProject[], projects: FolderProject[], creators: User[], tags: Tag[] }>;
   currentUserId: string;
+  userRole: string | null;
 }
 
 /**
@@ -70,7 +76,7 @@ interface ListProjectsProps {
  * @param {string} currentUserId - Current user Id
  * @returns A navigable table representation of projects and resources
  */
-export default function ListProjects({initialResources, initialProjects, fetchProjectAction: fetchProjectContent, currentUserId}: ListProjectsProps) {
+export default function ListProjects({initialResources, initialProjects, fetchProjectAction: fetchProjectContent, currentUserId, userRole}: ListProjectsProps) {
   // Query for searching
   const [currentQuery, setCurrentQuery] = useState<string>("");
   // State for current projects and resources being displayed
@@ -79,6 +85,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   const [creators, setCreators] = useState<User[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
 
   // State for navigation - current project ID, level, and breadcrumb path
   const [navigationState, setNavigationState] = useState<NavigationState>({
@@ -150,6 +157,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
         addedBy: project.addedBy || '',
         itemType: project.folder.projectType === 'root' ? 'project' : 'folder',
         projectType: project.folder.projectType,
+        creatorRelations: project.creatorRelations || [],
       });
     });
     
@@ -219,7 +227,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
         return <DownloadRenderer data={params.data} />;
         }
         if (params.data.itemType === 'folder' || params.data.itemType === 'project') {
-        return <EditRenderer data={params.data} onEdit={handleEdit} />;
+        return <EditRenderer data={params.data} onEdit={handleEdit} currentUserId={currentUserId} userRole={userRole} />;
         }
         return null;
       }, 
@@ -232,7 +240,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
       field: "",
       minWidth: 30,
       maxWidth: 50,
-      cellRenderer: (params: any) => (<RemoveRenderer data={params.data} onRemove={handleRemove} isAddResourceMode={isAddResourceMode} />),
+      cellRenderer: (params: any) => (<RemoveRenderer data={params.data} onRemove={handleRemove} isAddResourceMode={isAddResourceMode} currentUserId={currentUserId} userRole={userRole} />),
       cellStyle: { display: "flex", alignItems: "center", justifyContent: "center", padding: 0 },
       resizable: true
       }
@@ -334,7 +342,6 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   const navigateToRoot = async () => {
     setIsLoading(true);
     try {
-
       setNavigationState({
         currentProjectId: null,
         currentLevel: 0,
@@ -343,13 +350,16 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
 
       const projectFetch: ApiResponse = await ListProjectsPaged(1, ""); 
       if (projectFetch.success && projectFetch.body?.projects) {
+        const projectsWithCreators = projectFetch.body.projects.map((p: any) => {          
+          return { folder: p, addedBy: "", creatorRelations: p.projectCreatorRelations || [] };
+        });
 
         // Clear focus before changing data, otherwise throws error
         if (gridApiRef.current) {
           gridApiRef.current.clearFocusedCell(); 
         }
 
-        setProjects(projectFetch.body.projects.map((p: any) => {return {folder: p, addedBy: ""}}));
+        setProjects(projectsWithCreators);
         setResources(initialResources); 
         setTags([]);
         setCreators([]);
@@ -542,7 +552,12 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   
   const handleProjectCreationSuccess = async () => {
     handleCloseCreateProjectModal();
-    await navigateToRoot();
+    try {
+      await navigateToRoot();
+      toast.success("Project created successfully.");
+    } catch (error) {
+      toast.error("Failed to refresh project list after creation.");
+    }
   };
 
   // Folder creation handlers
@@ -556,16 +571,27 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   
   const handleFolderCreationSuccess = async () => {
     handleCloseCreateFolderModal();
-    await refreshCurrentProject();
+    try {
+      await refreshCurrentProject();
+      toast.success("Folder created successfully.");
+    } catch (error) {
+      toast.error("Failed to refresh folder list after creation.");
+    }
   };
 
   // Update the handleOpenAddResourceModal function:
   const handleAddResources = async () => {
     setIsAddResourceMode(true);
     setIsLoading(true);
-    const newResources: Resource[] = await fetchAllResources();
-    setIsLoading(false);
-    setAllResources(newResources.map(r => {return {resource: r, addedBy: ""}}));
+    try {
+      const newResources: Resource[] = await fetchAllResources();
+      setAllResources(newResources.map(r => {return {resource: r, addedBy: ""}}));
+      toast.success("Fetched all resources.");
+    } catch (error) {
+      toast.error("Failed to fetch resources.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Add new handler functions:
@@ -573,6 +599,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     setIsAddResourceMode(false);
     setSelectedResourceIds(new Set());
     setAllResources([]);
+    toast.success("Add resource mode cancelled.");
   };
 
   const handleConfirmAddResource = async () => {
@@ -589,7 +616,12 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
 
       const projectId: string = navigationState.currentProjectId || "";
       for (const id of selectedIds) {
-        await addResourceToProject(projectId, id);
+        const response = await addResourceToProject(projectId, id);
+        if (response?.success) {
+          toast.success(response.message || "Resource added successfully.");
+        } else {
+          toast.error(response?.message || "Failed to add resource.");
+        }
       }
       
       // Exit add resource mode and refresh
@@ -605,6 +637,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
       }
       
     } catch (error) {
+      toast.error("Error adding resources.");
       console.error("Error adding resources:", error);
     } finally {
       setIsLoading(false);
@@ -626,7 +659,13 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     
     try {
       if (item.itemType == "resource") {
-        await removeResourceFromProject(projectId ? projectId : "", item.id);
+        const response: ApiResponse = await removeResourceFromProject(projectId ? projectId : "", item.id);
+        if (response.success) {
+          toast.success(response.message);
+        } else {
+          toast.error(response.message);
+        }
+
         const { resources, projects, creators, tags } = await fetchProjectContent(projectId ? projectId : "");
         setResources(resources);
         setProjects(projects);
@@ -635,7 +674,13 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
       }
       else {
         // If we delete a project, navigate to the full projects overview, otherwise reload the folder you are in
-        await deleteProject(item.id);
+        const response: ApiResponse = await deleteProject(item.id);
+        if (response.success) {
+          toast.success(response.message);
+        } else {
+          toast.error(response.message);
+        }
+
         if(navigationRef.current.currentLevel >= 1) {
           await refreshCurrentProject();
         }
@@ -643,6 +688,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
           await navigateToRoot()};
       }
     } catch (err) {
+      toast.error("Remove failed.");
       console.error("Remove failed:", err);
     } finally {
       setIsLoading(false);
@@ -663,8 +709,12 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   useEffect(() => {
     const loadProjectContent = async () => {
       if (selectedProjectForEdit && selectedProjectForEdit.id) {
-        const { resources, projects, creators, tags } = await fetchProjectContent(selectedProjectForEdit.id);
-        setCreatorsEdit(creators ? creators : []);
+        try {
+          const { resources, projects, creators, tags } = await fetchProjectContent(selectedProjectForEdit.id);
+          setCreatorsEdit(creators ? creators : []);
+        } catch (error) {
+          toast.error("Failed to fetch project creators.");
+        }
       }
     };
 
@@ -682,10 +732,15 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   const handleEditSuccess = async () => {
     handleCloseEditModal();
     // Refresh the current view
-    if (navigationState.currentProjectId) {
-      await refreshCurrentProject();
-    } else {
-      await navigateToRoot();
+    try {
+      if (navigationState.currentProjectId) {
+        await refreshCurrentProject();
+      } else {
+        await navigateToRoot();
+      }
+      toast.success("Project updated successfully.");
+    } catch (error) {
+      toast.error("Failed to refresh after editing project.");
     }
   };
 
@@ -939,10 +994,12 @@ function DownloadRenderer({ data }: { data: any }) {
  * @param {boolean} isAddResourceMode - Whether we are adding resources or not
  * @returns A remove button component or null
  */
-function RemoveRenderer({ data, onRemove, isAddResourceMode }: { 
+function RemoveRenderer({ data, onRemove, isAddResourceMode, currentUserId, userRole }: { 
   data: any; 
   onRemove: (item: ProjectOrResource) => void; 
   isAddResourceMode: boolean; 
+  currentUserId: string;
+  userRole: string | null;
 }) {
   if (isAddResourceMode) return null;
   return (
@@ -971,7 +1028,15 @@ function RemoveRenderer({ data, onRemove, isAddResourceMode }: {
  * @param {boolean} isAddResourceMode - Whether we are adding resources or not
  * @returns A edit button component or null
  */
-function EditRenderer({ data, onEdit }: { data: any, onEdit: (item: ProjectOrResource) => void }) {
+function EditRenderer({ data, onEdit, currentUserId, userRole }: { data: any, onEdit: (item: ProjectOrResource) => void, currentUserId: string, userRole: string | null }) {
+  const creatorRelations = data.creatorRelations || [];
+
+  // Check if current user is a creator
+  const hasPermission = creatorRelations.some(
+    (rel: any) => rel.creatorId === currentUserId
+  );
+  if (!hasPermission && userRole != "admin") return null;
+  
   return (
     <div className="edit-button flex items-center justify-center w-full h-full">
       <Button

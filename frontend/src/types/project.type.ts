@@ -117,7 +117,8 @@ export const ProjectFolderRelationSchema = z.object({
 
 export const FolderProjectSchema = z.object({
   folder: ProjectSchema,
-  addedBy: z.string()
+  addedBy: z.string(),
+  creatorRelations: z.array(z.string())
 })
 
 // Type definitions derived from the schemas
