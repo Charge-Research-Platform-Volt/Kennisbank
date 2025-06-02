@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input"
 import New from "@/icons/new"
 import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { newRelationSearchResults, organisationRelation, personRelation, resourceRelation, addRelation } from "@/actions/right-sidebarActions";
+import { newRelationSearchResults, organisationRelation, personRelation, resourceRelation, addRelation, addNewRegion } from "@/actions/right-sidebarActions";
 import { Button } from "@/components/ui/button";
 import { ListItem } from "./BadgeList";
+import { toast } from "sonner";
 
 interface NewBadgeProps
 {
@@ -133,11 +134,12 @@ export default function NewBadge({
 
     async function handleAddRegion() {
         try {
-            // create new Region with sonner notification
-            await addRelation(relation, currentType, currentId, source);
-            onUpdate();
+            let addedRegionId = await addNewRegion(searchQuery);
+            toast.info(`Region created succesfully: ${searchQuery}`);
+            await addRelation("regions", currentType, currentId, addedRegionId);
 
             setIsOpen(false);
+            onUpdate();
             setSearchQuery("");
             setSelected([]);
             setSource("");
@@ -163,8 +165,8 @@ export default function NewBadge({
                 forceMount>
 
                 {relation === "sources" || relation === "related-sources" ? (
-                    <div className="w-full h-20 flex flex-col"> {/* purely add space */}
-                        {/* Search Input */}
+                    <div className="w-full h-20 flex flex-col">
+                        {/* Input */}
                         <div className="mb-3">
                             <Input
                                 type="text" 

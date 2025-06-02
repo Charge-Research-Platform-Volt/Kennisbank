@@ -250,7 +250,12 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
         if (tagExists)
         {
             Log.Error("Tag already exists..");
-            return Conflict(new ApiResponse(false, "Tag already exists."));
+            object? existingTagId = null;
+            existingTagId = await resourceManager.GetTagPropertyOrDefaultAsync(t => t.Name == dto.Name, selector: "Id");
+            if (existingTagId != null)
+            {
+                return Conflict(new ApiResponse(false, "Tag already exists.", existingTagId.ToString()));
+            }
         }
 
         // Add the tag

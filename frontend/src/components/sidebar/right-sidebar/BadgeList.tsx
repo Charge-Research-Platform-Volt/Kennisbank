@@ -7,7 +7,7 @@ import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 import NewBadge from "./NewBadge"
 import { useArchive } from "@/context/archive-provider"
-import { organisationRelation, personRelation, resourceRelation } from "@/actions/right-sidebarActions";
+import { organisationRelation, personRelation, resourceRelation, removeRelation, tryAddNewTag, addRelation } from "@/actions/right-sidebarActions";
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "@/components/ui/context-menu";
 
 export interface ListItem
@@ -37,7 +37,7 @@ export default function BadgeList({
     onUpdate,
 } : BadgeListProps)
 {
-    const { navigate } = useSidebar();
+    const { navigate, currentId, currentType } = useSidebar();
     const { setTagFilter, setTypeFilter } = useArchive();
     
     async function navigateTo(id: string, type: string)
@@ -58,8 +58,26 @@ export default function BadgeList({
         }
     }
 
-    async function removeRelation(id: string, type: string) {
-        return [id, type]
+    async function handleRemove(id: string, type: string) {
+        try {
+            
+            await removeRelation(listType, currentType, currentId, id) 
+            onUpdate();
+
+        } catch (error) {
+            console.error("Error adding relations:", error);
+        }
+    }
+
+    async function handleAddTag(id: string, name: string) {
+        try {
+            let tagid = await tryAddNewTag(name);
+            await addRelation("tags", currentType, currentId, tagid)
+            onUpdate();
+        }
+        catch (error) {
+            console.error("Error adding recommended tag:", error)
+        }
     }
 
     return (
@@ -78,17 +96,30 @@ export default function BadgeList({
                                 <Badge onClick={() => { navigateTo(item.id, item.type); }} variant={variant} className={className}>{item.name}</Badge>
                             </ContextMenuTrigger>
                             <ContextMenuContent className="select-none">
-                                <ContextMenuItem className="select-none text-red-600" onClick={() => removeRelation(item.id, item.id)}>
-                                    <div className="select-none cursor-pointer">Remove relation</div>
-                                </ContextMenuItem>
+                                {listType != "ai-tags" ? (
+                                    <ContextMenuItem className="select-none text-red-600" onClick={() => handleRemove(item.id, item.type)}>
+                                        <div className="select-none cursor-pointer">Remove relation</div>
+                                    </ContextMenuItem>
+                                ) : (
+                                    <ContextMenuItem className="select-none text-[#502379]" onClick={() => handleAddTag(item.id, item.name)}>
+                                        <div className="select-none cursor-pointer">Add tag</div>
+                                    </ContextMenuItem>
+                                )}
+                                
                             </ContextMenuContent>
                         </ContextMenu>
                     ))}
-                    <NewBadge relation={listType} onUpdate={onUpdate} alreadyRelated={itemList}/>
+                    {listType != "ai-tags" && (
+                        <NewBadge relation={listType} onUpdate={onUpdate} alreadyRelated={itemList}/>
+                    )}
+                    
                 </>
             ) : (
-                <NewBadge relation={listType} onUpdate={onUpdate}  alreadyRelated={[]}/>
-                
+                <>
+                {listType != "ai-tags" && (
+                    <NewBadge relation={listType} onUpdate={onUpdate} alreadyRelated={itemList}/>
+                )}
+                </>
             )}
         </>
     )

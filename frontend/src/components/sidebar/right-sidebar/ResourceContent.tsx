@@ -5,7 +5,7 @@ import BadgeList from "./BadgeList"
 import { ListItem } from "./BadgeList"
 import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider"
 import { getProperties, getRelation } from "@/actions/right-sidebarActions"
-import React from "react"
+import React, {useState, useEffect} from "react"
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 import ResourceList from "./ResourceList"
@@ -15,46 +15,109 @@ import ConfirmDeleteDialog from "@/components/ui/confirm-delete-dialog"
 import { toast } from "sonner"
 import { ApiResponse } from "@/types/apiResponse.type"
 import { useArchive } from "@/context/archive-provider"
+import Divider from "../divider"
 
 
 export function ResourceContent()
 {
-    const { currentId, rightSidebarOpen, setRightSidebarOpen } = useSidebar();
+    const { currentId, rightSidebarOpen, currentType, setRightSidebarOpen } = useSidebar();
     const { userRole } = useUserRole();
     const { triggerGridReload } = useArchive();
+    const [confirmDialogOpen, setConfirmDialogOpen] = useState<boolean>(false);
+
+    const [ fileType, setFileType] = useState<string | null>(null);
+    const [ title, setTitle ] = useState<string | null>(null);
+    const [ url, setUrl ] = useState<string | undefined>(undefined);
+    const [ description, setDescription ] = useState<string | null>(null);
+    const [ note, setNote ] = useState<string | null>(null);
+    const [ authors, setAuthors ] = useState<ListItem[] | null>(null);
+    const [ tags, setTags ] = useState<ListItem[] | null>(null);
+    const [ aiTags, setAiTags ] = useState<ListItem[] | null>(null);
+    const [ organisations, setOrganisations ] = useState<ListItem[] | null>(null);
+    const [ relatedOrganisations, setRelatedOrganisations ] = useState<ListItem[] | null>(null);
+    const [ relatedPersons, setRelatedPersons ] = useState<ListItem[] | null>(null);
+    const [ relatedResources, setRelatedResources ] = useState<ListItem[] | null>(null);
+    const [ sourceList, setSourceList ] = useState<ListItem[] | null>(null);
+    const [ regions, setRegions ] = useState<ListItem[] | null>(null);
+    const [ relatedSourceList, setRelatedSourceList ] = useState<ListItem[] | null>(null);
+    const [ langCode, setLangCode ] = useState<string | null>(null); //ToDo
+    const [ pubCode, setPubCode ] = useState<string | null>(null); //ToDo
+    const [ pubDate, setPubDate ] = useState<Date | null>(null); //ToDo
+    const [ creationDate, setCreationDate ] = useState<Date | null>(null); //ToDo
+    const [ license, setLicense ] = useState<string | null>(null); //ToDo
+
+    const [authorsTrigger, setAuthorsTrigger] = useState(false);
+    const [tagsTrigger, setTagsTrigger] = useState(false);
+    const [organisationsTrigger, setOrganisationsTrigger] = useState(false);
+    const [relatedOrganisationTrigger, setRelatedOrganisationTrigger] = useState(false);
+    const [relatedPersonsTrigger, setRelatedPersonsTrigger] = useState(false);
+    const [regionsTrigger, setRegionsTrigger] = useState(false);
+    const [relatedSourceListTrigger, setRelatedSourceListTrigger] = useState(false);
+    const [aiTagsTrigger, setAiTagsTrigger] = useState(false);
+    const [sourceListTrigger, setSourceListTrigger] = useState(false);
+
+    const triggerAuthorsRefresh = () => setAuthorsTrigger(prev => !prev);
+    const triggerTagsRefresh = () => setTagsTrigger(prev => !prev);
+    const triggerOrganisationsRefresh = () => setOrganisationsTrigger(prev => !prev);
+    const triggerRelatedOrganisationRefresh = () => setRelatedOrganisationTrigger(prev => !prev);
+    const triggerRelatedPersonsRefresh = () => setRelatedPersonsTrigger(prev => !prev);
+    const triggerRegionsRefresh = () => setRegionsTrigger(prev => !prev);
+    const triggerRelatedSourceListRefresh = () => setRelatedSourceListTrigger(prev => !prev);
+    const triggerAiTagsRefresh = () => setAiTagsTrigger(prev => !prev);
+    const triggerSourceListRefresh = () => setSourceListTrigger(prev => !prev);
+
     
-    const [ fileType, setFileType] = React.useState<string | null>(null);
-    const [ title, setTitle ] = React.useState<string | null>(null);
-    const [ url, setUrl ] = React.useState<string | undefined>(undefined);
-    const [ description, setDescription ] = React.useState<string | null>(null);
-    const [ note, setNote ] = React.useState<string | null>(null);
-    const [ authors, setAuthors ] = React.useState<ListItem[] | null>(null);
-    const [ tags, setTags ] = React.useState<ListItem[] | null>(null);
-    const [ organisations, setOrganisations ] = React.useState<ListItem[] | null>(null);
-    const [ relatedOrganisations, setRelatedOrganisations ] = React.useState<ListItem[] | null>(null);
-    const [ relatedPersons, setRelatedPersons ] = React.useState<ListItem[] | null>(null);
-    const [ relatedResources, setRelatedResources ] = React.useState<ListItem[] | null>(null);
-    const [ sourceList, setSourceList ] = React.useState<ListItem[] | null>(null);
-    const [ regions, setRegions ] = React.useState<ListItem[] | null>(null);
 
-    const [shouldRefresh, setUpdateTrigger] = React.useState(false);
-    const triggerRefresh = () => setUpdateTrigger(prev => !prev);  
 
-    const [confirmDialogOpen, setConfirmDialogOpen] = React.useState<boolean>(false);
+    useEffect(() => {
+        if (rightSidebarOpen) {
+        setFileType(null);
+        setUrl(undefined);
+        setTitle(null);
+        setDescription(null);
+        setNote(null);
+        setAuthors(null);
+        setTags(null);
+        setAiTags(null);
+        setOrganisations(null);
+        setRelatedOrganisations(null);
+        setRelatedSourceList(null);
+        setRelatedPersons(null);
+        setRelatedResources(null);
+        setSourceList(null);
+        setRegions(null);
+        setLangCode(null);
+        setPubCode(null);
+        setPubDate(null);
+        setCreationDate(null);
+        setLicense(null);
 
-    
+        loadProperties();
+        loadAuthors();
+        loadTags();
+        loadOrganisations();
+        loadRelatedOrganisation();
+        loadRelatedPersons();
+        loadRelatedResources();
+        loadSourceList();
+        loadRegions();
+        loadRelatedSourceList();
+        loadAiTags(); 
+        }
+    }, [currentId, rightSidebarOpen])
 
-    const loadInformation = React.useCallback(async () => {
+    useEffect(() => { if (rightSidebarOpen) { setAuthors(null); loadAuthors();  } }, [authorsTrigger]);
+    useEffect(() => { if (rightSidebarOpen) { setTags(null); loadTags(); } }, [tagsTrigger]);
+    useEffect(() => { if (rightSidebarOpen) { setOrganisations(null); loadOrganisations(); } }, [organisationsTrigger]);
+    useEffect(() => { if (rightSidebarOpen) { setRelatedOrganisations(null); loadRelatedOrganisation(); } }, [relatedOrganisationTrigger]);
+    useEffect(() => { if (rightSidebarOpen) { setRelatedPersons(null); loadRelatedPersons(); } }, [relatedPersonsTrigger]);
+    useEffect(() => { if (rightSidebarOpen) { setRegions(null); loadRegions(); } }, [regionsTrigger]);
+    useEffect(() => { if (rightSidebarOpen) { setRelatedSourceList(null); loadRelatedSourceList(); } }, [relatedSourceListTrigger]);
+    useEffect(() => { if (rightSidebarOpen) { setAiTags(null); loadAiTags(); } }, [aiTagsTrigger]);
+    useEffect(() => { if (rightSidebarOpen) { setSourceList(null); loadSourceList(); } }, [sourceListTrigger]);
+
+    const loadProperties = async () => {
         const infoPromise = getProperties(currentId, MetadataTypeEnum.RESOURCE);
-        const authorsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "authors");
-        const tagsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "tags");
-        const organisationsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "organisations");
-        const relatedOrganisationsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-organisations");
-        const relatedPersonsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-persons");
-        const relatedResourcesPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "resource-related-resources");
-        const sourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "sources");
-        const regionsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "regions");
-        // const relatedSourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-sources");
 
         infoPromise.then(response => {
             setFileType(response.body.fileType);
@@ -65,22 +128,38 @@ export function ResourceContent()
                     setUrl(response.body.url);
                 }).catch(error => {console.error("Error loading url: ", error);})
             }
+            setLangCode(response.body.languageCode);
+            setPubDate(response.body.publicationDate);
+            setCreationDate(response.body.creationDate);
             setTitle(response.body.title);
             if (response.body.description) {
                 setDescription(response.body.description);
             }
             else {setDescription("No description.")}
-            
+
             if (response.body.note) {
                 setNote(response.body.note);
             }
             else {setNote("No notes.")}
 
+            if (response.body.publicationCode) {
+                setPubCode(response.body.publicationCode);
+            }
+            else {setPubCode("No Publication Code")}
+
+            if (response.body.license) {
+                setLicense(response.body.license);
+            }
+            else {setLicense("No License")}
+
         }).catch(error => {
             console.error("Error loading information: ", error);
         });
-        
+    }
 
+    const loadAuthors = async () => {
+        const authorsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "authors");
+        
         authorsPromise.then(response => {
             const list: ListItem[] = response.body.map((item: { id: string; name: string }) => ({
                 id: item.id,
@@ -91,6 +170,10 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading authors: ", error);
         });
+    }
+
+    const loadTags = async () => {
+        const tagsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "tags");
 
         tagsPromise.then(response => {
             const list: ListItem[] = response.body.map((item: { id: string; name: string }) => ({
@@ -102,6 +185,10 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading tags: ", error);
         });
+    }
+
+    const loadOrganisations = async () => {
+        const organisationsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "organisations");
 
         organisationsPromise.then(response => {
             const list: ListItem[] = response.body.map((item: { id: string; name: string }) => ({
@@ -113,18 +200,11 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading organisations: ", error);
         });
+    }
 
-        relatedPersonsPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: string; name: string }) => ({
-                id: item.id,
-                name: item.name,
-                type: "person",
-            }))
-            setRelatedPersons(list);
-        }).catch(error => {
-            console.error("Error loading related persons: ", error);
-        });
-        
+    const loadRelatedOrganisation = async () => {
+        const relatedOrganisationsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-organisations");
+
         relatedOrganisationsPromise.then(response => {
             const list: ListItem[] = response.body.map((item: { id: string; name: string }) => ({
                 id: item.id,
@@ -136,6 +216,26 @@ export function ResourceContent()
             console.error("Error loading related organisations: ", error);
         });
 
+    }
+
+    const loadRelatedPersons = async () => {
+        const relatedPersonsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-persons");
+
+        relatedPersonsPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
+                id: item.id,
+                name: item.name,
+                type: "person",
+            }))
+            setRelatedPersons(list);
+        }).catch(error => {
+            console.error("Error loading related persons: ", error);
+        });
+    }
+
+    const loadRelatedResources = async () => {
+        const relatedResourcesPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "resource-related-resources");
+    
         relatedResourcesPromise.then(response => {
             const list: ListItem[] = response.body.map((item: { id: string; title: string; fileType: string }) => ({
                 id: item.id,
@@ -146,7 +246,11 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading related resources: ", error);
         });
+    }
 
+    const loadSourceList = async () => {
+        const sourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "sources");
+    
         sourceListPromise.then(response => {
             const list: ListItem[] = response.body.map((item: {id: string; name: string}) => ({
                 id: decodeURIComponent(item.id),
@@ -157,6 +261,10 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading sources: ", error);
         });
+    }
+
+    const loadRegions = async () => {
+        const regionsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "regions");
 
         regionsPromise.then(response => {
             const list: ListItem[] = response.body.map((item: {id: string; name: string}) => ({
@@ -168,37 +276,44 @@ export function ResourceContent()
         }).catch(error => {
             console.error("Error loading regions: ", error);
         });
-        
-        // relatedSourceListPromise.then(response => {
-        //     const list: ListItem[] = response.body.map((item: {id: string; name: string}) => ({
-        //         id: decodeURIComponent(item.id),
-        //         name: decodeURIComponent(item.name),
-        //         type: "source",
-        //     }))
-        //     setRelatedSourceList(list);
-        // }).catch(error => {
-        //     console.error("Error loading sources: ", error);
-        // });
+    }
 
-    }, [currentId])
+
+    const loadRelatedSourceList = async () => {
+        const relatedSourceListPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "related-sources");
     
-    React.useEffect(() => {
-        if (rightSidebarOpen) {
-        setFileType(null);
-        setUrl(undefined);
-        setTitle(null);
-        setDescription(null);
-        setNote(null);
-        setAuthors(null);
-        setTags(null);
-        setOrganisations(null);
-        setRelatedOrganisations(null);
-        setRelatedPersons(null);
-        setRelatedResources(null);
-        setSourceList(null);
-        setRegions(null);
-        loadInformation(); }
-    }, [currentId, shouldRefresh, loadInformation, rightSidebarOpen])
+        relatedSourceListPromise.then(response => {
+            const list: ListItem[] = response.body.map((item: {id: any; name: any}) => ({
+                id: decodeURIComponent(item.id),
+                name: decodeURIComponent(item.name),
+                type: "source",
+            }))
+            setRelatedSourceList(list);
+        }).catch(error => {
+            console.error("Error loading sources: ", error);
+        });
+    }
+
+    const loadAiTags = async () => {
+        const aiTagsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "ai-tags");
+    
+        aiTagsPromise.then(response => {
+            //Add translation logic from ai tags to ListItem[] here
+            const list: ListItem[] = response.body.map((item: string) => ({
+                id: item,
+                name: item,
+                type: "ai-tag",
+            }))
+
+            const finalList = list.length > 10 
+            ? list.sort(() => 0.5 - Math.random()).slice(0, 10)
+            : list;
+
+            setAiTags(finalList);
+        }).catch(error => {
+            console.error("Error loading tags: ", error);
+        });
+    }
     
     const confirmDelete = async () => 
     {
@@ -242,33 +357,37 @@ export function ResourceContent()
             </Expandable>
             
             <Expandable variant="horizontal" title="Tags">
-                <BadgeList listType="tags" itemList={tags} onUpdate={triggerRefresh}/>
+                <BadgeList listType="tags" itemList={tags} onUpdate={triggerTagsRefresh}/>
+            </Expandable>
+
+            <Expandable variant="horizontal" title="Recommended Tags">
+                <BadgeList listType="ai-tags" itemList={aiTags} onUpdate={triggerAiTagsRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Authors">
-                <BadgeList listType="authors" itemList={authors} onUpdate={triggerRefresh}/>
+                <BadgeList listType="authors" itemList={authors} onUpdate={triggerAuthorsRefresh}/>
             </Expandable>
             
             <Expandable variant="horizontal" title="Organisations">
-                <BadgeList listType="organisations" itemList={organisations} onUpdate={triggerRefresh}/>
+                <BadgeList listType="organisations" itemList={organisations} onUpdate={triggerOrganisationsRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Related People">
-                <BadgeList listType="related-persons" itemList={relatedPersons} onUpdate={triggerRefresh}/>
+                <BadgeList listType="related-persons" itemList={relatedPersons} onUpdate={triggerRelatedPersonsRefresh}/>
             </Expandable>
             
             <Expandable variant="horizontal" title="Related Organisations">
-                <BadgeList listType="related-organisations" itemList={relatedOrganisations} onUpdate={triggerRefresh}/>
+                <BadgeList listType="related-organisations" itemList={relatedOrganisations} onUpdate={triggerRelatedOrganisationRefresh}/>
             </Expandable>
 
             <ResourceList header="Related Resources" resources={relatedResources}/>
 
             <Expandable variant="horizontal" title="Sources">
-                <BadgeList listType="sources" itemList={sourceList} onUpdate={triggerRefresh}/>
+                <BadgeList listType="sources" itemList={sourceList} onUpdate={triggerSourceListRefresh}/>
             </Expandable>
 
             <Expandable variant="horizontal" title="Regions">
-                <BadgeList listType="regions" itemList={regions} onUpdate={triggerRefresh}/>
+                <BadgeList listType="regions" itemList={regions} onUpdate={triggerRegionsRefresh}/>
             </Expandable>
 
             {/* {resourceType === "Scientific Article" && (
@@ -281,15 +400,23 @@ export function ResourceContent()
                 {note || <Skeleton />}
             </Expandable>
 
-            {/* <Expandable variant="horizontal" title="Related Sources">
-                <BadgeList listType="related-sources" emptyMessage={"No sources recorded"} itemList={relatedSourceList} onUpdate={triggerRefresh}/>
-            </Expandable> */}
+            <Expandable variant="horizontal" title="Related Sources">
+                <BadgeList listType="related-sources" itemList={relatedSourceList} onUpdate={triggerRelatedSourceListRefresh}/>
+            </Expandable> 
+
+            <Divider name={"Publication Code"} minimize={true}/>
+            {pubCode}
+
+            <Divider className="mt-2" name={"License Code"} minimize={true}/>
+            {license}
             
             { userRole === 'admin' &&
                 <div className="w-full flex justify-center mt-10">
                     <Button onClick={() => setConfirmDialogOpen(true)} variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600">Delete Resource</Button>
                 </div>
             }
+            
+            
         </>
     )
 }

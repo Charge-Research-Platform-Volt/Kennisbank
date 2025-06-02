@@ -451,6 +451,68 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
 
+        #region Remove Relations
+        /// <summary>
+        /// Removes a relation for this organisation
+        /// </summary>
+        /// <param name="id">The ID of the organisation</param>
+        /// <param name="relation">The relation to be removed</param>
+        /// <param name="targetId">The ID of the other item in the relation</param>
+        [HttpGet("{id}/relations/remove/{relation}/{targetId}")]
+        [SwaggerOperation(Summary = "Removes a relation to the organisation")]
+        [SwaggerResponse(200, "Successfully remoed relation", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> RemoveRelation(string id, string relation, string targetId)
+        {
+            // Check if relation is filled in
+            if (string.IsNullOrEmpty(relation))
+                return BadRequest(new ApiResponse(false, "Invalid relation"));
+
+            // Check if ids are valid
+            if (!ValidityUtil.IsValidId(id)) return BadRequest(new ApiResponse(false, "Invalid ID"));
+            if (!ValidityUtil.IsValidId(targetId)) return BadRequest(new ApiResponse(false, "Invalid target ID"));
+
+            try
+            {
+                switch (relation)
+                {
+                    // Direct resources
+                    case "direct-resources":
+                        await resourceManager.RemoveOrganisationFromResourceAsync(targetId, id);
+                        break;
+
+                    // Related resources
+                    case "related-resources":
+                        await resourceManager.RemoveRelatedOrganisationFromResourceAsync(targetId, id);
+                        break;
+
+                    // Organisations
+                    case "organisation-related-organisations":
+                        await resourceManager.RemoveOrganisationRelationshipAsync(id, targetId);
+                        break;
+
+                    // Persons
+                    case "persons":
+                        await resourceManager.RemovePersonFromOrganisationAsync(targetId, id);
+                        break;
+
+                    // Default
+                    default:
+                        return BadRequest(new ApiResponse(false, "Invalid relation"));
+                }
+
+                return Ok(new ApiResponse(true, "Relation removed successfully"));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error removing relation '{Relation}' for person with ID '{Id}'", relation, id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        #endregion
+
         #region Helper Functions
         // ---------------------------
         // Helper functions
