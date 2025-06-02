@@ -6,6 +6,7 @@ import { getProperties, getRelation } from "@/actions/right-sidebarActions";
 import Skeleton from 'react-loading-skeleton'
 import Expandable from "./expandable"
 import BadgeList, { ListItem } from "./BadgeList";
+import Edit from "./Edit";
 
 export function PersonContent() 
 {
@@ -152,12 +153,20 @@ export function PersonContent()
     return (
         <>
             <h1 className="pb-2 font-bold select-none text-2xl">{name || <Skeleton />}</h1>
-            <h2 className="mb-2 select-none">{occupation || <Skeleton />}</h2>
-            <a href={linkedIn} className="select-none" target="_blank" rel="noreferror">
-                <h1 className="mb-8 select-none text-blue-500 underline">{linkedIn}</h1>
-            </a>
+            {occupation ? (
+            <div className="flex justify-between flex-1">
+                <h2 className="mb-2 select-none">{occupation}</h2>
+                <div className="flex justify-end"><Edit setNewText={setOccupation} currentText={occupation} property="occupation" /></div>
+            </div>) : (<Skeleton />) }
+
+            {linkedIn ? (
+            <div className="flex justify-between flex-1">
+                <h2 className="mb-2 select-none">{linkedIn}</h2>
+                <div className="flex justify-end"><Edit setNewText={setLinkedIn} currentText={linkedIn} property="linkedIn" /></div>
+            </div>) : (<Skeleton />) }
+
             
-            <Expandable title="Description" collapsedHeight={100}>
+            <Expandable editButton={<Edit setNewText={setDescription} currentText={description} property="description" />} title="Description" collapsedHeight={100}>
                     {description || <Skeleton />}
             </Expandable>
 

@@ -8,6 +8,7 @@ import Expandable from "./expandable";
 import BadgeList, { ListItem } from "./BadgeList";
 import { useUserRole } from "@/context/user-role-context";
 import { Button } from "@/components/ui/button";
+import Edit from "./Edit";
 
 export function OrganisationContent() 
 {
@@ -151,7 +152,13 @@ export function OrganisationContent()
                 <h1 className="mb-8 select-none text-blue-500 underline">{url || <Skeleton />}</h1>
             </a>
 
-            <Expandable title="Description" collapsedHeight={100}>
+            {url ? (
+                <div className="flex justify-between flex-1">
+                    <h2 className="mb-2 select-none">{url}</h2>
+                    <div className="flex justify-end"><Edit setNewText={setUrl} currentText={url} property="url" /></div>
+                </div>) : (<Skeleton />) }
+
+            <Expandable editButton={<Edit setNewText={setDescription} currentText={description} property="description" />} title="Description" collapsedHeight={100}>
                 {description || <Skeleton />}
             </Expandable>
             
@@ -173,7 +180,7 @@ export function OrganisationContent()
             
             { userRole === 'admin' &&
                 <div className="w-full flex justify-center mt-10">
-                    <Button variant="outline">Delete Person</Button>
+                    <Button variant="outline">Delete Organisation</Button>
                 </div>
             }
         </>
