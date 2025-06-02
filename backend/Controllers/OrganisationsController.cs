@@ -100,18 +100,27 @@ namespace KnowledgeBank.Controllers
 
             try
             {
-                // Delete organisation
-                _logger.Information("Deleting organistation with ID: {ID}", id);
-                bool found = await resourceManager.DeleteOrganisationAsync(id);
+                _logger.Information("Deleting organisation with ID: {ID}", id);
 
-                if (found)
+                // Delete organisation from database
+                bool organisationFound = await resourceManager.DeleteOrganisationAsync(id);
+
+                if (!organisationFound)
                 {
-                    _logger.Information("Organistaion with ID '{ID}' deleted successfully", id);
-                    return Ok(new ApiResponse(true, "Organisation deleted successfully"));
+                    _logger.Information("Organisation with ID '{ID}' not found.", id);
+                    return NotFound(new ApiResponse(false, "Organisation does not exist"));
                 }
 
-                _logger.Information("Organisation with ID '{ID}' not found.", id);
-                return NotFound(new ApiResponse(false, "Organisation does not exist"));
+                // Delete the organisation chunks from the vector database
+                bool chunkDeleted = await _ragSystem.DeleteAllPointsWithIdAsync(id);
+                if (!chunkDeleted)
+                {
+                    _logger.Warning("Something went wrong while deleting the organisation chunks from the vector database for ID: {ID}", id);
+                    return StatusCode(500, new ApiResponse(false, "Error deleting organisation chunks from vector database"));
+                }
+
+                _logger.Information("Organisation with ID '{ID}' deleted successfully", id);
+                return Ok(new ApiResponse(true, "Organisation deleted successfully"));
             }
             catch (Exception e)
             {

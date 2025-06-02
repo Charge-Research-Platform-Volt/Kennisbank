@@ -104,14 +104,22 @@ namespace KnowledgeBank.Controllers
                 _logger.Information("Deleting person with ID: {ID}", id);
                 bool found = await resourceManager.DeletePersonAsync(id);
 
-                if (found)
+                if (!found)
                 {
-                    _logger.Information("Person with ID '{ID}' deleted successfully", id);
-                    return Ok(new ApiResponse(true, "Person deleted successfully"));
+                    _logger.Information("Person with ID '{ID}' not found.", id);
+                    return NotFound(new ApiResponse(false, "Person does not exist"));
                 }
 
-                _logger.Information("Person with ID '{ID}' not found.", id);
-                return NotFound(new ApiResponse(false, "Person does not exist"));
+                // Delete the person chunks from the vector database
+                bool chunkDeleted = await _ragSystem.DeleteAllPointsWithIdAsync(id);
+                if (!chunkDeleted)
+                {
+                    _logger.Warning("Failed to delete person chunks from vector database for ID: {ID}", id);
+                    return StatusCode(500, new ApiResponse(false, "Failed to delete person chunks from vector database"));
+                }
+
+                _logger.Information("Person with ID '{ID}' deleted successfully", id);
+                return Ok(new ApiResponse(true, "Person deleted successfully"));
             }
             catch (Exception e)
             {

@@ -309,11 +309,12 @@ public class RAGSystem
             throw new ArgumentException("New chunk text cannot be null or empty.", nameof(newChankText));
         }
 
+        // Get the existing point ID
         IReadOnlyList<ScoredPoint> restult = await QdrantClient.QueryAsync(
              collectionName: COLLECTION_NAME,
              filter: MatchKeyword("resourceId", id) & MatchKeyword("chunkType", ChunkType.MetaData.ToString()),
              limit: 1
-         );
+        );
 
         float[] newEmbeding = await GenerateEmbedding(newChankText);
 
@@ -336,25 +337,30 @@ public class RAGSystem
 
     }
 
-    public async Task DeleteAllPointsWithIdAsync(string id)
+    public async Task<bool> DeleteAllPointsWithIdAsync(string id)
     {
         if (string.IsNullOrWhiteSpace(id))
         {
-            _logger.Warning("Resource ID is null or empty. Cannot delete chunks.");
-            throw new ArgumentException("Resource ID cannot be null or empty.", nameof(id));
+            _logger.Warning("Resource ID is null or empty. Cannot delete chunks for ResourceId: {ResourceId}", id);
+            return false;
         }
 
         try
         {
-            await QdrantClient.DeleteAsync(collectionName: COLLECTION_NAME, filter: MatchKeyword("resourceId", id));
+            var deleteResult = await QdrantClient.DeleteAsync(
+                collectionName: COLLECTION_NAME,
+                filter: MatchKeyword("resourceId", id)
+            );
+
+            _logger.Information("Successfully deleted points for ResourceId: {ResourceId}", id);
+            return true;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            _logger.Error("Failed to delete chunks with resourceId: {ResourceId}. Ensure the Qdrant collection exists and is accessible.", id);
+            _logger.Error(ex, "Failed to delete points for ResourceId: {ResourceId}", id);
+            return false;
         }
     }
-
-
 }
 
 

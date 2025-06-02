@@ -420,6 +420,14 @@ namespace KnowledgeBank.Controllers
                 // Delete the resource from the database
                 await resourceManager.DeleteResourceAsync(id);
 
+                // Delete the chunks from the vector database
+                bool chunkDeleted = await _ragSystem.DeleteAllPointsWithIdAsync(id);
+                if (!chunkDeleted)
+                {
+                    logger.Warning("Something went wrong while deleting chunks for resource with ID '{ID}'", id);
+                    return StatusCode(500, new ApiResponse(false, "Error deleting chunks from vector database."));
+                }
+
                 logger.Information("Deleted resource with ID '{ID}' successfully", id);
                 return Ok(new ApiResponse(true, "Resource deleted successfully."));
             }
