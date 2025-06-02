@@ -17,7 +17,9 @@ interface GeneratePopupProps {
     onClose: () => void; // Prop to notify parent of open/close changes
   }
 /**
- *
+ * Function to generate a popup
+ * 
+ * @author Justin Liem
  * @param {string} title - Title of the popup
  * @param {string} description - Description header of the popup
  * @param {string[]} content - The string content to display

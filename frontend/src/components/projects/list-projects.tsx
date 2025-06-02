@@ -62,9 +62,12 @@ interface ListProjectsProps {
 
 /**
  * Component for listing projects and resources in a table with navigation capabilities
- * @param initialResources - Initial array of resources to display
- * @param initialProjects - Initial array of projects to display
- * @param fetchProjectContent - Function to fetch content of a project when navigating into it
+ * 
+ * @author Jelle v.h. Schut, Justin Liem
+ * @param {ResourceProject[]} initialResources - Initial array of resources to display
+ * @param {FolderProject[]} initialProjects - Initial array of projects to display
+ * @param {string => Promise<{resources: ResourceProject, projects: FolderProject, creators: User[], tags: Tag[]}>}fetchProjectContent - Function to fetch content of a project when navigating into it
+ * @param {string} currentUserId - Current user Id
  * @returns A navigable table representation of projects and resources
  */
 export default function ListProjects({initialResources, initialProjects, fetchProjectAction: fetchProjectContent, currentUserId}: ListProjectsProps) {
@@ -892,7 +895,9 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
 
 /**
  * Renders either a folder or file entry depending on the item type
- * @param params - The parameters for rendering the item
+ * 
+ * @author Jelle v.h. Schut
+ * @param {{ data: ProjectOrResource, value: string }} params - The parameters for rendering the item
  * @returns A React component showing the appropriate icon and name
  */
 function ItemRenderer(params: { data: ProjectOrResource; value: string }) {
@@ -912,7 +917,9 @@ function ItemRenderer(params: { data: ProjectOrResource; value: string }) {
 
 /**
  * Renders a download button for resource items
- * @param params - The parameters for rendering the download button
+ * 
+ * @author Jelle v.h. Schut
+ * @param {{data: any}} params - The parameters for rendering the download button
  * @returns A download button component or null
  */
 function DownloadRenderer({ data }: { data: any }) {
@@ -923,7 +930,15 @@ function DownloadRenderer({ data }: { data: any }) {
   );
 }
 
-
+/**
+ * Renders a remove button
+ * 
+ * @author Jelle v.h. Schut
+ * @param {any} data - What to remove
+ * @param {(item: ProjectOrResource) => void} onRemove - What to execute after removing
+ * @param {boolean} isAddResourceMode - Whether we are adding resources or not
+ * @returns A remove button component or null
+ */
 function RemoveRenderer({ data, onRemove, isAddResourceMode }: { 
   data: any; 
   onRemove: (item: ProjectOrResource) => void; 
@@ -947,6 +962,15 @@ function RemoveRenderer({ data, onRemove, isAddResourceMode }: {
   );
 }
 
+/**
+ * Renders an edit button
+ *
+ * @author Jelle v.h. Schut
+ * @param {any} data - What to edit
+ * @param {(item: ProjectOrResource) => void} onEdit - What to execute after editing
+ * @param {boolean} isAddResourceMode - Whether we are adding resources or not
+ * @returns A edit button component or null
+ */
 function EditRenderer({ data, onEdit }: { data: any, onEdit: (item: ProjectOrResource) => void }) {
   return (
     <div className="edit-button flex items-center justify-center w-full h-full">

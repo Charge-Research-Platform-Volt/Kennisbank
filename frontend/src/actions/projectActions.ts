@@ -13,8 +13,10 @@ import { Tag } from "@/types/tag.type";
 
 /**
  * Lists all projects with pagination and search functionality.
- * @param pageIndex - The page to fetch
- * @param query - Query to filter the projects with
+ * @param {number} pageIndex - The page to fetch
+ * @param {string} query - Query to filter the projects with
+ * 
+ * @author Jelle v.h. Schut
  * @returns - A promise with the projects and the page information
  */
 export const ListProjectsPaged = async (pageIndex: number, searchQuery: string): Promise<ApiResponse> => {
@@ -45,7 +47,9 @@ export const ListProjectsPaged = async (pageIndex: number, searchQuery: string):
 
 /**
  * Fetches the content (resources and sub-folders) of a specific project/folder.
- * @param projectId - The ID of the project/folder to fetch content for.
+ * @param {string} projectId - The ID of the project/folder to fetch content for.
+ * 
+ * @author Jelle v.h. Schut
  * @returns An object containing resources and projects (folders).
  */
 export const getProjectContentById = async (projectId: string): Promise<{ resources: ResourceProject[], projects: FolderProject[], creators: User[], tags: Tag[] }> => {
@@ -88,7 +92,9 @@ export const getProjectContentById = async (projectId: string): Promise<{ resour
 
 /**
  * Creates a new project at the root level
- * @param data - The data to create a new project
+ * @param {ProjectCreateDto} data - The data to create a new project
+ * 
+ * @author Jelle v.h. Schut
  * @returns API response with the created project ID
  */
 export const createNewProject = async (data: ProjectCreateDto): Promise<ApiResponse> => {
@@ -121,8 +127,10 @@ export const createNewProject = async (data: ProjectCreateDto): Promise<ApiRespo
 
 /**
  * Creates a new folder within a parent project or folder
- * @param folderName Name of the new folder
- * @param parentId ID of the parent project or folder
+ * @param {string} folderName Name of the new folder
+ * @param {string} parentId ID of the parent project or folder
+ * 
+ * @author Jelle v.h. Schut
  * @returns API response with the created folder ID
  */
 export async function createFolder(folderName: string, parentId: string): Promise<ApiResponse> {
@@ -162,6 +170,12 @@ export async function createFolder(folderName: string, parentId: string): Promis
   }
 }
 
+/**
+ * Gets all resources
+ * 
+ * @author Jelle v.h. Schut
+ * @returns All resources
+ */
 export async function fetchAllResources(): Promise<Resource[]> {
   const cookieHeader = await cookies();
   try {
@@ -196,6 +210,15 @@ export async function fetchAllResources(): Promise<Resource[]> {
     }
 }
 
+/**
+ * Adds a resource to a project
+ * 
+ * @param {string} projectId - Id of the project to add a resource to
+ * @param {string} resourceId - Id of the resource to add to the project
+ * 
+ * @author Jelle v.h. Schut
+ * @returns api response indicating whether or not the action was successful
+ */
 export async function addResourceToProject(projectId: string, resourceId: string): Promise<ApiResponse> {
   const cookieHeader = await cookies();
   try {
@@ -225,6 +248,15 @@ export async function addResourceToProject(projectId: string, resourceId: string
   }
 }
 
+/**
+ * Removes a resource to a project
+ * 
+ * @param {string} projectId - Id of the project to remove a resource from
+ * @param {string} resourceId - Id of the resource to remove from the project
+ * 
+ * @author Jelle v.h. Schut
+ * @returns api response indicating whether or not the action was successful
+ */
 export async function removeResourceFromProject(projectId: string, resourceId: string): Promise<ApiResponse> {
   const cookieHeader = await cookies();
   try {
@@ -254,6 +286,14 @@ export async function removeResourceFromProject(projectId: string, resourceId: s
   }
 }
 
+/**
+ * Deletes a project
+ * 
+ * @param {string} projectId - Id of the project to delete
+ * 
+ * @author Jelle v.h. Schut
+ * @returns api response indicating whether or not the action was successful
+ */
 export async function deleteProject(projectId: string): Promise<ApiResponse> {
   const cookieHeader = await cookies();
   try {
@@ -283,6 +323,13 @@ export async function deleteProject(projectId: string): Promise<ApiResponse> {
   }
 }
 
+/**
+ * Updates a project
+ * 
+ * @param {string} projectId - Id of the project to update
+ * @param {Record<string, unknown>} data - Updates to execute on the project
+ * @returns api response indicating whether or not the action was successful
+ */
 export async function updateProject(projectId: string, data: Record<string, unknown>): Promise<ApiResponse> {
   const cookieHeader = await cookies();
 

@@ -4,6 +4,12 @@ import { GetCurrentUserId } from "@/actions/userActions";
 import { ApiResponse } from "@/types/apiResponse.type";
 import { Project } from "@/types/project.type";
 
+/**
+ * Displays the projects page
+ * 
+ * @author Jelle v.h. Schut
+ * @returns projects page
+ */
 export default async function ProjectsPage() {
   const projectFetch: ApiResponse = await ListProjectsPaged(1, "");
 

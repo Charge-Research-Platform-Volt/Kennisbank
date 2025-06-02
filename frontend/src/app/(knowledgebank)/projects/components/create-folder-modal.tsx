@@ -23,6 +23,16 @@ interface CreateFolderModalProps {
   parentProjectId: string | null;
 }
 
+/**
+ * Popup for creating a folder
+ * 
+ * @author Jelle v.h. Schut
+ * @param {boolean} isOpen - Whether or not the popup is open
+ * @param {() => void} onClose - Which function to execute after closing the popup.
+ * @param {() => void} onSuccess - Which function to execute after successfully creating folder
+ * @param {string | null} parentProjectId - Id of the parent project 
+ * @returns Popup for creating a folder
+ */
 export default function CreateFolderModal({ isOpen, onClose, onSuccess, parentProjectId }: CreateFolderModalProps) {
     const [title, setTitle] = useState('');
     const [isLoading, setIsLoading] = useState(false);

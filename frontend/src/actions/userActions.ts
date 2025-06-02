@@ -50,6 +50,12 @@ export const DeleteUser = async (user: User ): Promise<FormResponse<User>> => {
     };
 };
 
+/**
+ * Gets the current user Id
+ *
+ * @author Justin Liem
+ * @returns Current user Id
+ */
 export const GetCurrentUserId = async (): Promise<ApiResponse> => {
     const cookieHeader : ReadonlyRequestCookies = await cookies();
     const response : Response = await fetch(

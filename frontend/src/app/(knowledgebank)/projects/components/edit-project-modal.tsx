@@ -20,6 +20,17 @@ interface EditProjectModalProps {
   currentCreators: User[]
 }
 
+/**
+ * Popup for editing a project
+ * 
+ * @author Jelle v.h. Schut, Justin Liem
+ * @param {boolean} isOpen - Whether or not the popup is open
+ * @param {() => void} onClose - Which function to execute after closing the popup.
+ * @param {() => void} onSuccess - Which function to execute after successfully editing project
+ * @param {project} project - Project to edit
+ * @param {string} currentCreators - The current creators of the project in question
+ * @returns Popup for editing a project
+ */
 export default function EditProjectModal({
   isOpen,
   onClose,

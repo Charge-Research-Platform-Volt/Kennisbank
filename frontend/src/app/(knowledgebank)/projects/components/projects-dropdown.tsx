@@ -18,6 +18,17 @@ interface ProjectActionsDropdownProps {
   onAddResource: () => void;
 }
 
+/**
+ * Action buttons (new project / add folder / add resource) that result in popups
+ * 
+ * @author Jelle v.h. Schut
+ * @param {number} currentLevel - What depth of the project the user is in
+ * @param {boolean} isLoading - Whether or not some action is loading
+ * @param {() => void} onCreateProject - Function to execute after creating project
+ * @param {() => void} onCreateFolder - Function to execute after creating folder
+ * @param {() => void} onAddResource - Function to execute after adding a resource
+ * @returns Popup of some action
+ */
 export function ProjectActionsDropdown({ 
   currentLevel, 
   isLoading, 

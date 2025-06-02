@@ -28,6 +28,16 @@ interface CreateProjectModalProps {
   currentUserId: string;
 }
 
+/**
+ * Popup for creating a project
+ * 
+ * @author Jelle v.h. Schut
+ * @param {boolean} isOpen - Whether or not the popup is open
+ * @param {() => void} onClose - Which function to execute after closing the popup.
+ * @param {() => void} onSuccess - Which function to execute after successfully creating project
+ * @param {string} currentUserId - Id of the current user
+ * @returns Popup for creating a project
+ */
 export default function CreateProjectModal({ isOpen, onClose, onSuccess, currentUserId }: CreateProjectModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');

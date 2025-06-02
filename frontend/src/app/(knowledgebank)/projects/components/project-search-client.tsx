@@ -11,6 +11,15 @@ interface ProjectSearchClientProps {
   currentUserId: string;
 }
 
+/**
+ * Projects content
+ * 
+ * @author Jelle v.h. Schut
+ * @param {FolderProject[]} projects - Projects or folders to display
+ * @param {ResourceProject[]} resources - Resources to display
+ * @param {string} currentUserId - The current user
+ * @returns - View of all contents that currently need to be displayed
+ */
 export default function ProjectSearchClient({ projects, resources = [], currentUserId}: ProjectSearchClientProps) {
 
   return (

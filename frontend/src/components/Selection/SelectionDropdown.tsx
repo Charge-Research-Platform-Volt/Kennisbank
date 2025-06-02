@@ -47,7 +47,7 @@ interface SelectDropdownProps<T extends Item> {
     // Which function to call in another component when a value is changed
     onChangeAction?: (selectedItems: T[]) => void;
     // Standard item(s) to pre-select
-    standardItem?: T | null; // Changed to single standardItem, the consuming component provides it
+    standardItem?: T | null;
     // Boolean indicating whether or not you can select multiple values
     selectMultiple?: boolean;
     // Optional styling from parent component
@@ -65,11 +65,18 @@ interface SelectDropdownProps<T extends Item> {
 }
 
 /**
- *
- * @param onChangeAction - Which function to call in another component when a value is changed
- * @param standardTag - Default value
- * @param selectMultiple - Whether you can select one or multiple values
- * @param className - Styling from parent component
+ * Selection box where the user can select one or multiple items.
+ * 
+ * @author Justin Liem
+ * @param {() => void} onChangeAction - Which function to call in another component when a value is changed
+ * @param {T | null} standardItem - Default value
+ * @param {boolean} selectMultiple - Whether you can select one or multiple values
+ * @param {string} className - Styling from parent component
+ * @param {string => Promise<T[]>} fetchFunction - Function used to fetch the data used to make a selection in the dropdown box
+ * @param {(T[], boolean, (string, number) => string) => string} getTriggerDisplay - Function to get the display value for the PopoverTrigger button
+ * @param {string} placeholder - Placeholder text for the search input
+ * @param {T => React.ReactNode} renderItem - Optional rendering for items in the filtered list (e.g., icons next to names)
+ * @param {(T, (string => void) => React.ReactNode)} renderSelectedItem - Optional rendering for items in the selected list (e.g., icons next to names, delete button)
  *
  * @returns The dropdown box where the user can type and select a item to be merged
  */
@@ -254,6 +261,16 @@ const fetchTags = async (inputValue: string): Promise<Tag[]> => {
     return fetched;
 };
 
+/**
+ * Selection box where the user can select one or multiple tags.
+ * 
+ * @author Justin Liem
+ * @param {tag[] => void} onChangeAction - Which function to call in another component when the tag selection is changed
+ * @param {Tag | null} standardTag - Default tag
+ * @param {boolean} selectMultiple - Whether you can select one or multiple tags
+ * @param {string} className - Styling from parent component
+ * @returns Selection box where the user can select tags
+ */
 export function SelectTagDropdown({onChangeAction = () => {}, className, selectMultiple, standardTag} : {onChangeAction?: (selectedTags : Tag[]) => void, className?: string, selectMultiple: boolean, standardTag?: Tag})
 {
     return(
@@ -300,6 +317,16 @@ const fetchUsers = async (inputValue: string, exclude: string[]): Promise<Displa
     return fetchedUsers.map(user => ({ ...user, name: user.username })); // assign name property so that it can be found in the selection box
 };
 
+/**
+ * Selection box where the user can select one or multiple creators.
+ * 
+ * @author Justin Liem
+ * @param {DisplayUser[] => void} onChangeAction - Which function to call in another component when the creator selection is changed
+ * @param {boolean} selectMultiple - Whether you can select one or multiple creators
+ * @param {string} className - Styling from parent component
+ * @param {string} currentUserId - Current user id, exclude user associated with this id as it will be always added in the backend anyway
+ * @returns Selection box where the user can select creators
+ */
 export function SelectUserDropdown({onChangeAction = () => {}, className, selectMultiple, currentUserId} : {onChangeAction?: (selectedUser : DisplayUser[]) => void, className: string, selectMultiple: boolean, currentUserId?: string})
 {
     return(
@@ -327,6 +354,16 @@ export function SelectUserDropdown({onChangeAction = () => {}, className, select
 }
 
 // Slightly different from above, since it has multiple users to exclude, namely all the creators
+/**
+ * Selection box where the user can select one or multiple creators to add to already existing creators.
+ * 
+ * @author Justin Liem
+ * @param {DisplayUser[] => void} onChangeAction - Which function to call in another component when the creator selection is changed
+ * @param {boolean} selectMultiple - Whether you can select one or multiple creators
+ * @param {string} className - Styling from parent component
+ * @param {uesr[]} currentCreators - Current creators of the project
+ * @returns Selection box where the user can select creators to add to the already existing creators list.
+ */
 export function AddUserDropdown({onChangeAction = () => {}, className, selectMultiple, currentCreators} : {onChangeAction?: (selectedUser : DisplayUser[]) => void, className: string, selectMultiple: boolean, currentCreators: User[]})
 {
     return(
