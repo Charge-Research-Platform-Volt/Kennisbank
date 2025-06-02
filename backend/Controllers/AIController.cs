@@ -33,7 +33,7 @@ public class AIController : ControllerBase
 
 
     [HttpPost("generate-tags")]
-    public async Task<IActionResult> GenerateTags(string id = "14530936-cf0a-4a25-89f9-2e26be759c76")
+    public async Task<IActionResult> GenerateTags(string id)
     {
         // Check if the resource exists
         if (!ValidityUtil.IsValidId(id))
