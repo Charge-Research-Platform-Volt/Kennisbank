@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react";
+import React, { JSX } from "react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { ChevronsUpDown } from "lucide-react";
 
@@ -12,6 +12,7 @@ interface ExpandableProps
     fadeColor?: string;
     variant?: "vertical" | "horizontal";
     minHeight?: number;
+    editButton?: JSX.Element;
 }
 
 export default function Expandable({
@@ -20,7 +21,8 @@ export default function Expandable({
     collapsedHeight = 50,
     fadeColor = "bg-gray-50",
     variant = "vertical",
-    minHeight = 30
+    minHeight = 30,
+    editButton,
 }: ExpandableProps) 
 {
     const [open, setOpen] = React.useState<boolean>(false);
@@ -60,7 +62,7 @@ export default function Expandable({
         : fadeColor;
     
     return (
-        <div className="w-full relative mb-8">
+        <div className="w-full relative mb-3">
             <Collapsible open={open} onOpenChange={setOpen} className="w-full">
                 <CollapsibleTrigger className="w-full cursor-pointer">
                     <div className="w-full flex items-center gap-2">
@@ -74,6 +76,12 @@ export default function Expandable({
                     <div className={`w-full mt-2 select-none ${isHorizontal ? "flex flex-wrap gap-2" : ""}`}>
                         {children}
                     </div>
+
+                    {editButton && (
+                        <div className="mt-1 text-sm flex justify-center select-none">
+                            {editButton}
+                        </div>
+                    )}
                 </CollapsibleContent>
             </Collapsible>
             

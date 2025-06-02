@@ -16,6 +16,7 @@ import { toast } from "sonner"
 import { ApiResponse } from "@/types/apiResponse.type"
 import { useArchive } from "@/context/archive-provider"
 import Divider from "../divider"
+import Edit from "./Edit";
 
 
 export function ResourceContent()
@@ -104,7 +105,7 @@ export function ResourceContent()
         loadRelatedSourceList();
         loadAiTags(); 
         }
-    }, [currentId, rightSidebarOpen])
+    }, [currentId])
 
     useEffect(() => { if (rightSidebarOpen) { setAuthors(null); loadAuthors();  } }, [authorsTrigger]);
     useEffect(() => { if (rightSidebarOpen) { setTags(null); loadTags(); } }, [tagsTrigger]);
@@ -352,7 +353,7 @@ export function ResourceContent()
                 </a>
             }
         
-            <Expandable title="Description" collapsedHeight={100}>
+            <Expandable editButton={<Edit setNewText={setDescription} currentText={description} property="description" />} title="Description" collapsedHeight={100}>
                 {description || <Skeleton />}
             </Expandable>
             
@@ -396,7 +397,7 @@ export function ResourceContent()
                 </Expandable> 
             )} */}
             
-            <Expandable title="Notes" collapsedHeight={100}>
+            <Expandable editButton={<Edit setNewText={setNote} currentText={note} property="note" />} title="Notes" collapsedHeight={100}>
                 {note || <Skeleton />}
             </Expandable>
 
@@ -404,11 +405,13 @@ export function ResourceContent()
                 <BadgeList listType="related-sources" itemList={relatedSourceList} onUpdate={triggerRelatedSourceListRefresh}/>
             </Expandable> 
 
-            <Divider name={"Publication Code"} minimize={true}/>
-            {pubCode}
+            <Expandable editButton={<Edit setNewText={setPubCode} currentText={pubCode} property="publicationCode" />} title="Publication Code" collapsedHeight={100}>
+                {pubCode || <Skeleton />}
+            </Expandable>
 
-            <Divider className="mt-2" name={"License Code"} minimize={true}/>
-            {license}
+            <Expandable editButton={<Edit setNewText={setLicense} currentText={license} property="license" />} title="License Code" collapsedHeight={100}>
+                {license || <Skeleton />}
+            </Expandable>
             
             { userRole === 'admin' &&
                 <div className="w-full flex justify-center mt-10">

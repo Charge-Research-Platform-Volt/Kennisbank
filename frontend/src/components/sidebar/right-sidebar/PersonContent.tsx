@@ -55,7 +55,7 @@ export function PersonContent()
             loadPersons();
             loadOrganisations();
         }
-    }, [currentId, rightSidebarOpen])
+    }, [currentId])
 
     const loadAuthored = async () => {
         const authoredPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "authored-resources");

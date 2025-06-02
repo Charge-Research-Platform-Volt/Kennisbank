@@ -366,6 +366,49 @@ export const tryAddNewTag = async (
 }
 
 
+export const setProperty = async (
+    property: string,
+    id: string,
+    newVal: any,
+    type: MetadataTypeEnum,
+) => {
+    let endPoint;
+    const cookieHeader : ReadonlyRequestCookies = await cookies();
+
+    if (type === "resource") {
+        endPoint = `Resources/update/${encodeURIComponent(id)}`
+    }
+
+    else if (type === "person") {
+        endPoint = `Persons/update/${encodeURIComponent(id)}`
+    }
+
+    else if (type === "organisation") {
+        endPoint = `Organisations/update/${encodeURIComponent(id)}`
+    }
+
+    const fullUrl = `${process.env.API_URL}/${endPoint}`;
+
+    const updates = {
+        [property]: newVal
+    };
+    
+    const response = await fetch(fullUrl, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+        credentials: "include",
+        body: JSON.stringify(updates),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error("API Error:", errorText);
+        throw new Error(`Problem changing property: ${response.status} - ${errorText}`);
+    }
+
+}
+
+
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)

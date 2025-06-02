@@ -52,7 +52,7 @@ export function OrganisationContent()
             loadOrganisations();
             loadPersons();
         }
-    }, [currentId, rightSidebarOpen])
+    }, [currentId])
 
     useEffect(() => { if (rightSidebarOpen) { setResources(null); loadResources();  } }, [resourcesRefresh]);
     useEffect(() => { if (rightSidebarOpen) { setRelatedResources(null); loadRelatedResources(); } }, [relatedResourcesRefresh]);
