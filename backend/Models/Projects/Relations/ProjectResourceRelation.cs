@@ -2,6 +2,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 namespace KnowledgeBank.Models;
 
+/// <summary>
+/// Relation containing the project an associated resource. Has navigation properties to the 
+/// corresponding project and resource. This is a many-to-many relationship.
+/// 
+/// Author: Justin Liem
+/// </summary>
 [Table("project-resource")]
 public class ProjectResourceRelation
 {

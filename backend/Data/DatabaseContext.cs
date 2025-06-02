@@ -153,7 +153,9 @@ namespace KnowledgeBank.Data
         }
 
         /// <summary>
-        /// Same as above, just for projects so it doesn't have to check for updating resource vectors.
+        /// Same as SaveResourceChangeAsync, just for projects so it doesn't have to check for updating resource vectors.
+        /// 
+        /// Author: Justin Liem
         /// </summary>
         /// <param name="cancellationToken">A token used to observe operation cancellation.</param>
         /// <returns>The number of state entries written to the database.</returns>

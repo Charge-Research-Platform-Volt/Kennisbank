@@ -2,6 +2,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 namespace KnowledgeBank.Models;
 
+/// <summary>
+/// Relation describing that of a project and a creator. Has navigation properties of
+/// the corresponding project and creator. This is a many-to-many relationship.
+/// 
+/// Author: Justin Liem
+/// </summary>
 [Table("project-creator")]
 public class ProjectCreatorRelation
 {

@@ -2,6 +2,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 namespace KnowledgeBank.Models;
 
+/// <summary>
+/// Relation between a project and a tag, has navigation properties to the corresponding project and tag.
+/// This is a many-to-many relationship.
+///
+/// Author: Justin Liem
+/// </summary>
 [Table("project-tag")]
 public class ProjectTagRelation
 {

@@ -48,6 +48,12 @@ namespace KnowledgeBank.Controllers
             return Unauthorized();
         }
 
+        /// <summary>
+        /// Gets the id of the current user.
+        ///
+        /// Author: Justin Liem
+        /// </summary>
+        /// <returns>User id of the current user</returns>
         [HttpGet("get-user-id")]
         [SwaggerOperation(
             Summary = "Gets current user id",
@@ -58,7 +64,6 @@ namespace KnowledgeBank.Controllers
         public async Task<IActionResult> GetUserId()
         {
             string userID = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid.ToString() : null ?? "";
-            Log.Information(userID);
             return Ok(new ApiResponse(true, "Fetched user id", userID ));
         }
 

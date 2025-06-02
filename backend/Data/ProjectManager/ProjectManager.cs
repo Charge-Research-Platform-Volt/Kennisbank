@@ -1,11 +1,9 @@
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
 namespace KnowledgeBank.Data
 {
     /// <summary>
     /// This class is responsible for all database interactions regarding projects.
+    /// 
+    /// Author: Justin Liem
     /// </summary>
     /// <param name="dbContext">The database context variable</param>
     public partial class ProjectManager(DatabaseContext dbContext)
@@ -16,6 +14,8 @@ namespace KnowledgeBank.Data
         
         /// <summary>
         /// Starts a database transaction
+        /// 
+        /// Author: Justin Liem
         /// </summary>
         /// <returns>If the transaction was started or not (if false, there was already a transaction running)</returns>
         public async Task<bool> BeginTransaction()
@@ -32,6 +32,8 @@ namespace KnowledgeBank.Data
         
         /// <summary>
         /// Commits the current database transaction
+        /// 
+        /// Author: Justin Liem
         /// </summary>
         public async Task Commit()
         {
@@ -45,6 +47,8 @@ namespace KnowledgeBank.Data
         
         /// <summary>
         /// Rolls back the current database transaction
+        /// 
+        /// Author: Justin Liem
         /// </summary>
         public async Task Rollback()
         {
@@ -56,7 +60,12 @@ namespace KnowledgeBank.Data
         #endregion
 
         #region Helper functions
-        // Converts a string array to guid array
+
+        /// <summary>
+        /// Converts a string array to guid array
+        /// </summary>
+        /// <param name="strings">Strings to convert.</param>
+        /// <returns>Guids of converted string.</returns>
         private static Guid[] StringToGuidArray(string[] strings)
         {
             Guid[] guids = new Guid[strings.Length];
@@ -69,13 +78,29 @@ namespace KnowledgeBank.Data
             return guids;
         }
 
-        // Gets all the first values of a tuple array and outputs it as an array
+        /// <summary>
+        /// Gets all the first values of a tuple array and outputs it as an array
+        /// 
+        /// Author: Justin Liem
+        /// </summary>
+        /// <typeparam name="TFirst">Type of first item in tuple list.</typeparam>
+        /// <typeparam name="TSecond">Type of second item in tuple list.</typeparam>
+        /// <param name="tuples">Tuples to convert.</param>
+        /// <returns>Array of the first item of the tuples.</returns>
         private static TFirst[] FirstsOfTupleArray<TFirst, TSecond>((TFirst, TSecond)[] tuples)
         {
             return tuples.Select(tuple => tuple.Item1).ToArray();
         }
 
-        // Gets all the second values of a tuple array and outputs it as an array
+        /// <summary>
+        /// Gets all the second values of a tuple array and outputs it as an array
+        /// 
+        /// Author: Justin Liem
+        /// </summary>
+        /// <typeparam name="TFirst">Type of first item in tuple list.</typeparam>
+        /// <typeparam name="TSecond">Type of second item in tuple list.</typeparam>
+        /// <param name="tuples">Tuples to convert.</param>
+        /// <returns>Array of the second items of the tuples.</returns>
         private static TSecond[] SecondsOfTupleArray<TFirst, TSecond>((TFirst, TSecond)[] tuples)
         {
             return tuples.Select(tuple => tuple.Item2).ToArray();
