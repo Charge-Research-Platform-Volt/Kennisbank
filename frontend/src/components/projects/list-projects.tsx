@@ -992,6 +992,8 @@ function DownloadRenderer({ data }: { data: any }) {
  * @param {any} data - What to remove
  * @param {(item: ProjectOrResource) => void} onRemove - What to execute after removing
  * @param {boolean} isAddResourceMode - Whether we are adding resources or not
+ * @param {string} currentUserId - Id of the current user
+ * @param {string | null} userRole - Role of the current user
  * @returns A remove button component or null
  */
 function RemoveRenderer({ data, onRemove, isAddResourceMode, currentUserId, userRole }: { 
@@ -1026,6 +1028,8 @@ function RemoveRenderer({ data, onRemove, isAddResourceMode, currentUserId, user
  * @param {any} data - What to edit
  * @param {(item: ProjectOrResource) => void} onEdit - What to execute after editing
  * @param {boolean} isAddResourceMode - Whether we are adding resources or not
+ * @param {string} currentUserId - Id of the current user
+ * @param {string | null} userRole - Role of the current user
  * @returns A edit button component or null
  */
 function EditRenderer({ data, onEdit, currentUserId, userRole }: { data: any, onEdit: (item: ProjectOrResource) => void, currentUserId: string, userRole: string | null }) {

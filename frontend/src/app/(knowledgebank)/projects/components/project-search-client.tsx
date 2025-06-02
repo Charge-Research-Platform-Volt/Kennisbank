@@ -12,7 +12,6 @@ interface ProjectSearchClientProps {
   userRole: string | null;
 }
 
-export default function ProjectSearchClient({ projects, resources = [], currentUserId, userRole}: ProjectSearchClientProps) {
 /**
  * Projects content
  * 
@@ -20,9 +19,10 @@ export default function ProjectSearchClient({ projects, resources = [], currentU
  * @param {FolderProject[]} projects - Projects or folders to display
  * @param {ResourceProject[]} resources - Resources to display
  * @param {string} currentUserId - The current user
+ * @param {string | null} userRole - Role of the current user
  * @returns - View of all contents that currently need to be displayed
  */
-export default function ProjectSearchClient({ projects, resources = [], currentUserId}: ProjectSearchClientProps) {
+export default function ProjectSearchClient({ projects, resources = [], currentUserId, userRole}: ProjectSearchClientProps) {
 
   return (
     <>
