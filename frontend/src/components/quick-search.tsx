@@ -33,13 +33,12 @@ export default function QuickSearch({ minimize = false }: { minimize?: boolean }
     setShortcut(isMac ? "Cmd + K" : "Ctrl + K");
   }, []);
 
-
   // Fetch search results
   const fetchSearchResults = async (query?: string) => {
     query = query?.trim();
 
     try {
-      const response = await fetch(`/api/Search/search-full-text?${query ? `query=${query}&` : ""}pageIndex=1&pageSize=10`, {
+      const response = await fetch(`/api/Search/search-full-text?${query && `query=${query}&`}pageIndex=1&pageSize=10`, {
         method: "POST",
         credentials: "include",
         headers: {
