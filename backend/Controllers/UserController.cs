@@ -432,7 +432,7 @@ public class UserController : ControllerBase
                 userId = currentUser.Id;
             }
 
-            // Prevent deleting the current user
+            // Prevent deleting anything other than the current user
             if (currentUser.Id != userId)
             {
                 IList<string> roles = await userManager.GetRolesAsync(currentUser);
