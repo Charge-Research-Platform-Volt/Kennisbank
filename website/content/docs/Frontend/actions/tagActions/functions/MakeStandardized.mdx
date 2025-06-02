@@ -11,7 +11,7 @@ sidebar_position: 1
 
 # Function: MakeStandardized()
 
-> **MakeStandardized**(`tagId`): `Promise`\<[`FormResponse`](../../../types/return.type/interfaces/FormResponse)\<`object`\>\>
+> **MakeStandardized**(`tagId`): `Promise`\<`object`\>
 
 ## Parameters
 
@@ -19,8 +19,20 @@ sidebar_position: 1
 
 ## Returns
 
-`Promise`\<[`FormResponse`](../../../types/return.type/interfaces/FormResponse)\<`object`\>\>
+`Promise`\<`object`\>
+
+### body?
+
+> `optional` **body**: `any`
+
+### message
+
+> **message**: `string`
+
+### success
+
+> **success**: `boolean`
 
 ## Source
 
-src/actions/tagActions.ts:200
+src/actions/tagActions.ts:144

@@ -11,7 +11,7 @@ sidebar_position: 1
 
 # Function: AddStandardizedTag()
 
-> **AddStandardizedTag**(`prevState`, `formData`): `Promise`\<[`FormResponse`](../../../types/return.type/interfaces/FormResponse)\<`object`\>\>
+> **AddStandardizedTag**(`prevState`, `formData`): `Promise`\<`object`\>
 
 ## Parameters
 
@@ -21,8 +21,20 @@ sidebar_position: 1
 
 ## Returns
 
-`Promise`\<[`FormResponse`](../../../types/return.type/interfaces/FormResponse)\<`object`\>\>
+`Promise`\<`object`\>
+
+### body?
+
+> `optional` **body**: `any`
+
+### message
+
+> **message**: `string`
+
+### success
+
+> **success**: `boolean`
 
 ## Source
 
-src/actions/tagActions.ts:9
+src/actions/tagActions.ts:10
