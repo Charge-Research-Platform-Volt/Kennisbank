@@ -49,6 +49,37 @@ export const DeleteUser = async (user: User ): Promise<FormResponse<User>> => {
     };
 };
 
+export const DeleteOwnAccount = async (): Promise<FormResponse<void>> => {
+    console.log("Deleting account");
+
+    // Send the data to the backend
+    const cookieHeader : ReadonlyRequestCookies = await cookies();
+    const response : Response = await fetch(
+        `${process.env.API_URL}/User/delete`,
+        {
+            method: "DELETE",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+        },
+    );
+
+    //parse the data from the response
+    const data = await response.json();
+
+    // Check if the request was succesful, if not, return an error
+    if (!response.ok) {
+        return {
+            success: false,
+            message: data.message,
+        };
+    }
+
+    return {
+        success: true,
+        message: data.message,
+    };
+};
+
 export const SaveUser = async (
     state: SaveUserResponse,
     { newEmail, newRole }: { newEmail: string; newRole: string }

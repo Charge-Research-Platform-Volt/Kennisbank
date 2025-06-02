@@ -11,8 +11,8 @@ import { useEffect, useState } from "react";
 import { UploadWithDto } from "@/actions/uploadActions";
 import { toast } from "sonner";
 import { RevalidatePathFromClient } from "@/utils/revalidatePathFromClient";
-import { useRouter } from "next/navigation";
 import Divider from "@/components/sidebar/divider";
+import DeleteAccountConfirmationDialog from "./DeleteAccountConfirmationDialog";
 
 export const AccountInformationFormSchema = z.object(
 {
@@ -36,7 +36,7 @@ type ChangePasswordDto = z.infer<typeof ChangePasswordFormSchema>;
 export default function AccountInformation({firstName, lastName, email}: {firstName: string; lastName: string; email: string}) {
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingPassword, setIsLoadingPassword] = useState(false);
-    const router = useRouter();
+    const [deleteAccountConfirmationDialogOpen, setDeleteAccountConfirmationDialogOpen] = useState(false);
 
     // Define the form
     const form = useForm<z.infer<typeof AccountInformationFormSchema>>({
@@ -174,11 +174,11 @@ export default function AccountInformation({firstName, lastName, email}: {firstN
                 </form>
             </Form>
             <Divider className="my-8" />
-        <h1 className="text-2xl tracking-tight text-gray-900 dark:text-gray-100 md:text-3xl lg:text-4xl mb-2">
-            Change password
-        </h1>
+            <h1 className="text-2xl tracking-tight text-gray-900 dark:text-gray-100 md:text-3xl lg:text-4xl mb-2">
+                Change password
+            </h1>
         
-        <hr className="mb-4" />
+            <hr className="mb-4" />
 
             <Form {...formPassword}>
                 <form onSubmit={formPassword.handleSubmit(onSubmitPassword)} className="flex flex-col gap-2">
@@ -219,6 +219,23 @@ export default function AccountInformation({firstName, lastName, email}: {firstN
                     <Button type="submit" className="w-full" disabled={isLoadingPassword}>{isLoadingPassword ? "Saving..." : "Save"}</Button>
                 </form>
             </Form>
+
+            <Divider className="my-8" />
+            <h1 className="text-2xl tracking-tight text-gray-900 dark:text-gray-100 md:text-3xl lg:text-4xl mb-2">
+                Delete account
+            </h1>
+        
+            <hr className="mb-4" />
+
+            <DeleteAccountConfirmationDialog open={deleteAccountConfirmationDialogOpen} onOpenChange={setDeleteAccountConfirmationDialogOpen} />
+
+            <div className="flex">
+                <p className="text-red-500">
+                    Deleting your account is permanent and cannot be undone. Please proceed with caution.
+                </p>
+                <Button className="ml-auto bg-red-500 hover:bg-red-400" onClick={() => setDeleteAccountConfirmationDialogOpen(true)}>Delete account</Button>
+            </div>
+            
         </div>
     );
 }

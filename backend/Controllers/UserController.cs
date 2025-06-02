@@ -406,7 +406,6 @@ public class UserController : ControllerBase
     }
 
     [HttpDelete("delete")]
-    [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(
         Summary = "Delete a user.",
         Description = "Deletes a user by ID."
@@ -414,10 +413,33 @@ public class UserController : ControllerBase
     [SwaggerResponse(200, "User deleted successfully.")]
     [SwaggerResponse(404, "User not found.")]
     [SwaggerResponse(500, "Internal server error.")]
-    public async Task<IActionResult> Delete(string userId)
+    public async Task<IActionResult> Delete(string? userId)
     {
         try
         {
+            string? currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (currentUserId == null)
+                return BadRequest("Current user ID not found in claims.");
+
+            User? currentUser = await userManager.FindByIdAsync(currentUserId);
+
+            if (currentUser == null)
+                return NotFound("Current user not found.");
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                userId = currentUser.Id;
+            }
+
+            // Prevent deleting anything other than the current user
+            if (currentUser.Id != userId)
+            {
+                IList<string> roles = await userManager.GetRolesAsync(currentUser);
+                if (!roles.Contains("admin"))
+                    return BadRequest("Only admins can delete users.");
+            }
+
             User? user = await userManager.FindByIdAsync(userId);
 
             if (user == null)
