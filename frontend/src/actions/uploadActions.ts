@@ -181,6 +181,9 @@ async function UploadChunk(resourceId: string, fileType: string, blockId: string
   const response = await fetch(`/api/resources/large/chunk/${resourceId}/${fileType}/${blockId}`, {
     method: "POST",
     credentials: "include",
+    headers: {
+    "Content-Type": chunkData.type || "application/octet-stream",
+    },
     body: chunkData,
   });
 
@@ -254,6 +257,7 @@ export async function UploadNewLargeResource(form: z.infer<typeof resourceCreate
   const fileName = file.name;
   const fileType = form.uploadType;
   let resourceId: string;
+  const numberOfChunks = Math.ceil(file.size / MAX_CHUNK_SIZE);
 
   try {
     resourceId = await InitLargeResourceUpload(form);
@@ -264,17 +268,18 @@ export async function UploadNewLargeResource(form: z.infer<typeof resourceCreate
   const blockIds: string[] = [];
 
   try {
-    for (let start = 0; start < file.size; start += MAX_CHUNK_SIZE) {
-      const end = Math.min(start += MAX_CHUNK_SIZE, file.size);
+    for (let i = 0; i < numberOfChunks; i++) {
+      const start = i * MAX_CHUNK_SIZE;
+      const end = Math.min(start + MAX_CHUNK_SIZE, file.size);
       const chunk = file.slice(start, end);
 
-      const blockId = Buffer.from(`block-${start / MAX_CHUNK_SIZE}`).toString('base64');
+      const blockId = Buffer.from(`block-${i}`).toString('base64');
       blockIds.push(blockId);
 
       try {
         await UploadChunk(resourceId, fileType, blockId, chunk);
       } catch {
-        throw new Error(`Failed to upload chunk ${start / MAX_CHUNK_SIZE + 1}/${Math.ceil(file.size / MAX_CHUNK_SIZE)}`);
+        throw new Error(`Failed to upload chunk ${i+1}/${numberOfChunks}`);
       }
     }
 
