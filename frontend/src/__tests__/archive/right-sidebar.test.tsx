@@ -8,7 +8,7 @@ import RightSidebar  from "@/components/sidebar/right-sidebar/right-sidebar";
 import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider";
 import { useArchive } from "@/context/archive-provider";
 import { fireEvent } from "@testing-library/react";
-import { getProperties, getRelation, getRelatedDocuments } from "@/actions/right-sidebarActions";
+import { getProperties, getRelation, addRelation, newRelationSearchResults } from "@/actions/right-sidebarActions";
 
 // Use partial mocking to keep the real enum while mocking the hook
 vi.mock("@/context/sidebar-provider", async (importOriginal) => {

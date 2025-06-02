@@ -21,7 +21,7 @@ export function OrganisationContent()
     const [ relatedResources, setRelatedResources ] = useState<ListItem[] | null>(null);
     const [ organisations, setOrganisations ] = useState<ListItem[] | null>(null);
     const [ persons, setPersons ] = useState<ListItem[] | null>(null);
-    const [ email, setEmail ] = useState<string | null>(null); //ToDo
+    const [ email, setEmail ] = useState<string | null>(null);
     const [ creationDate, setCreationDate ] = useState<Date | null>(null); //ToDo
 
     
@@ -178,6 +178,10 @@ export function OrganisationContent()
                 <BadgeList listType="persons" itemList={persons} onUpdate={triggerPersonsRefresh}/>
             </Expandable>
             
+            <Expandable editButton={<Edit setNewText={setEmail} currentText={email} property="emailAddress" />} title="Email Address" collapsedHeight={100}>
+                {email || <Skeleton />}
+            </Expandable>
+
             { userRole === 'admin' &&
                 <div className="w-full flex justify-center mt-10">
                     <Button variant="outline">Delete Organisation</Button>

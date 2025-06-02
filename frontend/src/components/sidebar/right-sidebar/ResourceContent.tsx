@@ -42,10 +42,10 @@ export function ResourceContent()
     const [ regions, setRegions ] = useState<ListItem[] | null>(null);
     const [ relatedSourceList, setRelatedSourceList ] = useState<ListItem[] | null>(null);
     const [ langCode, setLangCode ] = useState<string | null>(null); //ToDo
-    const [ pubCode, setPubCode ] = useState<string | null>(null); //ToDo
+    const [ pubCode, setPubCode ] = useState<string | null>(null);
     const [ pubDate, setPubDate ] = useState<Date | null>(null); //ToDo
     const [ creationDate, setCreationDate ] = useState<Date | null>(null); //ToDo
-    const [ license, setLicense ] = useState<string | null>(null); //ToDo
+    const [ license, setLicense ] = useState<string | null>(null);
 
     const [authorsTrigger, setAuthorsTrigger] = useState(false);
     const [tagsTrigger, setTagsTrigger] = useState(false);
@@ -412,7 +412,7 @@ export function ResourceContent()
             <Expandable editButton={<Edit setNewText={setLicense} currentText={license} property="license" />} title="License Code" collapsedHeight={100}>
                 {license || <Skeleton />}
             </Expandable>
-            
+
             { userRole === 'admin' &&
                 <div className="w-full flex justify-center mt-10">
                     <Button onClick={() => setConfirmDialogOpen(true)} variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600">Delete Resource</Button>

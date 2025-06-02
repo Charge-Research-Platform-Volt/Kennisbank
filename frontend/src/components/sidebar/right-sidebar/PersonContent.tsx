@@ -185,6 +185,10 @@ export function PersonContent()
             <Expandable variant="horizontal" title="Related Organisations">
                 <BadgeList listType="organisations" itemList={organisations} onUpdate={triggerOrganisationsRefresh}/>
             </Expandable>
+
+            <Expandable editButton={<Edit setNewText={setEmail} currentText={email} property="emailAddress" />} title="Email Address" collapsedHeight={100}>
+                {email || <Skeleton />}
+            </Expandable>
         </>
     )
 }
