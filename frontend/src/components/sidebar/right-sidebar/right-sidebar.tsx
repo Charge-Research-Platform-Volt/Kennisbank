@@ -1,88 +1,89 @@
 "use client";
 
 import React from "react";
-import { Sidebar } from "../../ui/sidebar";
+import { Sidebar } from "@/components/ui/sidebar";
 import { useSidebar } from "@/context/sidebar-provider";
-import { Button } from "../../ui/button";
-import OpenFileButton from "../../open-file-button";
-import Divider from "../divider";
-import Kbd from "@/components/kbd";
-import GenerateAiTags from "@/components/generate-ai-tags";
+import { MetadataTypeEnum } from "@/context/sidebar-provider";
+import { ResourceContent } from "./ResourceContent";
+import { PersonContent } from "./PersonContent";
+import { OrganisationContent } from "./OrganisationContent";
+import { Button } from "@/components/ui/button";
+import { openFile } from "@/actions/openFileActions";
+import HideMenu from "@/icons/menu/hide-menu";
 
 /**
  *
  * @returns The right sidebar visible when clicked on an item in the archive. Displays useful information such as metadata and related files (soon).
  */
 export default function RightSidebar() {
-  const { selectedDocument, toggleRightSidebar } = useSidebar();
+  const { currentType, currentId, navigateBack, navigateForward, setRightSidebarOpen, isEmptyPrevs, isEmptyNexts } = useSidebar();
+
+  const handleOpenClick = () => {
+    const str = openFile(currentId);
+
+    str
+      .then((response) => {
+        if (response != undefined) {
+          window.open(response, "_blank");
+        }
+      })
+      .catch();
+  };
 
   return (
-    <Sidebar side="right" width="400px" collapsible="offcanvas">
-      {selectedDocument ? (
-        <>
-          <div className="bg-sidebar sticky top-0 z-10 mb-6">
-            <div className="flex items-center justify-between p-2">
-              <OpenFileButton file={selectedDocument} variant="outline" />
-              <Button
-                onClick={() => {
-                  toggleRightSidebar(null);
-                }}
-                variant="outline"
-              >
-                Close
-                <Kbd>ESC</Kbd>
-              </Button>
-            </div>
-            <Divider className="px-2" />
-          </div>
+    <Sidebar side="right" width="40rem" collapsible="offcanvas">
+      {/* Navigation buttons */}
+      <div className="flex w-full justify-between space-x-2 p-4">
+        {/* Hide menu button */}
+        <Button
+          data-testid="sidebar_hide"
+          variant="outline"
+          size="icon"
+          onClick={() => {
+            setRightSidebarOpen(false);
+          }}
+        >
+          <HideMenu flip={true} />
+        </Button>
 
-          <h2 className="mb-6 px-2 text-xl font-semibold">{selectedDocument.title}</h2>
+        <Button variant="outline" onClick={handleOpenClick} disabled={currentType === MetadataTypeEnum.RESOURCE ? false : true} className="flex-1">
+          Download
+        </Button>
 
-          <div className={"flex min-h-0 flex-1 flex-col gap-2 overflow-auto px-2"}>
-            {selectedDocument.description && <p className="mb-6 text-sm font-medium">{selectedDocument.description}</p>}
+        <div className="flex justify-center space-x-2">
+          <Button variant="outline" onClick={navigateBack} className="w-[8rem]" disabled={isEmptyPrevs()}>
+            Previous
+          </Button>
+          <Button variant="outline" onClick={navigateForward} className="w-[8rem]" disabled={isEmptyNexts()}>
+            Next
+          </Button>
+        </div>
+      </div>
 
-            {selectedDocument.tagRelations && selectedDocument.tagRelations.length > 0 && (
-              <>
-                <Divider name="tags" />
-                <div className="flex flex-wrap gap-2">
-                  {selectedDocument.tagRelations.map(
-                    (tagRelation) =>
-                      tagRelation.tag && (
-                        <span key={tagRelation.tag.id} className="rounded-md bg-gray-200 px-2 py-1 text-xs font-medium">
-                          {tagRelation.tag.name}
-                        </span>
-                      ),
-                  )}
-                </div>
-              </>
-            )}
+      {/* Content area */}
+      <div className="pb-25 h-full w-full flex-1 overflow-y-auto p-4">
+        {(() => {
+          switch (currentType) {
+            case MetadataTypeEnum.RESOURCE:
+              return <ResourceContent />;
+            case MetadataTypeEnum.PERSON:
+              return <PersonContent />;
+            case MetadataTypeEnum.ORGANISATION:
+              return <OrganisationContent />;
+            default:
+              <h1>Error displaying content.</h1>;
+          }
+        })()}
+      </div>
 
-            <GenerateAiTags documentId={selectedDocument.id} />
-          </div>
+      {/* Footer */}
+      <div className="mt-3 flex w-full justify-center">
+        {/* Fade */}
+        <div className="h-15 pointer-events-none absolute bottom-0 right-0 w-full" style={{ background: `linear-gradient(to top, rgba(249, 250, 251, 1), transparent)` }} />
 
-          <div className="bg-sidebar sticky bottom-0 z-10">
-            <Divider className="px-2" />
-            <div data-slot="sidebar-footer" data-sidebar="footer" className={"flex flex-col gap-1 p-2 text-xs font-medium text-gray-500"}>
-              <p>Created At: {selectedDocument.creationDate ? new Date(selectedDocument.creationDate).toLocaleString() : "Not available"}</p>
-              <p onClick={() => navigator.clipboard.writeText(selectedDocument.id)} className="cursor-copy">
-                Document ID: {selectedDocument.id}
-              </p>
-            </div>
-          </div>
-        </>
-      ) : (
-        <NoDocumentSelected />
-      )}
+        {/* ADD FOOTER CONTENT HERE */}
+      </div>
     </Sidebar>
-  );
-}
-
-export function NoDocumentSelected() {
-  return (
-    <div className="flex h-full flex-col items-center justify-center">
-      <h2 className="text-lg font-semibold">No Document Selected</h2>
-      <p className="text-gray-500">Please select a document to view details.</p>
-    </div>
   );
 }
 

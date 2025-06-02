@@ -35,9 +35,15 @@ namespace KnowledgeBank.Data
         public DbSet<ResourceRegionRelation> ResourceRegionRelations { get; set; }
         public DbSet<ResourceSourceRelation> ResourceSourceRelations { get; set; }
         public DbSet<ResourceRelatedSourceRelation> ResourceRelatedSourceRelations { get; set; }
+        
+        
+        public DbSet<ResourceGridItem> ResourceGridItems { get; set; }
+        public DbSet<ResourceGridSearchResult> ResourceGridSearchResults { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.HasPostgresExtension("pg_trgm");
+        
             modelBuilder.Entity<Resource>()
                 .HasOne(f => f.Vector)
                 .WithOne(v => v.Resource)
@@ -96,6 +102,28 @@ namespace KnowledgeBank.Data
                 .HasOne(or => or.TargetPerson)
                 .WithMany(o => o.SourceRelationships)
                 .HasForeignKey(or => or.TargetPersonId);
+
+            // Resource grid view
+            modelBuilder.Entity<ResourceGridItem>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToView("resourcegridview");
+            });
+
+            modelBuilder.Entity<ResourceGridSearchResult>(entity =>
+            {
+                entity.HasNoKey();
+                entity.ToView(null);
+            });
+
+            // Relation indexes for better query performance
+            modelBuilder.Entity<ResourceTagRelation>()
+                .HasIndex(rt => rt.TagId)
+                .HasDatabaseName("idx_resource_tag_tag_id");
+
+            modelBuilder.Entity<ResourceRegionRelation>()
+                .HasIndex(rr => rr.RegionId)
+                .HasDatabaseName("idx_resource_region_region_id");
 
             base.OnModelCreating(modelBuilder);
         }

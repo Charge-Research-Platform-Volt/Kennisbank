@@ -36,10 +36,10 @@ public class TrashbinCleanupService : BackgroundService
                 DateTime threshold = DateTime.UtcNow.AddDays(-30);
 
                 List<Resource> oldResources = await dbContext.Resources
-                    .Where(r => r.ArchiveDate < threshold)
+                    .Where(r => r.TrashDate < threshold)
                     .ToListAsync(stoppingToken);
 
-                if (oldResources.Any())
+                if (oldResources.Count != 0)
                 {
                     dbContext.Resources.RemoveRange(oldResources);
                     await dbContext.SaveChangesAsync(stoppingToken);

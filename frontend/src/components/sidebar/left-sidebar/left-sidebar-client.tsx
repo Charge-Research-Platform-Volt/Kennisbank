@@ -58,13 +58,12 @@ export default function LeftSidebarClient({
       const timeoutId = setTimeout(() => {
         if (!sidebarParts || !menu) return;
         const sidebarScroll = sidebarParts.scrollHeight > sidebarParts.clientHeight;
-        if(!sidebarScroll)
-        {
+        if (!sidebarScroll) {
           setSidebarPartsScrollbarWidth(0);
           setMenuScrollbarWidth(0);
           return;
         }
-        
+
         // Get the scrollbar width of the sidebar parts
         const _sidebarScrollbarWidth = sidebarParts.offsetWidth - sidebarParts.clientWidth;
         setSidebarPartsScrollbarWidth(_sidebarScrollbarWidth);
@@ -93,41 +92,40 @@ export default function LeftSidebarClient({
     if (result.success) window.location.reload();
     else console.error(result.message);
   };
-  
+
   const getCleanReturnUrl = () => {
     // Don't include returnUrl if we're already on the new page
-    if (pathname === '/new') return null;
-    
+    if (pathname === "/new") return null;
+
     // Strip any existing returnUrl parameters to avoid nesting
-    const baseUrl = pathname.split('?')[0];
+    const baseUrl = pathname.split("?")[0];
     const cleanParams = new URLSearchParams();
-    
+
     // Only copy over non-returnUrl parameters
     for (const [key, value] of searchParams.entries()) {
-      if (key !== 'returnUrl') {
+      if (key !== "returnUrl") {
         cleanParams.append(key, value);
       }
     }
-    
+
     const paramString = cleanParams.toString();
-    const cleanUrl = `${baseUrl}${paramString ? `?${paramString}` : ''}`;
-    
+    const cleanUrl = `${baseUrl}${paramString ? `?${paramString}` : ""}`;
+
     // Return null (don't add returnUrl param) if the return URL is just the homepage
-    return cleanUrl === '/' ? null : cleanUrl;
+    return cleanUrl === "/" ? null : cleanUrl;
   };
 
   // Then use this function in your Link
   const returnUrl = getCleanReturnUrl();
-  const newPageUrl = returnUrl 
-    ? `/new?returnUrl=${encodeURIComponent(returnUrl)}`
-    : '/new';
-    
+  const newPageUrl = returnUrl ? `/new?returnUrl=${encodeURIComponent(returnUrl)}` : "/new";
+
   return (
-    <Sidebar ref={menuRef} 
-      collapsedWidth={menuScrollbarWidth + sidebarPartsScrollbarWidth + 48 + "px"} 
-      side="left" 
-      width="300px" 
-      collapsible="icon" 
+    <Sidebar
+      ref={menuRef}
+      collapsedWidth={menuScrollbarWidth + sidebarPartsScrollbarWidth + 48 + "px"}
+      side="left"
+      width="300px"
+      collapsible="icon"
       className={`overflow-x-hidden ${open ? "p-2" : "px-1.5 pt-2"}`}
     >
       {/* Header */}
@@ -147,7 +145,7 @@ export default function LeftSidebarClient({
           }}
           style={{ marginRight: `${!open ? sidebarPartsScrollbarWidth : 0}px` }}
         >
-          {open ? <HideMenu /> : <ShowMenu /> }
+          <HideMenu flipArrow={!open} />
         </Button>
       </div>
 
@@ -182,7 +180,7 @@ export default function LeftSidebarClient({
               <Link
                 data-testid="sidebar"
                 href={item.path}
-                className={`flex items-center gap-x-2 overflow-hidden rounded-md p-2 hover:bg-gray-200 ${!open && "w-9"} shrink-0 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5`}
+                className={`flex items-center gap-x-2 overflow-hidden rounded-md p-2 hover:bg-gray-200 ${!open && "w-9"} shrink-0 [&_svg:not([class*='size-'])]:size-5 [&_svg]:pointer-events-none [&_svg]:shrink-0`}
               >
                 {item.icon}
                 {item.name}

@@ -22,13 +22,16 @@ using KnowledgeBank.Services;
 using System.Buffers.Text;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
+using System.Linq.Expressions;
 
 
 
 namespace KnowledgeBank.Controllers
 {
+
+
     /// <summary>
-    /// This controller is responsible for handing API calls to manage resources and their metadata.
+    /// This controller is responsible for handling API calls to manage resources and their metadata.
     /// 
     /// Author: Abel Dieterich
     /// </summary>
@@ -45,7 +48,6 @@ namespace KnowledgeBank.Controllers
         private readonly Serilog.ILogger logger = Log.ForContext<ResourcesController>();
         private readonly RAGSystem _ragSystem = ragSystem;
         private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
-
 
         #region New
         /// <summary>
@@ -207,6 +209,11 @@ namespace KnowledgeBank.Controllers
 
                 // Commit changes to the database and return success response
                 await resourceManager.Commit();
+                if (dto is FileResourceCreateDto fileDto && fileDto.File != null)
+                {
+                    string extension = Path.GetExtension(fileDto.File.FileName).Replace(".", "");
+                    await resourceManager.UpdateResourceAsync(id, r => r.FileExt, extension);
+                }
                 logger.Information("Resource '{Title}' created successfully.", dto.Title);
                 return Ok(new ApiResponse(true, "Resource created successfully.", id));
             }
@@ -219,19 +226,19 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
 
-        #region Archive
+        #region Trash
         /// <summary>
-        /// Archives a resource
+        /// Trashes a resource
         /// </summary>
         /// <param name="id">The ID of the resource</param>
-        [HttpPatch("archive/{id}")]
+        [HttpPatch("trash/{id}")]
         [Authorize]
-        [SwaggerOperation(Summary = "Archives a resource.")]
-        [SwaggerResponse(200, "Resource archived successfully", typeof(ApiResponse))]
+        [SwaggerOperation(Summary = "Trashes a resource.")]
+        [SwaggerResponse(200, "Resource trashed successfully", typeof(ApiResponse))]
         [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Archive(string id)
+        public async Task<IActionResult> Trash(string id)
         {
             // Check if the ID is valid
             if (!ValidityUtil.IsValidId(id))
@@ -245,11 +252,11 @@ namespace KnowledgeBank.Controllers
 
                 logger.Information("Archiving resource with ID: {ID}", id);
 
-                // Archive the resource
-                await resourceManager.ArchiveResourceAsync(id);
+                // Trash the resource
+                await resourceManager.TrashResourceAsync(id);
 
-                logger.Information("Archived resource with ID '{ID}' successfully.", id);
-                return Ok(new ApiResponse(true, "Resource archived successfully."));
+                logger.Information("Trashed resource with ID '{ID}' successfully.", id);
+                return Ok(new ApiResponse(true, "Resource trashed successfully."));
             }
             catch (Exception e)
             {
@@ -259,19 +266,19 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
 
-        #region Unarchive
+        #region Untrash
         /// <summary>
-        /// Unarchives a resource
+        /// Untrashes a resource
         /// </summary>
         /// <param name="id">The ID of the resource</param>
-        [HttpPatch("unarchive/{id}")]
+        [HttpPatch("untrash/{id}")]
         [Authorize(Policy = "RequireAdminRole")]
-        [SwaggerOperation(Summary = "Unarchives a resource.")]
-        [SwaggerResponse(200, "Resource unarchived successfully", typeof(ApiResponse))]
+        [SwaggerOperation(Summary = "Untrashes a resource.")]
+        [SwaggerResponse(200, "Resource untrashed successfully", typeof(ApiResponse))]
         [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Unarchive(string id)
+        public async Task<IActionResult> Untrash(string id)
         {
             // Check if the ID is valid
             if (!ValidityUtil.IsValidId(id))
@@ -285,11 +292,11 @@ namespace KnowledgeBank.Controllers
 
                 logger.Information("Unarchiving resource with ID: {ID}", id);
 
-                // Unarchive the resource
-                await resourceManager.UnarchiveResourceAsync(id);
+                // Untrash the resource
+                await resourceManager.UntrashResourceAsync(id);
 
-                logger.Information("Unarchived resource with ID '{ID}' successfully.", id);
-                return Ok(new ApiResponse(true, "Resource unarchived successfully."));
+                logger.Information("Untrashed resource with ID '{ID}' successfully.", id);
+                return Ok(new ApiResponse(true, "Resource untrashed successfully."));
             }
             catch (Exception e)
             {
@@ -316,6 +323,8 @@ namespace KnowledgeBank.Controllers
             if (!ValidityUtil.IsValidId(id))
                 return BadRequest(new ApiResponse(false, "Invalid ID."));
 
+            logger.Information("gucci 1");
+
             try
             {
                 // Check if the resource exists
@@ -325,7 +334,7 @@ namespace KnowledgeBank.Controllers
                 logger.Information("Downloding resource with ID: {ID}", id);
 
                 // Get the filetype from the database
-                string filetype = await resourceManager.GetResourcePropertyAsync(id, resource => resource.FileType);
+                string filetype = await resourceManager.GetResourcePropertyAsync(id, "FileType");
 
                 // If website, we cannot download, return BadRequest
                 if (filetype.Equals("website", StringComparison.CurrentCultureIgnoreCase))
@@ -333,6 +342,7 @@ namespace KnowledgeBank.Controllers
 
                 // Try to retrieve the file
                 BlobDownloadResponse? maybeResponse = await blobService.DownloadBlobAsync(filetype, id);
+                logger.Information("gucci 2");
 
                 // If response is empty, the file does not exist in storage
                 if (maybeResponse == null)
@@ -343,9 +353,10 @@ namespace KnowledgeBank.Controllers
 
                 // Set the contentType and generate a filename from the title
                 string contentType = "application/octet-stream";
-                string title = await resourceManager.GetResourcePropertyAsync(id, r => r.Title);
+                string title = await resourceManager.GetResourcePropertyAsync(id, "Title");
                 string extension = response.Metadata["extension"];
                 string fileName = SanitizeFileName(title) + extension;
+                logger.Information("gucci 3");
 
                 // Try to get contentType from the extension
                 if (Path.HasExtension(fileName))
@@ -362,7 +373,7 @@ namespace KnowledgeBank.Controllers
             catch (Exception e)
             {
                 logger.Error(e, "Error downloading resource with ID {ID}.", id);
-                return StatusCode(500, new ApiResponse(false, "Error downloading resource", e.Message));
+                return StatusCode(500, new ApiResponse(false, "Error downloading resource", e.Message + e.StackTrace));
             }
         }
         #endregion
@@ -394,7 +405,7 @@ namespace KnowledgeBank.Controllers
                 logger.Information("Deleting resource with ID: {ID}", id);
 
                 // Get the filetype of the resource
-                string filetype = await resourceManager.GetResourcePropertyAsync(id, r => r.FileType);
+                string filetype = await resourceManager.GetResourcePropertyAsync(id, "new(FileType as FileType)");
 
                 // Delete the file from storage
                 BLOB_STATUSCODE result = await blobService.DeleteBlobAsync(filetype, id);
@@ -540,20 +551,20 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Retrieve the ID of the resource if it already exists
-                Guid resourceId = Guid.Empty;
+                object? resourceId = null;
 
                 // Handle hash for files
                 if (!string.IsNullOrEmpty(hash))
-                    resourceId = await resourceManager.GetResourcePropertyOrDefaultAsync(predicate: r => r.Hash == hash, selector: r => r.Id);
+                    resourceId = await resourceManager.GetResourcePropertyOrDefaultAsync(predicate: r => r.Hash == hash, selector: "Id");
 
                 // Handle URL for websites
                 else if (!string.IsNullOrEmpty(url))
-                    resourceId = await resourceManager.GetWebsiteMetadataPropertyOrDefaultAsync(predicate: m => m.Url == url, selector: m => m.ResourceId);
+                    resourceId = await resourceManager.GetWebsiteMetadataPropertyOrDefaultAsync(predicate: m => m.Url == url, selector: "ResourceId");
 
 
 
                 // ID is empty, so no resource was found
-                if (resourceId == Guid.Empty)
+                if (resourceId == null)
                     return Ok(new ApiResponse(true, "Resource does not exist", new { exists = false, id = "" }));
 
                 // ID was not empty, so resource already exists, return the ID
@@ -572,13 +583,14 @@ namespace KnowledgeBank.Controllers
         /// Gets the information of the resource (database row)
         /// </summary>
         /// <param name="id">The ID of the resource</param>
+        /// <param name="properties">The properties you are trying to receive, separated by comma</param>
         [HttpGet("info/{id}")]
         [SwaggerOperation(Summary = "Get the information of the resource")]
         [SwaggerResponse(200, "Resource Information", typeof(ApiResponse))]
         [SwaggerResponse(404, "Resource Not Found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Info(string id)
+        public async Task<IActionResult> Info(string id, [FromQuery] string? properties)
         {
             // Check if ID is valid
             if (!ValidityUtil.IsValidId(id))
@@ -586,8 +598,10 @@ namespace KnowledgeBank.Controllers
 
             try
             {
-                // Retrieve the resource
-                Resource? resource = await resourceManager.GetResourceAsync(id);
+                // Retrieve the resource or the specified properties
+                object? resource = string.IsNullOrEmpty(properties) ?
+                    await resourceManager.GetResourceAsync(id) :
+                    await resourceManager.GetResourcePropertyAsync(id, $"new({properties})");
 
                 // If null, the resource was not found
                 if (resource == null)
@@ -610,16 +624,19 @@ namespace KnowledgeBank.Controllers
         /// </summary>
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
-        /// <param name="archived">(Optional) Whether to show archived resources or non archived resources</param>
+        /// <param name="properties">(Optional) The properties to select, separated by comma</param>
+        /// <param name="trash">(Optional) Whether to show trashed resources or non trashed resources</param>
+        /// <param name="searchQuery">(Optional) Filter on search query </param>
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all resources")]
         [SwaggerResponse(200, "A list or page of all the resources in the archive", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> List(int? pageIndex, int? pageSize, bool archived = false)
+        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties, string? searchQuery, bool trash = false)
         {
-            if (archived && !User.IsInRole("admin"))
-                return Unauthorized(new ApiResponse(false, "You are not authorized to view archived resources."));
+            if (trash && !User.IsInRole("admin"))
+                return Unauthorized(new ApiResponse(false, "You are not authorized to view trashed resources."));
+            logger.Information("Check 1");
 
             // Verification
             if (pageIndex != null && pageIndex < 1)
@@ -635,15 +652,28 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // All resources to be returned
-                Resource[] resources = [];
+                object[] resources = [];
+
+                string projectionString = $"new({properties})";
+
+                Expression<Func<Resource, bool>>? predicate = searchQuery != null ? r => EF.Functions.TrigramsAreSimilar(r.Title, searchQuery) ||
+                                                                                            EF.Functions.ILike(r.Title, $"{searchQuery}%") ||
+                                                                                            EF.Functions.ILike(r.Title, $"%{searchQuery}%")
+                                                                                            && r.Trashed == trash
+                                                                                  : r => r.Trashed == trash;
 
                 // No paging requested, list all resources
                 if (pageIndex == null || pageSize == null)
-                    resources = await resourceManager.GetAllResourcesAsync(predicate: r => r.Archived == archived);
+                    resources = string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourcesAsync(predicate: predicate) :
+                        await resourceManager.GetAllResourcesAsync(projection: projectionString, predicate: predicate);
+
 
                 // Paging requested, retrieve resources on that page
                 else
-                    resources = await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize, predicate: r => !r.Archived);
+                    resources = string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetResourcePageAsync((int)pageIndex, (int)pageSize, predicate: predicate) :
+                        await resourceManager.GetResourcePageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: predicate);
 
                 // Return found resources
                 return Ok(new ApiResponse(true, $"Found {resources.Length} resources", resources));
@@ -722,6 +752,10 @@ namespace KnowledgeBank.Controllers
         #endregion
 
         #region Filetype Support fetch
+        /// <summary>
+        /// Retrieves a dictionary of supported extensions per upload type
+        /// </summary>
+        /// <returns>A dictionary of supported extensions per upload type</returns>
         [HttpGet("supported_extensions")]
         [SwaggerOperation(Summary = "Retrieves a dictionary of all supported file extensions per uploadtype")]
         [SwaggerResponse(200, "A dictionary of all supported file extensions per upload type", typeof(ApiResponse))]
@@ -737,6 +771,264 @@ namespace KnowledgeBank.Controllers
             {
                 logger.Error(e, "Error fetching supported extensions");
                 return StatusCode(500, new ApiResponse(false, "Error fetching supported extensions", e.Message));
+            }
+        }
+        #endregion
+
+        #region Relation fetches
+        /// <summary>
+        /// Retrieves all relations of the given type for the given resource ID
+        /// </summary>
+        /// <param name="relation">The relation to retrieve</param>
+        /// <param name="id">The ID of the resource</param>
+        /// <param name="properties">(Optional) The properties to select from the result</param>
+        [HttpGet("{id}/relations/{relation}")]
+        [SwaggerOperation(Summary = "Retrieves all relations of the given type for the given resource ID")]
+        [SwaggerResponse(200, "The relations", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Relations(string relation, string id, string? properties)
+        {
+            // Check if relation is filled in
+            if (string.IsNullOrEmpty(relation))
+                return BadRequest(new ApiResponse(false, "Invalid relation"));
+
+            // Check ID
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID"));
+
+            try
+            {
+                if (relation == "resource-related-resources")
+                {
+                    return (await GetRelatedResources(id));
+                }
+
+                object? result = relation switch
+                {
+                    // Authors
+                    "authors" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceAuthorRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceAuthorRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
+
+                    // Organisations
+                    "organisations" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceOrganisationRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceOrganisationRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
+
+                    // Regions
+                    "regions" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceRegionRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceRegionRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
+
+                    // Related Organisations
+                    "related-organisations" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
+
+                    // Related Persons
+                    "related-persons" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceRelatedPersonRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceRelatedPersonRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
+
+                    // Sources
+                    "sources" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceSourceRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceSourceRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
+
+                    // Sources
+                    "related-sources" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceRelatedSourceRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceRelatedSourceRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
+
+                    // Tags
+                    "tags" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceTagRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceTagRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
+
+                    // Tags
+                    "website" => await resourceManager.GetWebsiteMetadataAsync(r => r.ResourceId == Guid.Parse(id)),
+
+                    // Default
+                    _ => null
+                };
+
+                if (result == null)
+                    return NotFound(new ApiResponse(false, "ID or relation not found"));
+
+                return Ok(new ApiResponse(true, "Successfully retrieved relations", result));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error retrieving relation '{Relation}' for resource with ID '{Id}'", relation, id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        #endregion
+
+        #region Add Relations
+        /// <summary>
+        /// Adds a relation for this resource
+        /// </summary>
+        /// <param name="id">The ID of the resource</param>
+        /// <param name="relation">The relation to be made</param>
+        /// <param name="targetId">The ID of the other item in the relation</param>
+        /// <param name="relationInfo">(Optional) Extra information over the relation</param>
+        [HttpGet("{id}/relations/add/{relation}/{targetId}")]
+        [SwaggerOperation(Summary = "Adds a relation to the resource")]
+        [SwaggerResponse(200, "Successfully added relation", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> AddRelation(string id, string relation, string targetId, [FromQuery] string? relationInfo)
+        {
+            // Check if relation is filled in
+            if (string.IsNullOrEmpty(relation))
+                return BadRequest(new ApiResponse(false, "Invalid relation"));
+
+            // Check if ids are valid
+            if (!ValidityUtil.IsValidId(id)) return BadRequest(new ApiResponse(false, "Invalid ID"));
+            if (!ValidityUtil.IsValidId(targetId) && !ValidityUtil.IsValidUrl(targetId)) return BadRequest(new ApiResponse(false, "Invalid target ID/URL"));
+
+            try
+            {
+                switch (relation)
+                {
+                    // Authors
+                    case "authors":
+                        await resourceManager.AddAuthorToResourceAsync(id, targetId);
+                        break;
+
+                    // Organisations
+                    case "organisations":
+                        await resourceManager.AddOrganisationToResourceAsync(id, targetId, relationInfo ?? "");
+                        break;
+
+                    // Regions
+                    case "regions":
+                        await resourceManager.AddRegionToResourceAsync(id, targetId);
+                        break;
+
+                    // Related organisations
+                    case "related-organisations":
+                        await resourceManager.AddRelatedOrganisationToResourceAsync(id, targetId, relationInfo ?? "");
+                        break;
+
+                    // Related persons
+                    case "related-persons":
+                        await resourceManager.AddRelatedPersonToResourceAsync(id, targetId, relationInfo);
+                        break;
+
+                    // Sources
+                    case "sources":
+                        await resourceManager.AddSourceToResourceAsync(id, System.Net.WebUtility.UrlDecode(targetId));
+                        break;
+
+                    // Related Sources
+                    case "related-sources":
+                        await resourceManager.AddRelatedSourceToResourceAsync(id, System.Net.WebUtility.UrlDecode(targetId));
+                        break;
+
+                    // Tags
+                    case "tags":
+                        await resourceManager.AddTagToResourceAsync(id, targetId);
+                        break;
+
+                    // Default
+                    default:
+                        return BadRequest(new ApiResponse(false, "Invalid relation"));
+                }
+
+                return Ok(new ApiResponse(true, "Relation added successfully"));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error creating relation '{Relation}' for person with ID '{Id}'", relation, id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        #endregion
+
+        #region Remove Relation
+
+        /// <summary>
+        /// Adds a relation for this resource
+        /// </summary>
+        /// <param name="id">The ID of the resource</param>
+        /// <param name="relation">The relation to be removed</param>
+        /// <param name="targetId">The ID of the other item in the relation</param>
+        [HttpGet("{id}/relations/remove/{relation}/{targetId}")]
+        [SwaggerOperation(Summary = "Removes a relation to the resource")]
+        [SwaggerResponse(200, "Successfully removed relation", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> RemoveRelation(string id, string relation, string targetId)
+        {
+            // Check if relation is filled in
+            if (string.IsNullOrEmpty(relation))
+                return BadRequest(new ApiResponse(false, "Invalid relation"));
+
+            // Check if ids are valid
+            if (!ValidityUtil.IsValidId(id)) return BadRequest(new ApiResponse(false, "Invalid ID"));
+            if (!ValidityUtil.IsValidId(targetId) && !ValidityUtil.IsValidUrl(targetId)) return BadRequest(new ApiResponse(false, "Invalid target ID/URL"));
+
+            try
+            {
+                switch (relation)
+                {
+                    // Authors
+                    case "authors":
+                        await resourceManager.RemoveAuthorFromResourceAsync(id, targetId);
+                        break;
+
+                    // Organisations
+                    case "organisations":
+                        await resourceManager.RemoveOrganisationFromResourceAsync(id, targetId);
+                        break;
+
+                    // Regions
+                    case "regions":
+                        await resourceManager.RemoveRegionFromResourceAsync(id, targetId);
+                        break;
+
+                    // Related organisations
+                    case "related-organisations":
+                        await resourceManager.RemoveRelatedOrganisationFromResourceAsync(id, targetId);
+                        break;
+
+                    // Related persons
+                    case "related-persons":
+                        await resourceManager.RemoveRelatedPersonFromResourceAsync(id, targetId);
+                        break;
+
+                    // Sources
+                    case "sources":
+                        await resourceManager.RemoveSourceFromResourceAsync(id, System.Net.WebUtility.UrlDecode(targetId));
+                        break;
+
+                    // Related Sources
+                    case "related-sources":
+                        await resourceManager.RemoveRelatedSourceFromResourceAsync(id, System.Net.WebUtility.UrlDecode(targetId));
+                        break;
+
+                    // Tags
+                    case "tags":
+                        await resourceManager.RemoveTagFromResourceAsync(id, targetId);
+                        break;
+
+                    // Default
+                    default:
+                        return BadRequest(new ApiResponse(false, "Invalid relation"));
+                }
+
+                return Ok(new ApiResponse(true, "Relation removed successfully"));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error removing relation '{Relation}' for person with ID '{Id}'", relation, id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
             }
         }
         #endregion
@@ -954,7 +1246,7 @@ namespace KnowledgeBank.Controllers
             {
                 // Delete the database entry
                 await resourceManager.BeginTransaction();
-                string? fileType = await resourceManager.GetResourcePropertyOrDefaultAsync(parsedResourceId.ToString(), r => r.FileType);
+                string? fileType = await resourceManager.GetResourcePropertyOrDefaultAsync(parsedResourceId.ToString(), "FileType");
                 if (fileType is not null)
                 {
                     BLOB_STATUSCODE code = await blobService.CommitBlockListAsync(resourceId.ToString(), fileType, [], new());
@@ -992,6 +1284,41 @@ namespace KnowledgeBank.Controllers
             }
         }
 
+        #endregion
+
+        #region Archive Grid
+        /// <summary>
+        /// Retrieves the resource grid items which are displayed on the archive page
+        /// </summary>
+        /// <param name="request">The request DTO</param>
+        [HttpPost("grid")]
+        [SwaggerOperation(Summary = "Retrieves the resource grid items which are displayed on the archive page")]
+        [SwaggerResponse(200, "The list of ResourceGridItems", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> GetGrid([FromBody] GridRequest request)
+        {
+            // Check page settings
+            if (request.PageIndex < 1)
+                return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1"));
+
+            if (request.PageSize < 1)
+                return BadRequest(new ApiResponse(false, "Page size cannot be lower than 1"));
+
+            try
+            {
+                // Execute the search
+                GridSearchResult searchResult = await resourceManager.SearchResourceGridAsync(request);
+
+                // Return result
+                return Ok(new ApiResponse(true, $"Found {searchResult.Items?.Length ?? 0} items", searchResult));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Failed to fetch resource grid");
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
         #endregion
 
 
@@ -1102,6 +1429,78 @@ namespace KnowledgeBank.Controllers
             // Return result + extension
             return result + extension;
         }
+
+        private async Task<IActionResult> GetRelatedResources(string id)
+        {
+            double standardizedTagWeight = 3.0;
+            double approvedTagWeight = 2.0;
+            double regularTagWeight = 1.0;
+
+            try
+            {
+                // Check if the resource exists
+                if (!await resourceManager.ResourceExistsAsync(id))
+                    return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
+
+                ResourceTagRelation[] resourceTags = await resourceManager.GetAllResourceTagRelationsAsync(
+                    predicate: r => r.ResourceId.ToString() == id,
+                    includeProperties: new[] { "Tag" });
+
+
+                if (resourceTags.Length == 0)
+                    return Ok(new ApiResponse(true, "No tags found for resource", Array.Empty<Resource>()));
+
+                // Retrieve resources with at least one common tag
+                var documentTagIds = resourceTags.Select(r => r.TagId).ToHashSet();
+
+                ResourceTagRelation[] resourceTagRelations = await resourceManager.GetAllResourceTagRelationsAsync(
+                    predicate: r => documentTagIds.Contains(r.TagId) && r.ResourceId.ToString() != id,
+                    includeProperties: new[] { "Tag", "Resource" });
+
+                // Group by resource, and calculate similarity score
+                Resource[] relatedResources = resourceTagRelations
+                    .GroupBy(r => r.ResourceId)
+                    .Select(group =>
+                    {
+                        // Get resource
+                        var resource = group.First().Resource!;
+
+                        double similarityScore = 0;
+                        foreach (var r in group)
+                        {
+                            // Check to avoid possible errors
+                            if (r.Tag == null) continue;
+
+                            // Add appropriate weight
+                            if (r.Tag.IsStandardized) similarityScore += standardizedTagWeight;
+                            else if (r.Tag.IsApproved) similarityScore += approvedTagWeight;
+                            else similarityScore += regularTagWeight;
+                        }
+
+                        return new { Resource = resource, SimilarityScore = similarityScore };
+                    })
+                    .OrderByDescending(item => item.SimilarityScore)
+                    .Select(item => item.Resource)
+                    .Take(18)
+                    .ToArray();
+
+
+                if (relatedResources.Count() == 0)
+                    return NotFound(new ApiResponse(true, "No related resources found", Array.Empty<Resource>()));
+
+                return Ok(new ApiResponse(true, "Related resources found", relatedResources));
+
+            }
+
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error retrieving relation 'resource-related-resources' for resource with ID '{Id}'", id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error: Related Resources", ex.Message));
+            }
+
+        }
+
+
         #endregion
     }
 }

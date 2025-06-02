@@ -11,6 +11,7 @@ import { ResourcePageWithTagsResponse } from "@/types/resource.type";
 import ListResources from "@/components/list-resources";
 import { useUserRole } from "@/context/user-role-context";
 import { Button } from "@/components/ui/button";
+import { useArchive } from "@/context/archive-provider";
 
 type filterDto = {
   tagFilters: string[];
@@ -20,11 +21,13 @@ type filterDto = {
 };
 
 export default function ArchivePage() {
+  //context provider
+  const { tagFilter: tagFilters, setTagFilter: setTagFilters } = useArchive();
+
   // State for search results, is null when no fetch has been completed yet, a string when an error occurs, or the fetch response.
   const [searchResults, setSearchResults] = useState<ResourcePageWithTagsResponse | null | string>(null);
   const [startYear, setStartYear] = useState<number | null>(null);
   const [endYear, setEndYear] = useState<number | null>(null);
-  const [tagFilters, setTagFilters] = useState<string[]>([]);
   const [currentQuery, setCurrentQuery] = useState<string>("");
   const [refreshKey, setRefreshKey] = useState<number>(0); // Key to trigger re-fetching of data
   const [initialLoadingComplete, setInitialLoadingComplete] = useState<boolean>(false); // State to track if initial loading is complete

@@ -4,155 +4,186 @@ import type React from "react";
 import "@testing-library/jest-dom";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import RightSidebar, { NoDocumentSelected } from "@/components/sidebar/right-sidebar/right-sidebar";
-import { useSidebar } from "@/context/sidebar-provider";
+import RightSidebar  from "@/components/sidebar/right-sidebar/right-sidebar";
+import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider";
+import { useArchive } from "@/context/archive-provider";
 import { fireEvent } from "@testing-library/react";
+import { getProperties, getRelation, getRelatedDocuments } from "@/actions/right-sidebarActions";
 
-// Mock the hooks and components
-vi.mock("@/context/sidebar-provider", () => ({
-  useSidebar: vi.fn(),
+// Use partial mocking to keep the real enum while mocking the hook
+vi.mock("@/context/sidebar-provider", async (importOriginal) => {
+  const actual: object = await importOriginal();
+  return {
+    ...actual,
+    useSidebar: vi.fn()
+  };
+});
+
+vi.mock("@/context/archive-provider", async (importOriginal) => {
+  const actual: object = await importOriginal();
+  return {
+    ...actual,
+    useArchive: vi.fn()
+  };
+});
+
+
+vi.mock("@/actions/right-sidebarActions", () => ({
+  getProperties: vi.fn(),
+  getRelation: vi.fn(),
+  getRelatedDocuments: vi.fn(),
 }));
+
 
 describe("RightSidebar", () => {
   const mockToggleRightSidebar = vi.fn();
+  const mockIsEmptyPrevs = vi.fn();
+  const mockIsEmptyNexts = vi.fn();
+  const mockCurrentId = "0123456789";
+  const mockCurrentTypeResource = MetadataTypeEnum.RESOURCE;
+  const mockCurrentTypeOrganisation = MetadataTypeEnum.ORGANISTATION;
+  const mockCurrentTypePerson = MetadataTypeEnum.PERSON;
+  const mockTagList = [
+    {id: "1", name: "tag1", type: "tag"}, 
+    {id: "2", name: "tag2", type: "tag"}, 
+    {id: "3", name: "tag3", type: "tag"}
+  ];
+  const mockUrl = "https://google.com";
+  const mockDescription = "this is a mock description";
+  const mockTitle = "Mock Resource Title";
+  const mockNote = "These are mock notes";
 
-  const mockTagRelation1 = {
-    resourceId: "123",
-    tagId: "456",
-    isApproved: false,
-    approvedOn: null,
-    approvedBy: null,
-    tag: {
-      id: "456",
-      name: "Tag 1",
-      isStandardized: false,
-      isApproved: false,
-      approvedOn: null,
-      approvedBy: null,
-      createdBy: "User1",
-      createdOn: "2024-01-01T12:00:00Z"
-    }
-  }
 
-  const mockTagRelation2 = {
-    resourceId: "123",
-    tagId: "789",
-    isApproved: false,
-    approvedOn: null,
-    approvedBy: null,
-    tag: {
-      id: "789",
-      name: "Tag 2",
-      isStandardized: false,
-      isApproved: false,
-      approvedOn: null,
-      approvedBy: null,
-      createdBy: "User1",
-      createdOn: "2024-01-01T12:00:00Z"
-    }
-  }
+   // Define a reusable mock for getRelation
+  const setupMockGetRelation = (id: string) => {
+    const relationResponses = {
+      "website": {
+        body: [{ url: mockUrl }]
+      },
+      "author": {
+        body: [
+          { id: "a1", name: "Author 1" },
+          { id: "a2", name: "Author 2" }
+        ]
+      },
+      "tag": {
+        body: [
+          { id: "1", name: "tag1" },
+          { id: "2", name: "tag2" },
+          { id: "3", name: "tag3" }
+        ]
+      },
+      "organisation": {
+        body: [{ id: "o1", name: "Organisation 1" }]
+      },
+      "relatedPerson": {
+        body: [{ id: "p1", name: "Person 1" }]
+      },
+      "relatedOrganisation": {
+        body: [{ id: "o2", name: "Organisation 2" }]
+      },
+      "source": {
+        body: [
+          { url: "https://source1.com", resourceid: "s1" },
+          { url: "https://source2.com", resourceid: "s2" }
+        ]
+      }
+    };
 
-  const mockDocument = {
-    id: "123",
-    title: "Test Document",
-    description: "This is a test document",
-    fileType: "pdf",
-    hash: null,
-    typeId: "type1",
-    languageCode: "en",
-    publicationCode: null,
-    license: null,
-    note: null,
-    creationDate: "2024-01-01T12:00:00Z",
-    publicationDate: "2024-01-02T12:00:00Z",
-    tagRelations: [
-      mockTagRelation1,
-      mockTagRelation2
-    ],
+    (getRelation as ReturnType<typeof vi.fn>).mockImplementation((id, type, relationType) => {
+      return Promise.resolve(relationResponses[relationType as keyof typeof relationResponses] || { body: [] });
+    });
   };
+
+
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("renders NoDocumentSelected when no document is selected", () => {
+  it("renders website correctly with data", async () => {
+    // Mock the useSidebar hook
     (useSidebar as ReturnType<typeof vi.fn>).mockReturnValue({
-      selectedDocument: null,
+      currentId: mockCurrentId,
+      currentType: mockCurrentTypeResource,
+      isEmptyPrevs: mockIsEmptyPrevs,
+      isEmptyNexts: mockIsEmptyNexts,
       toggleRightSidebar: mockToggleRightSidebar,
+      rightSidebarOpen: true,
+    });
+
+    (useArchive as ReturnType<typeof vi.fn>).mockReturnValue({
+      tagFilters: [],
+    });
+
+    // Set up mock API responses
+    (getProperties as ReturnType<typeof vi.fn>).mockResolvedValue({
+      body: {
+        fileType: "website",
+        title: mockTitle,
+        description: mockDescription,
+        note: mockNote
+      }
+    });
+
+    (getProperties as ReturnType<typeof vi.fn>).mockResolvedValue({
+      body: {
+        fileType: "website",
+        title: mockTitle,
+        description: mockDescription,
+        note: mockNote
+      }
+    });
+    
+    setupMockGetRelation(mockCurrentId);
+
+    // Mock related documents
+    (getRelatedDocuments as ReturnType<typeof vi.fn>).mockResolvedValue({
+      body: [
+        { id: "r1", title: "Related Resource 1" },
+        { id: "r2", title: "Related Resource 2" }
+      ]
     });
 
     render(<RightSidebar />);
 
-    expect(screen.getByText("No Document Selected")).toBeInTheDocument();
-    expect(screen.getByText("Please select a document to view details.")).toBeInTheDocument();
-  });
+    await vi.waitFor(() => {
+      expect(screen.getByText(mockTitle)).toBeInTheDocument();
+    });
 
-  it("renders document details when document is selected", () => {
+    
+    expect(screen.getByText(mockUrl)).toBeInTheDocument();
+    expect(screen.getByText("Description")).toBeInTheDocument();
+    expect(screen.getByText(mockDescription)).toBeInTheDocument();
+    expect(screen.getByText("Tags")).toBeInTheDocument();
+    expect(screen.getByText("tag1")).toBeInTheDocument();
+    expect(screen.getByText("tag2")).toBeInTheDocument();
+    expect(screen.getByText("tag3")).toBeInTheDocument();
+    expect(screen.getByText("Authors")).toBeInTheDocument();
+    expect(screen.getByText("Organisations")).toBeInTheDocument();
+    expect(screen.getByText("Related People")).toBeInTheDocument();
+    expect(screen.getByText("Related Organisations")).toBeInTheDocument();
+    expect(screen.getByText("Related")).toBeInTheDocument();
+    expect(screen.getByText("Sources")).toBeInTheDocument();
+    expect(screen.getByText("Notes")).toBeInTheDocument();
+    expect(screen.getByText(mockNote)).toBeInTheDocument();
+
+  })
+
+  it("renders person correctly", () => {
     (useSidebar as ReturnType<typeof vi.fn>).mockReturnValue({
-      selectedDocument: mockDocument,
+      currentId: mockCurrentId,
+      currentType: mockCurrentTypePerson,
       toggleRightSidebar: mockToggleRightSidebar,
+      isEmptyPrevs: mockIsEmptyPrevs,
+      isEmptyNexts: mockIsEmptyNexts,
     });
 
     render(<RightSidebar />);
 
-    // Check if document details are rendered
-    expect(screen.getByText("Test Document")).toBeInTheDocument();
-    expect(screen.getByText("This is a test document")).toBeInTheDocument();
-    expect(screen.getByText("Tag 1")).toBeInTheDocument();
-    expect(screen.getByText("Tag 2")).toBeInTheDocument();
+    expect(screen.getByText("Description")).toBeInTheDocument();
+  })
 
-    // Check date formatting
-    expect(screen.getByText(/Created At:/)).toBeInTheDocument();
-  });
-
-  it("renders document without tags when tags are empty", () => {
-    const documentWithoutTags = { ...mockDocument, tags: [] };
-
-    (useSidebar as ReturnType<typeof vi.fn>).mockReturnValue({
-      selectedDocument: documentWithoutTags,
-      toggleRightSidebar: mockToggleRightSidebar,
-    });
-
-    render(<RightSidebar />);
-
-    // Tags section should not be rendered
-    expect(screen.queryByTestId("divider-tags")).not.toBeInTheDocument();
-  });
-
-  it("renders document without description when description is empty", () => {
-    const documentWithoutDescription = { ...mockDocument, description: "" };
-
-    (useSidebar as ReturnType<typeof vi.fn>).mockReturnValue({
-      selectedDocument: documentWithoutDescription,
-      toggleRightSidebar: mockToggleRightSidebar,
-    });
-
-    render(<RightSidebar />);
-
-    // Description should not be rendered
-    expect(screen.queryByText("This is a test document")).not.toBeInTheDocument();
-  });
-
-  it("calls toggleRightSidebar when close button is clicked", () => {
-    (useSidebar as ReturnType<typeof vi.fn>).mockReturnValue({
-      selectedDocument: mockDocument,
-      toggleRightSidebar: mockToggleRightSidebar,
-    });
-
-    render(<RightSidebar />);
-
-    // Click close button
-    fireEvent.click(screen.getByText("Close"));
-
-    expect(mockToggleRightSidebar).toHaveBeenCalledWith(null);
-  });
-
-  it("renders NoDocumentSelected component correctly", () => {
-    render(<NoDocumentSelected />);
-
-    expect(screen.getByText("No Document Selected")).toBeInTheDocument();
-    expect(screen.getByText("Please select a document to view details.")).toBeInTheDocument();
-  });
 });
 
 

@@ -61,8 +61,10 @@ namespace KnowledgeBank.Data
 
         #region Helper functions
         // Converts a string array to guid array
-        private static Guid[] StringToGuidArray(string[] strings)
+        private static Guid[] StringToGuidArray(string[]? strings)
         {
+            if (strings == null || strings.Length == 0) return [];
+        
             Guid[] guids = new Guid[strings.Length];
 
             for (int i = 0; i < strings.Length; i++)
@@ -71,18 +73,6 @@ namespace KnowledgeBank.Data
             }
 
             return guids;
-        }
-
-        // Gets all the first values of a tuple array and outputs it as an array
-        private static TFirst[] FirstsOfTupleArray<TFirst, TSecond>((TFirst, TSecond)[] tuples)
-        {
-            return tuples.Select(tuple => tuple.Item1).ToArray();
-        }
-
-        // Gets all the second values of a tuple array and outputs it as an array
-        private static TSecond[] SecondsOfTupleArray<TFirst, TSecond>((TFirst, TSecond)[] tuples)
-        {
-            return tuples.Select(tuple => tuple.Item2).ToArray();
         }
         #endregion
     }

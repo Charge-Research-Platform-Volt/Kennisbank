@@ -2,7 +2,6 @@
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
 //
-// Author: Abel Dieterich
 
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
@@ -16,6 +15,9 @@ using Microsoft.AspNetCore.Cors;
 using System.Reflection;
 using KnowledgeBank.BackgroundServices;
 using KnowledgeBank.Services;
+using Org.BouncyCastle.Asn1.X509;
+using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Controllers
 {
@@ -222,16 +224,16 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Retrieve the ID of the person if it already exists
-                Guid personId = Guid.Empty;
+                object? personId = null;
 
                 // Handle name
                 if (!string.IsNullOrEmpty(name))
-                    personId = await resourceManager.GetPersonPropertyOrDefaultAsync(predicate: p => p.Name == name, selector: p => p.Id);
+                    personId = await resourceManager.GetPersonPropertyOrDefaultAsync(predicate: p => p.Name == name, selector: "Id");
 
 
 
                 // ID is empty, so no person was found
-                if (personId == Guid.Empty)
+                if (personId == null)
                     return Ok(new ApiResponse(true, "Person does not exist", new { exists = false, id = "" }));
 
                 // ID was not empty, so person already exists, return the ID
@@ -250,13 +252,14 @@ namespace KnowledgeBank.Controllers
         /// Gets the information of the person (database row)
         /// </summary>
         /// <param name="id">The ID of the person</param>
+        /// <param name="properties">The properties you are trying to receive, separated by comma</param>
         [HttpGet("info/{id}")]
         [SwaggerOperation(Summary = "Get the information of the person")]
         [SwaggerResponse(200, "Person information", typeof(ApiResponse))]
         [SwaggerResponse(404, "Person Not Found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Info(string id)
+        public async Task<IActionResult> Info(string id, [FromQuery] string? properties)
         {
             // Check if ID is valid
             if (!ValidityUtil.IsValidId(id))
@@ -265,7 +268,9 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Retrieve the person
-                Person? person = await resourceManager.GetPersonAsync(id);
+                object? person = string.IsNullOrEmpty(properties) ?
+                    await resourceManager.GetPersonAsync(id) :
+                    await resourceManager.GetPersonAsync(id, $"new({properties})");
 
                 // If null, the person was not found
                 if (person == null)
@@ -288,12 +293,14 @@ namespace KnowledgeBank.Controllers
         /// </summary>
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
+        /// <param name="properties">(Optional) The properties to select, separated by comma</param>
+        /// <param name="searchQuery">(Optional) Filter on search query </param>
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all persons")]
         [SwaggerResponse(200, "A list or page of all the persons in the archive", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> List(int? pageIndex, int? pageSize)
+        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties, string? searchQuery)
         {
             // Verification
             if (pageIndex != null && pageIndex < 1)
@@ -309,15 +316,27 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // All persons to be returned
-                Person[] persons = [];
+                object[] persons = [];
+
+                string projectionString = $"new({properties})";
+
+                Expression<Func<Person, bool>>? predicate = searchQuery != null ? p => EF.Functions.TrigramsAreSimilar(p.Name, searchQuery) ||
+                                                                                            EF.Functions.ILike(p.Name, $"{searchQuery}%") ||
+                                                                                            EF.Functions.ILike(p.Name, $"%{searchQuery}%")
+                                                                                : null;
 
                 // No paging requested, list all persons
                 if (pageIndex == null || pageSize == null)
-                    persons = await resourceManager.GetAllPersonsAsync();
+                    persons = string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllPersonsAsync(predicate: predicate) :
+                        await resourceManager.GetAllPersonsAsync(projection: projectionString, predicate: predicate);
 
                 // Paging requested, retrieve persons on that page
                 else
-                    persons = await resourceManager.GetPersonPageAsync((int)pageIndex, (int)pageSize);
+                    persons = string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetPersonPageAsync((int)pageIndex, (int)pageSize, predicate: predicate) :
+                        await resourceManager.GetPersonPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: predicate);
+
 
                 // Return found persons
                 return Ok(new ApiResponse(true, $"Found {persons.Length} persons", persons));
@@ -330,6 +349,196 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
 
+
+        #region Relation fetches
+        /// <summary>
+        /// Retrieves all relations of the given type for the given person ID
+        /// </summary>
+        /// <param name="relation">The relation to retrieve</param>
+        /// <param name="id">The ID of the person</param>
+        /// <param name="properties">(Optional) The properties to select from the result</param>
+        [HttpGet("{id}/relations/{relation}")]
+        [SwaggerOperation(Summary = "Retrieves all relations of the given type for the given person ID")]
+        [SwaggerResponse(200, "The relations", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Person not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Relations(string relation, string id, string? properties)
+        {
+            // Check if relation is filled in
+            if (string.IsNullOrEmpty(relation))
+                return BadRequest(new ApiResponse(false, "Invalid relation"));
+
+            // Check ID
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID"));
+
+            try
+            {
+                object? result = relation switch
+                {
+                    // Authored resources
+                    "authored-resources" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceAuthorRelationsAsync(r => r.PersonId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceAuthorRelationsAsync(predicate: r => r.PersonId == Guid.Parse(id), projection: $"new({properties})"),
+
+                    // Related resources
+                    "related-resources" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceRelatedPersonRelationsAsync(r => r.PersonId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceRelatedPersonRelationsAsync(predicate: r => r.PersonId == Guid.Parse(id), projection: $"new({properties})"),
+
+                    // Related persons
+                    "person-related-persons" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllPersonRelationshipsAsync(predicate: p => p.SourcePersonId == Guid.Parse(id) || p.TargetPersonId == Guid.Parse(id)) :
+                        await resourceManager.GetAllPersonRelationshipsAsync(predicate: p => p.SourcePersonId == Guid.Parse(id) || p.TargetPersonId == Guid.Parse(id), projection: $"new({properties})"),
+
+                    // Related organisations
+                    "organisations" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllPersonOrganisationRelationsAsync(predicate: p => p.PersonId == Guid.Parse(id)) :
+                        await resourceManager.GetAllPersonOrganisationRelationsAsync(predicate: p => p.PersonId == Guid.Parse(id), projection: $"new({properties})"),
+
+                    // Default
+                    _ => null
+                };
+
+                if (result == null)
+                    return NotFound(new ApiResponse(false, "ID or relation not found"));
+
+                return Ok(new ApiResponse(true, "Successfully retrieved relations", result));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error retrieving relation '{Relation}' for person with ID '{Id}'", relation, id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+
+        #endregion
+
+        #region Add Relations
+        /// <summary>
+        /// Adds a relation for this person
+        /// </summary>
+        /// <param name="id">The ID of the person</param>
+        /// <param name="relation">The relation to be made</param>
+        /// <param name="targetId">The ID of the other item in the relation</param>
+        /// /// <param name="relationInfo">(Optional) Extra information over the relation</param>
+        [HttpGet("{id}/relations/add/{relation}/{targetId}")]
+        [SwaggerOperation(Summary = "Adds a relation to the person")]
+        [SwaggerResponse(200, "Successfully added relation", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Person not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> AddRelation(string id, string relation, string targetId, [FromQuery] string? relationInfo)
+        {
+            // Check if relation is filled in
+            if (string.IsNullOrEmpty(relation))
+                return BadRequest(new ApiResponse(false, "Invalid relation"));
+
+            // Check if ids are valid
+            if (!ValidityUtil.IsValidId(id)) return BadRequest(new ApiResponse(false, "Invalid ID"));
+            if (!ValidityUtil.IsValidId(targetId)) return BadRequest(new ApiResponse(false, "Invalid target ID"));
+
+            try
+            {
+                switch (relation)
+                {
+                    // Authored resources
+                    case "authored-resources":
+                        await resourceManager.AddAuthorToResourceAsync(targetId, id);
+                        break;
+
+                    // Related resources
+                    case "related-resources":
+                        await resourceManager.AddRelatedPersonToResourceAsync(targetId, id, relationInfo);
+                        break;
+
+                    // Persons
+                    case "person-related-persons":
+                        await resourceManager.AddPersonRelationshipAsync(id, relationInfo, targetId);
+                        break;
+
+                    // Organisations
+                    case "organisations":
+                        await resourceManager.AddPersonToOrganisationAsync(id, relationInfo, targetId);
+                        break;
+
+                    // Default
+                    default:
+                        return BadRequest(new ApiResponse(false, "Invalid relation"));
+                }
+
+                return Ok(new ApiResponse(true, "Relation added successfully"));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error creating relation '{Relation}' for person with ID '{Id}'", relation, id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        #endregion
+
+        #region Remove Relations
+        /// <summary>
+        /// Removes a relation for this person
+        /// </summary>
+        /// <param name="id">The ID of the person</param>
+        /// <param name="relation">The relation to be removed</param>
+        /// <param name="targetId">The ID of the other item in the relation</param>
+        [HttpGet("{id}/relations/remove/{relation}/{targetId}")]
+        [SwaggerOperation(Summary = "Removes a relation to the person")]
+        [SwaggerResponse(200, "Successfully removed relation", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Person not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> RemoveRelation(string id, string relation, string targetId)
+        {
+            // Check if relation is filled in
+            if (string.IsNullOrEmpty(relation))
+                return BadRequest(new ApiResponse(false, "Invalid relation"));
+
+            // Check if ids are valid
+            if (!ValidityUtil.IsValidId(id)) return BadRequest(new ApiResponse(false, "Invalid ID"));
+            if (!ValidityUtil.IsValidId(targetId)) return BadRequest(new ApiResponse(false, "Invalid target ID"));
+
+            try
+            {
+                switch (relation)
+                {
+                    // Authored resources
+                    case "authored-resources":
+                        await resourceManager.RemoveAuthorFromResourceAsync(targetId, id);
+                        break;
+
+                    // Related resources
+                    case "related-resources":
+                        await resourceManager.RemoveRelatedPersonFromResourceAsync(targetId, id);
+                        break;
+
+                    // Persons
+                    case "person-related-persons":
+                        await resourceManager.RemovePersonRelationshipAsync(id, targetId);
+                        break;
+
+                    // Organisations
+                    case "organisations":
+                        await resourceManager.RemovePersonFromOrganisationAsync(id, targetId);
+                        break;
+
+                    // Default
+                    default:
+                        return BadRequest(new ApiResponse(false, "Invalid relation"));
+                }
+
+                return Ok(new ApiResponse(true, "Relation removed successfully"));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error removing relation '{Relation}' for person with ID '{Id}'", relation, id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        #endregion
 
         #region Helper Functions
         // ---------------------------

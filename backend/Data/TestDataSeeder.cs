@@ -214,6 +214,7 @@ namespace KnowledgeBank.Data
                         }
 
                         await resourceManager.Commit();
+                        await resourceManager.UpdateResourceAsync(resourceId, r => r.FileExt, extension.Replace(".", ""));
                         await resourceManager.UpdateResourceAsync(resourceId, r => r.FileType, fileType);
                     }
                     catch (Exception e)

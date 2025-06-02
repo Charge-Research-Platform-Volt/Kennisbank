@@ -34,7 +34,7 @@ namespace KnowledgeBank.Data
                 Note = dto.Note,
                 FileType = "unknown",
                 CreationDate = DateTime.UtcNow,
-                Archived = false,
+                Trashed = false,
             };
 
             // Derive filetype when it is a file resource
@@ -206,6 +206,7 @@ namespace KnowledgeBank.Data
                 Description = dto.Description,
                 EmailAddress = dto.EmailAddress,
                 Linkedin = dto.Linkedin,
+                CreationDate = DateTime.UtcNow,
             };
 
             // Add person to database
@@ -239,6 +240,7 @@ namespace KnowledgeBank.Data
                 Description = dto.Description,
                 Website = dto.Website,
                 EmailAddress = dto.EmailAddress,
+                CreationDate = DateTime.UtcNow,
             };
 
             // Add organisation to database
