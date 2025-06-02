@@ -65,7 +65,8 @@ public class UserControllerUnitTests
     {
         // Arrange
         _mockUserManager.Setup(m => m.FindByIdAsync("123")).ReturnsAsync((User)null);
-
+        SetUserContext(true, "345");
+        
         // Act
         IActionResult result = await _controller.Delete("123");
 
