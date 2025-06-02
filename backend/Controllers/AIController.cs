@@ -47,14 +47,14 @@ public class AIController : ControllerBase
 
 
             // Get the existing AI-generated tags from the resource
-            var existingAiTags = await _resourceManager.GetResourcePropertyOrDefaultAsync<string?>(Guid.Parse(id), r => r.AiGeneratedTags);
+            var existingAiTags = await _resourceManager.GetResourcePropertyOrDefaultAsync(Guid.Parse(id), "AiGeneratedTags");
 
             if (!string.IsNullOrWhiteSpace(existingAiTags))
             {
                 try
                 {
                     var existingTagsList = JsonSerializer.Deserialize<List<string>>(existingAiTags);
-                    if (existingTagsList != null && existingTagsList.Count > 0)
+                    if (existingTagsList != null)
                     {
                         _logger.Information("Returning existing AI-generated tags for resource {ResourceId}", id);
                         return Ok(new ApiResponse(true, "AI-generated tags already exist", new

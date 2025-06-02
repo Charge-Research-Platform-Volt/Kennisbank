@@ -39,7 +39,7 @@ namespace KnowledgeBank.Data
         protected async Task<T?> GetAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate, params string[] includeProperties) where T : class
         { return await GetAsync(dbSet, predicate, null, false, includeProperties); }
 
-        private IQueryable<T> getAllQuery<T>(DbSet<T> dbSet, Expression<Func<T, dynamic>>? orderBy = null, bool orderDescending = false, Expression<Func<T, bool>>? predicate = null, params string[] includeProperties) where T : class 
+        private IQueryable<T> getAllQuery<T>(DbSet<T> dbSet, Expression<Func<T, dynamic>>? orderBy = null, bool orderDescending = false, Expression<Func<T, bool>>? predicate = null, params string[] includeProperties) where T : class
         {
             IQueryable<T> query = dbSet.AsQueryable().AsNoTracking();
 
@@ -58,13 +58,13 @@ namespace KnowledgeBank.Data
             {
                 query = query.Include(includeProperty);
             }
-            
+
             return query;
         }
-    
+
         protected async Task<T[]> GetAllAsync<T>(DbSet<T> dbSet, Expression<Func<T, dynamic>>? orderBy = null, bool orderDescending = false, Expression<Func<T, bool>>? predicate = null, params string[] includeProperties) where T : class
         { return await getAllQuery(dbSet, orderBy, orderDescending, predicate, includeProperties).ToArrayAsync(); }
-        
+
         protected async Task<dynamic[]> GetAllAsync<TSet>(DbSet<TSet> dbSet, string projection, Expression<Func<TSet, dynamic>>? orderBy = null, bool orderDescending = false, Expression<Func<TSet, bool>>? predicate = null, params string[] includeProperties) where TSet : class
         { return await getAllQuery(dbSet, orderBy, orderDescending, predicate, includeProperties).Select(projection).Cast<dynamic>().ToArrayAsync(); }
 
@@ -80,7 +80,7 @@ namespace KnowledgeBank.Data
 
             return await query.Skip(skip).Take(pageSize).ToArrayAsync();
         }
-        
+
         protected async Task<dynamic[]> GetPageAsync<TSet>(DbSet<TSet> dbSet, string projection, int pageIndex = 1, int pageSize = 100, Expression<Func<TSet, dynamic>>? orderBy = null, bool orderDescending = false, Expression<Func<TSet, bool>>? predicate = null, params string[] includeProperties) where TSet : class
         {
             // Return empty for invalid inpt
@@ -90,15 +90,15 @@ namespace KnowledgeBank.Data
             int skip = (pageIndex - 1) * pageSize;
 
             IQueryable<TSet> query = getAllQuery(dbSet, orderBy, orderDescending, predicate, includeProperties);
-            
+
             return await query.Skip(skip).Take(pageSize).Select(projection).Cast<dynamic>().ToArrayAsync();
         }
 
         protected async Task<dynamic> GetPropertyAsync<TSet>(DbSet<TSet> dbSet, Expression<Func<TSet, bool>> predicate, string selector, Expression<Func<TSet, dynamic>>? orderBy = null, bool orderDescending = false) where TSet : class
-        { 
+        {
             IQueryable<TSet> query = dbSet.Where(predicate);
-            
-            if (orderBy != null) 
+
+            if (orderBy != null)
                 query = orderDescending ? query.OrderByDescending(orderBy) : query.OrderBy(orderBy);
 
             ParsingConfig config = new ParsingConfig { ResolveTypesBySimpleName = true, AllowNewToEvaluateAnyType = true };
@@ -107,14 +107,14 @@ namespace KnowledgeBank.Data
         }
 
         protected async Task<dynamic?> GetPropertyOrDefaultAsync<TSet>(DbSet<TSet> dbSet, Expression<Func<TSet, bool>> predicate, string selector, Expression<Func<TSet, dynamic>>? orderBy = null, bool orderDescending = false) where TSet : class
-        { 
+        {
             IQueryable<TSet> query = dbSet.Where(predicate);
-            
-            if (orderBy != null) 
+
+            if (orderBy != null)
                 query = orderDescending ? query.OrderByDescending(orderBy) : query.OrderBy(orderBy);
-            
+
             ParsingConfig config = new ParsingConfig { ResolveTypesBySimpleName = true, AllowNewToEvaluateAnyType = true };
-            
+
             return await query.Select(config, selector).Cast<dynamic>().FirstOrDefaultAsync();
         }
 
@@ -145,7 +145,7 @@ namespace KnowledgeBank.Data
         {
             orderBy ??= resourceDefaultOrderBy;
 
-            return await GetAsync(database.Resources, predicate, orderBy, orderDescending, includeProperties); 
+            return await GetAsync(database.Resources, predicate, orderBy, orderDescending, includeProperties);
         }
 
         public async Task<Resource?> GetResourceAsync(Guid id, Expression<Func<Resource, dynamic>>? orderBy = null, bool orderDescending = resourceDefaultOrderDescending, params string[] includeProperties)
@@ -202,7 +202,7 @@ namespace KnowledgeBank.Data
 
         public async Task<Resource[]> GetResourcePageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.Resources, pageIndex, pageSize, resourceDefaultOrderBy, resourceDefaultOrderDescending, null, includeProperties); }
-        
+
         // Multiple with projection
         public async Task<dynamic[]> GetAllResourcesAsync(string projection, Expression<Func<Resource, dynamic>>? orderBy = null, bool orderDescending = resourceDefaultOrderDescending, Expression<Func<Resource, bool>>? predicate = null)
         {
@@ -238,20 +238,20 @@ namespace KnowledgeBank.Data
         }
 
         public async Task<dynamic> GetResourcePageAsync(string projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
-        { return await GetPageAsync(database.Resources, projection, pageIndex, pageSize, resourceDefaultOrderBy, resourceDefaultOrderDescending, null, includeProperties); }    
+        { return await GetPageAsync(database.Resources, projection, pageIndex, pageSize, resourceDefaultOrderBy, resourceDefaultOrderDescending, null, includeProperties); }
 
 
         // Properties
 
         public async Task<dynamic> GetResourcePropertyAsync(Guid resourceId, string selector, Expression<Func<Resource, dynamic>>? orderBy = null, bool orderDescending = resourceDefaultOrderDescending)
-        { 
+        {
             orderBy ??= resourceDefaultOrderBy;
             return await GetPropertyAsync(database.Resources, r => r.Id == resourceId, selector, orderBy, orderDescending);
         }
 
         public async Task<dynamic> GetResourcePropertyAsync(string resourceId, string selector, Expression<Func<Resource, dynamic>>? orderBy = null, bool orderDescending = resourceDefaultOrderDescending)
         { return await GetResourcePropertyAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic?> GetResourcePropertyAsync(Expression<Func<Resource, bool>> predicate, string selector, Expression<Func<Resource, dynamic>>? orderBy = null, bool orderDescending = resourceDefaultOrderDescending)
         {
             orderBy ??= resourceDefaultOrderBy;
@@ -262,14 +262,14 @@ namespace KnowledgeBank.Data
 
 
         public async Task<dynamic?> GetResourcePropertyOrDefaultAsync(Guid resourceId, string selector, Expression<Func<Resource, dynamic>>? orderBy = null, bool orderDescending = resourceDefaultOrderDescending)
-        { 
+        {
             orderBy ??= resourceDefaultOrderBy;
             return await GetPropertyOrDefaultAsync(database.Resources, r => r.Id == resourceId, selector, orderBy, orderDescending);
         }
 
         public async Task<dynamic?> GetResourcePropertyOrDefaultAsync(string resourceId, string selector, Expression<Func<Resource, dynamic>>? orderBy = null, bool orderDescending = resourceDefaultOrderDescending)
         { return await GetResourcePropertyOrDefaultAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic?> GetResourcePropertyOrDefaultAsync(Expression<Func<Resource, bool>> predicate, string selector, Expression<Func<Resource, dynamic>>? orderBy = null, bool orderDescending = resourceDefaultOrderDescending)
         {
             orderBy ??= resourceDefaultOrderBy;
@@ -354,7 +354,7 @@ namespace KnowledgeBank.Data
         public async Task<Person[]> GetPersonPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.Persons, pageIndex, pageSize, personDefaultOrderBy, personDefaultOrderDescending, null, includeProperties); }
 
-        
+
         // Multiple with projection
         public async Task<dynamic> GetAllPersonsAsync(string projection, Expression<Func<Person, dynamic>>? orderBy = null, bool orderDescending = personDefaultOrderDescending, Expression<Func<Person, bool>>? predicate = null)
         {
@@ -395,14 +395,14 @@ namespace KnowledgeBank.Data
         // Property
 
         public async Task<dynamic> GetPersonPropertyAsync(Guid personId, string selector, Expression<Func<Person, dynamic>>? orderBy = null, bool orderDescending = personDefaultOrderDescending)
-        { 
+        {
             orderBy ??= personDefaultOrderBy;
             return await GetPropertyAsync(database.Persons, p => p.Id == personId, selector, orderBy, orderDescending);
         }
 
         public async Task<dynamic> GetPersonPropertyAsync(string personId, string selector, Expression<Func<Person, dynamic>>? orderBy = null, bool orderDescending = personDefaultOrderDescending)
         { return await GetPersonPropertyAsync(Guid.Parse(personId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic?> GetPersonPropertyAs(Expression<Func<Person, bool>> predicate, string selector, Expression<Func<Person, dynamic>>? orderBy = null, bool orderDescending = personDefaultOrderDescending)
         {
             orderBy ??= personDefaultOrderBy;
@@ -412,14 +412,14 @@ namespace KnowledgeBank.Data
 
 
         public async Task<dynamic?> GetPersonPropertyOrDefaultAsync(Guid personId, string selector, Expression<Func<Person, dynamic>>? orderBy = null, bool orderDescending = personDefaultOrderDescending)
-        { 
+        {
             orderBy ??= personDefaultOrderBy;
             return await GetPropertyOrDefaultAsync(database.Persons, p => p.Id == personId, selector, orderBy, orderDescending);
         }
 
         public async Task<dynamic?> GetPersonPropertyOrDefaultAsync(string personId, string selector, Expression<Func<Person, dynamic>>? orderBy = null, bool orderDescending = personDefaultOrderDescending)
         { return await GetPersonPropertyOrDefaultAsync(Guid.Parse(personId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic?> GetPersonPropertyOrDefaultAsync(Expression<Func<Person, bool>> predicate, string selector, Expression<Func<Person, dynamic>>? orderBy = null, bool orderDescending = personDefaultOrderDescending)
         {
             orderBy ??= personDefaultOrderBy;
@@ -500,7 +500,7 @@ namespace KnowledgeBank.Data
         public async Task<Organisation[]> GetOrganisationPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.Organisations, pageIndex, pageSize, organisationDefaultOrderBy, organisationDefaultOrderDescending, null, includeProperties); }
 
-        
+
         // Multiple with projection
         public async Task<dynamic> GetAllOrganisationsAsync(string projection, Expression<Func<Organisation, dynamic>>? orderBy = null, bool orderDescending = organisationDefaultOrderDescending, Expression<Func<Organisation, bool>>? predicate = null)
         {
@@ -537,19 +537,19 @@ namespace KnowledgeBank.Data
 
         public async Task<dynamic> GetOrganisationPageAsync(string projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.Organisations, projection, pageIndex, pageSize, organisationDefaultOrderBy, organisationDefaultOrderDescending, null, includeProperties); }
-        
+
 
         // Property
 
         public async Task<dynamic> GetOrganisationPropertyAsync(Guid organisationId, string selector, Expression<Func<Organisation, dynamic>>? orderBy = null, bool orderDescending = organisationDefaultOrderDescending)
-        { 
+        {
             orderBy ??= organisationDefaultOrderBy;
             return await GetPropertyAsync(database.Organisations, o => o.Id == organisationId, selector, orderBy, orderDescending);
         }
 
         public async Task<dynamic> GetOrganisationPropertyAsync(string organisationId, string selector, Expression<Func<Organisation, dynamic>>? orderBy = null, bool orderDescending = organisationDefaultOrderDescending)
         { return await GetOrganisationPropertyAsync(Guid.Parse(organisationId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic?> GetOrganisationPropertyAsync(Expression<Func<Organisation, bool>> predicate, string selector, Expression<Func<Organisation, dynamic>>? orderBy = null, bool orderDescending = organisationDefaultOrderDescending)
         {
             orderBy ??= organisationDefaultOrderBy;
@@ -566,7 +566,7 @@ namespace KnowledgeBank.Data
 
         public async Task<dynamic?> GetOrganisationPropertyOrDefaultAsync(string organisationId, string selector, Expression<Func<Organisation, dynamic>>? orderBy = null, bool orderDescending = organisationDefaultOrderDescending)
         { return await GetOrganisationPropertyOrDefaultAsync(Guid.Parse(organisationId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic?> GetOrganisationPropertyOrDefaultAsync(Expression<Func<Organisation, bool>> predicate, string selector, Expression<Func<Organisation, dynamic>>? orderBy = null, bool orderDescending = organisationDefaultOrderDescending)
         {
             orderBy ??= organisationDefaultOrderBy;
@@ -683,7 +683,7 @@ namespace KnowledgeBank.Data
 
         public async Task<dynamic> GetRegionPageAsync(string projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.Regions, projection, pageIndex, pageSize, regionDefaultOrderBy, regionDefaultOrderDescending, null, includeProperties); }
-        
+
 
         // Property
 
@@ -695,7 +695,7 @@ namespace KnowledgeBank.Data
 
         public async Task<dynamic> GetRegionPropertyAsync(string regionId, string selector, Expression<Func<Region, dynamic>>? orderBy = null, bool orderDescending = regionDefaultOrderDescending)
         { return await GetRegionPropertyAsync(Guid.Parse(regionId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic> GetRegionPropertyAsync(Expression<Func<Region, bool>> predicate, string selector, Expression<Func<Region, dynamic>>? orderBy = null, bool orderDescending = regionDefaultOrderDescending)
         {
             orderBy ??= regionDefaultOrderBy;
@@ -712,7 +712,7 @@ namespace KnowledgeBank.Data
 
         public async Task<dynamic?> GetRegionPropertyOrDefaultAsync(string regionId, string selector, Expression<Func<Region, dynamic>>? orderBy = null, bool orderDescending = regionDefaultOrderDescending)
         { return await GetRegionPropertyOrDefaultAsync(Guid.Parse(regionId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic?> GetRegionPropertyOrDefaultAsync(Expression<Func<Region, bool>> predicate, string selector, Expression<Func<Region, dynamic>>? orderBy = null, bool orderDescending = regionDefaultOrderDescending)
         {
             orderBy ??= regionDefaultOrderBy;
@@ -843,7 +843,7 @@ namespace KnowledgeBank.Data
 
         public async Task<dynamic> GetAudioMetadataPropertyAsync(string resourceId, string selector, Expression<Func<AudioMetadata, dynamic>>? orderBy = null, bool orderDescending = audioDefaultOrderDescending)
         { return await GetAudioMetadataPropertyAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic> GetAudioMetadataPropertyAsync(Expression<Func<AudioMetadata, bool>> predicate, string selector, Expression<Func<AudioMetadata, dynamic>>? orderBy = null, bool orderDescending = audioDefaultOrderDescending)
         {
             orderBy ??= audioDefaultOrderBy;
@@ -853,14 +853,14 @@ namespace KnowledgeBank.Data
 
 
         public async Task<dynamic?> GetAudioMetadataPropertyOrDefaultAsync(Guid resourceId, string selector, Expression<Func<AudioMetadata, dynamic>>? orderBy = null, bool orderDescending = audioDefaultOrderDescending)
-        { 
+        {
             orderBy ??= audioDefaultOrderBy;
             return await GetPropertyOrDefaultAsync(database.AudioMetadata, a => a.ResourceId == resourceId, selector, orderBy, orderDescending);
         }
 
         public async Task<dynamic?> GetAudioMetadataPropertyOrDefaultAsync(string resourceId, string selector, Expression<Func<AudioMetadata, dynamic>>? orderBy = null, bool orderDescending = audioDefaultOrderDescending)
         { return await GetAudioMetadataPropertyOrDefaultAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic?> GetAudioMetadataPropertyOrDefaultAsync(Expression<Func<AudioMetadata, bool>> predicate, string selector, Expression<Func<AudioMetadata, dynamic>>? orderBy = null, bool orderDescending = audioDefaultOrderDescending)
         {
             orderBy ??= audioDefaultOrderBy;
@@ -944,7 +944,7 @@ namespace KnowledgeBank.Data
         public async Task<VideoMetadata[]> GetVideoMetadataPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.VideoMetadata, pageIndex, pageSize, videoDefaultOrderBy, videoDefaultOrderDescending, null, includeProperties); }
 
-        
+
         // Multiple with projection
         public async Task<dynamic> GetAllVideoMetadatasAsync(string projection, Expression<Func<VideoMetadata, dynamic>>? orderBy = null, bool orderDescending = videoDefaultOrderDescending, Expression<Func<VideoMetadata, bool>>? predicate = null)
         {
@@ -986,14 +986,14 @@ namespace KnowledgeBank.Data
         // Property
 
         public async Task<dynamic> GetVideoMetadataPropertyAsync(Guid resourceId, string selector, Expression<Func<VideoMetadata, dynamic>>? orderBy = null, bool orderDescending = videoDefaultOrderDescending)
-        { 
+        {
             orderBy ??= videoDefaultOrderBy;
             return await GetPropertyAsync(database.VideoMetadata, v => v.ResourceId == resourceId, selector, orderBy, orderDescending);
         }
 
         public async Task<dynamic> GetVideoMetadataPropertyAsync(string resourceId, string selector, Expression<Func<VideoMetadata, dynamic>>? orderBy = null, bool orderDescending = videoDefaultOrderDescending)
         { return await GetVideoMetadataPropertyAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic> GetVideoMetadataPropertyAsync(Expression<Func<VideoMetadata, bool>> predicate, string selector, Expression<Func<VideoMetadata, dynamic>>? orderBy = null, bool orderDescending = videoDefaultOrderDescending)
         {
             orderBy ??= videoDefaultOrderBy;
@@ -1003,14 +1003,14 @@ namespace KnowledgeBank.Data
 
 
         public async Task<dynamic?> GetVideoMetadataPropertyOrDefaultAsync(Guid resourceId, string selector, Expression<Func<VideoMetadata, dynamic>>? orderBy = null, bool orderDescending = videoDefaultOrderDescending)
-        { 
+        {
             orderBy ??= videoDefaultOrderBy;
             return await GetPropertyOrDefaultAsync(database.VideoMetadata, v => v.ResourceId == resourceId, selector, orderBy, orderDescending);
         }
 
         public async Task<dynamic?> GetVideoMetadataPropertyOrDefaultAsync(string resourceId, string selector, Expression<Func<VideoMetadata, dynamic>>? orderBy = null, bool orderDescending = videoDefaultOrderDescending)
         { return await GetVideoMetadataPropertyOrDefaultAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic?> GetVideoMetadataPropertyOrDefaultAsync(Expression<Func<VideoMetadata, bool>> predicate, string selector, Expression<Func<VideoMetadata, dynamic>>? orderBy = null, bool orderDescending = videoDefaultOrderDescending)
         {
             orderBy ??= videoDefaultOrderBy;
@@ -1133,14 +1133,14 @@ namespace KnowledgeBank.Data
         // Property
 
         public async Task<dynamic> GetWebsiteMetadataPropertyAsync(Guid resourceId, string selector, Expression<Func<WebsiteMetadata, dynamic>>? orderBy = null, bool orderDescending = websiteDefaultOrderDescending)
-        { 
+        {
             orderBy ??= websiteDefaultOrderBy;
             return await GetPropertyAsync(database.WebsiteMetadata, w => w.ResourceId == resourceId, selector, orderBy, orderDescending);
         }
 
         public async Task<dynamic> GetWebsiteMetadataPropertyAsync(string resourceId, string selector, Expression<Func<WebsiteMetadata, dynamic>>? orderBy = null, bool orderDescending = websiteDefaultOrderDescending)
         { return await GetWebsiteMetadataPropertyAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic> GetWebsiteMetadataPropertyAsync(Expression<Func<WebsiteMetadata, bool>> predicate, string selector, Expression<Func<WebsiteMetadata, dynamic>>? orderBy = null, bool orderDescending = websiteDefaultOrderDescending)
         {
             orderBy ??= websiteDefaultOrderBy;
@@ -1150,14 +1150,14 @@ namespace KnowledgeBank.Data
 
 
         public async Task<dynamic?> GetWebsiteMetadataPropertyOrDefaultAsync(Guid resourceId, string selector, Expression<Func<WebsiteMetadata, dynamic>>? orderBy = null, bool orderDescending = websiteDefaultOrderDescending)
-        { 
+        {
             orderBy ??= websiteDefaultOrderBy;
             return await GetPropertyOrDefaultAsync(database.WebsiteMetadata, w => w.ResourceId == resourceId, selector, orderBy, orderDescending);
         }
 
         public async Task<dynamic?> GetWebsiteMetadataPropertyOrDefaultAsync(string resourceId, string selector, Expression<Func<WebsiteMetadata, dynamic>>? orderBy = null, bool orderDescending = websiteDefaultOrderDescending)
         { return await GetWebsiteMetadataPropertyOrDefaultAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic?> GetWebsiteMetadataPropertyOrDefaultAsync(Expression<Func<WebsiteMetadata, bool>> predicate, string selector, Expression<Func<WebsiteMetadata, dynamic>>? orderBy = null, bool orderDescending = websiteDefaultOrderDescending)
         {
             orderBy ??= websiteDefaultOrderBy;
@@ -1240,7 +1240,7 @@ namespace KnowledgeBank.Data
         public async Task<DocumentMetadata[]> GetDocumentMetadataPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.DocumentMetadata, pageIndex, pageSize, documentDefaultOrderBy, documentDefaultOrderDescending, null, includeProperties); }
 
-        
+
         // Multiple with projection
         public async Task<dynamic> GetAllDocumentMetadataAsync(string projection, Expression<Func<DocumentMetadata, dynamic>>? orderBy = null, bool orderDescending = documentDefaultOrderDescending, Expression<Func<DocumentMetadata, bool>>? predicate = null)
         {
@@ -1282,14 +1282,14 @@ namespace KnowledgeBank.Data
         // Property
 
         public async Task<dynamic> GetDocumentMetadataPropertyAsync(Guid resourceId, string selector, Expression<Func<DocumentMetadata, dynamic>>? orderBy = null, bool orderDescending = documentDefaultOrderDescending)
-        { 
+        {
             orderBy ??= documentDefaultOrderBy;
             return await GetPropertyAsync(database.DocumentMetadata, d => d.ResourceId == resourceId, selector, orderBy, orderDescending);
         }
 
         public async Task<dynamic> GetDocumentMetadataPropertyAsync(string resourceId, string selector, Expression<Func<DocumentMetadata, dynamic>>? orderBy = null, bool orderDescending = documentDefaultOrderDescending)
         { return await GetDocumentMetadataPropertyAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic> GetDocumentMetadataPropertyAsync(Expression<Func<DocumentMetadata, bool>> predicate, string selector, Expression<Func<DocumentMetadata, dynamic>>? orderBy = null, bool orderDescending = documentDefaultOrderDescending)
         {
             orderBy ??= documentDefaultOrderBy;
@@ -1299,14 +1299,14 @@ namespace KnowledgeBank.Data
 
 
         public async Task<dynamic?> GetDocumentMetadataPropertyOrDefaultAsync(Guid resourceId, string selector, Expression<Func<DocumentMetadata, dynamic>>? orderBy = null, bool orderDescending = documentDefaultOrderDescending)
-        { 
+        {
             orderBy ??= documentDefaultOrderBy;
             return await GetPropertyOrDefaultAsync(database.DocumentMetadata, d => d.ResourceId == resourceId, selector, orderBy, orderDescending);
         }
 
         public async Task<dynamic?> GetDocumentMetadataPropertyOrDefaultAsync(string resourceId, string selector, Expression<Func<DocumentMetadata, dynamic>>? orderBy = null, bool orderDescending = documentDefaultOrderDescending)
         { return await GetDocumentMetadataPropertyOrDefaultAsync(Guid.Parse(resourceId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic?> GetDocumentMetadataPropertyOrDefaultAsync(Expression<Func<DocumentMetadata, bool>> predicate, string selector, Expression<Func<DocumentMetadata, dynamic>>? orderBy = null, bool orderDescending = documentDefaultOrderDescending)
         {
             orderBy ??= documentDefaultOrderBy;
@@ -1389,7 +1389,7 @@ namespace KnowledgeBank.Data
         public async Task<Tag[]> GetTagPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.Tags, pageIndex, pageSize, tagDefaultOrderBy, tagDefaultOrderDescending, null, includeProperties); }
 
-        
+
         // Multiple with projection
         public async Task<dynamic> GetAllTagsAsync(string projection, Expression<Func<Tag, dynamic>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending, Expression<Func<Tag, bool>>? predicate = null)
         {
@@ -1431,14 +1431,14 @@ namespace KnowledgeBank.Data
         // Property
 
         public async Task<dynamic> GetTagPropertyAsync(Guid TagId, string selector, Expression<Func<Tag, dynamic>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending)
-        { 
+        {
             orderBy ??= tagDefaultOrderBy;
             return await GetPropertyAsync(database.Tags, t => t.Id == TagId, selector, orderBy, orderDescending);
         }
 
         public async Task<dynamic> GetTagPropertyAsync(string TagId, string selector, Expression<Func<Tag, dynamic>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending)
         { return await GetTagPropertyAsync(Guid.Parse(TagId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic> GetTagPropertyAsync(Expression<Func<Tag, bool>> predicate, string selector, Expression<Func<Tag, dynamic>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending)
         {
             orderBy ??= tagDefaultOrderBy;
@@ -1448,14 +1448,14 @@ namespace KnowledgeBank.Data
 
 
         public async Task<dynamic?> GetTagPropertyOrDefaultAsync(Guid TagId, string selector, Expression<Func<Tag, dynamic>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending)
-        { 
+        {
             orderBy ??= tagDefaultOrderBy;
             return await GetPropertyOrDefaultAsync(database.Tags, t => t.Id == TagId, selector, orderBy, orderDescending);
         }
 
         public async Task<dynamic?> GetTagPropertyOrDefaultAsync(string TagId, string selector, Expression<Func<Tag, dynamic>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending)
         { return await GetTagPropertyOrDefaultAsync(Guid.Parse(TagId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic?> GetTagPropertyOrDefaultAsync(Expression<Func<Tag, bool>> predicate, string selector, Expression<Func<Tag, dynamic>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending)
         {
             orderBy ??= tagDefaultOrderBy;
@@ -1539,7 +1539,7 @@ namespace KnowledgeBank.Data
         public async Task<ResourceType[]> GetResourceTypePageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.ResourceTypes, pageIndex, pageSize, resourceTypeDefaultOrderBy, resourceTypeDefaultOrderDescending, null, includeProperties); }
 
-        
+
         // Multiple with projection
         public async Task<dynamic> GetAllResourceTypesAsync(string projection, Expression<Func<ResourceType, dynamic>>? orderBy = null, bool orderDescending = resourceTypeDefaultOrderDescending, Expression<Func<ResourceType, bool>>? predicate = null)
         {
@@ -1582,14 +1582,14 @@ namespace KnowledgeBank.Data
         // Property
 
         public async Task<dynamic> GetResourceTypePropertyAsync(Guid resourceTypeId, string selector, Expression<Func<ResourceType, dynamic>>? orderBy = null, bool orderDescending = resourceTypeDefaultOrderDescending)
-        { 
+        {
             orderBy ??= resourceTypeDefaultOrderBy;
             return await GetPropertyAsync(database.ResourceTypes, rt => rt.Id == resourceTypeId, selector, orderBy, orderDescending);
         }
 
         public async Task<dynamic> GetResourceTypePropertyAsync(string resourceTypeId, string selector, Expression<Func<ResourceType, dynamic>>? orderBy = null, bool orderDescending = resourceTypeDefaultOrderDescending)
         { return await GetResourceTypePropertyAsync(Guid.Parse(resourceTypeId), selector, orderBy, orderDescending); }
-        
+
         public async Task<dynamic> GetResourceTypePropertyAsync(Expression<Func<ResourceType, bool>> predicate, string selector, Expression<Func<ResourceType, dynamic>>? orderBy = null, bool orderDescending = resourceTypeDefaultOrderDescending)
         {
             orderBy ??= resourceTypeDefaultOrderBy;
@@ -1600,15 +1600,15 @@ namespace KnowledgeBank.Data
 
 
         public async Task<dynamic?> GetResourceTypePropertyOrDefaultAsync(Guid resourceTypeId, string selector, Expression<Func<ResourceType, dynamic>>? orderBy = null, bool orderDescending = resourceTypeDefaultOrderDescending)
-        { 
+        {
             orderBy ??= resourceTypeDefaultOrderBy;
             return await GetPropertyOrDefaultAsync(database.ResourceTypes, rt => rt.Id == resourceTypeId, selector, orderBy, orderDescending);
         }
 
         public async Task<dynamic?> GetResourceTypePropertyOrDefaultAsync(string resourceTypeId, string selector, Expression<Func<ResourceType, dynamic>>? orderBy = null, bool orderDescending = resourceTypeDefaultOrderDescending)
         { return await GetResourceTypePropertyOrDefaultAsync(Guid.Parse(resourceTypeId), selector, orderBy, orderDescending); }
-        
-        public async Task<dynamic?> GetResourceTypePropertyOrDefaultAsync(Expression<Func<ResourceType, bool>> predicate, string selector, Expression<Func<ResourceType, dynamic>>? orderBy = null, bool orderDescending = resourceTypeDefaultOrderDescending) 
+
+        public async Task<dynamic?> GetResourceTypePropertyOrDefaultAsync(Expression<Func<ResourceType, bool>> predicate, string selector, Expression<Func<ResourceType, dynamic>>? orderBy = null, bool orderDescending = resourceTypeDefaultOrderDescending)
         {
             orderBy ??= resourceTypeDefaultOrderBy;
             return await GetPropertyOrDefaultAsync(database.ResourceTypes, predicate, selector, orderBy, orderDescending);
@@ -1619,27 +1619,27 @@ namespace KnowledgeBank.Data
         #region Resource Grid
         private readonly Expression<Func<ResourceGridItem, dynamic>> resourceGridDefaultOrder = rg => rg.CreationDate;
         private const bool resourceGridDefaultOrderDescending = false;
-        
+
         // Get all
-        public async Task<ResourceGridItem[]> GetAllResourceGridItemsAsync(Expression<Func<ResourceGridItem, dynamic>>? orderBy = null, bool? orderDescending = null, Expression<Func<ResourceGridItem, bool>>? predicate = null, params string[] includeProperties) 
+        public async Task<ResourceGridItem[]> GetAllResourceGridItemsAsync(Expression<Func<ResourceGridItem, dynamic>>? orderBy = null, bool? orderDescending = null, Expression<Func<ResourceGridItem, bool>>? predicate = null, params string[] includeProperties)
         {
             return await GetAllAsync(database.ResourceGridItems, orderBy ?? resourceGridDefaultOrder, orderDescending ?? resourceGridDefaultOrderDescending, predicate, includeProperties);
         }
-        
+
         // Get all paged
-        public async Task<ResourceGridItem[]> GetResourceGridItemsPageAsync(int pageIndex, int pageSize, Expression<Func<ResourceGridItem, dynamic>>? orderBy = null, bool? orderDescending = null, Expression<Func<ResourceGridItem, bool>>? predicate = null, params string[] includeProperties) 
+        public async Task<ResourceGridItem[]> GetResourceGridItemsPageAsync(int pageIndex, int pageSize, Expression<Func<ResourceGridItem, dynamic>>? orderBy = null, bool? orderDescending = null, Expression<Func<ResourceGridItem, bool>>? predicate = null, params string[] includeProperties)
         {
             return await GetPageAsync(database.ResourceGridItems, pageIndex, pageSize, orderBy ?? resourceGridDefaultOrder, orderDescending ?? resourceGridDefaultOrderDescending, predicate, includeProperties);
         }
-        
+
         // Get all with projection
-        public async Task<dynamic[]> GetAllResourceGridItemsAsync(string projection, Expression<Func<ResourceGridItem, dynamic>>? orderBy = null, bool? orderDescending = null, Expression<Func<ResourceGridItem, bool>>? predicate = null, params string[] includeProperties) 
+        public async Task<dynamic[]> GetAllResourceGridItemsAsync(string projection, Expression<Func<ResourceGridItem, dynamic>>? orderBy = null, bool? orderDescending = null, Expression<Func<ResourceGridItem, bool>>? predicate = null, params string[] includeProperties)
         {
             return await GetAllAsync(database.ResourceGridItems, projection, orderBy ?? resourceGridDefaultOrder, orderDescending ?? resourceGridDefaultOrderDescending, predicate, includeProperties);
         }
-        
+
         // Get all paged with projection
-        public async Task<dynamic[]> GetResourceGridItemsPageAsync(int pageIndex, int pageSize, string projection, Expression<Func<ResourceGridItem, dynamic>>? orderBy = null, bool? orderDescending = null, Expression<Func<ResourceGridItem, bool>>? predicate = null, params string[] includeProperties) 
+        public async Task<dynamic[]> GetResourceGridItemsPageAsync(int pageIndex, int pageSize, string projection, Expression<Func<ResourceGridItem, dynamic>>? orderBy = null, bool? orderDescending = null, Expression<Func<ResourceGridItem, bool>>? predicate = null, params string[] includeProperties)
         {
             return await GetPageAsync(database.ResourceGridItems, projection, pageIndex, pageSize, orderBy ?? resourceGridDefaultOrder, orderDescending ?? resourceGridDefaultOrderDescending, predicate, includeProperties);
         }
