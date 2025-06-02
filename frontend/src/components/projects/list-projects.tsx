@@ -724,7 +724,6 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     setIsEditModalOpen(false);
     setSelectedProjectForEdit(null);
     setCreatorsEdit([]);
-    toast.success("Edit modal closed.");
   };
 
   const handleEditSuccess = async () => {
@@ -1007,8 +1006,6 @@ function RemoveRenderer({ data, onRemove, isAddResourceMode, currentUserId, user
 
 function EditRenderer({ data, onEdit, currentUserId, userRole }: { data: any, onEdit: (item: ProjectOrResource) => void, currentUserId: string, userRole: string | null }) {
   const creatorRelations = data.creatorRelations || [];
-
-  if (!Array.isArray(creatorRelations) || creatorRelations.length === 0) return null;
 
   // Check if current user is a creator
   const hasPermission = creatorRelations.some(

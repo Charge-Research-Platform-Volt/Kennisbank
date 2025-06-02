@@ -80,7 +80,7 @@ export default function EditProjectModal({
       }
 
       // For tags the user is explicitly asked to enter all new ones so just update those
-      if(tags)
+      if(tags.length != 0)
       {
         updates.tags = tags.map(tag => tag.id);
       }
