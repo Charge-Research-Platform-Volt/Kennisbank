@@ -10,7 +10,6 @@ using System.Linq.Expressions;
 using KnowledgeBank.Utils;
 using KnowledgeBank.Responses;
 using System.Text.Json;
-using System.Xml;
 
 namespace KnowledgeBank.Controllers;
 
@@ -26,6 +25,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     #region Create
     /// <summary>
     /// Adds a new project given a dto.
+    /// 
+    /// Author: Justin Liem
     /// </summary>
     /// <param name="dto">The DTO for project creation.</param>
     /// <returns>
@@ -115,6 +116,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     #region Delete
     /// <summary>
     /// Deletes a project or folder from the database.
+    /// 
+    /// Author: Justin Liem
     /// </summary>
     /// <param name="projectId">The id of the project or folder to delete.</param>
     /// <returns>
@@ -183,6 +186,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     /// <summary>
     /// Retrieves projects, given a dto to filter on.
     /// The query is a string that is used to search for projects by title.
+    ///
+    /// Author: Justin Liem
     /// </summary>
     /// <param name="dto"></param>
     /// <returns>
@@ -265,6 +270,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
     /// <summary>
     /// Updates a property of the project itself.
+    /// 
+    /// Author: Justin Liem
     /// </summary>
     /// <param name="projectId">The ID of the project or folder to delete.</param>
     /// <param name="updates">The properties to update with the new values. </param>
@@ -361,6 +368,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
     /// <summary>
     /// Gets the project and its direct children (resources and folders).
+    /// 
+    /// Author: Jelle v.h. Schut
     /// </summary>
     /// <param name="id">The ID of the project / folder</param>
     /// <returns>
@@ -484,6 +493,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
     /// <summary>
     /// Adds a new folder given a name and parent.
+    /// 
+    /// Author: Justin Liem
     /// </summary>
     /// <param name="folderName">Name of the new folder.</param>
     /// <param name="parentId">ID of parent component.</param>
@@ -573,6 +584,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
     /// <summary>
     /// Adds a resource to a project / folder.
+    /// 
+    /// Author: Justin Liem
     /// </summary>
     /// <param name="projectId">The ID of the project</param>
     /// <param name="resourceId">The ID of the resource</param>
@@ -650,6 +663,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
     /// <summary>
     /// Removes a resource from a project / folder.
+    /// 
+    /// Author: Justin Liem
     /// </summary>
     /// <param name="projectId">The ID of the project</param>
     /// <param name="resourceId">The ID of the resource</param>
@@ -727,7 +742,19 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
     #region Helper Methods
 
-    // Keep in mind, updates to tags are done by just supplying the new tags, so just delete the old ones and make new links. Creators are only ever added to.
+    /// <summary>
+    /// Helper method used to update properties using a switch statement.
+    /// Keep in mind, updates to tags are done by just supplying the new tags, 
+    /// so just delete the old ones and make new links. Creators are only ever added to.
+    /// 
+    /// Author: Justin Liem
+    /// </summary>
+    /// <param name="project">Project to update a property of.</param>
+    /// <param name="property">Property to update.</param>
+    /// <param name="newValue">New value of the property.</param>
+    /// <returns>Nothing, it just updates the property in the database or throws an exception.</returns>
+    /// <exception cref="UnauthorizedAccessException">Exception thrown if the user has no permission to update the project.</exception>
+    /// <exception cref="ArgumentException">Exception thrown if the property to update does not exist.</exception>
     private async Task UpdateProperty(Project project, string property, object newValue)
     {
         // Update the appropiate property based on the type
@@ -751,6 +778,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
     /// <summary>
     /// Gets the user authorization level for a project, given the project and the user
+    /// 
+    /// Author: Justin Liem
     /// </summary>
     /// <param name="user">The user id to verify the authorization level</param>
     /// <param name="project">The project id to verify the authorization level</param>
@@ -769,6 +798,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
     /// <summary>
     /// Checks if update is valid or not
+    ///
+    /// Author: Justin Liem
     /// </summary>
     /// <param name="prop">Property of update</param>
     /// <param name="val">Value of update</param>
@@ -791,7 +822,9 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     }
 
     /// <summary>
-    /// Builds a predicate using a FilterProjectDto, similar to the function of the same name in TagsController
+    /// Builds a predicate using a FilterProjectDto, similar to the function of the same name in TagsController.
+    /// 
+    /// Author: Justin Liem
     /// </summary>
     /// <param name="dto">Dto used for constructing the predicate</param>
     /// <returns>Predicate built from the dto</returns>

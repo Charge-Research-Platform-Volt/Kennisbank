@@ -9,6 +9,8 @@ namespace KnowledgeBank.Models;
 /// A project is a structure that is defined by its ID, and has an unique title. A description is optional, and a creation
 /// date / deletion date is always given at its creation (deletion date due to it not being implemented at the moment). Project type
 /// is always either root project or a folder, which is a project, without the optional description and no tags.
+/// 
+/// Author: Justin Liem
 /// </summary>
 [Table("projects")]
 public class Project
@@ -45,7 +47,11 @@ public class Project
     [JsonIgnore][InverseProperty("ParentFolder")] public ICollection<ProjectFolderRelation>? ChildFolders { get; set; }
 }
 
-// Does not include folders or resources as those will be added only AFTER creation
+/// <summary>
+/// Does not include folders or resources as those will be added only AFTER creation
+/// 
+/// Author: Justin Liem
+/// </summary>
 public class ProjectCreateDto // Data Transfer Object (DTO)
 {
     public required string Title { get; set; }
@@ -57,6 +63,8 @@ public class ProjectCreateDto // Data Transfer Object (DTO)
 
 /// <summary>
 /// Dto containing properties used for filtering projects, such as a search query or pagination
+/// 
+/// Author: Justin Liem
 /// </summary>
 public class FilterProjectDto
 {
@@ -75,6 +83,8 @@ public class FilterProjectDto
 
 /// <summary>
 /// Page response for fetching projects
+/// 
+/// Author: Justin Liem
 /// </summary>
 public class ProjectPageResponse
 {
@@ -93,6 +103,8 @@ public class ProjectPageResponse
 
 /// <summary>
 /// Dto containing information about the project / folder for fetching content
+///
+/// Author: Justin Liem
 /// </summary>
 public class ProjectInfoDto
 {
@@ -105,9 +117,11 @@ public class ProjectInfoDto
 
 /// <summary>
 /// Wrapper for resources containing an Added By property
+///
+/// Author: Justin Liem
 /// </summary>
-/// <param name="resource"></param>
-/// <param name="addedBy"></param>
+/// <param name="resource">Resource in the wrapper.</param>
+/// <param name="addedBy">Guid of the user that added the resource to a folder/project.</param>
 public class ResourceWithAddedBy(Resource resource, string addedBy)
 {
     public Resource? Resource { get; set; } = resource;
@@ -116,9 +130,11 @@ public class ResourceWithAddedBy(Resource resource, string addedBy)
 
 /// <summary>
 /// Wrapper for folders containing an Added By property
+/// 
+/// Author: Justin Liem
 /// </summary>
-/// <param name="folder"></param>
-/// <param name="addedBy"></param>
+/// <param name="folder">Folder in the wrapper.</param>
+/// <param name="addedBy">Guid of the user that added the folder to a folder/project.</param>
 public class FolderWithAddedBy(Project folder, string addedBy)
 {
     public Project? Folder { get; set; } = folder;
