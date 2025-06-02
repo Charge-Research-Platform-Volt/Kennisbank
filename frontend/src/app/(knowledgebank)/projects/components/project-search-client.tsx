@@ -9,9 +9,10 @@ interface ProjectSearchClientProps {
   projects: FolderProject[];
   resources?: ResourceProject[];
   currentUserId: string;
+  userRole: string | null;
 }
 
-export default function ProjectSearchClient({ projects, resources = [], currentUserId}: ProjectSearchClientProps) {
+export default function ProjectSearchClient({ projects, resources = [], currentUserId, userRole}: ProjectSearchClientProps) {
 
   return (
     <>
@@ -21,6 +22,7 @@ export default function ProjectSearchClient({ projects, resources = [], currentU
           initialProjects={projects} 
           fetchProjectAction={getProjectContentById}
           currentUserId={currentUserId}
+          userRole={userRole}
         />
       </div>
     </>
