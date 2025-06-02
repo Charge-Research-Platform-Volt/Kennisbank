@@ -103,17 +103,7 @@ public class Chat : Hub
     {
         _logger.Information("Content-based Ai initiated with query: {Query}", query);
 
-        EmbeddingsOptions requestOptions = new EmbeddingsOptions(new List<string> { query });
-        Response<EmbeddingsResult> response = await _ragSystem.EmbeddingsClient.EmbedAsync(requestOptions);
-
-        // Console.WriteLine("Generating embedding...");
-        // Console.WriteLine(response.Value.Data[0].Embedding.Length);
-        float[]? embeddingData = response.Value.Data[0].Embedding.ToObjectFromJson<float[]>();
-        if (embeddingData == null)
-        {
-            _logger.Error("Embedding data is null.");
-            yield break;
-        }
+        float[] embeddingData = await _ragSystem.GenerateEmbedding(query);
 
         var search = await _ragSystem.QdrantClient.QueryAsync(
             RAGSystem.COLLECTION_NAME,

@@ -14,8 +14,10 @@ using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using System.Reflection;
+using KnowledgeBank.BackgroundServices;
+using KnowledgeBank.Services;
 
-namespace KnowledgeBank.Controllers 
+namespace KnowledgeBank.Controllers
 {
     /// <summary>
     /// This controller is responsible for handing API calls to manage persons and their metadata.
@@ -23,10 +25,16 @@ namespace KnowledgeBank.Controllers
     /// Author: Abel Dieterich
     /// </summary>
     /// <param name="resourceManager">The resource manager service for database interactions</param>
-    [ApiController] [Route("[controller]")] [Produces("application/json")] [Authorize]
-    public class PersonsController(ResourceManager resourceManager) : ControllerBase
-    {   
-        private readonly Serilog.ILogger logger = Log.ForContext<PersonsController>();
+    [ApiController]
+    [Route("[controller]")]
+    [Produces("application/json")]
+    [Authorize]
+    public class PersonsController(ResourceManager resourceManager, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem) : ControllerBase
+    {
+        private readonly Serilog.ILogger _logger = Log.ForContext<PersonsController>();
+        private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
+        private readonly RAGSystem _ragSystem = ragSystem;
+
 
         #region New
         /// <summary>
@@ -47,20 +55,26 @@ namespace KnowledgeBank.Controllers
 
             if (string.IsNullOrEmpty(dto.Occupation))
                 return BadRequest(new ApiResponse(false, "No occupation was given"));
-            
-            logger.Information("Creating person '{Name}'...", dto.Name);
+
+            _logger.Information("Creating person '{Name}'...", dto.Name);
 
             try
             {
                 // Create the person and return the ID
                 Guid id = await resourceManager.CreatePersonAsync(dto);
 
-                logger.Information("Person '{Name}' created successfully.", dto.Name);
+                // Add the person to the vector database 
+                _taskQueue.QueueBackgroundWorkItem(async token =>
+                {
+                    await _ragSystem.CreatePoints(id: id, chunk: $"{dto.Name}\n{dto.Description}", fileType: null);
+                });
+
+                _logger.Information("Person '{Name}' created successfully.", dto.Name);
                 return Ok(new ApiResponse(true, "Person created successfully", id));
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
-                logger.Error(e, "Error creating person '{Name}'.", dto.Name);
+                _logger.Error(e, "Error creating person '{Name}'.", dto.Name);
                 return StatusCode(500, new ApiResponse(false, "Error creating person", e.Message));
             }
         }
@@ -87,21 +101,21 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Delete person
-                logger.Information("Deleting person with ID: {ID}", id);
+                _logger.Information("Deleting person with ID: {ID}", id);
                 bool found = await resourceManager.DeletePersonAsync(id);
 
                 if (found)
                 {
-                    logger.Information("Person with ID '{ID}' deleted successfully", id);
+                    _logger.Information("Person with ID '{ID}' deleted successfully", id);
                     return Ok(new ApiResponse(true, "Person deleted successfully"));
                 }
 
-                logger.Information("Person with ID '{ID}' not found.", id);
+                _logger.Information("Person with ID '{ID}' not found.", id);
                 return NotFound(new ApiResponse(false, "Person does not exist"));
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error deleting person with ID {ID}", id);
+                _logger.Error(e, "Error deleting person with ID {ID}", id);
                 return StatusCode(500, new ApiResponse(false, "Error deleting person"));
             }
         }
@@ -131,7 +145,7 @@ namespace KnowledgeBank.Controllers
             if (updates == null || updates.Count == 0)
                 return BadRequest(new ApiResponse(false, "No updates were provided."));
 
-            logger.Information("Updating person with ID '{ID}'...", id);
+            _logger.Information("Updating person with ID '{ID}'...", id);
 
             try
             {
@@ -161,20 +175,20 @@ namespace KnowledgeBank.Controllers
                 // If all properties were updated
                 if (updatedProperties.Count == updates.Count)
                 {
-                    logger.Information("Successfully updated person with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
+                    _logger.Information("Successfully updated person with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
                     return Ok(new ApiResponse(true, $"Person updated successfully.", updatedProperties));
                 }
 
                 // If not all properties were updated
                 else
                 {
-                    logger.Information("Partially updated person with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
+                    _logger.Information("Partially updated person with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
                     return Ok(new ApiResponse(true, $"Person updated partially.", updatedProperties));
                 }
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error updating person with ID '{ID}'", id);
+                _logger.Error(e, "Error updating person with ID '{ID}'", id);
                 return StatusCode(500, new ApiResponse(false, "Error updating person", e.Message));
             }
         }
@@ -217,7 +231,7 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error while checking if person exists");
+                _logger.Error(e, "Error while checking if person exists");
                 return StatusCode(500, new ApiResponse(false, "Error while checking if person exists", e.Message));
             }
         }
@@ -254,7 +268,7 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error retrieving person info.");
+                _logger.Error(e, "Error retrieving person info.");
                 return StatusCode(500, new ApiResponse(false, "Error retrieving person info.", e.Message));
             }
         }
@@ -283,7 +297,7 @@ namespace KnowledgeBank.Controllers
             // Set defaults
             if (pageIndex != null && pageSize == null) pageSize = 100;
             if (pageSize != null && pageIndex == null) pageIndex = 1;
-            
+
             try
             {
                 // All persons to be returned
@@ -302,7 +316,7 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error listing persons.");
+                _logger.Error(e, "Error listing persons.");
                 return StatusCode(500, new ApiResponse(false, "Error listing persons.", e.Message));
             }
         }

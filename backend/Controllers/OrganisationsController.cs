@@ -15,6 +15,8 @@ using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using System.Reflection;
+using KnowledgeBank.BackgroundServices;
+using KnowledgeBank.Services;
 
 namespace KnowledgeBank.Controllers
 {
@@ -24,13 +26,18 @@ namespace KnowledgeBank.Controllers
     /// Author: Abel Dieterich
     /// </summary>
     /// <param name="resourceManager">The resource manager service for database interactions</param>
+    /// <param name="taskQueue">The background task queue for handling long-running tasks</param>
+    /// <param name="ragSystem">The RAG system for handling retrieval-augmented generation tasks</param>
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class OrganisationsController(ResourceManager resourceManager) : ControllerBase
+    public class OrganisationsController(ResourceManager resourceManager, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem) : ControllerBase
     {
-        private readonly Serilog.ILogger logger = Log.ForContext<OrganisationsController>();
+        private readonly Serilog.ILogger _logger = Log.ForContext<OrganisationsController>();
+        private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
+        private readonly RAGSystem _ragSystem = ragSystem;
+
 
         #region New
         /// <summary>
@@ -49,19 +56,25 @@ namespace KnowledgeBank.Controllers
             if (string.IsNullOrEmpty(dto.Name))
                 return BadRequest(new ApiResponse(false, "No name was given"));
 
-            logger.Information("Creating organisation '{Name}'...", dto.Name);
+            _logger.Information("Creating organisation '{Name}'...", dto.Name);
 
             try
             {
                 // Create the organisation and return the ID
                 Guid id = await resourceManager.CreateOrganisationAsync(dto);
 
-                logger.Information("Organisation '{Name}' created successfully.", dto.Name);
+                // Add the organisation to the vector database
+                _taskQueue.QueueBackgroundWorkItem(async token =>
+                {
+                    await _ragSystem.CreatePoints(id: id, chunk: $"{dto.Name}\n{dto.Description}", fileType: null);
+                });
+
+                _logger.Information("Organisation '{Name}' created successfully.", dto.Name);
                 return Ok(new ApiResponse(true, "Organisation created successfully", id));
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error creating organisation '{Name}'.", dto.Name);
+                _logger.Error(e, "Error creating organisation '{Name}'.", dto.Name);
                 return StatusCode(500, new ApiResponse(false, "Error creating organisation", e.Message));
             }
         }
@@ -88,21 +101,21 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Delete organisation
-                logger.Information("Deleting organistation with ID: {ID}", id);
+                _logger.Information("Deleting organistation with ID: {ID}", id);
                 bool found = await resourceManager.DeleteOrganisationAsync(id);
 
                 if (found)
                 {
-                    logger.Information("Organistaion with ID '{ID}' deleted successfully", id);
+                    _logger.Information("Organistaion with ID '{ID}' deleted successfully", id);
                     return Ok(new ApiResponse(true, "Organisation deleted successfully"));
                 }
 
-                logger.Information("Organisation with ID '{ID}' not found.", id);
+                _logger.Information("Organisation with ID '{ID}' not found.", id);
                 return NotFound(new ApiResponse(false, "Organisation does not exist"));
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error deleting organisation with ID {ID}", id);
+                _logger.Error(e, "Error deleting organisation with ID {ID}", id);
                 return StatusCode(500, new ApiResponse(false, "Error deleting organisation"));
             }
         }
@@ -132,7 +145,7 @@ namespace KnowledgeBank.Controllers
             if (updates == null || updates.Count == 0)
                 return BadRequest(new ApiResponse(false, "No updates were provided."));
 
-            logger.Information("Updating organisation with ID '{ID}'...", id);
+            _logger.Information("Updating organisation with ID '{ID}'...", id);
 
             try
             {
@@ -162,20 +175,20 @@ namespace KnowledgeBank.Controllers
                 // If all properties were updated
                 if (updatedProperties.Count == updates.Count)
                 {
-                    logger.Information("Successfully updated organisation with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
+                    _logger.Information("Successfully updated organisation with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
                     return Ok(new ApiResponse(true, $"Person updated successfully.", updatedProperties));
                 }
 
                 // If not all properties were updated
                 else
                 {
-                    logger.Information("Partially updated person with ID '{ID}'. Updated properties: {props}", updatedPropertiesString);
+                    _logger.Information("Partially updated person with ID '{ID}'. Updated properties: {props}", updatedPropertiesString);
                     return Ok(new ApiResponse(true, $"Person updated partially.", updatedProperties));
                 }
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error updating person with ID '{ID}'", id);
+                _logger.Error(e, "Error updating person with ID '{ID}'", id);
                 return StatusCode(500, new ApiResponse(false, "Error updating person", e.Message));
             }
         }
@@ -218,7 +231,7 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error while checking if organisation exists");
+                _logger.Error(e, "Error while checking if organisation exists");
                 return StatusCode(500, new ApiResponse(false, "Error while checking if organisation exists", e.Message));
             }
         }
@@ -255,7 +268,7 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error retrieving organisation info.");
+                _logger.Error(e, "Error retrieving organisation info.");
                 return StatusCode(500, new ApiResponse(false, "Error retrieving organisation info", e.Message));
             }
         }
@@ -303,7 +316,7 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error listing organisations");
+                _logger.Error(e, "Error listing organisations");
                 return StatusCode(500, new ApiResponse(false, "Error listing organisations", e.Message));
             }
         }

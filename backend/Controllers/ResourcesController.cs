@@ -122,14 +122,30 @@ namespace KnowledgeBank.Controllers
                 await resourceManager.BeginTransaction();
 
                 // Create the resource in the database and retrieve the ID
-                Guid id = uploadDto.UploadType switch
+                Guid id = Guid.Empty;
+                switch (uploadDto.UploadType)
                 {
-                    "website" => await resourceManager.CreateWebsiteAsync((WebsiteCreateDto)dto),
-                    "document" => await resourceManager.CreateDocumentAsync((DocumentCreateDto)dto),
-                    "audio" => await resourceManager.CreateAudioAsync((AudioCreateDto)dto),
-                    "video" => await resourceManager.CreateVideoAsync((VideoCreateDto)dto),
-                    _ => await resourceManager.CreateResourceAsync(dto)
-                };
+                    case "website":
+                        id = await resourceManager.CreateWebsiteAsync((WebsiteCreateDto)dto);
+                        _taskQueue.QueueBackgroundWorkItem(async token =>
+                        {
+                            await _ragSystem.CreatePoints(id: id, chunk: $"{dto.Title}\n{dto.Description}\n{((WebsiteCreateDto)dto).Url}", fileType: null);
+                        });
+                        break;
+                    case "document":
+                        id = await resourceManager.CreateDocumentAsync((DocumentCreateDto)dto);
+                        break;
+                    case "audio":
+                        id = await resourceManager.CreateAudioAsync((AudioCreateDto)dto);
+                        break;
+                    case "video":
+                        id = await resourceManager.CreateVideoAsync((VideoCreateDto)dto);
+                        break;
+                    default:
+                        id = await resourceManager.CreateResourceAsync(dto);
+                        break;
+                }
+
 
                 // If the resource is a file, upload it to storage
                 if (dto is FileResourceCreateDto fDto)
@@ -163,7 +179,7 @@ namespace KnowledgeBank.Controllers
 
                                 _taskQueue.QueueBackgroundWorkItem(async token =>
                                 {
-                                    await _ragSystem.MainPipeline(id, fileType, fDto);
+                                    await _ragSystem.CreatePoints(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: fileType);
                                 });
                             }
 

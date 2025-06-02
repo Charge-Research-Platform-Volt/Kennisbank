@@ -6,6 +6,9 @@ using KnowledgeBank.Responses;
 using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using KnowledgeBank.Services;
+using Qdrant.Client.Grpc;
+using static Qdrant.Client.Grpc.Conditions;
 
 namespace KnowledgeBank.Controllers;
 
@@ -16,15 +19,15 @@ namespace KnowledgeBank.Controllers;
 [Produces("application/json")]
 public class SearchController : ControllerBase
 {
-    private readonly IAzureBlobService blobService;
-    private readonly Serilog.ILogger logger;
-    private readonly DatabaseContext database;
+    private readonly Serilog.ILogger _logger;
+    private readonly DatabaseContext _database;
+    private readonly RAGSystem _ragSystem;
 
-    public SearchController(IAzureBlobService blobService, DatabaseContext databaseContext)
+    public SearchController(DatabaseContext databaseContext, RAGSystem ragSystem)
     {
-        this.blobService = blobService;
-        this.logger = Log.ForContext<StorageController>();
-        this.database = databaseContext;
+        _logger = Log.ForContext<StorageController>();
+        _database = databaseContext;
+        _ragSystem = ragSystem;
     }
 
     [HttpPost("search-title")]
@@ -54,7 +57,7 @@ public class SearchController : ControllerBase
         {
             int skip = (pageIndex - 1) * pageSize;
 
-            IQueryable<Resource> queryBuilder = filter?.ToQueryBuilder(database) ?? database.Resources.AsQueryable();
+            IQueryable<Resource> queryBuilder = filter?.ToQueryBuilder(_database) ?? _database.Resources.AsQueryable();
 
             Resource[]? items = await queryBuilder
                 .OrderByDescending(f => EF.Functions.TrigramsSimilarity(f.Title, query))
@@ -68,7 +71,7 @@ public class SearchController : ControllerBase
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error listing resources on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
+            _logger.Error(e, "Error listing resources on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
             return StatusCode(500, new StorageResponse("Error listing resources."));
         }
     }
@@ -100,7 +103,7 @@ public class SearchController : ControllerBase
         {
             int skip = (pageIndex - 1) * pageSize;
 
-            IQueryable<Resource> queryBuilder = filter?.ToQueryBuilder(database) ?? database.Resources.AsQueryable();
+            IQueryable<Resource> queryBuilder = filter?.ToQueryBuilder(_database) ?? _database.Resources.AsQueryable();
 
             Resource[]? items = await queryBuilder
                 .OrderByDescending(f => EF.Functions.TrigramsSimilarity(f.Description ?? "", query))
@@ -114,7 +117,7 @@ public class SearchController : ControllerBase
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error listing resources on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
+            _logger.Error(e, "Error listing resources on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
             return StatusCode(500, new StorageResponse("Error listing resources."));
         }
     }
@@ -145,7 +148,7 @@ public class SearchController : ControllerBase
             int skip = (pageIndex - 1) * pageSize;
             Resource[]? items;
 
-            IQueryable<Resource> queryBuilder = filter?.ToQueryBuilder(database) ?? database.Resources.AsQueryable();
+            IQueryable<Resource> queryBuilder = filter?.ToQueryBuilder(_database) ?? _database.Resources.AsQueryable();
 
             if (string.IsNullOrEmpty(query))
             {
@@ -157,6 +160,28 @@ public class SearchController : ControllerBase
             }
             else
             {
+                float[] embeddingData = await _ragSystem.GenerateEmbedding(query);
+
+                var search = await _ragSystem.QdrantClient.QueryGroupsAsync(
+                    RAGSystem.COLLECTION_NAME,
+                    groupBy: "resourceId",
+                    query: embeddingData,
+                    // filter: MatchText("chunkText", query ),
+                    limit: 100,
+                    groupSize: 4
+                );
+
+                var resourceIds = search.Select(result => Guid.Parse(result.Id.StringValue)).ToList();
+
+                Console.WriteLine($"ids found: {resourceIds[0]}");
+
+                // Use the resourceIds from vector search to filter results
+                items = await queryBuilder
+                    .Where(f => resourceIds.Contains(f.Id))
+                    .OrderBy(f => resourceIds.IndexOf(f.Id)) // Maintain vector search ranking order
+                    .Skip(skip).Take(pageSize)
+                    .ToArrayAsync();
+
                 //  Queries for websearch_to_tsquery are interpreted as following:
                 //
                 //  integration europe 1995             =>  integration AND europe AND 1995
@@ -168,38 +193,38 @@ public class SearchController : ControllerBase
                 //  Keep in mind these examples do not take stemming into consideration, the words 
                 //  in the query and database are stemmed to improve search results.  
 
-                // Converts the user query to a tsvector and compares this to the resource vector
-                string tsQuery = string.Join(" & ", query.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(term => term + ":*"));
+                // // Converts the user query to a tsvector and compares this to the resource vector
+                // string tsQuery = string.Join(" & ", query.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(term => term + ":*"));
 
-                // Execute query
-                IQueryable<Resource> itemsFromRawSql = database.Resources
-                    .FromSqlRaw(@"
-                        SELECT DISTINCT ON (f.id)
-                            f.*,
-                            GREATEST(
-                                ts_rank(fv.vector, websearch_to_tsquery('english', {0})),
-                                similarity(f.title, {0}),
-                                similarity(f.description, {0})
-                            ) AS rank 
-                        FROM resources f
-                        JOIN ""resource-vectors"" fv ON fv.""resource-id"" = f.id
-                        WHERE fv.vector @@ websearch_to_tsquery('english', {0})
-                            OR similarity(f.title, {1}) > 0.3
-                            OR similarity(f.description, {1}) > 0.3
-                        ORDER BY f.id, rank DESC", tsQuery, query)
-                    .AsQueryable();
+                // // Execute query
+                // IQueryable<Resource> itemsFromRawSql = _database.Resources
+                //     .FromSqlRaw(@"
+                //         SELECT DISTINCT ON (f.id)
+                //             f.*,
+                //             GREATEST(
+                //                 ts_rank(fv.vector, websearch_to_tsquery('english', {0})),
+                //                 similarity(f.title, {0}),
+                //                 similarity(f.description, {0})
+                //             ) AS rank 
+                //         FROM resources f
+                //         JOIN ""resource-vectors"" fv ON fv.""resource-id"" = f.id
+                //         WHERE fv.vector @@ websearch_to_tsquery('english', {0})
+                //             OR similarity(f.title, {1}) > 0.3
+                //             OR similarity(f.description, {1}) > 0.3
+                //         ORDER BY f.id, rank DESC", tsQuery, query)
+                //     .AsQueryable();
 
-                // save the order
-                List<Guid> orderedIds = await itemsFromRawSql
-                    .Select(f => f.Id)
-                    .ToListAsync();
+                // // save the order
+                // List<Guid> orderedIds = await itemsFromRawSql
+                //     .Select(f => f.Id)
+                //     .ToListAsync();
 
-                // combine filters with query result
-                items = await queryBuilder
-                    .Where(f => itemsFromRawSql.Any(sqlItem => sqlItem.Id == f.Id)) // filter the resources based on the IDs from the SQL query
-                    .OrderBy(f => orderedIds.IndexOf(f.Id)) // maintain the order of the IDs from the SQL query
-                    .Skip(skip).Take(pageSize)
-                    .ToArrayAsync();
+                // // combine filters with query result
+                // items = await queryBuilder
+                //     .Where(f => itemsFromRawSql.Any(sqlItem => sqlItem.Id == f.Id)) // filter the resources based on the IDs from the SQL query
+                //     .OrderBy(f => orderedIds.IndexOf(f.Id)) // maintain the order of the IDs from the SQL query
+                //     .Skip(skip).Take(pageSize)
+                //     .ToArrayAsync();
             }
 
             if (items == null)
@@ -209,7 +234,7 @@ public class SearchController : ControllerBase
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error listing resources on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
+            _logger.Error(e, "Error listing resources on page {pageIndex} of size {pageSize}.", pageIndex, pageSize);
             return StatusCode(500, new StorageResponse("Error listing resources."));
         }
     }
@@ -226,7 +251,7 @@ public class SearchController : ControllerBase
         try
         {
             // Get the oldest document from the resources table
-            Resource[]? items = await database.Resources
+            Resource[]? items = await _database.Resources
             .OrderBy(f => f.PublicationDate)
             .Take(1)
             .ToArrayAsync();
@@ -236,7 +261,7 @@ public class SearchController : ControllerBase
 
             return Ok(new ResourceInfoResponse("Oldest resources found", items[0].PublicationDate.Year));
         }
-        catch(Exception)
+        catch (Exception)
         {
             return StatusCode(500, new StorageResponse("Error checking resources."));
         }

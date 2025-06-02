@@ -9,8 +9,8 @@ using OpenAI.Chat;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 using Serilog;
+using static Qdrant.Client.Grpc.Conditions;
 
-#pragma warning disable SKEXP0001, SKEXP0010, SKEXP0070
 
 namespace KnowledgeBank.Services;
 
@@ -77,6 +77,7 @@ public class RAGSystem
         ApiKeyCredential azureOpenAiApiKeyCredential = new ApiKeyCredential(environmentConfig.GetVariableValue(EnvironmentVariable.AZURE_OPENAI_CLIENT_API_KEY));
         AzureOpenAIClient = new AzureOpenAIClient(azureOpenAiEndpoint, azureOpenAiApiKeyCredential);
         ChatClient = AzureOpenAIClient.GetChatClient("gpt-4.1");
+
         _logger.Information("Azure OpenAI client successfully initialized");
 
 
@@ -140,6 +141,23 @@ public class RAGSystem
             collectionName: COLLECTION_NAME,
             fieldName: "resourceId"
         );
+
+        // Full text index for chunkText
+        await QdrantClient.CreatePayloadIndexAsync(
+            collectionName: COLLECTION_NAME,
+            fieldName: "chunkText",
+            schemaType: PayloadSchemaType.Text,
+            indexParams: new PayloadIndexParams
+            {
+                TextIndexParams = new TextIndexParams
+                {
+                    Tokenizer = TokenizerType.Multilingual,
+                    MinTokenLen = 2,
+                    MaxTokenLen = 10,
+                    Lowercase = true
+                }
+            }
+        );
     }
 
 
@@ -147,9 +165,10 @@ public class RAGSystem
     /// <summary>
     /// Processes a document through the RAG (Retrieval-Augmented Generation) pipeline.
     /// </summary>
-    /// <param name="resourceId">The unique identifier for the resource being processed.</param>
+    /// <param name="id">The unique identifier for the resource being processed.</param>
     /// <param name="fileType">The type of file being processed (e.g., PDF, DOCX).</param>
-    /// <param name="resourcMetaData">Metadata associated with the file resource.</param>
+    /// <param name="chunk">An initial chunk of text to include in the processing.</param>
+    /// 
     /// <returns>A task representing the asynchronous operation of processing the document.</returns>
     /// <remarks>
     /// The pipeline consists of the following steps:
@@ -160,23 +179,25 @@ public class RAGSystem
     /// 
     /// If no text is extracted from the document, the process will terminate early.
     /// </remarks>
-    public async Task MainPipeline(Guid resourceId, string fileType, FileResourceCreateDto resourcMetaData)
+    public async Task CreatePoints(Guid id, string chunk, string? fileType)
     {
+        // Include metadata in the first chunk
+        List<string> chunks = [$"{chunk}",];
+
         // -- Extract text from the document
-        string extractedText = await _toolbox.ExtractTextAsync(fileType, resourceId, _blobService);
-
-        if (string.IsNullOrEmpty(extractedText))
+        if (!string.IsNullOrWhiteSpace(fileType))
         {
-            _logger.Warning("No text extracted from the document");
-            return;
-        }
+            string extractedText = await _toolbox.ExtractTextAsync(fileType, id, _blobService);
 
-        // -- Chunk the extracted text
-        List<string> chunks =
-        [
-            $"{resourcMetaData.Title}\n{resourcMetaData.Description}", // Include metadata in the first chunk
-            .. _toolbox.SplitTextIntoChunks(extractedText, true),
-        ];
+            if (string.IsNullOrEmpty(extractedText))
+            {
+                _logger.Warning("No text extracted from the document");
+                return;
+            }
+
+            // -- Chunk the extracted text
+            chunks.AddRange(_toolbox.SplitTextIntoChunks(extractedText, true));
+        }
 
 
         // -- Generate embeddings for the chunks
@@ -184,21 +205,29 @@ public class RAGSystem
 
         try
         {
-            EmbeddingsOptions requestOptions = new EmbeddingsOptions(chunks);
-            Response<EmbeddingsResult> response = await EmbeddingsClient.EmbedAsync(requestOptions);
-            _logger.Information("Embeddings generated for {Count} chunks", response.Value.Data.Count);
+            Response<EmbeddingsResult> response = await GenerateEmbeddings(chunks);
 
             foreach (EmbeddingItem item in response.Value.Data)
             {
                 float[]? embeddingData = item.Embedding.ToObjectFromJson<float[]>();
                 if (embeddingData == null || embeddingData.Length == 0) continue;
 
-                pointsList.Add(new PointStruct
+                string ChunkTypeString = item.Index == 0 ? ChunkType.MetaData.ToString() : ChunkType.ContentText.ToString();
+
+                CustomPayload customPayload = new CustomPayload
                 {
-                    Id = Guid.NewGuid(),
-                    Vectors = embeddingData,
-                    Payload = { ["resourceId"] = resourceId.ToString(), ["chunkType"] = ChunkType.ContentText.ToString(), ["chunkText"] = chunks[item.Index], ["chunkPart"] = item.Index }
-                });
+                    ResourceId = id.ToString(),
+                    ChunkType = ChunkTypeString,
+                    ChunkText = chunks[item.Index],
+                    ChunkPart = item.Index
+                };
+
+                PointStruct point = new PointStruct();
+                point.Id = Guid.NewGuid();
+                point.Vectors = embeddingData;
+                point.Payload.Add(customPayload.ToPayload());
+
+                pointsList.Add(point);
             }
         }
         catch (Exception)
@@ -209,18 +238,125 @@ public class RAGSystem
             int index = 0;
             foreach (string item in chunks)
             {
-                pointsList.Add(new PointStruct
+                string ChunkTypeString = index == 0 ? ChunkType.MetaData.ToString() : ChunkType.ContentText.ToString();
+
+                CustomPayload customPayload = new CustomPayload
                 {
-                    Id = Guid.NewGuid(),
-                    Vectors = new float[EMBEDDING_DIMENSIONS], // Placeholder for empty vector
-                    Payload = { ["resourceId"] = resourceId.ToString(), ["chunkType"] = ChunkType.ContentText.ToString(), ["chunkText"] = item, ["chunkPart"] = index++ }
-                });
+                    ResourceId = id.ToString(),
+                    ChunkType = ChunkTypeString,
+                    ChunkText = item,
+                    ChunkPart = index++
+                };
+
+                PointStruct point = new PointStruct();
+                point.Id = Guid.NewGuid();
+                point.Vectors = new float[EMBEDDING_DIMENSIONS]; // Placeholder for empty vector
+                point.Payload.Add(customPayload.ToPayload());
+
+                pointsList.Add(point);
             }
         }
 
         await QdrantClient.UpsertAsync(COLLECTION_NAME, pointsList);
     }
+
+    public async Task<float[]> GenerateEmbedding(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            _logger.Warning("Query is null or empty. Cannot generate embedding.");
+            throw new ArgumentException("Query cannot be null or empty.", nameof(query));
+        }
+
+        EmbeddingsOptions requestOptions = new EmbeddingsOptions(new List<string> { query });
+        Response<EmbeddingsResult> response = await EmbeddingsClient.EmbedAsync(requestOptions);
+
+        float[]? embeddingData = response.Value.Data[0].Embedding.ToObjectFromJson<float[]>();
+        if (embeddingData == null || embeddingData.Length == 0)
+        {
+            _logger.Warning("Generated embedding is null or empty.");
+            throw new InvalidOperationException("Generated embedding is null or empty.");
+        }
+
+        return embeddingData;
+    }
+
+    public async Task<Response<EmbeddingsResult>> GenerateEmbeddings(List<string> chunks)
+    {
+        if (chunks == null || chunks.Count == 0)
+        {
+            _logger.Warning("Chunks list is null or empty. Cannot generate embeddings.");
+            throw new ArgumentException("Chunks list cannot be null or empty.", nameof(chunks));
+        }
+
+        EmbeddingsOptions requestOptions = new EmbeddingsOptions(chunks);
+        Response<EmbeddingsResult> responses = await EmbeddingsClient.EmbedAsync(requestOptions);
+
+        return responses;
+    }
+
+    public async Task UpdateMetadataPointAsync(string id, string newChankText)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            _logger.Warning("Resource ID is null or empty. Cannot update metadata.");
+            throw new ArgumentException("Resource ID cannot be null or empty.", nameof(id));
+        }
+
+        if (string.IsNullOrWhiteSpace(newChankText))
+        {
+            _logger.Warning("New chunk text is null or empty. Cannot update metadata.");
+            throw new ArgumentException("New chunk text cannot be null or empty.", nameof(newChankText));
+        }
+
+        IReadOnlyList<ScoredPoint> restult = await QdrantClient.QueryAsync(
+             collectionName: COLLECTION_NAME,
+             filter: MatchKeyword("resourceId", id) & MatchKeyword("chunkType", ChunkType.MetaData.ToString()),
+             limit: 1
+         );
+
+        float[] newEmbeding = await GenerateEmbedding(newChankText);
+
+        PointVectors pointVectors = new PointVectors
+        {
+            Id = restult[0].Id,
+            Vectors = newEmbeding,
+        };
+
+        await QdrantClient.UpdateVectorsAsync(
+            collectionName: COLLECTION_NAME,
+            points: new List<PointVectors> { pointVectors }
+        );
+
+        await QdrantClient.OverwritePayloadAsync(
+            collectionName: COLLECTION_NAME,
+            payload: new Dictionary<string, Value> { { "chunkText", newChankText } },
+            filter: MatchKeyword("resourceId", id) & MatchKeyword("chunkType", ChunkType.MetaData.ToString())
+        );
+
+    }
+
+    public async Task DeleteAllPointsWithIdAsync(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            _logger.Warning("Resource ID is null or empty. Cannot delete chunks.");
+            throw new ArgumentException("Resource ID cannot be null or empty.", nameof(id));
+        }
+
+        try
+        {
+            await QdrantClient.DeleteAsync(collectionName: COLLECTION_NAME, filter: MatchKeyword("resourceId", id));
+        }
+        catch (Exception)
+        {
+            _logger.Error("Failed to delete chunks with resourceId: {ResourceId}. Ensure the Qdrant collection exists and is accessible.", id);
+        }
+    }
+
+
 }
+
 
 
 

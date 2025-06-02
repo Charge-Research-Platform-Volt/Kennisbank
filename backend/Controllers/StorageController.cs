@@ -94,7 +94,7 @@ namespace KnowledgeBank.Controllers
 
                             _taskQueue.QueueBackgroundWorkItem(async token =>
                             {
-                                await _ragSystem.MainPipeline(id, fileType, dto);
+                                await _ragSystem.CreatePoints(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: fileType);
                             });
                         }
 
