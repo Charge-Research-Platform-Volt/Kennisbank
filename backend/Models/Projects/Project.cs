@@ -35,9 +35,9 @@ public class Project
 
     #region Relation navigation properties
     // Navigation properties for the relations a object can have (1:m)
-    [JsonIgnore] public ICollection<ProjectTagRelation>? ProjectTagRelations { get; set; }
-    [JsonIgnore] public ICollection<ProjectCreatorRelation>? ProjectCreatorRelations { get; set; }
-    [JsonIgnore] public ICollection<ProjectResourceRelation>? ProjectResourcesRelations { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public ICollection<ProjectTagRelation>? ProjectTagRelations { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public ICollection<ProjectCreatorRelation>? ProjectCreatorRelations { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public ICollection<ProjectResourceRelation>? ProjectResourcesRelations { get; set; }
 
     #endregion
 
