@@ -36,6 +36,8 @@ namespace KnowledgeBank.Data
         }
     }
 
+    public record BlobAvatarResponse(Stream stream, string contentType);
+
     /// <summary>
     /// Service for interacting with Azure Blob Storage
     /// </summary>
@@ -156,6 +158,12 @@ namespace KnowledgeBank.Data
         /// <param name="metadata">Optional metadata to associate with the blob</param>
         /// <returns>If the operation was successful</returns>
         Task<BLOB_STATUSCODE> CommitBlockListAsync(string resourceId, string containerName, List<string> blockIds, Dictionary<string, string> metadata);
+
+        /// <summary>
+        /// Retrieves a users profile picture
+        /// </summary>
+        /// 
+        Task<BlobAvatarResponse?> RetreiveUserAvatarStream(string userId);
     }
 
     /// <summary>
@@ -443,6 +451,25 @@ namespace KnowledgeBank.Data
                 logger.Error("Committing the blocks failed", e.Message);
                 return BLOB_STATUSCODE.FAILED;
             }
+        }
+
+        /// <inheritdoc/>
+        public async Task<BlobAvatarResponse?> RetreiveUserAvatarStream(string userId) {
+            BlobContainerClient container = blobService.GetBlobContainerClient("avatar");
+            BlobClient blob = container.GetBlobClient(userId);
+
+            if (!await blob.ExistsAsync())
+            {
+                logger.Information("Blob {BlobName} not found in avatar container.", userId);
+                return null;
+            }
+
+            // TODO: run parallel
+            BlobProperties props = await blob.GetPropertiesAsync();
+            BlobDownloadStreamingResult streamResult = (await blob.DownloadStreamingAsync()).Value;
+
+            logger.Information("Blob {BlobName} downloaded from avatar container.", userId);
+            return new BlobAvatarResponse(streamResult.Content, props.ContentType);
         }
     }
 }

@@ -137,8 +137,8 @@ describe('UsersList', () => {
       success: true,
       message: 'Users fetched successfully',
       users: [
-        { id: crypto.randomUUID(), email: 'user1@example.com', username: 'user1@example.com',role: 'user', emailConfirmed: true },
-        { id: crypto.randomUUID(), email: 'user2@example.com', username: 'user2@example.com', role: 'admin', emailConfirmed: true }
+        { id: crypto.randomUUID(), email: 'user1@example.com', role: 'user', emailConfirmed: true },
+        { id: crypto.randomUUID(), email: 'user2@example.com', role: 'admin', emailConfirmed: true }
       ],
       pageCount: 2
     });
@@ -168,7 +168,7 @@ describe('UsersList', () => {
       success: true,
       message: 'Users fetched successfully',
       users: [
-        { id: crypto.randomUUID(), email: 'user1@example.com', username: 'user1@example.com', role: 'user', emailConfirmed: true },
+        { id: crypto.randomUUID(), email: 'user1@example.com', role: 'user', emailConfirmed: true },
       ],
       pageCount: 3
     });

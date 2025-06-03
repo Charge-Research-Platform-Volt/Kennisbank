@@ -41,11 +41,20 @@ namespace KnowledgeBank
             //
             // Add this line after the code below to enable authentication with JWT tokens: .AddBearerToken(IdentityConstants.BearerScheme);
             builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
-            
+
             builder.Services.AddIdentityCore<User>()
                             .AddRoles<IdentityRole>()
                             .AddEntityFrameworkStores<DatabaseContext>()
                             .AddApiEndpoints();
+
+            builder.Services.Configure<IdentityOptions>(options =>
+            {
+                // Currently the only addition is +, we could use this string to add even more email compatibility:
+                // "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+!#$%'&*=/^`{|}~"
+                // Another option: use guid as user name in asp net databse
+                options.User.AllowedUserNameCharacters =
+                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+            });
 
 
             builder.Services.AddOpenApi();

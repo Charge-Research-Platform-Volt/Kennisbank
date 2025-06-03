@@ -7,12 +7,13 @@ using KnowledgeBank.Controllers;
 using KnowledgeBank.Responses;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
+using System.Reflection.Metadata;
 
 namespace backend.Tests.Integration;
 
 [TestFixture]
 [Category("IntegrationTest")]
-public class UserControllerTests : TestBase
+public class UserControllerTests : TestBaseBlob
 {
     private UserController _controller;
     private Mock<UserManager<User>> _userManagerMock;
@@ -27,7 +28,7 @@ public class UserControllerTests : TestBase
            null, null, null, null, null, null, null, null
        );
 
-        _controller = new UserController(Context, _userManagerMock.Object);
+        _controller = new UserController(Context, BlobService, _userManagerMock.Object);
     }
 
     private void SetUserIdentity(UserController controller, string userId)
@@ -46,8 +47,8 @@ public class UserControllerTests : TestBase
     public async Task GetAllUsers_ReturnsResults_WhenDataExists()
     {
         // Arrange
-        User testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
-        Context.AppUsers.Add(testUser);
+        User testUser = new User("testuser", "testuser", "test@example.com") { Id = Guid.NewGuid().ToString() };
+        Context.Users.Add(testUser);
         await Context.SaveChangesAsync();
         _userManagerMock.Setup(m => m.GetRolesAsync(It.IsAny<User>())).ReturnsAsync((User user) =>
         {
@@ -70,8 +71,8 @@ public class UserControllerTests : TestBase
     public async Task GetUsersPaged_ReturnsResults_WhenDataExists()
     {
         // Arrange
-        User testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
-        Context.AppUsers.Add(testUser);
+        User testUser = new User("testuser", "testuser", "test@example.com") { Id = Guid.NewGuid().ToString() };
+        Context.Users.Add(testUser);
         await Context.SaveChangesAsync();
         _userManagerMock.Setup(m => m.GetRolesAsync(It.IsAny<User>())).ReturnsAsync((User user) =>
         {
@@ -100,10 +101,10 @@ public class UserControllerTests : TestBase
     public async Task GetUsersPagedWithSearch_ReturnsResults_WhenDataExists()
     {
         // Arrange
-        User testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
-        User otherUser = new User { Id = Guid.NewGuid().ToString(), UserName = "otheruser", Email = "otheruser@example.com" };
-        Context.AppUsers.Add(testUser);
-        Context.AppUsers.Add(otherUser);
+        User testUser = new User("testuser", "testuser", "test@example.com") { Id = Guid.NewGuid().ToString() };
+        User otherUser = new User("otheruser", "otheruser", "otheruser@example.com") { Id = Guid.NewGuid().ToString() };
+        Context.Users.Add(testUser);
+        Context.Users.Add(otherUser);
         await Context.SaveChangesAsync();
         _userManagerMock.Setup(m => m.GetRolesAsync(It.IsAny<User>())).ReturnsAsync((User user) =>
         {
@@ -135,11 +136,11 @@ public class UserControllerTests : TestBase
         var currentUserId = Guid.NewGuid().ToString();
         var testUserId = Guid.NewGuid().ToString();
 
-        var currentUser = new User { Id = currentUserId, UserName = "adminuser", Email = "admin@admin.nl" };
-        var testUser = new User { Id = testUserId, UserName = "testuser", Email = "test@example.com" };
+        var currentUser = new User("adminuser", "adminuser", "admin@example.com") { Id = currentUserId };
+        var testUser = new User("testuser", "testuser", "test@example.com") { Id = testUserId };
 
-        Context.AppUsers.Add(currentUser);
-        Context.AppUsers.Add(testUser);
+        Context.Users.Add(currentUser);
+        Context.Users.Add(testUser);
         await Context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync(currentUserId)).ReturnsAsync(currentUser);
@@ -164,9 +165,9 @@ public class UserControllerTests : TestBase
         // Arrange
         var testUserId = Guid.NewGuid().ToString();
 
-        var testUser = new User { Id = testUserId, UserName = "testuser", Email = "test@example.com" };
+        var testUser = new User("testuser", "testuser", "test@example.com") { Id = testUserId };
 
-        Context.AppUsers.Add(testUser);
+        Context.Users.Add(testUser);
         await Context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync(testUserId)).ReturnsAsync(testUser);
@@ -192,11 +193,11 @@ public class UserControllerTests : TestBase
         var testuser1id = Guid.NewGuid().ToString();
         var testuser2id = Guid.NewGuid().ToString();
 
-        var testuser1 = new User { Id = testuser1id, UserName = "testuser1", Email = "test1@example.nl" };
-        var testuser2 = new User { Id = testuser2id, UserName = "testuser", Email = "test@example.com" };
+        var testuser1 = new User("testuser1", "testuser1", "test1@example.nl") { Id = testuser1id };
+        var testuser2 = new User("testuser", "testuser", "test@example.com") { Id = testuser2id };
 
-        Context.AppUsers.Add(testuser1);
-        Context.AppUsers.Add(testuser2);
+        Context.Users.Add(testuser1);
+        Context.Users.Add(testuser2);
         await Context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync(testuser1id)).ReturnsAsync(testuser1);
@@ -221,8 +222,8 @@ public class UserControllerTests : TestBase
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var user = new User { Id = userId, FirstName = "Old", LastName = "Name", Email = "old@example.com", UserName = "old@example.com" };
-        Context.AppUsers.Add(user);
+        var user = new User("Old", "Name", "old@example.com") { Id = userId };
+        Context.Users.Add(user);
         await Context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(user);
@@ -231,10 +232,10 @@ public class UserControllerTests : TestBase
         _userManagerMock.Setup(m => m.ChangeEmailAsync(user, "new@example.com", "token")).ReturnsAsync(IdentityResult.Success);
         _userManagerMock.Setup(m => m.SetUserNameAsync(user, "new@example.com")).ReturnsAsync(IdentityResult.Success);
 
-        var controller = new UserController(Context, _userManagerMock.Object);
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object);
         SetUserIdentity(controller, userId);
 
-        var dto = new UpdateUserDto { FirstName = "New", LastName = "Name", Email = "new@example.com" };
+        var dto = new UpdateUserDto { NewFirstName = "New", NewLastName = "Name", NewEmail = "new@example.com" };
 
         // Act
         IActionResult result = await controller.Update(dto);
@@ -252,17 +253,17 @@ public class UserControllerTests : TestBase
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var user = new User { Id = userId, Email = "old@example.com" };
-        Context.AppUsers.Add(user);
+        var user = new User("", "", "old@example.com") { Id = userId };
+        Context.Users.Add(user);
         await Context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(user);
         _userManagerMock.Setup(m => m.UpdateAsync(user)).ReturnsAsync(IdentityResult.Failed());
 
-        var controller = new UserController(Context, _userManagerMock.Object);
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object);
         SetUserIdentity(controller, userId);
 
-        var dto = new UpdateUserDto { FirstName = "New", LastName = "Name", Email = "new@example.com" };
+        var dto = new UpdateUserDto { NewFirstName = "New", NewLastName = "Name", NewEmail = "new@example.com" };
 
         // Act
         var result = await controller.Update(dto);
@@ -279,8 +280,8 @@ public class UserControllerTests : TestBase
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var user = new User { Id = userId, Email = "old@example.com" };
-        Context.AppUsers.Add(user);
+        var user = new User("", "", "old@example.com") { Id = userId };
+        Context.Users.Add(user);
         await Context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(user);
@@ -288,10 +289,10 @@ public class UserControllerTests : TestBase
         _userManagerMock.Setup(m => m.GenerateChangeEmailTokenAsync(user, "new@example.com")).ReturnsAsync("token");
         _userManagerMock.Setup(m => m.ChangeEmailAsync(user, "new@example.com", "token")).ReturnsAsync(IdentityResult.Failed());
 
-        var controller = new UserController(Context, _userManagerMock.Object);
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object);
         SetUserIdentity(controller, userId);
 
-        var dto = new UpdateUserDto { FirstName = "New", LastName = "Name", Email = "new@example.com" };
+        var dto = new UpdateUserDto { NewFirstName = "New", NewLastName = "Name", NewEmail = "new@example.com" };
 
         // Act
         var result = await controller.Update(dto);
@@ -308,8 +309,8 @@ public class UserControllerTests : TestBase
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var user = new User { Id = userId, Email = "old@example.com" };
-        Context.AppUsers.Add(user);
+        var user = new User("", "", "old@example.com") { Id = userId };
+        Context.Users.Add(user);
         await Context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(user);
@@ -318,10 +319,10 @@ public class UserControllerTests : TestBase
         _userManagerMock.Setup(m => m.ChangeEmailAsync(user, "new@example.com", "token")).ReturnsAsync(IdentityResult.Success);
         _userManagerMock.Setup(m => m.SetUserNameAsync(user, "new@example.com")).ReturnsAsync(IdentityResult.Failed());
 
-        var controller = new UserController(Context, _userManagerMock.Object);
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object);
         SetUserIdentity(controller, userId);
 
-        var dto = new UpdateUserDto { FirstName = "New", LastName = "Name", Email = "new@example.com" };
+        var dto = new UpdateUserDto { NewFirstName = "New", NewLastName = "Name", NewEmail = "new@example.com" };
 
         // Act
         var result = await controller.Update(dto);
@@ -341,10 +342,10 @@ public class UserControllerTests : TestBase
 
         _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync((User)null!);
 
-        var controller = new UserController(Context, _userManagerMock.Object);
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object);
         SetUserIdentity(controller, userId);
 
-        var dto = new UpdateUserDto { FirstName = "New", LastName = "Name", Email = "new@example.com" };
+        var dto = new UpdateUserDto { NewFirstName = "New", NewLastName = "Name", NewEmail = "new@example.com" };
 
         // Act
         var result = await controller.Update(dto);
@@ -363,10 +364,10 @@ public class UserControllerTests : TestBase
 
         _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ThrowsAsync(new Exception("Database failure"));
 
-        var controller = new UserController(Context, _userManagerMock.Object);
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object);
         SetUserIdentity(controller, userId);
 
-        var dto = new UpdateUserDto { FirstName = "New", LastName = "Name", Email = "new@example.com" };
+        var dto = new UpdateUserDto { NewFirstName = "New", NewLastName = "Name", NewEmail = "new@example.com" };
 
         // Act
         var result = await controller.Update(dto);

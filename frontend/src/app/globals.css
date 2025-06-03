@@ -7,6 +7,7 @@
   --purple: #502379;
   --purple-foreground: #c6b2d9;
   --lgray: #e5e5e5;
+  --gray: #aaa;
 
   /* Remove after design theme implementation */
   --background: oklch(1 0 0);
@@ -97,4 +98,15 @@
 .disabled-grid {
   pointer-events: none;
   opacity: 0.5; /* optioneel */
+}
+
+.checkerboard {
+  background-color: var(--lgray);
+  background-image:
+    linear-gradient(45deg, var(--gray) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--gray) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--gray) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--gray) 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
 }

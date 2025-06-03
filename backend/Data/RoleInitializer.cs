@@ -25,11 +25,11 @@ namespace KnowledgeBank.Data
             }
 
             // Create a default admin user
-            User admin = new User { Email = "admin@admin.nl", UserName = "admin@admin.nl", FirstName = "Admin", LastName = "Admin" };
+            User admin = new User("Admin", "The Admin", "admin@admin.nl");
             IdentityResult adminResult = await userManager.CreateAsync(admin, "Admin123!");
 
             //Create default User user
-            User user = new User { Email = "user@user.nl", UserName = "user@user.nl", FirstName = "User", LastName = "User" };
+            User user = new User("User", "The User", "user@user.nl");
             IdentityResult userResult = await userManager.CreateAsync(user, "User123!");
 
             if (adminResult.Succeeded)

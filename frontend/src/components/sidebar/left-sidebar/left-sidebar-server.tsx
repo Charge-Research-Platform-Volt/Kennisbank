@@ -8,17 +8,18 @@ import Home from "@/icons/home";
 import Archive from "@/icons/archive";
 import Tags from "@/icons/tags-icon";
 import { Users } from "lucide-react";
+import { UserDataSchema } from "@/types/user.type";
 
 /**
  * @summary This function does the needed fetches from a server component and gives them to the client side component for use.
  * @returns Left side bar made from server component
  */
 export default async function LeftSidebarServer() {
-  const userEmail = await FetchWithValidation(z.object({ email: z.string() }), `${process.env.API_URL}/auth/ping`);
+  const userFetch = await FetchWithValidation(UserDataSchema, `${process.env.API_URL}/user/current/account`);
 
-  if (!userEmail.success) {
-    console.log("Failed to fetch user email");
-    console.log(userEmail);
+  if (!userFetch.success) {
+    console.log("Failed to fetch user data");
+    console.log(userFetch);
     return <h1>ERROR</h1>;
   }
 
@@ -26,14 +27,6 @@ export default async function LeftSidebarServer() {
 
   if (!userRole.success) {
     console.log("Failed to fetch user role");
-    console.log(userRole);
-    return <h1>ERROR</h1>;
-  }
-
-  const userName = await FetchWithValidation(z.object({ name: z.string(), isAuthenticated: z.boolean() }), `${process.env.API_URL}/user/current-user-name`);
-
-  if (!userName.success) {
-    console.log("Failed to fetch user's name");
     console.log(userRole);
     return <h1>ERROR</h1>;
   }
@@ -68,7 +61,7 @@ export default async function LeftSidebarServer() {
     });
   }
 
-  return <LeftSidebarClient userEmail={userEmail.data.email} userName={userName.data.name} menuItems={menuItems} projects={projects} bottomMenuItems={bottomMenuItems} />;
+  return <LeftSidebarClient userData={userFetch.data} menuItems={menuItems} projects={projects} bottomMenuItems={bottomMenuItems} />;
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
