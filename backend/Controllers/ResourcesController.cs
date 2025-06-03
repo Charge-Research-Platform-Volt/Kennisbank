@@ -589,7 +589,6 @@ namespace KnowledgeBank.Controllers
         {
             if(trash && !User.IsInRole("admin"))
                 return Unauthorized(new ApiResponse(false, "You are not authorized to view trashed resources."));
-            logger.Information("Check 1");
 
             // Verification
             if (pageIndex != null && pageIndex < 1)
