@@ -61,7 +61,6 @@ public class Resource
 
     #region Direct navigation properties
     // Navigation property for Vector (one to one). JsonIgnore excludes it from response bodies.
-    [JsonIgnore] public ResourceVector? Vector { get; set; }
 
     // Navigation property for Document metadata (1:1)
     [JsonIgnore] public DocumentMetadata? DocumentMetadata { get; set; }

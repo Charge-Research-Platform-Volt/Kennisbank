@@ -13,6 +13,7 @@ namespace KnowledgeBank.Data
         /// </summary>
         /// <typeparam name="T">The entity type</typeparam>
         /// <param name="entity">The entity instance</param>
+        /// <param name="useCamelCase"></param>
         /// <param name="includeProperties">Relations to include in the DTO (supports dot notation like "Authors.Person")</param>
         /// <returns>An object representing the DTO</returns>
         public static object ToDto<T>(T entity, bool useCamelCase = true, params string[] includeProperties)
