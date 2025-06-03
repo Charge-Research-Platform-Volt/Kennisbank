@@ -247,7 +247,7 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
             existingTagId = await resourceManager.GetTagPropertyOrDefaultAsync(t => t.Name == dto.Name, selector: "Id");
             if (existingTagId != null)
             {
-                return Conflict(new ApiResponse(false, "Tag already exists.", existingTagId.ToString()));
+                return Conflict(new ApiResponse(false, "Tag already exists.", existingTagId.ToString() ?? ""));
             }
         }
 

@@ -65,7 +65,9 @@ export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
     const [publicationDateRangeMax, setPublicationDateRangeMax] = React.useState<string>(searchParams.get('pubdateMax') || '');
     const [regionFilter, setRegionFilter] = React.useState<string[]>(searchParams.getAll('regionFilter'));
     
+    // Refs
     const isResettingRef = React.useRef<boolean>(false);
+    const isInitialLoadRef = React.useRef<boolean>(true);
     
     // Search
     const [searchInput, setSearchInput] = React.useState<string>(searchParams.get('query') || '');
@@ -123,6 +125,13 @@ export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
     // Reset to first page when filters/search change
     React.useEffect(() => 
     {
+        // Don´t reset when it is initial load
+        if (isInitialLoadRef.current) 
+        {
+            isInitialLoadRef.current = false;
+            return;
+        }
+    
         setCurrentPage(prev => prev !== 1 ? 1 : prev);
     }, [searchQuery, typeFilter, tagFilter, publicationDateRangeMax, publicationDateRangeMin]);
     
