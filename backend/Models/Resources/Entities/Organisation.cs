@@ -28,6 +28,12 @@ public class Organisation
     [Column("creation-date")]
     public required DateTime CreationDate { get; set; }
 
+    [Column("trashed")]
+    public bool Trashed { get; set; } = false;
+
+    [Column("trash-date")]
+    public DateTime? TrashDate { get; set; } = null;
+
     // Navigation properties
     [JsonIgnore] public ICollection<ResourceOrganisationRelation>? ResourceOrganisationRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceRelatedOrganisationRelation>? ResourceRelatedOrganisationRelations { get; set; }

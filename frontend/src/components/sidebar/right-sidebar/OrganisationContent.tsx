@@ -9,11 +9,17 @@ import BadgeList, { ListItem } from "./BadgeList";
 import { useUserRole } from "@/context/user-role-context";
 import { Button } from "@/components/ui/button";
 import Edit from "./Edit";
+import { useArchive } from "@/context/archive-provider";
+import { TrashResource } from "@/actions/trashResourceActions";
+import ConfirmDeleteDialog from "@/components/ui/confirm-delete-dialog";
 
 export function OrganisationContent() 
 {
-    const { currentId, rightSidebarOpen } = useSidebar();
+    const { currentId, rightSidebarOpen, setRightSidebarOpen } = useSidebar();
     const { userRole } = useUserRole();
+    const { triggerGridReload, trashOpen } = useArchive();
+    const [confirmDialogOpen, setConfirmDialogOpen] = useState<boolean>(false);
+    
     const [ name, setName ] = useState<string | null>(null);
     const [ url, setUrl ] = useState<string | undefined>(undefined);
     const [ description, setDescription ] = useState<string | null>(null);
@@ -144,9 +150,20 @@ export function OrganisationContent()
             console.error("Error loading organisation information:", error);
         })
     }
+    
+    const confirmDelete = async () => 
+    {
+        if (await TrashResource(currentId, MetadataTypeEnum.ORGANISATION)) 
+        {
+            setRightSidebarOpen(false);
+            triggerGridReload();
+        }
+    }
 
     return (
         <>
+            <ConfirmDeleteDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen} onConfirmation={confirmDelete} />
+        
             <h1 className="pb-2 font-bold select-none text-2xl">{name || <Skeleton />}</h1>
             <a href={url} className="select-none" target="_blank" rel="noreferror">
                 <h1 className="mb-8 select-none text-blue-500 underline">{url || <Skeleton />}</h1>
@@ -182,9 +199,9 @@ export function OrganisationContent()
                 {email || <Skeleton />}
             </Expandable>
 
-            { userRole === 'admin' &&
+            { userRole === 'admin' && !trashOpen &&
                 <div className="w-full flex justify-center mt-10">
-                    <Button variant="outline">Delete Organisation</Button>
+                    <Button onClick={() => setConfirmDialogOpen(true)} variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600">Delete Organisation</Button>
                 </div>
             }
         </>

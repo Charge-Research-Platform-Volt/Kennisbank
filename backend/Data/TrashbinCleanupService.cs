@@ -31,18 +31,38 @@ public class TrashbinCleanupService : BackgroundService
 
             using (IServiceScope scope = _serviceProvider.CreateScope())
             {
-                DatabaseContext dbContext = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+                ResourceManager resourceManager = scope.ServiceProvider.GetRequiredService<ResourceManager>();
 
+                // Determine threshold
                 DateTime threshold = DateTime.UtcNow.AddDays(-30);
 
-                List<Resource> oldResources = await dbContext.Resources
-                    .Where(r => r.TrashDate < threshold)
-                    .ToListAsync(stoppingToken);
+                // Start transaction
+                await resourceManager.BeginTransaction();
+                
+                try 
+                {   
+                    // Fetch all IDs
+                    string[] resources = await resourceManager.GetAllResourcesAsync(predicate: r => r.TrashDate < threshold, projection: "Id") as string[] ?? [];
+                    string[] persons = await resourceManager.GetAllPersonsAsync(predicate: p => p.TrashDate > threshold, projection: "Id") as string[] ?? [];
+                    string[] organisations = await resourceManager.GetAllOrganisationsAsync(predicate: o => o.TrashDate > threshold, projection: "Id") as string[] ?? [];
 
-                if (oldResources.Count != 0)
-                {
-                    dbContext.Resources.RemoveRange(oldResources);
-                    await dbContext.SaveChangesAsync(stoppingToken);
+                    // Delete all found IDs through resourcemanager to delete all relations as well
+                    foreach (string id in resources)
+                        await resourceManager.DeleteResourceAsync(id);
+                    
+                    foreach (string id in persons)
+                        await resourceManager.DeletePersonAsync(id);
+                    
+                    foreach (string id in organisations)
+                        await resourceManager.DeleteOrganisationAsync(id);
+
+                    // Commit transaction
+                    await resourceManager.Commit();
+                }
+                catch 
+                {   
+                    // On fail: roll back transaction
+                    await resourceManager.Rollback();
                 }
             }
 

@@ -211,7 +211,7 @@ namespace KnowledgeBank.Controllers
                 if (!await resourceManager.ResourceExistsAsync(id))
                     return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
 
-                logger.Information("Archiving resource with ID: {ID}", id);
+                logger.Information("Trashing resource with ID: {ID}", id);
                     
                 // Trash the resource
                 await resourceManager.TrashResourceAsync(id);
@@ -221,8 +221,8 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e) 
             {
-                logger.Error(e, "Error archiving resource with ID {ID}.", id);
-                return StatusCode(500, new ApiResponse(false, "Error archiving resource", e.Message));
+                logger.Error(e, "Error trashing resource with ID {ID}.", id);
+                return StatusCode(500, new ApiResponse(false, "Error trashing resource", e.Message));
             }
         }
         #endregion
@@ -251,7 +251,7 @@ namespace KnowledgeBank.Controllers
                 if (!await resourceManager.ResourceExistsAsync(id))
                     return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
 
-                logger.Information("Unarchiving resource with ID: {ID}", id);
+                logger.Information("Untrashing resource with ID: {ID}", id);
                     
                 // Untrash the resource
                 await resourceManager.UntrashResourceAsync(id);
@@ -261,8 +261,8 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e) 
             {
-                logger.Error(e, "Error unarchiving resource with ID {ID}.", id);
-                return StatusCode(500, new ApiResponse(false, "Error unarchiving resource", e.Message));
+                logger.Error(e, "Error untrashing resource with ID {ID}.", id);
+                return StatusCode(500, new ApiResponse(false, "Error untrashing resource", e.Message));
             }
         }
         #endregion
@@ -1273,7 +1273,31 @@ namespace KnowledgeBank.Controllers
             }
         }
         #endregion
-        
+
+        #region Archive Trash Grid
+        [HttpGet("trash-grid")]
+        [SwaggerOperation(Summary = "Retrieves the resource trash items which are displayed on the archive page")]
+        [SwaggerResponse(200, "The list of ResourceTrashItems", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> GetTrash() 
+        {
+            try 
+            {
+                // Fetch trash
+                ResourceTrashItem[] items = await resourceManager.GetAllResourceTrashItemsAsync();
+
+                // Return result
+                return Ok(new ApiResponse(true, $"Found {items.Length} items", items));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Failed to fetch resource trash");
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        #endregion
+
         
         #region Helper Functions
         // ---------------------------

@@ -39,6 +39,7 @@ namespace KnowledgeBank.Data
         
         public DbSet<ResourceGridItem> ResourceGridItems { get; set; }
         public DbSet<ResourceGridSearchResult> ResourceGridSearchResults { get; set; }
+        public DbSet<ResourceTrashItem> ResourceTrashItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -124,6 +125,13 @@ namespace KnowledgeBank.Data
             modelBuilder.Entity<ResourceRegionRelation>()
                 .HasIndex(rr => rr.RegionId)
                 .HasDatabaseName("idx_resource_region_region_id");
+
+            // Resource trash view
+            modelBuilder.Entity<ResourceTrashItem>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToView("resourcetrashview");
+            });
 
             base.OnModelCreating(modelBuilder);
         }

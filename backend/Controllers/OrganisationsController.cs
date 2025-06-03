@@ -67,6 +67,86 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
 
+        #region Trash
+        /// <summary>
+        /// Trashes an organisation
+        /// </summary>
+        /// <param name="id">The ID of the organisation</param>
+        [HttpPatch("trash/{id}")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Trashes an organisation.")]
+        [SwaggerResponse(200, "Organisation trashed successfully", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Trash(string id) 
+        {
+            // Check if the ID is valid
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID."));
+                
+            try 
+            {
+                // Check if the organisation exists
+                if (!await resourceManager.OrganisationExistsAsync(id))
+                    return NotFound(new ApiResponse(false, $"Organisation with ID '{id}' does not exist."));
+
+                logger.Information("Trashing organisation with ID: {ID}", id);
+                    
+                // Trash the organisation
+                await resourceManager.TrashOrganisationAsync(id);
+
+                logger.Information("Trashed organisation with ID '{ID}' successfully.", id);
+                return Ok(new ApiResponse(true, "Organisation trashed successfully."));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error trashing organisation with ID {ID}.", id);
+                return StatusCode(500, new ApiResponse(false, "Error trashing organisation", e.Message));
+            }
+        }
+        #endregion
+
+        #region Untrash
+        /// <summary>
+        /// Untrashes an organisation
+        /// </summary>
+        /// <param name="id">The ID of the organisation</param>
+        [HttpPatch("untrash/{id}")]
+        [Authorize(Policy = "RequireAdminRole")]
+        [SwaggerOperation(Summary = "Untrashes an organisation.")]
+        [SwaggerResponse(200, "Organisation untrashed successfully", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Untrash(string id) 
+        {
+            // Check if the ID is valid
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID."));
+                
+            try 
+            {
+                // Check if the organisation exists
+                if (!await resourceManager.OrganisationExistsAsync(id))
+                    return NotFound(new ApiResponse(false, $"Organisation with ID '{id}' does not exist."));
+
+                logger.Information("Untrashing organisation with ID: {ID}", id);
+                    
+                // Untrash the organisation
+                await resourceManager.UntrashOrganisationAsync(id);
+
+                logger.Information("Untrashed organisation with ID '{ID}' successfully.", id);
+                return Ok(new ApiResponse(true, "Organisation untrashed successfully."));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error untrashing organisation with ID {ID}.", id);
+                return StatusCode(500, new ApiResponse(false, "Error untrashing organisation", e.Message));
+            }
+        }
+        #endregion
+        
         #region Delete
         /// <summary>
         /// Deletes an organisation

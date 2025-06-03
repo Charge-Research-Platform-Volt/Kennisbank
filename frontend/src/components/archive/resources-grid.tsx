@@ -103,7 +103,7 @@ export default function ResourcesGrid()
             
             // Fetch the data from the backend
             const response = trashOpen ?
-                await fetch(`/api/resources/list?properties=${encodeURIComponent('Id as id,"resource" as type,Title as name,PublicationDate,FileExt as fileType,TrashDate as trashDate')}&trash=true`, 
+                await fetch(`/api/resources/trash-grid`, 
                 {
                     credentials: 'include',
                 })
@@ -243,7 +243,7 @@ export default function ResourcesGrid()
             return (
                 <div className="flex w-full h-full items-center justify-center">
                     { params.data.type === 'resource' && <OpenFileButton id={params.data.id} fileType={params.data.fileType} asIcon={true} />}
-                    {trashOpen && <Button variant="ghost" className="hover:bg-gray-200" onClick={async () => { await UntrashResource(params.data.id); await fetchData(); } }><RestoreIcon className="h-10 w-10 text-gray-500" style={{ width: '23px', height: '23px', minWidth: '23px', minHeight: '23px' }} /></Button> }
+                    {trashOpen && <Button variant="ghost" className="hover:bg-gray-200" onClick={async () => { await UntrashResource(params.data.id, params.data.type); await fetchData(); } }><RestoreIcon className="h-10 w-10 text-gray-500" style={{ width: '23px', height: '23px', minWidth: '23px', minHeight: '23px' }} /></Button> }
                 </div>
             )
         }

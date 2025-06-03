@@ -15,15 +15,15 @@ import ConfirmDeleteDialog from "@/components/ui/confirm-delete-dialog"
 import { toast } from "sonner"
 import { ApiResponse } from "@/types/apiResponse.type"
 import { useArchive } from "@/context/archive-provider"
-import Divider from "../divider"
 import Edit from "./Edit";
+import { TrashResource } from "@/actions/trashResourceActions"
 
 
 export function ResourceContent()
 {
-    const { currentId, rightSidebarOpen, currentType, setRightSidebarOpen } = useSidebar();
+    const { currentId, rightSidebarOpen, setRightSidebarOpen } = useSidebar();
     const { userRole } = useUserRole();
-    const { triggerGridReload } = useArchive();
+    const { triggerGridReload, trashOpen } = useArchive();
     const [confirmDialogOpen, setConfirmDialogOpen] = useState<boolean>(false);
 
     const [ fileType, setFileType] = useState<string | null>(null);
@@ -318,26 +318,10 @@ export function ResourceContent()
     
     const confirmDelete = async () => 
     {
-        const response = await fetch(`/api/resources/trash/${currentId}`, { method: 'PATCH', credentials: 'include' });
-        
-        if (!response.ok) 
-        {
-            toast.error("Error Deleting Resource");
-            return;
-        }
-        
-        const data: ApiResponse = await response.json();
-        
-        if (data.success) 
+        if (await TrashResource(currentId, MetadataTypeEnum.RESOURCE)) 
         {
             setRightSidebarOpen(false);
             triggerGridReload();
-            toast.success("Successfully Deleted Resource")
-        }
-        else 
-        {
-            toast.error("Error Deleting Resource");
-            console.error(data.message);
         }
     }
 
@@ -413,7 +397,7 @@ export function ResourceContent()
                 {license || <Skeleton />}
             </Expandable>
 
-            { userRole === 'admin' &&
+            { userRole === 'admin' && !trashOpen &&
                 <div className="w-full flex justify-center mt-10">
                     <Button onClick={() => setConfirmDialogOpen(true)} variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600">Delete Resource</Button>
                 </div>

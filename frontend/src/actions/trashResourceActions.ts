@@ -1,11 +1,15 @@
 "use client";
 
+import { MetadataTypeEnum } from "@/context/sidebar-provider";
 import { toast } from "sonner";
 
-export const TrashResource = async (id: string) => {
-    try {
+export const TrashResource = async (id: string, type: MetadataTypeEnum) =>
+{
+    try
+    {
         // Send the data to the backend.
-        const response : Response = await fetch(`/api/Resources/trash/${encodeURIComponent(id)}`, {
+        const response : Response = await fetch(`/api/${type}s/trash/${encodeURIComponent(id)}`,
+        {
             method: "PATCH",
             credentials: "include",
         });
@@ -13,33 +17,31 @@ export const TrashResource = async (id: string) => {
         const data = await response.json();
 
         // Check if the request was successful, if not, return an error.
-        if (!response.ok) {
+        if (!response.ok)
+        {
             console.log("Something failed");
             console.log(data);
-            return {
-                success: false,
-                message: data.message,
-            };
+            toast.error("Error while deleting, try again.");
+            return false;
         }
-
-        return {
-            success: true,
-            message: data.message,
-        };
-    } catch (error) {
-        //Log.error(`An error occurred: ${error}`);
+        
+        toast.success("Successfully deleted");
+        
+        return true;
+    }
+    catch (error) 
+    {
         console.log(error);
-        return {
-            success: false,
-            message: "An error occurred.",
-        };
+        return false;
     }
 };
 
-export const UntrashResource = async (id: string) => {
-    try {
+export const UntrashResource = async (id: string, type: MetadataTypeEnum) => {
+    try 
+    {
         // Send the data to the backend.
-        const response : Response = await fetch(`/api/resources/untrash/${encodeURIComponent(id)}`, {
+        const response : Response = await fetch(`/api/${type}s/untrash/${encodeURIComponent(id)}`,
+        {
             method: "PATCH",
             credentials: "include",
         });
@@ -47,28 +49,21 @@ export const UntrashResource = async (id: string) => {
         const data = await response.json();
 
         // Check if the request was successful, if not, return an error.
-        if (!response.ok) {
+        if (!response.ok)
+        {
             console.log("Something failed");
             console.log(data);
-            return {
-                success: false,
-                message: data.message,
-            };
+            toast.error("Error while restoring, try again.");
+            return false;
         }
 
-        toast.success("Successfully Restored Resource");
-        
-        return {
-            success: true,
-            message: data.message,
-        };
-    } catch (error) {
-        //Log.error(`An error occurred: ${error}`);
+        toast.success("Successfully restored");
+        return true;
+    }
+    catch (error)
+    {
         console.log(error);
-        return {
-            success: false,
-            message: "An error occurred.",
-        };
+        return false;
     }
 };
 

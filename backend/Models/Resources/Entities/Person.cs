@@ -31,6 +31,12 @@ public class Person
     [Column("creation-date")]
     public required DateTime CreationDate { get; set; }
 
+    [Column("trashed")]
+    public bool Trashed { get; set; } = false;
+
+    [Column("trash-date")]
+    public DateTime? TrashDate { get; set; } = null;
+
     // Navigation property for the Author Resource Relation (1:m)
     [JsonIgnore] public ICollection<ResourceAuthorRelation>? ResourceAuthorRelations { get; set; }
     [JsonIgnore] public ICollection<PersonOrganisationRelation>? PersonOrganisationRelations { get; set; }

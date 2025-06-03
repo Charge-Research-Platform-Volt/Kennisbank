@@ -66,6 +66,86 @@ namespace KnowledgeBank.Controllers
             }
         }
         #endregion
+        
+        #region Trash
+        /// <summary>
+        /// Trashes a person
+        /// </summary>
+        /// <param name="id">The ID of the person</param>
+        [HttpPatch("trash/{id}")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Trashes a person.")]
+        [SwaggerResponse(200, "Person trashed successfully", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Person not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Trash(string id) 
+        {
+            // Check if the ID is valid
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID."));
+                
+            try 
+            {
+                // Check if the person exists
+                if (!await resourceManager.PersonExistsAsync(id))
+                    return NotFound(new ApiResponse(false, $"Person with ID '{id}' does not exist."));
+
+                logger.Information("Trashing person with ID: {ID}", id);
+                    
+                // Trash the person
+                await resourceManager.TrashPersonAsync(id);
+
+                logger.Information("Trashed person with ID '{ID}' successfully.", id);
+                return Ok(new ApiResponse(true, "Person trashed successfully."));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error trashing person with ID {ID}.", id);
+                return StatusCode(500, new ApiResponse(false, "Error trashing person", e.Message));
+            }
+        }
+        #endregion
+
+        #region Untrash
+        /// <summary>
+        /// Untrashes a person
+        /// </summary>
+        /// <param name="id">The ID of the person</param>
+        [HttpPatch("untrash/{id}")]
+        [Authorize(Policy = "RequireAdminRole")]
+        [SwaggerOperation(Summary = "Untrashes a person.")]
+        [SwaggerResponse(200, "Person untrashed successfully", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Person not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Untrash(string id) 
+        {
+            // Check if the ID is valid
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID."));
+                
+            try 
+            {
+                // Check if the person exists
+                if (!await resourceManager.PersonExistsAsync(id))
+                    return NotFound(new ApiResponse(false, $"Person with ID '{id}' does not exist."));
+
+                logger.Information("Untrashing person with ID: {ID}", id);
+                    
+                // Untrash the person
+                await resourceManager.UntrashPersonAsync(id);
+
+                logger.Information("Untrashed person with ID '{ID}' successfully.", id);
+                return Ok(new ApiResponse(true, "Person untrashed successfully."));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error untrashing person with ID {ID}.", id);
+                return StatusCode(500, new ApiResponse(false, "Error untrashing person", e.Message));
+            }
+        }
+        #endregion
 
         #region Delete
         /// <summary>

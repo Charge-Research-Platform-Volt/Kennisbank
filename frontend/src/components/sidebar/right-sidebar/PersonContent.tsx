@@ -7,10 +7,19 @@ import Skeleton from 'react-loading-skeleton'
 import Expandable from "./expandable"
 import BadgeList, { ListItem } from "./BadgeList";
 import Edit from "./Edit";
+import ConfirmDeleteDialog from "@/components/ui/confirm-delete-dialog";
+import { TrashResource } from "@/actions/trashResourceActions";
+import { useUserRole } from "@/context/user-role-context";
+import { useArchive } from "@/context/archive-provider";
+import { Button } from "@/components/ui/button";
 
 export function PersonContent() 
 {
-    const { currentId, rightSidebarOpen } = useSidebar();
+    const { currentId, rightSidebarOpen, setRightSidebarOpen } = useSidebar();
+    const { userRole } = useUserRole();
+    const { triggerGridReload, trashOpen } = useArchive();
+    const [confirmDialogOpen, setConfirmDialogOpen] = useState<boolean>(false);
+    
     const [ name, setName ] = useState<string | null>(null);  
     const [ description, setDescription ] = useState<string | null>(null);
     const [ occupation, setOccupation ] = useState<string | null>(null);
@@ -149,9 +158,20 @@ export function PersonContent()
             console.error("Error loading person information: ", error);
         });  
     }
+    
+    const confirmDelete = async () => 
+    {
+        if (await TrashResource(currentId, MetadataTypeEnum.PERSON)) 
+        {
+            setRightSidebarOpen(false);
+            triggerGridReload();
+        }
+    }
 
     return (
         <>
+            <ConfirmDeleteDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen} onConfirmation={confirmDelete} />
+        
             <h1 className="pb-2 font-bold select-none text-2xl">{name || <Skeleton />}</h1>
             {occupation ? (
             <div className="flex justify-between flex-1">
@@ -189,6 +209,12 @@ export function PersonContent()
             <Expandable editButton={<Edit setNewText={setEmail} currentText={email} property="emailAddress" />} title="Email Address" collapsedHeight={100}>
                 {email || <Skeleton />}
             </Expandable>
+            
+            { userRole === 'admin' && !trashOpen &&
+                <div className="w-full flex justify-center mt-10">
+                    <Button onClick={() => setConfirmDialogOpen(true)} variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600">Delete Person</Button>
+                </div>
+            }
         </>
     )
 }
