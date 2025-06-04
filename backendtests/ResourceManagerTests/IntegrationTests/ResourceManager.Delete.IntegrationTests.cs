@@ -115,13 +115,15 @@ public class ResourceManagerDeleteTests : TestBase
         PersonCreateDto testPersonDto = new PersonCreateDto
         {
             Name = "Delete Test Author",
-            Occupation = "Test Occupation"
+            Occupation = "Test Occupation",
+            CreationDate = DateTime.UtcNow,
         };
         Guid testPersonId = await _resourceManager.CreatePersonAsync(testPersonDto);
 
         OrganisationCreateDto testOrganisationDto = new OrganisationCreateDto
         {
-            Name = "Delete Test Organisation"
+            Name = "Delete Test Organisation",
+            CreationDate = DateTime.UtcNow,
         };
         Guid testOrganisationId = await _resourceManager.CreateOrganisationAsync(testOrganisationDto);
 
@@ -190,7 +192,8 @@ public class ResourceManagerDeleteTests : TestBase
         PersonCreateDto personDto = new PersonCreateDto
         {
             Name = "Person To Delete",
-            Occupation = "Test Delete"
+            Occupation = "Test Delete",
+            CreationDate = DateTime.UtcNow,
         };
         Guid personId = await _resourceManager.CreatePersonAsync(personDto);       
         // Create a resource with this person as author
@@ -233,7 +236,8 @@ public class ResourceManagerDeleteTests : TestBase
         // Arrange
         OrganisationCreateDto orgDto = new OrganisationCreateDto
         {
-            Name = "Organisation To Delete"
+            Name = "Organisation To Delete",
+            CreationDate = DateTime.UtcNow,
         };
         Guid orgId = await _resourceManager.CreateOrganisationAsync(orgDto);
         

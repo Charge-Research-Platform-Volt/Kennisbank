@@ -170,13 +170,15 @@ public class ResourceManagerCreateTests : TestBase
         PersonCreateDto testPersonDto = new PersonCreateDto
         {
             Name = "Test Name",
-            Occupation = "Test Occupation"
+            Occupation = "Test Occupation",
+            CreationDate = DateTime.UtcNow,
         };
         Guid testPersonId = await resourceManager.CreatePersonAsync(testPersonDto);
 
         OrganisationCreateDto testOrganisationDto = new OrganisationCreateDto
         {
-            Name = "Utrecht University"
+            Name = "Utrecht University",
+            CreationDate = DateTime.UtcNow,
         };
         Guid testOrganisationId = await resourceManager.CreateOrganisationAsync(testOrganisationDto);
 

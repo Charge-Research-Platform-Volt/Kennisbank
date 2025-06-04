@@ -55,7 +55,8 @@ public class PersonsControllerTests : TestBase
         {
             Name = "New Test person",
             Description = "This is a new test person",
-            Occupation = "Developer"
+            Occupation = "Developer",
+            CreationDate = DateTime.UtcNow,
         };
 
         // Act
@@ -87,7 +88,8 @@ public class PersonsControllerTests : TestBase
         {
             Name = "", // Empty name
             Description = "This person has no name",
-            Occupation = "Developer"
+            Occupation = "Developer",
+            CreationDate = DateTime.UtcNow,
         };
 
         // Act
@@ -117,7 +119,8 @@ public class PersonsControllerTests : TestBase
         {
             Name = "Person To Delete",
             Description = "This person will be deleted",
-            Occupation = "Developer"
+            Occupation = "Developer",
+            CreationDate = DateTime.UtcNow,
         };
         
         OkObjectResult? createResult = await _controller.New(dto) as OkObjectResult;
@@ -531,7 +534,8 @@ public class PersonsControllerTests : TestBase
             {
                 Name = $"Paged Person {i}",
                 Description = $"This is paged person {i}",
-                Occupation = $"Developer{i}"
+                Occupation = $"Developer{i}",
+                CreationDate = DateTime.UtcNow,
             };
             await _controller.New(dto);
         }

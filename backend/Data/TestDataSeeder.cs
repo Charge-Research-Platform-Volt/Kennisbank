@@ -48,7 +48,8 @@ namespace KnowledgeBank.Data
                     Description = record.Description,
                     Website = record.Website,
                     EmailAddress = record.EmailAddress,
-            });
+                    CreationDate = DateTime.UtcNow,
+                });
             
             foreach (OrganisationCreateDto dto in organisationDtos)
             {
@@ -75,8 +76,9 @@ namespace KnowledgeBank.Data
                     Occupation = record.Occupation,
                     Description = record.Description,
                     EmailAddress = record.EmailAddress,
-                    Linkedin = record.Linkedin
-            });
+                    Linkedin = record.Linkedin,
+                    CreationDate = DateTime.UtcNow,
+                });
             
             // Go through all records and create the persons
             for (int i = 0; i < csvRecords.Count; i++) 

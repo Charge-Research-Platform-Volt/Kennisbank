@@ -55,7 +55,8 @@ public class OrganisationsControllerTests : TestBase
         {
             Name = "New Test Organisation",
             Description = "This is a new test organisation",
-            Website = "https://newtestorg.example.com"
+            Website = "https://newtestorg.example.com",
+            CreationDate = DateTime.UtcNow,
         };
 
         // Act
@@ -87,7 +88,8 @@ public class OrganisationsControllerTests : TestBase
         {
             Name = "", // Empty name
             Description = "This organisation has no name",
-            Website = "https://noname.example.com"
+            Website = "https://noname.example.com",
+            CreationDate = DateTime.UtcNow,
         };
 
         // Act
@@ -102,11 +104,11 @@ public class OrganisationsControllerTests : TestBase
         Assert.That(response.Success, Is.False);
         Assert.That(response.Message, Is.EqualTo("No name was given"));
     }
-    
+
     #endregion
-    
+
     #region Delete Tests
-    
+
     [Test]
     [Description("Delete removes an organisation successfully")]
     public async Task Delete_ExistingOrganisation_DeletesOrganisation()
@@ -532,7 +534,8 @@ public class OrganisationsControllerTests : TestBase
             {
                 Name = $"Paged Organisation {i}",
                 Description = $"This is paged organisation {i}",
-                Website = $"https://paged{i}.example.com"
+                Website = $"https://paged{i}.example.com",
+                CreationDate = DateTime.UtcNow,
             };
             await _controller.New(dto);
         }
