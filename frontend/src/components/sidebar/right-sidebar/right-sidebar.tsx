@@ -10,6 +10,8 @@ import { OrganisationContent } from "./OrganisationContent";
 import { Button } from "@/components/ui/button";
 import { openFile } from "@/actions/openFileActions";
 import HideMenu from "@/icons/menu/hide-menu";
+import { Calendar, Clock } from "lucide-react";
+import ShowDate from './showDate';
 
 /**
  *
@@ -17,7 +19,7 @@ import HideMenu from "@/icons/menu/hide-menu";
  */
 export default function RightSidebar()
 {
-  	const { currentType, currentId, navigateBack, navigateForward, setRightSidebarOpen, isEmptyPrevs, isEmptyNexts } = useSidebar();
+  	const { currentType, creationDate, publicationDate, rightSidebarOpen, currentId, navigateBack, navigateForward, setRightSidebarOpen, isEmptyPrevs, isEmptyNexts } = useSidebar();
 
 	const handleOpenClick = () => 
 	{
@@ -30,6 +32,8 @@ export default function RightSidebar()
 		}
 	}).catch();
 	}
+
+	
 
   	return (
 		<Sidebar side="right" width="40rem" collapsible="offcanvas">
@@ -66,10 +70,34 @@ export default function RightSidebar()
 			
 			{/* Footer */}
 			<div className="w-full flex justify-center mt-3">
-				{/* Fade */}
-				<div className="absolute bottom-0 right-0 w-full h-15 pointer-events-none" style={{ background: `linear-gradient(to top, rgba(249, 250, 251, 1), transparent)` }} />
-				
+				{/* Fade 
+				<div className="absolute bottom-0 right-0 w-full h-15 pointer-events-none" style={{ background: `linear-gradient(to bottom, rgba(249, 250, 251, 1), transparent)` }} />
+				*/}
+
 				{/* ADD FOOTER CONTENT HERE */}
+				{publicationDate && creationDate ? (
+					<div className="flex items-center justify-between gap-4 text-sm text-gray-700 mb-2">
+						<ShowDate date={creationDate}
+								  text="Created"
+								  icon={<Clock className="w-4 h-4 flex-shrink-0 text-gray-700" />}
+								  cName="flex items-center gap-2 min-w-0"/>
+
+						<div className="w-px h-8 bg-gray-200" />
+						<ShowDate date={publicationDate}
+								text="Published"
+								icon={<Calendar className="w-4 h-4 flex-shrink-0 text-gray-700"/>}
+								cName="flex items-center gap-2 min-w-0"/>
+					</div>
+				) : creationDate && (
+					<div className="flex items-center justify-between gap-4 text-sm text-gray-700 mb-2">
+						<ShowDate date={creationDate}
+									text="Created"
+									icon={<Clock className="w-4 h-4 flex-shrink-0 text-gray-700" />}
+									cName="flex items-center gap-2 min-w-0"/>
+					</div>
+				)
+				}
+
 			</div>
 		</Sidebar>
 	);

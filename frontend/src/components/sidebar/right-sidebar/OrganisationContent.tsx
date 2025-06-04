@@ -15,20 +15,19 @@ import ConfirmDeleteDialog from "@/components/ui/confirm-delete-dialog";
 
 export function OrganisationContent() 
 {
-    const { currentId, rightSidebarOpen, setRightSidebarOpen } = useSidebar();
+    const { currentId, rightSidebarOpen, setRightSidebarOpen, setCreationDate, setPublicationDate } = useSidebar();
     const { userRole } = useUserRole();
     const { triggerGridReload, trashOpen } = useArchive();
     const [confirmDialogOpen, setConfirmDialogOpen] = useState<boolean>(false);
     
     const [ name, setName ] = useState<string | null>(null);
-    const [ url, setUrl ] = useState<string | undefined>(undefined);
+    const [ website, setWebsite ] = useState<string | undefined>(undefined);
     const [ description, setDescription ] = useState<string | null>(null);
     const [ resources, setResources ] = useState<ListItem[] | null>(null);
     const [ relatedResources, setRelatedResources ] = useState<ListItem[] | null>(null);
     const [ organisations, setOrganisations ] = useState<ListItem[] | null>(null);
     const [ persons, setPersons ] = useState<ListItem[] | null>(null);
     const [ email, setEmail ] = useState<string | null>(null);
-    const [ creationDate, setCreationDate ] = useState<Date | null>(null); //ToDo
 
     
     const [resourcesRefresh, setResourcesTrigger] = useState(false);
@@ -44,7 +43,7 @@ export function OrganisationContent()
     React.useEffect(() => {
         if (rightSidebarOpen) {
             setName(null);
-            setUrl(undefined);
+            setWebsite(undefined);
             setDescription(null);
             setResources(null);
             setRelatedResources(null);
@@ -52,6 +51,7 @@ export function OrganisationContent()
             setPersons(null);
             setEmail(null);
             setCreationDate(null);
+            setPublicationDate(null);
 
             loadProperties();
             loadResources();
@@ -66,6 +66,31 @@ export function OrganisationContent()
     useEffect(() => { if (rightSidebarOpen) { setOrganisations(null); loadOrganisations(); } }, [organistationsRefresh]);
     useEffect(() => { if (rightSidebarOpen) { setPersons(null); loadPersons(); } }, [personsRefresh]);
     
+    const loadProperties = async () => {
+        const infoPromise = getProperties(currentId, MetadataTypeEnum.ORGANISATION);
+
+        infoPromise.then(response => {
+            setName(response.body.name);
+            if (response.body.website) {
+                setWebsite(response.body.website);
+            }
+            else( setWebsite(undefined))
+            if (response.body.description) {
+                setDescription(response.body.description);
+            }
+            else {setDescription("No Description")}
+            if (response.body.emailAddress) {
+                setEmail(response.body.emailAddress);
+            }
+            else { setEmail("No Email")}
+
+            setCreationDate(response.body.creationDate);
+
+        }).catch(error => {
+            console.error("Error loading organisation information:", error);
+        })
+    }
+
     const loadResources = async () => {
         const resourcesPromise = getRelation(currentId, MetadataTypeEnum.ORGANISATION, "direct-resources");
 
@@ -125,31 +150,6 @@ export function OrganisationContent()
             console.error("Error loading related persons: ", error);
         });
     }
-
-    const loadProperties = async () => {
-        const infoPromise = getProperties(currentId, MetadataTypeEnum.ORGANISATION);
-
-        infoPromise.then(response => {
-            setName(response.body.name);
-            if (response.body.website) {
-                setUrl(response.body.website);
-            }
-            else( setUrl("No Website"))
-            if (response.body.description) {
-                setDescription(response.body.description);
-            }
-            else {setDescription("No Description")}
-            if (response.body.emailAddress) {
-                setEmail(response.body.emailAddress);
-            }
-            else { setEmail("No Email")}
-
-            setCreationDate(response.body.creationDate);
-
-        }).catch(error => {
-            console.error("Error loading organisation information:", error);
-        })
-    }
     
     const confirmDelete = async () => 
     {
@@ -165,14 +165,16 @@ export function OrganisationContent()
             <ConfirmDeleteDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen} onConfirmation={confirmDelete} />
         
             <h1 className="pb-2 font-bold select-none text-2xl">{name || <Skeleton />}</h1>
-            <a href={url} className="select-none" target="_blank" rel="noreferror">
-                <h1 className="mb-8 select-none text-blue-500 underline">{url || <Skeleton />}</h1>
-            </a>
-
-            {url ? (
+            {name ? (
                 <div className="flex justify-between flex-1">
-                    <h2 className="mb-2 select-none">{url}</h2>
-                    <div className="flex justify-end"><Edit setNewText={setUrl} currentText={url} property="url" /></div>
+                    {website ? (
+                        <a href={website} className="select-none" target="_blank" rel="noreferror">
+                            <h1 className="mb-2 select-none text-blue-500 underline">{website}</h1>
+                        </a>
+                    ) : (
+                        <h1 className="mb-2 select-none">No Website</h1>
+                    )}
+                    <div className="flex justify-end"><Edit setNewText={setWebsite} currentText={website ? (website) : ""} property="website" /></div>
                 </div>) : (<Skeleton />) }
 
             <Expandable editButton={<Edit setNewText={setDescription} currentText={description} property="description" />} title="Description" collapsedHeight={100}>

@@ -34,6 +34,12 @@ export type SidebarContextType =
     rightSidebarOpen: boolean;
     setRightSidebarOpen: (open: boolean) => void;
     toggleRightSidebar: () => void;
+
+    // Creation date and Publication date (so they can be accessed in the Right Sidebar footer)
+    creationDate: Date | null;
+    setCreationDate: (date: Date | null) => void;
+    publicationDate: Date | null;
+    setPublicationDate : (date: Date | null) => void;
 };
 
 // This context is used to manage the state of the sidebar
@@ -58,6 +64,10 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
     // State for the selected item
     const [currentId, setCurrentId] = React.useState<string>(searchParams.get('id') || '');
     const [currentType, setCurrentType] = React.useState<MetadataTypeEnum>(MetadataTypeEnum.RESOURCE);
+
+    // Creation Date and Publication Date (so they can be accessed in the Right Sidebar footer)
+    const [creationDate, setCreationDate] = React.useState<Date | null>(null)
+    const [publicationDate, setPublicationDate] = React.useState<Date | null>(null)
     
     // States for prevs and nexts stacks
     const [prevs] = React.useState(() => new Stack<[string, MetadataTypeEnum]>());
@@ -205,6 +215,12 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
                 rightSidebarOpen,
                 setRightSidebarOpen,
                 toggleRightSidebar,
+
+                //Creation & Publication Date
+                creationDate,
+                publicationDate,
+                setCreationDate,
+                setPublicationDate,
             }}
         >
         {children}

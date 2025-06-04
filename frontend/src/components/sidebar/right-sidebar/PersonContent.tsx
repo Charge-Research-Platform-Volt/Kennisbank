@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 
 export function PersonContent() 
 {
-    const { currentId, rightSidebarOpen, setRightSidebarOpen } = useSidebar();
+    const { currentId, rightSidebarOpen, setRightSidebarOpen, setCreationDate, setPublicationDate } = useSidebar();
     const { userRole } = useUserRole();
     const { triggerGridReload, trashOpen } = useArchive();
     const [confirmDialogOpen, setConfirmDialogOpen] = useState<boolean>(false);
@@ -27,9 +27,8 @@ export function PersonContent()
     const [ related, setRelated ] = useState<ListItem[] | null>(null); 
     const [ persons, setPersons ] = useState<ListItem[] | null>(null); 
     const [ organisations, setOrganisations ] = useState<ListItem[] | null>(null); 
-    const [ email, setEmail ] = useState<string | null>(null); //ToDo
-    const [ linkedIn, setLinkedIn ] = useState<string | undefined>(undefined); //ToDo
-    const [ creationDate, setCreationDate ] = useState<Date | null>(null); //ToDo
+    const [ email, setEmail ] = useState<string | null>(null);
+    const [ linkedIn, setLinkedIn ] = useState<string | undefined>(undefined);
 
     const [authoredRefresh, setAuthoredTrigger] = useState(false);
     const triggerAuthoredRefresh = () => setAuthoredTrigger(prev => !prev);   
@@ -58,6 +57,7 @@ export function PersonContent()
             setEmail(null);
             setLinkedIn(undefined);
             setCreationDate(null);
+            setPublicationDate(null);
 
             loadProperties();
             loadAuthored();
