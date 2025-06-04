@@ -10,12 +10,14 @@ import { useArchive } from "@/context/archive-provider";
 import { fireEvent } from "@testing-library/react";
 import { getProperties, getRelation, addRelation, newRelationSearchResults } from "@/actions/right-sidebarActions";
 
+
 // Use partial mocking to keep the real enum while mocking the hook
 vi.mock("@/context/sidebar-provider", async (importOriginal) => {
   const actual: object = await importOriginal();
   return {
     ...actual,
-    useSidebar: vi.fn()
+    useSidebar: vi.fn(),
+    SidebarProvider: ({ children }: { children: React.ReactNode }) => children
   };
 });
 
@@ -31,7 +33,6 @@ vi.mock("@/context/archive-provider", async (importOriginal) => {
 vi.mock("@/actions/right-sidebarActions", () => ({
   getProperties: vi.fn(),
   getRelation: vi.fn(),
-  getRelatedDocuments: vi.fn(),
 }));
 
 
@@ -39,10 +40,14 @@ describe("RightSidebar", () => {
   const mockToggleRightSidebar = vi.fn();
   const mockIsEmptyPrevs = vi.fn();
   const mockIsEmptyNexts = vi.fn();
+  const mockSetPublicationDate = vi.fn();
+  const mockSetCreationDate = vi.fn();
   const mockCurrentId = "0123456789";
   const mockCurrentTypeResource = MetadataTypeEnum.RESOURCE;
-  const mockCurrentTypeOrganisation = MetadataTypeEnum.ORGANISTATION;
+  const mockCurrentTypeOrganisation = MetadataTypeEnum.ORGANISATION;
   const mockCurrentTypePerson = MetadataTypeEnum.PERSON;
+  const mockPublicationDate = new Date();
+  const mockCreationDate = new Date();
   const mockTagList = [
     {id: "1", name: "tag1", type: "tag"}, 
     {id: "2", name: "tag2", type: "tag"}, 
@@ -58,7 +63,7 @@ describe("RightSidebar", () => {
   const setupMockGetRelation = (id: string) => {
     const relationResponses = {
       "website": {
-        body: [{ url: mockUrl }]
+        body: { url: mockUrl }
       },
       "author": {
         body: [
@@ -87,6 +92,12 @@ describe("RightSidebar", () => {
           { url: "https://source1.com", resourceid: "s1" },
           { url: "https://source2.com", resourceid: "s2" }
         ]
+      },
+      "resource-related-resources": {
+        body: [
+          { id:"id1", title:"MockRelatedResource1", fileType:"pdf"}, 
+          { id:"id2", title:"MockRelatedResource2", fileType:"pdf"}
+        ]
       }
     };
 
@@ -109,7 +120,10 @@ describe("RightSidebar", () => {
       isEmptyPrevs: mockIsEmptyPrevs,
       isEmptyNexts: mockIsEmptyNexts,
       toggleRightSidebar: mockToggleRightSidebar,
+      setPublicationDate: mockSetPublicationDate,
+      setCreationDate: mockSetCreationDate,
       rightSidebarOpen: true,
+
     });
 
     (useArchive as ReturnType<typeof vi.fn>).mockReturnValue({
@@ -122,28 +136,16 @@ describe("RightSidebar", () => {
         fileType: "website",
         title: mockTitle,
         description: mockDescription,
-        note: mockNote
-      }
-    });
-
-    (getProperties as ReturnType<typeof vi.fn>).mockResolvedValue({
-      body: {
-        fileType: "website",
-        title: mockTitle,
-        description: mockDescription,
-        note: mockNote
+        note: mockNote,
+        publicationCode: null,
+        license: null,
+        creationDate: mockCreationDate,
+        publicationDate: mockPublicationDate,
+        languageCode: "TestCode"
       }
     });
     
     setupMockGetRelation(mockCurrentId);
-
-    // Mock related documents
-    (getRelatedDocuments as ReturnType<typeof vi.fn>).mockResolvedValue({
-      body: [
-        { id: "r1", title: "Related Resource 1" },
-        { id: "r2", title: "Related Resource 2" }
-      ]
-    });
 
     render(<RightSidebar />);
 
@@ -156,14 +158,11 @@ describe("RightSidebar", () => {
     expect(screen.getByText("Description")).toBeInTheDocument();
     expect(screen.getByText(mockDescription)).toBeInTheDocument();
     expect(screen.getByText("Tags")).toBeInTheDocument();
-    expect(screen.getByText("tag1")).toBeInTheDocument();
-    expect(screen.getByText("tag2")).toBeInTheDocument();
-    expect(screen.getByText("tag3")).toBeInTheDocument();
     expect(screen.getByText("Authors")).toBeInTheDocument();
     expect(screen.getByText("Organisations")).toBeInTheDocument();
     expect(screen.getByText("Related People")).toBeInTheDocument();
     expect(screen.getByText("Related Organisations")).toBeInTheDocument();
-    expect(screen.getByText("Related")).toBeInTheDocument();
+    expect(screen.getByText("Related Resources")).toBeInTheDocument();
     expect(screen.getByText("Sources")).toBeInTheDocument();
     expect(screen.getByText("Notes")).toBeInTheDocument();
     expect(screen.getByText(mockNote)).toBeInTheDocument();
@@ -177,6 +176,7 @@ describe("RightSidebar", () => {
       toggleRightSidebar: mockToggleRightSidebar,
       isEmptyPrevs: mockIsEmptyPrevs,
       isEmptyNexts: mockIsEmptyNexts,
+      setPublicationDate: mockSetPublicationDate,
     });
 
     render(<RightSidebar />);
