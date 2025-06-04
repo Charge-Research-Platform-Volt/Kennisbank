@@ -49,6 +49,8 @@ public class OrganisationCreateDto
     public string? Description { get; set; }
     public string? Website { get; set; }
     public string? EmailAddress { get; set; }
+
+    public DateTime CreationDate { get; set; }
     // Tuple: (OrganisationId, Relation?)
     public RelatedEntry[] OrganisationRelations { get; set; } = Array.Empty<RelatedEntry>();
 }

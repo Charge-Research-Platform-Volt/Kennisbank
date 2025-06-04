@@ -34,7 +34,8 @@ public class OrganisationsControllerTests : TestBase
             Id = Guid.NewGuid(),
             Name = "Test Organisation",
             Description = "This is a test organisation",
-            Website = "https://testorg.example.com"
+            Website = "https://testorg.example.com",
+            CreationDate = DateTime.UtcNow,
         };
         
         await context.Organisations.AddAsync(testOrganisation);
@@ -116,7 +117,8 @@ public class OrganisationsControllerTests : TestBase
         {
             Name = "Organisation To Delete",
             Description = "This organisation will be deleted",
-            Website = "https://delete.example.com"
+            Website = "https://delete.example.com",
+            CreationDate = DateTime.UtcNow,
         };
         
         OkObjectResult? createResult = await _controller.New(dto) as OkObjectResult;
@@ -434,7 +436,7 @@ public class OrganisationsControllerTests : TestBase
         string organisationId = _existingOrganisationId.ToString();
         
         // Act
-        OkObjectResult? result = await _controller.Info(organisationId) as OkObjectResult;
+        OkObjectResult? result = await _controller.Info(organisationId, null) as OkObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -460,7 +462,7 @@ public class OrganisationsControllerTests : TestBase
         string invalidId = "not-a-valid-guid";
         
         // Act
-        BadRequestObjectResult? result = await _controller.Info(invalidId) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.Info(invalidId, null) as BadRequestObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -480,7 +482,7 @@ public class OrganisationsControllerTests : TestBase
         string nonExistentId = Guid.NewGuid().ToString();
         
         // Act
-        NotFoundObjectResult? result = await _controller.Info(nonExistentId) as NotFoundObjectResult;
+        NotFoundObjectResult? result = await _controller.Info(nonExistentId, null) as NotFoundObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -503,7 +505,7 @@ public class OrganisationsControllerTests : TestBase
         // Arrange - We already have one organization in the database from seed
         
         // Act
-        OkObjectResult? result = await _controller.List(null, null) as OkObjectResult;
+        OkObjectResult? result = await _controller.List(null, null, null, null) as OkObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -539,7 +541,7 @@ public class OrganisationsControllerTests : TestBase
         int pageSize = 3;
         
         // Act
-        OkObjectResult? result = await _controller.List(pageIndex, pageSize) as OkObjectResult;
+        OkObjectResult? result = await _controller.List(pageIndex, pageSize, null, null) as OkObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -563,7 +565,7 @@ public class OrganisationsControllerTests : TestBase
         int pageSize = 10;
         
         // Act
-        BadRequestObjectResult? result = await _controller.List(invalidPageIndex, pageSize) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.List(invalidPageIndex, pageSize, null, null) as BadRequestObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -584,7 +586,7 @@ public class OrganisationsControllerTests : TestBase
         int invalidPageSize = 0;
         
         // Act
-        BadRequestObjectResult? result = await _controller.List(pageIndex, invalidPageSize) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.List(pageIndex, invalidPageSize, null, null) as BadRequestObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);

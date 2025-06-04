@@ -56,7 +56,6 @@ public class ResourceManagerDeleteTests : TestBase
     {
         // Enable extension for text-search-vectors
         await context.Database.ExecuteSqlRawAsync("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
-        await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""resource-vectors"" ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
         await DatabaseSeeder.SeedTemplate(context);
     }
 
@@ -73,7 +72,8 @@ public class ResourceManagerDeleteTests : TestBase
             Description = "This resource will be deleted during the test.",
             TypeId = resourceType.Id.ToString(),
             LanguageCode = "en",
-            PublicationDate = DateTime.UtcNow
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
 
         Guid resourceId = await _resourceManager.CreateResourceAsync(dto);
@@ -141,6 +141,7 @@ public class ResourceManagerDeleteTests : TestBase
             TypeId = type.Id.ToString(),
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
             Tags = [testTagId.ToString()],
             Authors = [testPersonId.ToString()],
             Organisations = [new RelatedEntry { Id = testOrganisationId.ToString(), Relation = "partner" }],
@@ -201,6 +202,7 @@ public class ResourceManagerDeleteTests : TestBase
             TypeId = resourceType.Id.ToString(),
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
             Authors = [personId.ToString()]
         };
         
@@ -244,6 +246,7 @@ public class ResourceManagerDeleteTests : TestBase
             TypeId = resourceType.Id.ToString(),
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
             Organisations = [new RelatedEntry { Id = orgId.ToString(), Relation = "publisher" }]
         };
         
@@ -288,6 +291,7 @@ public class ResourceManagerDeleteTests : TestBase
             TypeId = resourceType.Id.ToString(),
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
             Tags = [tagId.ToString()]
         };
         
@@ -331,6 +335,7 @@ public class ResourceManagerDeleteTests : TestBase
             TypeId = resourceType.Id.ToString(),
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
             Regions = [regionId.ToString()]
         };
         
@@ -368,7 +373,8 @@ public class ResourceManagerDeleteTests : TestBase
             Description = "Testing metadata deletion",
             TypeId = resourceType.Id.ToString(),
             LanguageCode = "en",
-            PublicationDate = DateTime.UtcNow
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow
         };
         
         Guid resourceId = await _resourceManager.CreateResourceAsync(resourceDto);

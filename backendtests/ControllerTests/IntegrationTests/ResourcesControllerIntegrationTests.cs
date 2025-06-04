@@ -9,6 +9,7 @@ using KnowledgeBank.Responses;
 using System.Text;
 using System.Text.Json;
 using Azure.Storage.Blobs.Specialized;
+using System.Security.Claims;
 
 namespace backend.Tests.Integration;
 
@@ -21,10 +22,30 @@ public class ResourcesControllerTests : TestBaseBlob
     private Guid _existingResourceId;
     private Guid _existingFileResourceId;
     private Guid _existingWebsiteResourceId;
+    private ClaimsPrincipal _regularUser;
+    private ClaimsPrincipal _adminUser;
+    private Guid _regularUserId;
+    private Guid _adminUserId;
 
     [SetUp]
     public void SetupController()
     {
+        _regularUserId = Guid.NewGuid();
+        _adminUserId = Guid.NewGuid();
+
+        // Create a regular user
+        _regularUser = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim(ClaimTypes.NameIdentifier, _regularUserId.ToString())],
+            "mock"));
+
+        // Create an admin user
+        _adminUser = new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.NameIdentifier, _adminUserId.ToString()),
+                new Claim(ClaimTypes.Role, "admin")
+            ],
+            "mock"));
+
         _resourceManager = new ResourceManager(Context);
         _controller = new ResourcesController(_resourceManager, BlobService);
     }
@@ -33,7 +54,6 @@ public class ResourcesControllerTests : TestBaseBlob
     {
         // Enable extension for text-search-vectors
         await context.Database.ExecuteSqlRawAsync("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
-        await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""resource-vectors"" ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
         await DatabaseSeeder.SeedTemplate(context);
 
         // Also seed the blob storage
@@ -91,7 +111,8 @@ public class ResourcesControllerTests : TestBaseBlob
             Title = title,
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
-            PublicationDate = DateTime.UtcNow
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
 
         FormFile formFile = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("dummy file content")), 0, 0, "file", "test.txt");
@@ -104,6 +125,7 @@ public class ResourcesControllerTests : TestBaseBlob
                 TypeId = DatabaseSeeder.UnknownResourceTypeId,
                 LanguageCode = "en",
                 PublicationDate = DateTime.UtcNow,
+                CreationDate = DateTime.UtcNow,
                 Url = "https://example.com/large"
             };
                 return new ResourceUploadDto
@@ -118,6 +140,15 @@ public class ResourcesControllerTests : TestBaseBlob
             Dto = JsonSerializer.Serialize(dtoDetails),
             UploadType = uploadType,
             File = formFile
+        };
+    }
+
+    // Mocks switching between users. Need this because some endpoints manually check user
+    private void SetControllerUser(ClaimsPrincipal user)
+    {
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = user }
         };
     }
 
@@ -178,7 +209,8 @@ public class ResourcesControllerTests : TestBaseBlob
             Title = "Test Title",
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
-            PublicationDate = DateTime.UtcNow
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
         ResourceUploadDto uploadDto = new ResourceUploadDto 
         { 
@@ -209,7 +241,8 @@ public class ResourcesControllerTests : TestBaseBlob
             Title = null!, 
             TypeId = "type1", 
             LanguageCode = "en", 
-            PublicationDate = DateTime.UtcNow 
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
         ResourceUploadDto uploadDto = new ResourceUploadDto 
         {
@@ -240,7 +273,8 @@ public class ResourcesControllerTests : TestBaseBlob
             Title = "Test Title", 
             TypeId = null!, 
             LanguageCode = "en", 
-            PublicationDate = DateTime.UtcNow 
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
         ResourceUploadDto uploadDto = new ResourceUploadDto 
         {
@@ -272,7 +306,8 @@ public class ResourcesControllerTests : TestBaseBlob
             Title = "Test Title", 
             TypeId = "type1", 
             LanguageCode = null!, 
-            PublicationDate = DateTime.UtcNow 
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow
         };
         ResourceUploadDto uploadDto = new ResourceUploadDto 
         {
@@ -303,7 +338,8 @@ public class ResourcesControllerTests : TestBaseBlob
             Title = "Test Title", 
             TypeId = "type1", 
             LanguageCode = "en", 
-            PublicationDate = DateTime.MinValue 
+            PublicationDate = DateTime.MinValue,
+            CreationDate = DateTime.UtcNow,
         };
         ResourceUploadDto uploadDto = new ResourceUploadDto 
         {
@@ -753,6 +789,7 @@ public class ResourcesControllerTests : TestBaseBlob
             TypeId = "0cc285a8-0f07-11f0-a0a6-5600051f1387",
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
             Url = "https://www.example.com"
         };
 
@@ -792,6 +829,7 @@ public class ResourcesControllerTests : TestBaseBlob
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
             Url = "not-a-valid-url"
         };
 
@@ -825,6 +863,7 @@ public class ResourcesControllerTests : TestBaseBlob
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
             Url = ""
         };
 
@@ -858,6 +897,7 @@ public class ResourcesControllerTests : TestBaseBlob
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
             Url = "https://example.com"
         };
 
@@ -898,6 +938,7 @@ public class ResourcesControllerTests : TestBaseBlob
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
 
         ResourceUploadDto uDto = new ResourceUploadDto
@@ -942,6 +983,7 @@ public class ResourcesControllerTests : TestBaseBlob
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
 
         string sDto = JsonSerializer.Serialize(dto, new JsonSerializerOptions { WriteIndented = true });
@@ -980,6 +1022,7 @@ public class ResourcesControllerTests : TestBaseBlob
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
 
         ResourceUploadDto uDto = new ResourceUploadDto
@@ -1016,6 +1059,7 @@ public class ResourcesControllerTests : TestBaseBlob
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
 
         ResourceUploadDto uDto = new ResourceUploadDto
@@ -1138,12 +1182,16 @@ public class ResourcesControllerTests : TestBaseBlob
         string fileName = "file-to-delete.txt";
         MemoryStream fileStream = new MemoryStream(Encoding.UTF8.GetBytes("This file will be deleted"));
 
+        // Set user to admin
+        SetControllerUser(_adminUser);
+
         FileResourceCreateDto dto = new FileResourceCreateDto
         {
             Title = "Delete Test File",
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
 
         ResourceUploadDto uDto = new ResourceUploadDto
@@ -1189,6 +1237,9 @@ public class ResourcesControllerTests : TestBaseBlob
         // Arrange
         string invalidId = "not-a-valid-guid";
 
+        // Set user to admin
+        SetControllerUser(_adminUser);
+
         // Act
         BadRequestObjectResult? result = await _controller.Delete(invalidId) as BadRequestObjectResult;
 
@@ -1209,6 +1260,10 @@ public class ResourcesControllerTests : TestBaseBlob
         // Arrange
         string nonExistentId = Guid.NewGuid().ToString();
 
+
+        // Set user to admin
+        SetControllerUser(_adminUser);
+
         // Act
         NotFoundObjectResult? result = await _controller.Delete(nonExistentId) as NotFoundObjectResult;
 
@@ -1226,6 +1281,10 @@ public class ResourcesControllerTests : TestBaseBlob
     [Description("Delete removes a website resource successfully")]
     public async Task Delete_ExistingWebsiteResource_DeletesResource()
     {
+
+        // Set user to admin
+        SetControllerUser(_adminUser);
+
         // Arrange
         // Create a website resource to delete
         WebsiteCreateDto dto = new WebsiteCreateDto
@@ -1234,6 +1293,7 @@ public class ResourcesControllerTests : TestBaseBlob
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
             Url = "https://example.org/delete-me"
         };
 
@@ -1296,7 +1356,7 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(response.Message, Is.EqualTo("Resource updated successfully."));
 
         // Verify the title was updated
-        string updatedTitle = await _resourceManager.GetResourcePropertyAsync(resourceId, r => r.Title);
+        string updatedTitle = await _resourceManager.GetResourcePropertyAsync(resourceId, "Title");
         Assert.That(updatedTitle, Is.EqualTo("Updated Title"));
     }
 
@@ -1418,7 +1478,7 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(response.Message, Is.EqualTo("Resource updated partially."));
 
         // Verify that valid property was updated
-        string updatedTitle = await _resourceManager.GetResourcePropertyAsync(resourceId, r => r.Title);
+        string updatedTitle = await _resourceManager.GetResourcePropertyAsync(resourceId, "Title");
         Assert.That(updatedTitle, Is.EqualTo("Partially Updated Title"));
     }
 
@@ -1501,7 +1561,7 @@ public class ResourcesControllerTests : TestBaseBlob
         string resourceId = _existingResourceId.ToString();
 
         // Act
-        OkObjectResult? result = await _controller.Info(resourceId) as OkObjectResult;
+        OkObjectResult? result = await _controller.Info(resourceId, null) as OkObjectResult;
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -1526,7 +1586,7 @@ public class ResourcesControllerTests : TestBaseBlob
         string invalidId = "not-a-valid-guid";
 
         // Act
-        BadRequestObjectResult? result = await _controller.Info(invalidId) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.Info(invalidId, null) as BadRequestObjectResult;
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -1546,7 +1606,7 @@ public class ResourcesControllerTests : TestBaseBlob
         string nonExistentId = Guid.NewGuid().ToString();
 
         // Act
-        NotFoundObjectResult? result = await _controller.Info(nonExistentId) as NotFoundObjectResult;
+        NotFoundObjectResult? result = await _controller.Info(nonExistentId, null) as NotFoundObjectResult;
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -1570,7 +1630,7 @@ public class ResourcesControllerTests : TestBaseBlob
         int expectedResourceCount = 2;
 
         // Act
-        OkObjectResult? result = await _controller.List(null, null) as OkObjectResult;
+        OkObjectResult? result = await _controller.List(null, null, null, null) as OkObjectResult;
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -1595,7 +1655,7 @@ public class ResourcesControllerTests : TestBaseBlob
         int pageSize = 2;
 
         // Act
-        OkObjectResult? result = await _controller.List(pageIndex, pageSize) as OkObjectResult;
+        OkObjectResult? result = await _controller.List(pageIndex, pageSize, null, null) as OkObjectResult;
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -1620,7 +1680,7 @@ public class ResourcesControllerTests : TestBaseBlob
         int pageSize = 10;
 
         // Act
-        BadRequestObjectResult? result = await _controller.List(invalidPageIndex, pageSize) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.List(invalidPageIndex, pageSize, null, null) as BadRequestObjectResult;
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -1641,7 +1701,7 @@ public class ResourcesControllerTests : TestBaseBlob
         int invalidPageSize = 0;
 
         // Act
-        BadRequestObjectResult? result = await _controller.List(pageIndex, invalidPageSize) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.List(pageIndex, invalidPageSize, null, null) as BadRequestObjectResult;
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -1663,7 +1723,7 @@ public class ResourcesControllerTests : TestBaseBlob
         string invalidId = "not-a-guid";
 
         // Act
-        IActionResult result = await _controller.Archive(invalidId);
+        IActionResult result = await _controller.Trash(invalidId);
 
         // Assert
         BadRequestObjectResult badResult = result as BadRequestObjectResult;
@@ -1683,7 +1743,7 @@ public class ResourcesControllerTests : TestBaseBlob
         string nonExistentId = Guid.NewGuid().ToString();
 
         // Act
-        IActionResult result = await _controller.Archive(nonExistentId);
+        IActionResult result = await _controller.Trash(nonExistentId);
 
         // Assert
         NotFoundObjectResult notFoundResult = result as NotFoundObjectResult;

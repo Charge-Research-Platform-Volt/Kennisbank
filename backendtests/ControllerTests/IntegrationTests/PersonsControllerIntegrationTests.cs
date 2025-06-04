@@ -34,7 +34,8 @@ public class PersonsControllerTests : TestBase
             Id = Guid.NewGuid(),
             Name = "Test Person",
             Description = "This is a test person",
-            Occupation = "Developer"
+            Occupation = "Developer",
+            CreationDate = DateTime.UtcNow,
         };
         
         await context.Persons.AddAsync(testPerson);
@@ -434,7 +435,7 @@ public class PersonsControllerTests : TestBase
         string personId = _existingPersonId.ToString();
         
         // Act
-        OkObjectResult? result = await _controller.Info(personId) as OkObjectResult;
+        OkObjectResult? result = await _controller.Info(personId, null) as OkObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -460,7 +461,7 @@ public class PersonsControllerTests : TestBase
         string invalidId = "not-a-valid-guid";
         
         // Act
-        BadRequestObjectResult? result = await _controller.Info(invalidId) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.Info(invalidId, null) as BadRequestObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -480,7 +481,7 @@ public class PersonsControllerTests : TestBase
         string nonExistentId = Guid.NewGuid().ToString();
         
         // Act
-        NotFoundObjectResult? result = await _controller.Info(nonExistentId) as NotFoundObjectResult;
+        NotFoundObjectResult? result = await _controller.Info(nonExistentId, null) as NotFoundObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -503,7 +504,7 @@ public class PersonsControllerTests : TestBase
         // Arrange - We already have one organization in the database from seed
         
         // Act
-        OkObjectResult? result = await _controller.List(null, null) as OkObjectResult;
+        OkObjectResult? result = await _controller.List(null, null, null, null) as OkObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -539,7 +540,7 @@ public class PersonsControllerTests : TestBase
         int pageSize = 3;
         
         // Act
-        OkObjectResult? result = await _controller.List(pageIndex, pageSize) as OkObjectResult;
+        OkObjectResult? result = await _controller.List(pageIndex, pageSize, null, null) as OkObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -563,7 +564,7 @@ public class PersonsControllerTests : TestBase
         int pageSize = 10;
         
         // Act
-        BadRequestObjectResult? result = await _controller.List(invalidPageIndex, pageSize) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.List(invalidPageIndex, pageSize, null, null) as BadRequestObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -584,7 +585,7 @@ public class PersonsControllerTests : TestBase
         int invalidPageSize = 0;
         
         // Act
-        BadRequestObjectResult? result = await _controller.List(pageIndex, invalidPageSize) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.List(pageIndex, invalidPageSize, null, null) as BadRequestObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);

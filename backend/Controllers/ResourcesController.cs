@@ -366,7 +366,7 @@ namespace KnowledgeBank.Controllers
                 logger.Information("Deleting resource with ID: {ID}", id);
 
                 // Get the filetype of the resource
-                string filetype = await resourceManager.GetResourcePropertyAsync(id, "new(FileType as FileType)");
+                string filetype = await resourceManager.GetResourcePropertyAsync(id, "FileType");
 
                 // Delete the file from storage
                 BLOB_STATUSCODE result = await blobService.DeleteBlobAsync(filetype, id);

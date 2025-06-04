@@ -131,6 +131,7 @@ namespace KnowledgeBank.Data
                     TypeId = DatabaseSeeder.UnknownResourceTypeId,
                     LanguageCode = "EN",
                     PublicationDate = DateTime.SpecifyKind(DateTime.ParseExact(record.PublicationDate, "yyyy", CultureInfo.InvariantCulture), DateTimeKind.Utc),
+                    CreationDate = DateTime.UtcNow,
                     License = record.License,
                     Note = record.Note
                 });

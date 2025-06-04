@@ -427,7 +427,7 @@ public class RegionsControllerTests : TestBase
         string regionId = _existingRegionId.ToString();
         
         // Act
-        OkObjectResult? result = await _controller.Info(regionId) as OkObjectResult;
+        OkObjectResult? result = await _controller.Info(regionId, null) as OkObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -453,7 +453,7 @@ public class RegionsControllerTests : TestBase
         string invalidId = "not-a-valid-guid";
         
         // Act
-        BadRequestObjectResult? result = await _controller.Info(invalidId) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.Info(invalidId, null) as BadRequestObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -473,7 +473,7 @@ public class RegionsControllerTests : TestBase
         string nonExistentId = Guid.NewGuid().ToString();
         
         // Act
-        NotFoundObjectResult? result = await _controller.Info(nonExistentId) as NotFoundObjectResult;
+        NotFoundObjectResult? result = await _controller.Info(nonExistentId, null) as NotFoundObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -496,7 +496,7 @@ public class RegionsControllerTests : TestBase
         // Arrange - We already have one organization in the database from seed
         
         // Act
-        OkObjectResult? result = await _controller.List(null, null) as OkObjectResult;
+        OkObjectResult? result = await _controller.List(null, null, null, null) as OkObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -530,7 +530,7 @@ public class RegionsControllerTests : TestBase
         int pageSize = 3;
         
         // Act
-        OkObjectResult? result = await _controller.List(pageIndex, pageSize) as OkObjectResult;
+        OkObjectResult? result = await _controller.List(pageIndex, pageSize, null, null) as OkObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -554,7 +554,7 @@ public class RegionsControllerTests : TestBase
         int pageSize = 10;
         
         // Act
-        BadRequestObjectResult? result = await _controller.List(invalidPageIndex, pageSize) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.List(invalidPageIndex, pageSize, null, null) as BadRequestObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -575,7 +575,7 @@ public class RegionsControllerTests : TestBase
         int invalidPageSize = 0;
         
         // Act
-        BadRequestObjectResult? result = await _controller.List(pageIndex, invalidPageSize) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.List(pageIndex, invalidPageSize, null, null) as BadRequestObjectResult;
         
         // Assert
         Assert.That(result, Is.Not.Null);
