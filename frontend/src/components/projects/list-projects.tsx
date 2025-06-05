@@ -884,7 +884,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
       </div>
 
       {/* Table */}
-      <div className="h-[calc(100vh-6rem)] w-full">
+      <div className="h-full w-full">
         <AgGridReact
           suppressMovableColumns={true}
           suppressCellFocus={true}

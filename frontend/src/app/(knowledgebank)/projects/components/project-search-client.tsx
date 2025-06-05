@@ -26,7 +26,7 @@ export default function ProjectSearchClient({ projects, resources = [], currentU
 
   return (
     <>
-      <div className="flex pt-2 flex-grow h-[calc(100vh-8rem)]">
+      <div className="flex pt-2 flex-grow h-[calc(100vh-1rem)]">
         <ListProjects 
           initialResources={resources} 
           initialProjects={projects} 
