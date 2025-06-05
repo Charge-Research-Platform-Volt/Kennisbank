@@ -861,7 +861,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
                       <button
                         onClick={() => navigateToBreadcrumb(index)}
                         disabled={isLoading || index === navigationState.navigationPath.length - 1}
-                        className={`text-sm hover:underline ${
+                        className={`text-sm hover:underline hover:cursor-pointer ${
                           index === navigationState.navigationPath.length - 1 
                             ? 'font-semibold text-blue-600 cursor-default'
                             : 'text-blue-500'
