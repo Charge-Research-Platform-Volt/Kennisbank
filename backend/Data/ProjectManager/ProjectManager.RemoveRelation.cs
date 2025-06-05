@@ -128,6 +128,20 @@ namespace KnowledgeBank.Data
         }
 
         /// <summary>
+        /// Deletes all project-tag relations containing the tag.
+        /// 
+        /// Author: Justin Liem
+        /// </summary>
+        /// <param name="tagId">Id of the tag to delete</param>
+        /// <returns>Boolean indicating whether or not the operation was successful</returns>
+        public async Task<bool> RemoveTagFromAllProjects(Guid tagId)
+        {
+            await DeleteAllWhereAsync(database.ProjectTagRelations, relation => relation.TagId == tagId);
+
+            return true;
+        }
+
+        /// <summary>
         /// Deletes all tags from a project.
         /// 
         /// Author: Justin Liem

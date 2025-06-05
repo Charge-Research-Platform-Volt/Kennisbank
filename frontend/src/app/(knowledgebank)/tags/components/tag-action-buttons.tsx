@@ -76,6 +76,7 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
         userRole == "admin" &&
         <div className="flex">
           <UsageCount />
+          <TagMergeButton tag={tag}/>
           <ApproveTagButton tag={tag} />
           <EditButton />
           <DeleteTagButton tag={tag} />
@@ -93,6 +94,7 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
           userRole == "admin" && 
           <div className="flex">
             <UsageCount />
+            <TagMergeButton tag={tag}/>
             <ConvertTagButton tag={tag} />
             <EditButton />
             <DeleteTagButton tag={tag} />

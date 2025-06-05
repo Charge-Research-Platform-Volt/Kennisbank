@@ -41,7 +41,7 @@ namespace KnowledgeBank.Data
         {
             orderBy ??= projectTagRelationDefaultOrderBy;
 
-            return await GetAllAsync(database.ProjectTagRelations, orderBy, orderDescending, predicate);
+            return await GetAllAsync(database.ProjectTagRelations, orderBy, orderDescending, predicate, includeProperties: "Project");
         }
 
         private readonly Expression<Func<ProjectCreatorRelation, object>> projectCreatorRelationDefaultOrderBy = relation => relation.CreatorId;

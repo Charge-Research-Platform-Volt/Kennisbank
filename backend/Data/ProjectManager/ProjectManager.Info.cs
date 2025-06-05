@@ -78,7 +78,18 @@ namespace KnowledgeBank.Data
         public async Task<int> ProjectCount(Expression<Func<Project, bool>>? predicate = null)
         { return await GetCount(database.Projects, predicate); }
 
+        #region project-tags
+        /// <summary>
+        /// Checks if some project-tag relation exists given a predicate
+        /// 
+        /// Author: Justin Liem
+        /// </summary>
+        /// <param name="predicate">Predicate to filter on</param>
+        /// <returns>Boolean indicating whether or not some tag relation exists or not</returns>
+        public async Task<bool> ProjectTagRelationExistsAsync(Expression<Func<ProjectTagRelation, bool>> predicate)
+        { return await ExistsAsync(database.ProjectTagRelations, predicate); }
 
+        #endregion
     }
 }
 
