@@ -203,7 +203,9 @@ return (
             {/* Searchbox */}
             <CommandInput placeholder={ placeholder } onValueChange={handleInputChange} value={inputValue} disabled={!selectMultiple && selectedItems.length != 0}/>
             <CommandList>
-                <CommandEmpty>No Results.</CommandEmpty>
+                <CommandEmpty>
+                    {inputValue === "" ? "Start typing..." : "No Results."}
+                </CommandEmpty>
                 {/* Fetched items after typing */}
                 <CommandGroup>
                 {filteredItems.map((item) => ( !selectedItems.some(t => t.id === item.id) &&
