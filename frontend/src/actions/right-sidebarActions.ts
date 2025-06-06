@@ -62,7 +62,7 @@ export const getRelation = async (
 
     const properties =
     {
-        "authors": "PersonId as id, Person.Name as name",
+        "authors": "PersonId as id,Person.Name as name",
         "authored-resources": "ResourceId as id,Resource.Title as name",
         "direct-resources": "ResourceId as id,Resource.Title as name",
         "organisations": "OrganisationId as id,Organisation.Name as name",
