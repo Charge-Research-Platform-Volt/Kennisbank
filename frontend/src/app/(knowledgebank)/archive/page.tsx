@@ -91,7 +91,7 @@ export default function Page() {
     }
 
     return (
-        <div className="flex flex-col h-full w-full">
+        <div className="@container flex flex-col h-full w-full">
             {/* Search bar/Trash title */}
             <div className="w-full h-[4rem] flex items-center gap-2 flex-shrink-0 bg-white z-10">
                 {
@@ -133,45 +133,47 @@ export default function Page() {
             </div>
             
             {/* Filter selection */}
-            <div hidden={!filtersOpen} className="w-full grid grid-cols-4 gap-4 flex-shrink-0 my-3 px-5 pb-2 border-b border-gray-300">
-                {/* Type filter */}
-                <div className="w-full">
-                    <Label htmlFor="typeFilter" className="pb-2">Show types:</Label>
-                    <Combobox id="typeFilter" className="w-full" multiSelect={true} enabledByDefault={true} value={typeFilter} onValueChange={setTypeFilter} options={[{value: 'resource', label: 'Resource'}, {value: 'person', label: 'Person'}, {value: 'organisation', label: 'Organisation'}]} />
-                    <ResetFilter onClick={() => setTypeFilter(['resource', 'person', 'organisation'])} />
-                </div>
-                
-                {/* Publication date range */}
-                <div className="w-full">
-                    <Label htmlFor="publicationRange" className="pb-2">Publication date range:</Label>
-                    <div id="publicationRange" className="w-full grid grid-cols-2 gap-x-2">
-                        <Input type="date" max={publicationDateRangeMax} value={publicationDateRangeMin} onChange={(e) => setPublicationDateRangeMin(e.target.value)} className="cursor-pointer" />
-                        <Input type="date" min={publicationDateRangeMin} value={publicationDateRangeMax} onChange={(e) => setPublicationDateRangeMax(e.target.value)} className="cursor-pointer" />
-                        <ResetFilter onClick={() => setPublicationDateRangeMin('')} />
-                        <ResetFilter onClick={() => setPublicationDateRangeMax('')} />
+            { filtersOpen &&
+                <div className="w-full grid @[1200px]:grid-cols-4 @[900px]:grid-cols-3 @[600px]:grid-cols-2 grid-cols-1 gap-4 flex-shrink-0 my-3 px-5 pb-2 border-b border-gray-300">
+                    {/* Type filter */}
+                    <div className="w-full">
+                        <Label htmlFor="typeFilter" className="pb-2">Show types:</Label>
+                        <Combobox id="typeFilter" className="w-full" multiSelect={true} enabledByDefault={true} value={typeFilter} onValueChange={setTypeFilter} options={[{value: 'resource', label: 'Resource'}, {value: 'person', label: 'Person'}, {value: 'organisation', label: 'Organisation'}]} />
+                        <ResetFilter onClick={() => setTypeFilter(['resource', 'person', 'organisation'])} />
+                    </div>
+                    
+                    {/* Publication date range */}
+                    <div className="w-full">
+                        <Label htmlFor="publicationRange" className="pb-2">Publication date range:</Label>
+                        <div id="publicationRange" className="w-full grid grid-cols-2 gap-x-2">
+                            <Input type="date" max={publicationDateRangeMax} value={publicationDateRangeMin} onChange={(e) => setPublicationDateRangeMin(e.target.value)} className="cursor-pointer" />
+                            <Input type="date" min={publicationDateRangeMin} value={publicationDateRangeMax} onChange={(e) => setPublicationDateRangeMax(e.target.value)} className="cursor-pointer" />
+                            <ResetFilter onClick={() => setPublicationDateRangeMin('')} />
+                            <ResetFilter onClick={() => setPublicationDateRangeMax('')} />
+                        </div>
+                    </div>
+                    
+                    {/* Tags filter */}
+                    <div className="w-full">
+                        <Label htmlFor="tagsFilter" className="pb-2">Tag filter:</Label>
+                        <DynamicCombobox id="tagsFilter" className="w-full" multiSelect={true} value={tagFilter} onValueChange={setTagFilter} endpoint={"/api/tags/tags"} createPayload={createTagBody} parseResponse={parseTagResponse} usePost={true} />
+                        <ResetFilter onClick={() => setTagFilter([])} />
+                    </div>
+                    
+                    {/* Region filter */}
+                    <div className="w-full">
+                        <Label htmlFor="regionFilter" className="pb-2">Region filter:</Label>
+                        <DynamicCombobox id="regionFilter" className="w-full" multiSelect={true} value={regionFilter} onValueChange={setRegionFilter} endpoint={"/api/regions/list"} createPayload={createRegionBody} parseResponse={(response) => response as SelectOption[]} />
+                        <ResetFilter onClick={() => setRegionFilter([])} />
+                    </div>
+                    
+                    {/* Reset all and close button */}
+                    <div className="@[1200px]:col-span-4 @[900px]:col-span-3 @[600px]:col-span-2 col-span-1 flex justify-center gap-4 mt-2">
+                        <Button variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600" onClick={resetFilters}>Reset All Filters</Button>
+                        <Button variant="outline" onClick={() => setFiltersOpen(false)}>Close</Button>
                     </div>
                 </div>
-                
-                {/* Tags filter */}
-                <div className="w-full">
-                    <Label htmlFor="tagsFilter" className="pb-2">Tag filter:</Label>
-                    <DynamicCombobox id="tagsFilter" className="w-full" multiSelect={true} value={tagFilter} onValueChange={setTagFilter} endpoint={"/api/tags/tags"} createPayload={createTagBody} parseResponse={parseTagResponse} usePost={true} />
-                    <ResetFilter onClick={() => setTagFilter([])} />
-                </div>
-                
-                {/* Region filter */}
-                <div className="w-full">
-                    <Label htmlFor="regionFilter" className="pb-2">Region filter:</Label>
-                    <DynamicCombobox id="regionFilter" className="w-full" multiSelect={true} value={regionFilter} onValueChange={setRegionFilter} endpoint={"/api/regions/list"} createPayload={createRegionBody} parseResponse={(response) => response as SelectOption[]} />
-                    <ResetFilter onClick={() => setRegionFilter([])} />
-                </div>
-                
-                {/* Reset all and close button */}
-                <div className="col-span-4 flex justify-center gap-4 mt-2">
-                    <Button variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600" onClick={resetFilters}>Reset All Filters</Button>
-                    <Button variant="outline" onClick={() => setFiltersOpen(false)}>Close</Button>
-                </div>
-            </div>
+            }
             
             {/* Scrollable content area */}
             <div className="flex-1 overflow-y-auto min-h-0">

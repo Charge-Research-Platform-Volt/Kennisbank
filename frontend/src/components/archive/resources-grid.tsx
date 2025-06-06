@@ -71,7 +71,7 @@ export default function ResourcesGrid()
     // Column definitions
     const columnDefs: ColDef[] = [
         { field: 'name', headerName: 'Name', cellRenderer: renderResourceIcon },
-        { field: 'publicationDate', headerName: 'Publication Date', maxWidth: 200, valueFormatter: dateFormatter},
+        { field: 'publicationDate', headerName: 'Publication Date', maxWidth: 200, cellStyle: { textAlign: 'center' }, headerClass: 'ag-header-cell-centered', valueFormatter: dateFormatter},
         ...(trashOpen ? [{field: 'trashDate', headerName: 'Trash Date', maxWidth: 200, valueFormatter: dateFormatter, sort: 'asc' as const}] : []),
         { field: "", maxWidth: trashOpen ? 120 : 50, minWidth: trashOpen ? 100 : 50, cellRenderer:renderRowButton(), resizable: false, cellClass: 'no-row-click' }
     ];
