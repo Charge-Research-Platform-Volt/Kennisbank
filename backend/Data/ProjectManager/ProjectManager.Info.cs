@@ -16,7 +16,7 @@ namespace KnowledgeBank.Data
         /// <typeparam name="T">Type of the thing to check.</typeparam>
         /// <param name="dbSet">Table to check in.</param>
         /// <param name="predicate">Predicate used to check if some entity exists.</param>
-        /// <returns>Nothing, just checks the database.</returns>
+        /// <returns>Boolean indicating whether or not the entity exists.</returns>
         protected async Task<bool> ExistsAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate) where T : class
         { return await dbSet.AsNoTracking().AnyAsync(predicate); }
 
@@ -28,7 +28,7 @@ namespace KnowledgeBank.Data
         /// <typeparam name="T">Type of the thing to count.</typeparam>
         /// <param name="dbSet">Table to count in.</param>
         /// <param name="predicate">Predicate used to check the count of some entity.</param>
-        /// <returns>Nothing, just checks the database.</returns>
+        /// <returns>Count of the entity.</returns>
         protected async Task<int> GetCount<T>(DbSet<T> dbSet, Expression<Func<T, bool>>? predicate = null) where T : class
         {
             IQueryable<T> query = dbSet.AsNoTracking();
@@ -42,7 +42,7 @@ namespace KnowledgeBank.Data
         /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id in question.</param>
-        /// <returns>Nothing, just checks the database.</returns>
+        /// <returns>Boolean indicating whether or not the project exists.</returns>
         public async Task<bool> ProjectExistsAsync(Guid projectId)
         { return await ExistsAsync(database.Projects, project => project.Id == projectId); }
 
@@ -52,7 +52,7 @@ namespace KnowledgeBank.Data
         /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id in question.</param>
-        /// <returns>Nothing, just checks the database.</returns>
+        /// <returns>Boolean indicating whether or not the project exists.</returns>
         public async Task<bool> ProjectExistsAsync(string projectId)
         { return await ProjectExistsAsync(Guid.Parse(projectId)); }
 
@@ -62,7 +62,7 @@ namespace KnowledgeBank.Data
         /// Author: Justin Liem
         /// </summary>
         /// <param name="predicate">Predicate in question.</param>
-        /// <returns>Nothing, just checks the database.</returns>
+        /// <returns>Boolean indicating whether or not the project exists.</returns>
         public async Task<bool> ProjectExistsAsync(Expression<Func<Project, bool>> predicate)
         { return await ExistsAsync(database.Projects, predicate); }
 
@@ -74,7 +74,7 @@ namespace KnowledgeBank.Data
         /// Author: Justin Liem
         /// </summary>
         /// <param name="predicate">Predicate used to calculate the count.</param>
-        /// <returns>Nothing, just checks the database.</returns>
+        /// <returns>Count of projects.</returns>
         public async Task<int> ProjectCount(Expression<Func<Project, bool>>? predicate = null)
         { return await GetCount(database.Projects, predicate); }
 
@@ -85,7 +85,7 @@ namespace KnowledgeBank.Data
         /// Author: Justin Liem
         /// </summary>
         /// <param name="predicate">Predicate to filter on</param>
-        /// <returns>Boolean indicating whether or not some tag relation exists or not</returns>
+        /// <returns>Boolean indicating whether or not some tag relation exists or not.</returns>
         public async Task<bool> ProjectTagRelationExistsAsync(Expression<Func<ProjectTagRelation, bool>> predicate)
         { return await ExistsAsync(database.ProjectTagRelations, predicate); }
 

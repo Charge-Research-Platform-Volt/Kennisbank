@@ -13,7 +13,7 @@ namespace KnowledgeBank.Data
         /// <typeparam name="T">Type of the entity to delete from the database.</typeparam>
         /// <param name="dbSet">Table where deletion takes place.</param>
         /// <param name="predicate">Predicate for deleting.</param>
-        /// <returns>Nothing, just updates the database.</returns>
+        /// <returns>Amount of rows deleted in the database.</returns>
         protected async Task<int> DeleteAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate) where T : class
         { return await dbSet.Where(predicate).ExecuteDeleteAsync(); }
 
@@ -25,7 +25,7 @@ namespace KnowledgeBank.Data
         /// <typeparam name="T">Type of the entity to delete from the database.</typeparam>
         /// <param name="dbSet">Table where deletion takes place.</param>
         /// <param name="predicate">Predicate for deleting multiple entities</param>
-        /// <returns>Nothing, just updates the database.</returns>
+        /// <returns>Amount of rows deleted in the database.</returns>
         protected async Task<int> DeleteAllWhereAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate) where T : class
         { return await dbSet.Where(predicate).ExecuteDeleteAsync(); }
 
@@ -36,7 +36,7 @@ namespace KnowledgeBank.Data
         /// Author: Justin Liem
         /// </summary>
         /// <param name="id">Id of the project to delete</param>
-        /// <returns>Nothing, just updates the database.</returns>
+        /// <returns>Whether or not the deletion was successful.</returns>
         public async Task<bool> DeleteProject(Guid id)
         {
             bool startedTransaction = await BeginTransaction();
@@ -59,7 +59,7 @@ namespace KnowledgeBank.Data
         /// Author: Justin Liem
         /// </summary>
         /// <param name="id">Id of the project to delete</param>
-        /// <returns>Nothing, just updates the database.</returns>
+        /// <returns>Whether or not the deletion was successful.</returns>
         public async Task<bool> DeleteProject(string id)
         {
             return await DeleteProject(Guid.Parse(id));
