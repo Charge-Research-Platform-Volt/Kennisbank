@@ -20,7 +20,7 @@ import { TrashResource } from "@/actions/trashResourceActions"
 
 export function ResourceContent()
 {
-    const { currentId, rightSidebarOpen, setRightSidebarOpen } = useSidebar();
+    const { currentId, rightSidebarOpen, setRightSidebarOpen, setCreationDate, setPublicationDate } = useSidebar();
     const { userRole } = useUserRole();
     const { triggerGridReload, trashOpen } = useArchive();
     const [confirmDialogOpen, setConfirmDialogOpen] = useState<boolean>(false);
@@ -41,8 +41,6 @@ export function ResourceContent()
     const [ regions, setRegions ] = useState<ListItem[] | null>(null);
     const [ langCode, setLangCode ] = useState<string | null>(null); //ToDo
     const [ pubCode, setPubCode ] = useState<string | null>(null);
-    const [ pubDate, setPubDate ] = useState<Date | null>(null); //ToDo
-    const [ creationDate, setCreationDate ] = useState<Date | null>(null); //ToDo
     const [ license, setLicense ] = useState<string | null>(null);
     const [ trashed, setTrashed ] = useState<string | null>(null);
 

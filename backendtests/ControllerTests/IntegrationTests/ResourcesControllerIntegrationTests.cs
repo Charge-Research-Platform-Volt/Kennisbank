@@ -6,9 +6,11 @@ using KnowledgeBank.Data;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using KnowledgeBank.Responses;
+using KnowledgeBank.Data;
 using System.Text;
 using System.Text.Json;
 using Azure.Storage.Blobs.Specialized;
+using System.Security.Claims;
 
 namespace backend.Tests.Integration;
 
@@ -21,10 +23,33 @@ public class ResourcesControllerTests : TestBaseBlob
     private Guid _existingResourceId;
     private Guid _existingFileResourceId;
     private Guid _existingWebsiteResourceId;
+    private Guid _existingOrganisationId;
+    private Guid _existingRegionId;
+    private Guid _existingPersonId;
+    private ClaimsPrincipal _regularUser;
+    private ClaimsPrincipal _adminUser;
+    private Guid _regularUserId;
+    private Guid _adminUserId;
 
     [SetUp]
     public void SetupController()
     {
+        _regularUserId = Guid.NewGuid();
+        _adminUserId = Guid.NewGuid();
+
+        // Create a regular user
+        _regularUser = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim(ClaimTypes.NameIdentifier, _regularUserId.ToString())],
+            "mock"));
+
+        // Create an admin user
+        _adminUser = new ClaimsPrincipal(new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.NameIdentifier, _adminUserId.ToString()),
+                new Claim(ClaimTypes.Role, "admin")
+            ],
+            "mock"));
+
         _resourceManager = new ResourceManager(Context);
         _controller = new ResourcesController(_resourceManager, BlobService);
     }
@@ -33,7 +58,6 @@ public class ResourcesControllerTests : TestBaseBlob
     {
         // Enable extension for text-search-vectors
         await context.Database.ExecuteSqlRawAsync("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
-        await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""resource-vectors"" ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
         await DatabaseSeeder.SeedTemplate(context);
 
         // Also seed the blob storage
@@ -60,8 +84,38 @@ public class ResourcesControllerTests : TestBaseBlob
             LanguageCode = "en"
         };
 
+        // Create a test organisation
+        Organisation testOrganisation = new Organisation
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test Organisation",
+            Description = "This is a test organisation",
+            Website = "https://testorg.example.com",
+            CreationDate = DateTime.UtcNow,
+        };
+
+        // Create a test person
+        Person testPerson = new Person
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test Person",
+            Description = "This is a test person",
+            Occupation = "Developer",
+            CreationDate = DateTime.UtcNow,
+        };
+
+        // Create a test region
+        Region testRegion = new Region
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test Region",
+        };
+
+        await context.Organisations.AddAsync(testOrganisation);
         await context.Resources.AddAsync(fileResource);
         await context.Resources.AddAsync(websiteResource);
+        await context.Persons.AddAsync(testPerson);
+        await context.Regions.AddAsync(testRegion);
 
         WebsiteMetadata websiteMetadata = new WebsiteMetadata
         {
@@ -75,6 +129,9 @@ public class ResourcesControllerTests : TestBaseBlob
         _existingResourceId = fileResource.Id;
         _existingFileResourceId = fileResource.Id;
         _existingWebsiteResourceId = websiteResource.Id;
+        _existingPersonId = testPerson.Id;
+        _existingOrganisationId = testOrganisation.Id;
+        _existingRegionId = testRegion.Id;
 
         // Upload a test file to blob storage
         MemoryStream fileStream = new MemoryStream(Encoding.UTF8.GetBytes("This is test content"));
@@ -91,7 +148,8 @@ public class ResourcesControllerTests : TestBaseBlob
             Title = title,
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
-            PublicationDate = DateTime.UtcNow
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
 
         FormFile formFile = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("dummy file content")), 0, 0, "file", "test.txt");
@@ -104,6 +162,7 @@ public class ResourcesControllerTests : TestBaseBlob
                 TypeId = DatabaseSeeder.UnknownResourceTypeId,
                 LanguageCode = "en",
                 PublicationDate = DateTime.UtcNow,
+                CreationDate = DateTime.UtcNow,
                 Url = "https://example.com/large"
             };
                 return new ResourceUploadDto
@@ -118,6 +177,15 @@ public class ResourcesControllerTests : TestBaseBlob
             Dto = JsonSerializer.Serialize(dtoDetails),
             UploadType = uploadType,
             File = formFile
+        };
+    }
+
+    // Mocks switching between users. Need this because some endpoints manually check user
+    private void SetControllerUser(ClaimsPrincipal user)
+    {
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = user }
         };
     }
 
@@ -178,7 +246,8 @@ public class ResourcesControllerTests : TestBaseBlob
             Title = "Test Title",
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
-            PublicationDate = DateTime.UtcNow
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
         ResourceUploadDto uploadDto = new ResourceUploadDto 
         { 
@@ -209,7 +278,8 @@ public class ResourcesControllerTests : TestBaseBlob
             Title = null!, 
             TypeId = "type1", 
             LanguageCode = "en", 
-            PublicationDate = DateTime.UtcNow 
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
         ResourceUploadDto uploadDto = new ResourceUploadDto 
         {
@@ -240,7 +310,8 @@ public class ResourcesControllerTests : TestBaseBlob
             Title = "Test Title", 
             TypeId = null!, 
             LanguageCode = "en", 
-            PublicationDate = DateTime.UtcNow 
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
         ResourceUploadDto uploadDto = new ResourceUploadDto 
         {
@@ -272,7 +343,8 @@ public class ResourcesControllerTests : TestBaseBlob
             Title = "Test Title", 
             TypeId = "type1", 
             LanguageCode = null!, 
-            PublicationDate = DateTime.UtcNow 
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow
         };
         ResourceUploadDto uploadDto = new ResourceUploadDto 
         {
@@ -303,7 +375,8 @@ public class ResourcesControllerTests : TestBaseBlob
             Title = "Test Title", 
             TypeId = "type1", 
             LanguageCode = "en", 
-            PublicationDate = DateTime.MinValue 
+            PublicationDate = DateTime.MinValue,
+            CreationDate = DateTime.UtcNow,
         };
         ResourceUploadDto uploadDto = new ResourceUploadDto 
         {
@@ -753,6 +826,7 @@ public class ResourcesControllerTests : TestBaseBlob
             TypeId = "0cc285a8-0f07-11f0-a0a6-5600051f1387",
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
             Url = "https://www.example.com"
         };
 
@@ -792,6 +866,7 @@ public class ResourcesControllerTests : TestBaseBlob
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
             Url = "not-a-valid-url"
         };
 
@@ -825,6 +900,7 @@ public class ResourcesControllerTests : TestBaseBlob
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
             Url = ""
         };
 
@@ -858,6 +934,7 @@ public class ResourcesControllerTests : TestBaseBlob
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
             Url = "https://example.com"
         };
 
@@ -898,6 +975,7 @@ public class ResourcesControllerTests : TestBaseBlob
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
 
         ResourceUploadDto uDto = new ResourceUploadDto
@@ -942,6 +1020,7 @@ public class ResourcesControllerTests : TestBaseBlob
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
 
         string sDto = JsonSerializer.Serialize(dto, new JsonSerializerOptions { WriteIndented = true });
@@ -980,6 +1059,7 @@ public class ResourcesControllerTests : TestBaseBlob
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
 
         ResourceUploadDto uDto = new ResourceUploadDto
@@ -1016,6 +1096,7 @@ public class ResourcesControllerTests : TestBaseBlob
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
 
         ResourceUploadDto uDto = new ResourceUploadDto
@@ -1138,12 +1219,16 @@ public class ResourcesControllerTests : TestBaseBlob
         string fileName = "file-to-delete.txt";
         MemoryStream fileStream = new MemoryStream(Encoding.UTF8.GetBytes("This file will be deleted"));
 
+        // Set user to admin
+        SetControllerUser(_adminUser);
+
         FileResourceCreateDto dto = new FileResourceCreateDto
         {
             Title = "Delete Test File",
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
 
         ResourceUploadDto uDto = new ResourceUploadDto
@@ -1189,6 +1274,9 @@ public class ResourcesControllerTests : TestBaseBlob
         // Arrange
         string invalidId = "not-a-valid-guid";
 
+        // Set user to admin
+        SetControllerUser(_adminUser);
+
         // Act
         BadRequestObjectResult? result = await _controller.Delete(invalidId) as BadRequestObjectResult;
 
@@ -1209,6 +1297,10 @@ public class ResourcesControllerTests : TestBaseBlob
         // Arrange
         string nonExistentId = Guid.NewGuid().ToString();
 
+
+        // Set user to admin
+        SetControllerUser(_adminUser);
+
         // Act
         NotFoundObjectResult? result = await _controller.Delete(nonExistentId) as NotFoundObjectResult;
 
@@ -1226,6 +1318,10 @@ public class ResourcesControllerTests : TestBaseBlob
     [Description("Delete removes a website resource successfully")]
     public async Task Delete_ExistingWebsiteResource_DeletesResource()
     {
+
+        // Set user to admin
+        SetControllerUser(_adminUser);
+
         // Arrange
         // Create a website resource to delete
         WebsiteCreateDto dto = new WebsiteCreateDto
@@ -1234,6 +1330,7 @@ public class ResourcesControllerTests : TestBaseBlob
             TypeId = DatabaseSeeder.UnknownResourceTypeId,
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
             Url = "https://example.org/delete-me"
         };
 
@@ -1296,7 +1393,7 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(response.Message, Is.EqualTo("Resource updated successfully."));
 
         // Verify the title was updated
-        string updatedTitle = await _resourceManager.GetResourcePropertyAsync(resourceId, r => r.Title);
+        string updatedTitle = await _resourceManager.GetResourcePropertyAsync(resourceId, "Title");
         Assert.That(updatedTitle, Is.EqualTo("Updated Title"));
     }
 
@@ -1418,7 +1515,7 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(response.Message, Is.EqualTo("Resource updated partially."));
 
         // Verify that valid property was updated
-        string updatedTitle = await _resourceManager.GetResourcePropertyAsync(resourceId, r => r.Title);
+        string updatedTitle = await _resourceManager.GetResourcePropertyAsync(resourceId, "Title");
         Assert.That(updatedTitle, Is.EqualTo("Partially Updated Title"));
     }
 
@@ -1501,7 +1598,7 @@ public class ResourcesControllerTests : TestBaseBlob
         string resourceId = _existingResourceId.ToString();
 
         // Act
-        OkObjectResult? result = await _controller.Info(resourceId) as OkObjectResult;
+        OkObjectResult? result = await _controller.Info(resourceId, null) as OkObjectResult;
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -1526,7 +1623,7 @@ public class ResourcesControllerTests : TestBaseBlob
         string invalidId = "not-a-valid-guid";
 
         // Act
-        BadRequestObjectResult? result = await _controller.Info(invalidId) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.Info(invalidId, null) as BadRequestObjectResult;
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -1546,7 +1643,7 @@ public class ResourcesControllerTests : TestBaseBlob
         string nonExistentId = Guid.NewGuid().ToString();
 
         // Act
-        NotFoundObjectResult? result = await _controller.Info(nonExistentId) as NotFoundObjectResult;
+        NotFoundObjectResult? result = await _controller.Info(nonExistentId, null) as NotFoundObjectResult;
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -1556,6 +1653,30 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(response, Is.Not.Null);
         Assert.That(response.Success, Is.False);
         Assert.That(response.Message, Is.EqualTo("The resource was not found."));
+    }
+
+    [Test]
+    [Description("Info returns specified properties when properties parameter is provided")]
+    public async Task Info_WithProperties_ReturnsSpecifiedProperties()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string properties = "Id,Title";
+
+        // Act
+        OkObjectResult? result = await _controller.Info(resourceId, properties) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Resource was found."));
+
+        // The body should be the projected anonymous object
+        Assert.That(response.Body, Is.Not.Null);
     }
 
     #endregion
@@ -1570,7 +1691,7 @@ public class ResourcesControllerTests : TestBaseBlob
         int expectedResourceCount = 2;
 
         // Act
-        OkObjectResult? result = await _controller.List(null, null) as OkObjectResult;
+        OkObjectResult? result = await _controller.List(null, null, null, null) as OkObjectResult;
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -1587,6 +1708,52 @@ public class ResourcesControllerTests : TestBaseBlob
     }
 
     [Test]
+    [Description("List returns resources projected with specified properties")]
+    public async Task List_WithProperties_ReturnsProjectedResources()
+    {
+        string properties = "Id,Title";
+
+        OkObjectResult? result = await _controller.List(null, null, properties, null) as OkObjectResult;
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+
+        // Since projection is dynamic, resource type is anonymous, just check body is an array and has elements
+        var resources = response.Body as Array;
+        Assert.That(resources, Is.Not.Null);
+        Assert.That(resources.Length, Is.GreaterThan(0));
+    }
+
+    [Test]
+    [Description("List filters resources based on searchQuery")]
+    public async Task List_WithSearchQuery_FiltersResources()
+    {
+        string searchQuery = "Test";
+
+        OkObjectResult? result = await _controller.List(null, null, null, searchQuery) as OkObjectResult;
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+
+        Resource[]? resources = response.Body as Resource[];
+        Assert.That(resources, Is.Not.Null);
+
+        // Check that all returned resources match the search query in Title (simplified check)
+        foreach (var resource in resources)
+        {
+            Assert.That(resource.Title, Does.Contain(searchQuery).IgnoreCase.Or.Contains(searchQuery));
+        }
+    }
+
+    [Test]
     [Description("List returns paged resources when paging parameters are provided")]
     public async Task List_WithPagingParameters_ReturnsPagedResources()
     {
@@ -1595,7 +1762,7 @@ public class ResourcesControllerTests : TestBaseBlob
         int pageSize = 2;
 
         // Act
-        OkObjectResult? result = await _controller.List(pageIndex, pageSize) as OkObjectResult;
+        OkObjectResult? result = await _controller.List(pageIndex, pageSize, null, null) as OkObjectResult;
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -1620,7 +1787,7 @@ public class ResourcesControllerTests : TestBaseBlob
         int pageSize = 10;
 
         // Act
-        BadRequestObjectResult? result = await _controller.List(invalidPageIndex, pageSize) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.List(invalidPageIndex, pageSize, null, null) as BadRequestObjectResult;
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -1641,7 +1808,7 @@ public class ResourcesControllerTests : TestBaseBlob
         int invalidPageSize = 0;
 
         // Act
-        BadRequestObjectResult? result = await _controller.List(pageIndex, invalidPageSize) as BadRequestObjectResult;
+        BadRequestObjectResult? result = await _controller.List(pageIndex, invalidPageSize, null, null) as BadRequestObjectResult;
 
         // Assert
         Assert.That(result, Is.Not.Null);
@@ -1652,18 +1819,877 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(response.Success, Is.False);
         Assert.That(response.Message, Is.EqualTo("Page size cannot be lower than 1"));
     }
+
+    [Test]
+    [Description("List returns Unauthorized when requesting trashed resources without admin role")]
+    public async Task List_TrashTrueWithoutAdminRole_ReturnsUnauthorized()
+    {
+        // Arrange: Set user to non-admin (e.g. _regularUser)
+        SetControllerUser(_regularUser);
+
+        // Act
+        UnauthorizedObjectResult? result = await _controller.List(null, null, null, null, true) as UnauthorizedObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(401));
+
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("You are not authorized to view trashed resources."));
+    }
+
+    [Test]
+    [Description("List returns trashed resources when user is admin and trash is true")]
+    public async Task List_TrashTrueWithAdminRole_ReturnsTrashedResources()
+    {
+        // Arrange: Set user to admin
+        SetControllerUser(_adminUser);
+
+        // Act
+        OkObjectResult? result = await _controller.List(null, null, null, null, true) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+
+        Resource[]? resources = response.Body as Resource[];
+        Assert.That(resources, Is.Not.Null);
+
+        // Optionally verify that all resources have Trashed == true if accessible
+    }
+
     #endregion
 
-    #region Archive Tests
+    #region Relation fetches
+
     [Test]
-    [Description("Archive fails with invalid ID format")]
-    public async Task Archive_InvalidId_ReturnsBadRequest()
+    [Description("Relations returns authors for valid ID")]
+    public async Task Relations_ValidId_Authors_ReturnsAuthors()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "authors";
+
+        // Act
+        OkObjectResult? result = await _controller.Relations(relation, resourceId, null) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Successfully retrieved relations"));
+        Assert.That(response.Body, Is.Not.Null);
+    }
+
+    [Test]
+    [Description("Relations returns organisations for valid ID")]
+    public async Task Relations_ValidId_Organisations_ReturnsOrganisations()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "organisations";
+
+        // Act
+        OkObjectResult? result = await _controller.Relations(relation, resourceId, null) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Successfully retrieved relations"));
+        Assert.That(response.Body, Is.Not.Null);
+    }
+
+    [Test]
+    [Description("Relations returns regions for valid ID")]
+    public async Task Relations_ValidId_Regions_ReturnsRegions()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "regions";
+
+        // Act
+        OkObjectResult? result = await _controller.Relations(relation, resourceId, null) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Successfully retrieved relations"));
+        Assert.That(response.Body, Is.Not.Null);
+    }
+
+    [Test]
+    [Description("Relations returns related organisations for valid ID")]
+    public async Task Relations_ValidId_RelatedOrganisations_ReturnsRelatedOrganisations()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "related-organisations";
+
+        // Act
+        OkObjectResult? result = await _controller.Relations(relation, resourceId, null) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Successfully retrieved relations"));
+        Assert.That(response.Body, Is.Not.Null);
+    }
+
+    [Test]
+    [Description("Relations returns related persons for valid ID")]
+    public async Task Relations_ValidId_RelatedPersons_ReturnsRelatedPersons()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "related-persons";
+
+        // Act
+        OkObjectResult? result = await _controller.Relations(relation, resourceId, null) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Successfully retrieved relations"));
+        Assert.That(response.Body, Is.Not.Null);
+    }
+
+    [Test]
+    [Description("Relations returns sources for valid ID")]
+    public async Task Relations_ValidId_Sources_ReturnsSources()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "sources";
+
+        // Act
+        OkObjectResult? result = await _controller.Relations(relation, resourceId, null) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Successfully retrieved relations"));
+        Assert.That(response.Body, Is.Not.Null);
+    }
+
+    [Test]
+    [Description("Relations returns related sources for valid ID")]
+    public async Task Relations_ValidId_RelatedSources_ReturnsRelatedSources()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "related-sources";
+
+        // Act
+        OkObjectResult? result = await _controller.Relations(relation, resourceId, null) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Successfully retrieved relations"));
+        Assert.That(response.Body, Is.Not.Null);
+    }
+
+    [Test]
+    [Description("Relations returns tags for valid ID")]
+    public async Task Relations_ValidId_Tags_ReturnsTags()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "tags";
+
+        // Act
+        OkObjectResult? result = await _controller.Relations(relation, resourceId, null) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Successfully retrieved relations"));
+        Assert.That(response.Body, Is.Not.Null);
+    }
+
+    [Test]
+    [Description("Relations returns website metadata for valid ID")]
+    public async Task Relations_ValidId_Website_ReturnsWebsiteMetadata()
+    {
+        // Arrange
+        string resourceId = _existingWebsiteResourceId.ToString();
+        string relation = "website";
+
+        // Act
+        OkObjectResult? result = await _controller.Relations(relation, resourceId, null) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Successfully retrieved relations"));
+        Assert.That(response.Body, Is.Not.Null);
+    }
+
+    [Test]
+    [Description("Relations returns projected authors with properties parameter")]
+    public async Task Relations_ValidId_Authors_WithProperties_ReturnsProjectedData()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "authors";
+        string properties = "PersonId,Person.Name";
+
+        // Act
+        OkObjectResult? result = await _controller.Relations(relation, resourceId, properties) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Successfully retrieved relations"));
+        Assert.That(response.Body, Is.Not.Null);
+    }
+
+    [Test]
+    [Description("Relations returns projected organisations with properties parameter")]
+    public async Task Relations_ValidId_Organisations_WithProperties_ReturnsProjectedData()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "organisations";
+        string properties = "OrganisationId,Organisation.Name";
+
+        // Act
+        OkObjectResult? result = await _controller.Relations(relation, resourceId, properties) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Successfully retrieved relations"));
+        Assert.That(response.Body, Is.Not.Null);
+    }
+
+    [Test]
+    [Description("Relations returns projected tags with properties parameter")]
+    public async Task Relations_ValidId_Tags_WithProperties_ReturnsProjectedData()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "tags";
+        string properties = "TagId,Tag.Name";
+
+        // Act
+        OkObjectResult? result = await _controller.Relations(relation, resourceId, properties) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Successfully retrieved relations"));
+        Assert.That(response.Body, Is.Not.Null);
+    }
+
+    [Test]
+    [Description("Relations returns BadRequest for empty ID")]
+    public async Task Relations_EmptyId_ReturnsBadRequest()
+    {
+        // Arrange
+        string emptyId = "";
+        string relation = "authors";
+
+        // Act
+        BadRequestObjectResult? result = await _controller.Relations(relation, emptyId, null) as BadRequestObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Invalid ID"));
+    }
+
+    [Test]
+    [Description("Relations returns BadRequest for invalid GUID format")]
+    public async Task Relations_InvalidGuidFormat_ReturnsBadRequest()
+    {
+        // Arrange
+        string invalidId = "not-a-valid-guid";
+        string relation = "authors";
+
+        // Act
+        BadRequestObjectResult? result = await _controller.Relations(relation, invalidId, null) as BadRequestObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Invalid ID"));
+    }
+
+    [Test]
+    [Description("Relations returns BadRequest for empty relation")]
+    public async Task Relations_EmptyRelation_ReturnsBadRequest()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string emptyRelation = "";
+
+        // Act
+        BadRequestObjectResult? result = await _controller.Relations(emptyRelation, resourceId, null) as BadRequestObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Invalid relation"));
+    }
+
+    [Test]
+    [Description("Relations returns BadRequest for null relation")]
+    public async Task Relations_NullRelation_ReturnsBadRequest()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string? nullRelation = null;
+
+        // Act
+        BadRequestObjectResult? result = await _controller.Relations(nullRelation, resourceId, null) as BadRequestObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Invalid relation"));
+    }
+
+    [Test]
+    [Description("Relations returns NotFound for invalid relation type")]
+    public async Task Relations_InvalidRelationType_ReturnsNotFound()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string invalidRelation = "invalid-relation-type";
+
+        // Act
+        NotFoundObjectResult? result = await _controller.Relations(invalidRelation, resourceId, null) as NotFoundObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(404));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("ID or relation not found"));
+    }
+
+    [Test]
+    [Description("Relations returns NotFound for unsupported relation")]
+    public async Task Relations_UnsupportedRelation_ReturnsNotFound()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string unsupportedRelation = "unsupported-relation";
+
+        // Act
+        NotFoundObjectResult? result = await _controller.Relations(unsupportedRelation, resourceId, null) as NotFoundObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(404));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("ID or relation not found"));
+    }
+
+
+
+    #endregion
+
+    #region Relation Add
+
+    [Test]
+    [Description("AddRelation returns success for valid author relation")]
+    public async Task AddRelation_ValidIds_Authors_ReturnsSuccess()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "authors";
+        string targetId = _existingPersonId.ToString();
+
+        // Act
+        OkObjectResult? result = await _controller.AddRelation(resourceId, relation, targetId, null) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Relation added successfully"));
+    }
+
+    [Test]
+    [Description("AddRelation returns success for valid organisation relation with relationInfo")]
+    public async Task AddRelation_ValidIds_Organisations_WithRelationInfo_ReturnsSuccess()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "organisations";
+        string targetId = _existingOrganisationId.ToString();
+        string relationInfo = "Primary contributor";
+
+        // Act
+        OkObjectResult? result = await _controller.AddRelation(resourceId, relation, targetId, relationInfo) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Relation added successfully"));
+    }
+
+    [Test]
+    [Description("AddRelation returns success for valid region relation")]
+    public async Task AddRelation_ValidIds_Regions_ReturnsSuccess()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "regions";
+        string targetId = _existingRegionId.ToString();
+
+        // Act
+        OkObjectResult? result = await _controller.AddRelation(resourceId, relation, targetId, null) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Relation added successfully"));
+    }
+
+    [Test]
+    [Description("AddRelation returns success for valid related organisation relation")]
+    public async Task AddRelation_ValidIds_RelatedOrganisations_ReturnsSuccess()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "related-organisations";
+        string targetId = _existingOrganisationId.ToString();
+        string relationInfo = "Partner organization";
+
+        // Act
+        OkObjectResult? result = await _controller.AddRelation(resourceId, relation, targetId, relationInfo) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Relation added successfully"));
+    }
+
+    [Test]
+    [Description("AddRelation returns success for valid source relation with URL")]
+    public async Task AddRelation_ValidIds_Sources_WithUrl_ReturnsSuccess()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "sources";
+        string targetId = "https%3A%2F%2Fexample.com%2Fsource"; // URL encoded
+
+        // Act
+        OkObjectResult? result = await _controller.AddRelation(resourceId, relation, targetId, null) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Relation added successfully"));
+    }
+
+    [Test]
+    [Description("AddRelation returns success for valid related source relation")]
+    public async Task AddRelation_ValidIds_RelatedSources_ReturnsSuccess()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "related-sources";
+        string targetId = "https%3A%2F%2Fexample.com%2Frelated-source"; // URL encoded
+
+        // Act
+        OkObjectResult? result = await _controller.AddRelation(resourceId, relation, targetId, null) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Relation added successfully"));
+    }
+
+    [Test]
+    [Description("AddRelation returns BadRequest for empty relation")]
+    public async Task AddRelation_EmptyRelation_ReturnsBadRequest()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "";
+        string targetId = _existingPersonId.ToString();
+
+        // Act
+        BadRequestObjectResult? result = await _controller.AddRelation(resourceId, relation, targetId, null) as BadRequestObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Invalid relation"));
+    }
+
+    [Test]
+    [Description("AddRelation returns BadRequest for null relation")]
+    public async Task AddRelation_NullRelation_ReturnsBadRequest()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string? relation = null;
+        string targetId = _existingPersonId.ToString();
+
+        // Act
+        BadRequestObjectResult? result = await _controller.AddRelation(resourceId, relation, targetId, null) as BadRequestObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Invalid relation"));
+    }
+
+    [Test]
+    [Description("AddRelation returns BadRequest for invalid resource ID")]
+    public async Task AddRelation_InvalidResourceId_ReturnsBadRequest()
+    {
+        // Arrange
+        string resourceId = "invalid-id";
+        string relation = "authors";
+        string targetId = _existingPersonId.ToString();
+
+        // Act
+        BadRequestObjectResult? result = await _controller.AddRelation(resourceId, relation, targetId, null) as BadRequestObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Invalid ID"));
+    }
+
+    [Test]
+    [Description("AddRelation returns BadRequest for invalid target ID")]
+    public async Task AddRelation_InvalidTargetId_ReturnsBadRequest()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "authors";
+        string targetId = "invalid-target-id";
+
+        // Act
+        BadRequestObjectResult? result = await _controller.AddRelation(resourceId, relation, targetId, null) as BadRequestObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Invalid target ID/URL"));
+    }
+
+    [Test]
+    [Description("AddRelation returns BadRequest for invalid relation type")]
+    public async Task AddRelation_InvalidRelationType_ReturnsBadRequest()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "invalid-relation";
+        string targetId = _existingPersonId.ToString();
+
+        // Act
+        BadRequestObjectResult? result = await _controller.AddRelation(resourceId, relation, targetId, null) as BadRequestObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Invalid relation"));
+    }
+
+
+
+    [Test]
+    [Description("AddRelation handles URL decoding correctly for sources")]
+    public async Task AddRelation_Sources_HandlesUrlDecoding()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "sources";
+        string encodedUrl = "https%3A%2F%2Fexample.com%2Fpath%3Fparam%3Dvalue";
+
+        // Act
+        OkObjectResult? result = await _controller.AddRelation(resourceId, relation, encodedUrl, null) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Relation added successfully"));
+    }
+
+    [Test]
+    [Description("AddRelation handles empty relationInfo parameter")]
+    public async Task AddRelation_EmptyRelationInfo_ReturnsSuccess()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "organisations";
+        string targetId = _existingOrganisationId.ToString();
+        string relationInfo = "";
+
+        // Act
+        OkObjectResult? result = await _controller.AddRelation(resourceId, relation, targetId, relationInfo) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Relation added successfully"));
+    }
+
+    #endregion
+
+    #region Relation Remove
+
+    [Test]
+    [Description("RemoveRelation returns success for valid author relation")]
+    public async Task RemoveRelation_ValidIds_Authors_ReturnsSuccess()
+    {
+        // Arrange
+        string resourceId = _existingResourceId.ToString();
+        string relation = "authors";
+        string targetId = _existingPersonId.ToString();
+
+        // Act
+        OkObjectResult? result = await _controller.RemoveRelation(resourceId, relation, targetId) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Relation removed successfully"));
+    }
+
+    [Test]
+    [Description("RemoveRelation returns success for valid organisation relation")]
+    public async Task RemoveRelation_ValidIds_Organisations_ReturnsSuccess()
+    {
+        string resourceId = _existingResourceId.ToString();
+        string relation = "organisations";
+        string targetId = _existingOrganisationId.ToString();
+
+        OkObjectResult? result = await _controller.RemoveRelation(resourceId, relation, targetId) as OkObjectResult;
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Relation removed successfully"));
+    }
+
+    [Test]
+    [Description("RemoveRelation handles URL decoding correctly for sources")]
+    public async Task RemoveRelation_Sources_HandlesUrlDecoding()
+    {
+        string resourceId = _existingResourceId.ToString();
+        string relation = "sources";
+        string encodedUrl = "https%3A%2F%2Fexample.com%2Fsource";
+
+        OkObjectResult? result = await _controller.RemoveRelation(resourceId, relation, encodedUrl) as OkObjectResult;
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Message, Is.EqualTo("Relation removed successfully"));
+    }
+
+    [Test]
+    [Description("RemoveRelation returns BadRequest for empty relation")]
+    public async Task RemoveRelation_EmptyRelation_ReturnsBadRequest()
+    {
+        string resourceId = _existingResourceId.ToString();
+        string relation = "";
+        string targetId = _existingPersonId.ToString();
+
+        BadRequestObjectResult? result = await _controller.RemoveRelation(resourceId, relation, targetId) as BadRequestObjectResult;
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Invalid relation"));
+    }
+
+    [Test]
+    [Description("RemoveRelation returns BadRequest for null relation")]
+    public async Task RemoveRelation_NullRelation_ReturnsBadRequest()
+    {
+        string resourceId = _existingResourceId.ToString();
+        string? relation = null;
+        string targetId = _existingPersonId.ToString();
+
+        BadRequestObjectResult? result = await _controller.RemoveRelation(resourceId, relation, targetId) as BadRequestObjectResult;
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Invalid relation"));
+    }
+
+    [Test]
+    [Description("RemoveRelation returns BadRequest for invalid resource ID")]
+    public async Task RemoveRelation_InvalidResourceId_ReturnsBadRequest()
+    {
+        string resourceId = "invalid-id";
+        string relation = "authors";
+        string targetId = _existingPersonId.ToString();
+
+        BadRequestObjectResult? result = await _controller.RemoveRelation(resourceId, relation, targetId) as BadRequestObjectResult;
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Invalid ID"));
+    }
+
+    [Test]
+    [Description("RemoveRelation returns BadRequest for invalid target ID")]
+    public async Task RemoveRelation_InvalidTargetId_ReturnsBadRequest()
+    {
+        string resourceId = _existingResourceId.ToString();
+        string relation = "authors";
+        string targetId = "invalid-target-id";
+
+        BadRequestObjectResult? result = await _controller.RemoveRelation(resourceId, relation, targetId) as BadRequestObjectResult;
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Invalid target ID/URL"));
+    }
+
+    [Test]
+    [Description("RemoveRelation returns BadRequest for invalid relation type")]
+    public async Task RemoveRelation_InvalidRelationType_ReturnsBadRequest()
+    {
+        string resourceId = _existingResourceId.ToString();
+        string relation = "invalid-relation";
+        string targetId = _existingPersonId.ToString();
+
+        BadRequestObjectResult? result = await _controller.RemoveRelation(resourceId, relation, targetId) as BadRequestObjectResult;
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+        ApiResponse? response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Invalid relation"));
+    }
+
+    #endregion
+
+    #region Trash Tests
+    [Test]
+    [Description("Trashing fails with invalid ID format")]
+    public async Task Trashing_InvalidId_ReturnsBadRequest()
     {
         // Arrange
         string invalidId = "not-a-guid";
 
         // Act
-        IActionResult result = await _controller.Archive(invalidId);
+        IActionResult result = await _controller.Trash(invalidId);
 
         // Assert
         BadRequestObjectResult badResult = result as BadRequestObjectResult;
@@ -1676,14 +2702,14 @@ public class ResourcesControllerTests : TestBaseBlob
     }
 
     [Test]
-    [Description("Archive fails when resource does not exist")]
-    public async Task Archive_NonExistentResource_ReturnsNotFound()
+    [Description("Trashing fails when resource does not exist")]
+    public async Task Trashing_NonExistentResource_ReturnsNotFound()
     {
         // Arrange
         string nonExistentId = Guid.NewGuid().ToString();
 
         // Act
-        IActionResult result = await _controller.Archive(nonExistentId);
+        IActionResult result = await _controller.Trash(nonExistentId);
 
         // Assert
         NotFoundObjectResult notFoundResult = result as NotFoundObjectResult;
@@ -1696,8 +2722,8 @@ public class ResourcesControllerTests : TestBaseBlob
     }
     
     [Test]
-    [Description("Unarchive fails with invalid ID format")]
-    public async Task Unarchive_InvalidId_ReturnsBadRequest()
+    [Description("Untrashing fails with invalid ID format")]
+    public async Task Untrashing_InvalidId_ReturnsBadRequest()
     {
         // Arrange
         string invalidId = "not-a-guid";
@@ -1716,8 +2742,8 @@ public class ResourcesControllerTests : TestBaseBlob
     }
 
     [Test]
-    [Description("Unarchive fails when resource does not exist")]
-    public async Task Unarchive_NonExistentResource_ReturnsNotFound()
+    [Description("Untrashing fails when resource does not exist")]
+    public async Task Untrashing_NonExistentResource_ReturnsNotFound()
     {
         // Arrange
         string nonExistentId = Guid.NewGuid().ToString();
@@ -1734,6 +2760,90 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(response.Success, Is.False);
         Assert.That(response.Message, Does.Contain("does not exist"));
     }
+
+    #endregion
+
+    #region Archive grid
+
+    [Test]
+    [Description("GetGrid returns grid items for valid request")]
+    public async Task GetGrid_ValidRequest_ReturnsGridItems()
+    {
+        // Arrange
+        var request = new GridRequest
+        {
+            PageIndex = 1,
+            PageSize = 10,
+            SearchQuery = "Test",
+            SortBy = "Name",
+            SortDirection = "asc",
+            FilterOptions = null 
+        };
+
+        // Act
+        OkObjectResult? result = await _controller.GetGrid(request) as OkObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(200));
+
+        var response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.True);
+        Assert.That(response.Body, Is.Not.Null);
+    }
+
+    [Test]
+    [Description("GetGrid returns BadRequest for invalid PageIndex")]
+    public async Task GetGrid_InvalidPageIndex_ReturnsBadRequest()
+    {
+        // Arrange
+        var request = new GridRequest
+        {
+            PageIndex = 0,  // Invalid
+            PageSize = 10
+        };
+
+        // Act
+        var result = await _controller.GetGrid(request) as BadRequestObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+
+        var response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Page index cannot be lower than 1"));
+    }
+
+    [Test]
+    [Description("GetGrid returns BadRequest for invalid PageSize")]
+    public async Task GetGrid_InvalidPageSize_ReturnsBadRequest()
+    {
+        // Arrange
+        var request = new GridRequest
+        {
+            PageIndex = 1,
+            PageSize = 0  // Invalid
+        };
+
+        // Act
+        var result = await _controller.GetGrid(request) as BadRequestObjectResult;
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.StatusCode, Is.EqualTo(400));
+
+        var response = result.Value as ApiResponse;
+        Assert.That(response, Is.Not.Null);
+        Assert.That(response.Success, Is.False);
+        Assert.That(response.Message, Is.EqualTo("Page size cannot be lower than 1"));
+    }
+
+    #endregion
+
+    #region Trash grid
 
     #endregion
 }
