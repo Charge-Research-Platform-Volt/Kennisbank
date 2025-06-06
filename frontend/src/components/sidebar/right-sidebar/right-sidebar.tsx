@@ -19,7 +19,7 @@ import ShowDate from './showDate';
  */
 export default function RightSidebar()
 {
-  	const { currentType, creationDate, publicationDate, rightSidebarOpen, currentId, navigateBack, navigateForward, setRightSidebarOpen, isEmptyPrevs, isEmptyNexts } = useSidebar();
+  	const { currentType, creationDate, publicationDate, currentId, navigateBack, navigateForward, setRightSidebarOpen, isEmptyPrevs, isEmptyNexts } = useSidebar();
 
 	const handleOpenClick = () => 
 	{
@@ -70,11 +70,6 @@ export default function RightSidebar()
 			
 			{/* Footer */}
 			<div className="w-full flex justify-center mt-3">
-				{/* Fade 
-				<div className="absolute bottom-0 right-0 w-full h-15 pointer-events-none" style={{ background: `linear-gradient(to bottom, rgba(249, 250, 251, 1), transparent)` }} />
-				*/}
-
-				{/* ADD FOOTER CONTENT HERE */}
 				{publicationDate && creationDate ? (
 					<div className="flex items-center justify-between gap-4 text-sm text-gray-700 mb-2">
 						<ShowDate date={creationDate}

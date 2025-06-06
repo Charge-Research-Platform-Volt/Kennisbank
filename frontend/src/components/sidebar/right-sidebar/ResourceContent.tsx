@@ -16,6 +16,7 @@ import { ApiResponse } from "@/types/apiResponse.type"
 import { useArchive } from "@/context/archive-provider"
 import Edit from "./Edit";
 import { TrashResource } from "@/actions/trashResourceActions"
+import { Badge } from "@/components/ui/badge";
 
 
 export function ResourceContent()
@@ -42,7 +43,7 @@ export function ResourceContent()
     const [ langCode, setLangCode ] = useState<string | null>(null); //ToDo
     const [ pubCode, setPubCode ] = useState<string | null>(null);
     const [ license, setLicense ] = useState<string | null>(null);
-    const [ trashed, setTrashed ] = useState<string | null>(null);
+    const [ trashed, setTrashed ] = useState<boolean>(false);
 
     
     const loadContent = useCallback(async () => 
@@ -84,11 +85,11 @@ export function ResourceContent()
             setDescription(data.body.description || "No description.");
             setLangCode(data.body.languageCode || "Unknown.");
             setPubCode(data.body.publicationCode || "Unknown.");
-            setPubDate(data.body.publicationDate || "Unknown");
+            setPublicationDate(data.body.publicationDate || "Unknown");
             setCreationDate(data.body.creationDate || "Unknown.");
             setNote(data.body.note || "No notes.");
             setFileType(data.body.fileType || "Unknown.");
-            setTrashed(data.body.trashed || "false");
+            setTrashed(data.body.trashed);
             setUrl(data.body.url || "No URL found.");
             setAuthors(data.body.authors || []);
             setOrganisations(data.body.organisations || []);
@@ -99,7 +100,7 @@ export function ResourceContent()
             setTags(data.body.tags || []);
             setLicense(data.body.license || "Unknown.");
         }
-    }, [currentId]);
+    }, [currentId, setCreationDate, setPublicationDate]);
     
     const loadRelatedResources = useCallback(async () =>
     {
@@ -164,7 +165,7 @@ export function ResourceContent()
             setRegions(null);
             setLangCode(null);
             setPubCode(null);
-            setPubDate(null);
+            setPublicationDate(null);
             setCreationDate(null);
             setLicense(null);
 
@@ -173,7 +174,7 @@ export function ResourceContent()
             loadRelatedResources();
             loadAiTags();
         }
-    }, [currentId, loadContent, loadRelatedResources, loadAiTags, rightSidebarOpen]);
+    }, [currentId, loadContent, loadRelatedResources, loadAiTags, rightSidebarOpen, setPublicationDate, setCreationDate]);
     
     const confirmDelete = async () => 
     {
@@ -187,7 +188,14 @@ export function ResourceContent()
     return (
         <>
             <ConfirmDeleteDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen} onConfirmation={confirmDelete} />
-        
+            
+            { trashed &&
+                <Badge variant="outline" className="w-full mb-5 flex flex-col border-red-500 text-red-500">
+                    <h1 className="text-xl">This item is in the trash.</h1>
+                    <span className="flex-1 mb-1">Contact an admin if you think this is a mistake.</span>
+                </Badge>
+            }
+            
             <h1 className="pb-2 font-bold select-none text-2xl">{title || <Skeleton />}</h1>
             
             { fileType === "website" &&
