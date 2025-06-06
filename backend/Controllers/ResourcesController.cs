@@ -587,7 +587,7 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
         public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties, string? searchQuery, bool trash = false)
         {
-            if(trash && !User.IsInRole("admin"))
+            if (trash && !User.IsInRole("admin"))
                 return Unauthorized(new ApiResponse(false, "You are not authorized to view trashed resources."));
 
             // Verification

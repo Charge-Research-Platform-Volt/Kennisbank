@@ -83,6 +83,7 @@ public class Resource
     [JsonIgnore] public ICollection<ResourceAuthorRelation>? ResourceAuthorRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceOrganisationRelation>? ResourceOrganisationRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceRegionRelation>? ResourceRegionRelations { get; set; }
+    [JsonIgnore] public ICollection<ResourceRelatedPersonRelation>? ResourceRelatedPersonRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceRelatedOrganisationRelation>? ResourceRelatedOrganisationRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceRelatedSourceRelation>? ResourceRelatedSourceRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceSourceRelation>? ResourceSourceRelations { get; set; }

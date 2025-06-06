@@ -23,7 +23,8 @@ interface BadgeListProps
     className?: string;
     listType: resourceRelation | personRelation | organisationRelation;
     itemList: ListItem[] | null;
-    onUpdate: () => void;
+    onNew: (newItems: ListItem[]) => void;
+    onRemove: (removedItems: ListItem[]) => void;
 }
 
 const skeletonList = [1,2,3,4,5,6,7,8]
@@ -34,7 +35,8 @@ export default function BadgeList({
     className = "p-2 select-none",
     listType, //can be overridden, is used to identify what relation you can add with the plus button
     itemList,
-    onUpdate,
+    onNew,
+    onRemove
 } : BadgeListProps)
 {
     const { navigate, currentId, currentType } = useSidebar();
@@ -58,22 +60,22 @@ export default function BadgeList({
         }
     }
 
-    async function handleRemove(id: string, type: string) {
+    async function handleAiRemove(item: ListItem) {
         try {
             
-            await removeRelation(listType, currentType, currentId, id) 
-            onUpdate();
+            await removeRelation(listType, currentType, currentId, item.id) 
+            onRemove([item]);
 
         } catch (error) {
             console.error("Error adding relations:", error);
         }
     }
 
-    async function handleAddTag(id: string, name: string) {
+    async function handleAiAdd(item: ListItem) {
         try {
-            let tagid = await tryAddNewTag(name);
+            const tagid = await tryAddNewTag(item.name);
             await addRelation("tags", currentType, currentId, tagid)
-            onUpdate();
+            onNew([item]);
         }
         catch (error) {
             console.error("Error adding recommended tag:", error)
@@ -97,11 +99,11 @@ export default function BadgeList({
                             </ContextMenuTrigger>
                             <ContextMenuContent className="select-none">
                                 {listType != "ai-tags" ? (
-                                    <ContextMenuItem className="select-none text-red-600" onClick={() => handleRemove(item.id, item.type)}>
+                                    <ContextMenuItem className="select-none text-red-600" onClick={() => handleAiRemove(item)}>
                                         <div className="select-none cursor-pointer">Remove relation</div>
                                     </ContextMenuItem>
                                 ) : (
-                                    <ContextMenuItem className="select-none text-[#502379]" onClick={() => handleAddTag(item.id, item.name)}>
+                                    <ContextMenuItem className="select-none text-[#502379]" onClick={() => handleAiAdd(item)}>
                                         <div className="select-none cursor-pointer">Add tag</div>
                                     </ContextMenuItem>
                                 )}
@@ -110,14 +112,14 @@ export default function BadgeList({
                         </ContextMenu>
                     ))}
                     {listType != "ai-tags" && (
-                        <NewBadge relation={listType} onUpdate={onUpdate} alreadyRelated={itemList}/>
+                        <NewBadge relation={listType} onNew={onNew} alreadyRelated={itemList}/>
                     )}
                     
                 </>
             ) : (
                 <>
                 {listType != "ai-tags" && (
-                    <NewBadge relation={listType} onUpdate={onUpdate} alreadyRelated={itemList}/>
+                    <NewBadge relation={listType} onNew={onNew} alreadyRelated={itemList}/>
                 )}
                 </>
             )}

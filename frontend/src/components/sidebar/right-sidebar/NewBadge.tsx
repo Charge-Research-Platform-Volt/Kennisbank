@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import New from "@/icons/new"
-import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider"
+import { useSidebar } from "@/context/sidebar-provider"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { newRelationSearchResults, organisationRelation, personRelation, resourceRelation, addRelation, addNewRegion } from "@/actions/right-sidebarActions";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ interface NewBadgeProps
 {
     variant?: "outline" | "default" | "secondary" | "destructive";
     relation: resourceRelation | personRelation | organisationRelation;
-    onUpdate: () => void;
+    onNew: (items: ListItem[]) => void;
     alreadyRelated: ListItem[];
 }
 
@@ -26,12 +26,12 @@ interface SearchResult {
 export default function NewBadge({
     variant = "outline",
     relation,
-    onUpdate,
+    onNew,
     alreadyRelated,
 } : NewBadgeProps)
 {
-    const { currentId, currentType, navigate } = useSidebar();
-    const [container, setContainer] = useState<any>(null);
+    const { currentId, currentType } = useSidebar();
+    const [searchInput, setSearchInput] = useState<string>("");
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
     const [selected, setSelected] = useState<SearchResult[]>([]);
@@ -48,38 +48,48 @@ export default function NewBadge({
         latestRelation.current = relation;
         latestAlreadyRelated.current = alreadyRelated;
     }, [relation, alreadyRelated]);
-
-    // Debounced search function
-    const debouncedSearch = useCallback(
-        debounce(async (query: string) => {
-            if (!query.trim() || !latestAlreadyRelated.current) {
+    
+    // Debounce search input
+    useEffect(() => 
+    {
+        const timer = setTimeout(() => setSearchQuery(searchInput), 300);
+        
+        return () => clearTimeout(timer);
+    }, [searchInput]);
+    
+    // Perform search on query change
+    useEffect(() => 
+    {
+        async function performSearch() 
+        {
+            if (!searchQuery.trim() || !latestAlreadyRelated.current)
+            {
                 setSearchResults([]);
                 return;
             }
 
             setIsLoading(true);
             try {
-                const response = await newRelationSearchResults(query, latestRelation.current as any, 10);
-                if (latestRelation.current === "tags") {
+                const response = await newRelationSearchResults(searchQuery, latestRelation.current, 10);
+                if (latestRelation.current === "tags")
+                {
                     setSearchResults(response.body.tags.filter((item: { id: string; name: string;}) => 
                         !(latestAlreadyRelated.current.some(i => i.id === item.id))) || [])
                 }
                 else setSearchResults(response.body.filter((item: { id: string; name: string;}) => 
                     !(latestAlreadyRelated.current.some(i => i.id === item.id))) || []);
-            } catch (error) {
+            } catch (error) 
+            {
                 console.error("Search error:", error);
                 setSearchResults([]);
-            } finally {
+            } finally 
+            {
                 setIsLoading(false);
             }
-        }, 300),
-        []
-    );
-
-
-    useEffect(() => {
-        debouncedSearch(searchQuery);
-    }, [searchQuery, debouncedSearch]);
+        }
+        
+        performSearch();
+    }, [searchQuery]);
 
 
     function handleResultSelect(result: SearchResult) {
@@ -107,7 +117,7 @@ export default function NewBadge({
             );
             
             await Promise.all(relations);
-            onUpdate();
+            onNew(selected as ListItem[])
 
             setIsOpen(false);
             setSearchQuery("");
@@ -121,7 +131,7 @@ export default function NewBadge({
     async function handleAddSource() {
         try {
             await addRelation(relation, currentType, currentId, source);
-            onUpdate();
+            onNew(selected as ListItem[]);
 
             setIsOpen(false);
             setSearchQuery("");
@@ -134,12 +144,12 @@ export default function NewBadge({
 
     async function handleAddRegion() {
         try {
-            let addedRegionId = await addNewRegion(searchQuery);
+            const addedRegionId = await addNewRegion(searchQuery);
             toast.info(`Region created succesfully: ${searchQuery}`);
             await addRelation("regions", currentType, currentId, addedRegionId);
 
             setIsOpen(false);
-            onUpdate();
+            onNew(selected as ListItem[]);
             setSearchQuery("");
             setSelected([]);
             setSource("");
@@ -148,7 +158,8 @@ export default function NewBadge({
         }
     }
 
-    function isItemSelected(result: SearchResult): boolean {
+    function isItemSelected(result: SearchResult): boolean 
+    {
         return selected.some(item => item.id === result.id);
     }
 
@@ -161,7 +172,6 @@ export default function NewBadge({
             </PopoverTrigger>
             <PopoverContent 
                 className="w-80 p-3 rounded-md" 
-                container={container} 
                 forceMount>
 
                 {relation === "sources" || relation === "related-sources" ? (
@@ -194,8 +204,8 @@ export default function NewBadge({
                         <Input
                             type="text"
                             placeholder={`Search ${relation || 'items'}...`}
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
                             className="w-full"
                             autoFocus
                         />
@@ -266,24 +276,7 @@ export default function NewBadge({
                         </Button>
                     )}
                 </div>) }
-
-
-
-
             </PopoverContent>
         </Popover>
     );
-}
-
-
-// Utility function for debounce
-function debounce<T extends (...args: any[]) => any>(
-    func: T,
-    wait: number
-): (...args: Parameters<T>) => void {
-    let timeout: NodeJS.Timeout;
-    return (...args: Parameters<T>) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func(...args), wait);
-    };
 }

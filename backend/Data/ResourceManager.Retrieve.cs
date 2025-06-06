@@ -95,27 +95,15 @@ namespace KnowledgeBank.Data
         }
 
         protected async Task<dynamic> GetPropertyAsync<TSet>(DbSet<TSet> dbSet, Expression<Func<TSet, bool>> predicate, string selector, Expression<Func<TSet, dynamic>>? orderBy = null, bool orderDescending = false) where TSet : class
-        { 
-            IQueryable<TSet> query = dbSet.Where(predicate);
-            
-            if (orderBy != null) 
-                query = orderDescending ? query.OrderByDescending(orderBy) : query.OrderBy(orderBy);
-
-            ParsingConfig config = new ParsingConfig { ResolveTypesBySimpleName = true, AllowNewToEvaluateAnyType = true };
-
-            return await query.Select(config, selector).Cast<dynamic>().FirstAsync();
+        {
+            IQueryable<TSet> query = getAllQuery(dbSet, orderBy, orderDescending, predicate, []);
+            return await query.Take(1).Select(selector).Cast<dynamic>().FirstAsync();
         }
 
         protected async Task<dynamic?> GetPropertyOrDefaultAsync<TSet>(DbSet<TSet> dbSet, Expression<Func<TSet, bool>> predicate, string selector, Expression<Func<TSet, dynamic>>? orderBy = null, bool orderDescending = false) where TSet : class
-        { 
-            IQueryable<TSet> query = dbSet.Where(predicate);
-            
-            if (orderBy != null) 
-                query = orderDescending ? query.OrderByDescending(orderBy) : query.OrderBy(orderBy);
-            
-            ParsingConfig config = new ParsingConfig { ResolveTypesBySimpleName = true, AllowNewToEvaluateAnyType = true };
-            
-            return await query.Select(config, selector).Cast<dynamic>().FirstOrDefaultAsync();
+        {
+            IQueryable<TSet> query = getAllQuery(dbSet, orderBy, orderDescending, predicate, []);
+            return await query.Take(1).Select(selector).Cast<dynamic>().FirstOrDefaultAsync();
         }
 
 
