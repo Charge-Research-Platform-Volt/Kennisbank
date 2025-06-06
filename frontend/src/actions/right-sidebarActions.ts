@@ -62,7 +62,7 @@ export const getRelation = async (
 
     const properties =
     {
-        "authors": "PersonId as id,Person.Name as name",
+        "authors": "PersonId as id, Person.Name as name",
         "authored-resources": "ResourceId as id,Resource.Title as name",
         "direct-resources": "ResourceId as id,Resource.Title as name",
         "organisations": "OrganisationId as id,Organisation.Name as name",
@@ -82,7 +82,7 @@ export const getRelation = async (
     }[relation];
 
     const cookieHeader : ReadonlyRequestCookies = await cookies();
-    let fetchContents: any = {
+    let fetchContents: object = {
                 method: "GET",
                 credentials: "include",
                 headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
@@ -354,7 +354,7 @@ export const tryAddNewTag = async (
 
     if (!response.ok) {
         const errorText = await response.text();
-        console.error("Tag already exists, returned id");
+        console.error("Tag already exists, returned id: " + errorText);
     }
 
     
@@ -369,7 +369,7 @@ export const tryAddNewTag = async (
 export const setProperty = async (
     property: string,
     id: string,
-    newVal: any,
+    newVal: unknown,
     type: MetadataTypeEnum,
 ) => {
     let endPoint;
