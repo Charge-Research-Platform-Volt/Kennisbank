@@ -326,7 +326,7 @@ namespace KnowledgeBank.Controllers
                 // Retrieve the organisation
                 object? organisation = string.IsNullOrEmpty(properties) ?
                     await resourceManager.GetOrganisationAsync(id) :
-                    await resourceManager.GetOrganisationAsync(id, $"new({properties})");
+                    await resourceManager.GetOrganisationPropertyAsync(id, $"new({properties})");
 
                 // If null, the organisation was not found
                 if (organisation == null)

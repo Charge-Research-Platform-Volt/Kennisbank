@@ -1,8 +1,7 @@
 "use client"
 
-import React, {useState, useEffect} from "react";
+import React from "react";
 import { MetadataTypeEnum, useSidebar } from "@/context/sidebar-provider";
-import { getProperties, getRelation } from "@/actions/right-sidebarActions";
 import Skeleton from 'react-loading-skeleton'
 import Expandable from "./expandable"
 import BadgeList, { ListItem } from "./BadgeList";
@@ -12,41 +11,78 @@ import { TrashResource } from "@/actions/trashResourceActions";
 import { useUserRole } from "@/context/user-role-context";
 import { useArchive } from "@/context/archive-provider";
 import { Button } from "@/components/ui/button";
+import { ApiResponse } from "@/types/apiResponse.type";
+import { Badge } from "@/components/ui/badge";
 
 export function PersonContent() 
 {
     const { currentId, rightSidebarOpen, setRightSidebarOpen, setCreationDate, setPublicationDate } = useSidebar();
     const { userRole } = useUserRole();
     const { triggerGridReload, trashOpen } = useArchive();
-    const [confirmDialogOpen, setConfirmDialogOpen] = useState<boolean>(false);
+    const [confirmDialogOpen, setConfirmDialogOpen] = React.useState<boolean>(false);
     
-    const [ name, setName ] = useState<string | null>(null);  
-    const [ description, setDescription ] = useState<string | null>(null);
-    const [ occupation, setOccupation ] = useState<string | null>(null);
-    const [ authored, setAuthored ] = useState<ListItem[] | null>(null); 
-    const [ related, setRelated ] = useState<ListItem[] | null>(null); 
-    const [ persons, setPersons ] = useState<ListItem[] | null>(null); 
-    const [ organisations, setOrganisations ] = useState<ListItem[] | null>(null); 
-    const [ email, setEmail ] = useState<string | null>(null);
-    const [ linkedIn, setLinkedIn ] = useState<string | undefined>(undefined);
+    const [ name, setName ] = React.useState<string | null>(null);  
+    const [ description, setDescription ] = React.useState<string | null>(null);
+    const [ occupation, setOccupation ] = React.useState<string | null>(null);
+    const [ email, setEmail ] = React.useState<string | null>(null);
+    const [ linkedIn, setLinkedIn ] = React.useState<string | undefined>(undefined);
+    const [ authored, setAuthored ] = React.useState<ListItem[] | null>(null); 
+    const [ related, setRelated ] = React.useState<ListItem[] | null>(null); 
+    const [ persons, setPersons ] = React.useState<ListItem[] | null>(null); 
+    const [ organisations, setOrganisations ] = React.useState<ListItem[] | null>(null);
+    const [trashed, setTrashed] = React.useState<boolean>(false);
 
-    const [authoredRefresh, setAuthoredTrigger] = useState(false);
-    const triggerAuthoredRefresh = () => setAuthoredTrigger(prev => !prev);   
-    const [relatedRefresh, setRelatedTrigger] = useState(false);
-    const triggerRelatedRefresh = () => setRelatedTrigger(prev => !prev);   
-    const [personsRefresh, setPersonsTrigger] = useState(false);
-    const triggerPersonsRefresh = () => setPersonsTrigger(prev => !prev);   
-    const [organistationsRefresh, setOrganisationsTrigger] = useState(false);
-    const triggerOrganisationsRefresh = () => setOrganisationsTrigger(prev => !prev);
+    // Loads all content at once
+    const loadContent = React.useCallback(async () => 
+    {
+        const params: URLSearchParams = new URLSearchParams();
+        
+        // Define properties to retrieve
+        params.append('properties', `
+            Name,
+            Description,
+            Occupation,
+            EmailAddress as Email,
+            Linkedin,
+            Trashed,
+            ResourceAuthorRelations.Select(new(Resource.Id, Resource.Title as Name)) as Authored,
+            ResourceRelatedPersonRelations.Select(new(Resource.Id, Resource.Title as Name)) as Related,
+            TargetRelationships.Select(new(TargetPerson.Id, TargetPerson.Name)) as TargetPersons,
+            SourceRelationships.Select(new(SourcePerson.Id, SourcePerson.Name)) as SourcePersons,
+            PersonOrganisationRelations.Select(new(Organisation.Id, Organisation.Name)) as Organisations
+        `);
+        
+        // Fetch
+        const response = await fetch(`/api/persons/info/${currentId}?${params.toString()}`,
+        {
+            method: 'GET',
+            credentials: 'include'
+        });
+        
+        // Set states on success
+        if (response.ok) 
+        {
+            const data: ApiResponse = await response.json();
+            
+            setName(data.body.name || "Name missing.");
+            setDescription(data.body.description || "No description.");
+            setOccupation(data.body.occupation || "Unknown.");
+            setEmail(data.body.email || "Unknown.");
+            setLinkedIn(data.body.linkedin || "LinkedIn unkown.");
+            setTrashed(data.body.trashed || false);
+            setAuthored(data.body.authored || []);
+            setRelated(data.body.related || []);
+            setPersons(data.body.targetPersons.concat(data.body.sourcePersons) || []);
+            setOrganisations(data.body.organisations || []);
+        }
+    }, [currentId])
 
-    useEffect(() => { if (rightSidebarOpen) { setAuthored(null); loadAuthored();  } }, [authoredRefresh]);
-    useEffect(() => { if (rightSidebarOpen) { setRelated(null); loadRelated(); } }, [relatedRefresh]);
-    useEffect(() => { if (rightSidebarOpen) { setPersons(null); loadPersons(); } }, [personsRefresh]);
-    useEffect(() => { if (rightSidebarOpen) { setOrganisations(null); loadOrganisations(); } }, [organistationsRefresh]);
-
-    
-    React.useEffect(() => {
-        if (rightSidebarOpen) {
+    // Reload content on sidebar open
+    React.useEffect(() =>
+    {
+        if (rightSidebarOpen)
+        {
+            // Clear content
             setName(null);
             setDescription(null);
             setOccupation(null);
@@ -59,106 +95,12 @@ export function PersonContent()
             setCreationDate(null);
             setPublicationDate(null);
 
-            loadProperties();
-            loadAuthored();
-            loadRelated();
-            loadPersons();
-            loadOrganisations();
+            // Load content
+            loadContent();
         }
-    }, [currentId])
-
-    const loadAuthored = async () => {
-        const authoredPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "authored-resources");
-
-        authoredPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
-                id: item.id,
-                name: item.name,
-                type: "resource",
-            }))
-            setAuthored(list);
-        }).catch(error => {
-            console.error("Error loading authored-resources: ", error);
-        });
-    }
-
-    const loadRelated = async () => {
-        const relatedPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "related-resources");
-
-        relatedPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
-                id: item.id,
-                name: item.name,
-                type: "resource",
-            }))
-            setRelated(list);
-        }).catch(error => {
-            console.error("Error loading related resource: ", error);
-        });
-    }
-
-    const loadPersons = async () => {
-        const personsPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "person-related-persons");
-
-        personsPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { targetid: any; targetname: any, sourceid: any, sourcename: any }) => ({
-                id: item.targetid === currentId ? item.sourceid : item.targetid,
-                name: item.targetid === currentId ? item.sourcename : item.targetname,
-                type: "person",
-            }))
-            setPersons(list);
-        }).catch(error => {
-            console.error("Error loading related persons: ", error);
-        });
-    }
-
-    const loadOrganisations = async () => {
-        const organisationsPromise = getRelation(currentId, MetadataTypeEnum.PERSON, "organisations");
-
-        organisationsPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
-                id: item.id,
-                name: item.name,
-                type: "organisation",
-            }))
-            setOrganisations(list);
-        }).catch(error => {
-            console.error("Error loading organisations: ", error);
-        });
-    }
-
-    const loadProperties = async () => {
-        const infoPromise = getProperties(currentId, MetadataTypeEnum.PERSON);
+    }, [loadContent, rightSidebarOpen, setCreationDate, setPublicationDate]);
     
-        infoPromise.then(response => {
-            setName(response.body.name);
-            if (response.body.description) {
-                setDescription(response.body.description);
-            }
-            else {setDescription("No Description")}
-
-            if (response.body.occupation) {
-                setOccupation(response.body.occupation);
-            }
-            else {setOccupation("No Occupation")}
-
-            setCreationDate(response.body.creationDate)
-
-            if (response.body.emailAddress) {
-                setEmail(response.body.emailAddress);
-            }
-            else {setEmail("No Email")}
-
-            if (response.body.linkedin) {
-                setLinkedIn(response.body.linkedin);
-            }
-            else {setLinkedIn("No LinkedIn")}
-
-        }).catch(error => {
-            console.error("Error loading person information: ", error);
-        });  
-    }
-    
+    // Delete the person
     const confirmDelete = async () => 
     {
         if (await TrashResource(currentId, MetadataTypeEnum.PERSON)) 
@@ -171,19 +113,30 @@ export function PersonContent()
     return (
         <>
             <ConfirmDeleteDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen} onConfirmation={confirmDelete} />
-        
+
+            {/* Banner for when person is in trash */}
+            { trashed &&
+                <Badge variant="outline" className="w-full mb-5 flex flex-col border-red-500 text-red-500">
+                    <h1 className="text-xl">This item is in the trash.</h1>
+                    <span className="flex-1 mb-1">Contact an admin if you think this is a mistake.</span>
+                </Badge>
+            }
+            
             <h1 className="pb-2 font-bold select-none text-2xl">{name || <Skeleton />}</h1>
+            
             {occupation ? (
-            <div className="flex justify-between flex-1">
-                <h2 className="mb-2 select-none">{occupation}</h2>
-                <div className="flex justify-end"><Edit setNewText={setOccupation} currentText={occupation} property="occupation" /></div>
-            </div>) : (<Skeleton />) }
+                <div className="flex justify-between flex-1">
+                    <h2 className="mb-2 select-none">{occupation}</h2>
+                    <div className="flex justify-end"><Edit setNewText={setOccupation} currentText={occupation} property="occupation" /></div>
+                </div>
+            ) : (<Skeleton />) }
 
             {linkedIn ? (
-            <div className="flex justify-between flex-1">
-                <h2 className="mb-2 select-none">{linkedIn}</h2>
-                <div className="flex justify-end"><Edit setNewText={setLinkedIn} currentText={linkedIn} property="linkedIn" /></div>
-            </div>) : (<Skeleton />) }
+                <div className="flex justify-between flex-1">
+                    <h2 className="mb-2 select-none">{linkedIn}</h2>
+                    <div className="flex justify-end"><Edit setNewText={setLinkedIn} currentText={linkedIn} property="linkedIn" /></div>
+                </div>
+            ) : (<Skeleton />) }
 
             
             <Expandable editButton={<Edit setNewText={setDescription} currentText={description} property="description" />} title="Description" collapsedHeight={100}>
@@ -191,19 +144,19 @@ export function PersonContent()
             </Expandable>
 
             <Expandable variant="horizontal" title="Authored">
-                <BadgeList listType="authored-resources" itemList={authored} onUpdate={triggerAuthoredRefresh}/>
+                <BadgeList listType="authored-resources" itemList={authored} onNew={(newItems) => setAuthored(authored ? authored.concat(newItems) : newItems)} onRemove={() => {}} />
             </Expandable>
 
             <Expandable variant="horizontal" title="Related">
-                <BadgeList listType="related-resources" itemList={related} onUpdate={triggerRelatedRefresh}/>
+                <BadgeList listType="related-resources" itemList={related} onNew={(newItems) => setRelated(related ? related.concat(newItems) : newItems)} onRemove={() => {}} />
             </Expandable>
 
             <Expandable variant="horizontal" title="Related People">
-                <BadgeList listType="person-related-persons" itemList={persons} onUpdate={triggerPersonsRefresh}/>
+                <BadgeList listType="person-related-persons" itemList={persons} onNew={(newItems) => setPersons(persons ? persons.concat(newItems) : newItems)} onRemove={() => {}} />
             </Expandable>
 
             <Expandable variant="horizontal" title="Related Organisations">
-                <BadgeList listType="organisations" itemList={organisations} onUpdate={triggerOrganisationsRefresh}/>
+                <BadgeList listType="organisations" itemList={organisations} onNew={(newItems) => setOrganisations(organisations ? organisations.concat(newItems) : newItems)} onRemove={() => {}} />
             </Expandable>
 
             <Expandable editButton={<Edit setNewText={setEmail} currentText={email} property="emailAddress" />} title="Email Address" collapsedHeight={100}>

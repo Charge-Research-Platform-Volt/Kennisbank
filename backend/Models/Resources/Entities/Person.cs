@@ -40,6 +40,7 @@ public class Person
     // Navigation property for the Author Resource Relation (1:m)
     [JsonIgnore] public ICollection<ResourceAuthorRelation>? ResourceAuthorRelations { get; set; }
     [JsonIgnore] public ICollection<PersonOrganisationRelation>? PersonOrganisationRelations { get; set; }
+    [JsonIgnore] public ICollection<ResourceRelatedPersonRelation>? ResourceRelatedPersonRelations { get; set; }
 
     [JsonIgnore][InverseProperty("SourcePerson")] public ICollection<PersonRelationship>? TargetRelationships { get; set; }
     [JsonIgnore][InverseProperty("TargetPerson")] public ICollection<PersonRelationship>? SourceRelationships { get; set; }

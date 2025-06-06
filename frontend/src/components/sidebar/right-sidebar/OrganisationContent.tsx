@@ -1,8 +1,7 @@
 "use client"
 
 import { MetadataTypeEnum, useSidebar } from "@/context/sidebar-provider";
-import React, {useState, useEffect} from "react";
-import { getProperties, getRelation } from "@/actions/right-sidebarActions";
+import React from "react";
 import Skeleton from 'react-loading-skeleton';
 import Expandable from "./expandable";
 import BadgeList, { ListItem } from "./BadgeList";
@@ -12,36 +11,75 @@ import Edit from "./Edit";
 import { useArchive } from "@/context/archive-provider";
 import { TrashResource } from "@/actions/trashResourceActions";
 import ConfirmDeleteDialog from "@/components/ui/confirm-delete-dialog";
+import { ApiResponse } from "@/types/apiResponse.type";
+import { Badge } from "@/components/ui/badge";
 
 export function OrganisationContent() 
 {
     const { currentId, rightSidebarOpen, setRightSidebarOpen, setCreationDate, setPublicationDate } = useSidebar();
     const { userRole } = useUserRole();
     const { triggerGridReload, trashOpen } = useArchive();
-    const [confirmDialogOpen, setConfirmDialogOpen] = useState<boolean>(false);
+    const [confirmDialogOpen, setConfirmDialogOpen] = React.useState<boolean>(false);
     
-    const [ name, setName ] = useState<string | null>(null);
-    const [ website, setWebsite ] = useState<string | undefined>(undefined);
-    const [ description, setDescription ] = useState<string | null>(null);
-    const [ resources, setResources ] = useState<ListItem[] | null>(null);
-    const [ relatedResources, setRelatedResources ] = useState<ListItem[] | null>(null);
-    const [ organisations, setOrganisations ] = useState<ListItem[] | null>(null);
-    const [ persons, setPersons ] = useState<ListItem[] | null>(null);
-    const [ email, setEmail ] = useState<string | null>(null);
-
+    const [ name, setName ] = React.useState<string | null>(null);
+    const [ website, setWebsite ] = React.useState<string | undefined>(undefined);
+    const [ description, setDescription ] = React.useState<string | null>(null);
+    const [ resources, setResources ] = React.useState<ListItem[] | null>(null);
+    const [ relatedResources, setRelatedResources ] = React.useState<ListItem[] | null>(null);
+    const [ organisations, setOrganisations ] = React.useState<ListItem[] | null>(null);
+    const [ persons, setPersons ] = React.useState<ListItem[] | null>(null);
+    const [ email, setEmail ] = React.useState<string | null>(null);
+    const [trashed, setTrashed] = React.useState<boolean>(false);
     
-    const [resourcesRefresh, setResourcesTrigger] = useState(false);
-    const triggerResourcesRefresh = () => setResourcesTrigger(prev => !prev);   
-    const [relatedResourcesRefresh, setRelatedResourcesTrigger] = useState(false);
-    const triggerRelatedResourcesRefresh = () => setRelatedResourcesTrigger(prev => !prev);   
-    const [organistationsRefresh, setOrganisationsTrigger] = useState(false);
-    const triggerOrganisationsRefresh = () => setOrganisationsTrigger(prev => !prev);
-    const [personsRefresh, setPersonsTrigger] = useState(false);
-    const triggerPersonsRefresh = () => setPersonsTrigger(prev => !prev); 
-
+    // Loads all the content at once
+    const loadContent = React.useCallback(async () => 
+    {
+        const params: URLSearchParams = new URLSearchParams();
+        
+        // Define the properties to select
+        params.append('properties', `
+            Name,
+            Website,
+            Description,
+            EmailAddress as Email,
+            Trashed,
+            ResourceOrganisationRelations.Select(new(Resource.Id, Resource.Title as Name)) as Resources,
+            ResourceRelatedOrganisationRelations.Select(new(Resource.Id, Resource.Title as Name)) as RelatedResources,
+            TargetRelationships.Select(new(TargetOrganisation.Id, TargetOrganisation.Name)) as TargetOrganisations,
+            SourceRelationships.Select(new(SourceOrganisation.Id, SourceOrganisation.Name)) as SourceOrganisations,
+            PersonOrganisationRelations.Select(new(Person.Id, Person.Name)) as Persons
+        `);
+        
+        // Fetch
+        const response = await fetch(`/api/organisations/info/${currentId}?${params.toString()}`,
+        {
+            method: 'GET',
+            credentials: 'include'
+        });
+        
+        // Set all the properties if success
+        if (response.ok) 
+        {
+            const data: ApiResponse = await response.json();
+            
+            setName(data.body.name || "Name missing.");
+            setWebsite(data.body.website || "Website missing.");
+            setDescription(data.body.description || "No description.");
+            setEmail(data.body.email || "Unknown.");
+            setTrashed(data.body.trashed || false);
+            setResources(data.body.resources || []);
+            setRelatedResources(data.body.relatedResources || []);
+            setOrganisations(data.body.targetOrganisations.concat(data.body.sourceOrganisations) || []);
+            setPersons(data.body.persons || []);
+        }
+        
+    }, [currentId]);
     
+    // Load new content if sidebar is opened
     React.useEffect(() => {
-        if (rightSidebarOpen) {
+        if (rightSidebarOpen) 
+        {
+            // Clear content
             setName(null);
             setWebsite(undefined);
             setDescription(null);
@@ -53,104 +91,12 @@ export function OrganisationContent()
             setCreationDate(null);
             setPublicationDate(null);
 
-            loadProperties();
-            loadResources();
-            loadRelatedResources();
-            loadOrganisations();
-            loadPersons();
+            // Load content
+            loadContent();
         }
-    }, [currentId])
-
-    useEffect(() => { if (rightSidebarOpen) { setResources(null); loadResources();  } }, [resourcesRefresh]);
-    useEffect(() => { if (rightSidebarOpen) { setRelatedResources(null); loadRelatedResources(); } }, [relatedResourcesRefresh]);
-    useEffect(() => { if (rightSidebarOpen) { setOrganisations(null); loadOrganisations(); } }, [organistationsRefresh]);
-    useEffect(() => { if (rightSidebarOpen) { setPersons(null); loadPersons(); } }, [personsRefresh]);
+    }, [currentId, loadContent, rightSidebarOpen, setCreationDate, setPublicationDate])
     
-    const loadProperties = async () => {
-        const infoPromise = getProperties(currentId, MetadataTypeEnum.ORGANISATION);
-
-        infoPromise.then(response => {
-            setName(response.body.name);
-            if (response.body.website) {
-                setWebsite(response.body.website);
-            }
-            else( setWebsite(undefined))
-            if (response.body.description) {
-                setDescription(response.body.description);
-            }
-            else {setDescription("No Description")}
-            if (response.body.emailAddress) {
-                setEmail(response.body.emailAddress);
-            }
-            else { setEmail("No Email")}
-
-            setCreationDate(response.body.creationDate);
-
-        }).catch(error => {
-            console.error("Error loading organisation information:", error);
-        })
-    }
-
-    const loadResources = async () => {
-        const resourcesPromise = getRelation(currentId, MetadataTypeEnum.ORGANISATION, "direct-resources");
-
-        resourcesPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
-                id: item.id,
-                name: item.name,
-                type: "resource",
-            }))
-            setResources(list);
-        }).catch(error => {
-            console.error("Error loading resources: ", error);
-        });
-    }
-
-    const loadRelatedResources = async () => {
-        const relatedResourcsePromise = getRelation(currentId, MetadataTypeEnum.ORGANISATION, "related-resources");
-        
-        relatedResourcsePromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
-                id: item.id,
-                name: item.name,
-                type: "resource",
-            }))
-            setRelatedResources(list);
-        }).catch(error => {
-            console.error("Error loading related resources: ", error);
-        });
-    }
-
-    const loadOrganisations = async () => {
-        const organisationsPromise = getRelation(currentId, MetadataTypeEnum.ORGANISATION, "organisation-related-organisations");
-        
-        organisationsPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { targetid: any; targetname: any, sourceid: any, sourcename: any }) => ({
-                id: item.targetid === currentId ? item.sourceid : item.targetid,
-                name: item.targetid === currentId ? item.sourcename : item.targetname,
-                type: "organisation",
-            }))
-            setOrganisations(list);
-        }).catch(error => {
-            console.error("Error loading related organisations: ", error);
-        });
-    }
-
-    const loadPersons = async () => {
-        const personsPromise = getRelation(currentId, MetadataTypeEnum.ORGANISATION, "persons");
-     
-        personsPromise.then(response => {
-            const list: ListItem[] = response.body.map((item: { id: any; name: any }) => ({
-                id: item.id,
-                name: item.name,
-                type: "person",
-            }))
-            setPersons(list);
-        }).catch(error => {
-            console.error("Error loading related persons: ", error);
-        });
-    }
-    
+    // Delete the organisation
     const confirmDelete = async () => 
     {
         if (await TrashResource(currentId, MetadataTypeEnum.ORGANISATION)) 
@@ -163,7 +109,15 @@ export function OrganisationContent()
     return (
         <>
             <ConfirmDeleteDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen} onConfirmation={confirmDelete} />
-        
+
+            {/* Banner for when organisation is in trash */}
+            { trashed &&
+                <Badge variant="outline" className="w-full mb-5 flex flex-col border-red-500 text-red-500">
+                    <h1 className="text-xl">This item is in the trash.</h1>
+                    <span className="flex-1 mb-1">Contact an admin if you think this is a mistake.</span>
+                </Badge>
+            }
+            
             <h1 className="pb-2 font-bold select-none text-2xl">{name || <Skeleton />}</h1>
             {name ? (
                 <div className="flex justify-between flex-1">
@@ -182,19 +136,19 @@ export function OrganisationContent()
             </Expandable>
             
             <Expandable variant="horizontal" title="Published">
-                <BadgeList listType="direct-resources" itemList={resources} onUpdate={triggerResourcesRefresh}/>
+                <BadgeList listType="direct-resources" itemList={resources} onNew={(newItems) => setResources(resources ? resources.concat(newItems) : newItems)} onRemove={() => {}} />
             </Expandable>
 
             <Expandable variant="horizontal" title="Related">
-                <BadgeList listType="related-resources" itemList={relatedResources} onUpdate={triggerRelatedResourcesRefresh}/>
+                <BadgeList listType="related-resources" itemList={relatedResources} onNew={(newItems) => setRelatedResources(relatedResources ? relatedResources.concat(newItems) : newItems)} onRemove={() => {}} />
             </Expandable>
 
             <Expandable variant="horizontal" title="Related Organisations">
-                <BadgeList listType="organisation-related-organisations" itemList={organisations} onUpdate={triggerOrganisationsRefresh}/>
+                <BadgeList listType="organisation-related-organisations" itemList={organisations} onNew={(newItems) => setOrganisations(organisations ? organisations.concat(newItems) : newItems)} onRemove={() => {}} />
             </Expandable>
 
             <Expandable variant="horizontal" title="Related People">
-                <BadgeList listType="persons" itemList={persons} onUpdate={triggerPersonsRefresh}/>
+                <BadgeList listType="persons" itemList={persons} onNew={(newItems) => setPersons(persons ? persons.concat(newItems) : newItems)} onRemove={() => {}} />
             </Expandable>
             
             <Expandable editButton={<Edit setNewText={setEmail} currentText={email} property="emailAddress" />} title="Email Address" collapsedHeight={100}>

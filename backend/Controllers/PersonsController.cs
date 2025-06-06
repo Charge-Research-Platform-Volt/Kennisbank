@@ -327,7 +327,7 @@ namespace KnowledgeBank.Controllers
                 // Retrieve the person
                 object? person = string.IsNullOrEmpty(properties) ?
                     await resourceManager.GetPersonAsync(id) :
-                    await resourceManager.GetPersonAsync(id, $"new({properties})");
+                    await resourceManager.GetPersonPropertyAsync(id, $"new({properties})");
 
                 // If null, the person was not found
                 if (person == null)

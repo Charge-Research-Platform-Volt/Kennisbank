@@ -5,7 +5,7 @@ import BadgeList from "./BadgeList"
 import { ListItem } from "./BadgeList"
 import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider"
 import { getRelation } from "@/actions/right-sidebarActions"
-import React, {useState, useEffect, useCallback} from "react"
+import React from "react"
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 import ResourceList from "./ResourceList"
@@ -24,32 +24,33 @@ export function ResourceContent()
     const { currentId, rightSidebarOpen, setRightSidebarOpen, setCreationDate, setPublicationDate } = useSidebar();
     const { userRole } = useUserRole();
     const { triggerGridReload, trashOpen } = useArchive();
-    const [confirmDialogOpen, setConfirmDialogOpen] = useState<boolean>(false);
+    const [confirmDialogOpen, setConfirmDialogOpen] = React.useState<boolean>(false);
 
-    const [ fileType, setFileType] = useState<string | null>(null);
-    const [ title, setTitle ] = useState<string | null>(null);
-    const [ url, setUrl ] = useState<string | undefined>(undefined);
-    const [ description, setDescription ] = useState<string | null>(null);
-    const [ note, setNote ] = useState<string | null>(null);
-    const [ authors, setAuthors ] = useState<ListItem[] | null>(null);
-    const [ tags, setTags ] = useState<ListItem[] | null>(null);
-    const [ aiTags, setAiTags ] = useState<ListItem[] | null>(null);
-    const [ organisations, setOrganisations ] = useState<ListItem[] | null>(null);
-    const [ relatedOrganisations, setRelatedOrganisations ] = useState<ListItem[] | null>(null);
-    const [ relatedPersons, setRelatedPersons ] = useState<ListItem[] | null>(null);
-    const [ relatedResources, setRelatedResources ] = useState<ListItem[] | null>(null);
-    const [ sourceList, setSourceList ] = useState<ListItem[] | null>(null);
-    const [ regions, setRegions ] = useState<ListItem[] | null>(null);
-    const [ langCode, setLangCode ] = useState<string | null>(null); //ToDo
-    const [ pubCode, setPubCode ] = useState<string | null>(null);
-    const [ license, setLicense ] = useState<string | null>(null);
-    const [ trashed, setTrashed ] = useState<boolean>(false);
+    const [ fileType, setFileType] = React.useState<string | null>(null);
+    const [ title, setTitle ] = React.useState<string | null>(null);
+    const [ url, setUrl ] = React.useState<string | undefined>(undefined);
+    const [ description, setDescription ] = React.useState<string | null>(null);
+    const [ note, setNote ] = React.useState<string | null>(null);
+    const [ authors, setAuthors ] = React.useState<ListItem[] | null>(null);
+    const [ tags, setTags ] = React.useState<ListItem[] | null>(null);
+    const [ aiTags, setAiTags ] = React.useState<ListItem[] | null>(null);
+    const [ organisations, setOrganisations ] = React.useState<ListItem[] | null>(null);
+    const [ relatedOrganisations, setRelatedOrganisations ] = React.useState<ListItem[] | null>(null);
+    const [ relatedPersons, setRelatedPersons ] = React.useState<ListItem[] | null>(null);
+    const [ relatedResources, setRelatedResources ] = React.useState<ListItem[] | null>(null);
+    const [ sourceList, setSourceList ] = React.useState<ListItem[] | null>(null);
+    const [ regions, setRegions ] = React.useState<ListItem[] | null>(null);
+    const [ langCode, setLangCode ] = React.useState<string | null>(null); //ToDo
+    const [ pubCode, setPubCode ] = React.useState<string | null>(null);
+    const [ license, setLicense ] = React.useState<string | null>(null);
+    const [ trashed, setTrashed ] = React.useState<boolean>(false);
 
-    
-    const loadContent = useCallback(async () => 
+    // Loads all content at once
+    const loadContent = React.useCallback(async () => 
     {
         const params: URLSearchParams = new URLSearchParams();
         
+        // Define properties to get
         params.append('properties', `
             Title,
             Description,
@@ -70,13 +71,15 @@ export function ResourceContent()
             ResourceSourceRelations.Select(Url) as Sources,
             ResourceTagRelations.Select(new(Tag.Id, Tag.Name)) as Tags
         `);
-    
+            
+        // Fetch
         const response = await fetch(`/api/resources/info/${currentId}?${params.toString()}`,
             {
                 method: 'GET',
                 credentials: 'include'
             });
         
+        // Set all states on success
         if (response.ok) 
         {
             const data: ApiResponse = await response.json();
@@ -102,7 +105,8 @@ export function ResourceContent()
         }
     }, [currentId, setCreationDate, setPublicationDate]);
     
-    const loadRelatedResources = useCallback(async () =>
+    // Loads the related resources
+    const loadRelatedResources = React.useCallback(async () =>
     {
         const relatedResourcesPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "resource-related-resources");
     
@@ -120,7 +124,8 @@ export function ResourceContent()
         });
     }, [currentId]);
     
-    const loadAiTags = useCallback(async () =>
+    // Loads the AI tags
+    const loadAiTags = React.useCallback(async () =>
     {
         const aiTagsPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "ai-tags");
     
@@ -144,7 +149,8 @@ export function ResourceContent()
         });
     }, [currentId]);
 
-    useEffect(() =>
+    // Reload content on sidebar open
+    React.useEffect(() =>
     {
         if (rightSidebarOpen)
         {
@@ -176,6 +182,7 @@ export function ResourceContent()
         }
     }, [currentId, loadContent, loadRelatedResources, loadAiTags, rightSidebarOpen, setPublicationDate, setCreationDate]);
     
+    // Deletes resource
     const confirmDelete = async () => 
     {
         if (await TrashResource(currentId, MetadataTypeEnum.RESOURCE)) 
@@ -189,6 +196,7 @@ export function ResourceContent()
         <>
             <ConfirmDeleteDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen} onConfirmation={confirmDelete} />
             
+            {/* Banner for when resource is in trash */}
             { trashed &&
                 <Badge variant="outline" className="w-full mb-5 flex flex-col border-red-500 text-red-500">
                     <h1 className="text-xl">This item is in the trash.</h1>
