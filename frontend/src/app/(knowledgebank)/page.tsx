@@ -66,7 +66,7 @@ export default async function Home() {
                   <span className="block w-[250px] truncate text-left text-sm md:w-[350px] lg:w-[450px]">{file.title}</span>
                 </span>
 
-                <OpenFileButton file={file} />
+                <OpenFileButton id={file.id} fileType={file.fileType} />
               </div>
             ))}
           </div>
