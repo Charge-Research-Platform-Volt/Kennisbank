@@ -40,21 +40,33 @@ export default function BadgeList({
 } : BadgeListProps)
 {
     const { navigate, currentId, currentType } = useSidebar();
-    const { setTagFilter, setTypeFilter } = useArchive();
+    const { setTagFilter, setTypeFilter, setRegionFilter } = useArchive();
     
     async function navigateTo(id: string, type: string)
     {
-        if (type == "person" || type == "organisation" || type == "resource")
+        if ( ["author", "related-persons", "person-related-persons", "persons"].includes(listType))
         {
-            const nType: MetadataTypeEnum = type as MetadataTypeEnum;
-            navigate(id, nType)
+            navigate(id, MetadataTypeEnum.PERSON);
         }
-        else if (type == "tag")
+        else if ( ["resource-related-resource", "related-resources", "authored-resources", "direct-resources", "related-resources"].includes(listType))
+        {
+            navigate(id, MetadataTypeEnum.RESOURCE);
+        }
+        else if ( ["organisations", "related-organisations", "organisation-related-organisations"].includes(listType))
+        {
+            navigate(id, MetadataTypeEnum.ORGANISATION);
+        }
+        else if (listType == "tags")
         {
             setTypeFilter(['resource']);
             setTagFilter([id]);
         }
-        else if (type = "source")
+        else if (listType == "regions")
+        {
+            setTypeFilter(['resource']);
+            setRegionFilter([id]);
+        }
+        else if (["sources", "related-sources"].includes(type))
         {
             window.open(id)?.focus();
         }
