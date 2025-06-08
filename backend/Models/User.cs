@@ -18,7 +18,7 @@ public class User : IdentityUser
     [Required]
     public int CustomAvatarVersion { get; set; } = 0;
 
-    [Obsolete("Only for EF Core and Identity. Use the parameterized constructor instead.", true)]
+    [Obsolete("Only for EF Core and Identity or testing. Use the parameterized constructor instead.")]
     public User() { } // Default constructor for EF Core
 
     public User(string firstName, string lastName, string email)

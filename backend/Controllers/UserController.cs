@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using KnowledgeBank.Utils;
 
 namespace KnowledgeBank.Controllers;
 
@@ -29,7 +31,7 @@ public class UserController(DatabaseContext database, IAzureBlobService blobServ
     )]
     [SwaggerResponse(200, "Account info found.")]
     [SwaggerResponse(500, "Internal server error.")]
-    public async Task<IActionResult> GetCurrentAccount()
+    public async Task<ObjectResult> GetCurrentAccount()
     {
         try
         {
@@ -304,18 +306,18 @@ public class UserController(DatabaseContext database, IAzureBlobService blobServ
                     {
                         if (dto.NewAvatar != null)
                         {
+                            if (dto.NewAvatar.Length > Constants.MaxAvatarSize)
+                                return BadRequest($"Avatar file is too large (max {Constants.MaxAvatarSizeInMb}MB)");
+
                             string contentType = dto.NewAvatar.ContentType;
                             if (dto.NewAvatar.ContentType != "image/png")
-                                return BadRequest(new { message = "Invalid image format." });
+                                return BadRequest("Invalid image type. Png expected");
 
                             BLOB_STATUSCODE upload = await blobService.UploadBlobAsync("avatar", userId, new Dictionary<string, string>(), dto.NewAvatar.OpenReadStream(), overwrite: true);
                             if (upload != BLOB_STATUSCODE.OK)
                                 throw new Exception("Failed to upload avatar.");
 
-                            Console.WriteLine("CustomAvatarVersion udpating");
-                            Console.WriteLine(user.CustomAvatarVersion);
-                            user.CustomAvatarVersion += 1;
-                            Console.WriteLine(user.CustomAvatarVersion);
+                            user.CustomAvatarVersion++;
                         }
                         else if (user.CustomAvatarVersion != 0)
                         {
@@ -324,7 +326,6 @@ public class UserController(DatabaseContext database, IAzureBlobService blobServ
                             if (delete != BLOB_STATUSCODE.OK)
                                 throw new Exception("Failed to delete avatar.");
 
-                            Console.WriteLine("CustomAvatarVersion udpating again");
                             user.CustomAvatarVersion = 0;
                         }
                     }
@@ -356,7 +357,7 @@ public class UserController(DatabaseContext database, IAzureBlobService blobServ
         catch (Exception e)
         {
             logger.Error(e, "Error updating the user.");
-            return StatusCode(500, e.Message);
+            return StatusCode(500, "Internal server error.");
         }
     }
 

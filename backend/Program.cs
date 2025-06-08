@@ -15,7 +15,7 @@ using KnowledgeBank.Utils;
 namespace KnowledgeBank
 {
     public class Program
-    {    
+    {
         public static async Task Main(string[] args)
         {
             // # Builder
@@ -30,7 +30,7 @@ namespace KnowledgeBank
             {
                 foreach (string roleName in RoleInitializer.roleNames)
                 {
-                    options.AddPolicy($"Require{ char.ToUpper(roleName[0]) + roleName.Substring(1) }Role", policy => policy.RequireRole(roleName));
+                    options.AddPolicy($"Require{char.ToUpper(roleName[0]) + roleName.Substring(1)}Role", policy => policy.RequireRole(roleName));
                 }
 
                 // This line terminates the handler on first failure, when more information is required, set this to true.
@@ -54,6 +54,8 @@ namespace KnowledgeBank
                 // Another option: use guid as user name in asp net databse
                 options.User.AllowedUserNameCharacters =
                     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+
+                options.User.RequireUniqueEmail = true;
             });
 
 
@@ -69,7 +71,7 @@ namespace KnowledgeBank
 
             builder.Services.AddScoped<ResourceManager>();
 
-            // # Mailer;
+            // # Mailer
             builder.Services.AddSingleton(new MailUtils(
                 builder.Configuration.GetValue<string>("EMAIL_SMTP_HOST") ?? throw new ArgumentNullException("EMAIL_SMTP_HOST needs to be set"),
                 builder.Configuration.GetValue<int?>("EMAIL_TLS_PORT") ?? throw new ArgumentNullException("EMAIL_TLS_PORT needs to be set"),
@@ -89,7 +91,7 @@ namespace KnowledgeBank
                           .AllowCredentials();
                 });
             });
-            
+
             builder.Services.Configure<FormOptions>(options =>
             {
                 // Set the limit to 100 MB
@@ -100,7 +102,7 @@ namespace KnowledgeBank
 
             builder.Services.AddHostedService<TrashbinCleanupService>(); // Add the background service for cleaning up the trashbin
             builder.Services.AddHostedService<InvitationsCleanupService>(); // Add the background service for cleaning up invitations
-            
+
             builder.WebHost.ConfigureKestrel(serverOptions =>
             {
                 serverOptions.Limits.MaxRequestBodySize = 110100480; // 105 MB in bytes
@@ -127,7 +129,7 @@ namespace KnowledgeBank
             {
                 await RoleInitializer.InitializeAsync(app.Services);
                 await DatabaseSeeder.Seed(app.Services);
-                
+
                 if (app.Environment.IsDevelopment())
                 {
                     // Seed test data only in development environment:
@@ -144,7 +146,7 @@ namespace KnowledgeBank
 
             app.MapGroup("Auth").MapIdentityApi<User>().WithTags("Auth").WithOpenApi(ConfigureIdentityApiOptions).AddEndpointFilter(async (efiContext, next) =>
             {
-                if(HideEndpointFilter.PathsToHide.Any(p => p == efiContext.HttpContext.Request.Path))
+                if (HideEndpointFilter.PathsToHide.Any(p => p == efiContext.HttpContext.Request.Path))
                     return Results.Forbid();
                 return await next(efiContext);
             });

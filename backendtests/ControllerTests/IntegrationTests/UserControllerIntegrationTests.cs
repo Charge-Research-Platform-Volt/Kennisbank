@@ -8,6 +8,7 @@ using KnowledgeBank.Responses;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using System.Reflection.Metadata;
+using KnowledgeBank.Utils;
 
 namespace backend.Tests.Integration;
 
@@ -25,7 +26,7 @@ public class UserControllerTests : TestBaseBlob
         // mock the UserManager<User> dependency
         _userManagerMock = new Mock<UserManager<User>>(
            Mock.Of<IUserStore<User>>(),
-           null, null, null, null, null, null, null, null
+           null!, null!, null!, null!, null!, null!, null!, null!
        );
 
         _controller = new UserController(Context, BlobService, _userManagerMock.Object);
@@ -64,7 +65,7 @@ public class UserControllerTests : TestBaseBlob
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
 
         UserResponse[]? response = okResult.Value as UserResponse[];
-        Assert.That(response.Length, Is.GreaterThan(0));
+        Assert.That(response!.Length, Is.GreaterThan(0));
     }
 
     [Test]
@@ -235,7 +236,17 @@ public class UserControllerTests : TestBaseBlob
         var controller = new UserController(Context, BlobService, _userManagerMock.Object);
         SetUserIdentity(controller, userId);
 
-        var dto = new UpdateUserDto { NewFirstName = "New", NewLastName = "Name", NewEmail = "new@example.com" };
+        byte[] bytes = { 137, 80, 78, 71, 13, 10, 26, 10 };
+
+        var stream = new MemoryStream(bytes);
+
+        IFormFile file = new FormFile(stream, 0, stream.Length, "avatar", "avatar.png")
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = "image/png"
+        };
+
+        var dto = new UpdateUserDto { NewFirstName = "New", NewLastName = "Name", NewEmail = "new@example.com", ChangedAvatar = true, NewAvatar = file };
 
         // Act
         IActionResult result = await controller.Update(dto);
@@ -246,6 +257,45 @@ public class UserControllerTests : TestBaseBlob
         var response = okResult?.Value as ApiResponse;
         Assert.That(response?.Success, Is.True);
         Assert.That(response?.Message, Is.EqualTo("User updated successfully."));
+
+        Assert.That(await BlobService.RetreiveUserAvatarStream(userId) != null);
+    }
+
+    [Test]
+    public async Task Update_DeletesAvatar_WhenSuccesfulAvatarDelete()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var user = new User("Old", "Name", "old@example.com") { Id = userId };
+        Context.Users.Add(user);
+        await Context.SaveChangesAsync();
+
+        _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(user);
+        _userManagerMock.Setup(m => m.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object);
+        SetUserIdentity(controller, userId);
+
+        byte[] bytes = { 137, 80, 78, 71, 13, 10, 26, 10 };
+
+        var stream = new MemoryStream(bytes);
+
+        await BlobService.UploadBlobAsync("avatar", userId, new Dictionary<string, string> { }, stream);
+        user.CustomAvatarVersion++;
+
+        var dto = new UpdateUserDto { ChangedAvatar = true, NewAvatar = null };
+
+        // Act
+        IActionResult result = await controller.Update(dto);
+
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.That(okResult, Is.Not.Null);
+        var response = okResult?.Value as ApiResponse;
+        Assert.That(response?.Success, Is.True);
+        Assert.That(response?.Message, Is.EqualTo("User updated successfully."));
+
+        Assert.That(await BlobService.RetreiveUserAvatarStream(user.Id) == null);
     }
 
     [Test]
@@ -259,6 +309,9 @@ public class UserControllerTests : TestBaseBlob
 
         _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(user);
         _userManagerMock.Setup(m => m.UpdateAsync(user)).ReturnsAsync(IdentityResult.Failed());
+        _userManagerMock.Setup(m => m.GenerateChangeEmailTokenAsync(user, "new@example.com")).ReturnsAsync("token");
+        _userManagerMock.Setup(m => m.ChangeEmailAsync(user, "new@example.com", "token")).ReturnsAsync(IdentityResult.Success);
+        _userManagerMock.Setup(m => m.SetUserNameAsync(user, "new@example.com")).ReturnsAsync(IdentityResult.Success);
 
         var controller = new UserController(Context, BlobService, _userManagerMock.Object);
         SetUserIdentity(controller, userId);
@@ -328,10 +381,67 @@ public class UserControllerTests : TestBaseBlob
         var result = await controller.Update(dto);
 
         // Assert
-        var okResult = result as OkObjectResult;
+        var okResult = result as ObjectResult;
         var response = okResult?.Value as ApiResponse;
         Assert.That(response?.Success, Is.False);
-        Assert.That(response?.Message, Does.Contain("email already exists"));
+        Assert.That(response?.Message, Is.EqualTo("Email format is not supported in our database."));
+    }
+
+    [Test]
+    public async Task Update_ReturnsBadRequest_WhenInvalidAvatarContentType()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var user = new User("", "", "old@example.com") { Id = userId };
+        Context.Users.Add(user);
+        await Context.SaveChangesAsync();
+
+        _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(user);
+
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object);
+        SetUserIdentity(controller, userId);
+
+        var mockFile = new Mock<IFormFile>();
+        mockFile.Setup(m => m.ContentType).Returns("the great wall of china");
+
+        var dto = new UpdateUserDto { ChangedAvatar = true, NewAvatar = mockFile.Object };
+
+        // Act
+        var result = await controller.Update(dto);
+
+        // Assert
+        var objectResult = result as BadRequestObjectResult;
+        Assert.That(objectResult?.StatusCode, Is.EqualTo(400));
+        Assert.That(objectResult?.Value, Is.EqualTo("Invalid image type. Png expected"));
+    }
+
+    [Test]
+    public async Task Update_ReturnsBadRequest_WhenAvatarTooLarge()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var user = new User("", "", "old@example.com") { Id = userId };
+        Context.Users.Add(user);
+        await Context.SaveChangesAsync();
+
+        _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(user);
+
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object);
+        SetUserIdentity(controller, userId);
+
+        var mockFile = new Mock<IFormFile>();
+        mockFile.Setup(m => m.ContentType).Returns("image/png");
+        mockFile.Setup(m => m.Length).Returns(1000000000);
+
+        var dto = new UpdateUserDto { ChangedAvatar = true, NewAvatar = mockFile.Object };
+
+        // Act
+        var result = await controller.Update(dto);
+
+        // Assert
+        var objectResult = result as BadRequestObjectResult;
+        Assert.That(objectResult?.StatusCode, Is.EqualTo(400));
+        Assert.That(objectResult?.Value, Is.EqualTo($"Avatar file is too large (max {Constants.MaxAvatarSizeInMb}MB)"));
     }
 
     [Test]
@@ -377,7 +487,6 @@ public class UserControllerTests : TestBaseBlob
         Assert.That(objectResult?.StatusCode, Is.EqualTo(500));
         Assert.That(objectResult?.Value, Is.EqualTo("Internal server error."));
     }
-
 }
 
 

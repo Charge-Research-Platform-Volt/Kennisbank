@@ -16,7 +16,7 @@ namespace backend.Tests.Integration;
 
 [TestFixture]
 [Category("IntegrationTest")]
-public class AuthControllerTests : TestBase
+public class AuthControllerTests : TestBaseBlob
 {
     private AuthController _controller;
     private UserManager<User> _userManager;
@@ -55,20 +55,20 @@ public class AuthControllerTests : TestBase
 
         _userManager = new UserManager<User>(
            _userStore,
-            null,
+            null!,
             new PasswordHasher<User>(),
             new[] { new UserValidator<User>() },
             new[] { new PasswordValidator<User>() },
             new UpperInvariantLookupNormalizer(),
             new IdentityErrorDescriber(),
-            null,
-            null
+            null!,
+            null!
         );
         _signInManager = new SignInManager<User>(
             _userManager,
             _mockHttpContextAccessor.Object,
             _mockUserClaimsPrincipalFactory.Object,
-            null, null, null, null
+            null!, null!, null!, null!
         );
 
         _mockMailUtils = new Mock<MailUtils>("mock", 13_15_3_11, "mock", "mock", "mock");
@@ -76,7 +76,7 @@ public class AuthControllerTests : TestBase
         _mockConfig.Setup(m => m["HOST_URL"]).Returns("http://localhost:3000");
 
         // TODO: FIX
-        _controller = new AuthController(_mockConfig.Object, _signInManager, Context, _mockMailUtils.Object);
+        _controller = new AuthController(_mockConfig.Object, _signInManager, BlobService, Context, _mockMailUtils.Object);
     }
 
     protected override Task OnTestTearDown()
@@ -272,6 +272,91 @@ public class AuthControllerTests : TestBase
     }
 
     [Test]
+    public async Task SignUp_ReturnsBadRequest_WhenInvalidAvatarContentType()
+    {
+        // Arrange
+        string email = "test@test.nl";
+        string hashedEmail = ShaUtils.Sha256(email);
+        string token = Guid.NewGuid().ToString();
+        string hashedToken = ShaUtils.Sha256(token);
+
+        await Context.Invitations.AddAsync(new Invitation()
+        {
+            Id = Guid.NewGuid(),
+            Email = hashedEmail,
+            Token = hashedToken,
+            CreatedAt = DateTime.UtcNow.AddDays(-8),
+        });
+        await Context.SaveChangesAsync();
+
+        var mockFile = new Mock<IFormFile>();
+        mockFile.Setup(m => m.ContentType).Returns("the great wall of china");
+        
+        // Act
+        IActionResult result = await _controller.Register(new SignUpDto()
+        {
+            Email = email,
+            Password = "Test123!",
+            Token = token,
+            FirstName = "Test",
+            LastName = "User",
+            Avatar = mockFile.Object,
+        });
+
+        // Assert
+        BadRequestObjectResult? badRequestResult = result as BadRequestObjectResult;
+        Assert.That(badRequestResult, Is.Not.Null, "The result must be a BadRequestObjectResult.");
+        Assert.That(badRequestResult.StatusCode, Is.EqualTo(400), "The statuscode must be 400.");
+        Assert.That(ObjectComparer.AreObjectsEqual(badRequestResult.Value, new { message = "Invalid image type. Png expected" }));
+
+        IdentityUser? user = Context.Users.FirstOrDefault(u => u.Email == email);
+        Assert.That(user, Is.Null, "The user must not be created in the database.");
+    }
+
+    [Test]
+    public async Task SignUp_ReturnsBadRequest_WhenAvatarTooLarge()
+    {
+        // Arrange
+        string email = "test@test.nl";
+        string hashedEmail = ShaUtils.Sha256(email);
+        string token = Guid.NewGuid().ToString();
+        string hashedToken = ShaUtils.Sha256(token);
+
+        await Context.Invitations.AddAsync(new Invitation()
+        {
+            Id = Guid.NewGuid(),
+            Email = hashedEmail,
+            Token = hashedToken,
+            CreatedAt = DateTime.UtcNow.AddDays(-8),
+        });
+        await Context.SaveChangesAsync();
+
+        var mockFile = new Mock<IFormFile>();
+        mockFile.Setup(m => m.ContentType).Returns("image/png");
+        mockFile.Setup(m => m.Length).Returns(1000000000);
+        
+        // Act
+        IActionResult result = await _controller.Register(new SignUpDto()
+        {
+            Email = email,
+            Password = "Test123!",
+            Token = token,
+            FirstName = "Test",
+            LastName = "User",
+            Avatar = mockFile.Object,
+        });
+
+        // Assert
+        BadRequestObjectResult? badRequestResult = result as BadRequestObjectResult;
+        Assert.That(badRequestResult, Is.Not.Null, "The result must be a BadRequestObjectResult.");
+        Assert.That(badRequestResult.StatusCode, Is.EqualTo(400), "The statuscode must be 400.");
+        Assert.That(ObjectComparer.AreObjectsEqual(badRequestResult.Value, new { message = $"Avatar file is too large (max {Constants.MaxAvatarSizeInMb}MB)" } ));
+
+        IdentityUser? user = Context.Users.FirstOrDefault(u => u.Email == email);
+        Assert.That(user, Is.Null, "The user must not be created in the database.");
+    }
+
+    [Test]
     public async Task SignUp_CreatesUser_WithCorrectData()
     {
         // Arrange
@@ -279,6 +364,16 @@ public class AuthControllerTests : TestBase
         string hashedEmail = ShaUtils.Sha256(email);
         string token = Guid.NewGuid().ToString();
         string hashedToken = ShaUtils.Sha256(token);
+
+        byte[] bytes = { 137, 80, 78, 71, 13, 10, 26, 10 };
+
+        var stream = new MemoryStream(bytes);
+
+        IFormFile file = new FormFile(stream, 0, stream.Length, "avatar", "avatar.png")
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = "image/png"
+        };
 
         await Context.Invitations.AddAsync(new Invitation()
         {
@@ -296,7 +391,8 @@ public class AuthControllerTests : TestBase
             Password = "Test123!",
             Token = token,
             FirstName = "Test",
-            LastName = "User"
+            LastName = "User",
+            Avatar = file
         });
 
         // Assert
@@ -337,15 +433,7 @@ public class AuthControllerTests : TestBase
         string password = "Test123!";
 
         // Create user
-        User user = new User
-        {
-            Id = Guid.NewGuid().ToString(),
-            UserName = email,
-            Email = email,
-            NormalizedEmail = email.ToUpper(),
-            NormalizedUserName = email.ToUpper(),
-            EmailConfirmed = true
-        };
+        User user = new User("Test", "User", email) { EmailConfirmed = true};
 
         await _userManager.CreateAsync(user, password);
         await _userManager.AddToRoleAsync(user, "user");
@@ -355,7 +443,7 @@ public class AuthControllerTests : TestBase
             _userManager,
             _mockHttpContextAccessor.Object,
             new Mock<IUserClaimsPrincipalFactory<User>>().Object,
-            null, null, null, null
+            null!, null!, null!, null!
         );
 
         mockSignInManager
@@ -377,15 +465,7 @@ public class AuthControllerTests : TestBase
         string wrongPassword = "WrongPassword123!";
 
         // Create user
-        User user = new User
-        {
-            Id = Guid.NewGuid().ToString(),
-            UserName = email,
-            Email = email,
-            NormalizedEmail = email.ToUpper(),
-            NormalizedUserName = email.ToUpper(),
-            EmailConfirmed = true
-        };
+        User user = new User("Test", "Test", email) { EmailConfirmed = true };
 
         await _userManager.CreateAsync(user, password);
         await _userManager.AddToRoleAsync(user, "user");
@@ -395,7 +475,7 @@ public class AuthControllerTests : TestBase
             _userManager,
             _mockHttpContextAccessor.Object,
             new Mock<IUserClaimsPrincipalFactory<User>>().Object,
-            null, null, null, null
+            null!, null!, null!, null!
         );
 
         mockSignInManager
@@ -418,24 +498,24 @@ public class AuthControllerTests : TestBase
         // Mock the user manager
         var mockUserStore = new Mock<IUserStore<User>>();
         var mockUserManager = new Mock<UserManager<User>>(
-            mockUserStore.Object, null, null, null, null, null, null, null, null
+            mockUserStore.Object, null!, null!, null!, null!, null!, null!, null!, null!
         );
 
         // Mock the FindByIdAsync method to return a user with the specified email
         mockUserManager
             .Setup(um => um.FindByIdAsync(userId))
-            .ReturnsAsync(new User { Id = userId, Email = email, UserName = email, FirstName = "Test", LastName = "User",  });
+            .ReturnsAsync(new User("Test", "User", email) { Id = userId });
 
         // Mock de SignInManager en geef de gemockte UserManager mee
         var mockSignInManager = new Mock<SignInManager<User>>(
             mockUserManager.Object,
             _mockHttpContextAccessor.Object,
             _mockUserClaimsPrincipalFactory.Object,
-            null, null, null, null
+            null!, null!, null!, null!
         );
 
         // Create the controller with the mocked SignInManager
-        _controller = new AuthController(_mockConfig.Object, mockSignInManager.Object, Context, _mockMailUtils.Object);
+        _controller = new AuthController(_mockConfig.Object, mockSignInManager.Object, BlobService, Context, _mockMailUtils.Object);
 
         // Simulate an authenticated user
         var claims = new List<Claim> { new Claim(ClaimTypes.NameIdentifier, userId) };
@@ -470,14 +550,14 @@ public class AuthControllerTests : TestBase
             _userManager,
             _mockHttpContextAccessor.Object,
             new Mock<IUserClaimsPrincipalFactory<User>>().Object,
-            null, null, null, null
+            null!, null!, null!, null!
         );
 
         mockSignInManager
             .Setup(sm => sm.SignOutAsync())
             .Returns(Task.CompletedTask);
 
-        _controller = new AuthController(_mockConfig.Object, mockSignInManager.Object, Context, _mockMailUtils.Object);
+        _controller = new AuthController(_mockConfig.Object, mockSignInManager.Object, BlobService, Context, _mockMailUtils.Object);
 
         // Simulate an authenticated user
         List<Claim> claims = new List<Claim> { new Claim(ClaimTypes.Name, "test@test.nl") };
@@ -486,7 +566,7 @@ public class AuthControllerTests : TestBase
 
         Mock<HttpContext> mockHttpContext = new Mock<HttpContext>();
         mockHttpContext.Setup(c => c.User).Returns(principal);
-        mockHttpContext.Setup(c => c.User.Identity.IsAuthenticated).Returns(true);
+        mockHttpContext.Setup(c => c.User.Identity!.IsAuthenticated).Returns(true);
 
         _controller.ControllerContext = new ControllerContext
         {
@@ -513,10 +593,10 @@ public class AuthControllerTests : TestBase
             _userManager,
             _mockHttpContextAccessor.Object,
             new Mock<IUserClaimsPrincipalFactory<User>>().Object,
-            null, null, null, null
+            null!, null!, null!, null!
         );
 
-        _controller = new AuthController(_mockConfig.Object, mockSignInManager.Object, Context, _mockMailUtils.Object);
+        _controller = new AuthController(_mockConfig.Object, mockSignInManager.Object, BlobService, Context, _mockMailUtils.Object);
 
         // Simulate an authenticated user
         List<Claim> claims = new List<Claim> { new Claim(ClaimTypes.Name, "test@test.nl") };
@@ -525,7 +605,7 @@ public class AuthControllerTests : TestBase
 
         Mock<HttpContext> mockHttpContext = new Mock<HttpContext>();
         mockHttpContext.Setup(c => c.User).Returns(principal);
-        mockHttpContext.Setup(c => c.User.Identity.IsAuthenticated).Returns(true);
+        mockHttpContext.Setup(c => c.User.Identity!.IsAuthenticated).Returns(true);
 
         _controller.ControllerContext = new ControllerContext
         {
@@ -533,7 +613,7 @@ public class AuthControllerTests : TestBase
         };
 
         // Act
-        IActionResult result = await _controller.Logout(null);
+        IActionResult result = await _controller.Logout(null!);
 
         // Assert
         Assert.That(result, Is.TypeOf<UnauthorizedResult>(), "The result must be an UnauthorizedResult.");
@@ -552,15 +632,7 @@ public class AuthControllerTests : TestBase
         string currentPassword = "OldPass123!";
         string newPassword = "NewPass123!";
 
-        User user = new User
-        {
-            Id = Guid.NewGuid().ToString(),
-            UserName = email,
-            Email = email,
-            NormalizedEmail = email.ToUpper(),
-            NormalizedUserName = email.ToUpper(),
-            EmailConfirmed = true
-        };
+        User user = new User("Test", "User", email) { EmailConfirmed = true };
 
         await _userManager.CreateAsync(user, currentPassword);
         await _userManager.AddToRoleAsync(user, "user");

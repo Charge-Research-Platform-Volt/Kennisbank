@@ -21,7 +21,6 @@ namespace KnowledgeBank.Controllers
     {
         private readonly string frontendDomain = config["HOST_URL"] ?? throw new ArgumentNullException("HOST_URL needs to be set");
         private readonly Serilog.ILogger logger = Log.ForContext<AuthController>();
-        private readonly int maxAvatarSize = 5 * 1024 * 1024; // 5 MB
 
         [HttpPost]
         [Authorize]
@@ -124,16 +123,16 @@ namespace KnowledgeBank.Controllers
                     if (signUpDto.Avatar != null && signUpDto.Avatar.Length > 0)
                     {
                         if (signUpDto.Avatar.ContentType != "image/png")
-                            return BadRequest(new { message = $"Invalid image type. Allowed types, png expected" });
+                            return BadRequest(new { message = "Invalid image type. Png expected" });
 
-                        if (signUpDto.Avatar.Length > maxAvatarSize)
-                            return BadRequest(new { message = "Avatar file is too large (max 20MB)" });
+                        if (signUpDto.Avatar.Length > Constants.MaxAvatarSize)
+                            return BadRequest(new { message = $"Avatar file is too large (max {Constants.MaxAvatarSizeInMb}MB)" });
 
                         BLOB_STATUSCODE status = await blobService.UploadBlobAsync("avatar", user.Id, new Dictionary<string, string>(), signUpDto.Avatar.OpenReadStream());
                         if (status != BLOB_STATUSCODE.OK)
                             throw new Exception("Failed to upload avatar");
 
-                        user.CustomAvatarVersion += 1;
+                        user.CustomAvatarVersion++;
                     }
 
                     // save the user
