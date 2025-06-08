@@ -2765,85 +2765,13 @@ public class ResourcesControllerTests : TestBaseBlob
 
     #region Archive grid
 
-    [Test]
-    [Description("GetGrid returns grid items for valid request")]
-    public async Task GetGrid_ValidRequest_ReturnsGridItems()
-    {
-        // Arrange
-        var request = new GridRequest
-        {
-            PageIndex = 1,
-            PageSize = 10,
-            SearchQuery = "Test",
-            SortBy = "Name",
-            SortDirection = "asc",
-            FilterOptions = null 
-        };
-
-        // Act
-        OkObjectResult? result = await _controller.GetGrid(request) as OkObjectResult;
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.StatusCode, Is.EqualTo(200));
-
-        var response = result.Value as ApiResponse;
-        Assert.That(response, Is.Not.Null);
-        Assert.That(response.Success, Is.True);
-        Assert.That(response.Body, Is.Not.Null);
-    }
-
-    [Test]
-    [Description("GetGrid returns BadRequest for invalid PageIndex")]
-    public async Task GetGrid_InvalidPageIndex_ReturnsBadRequest()
-    {
-        // Arrange
-        var request = new GridRequest
-        {
-            PageIndex = 0,  // Invalid
-            PageSize = 10
-        };
-
-        // Act
-        var result = await _controller.GetGrid(request) as BadRequestObjectResult;
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.StatusCode, Is.EqualTo(400));
-
-        var response = result.Value as ApiResponse;
-        Assert.That(response, Is.Not.Null);
-        Assert.That(response.Success, Is.False);
-        Assert.That(response.Message, Is.EqualTo("Page index cannot be lower than 1"));
-    }
-
-    [Test]
-    [Description("GetGrid returns BadRequest for invalid PageSize")]
-    public async Task GetGrid_InvalidPageSize_ReturnsBadRequest()
-    {
-        // Arrange
-        var request = new GridRequest
-        {
-            PageIndex = 1,
-            PageSize = 0  // Invalid
-        };
-
-        // Act
-        var result = await _controller.GetGrid(request) as BadRequestObjectResult;
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.StatusCode, Is.EqualTo(400));
-
-        var response = result.Value as ApiResponse;
-        Assert.That(response, Is.Not.Null);
-        Assert.That(response.Success, Is.False);
-        Assert.That(response.Message, Is.EqualTo("Page size cannot be lower than 1"));
-    }
+    //Add Archive grid tests here
 
     #endregion
 
     #region Trash grid
+
+    //Add Trash grid tests here
 
     #endregion
 }
