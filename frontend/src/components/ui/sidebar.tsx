@@ -1,19 +1,21 @@
 import { useSidebar } from "@/context/sidebar-provider";
 import { cn } from "@/lib/utils";
 
-const SIDEBAR_WIDTH_ICON = "48px";
-
 export function Sidebar({
   side = "left",
   width = "300px",
+  collapsedWidth = "48px",
   collapsible = "offcanvas",
   className,
   children,
+  menuRef,
   ...props
 }: React.ComponentProps<"div"> & {
   side: "left" | "right";
   collapsible: "offcanvas" | "icon";
   width?: string;
+  collapsedWidth?: string;
+  menuRef?: React.RefObject<HTMLDivElement|null>;
 }) {
   const { leftSidebarState, rightSidebarState } = useSidebar();
   const state = side === "left" ? leftSidebarState : rightSidebarState;
@@ -26,7 +28,8 @@ export function Sidebar({
       data-variant="sidebar"
       data-side={side}
       data-slot="sidebar"
-      style={{ "--sidebar-width": width, "--sidebar-width-icon": SIDEBAR_WIDTH_ICON } as React.CSSProperties}
+      style={{ "--sidebar-width": width, "--sidebar-width-icon": collapsedWidth } as React.CSSProperties}
+      ref={menuRef}
     >
       {/* This is what handles the sidebar gap on desktop */}
       <div
