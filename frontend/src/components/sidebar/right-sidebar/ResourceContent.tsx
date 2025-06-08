@@ -86,7 +86,7 @@ export function ResourceContent()
             
             setTitle(data.body.title || "Title missing.");
             setDescription(data.body.description || "No description.");
-            setLangCode(data.body.languageCode || "Unknown.");
+            setLangCode(data.body.languageCode || " Language unknown.");
             setPubCode(data.body.publicationCode || "Unknown.");
             setPublicationDate(data.body.publicationDate || "Unknown");
             setCreationDate(data.body.creationDate || "Unknown.");
@@ -211,6 +211,8 @@ export function ResourceContent()
                     <h1 className="mb-8 select-none text-blue-500 underline">{url}</h1>
                 </a>
             }
+
+            {langCode}
         
             <Expandable editButton={<Edit setNewText={setDescription} currentText={description} property="description" />} title="Description" collapsedHeight={100}>
                 {description || <Skeleton />}
