@@ -15,7 +15,6 @@ import Divider from "../divider";
 import ProfileDropdown from "./profile-dropdown";
 import { cn } from "@/lib/utils";
 import { usePathname, useSearchParams } from "next/navigation";
-import ShowMenu from "@/icons/menu/show-menu";
 
 /**
  *
@@ -166,7 +165,7 @@ export default function LeftSidebarClient({
       </nav>
 
       {/* Menu and project parts */}
-      <nav ref={sidebarPartsRef} className="h-full min-h-20 flex-grow overflow-y-auto overflow-x-hidden">
+      <nav ref={sidebarPartsRef} className="h-full min-h-20 flex-grow">
         <SidebarPart name="Menu" items={menuItems} minimize={open} />
         <SidebarPart name="Projects" items={projects} minimize={open} />
       </nav>
@@ -180,7 +179,7 @@ export default function LeftSidebarClient({
               <Link
                 data-testid="sidebar"
                 href={item.path}
-                className={`flex items-center gap-x-2 overflow-hidden rounded-md p-2 hover:bg-gray-200 ${!open && "w-9"} shrink-0 [&_svg:not([class*='size-'])]:size-5 [&_svg]:pointer-events-none [&_svg]:shrink-0`}
+                className={`flex items-center gap-x-2 overflow-hidden rounded-md p-2 hover:bg-gray-200 ${!open && "w-9"} shrink-0 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5`}
               >
                 {item.icon}
                 {item.name}
