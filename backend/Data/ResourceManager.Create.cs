@@ -17,7 +17,7 @@ namespace KnowledgeBank.Data
         public async Task<Guid> CreateResourceAsync(ResourceCreateDto dto)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             Guid resourceId = Guid.NewGuid();
 
             // Construct resource 
@@ -41,7 +41,7 @@ namespace KnowledgeBank.Data
             if (dto is FileResourceCreateDto fDto)
             {
                 if (fDto.File == null) throw new Exception("File cannot be null!");
-            
+
                 resource.FileType = Filetype.ConvertExtensionToFiletype(Path.GetExtension(fDto.File.FileName));
                 Log.Debug("Creating file resource with filetype {FileType}", resource.FileType);
                 resource.Hash = fDto.Hash;
@@ -77,7 +77,7 @@ namespace KnowledgeBank.Data
 
             // Add related source relations to database
             await AddRelatedSourceToResourceRangeAsync(resourceId, dto.RelatedSources);
-            
+
             if (startedTransaction) await Commit();
 
             return resourceId;
@@ -88,7 +88,7 @@ namespace KnowledgeBank.Data
         public async Task<Guid> CreateDocumentAsync(DocumentCreateDto dto)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             // Create the base resource
             Guid resourceId = await CreateResourceAsync(dto);
 
@@ -114,7 +114,7 @@ namespace KnowledgeBank.Data
         public async Task<Guid> CreateAudioAsync(AudioCreateDto dto)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             // Create the base resource
             Guid resourceId = await CreateResourceAsync(dto);
 
@@ -143,7 +143,7 @@ namespace KnowledgeBank.Data
         public async Task<Guid> CreateVideoAsync(VideoCreateDto dto)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             // Create the base resource
             Guid resourceId = await CreateResourceAsync(dto);
 
@@ -169,19 +169,19 @@ namespace KnowledgeBank.Data
         public async Task<Guid> CreateWebsiteAsync(WebsiteCreateDto dto)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             // Create the base resource
             Guid resourceId = await CreateResourceAsync(dto);
 
             // Add metadata
             WebsiteMetadata website = new()
-                {
-                    ResourceId = resourceId,
-                    Url = dto.Url,
-                    AccessedOn = dto.AccessedOn,
-                };
+            {
+                ResourceId = resourceId,
+                Url = dto.Url,
+                AccessedOn = dto.AccessedOn,
+            };
 
-                await database.WebsiteMetadata.AddAsync(website);
+            await database.WebsiteMetadata.AddAsync(website);
 
             if (startedTransaction) await Commit();
 
@@ -193,7 +193,7 @@ namespace KnowledgeBank.Data
         public async Task<Guid> CreatePersonAsync(PersonCreateDto dto)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             // Generate new ID for the person
             Guid personId = Guid.NewGuid();
 
@@ -228,7 +228,7 @@ namespace KnowledgeBank.Data
         public async Task<Guid> CreateOrganisationAsync(OrganisationCreateDto dto)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             // Generate new ID for the organisation
             Guid organisationId = Guid.NewGuid();
 
@@ -259,7 +259,7 @@ namespace KnowledgeBank.Data
         public async Task<Guid> CreateRegionAsync(RegionCreateDto dto)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             // Generate new ID for the region
             Guid regionId = Guid.NewGuid();
 
@@ -283,7 +283,7 @@ namespace KnowledgeBank.Data
         public async Task<Guid> CreateTagAsync(TagCreateDto dto, bool isStandardized = false)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             // Generate new ID for the tag
             Guid tagId = Guid.NewGuid();
 
@@ -323,7 +323,7 @@ namespace KnowledgeBank.Data
         public async Task<Guid> CreateResourceTypeAsync(ResourceTypeCreateDto dto)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             // Generate new ID for the resource type
             Guid typeId = Guid.NewGuid();
 
@@ -341,6 +341,61 @@ namespace KnowledgeBank.Data
 
             return typeId;
         }
+
+        // --- Chat
+        public async Task<Guid> CreateChatAsync(ChatsCreateDto dto)
+        {
+            bool startedTransaction = await BeginTransaction();
+
+            // Generate new ID for the chat
+            Guid chatId = Guid.NewGuid();
+
+            // Create a chat instance using the DTO
+            Chats chat = new()
+            {
+                Id = chatId,
+                UserId = dto.UserId,
+                Title = dto.Title,
+
+                // Set the creation date to now
+                CreationDate = DateTime.UtcNow,
+            };
+
+            // Add chat to database
+            await database.Chats.AddAsync(chat);
+
+            if (startedTransaction) await Commit();
+
+            return chatId;
+        }
+
+        // --- Message
+        public async Task<Guid> CreateMessageAsync(MessagesCreateDto dto)
+        {
+            bool startedTransaction = await BeginTransaction();
+
+            // Generate new ID for the message
+            Guid messageId = Guid.NewGuid();
+
+            // Create a message instance using the DTO
+            Messages message = new()
+            {
+                Id = messageId,
+                ChatId = dto.ChatId,
+                MessageRole = dto.MessageRole,
+                Content = dto.Content,
+                CreationDate = DateTime.UtcNow,
+            };
+
+            // Add message to database
+            await database.Messages.AddAsync(message);
+
+            if (startedTransaction) await Commit();
+
+            return messageId;
+        }
+
+
     }
 }
 

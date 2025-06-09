@@ -8,7 +8,6 @@ using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using System.Linq.Dynamic.Core;
-using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 
 namespace KnowledgeBank.Data
 {
@@ -121,7 +120,6 @@ namespace KnowledgeBank.Data
 
 
         // --------------------------------
-
 
 
         #region Resource
@@ -278,8 +276,6 @@ namespace KnowledgeBank.Data
 
         #endregion
 
-
-
         #region Person
 
         private readonly Expression<Func<Person, dynamic>> personDefaultOrderBy = person => person.Name;
@@ -427,8 +423,6 @@ namespace KnowledgeBank.Data
         }
 
         #endregion
-
-
 
         #region Organisation
 
@@ -721,9 +715,6 @@ namespace KnowledgeBank.Data
 
         #endregion
 
-
-
-
         #region Audio
 
         private readonly Expression<Func<AudioMetadata, dynamic>>? audioDefaultOrderBy = null;
@@ -868,9 +859,6 @@ namespace KnowledgeBank.Data
         }
 
         #endregion
-
-
-
 
         #region Video
 
@@ -1019,9 +1007,6 @@ namespace KnowledgeBank.Data
 
         #endregion
 
-
-
-
         #region Website
 
         private readonly Expression<Func<WebsiteMetadata, dynamic>>? websiteDefaultOrderBy = null;
@@ -1165,9 +1150,6 @@ namespace KnowledgeBank.Data
         }
 
         #endregion
-
-
-
 
         #region Document
 
@@ -1315,9 +1297,6 @@ namespace KnowledgeBank.Data
 
         #endregion
 
-
-
-
         #region Tag
 
         private readonly Expression<Func<Tag, dynamic>> tagDefaultOrderBy = t => t.Name;
@@ -1463,9 +1442,6 @@ namespace KnowledgeBank.Data
         }
 
         #endregion
-
-
-
 
         #region Resource Type
 
@@ -1644,6 +1620,40 @@ namespace KnowledgeBank.Data
             return await GetPageAsync(database.ResourceGridItems, projection, pageIndex, pageSize, orderBy ?? resourceGridDefaultOrder, orderDescending ?? resourceGridDefaultOrderDescending, predicate, includeProperties);
         }
         #endregion
+
+        #region Chat history
+
+        private readonly Expression<Func<Chats, dynamic>> chatDefaultOrderBy = c => c.CreationDate;
+        private const bool chatDefaultOrderDescending = true;
+
+        public async Task<Chats[]> GetAllChatsAsync(Expression<Func<Chats, dynamic>>? orderBy = null, bool orderDescending = chatDefaultOrderDescending, Expression<Func<Chats, bool>>? predicate = null, params string[] includeProperties)
+        {
+            orderBy ??= chatDefaultOrderBy;
+            return await GetAllAsync(database.Chats, orderBy, orderDescending, predicate, includeProperties);
+        }
+
+        // Grouped by creation date
+        public async Task<Dictionary<DateTime, Chats[]>> GetChatsGroupedByDateAsync(Expression<Func<Chats, bool>>? predicate = null, params string[] includeProperties)
+        {
+            var chats = await GetAllChatsAsync(chatDefaultOrderBy, chatDefaultOrderDescending, predicate, includeProperties);
+
+            return chats
+                .GroupBy(c => c.CreationDate.Date)
+                .OrderByDescending(g => g.Key)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(c => c.CreationDate).ToArray());
+        }
+
+
+        // GetMessagesByChatIdAsync
+        // public async Task<Messages[]> GetMessagesByChatIdAsync(Guid chatId, Expression<Func<Messages, dynamic>>? orderBy = null, bool orderDescending = false, params string[] includeProperties)
+        // {
+        //     orderBy ??= m => m.CreationDate;
+        //     return await GetAllAsync(database.Messages, m => m.ChatId == chatId, orderBy, orderDescending, includeProperties);
+        // }
+
+        #endregion
+
+
     }
 }
 

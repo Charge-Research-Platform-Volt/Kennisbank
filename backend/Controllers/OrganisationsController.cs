@@ -29,15 +29,17 @@ namespace KnowledgeBank.Controllers
     /// <param name="resourceManager">The resource manager service for database interactions</param>
     /// <param name="taskQueue">The background task queue for handling long-running tasks</param>
     /// <param name="ragSystem">The RAG system for handling retrieval-augmented generation tasks</param>
+    /// <param name="ragManger">The RAG manager for managing RAG-related tasks</param>
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class OrganisationsController(ResourceManager resourceManager, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem) : ControllerBase
+    public class OrganisationsController(ResourceManager resourceManager, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem, RAGManger ragManger) : ControllerBase
     {
         private readonly Serilog.ILogger _logger = Log.ForContext<OrganisationsController>();
         private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
         private readonly RAGSystem _ragSystem = ragSystem;
+        private readonly RAGManger _ragManger = ragManger;
 
 
         #region New
@@ -67,7 +69,9 @@ namespace KnowledgeBank.Controllers
                 // Add the organisation to the vector database
                 _taskQueue.QueueBackgroundWorkItem(async token =>
                 {
-                    await _ragSystem.CreatePoints(id: id, chunk: $"{dto.Name}\n{dto.Description}", fileType: null);
+                    using var scope = HttpContext.RequestServices.CreateScope();
+                    var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
+                    await ragManager.MainPipline(id: id, chunk: $"{dto.Name}\n{dto.Description}", fileType: null);
                 });
 
                 _logger.Information("Organisation '{Name}' created successfully.", dto.Name);

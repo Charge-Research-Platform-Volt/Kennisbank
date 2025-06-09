@@ -46,8 +46,8 @@ namespace KnowledgeBank.Controllers
     public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<ResourcesController>();
-        private readonly RAGSystem _ragSystem = ragSystem;
         private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
+        private readonly RAGSystem _ragSystem = ragSystem;
 
         #region New
         /// <summary>
@@ -131,7 +131,9 @@ namespace KnowledgeBank.Controllers
                         id = await resourceManager.CreateWebsiteAsync((WebsiteCreateDto)dto);
                         _taskQueue.QueueBackgroundWorkItem(async token =>
                         {
-                            await _ragSystem.CreatePoints(id: id, chunk: $"{dto.Title}\n{dto.Description}\n{((WebsiteCreateDto)dto).Url}", fileType: null);
+                            using var scope = HttpContext.RequestServices.CreateScope();
+                            var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
+                            await ragManager.MainPipline(id: id, chunk: $"{dto.Title}\n{dto.Description}\n{((WebsiteCreateDto)dto).Url}", fileType: null);
                         });
                         break;
                     case "document":
@@ -181,7 +183,9 @@ namespace KnowledgeBank.Controllers
 
                                 _taskQueue.QueueBackgroundWorkItem(async token =>
                                 {
-                                    await _ragSystem.CreatePoints(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: fileType);
+                                    using var scope = HttpContext.RequestServices.CreateScope();
+                                    var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
+                                    await ragManager.MainPipline(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: fileType, fileStream: fDto.File.OpenReadStream());
                                 });
                             }
 
@@ -1308,10 +1312,10 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Execute the search
-                GridSearchResult searchResult = await resourceManager.SearchResourceGridAsync(request);
+                GridSearchTemplate searchResult = await resourceManager.SearchResourceGridAsync(request, _ragSystem);
 
                 // Return result
-                return Ok(new ApiResponse(true, $"Found {searchResult.Items?.Length ?? 0} items", searchResult));
+                return Ok(new ApiResponse(true, $"Found {searchResult.TotalCount} total items", searchResult));
             }
             catch (Exception e)
             {

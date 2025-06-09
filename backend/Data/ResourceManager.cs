@@ -2,7 +2,9 @@
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
 //
-// Author: Abel Dieterich
+// Authors: Abel Dieterich, Elia Jabbour (AI parts and RAG system)
+
+using Serilog;
 
 namespace KnowledgeBank.Data
 {
@@ -15,9 +17,10 @@ namespace KnowledgeBank.Data
     public partial class ResourceManager(DatabaseContext dbContext)
     {
         private readonly DatabaseContext database = dbContext;
+        private readonly Serilog.ILogger _logger = Log.ForContext<ResourceManager>();
 
         #region Transaction functions
-        
+
         /// <summary>
         /// Starts a database transaction
         /// </summary>
@@ -25,7 +28,7 @@ namespace KnowledgeBank.Data
         public async Task<bool> BeginTransaction()
         {
             // Begin a transaction that can be committed or rolled back later
-            if (database.Database.CurrentTransaction == null) 
+            if (database.Database.CurrentTransaction == null)
             {
                 await database.Database.BeginTransactionAsync();
                 return true;
@@ -33,20 +36,20 @@ namespace KnowledgeBank.Data
 
             return false;
         }
-        
+
         /// <summary>
         /// Commits the current database transaction
         /// </summary>
         public async Task Commit()
         {
             // Commit changes from transaction to database
-            if (database.Database.CurrentTransaction != null) 
+            if (database.Database.CurrentTransaction != null)
             {
                 await database.SaveResourceChangesAsync();
                 await database.Database.CurrentTransaction.CommitAsync();
             }
         }
-        
+
         /// <summary>
         /// Rolls back the current database transaction
         /// </summary>
@@ -64,7 +67,7 @@ namespace KnowledgeBank.Data
         private static Guid[] StringToGuidArray(string[]? strings)
         {
             if (strings == null || strings.Length == 0) return [];
-        
+
             Guid[] guids = new Guid[strings.Length];
 
             for (int i = 0; i < strings.Length; i++)

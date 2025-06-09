@@ -70,7 +70,9 @@ namespace KnowledgeBank.Controllers
                 // Add the person to the vector database 
                 _taskQueue.QueueBackgroundWorkItem(async token =>
                 {
-                    await _ragSystem.CreatePoints(id: id, chunk: $"{dto.Name}\n{dto.Description}", fileType: null);
+                    using var scope = HttpContext.RequestServices.CreateScope();
+                    var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
+                    await ragManager.MainPipline(id: id, chunk: $"{dto.Name}\n{dto.Description}", fileType: null);
                 });
 
                 _logger.Information("Person '{Name}' created successfully.", dto.Name);
