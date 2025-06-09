@@ -88,6 +88,12 @@ services:
       - ./qdrant_data:/qdrant/storage
     networks:
       - dev_network
+    # healthcheck:
+    #   test: ["CMD-SHELL", "curl -f http://localhost:6333 || exit 1"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 40s
 
   # ollama:
   #   image: ollama/ollama:latest
