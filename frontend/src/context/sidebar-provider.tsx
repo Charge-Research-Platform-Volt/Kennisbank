@@ -158,7 +158,7 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
             prevs.clear();
             nexts.clear();
         }
-    }, [rightSidebarOpen, currentId, nexts, prevs])
+  }, [rightSidebarOpen, nexts, prevs]);
     
     // Effect for left sidebar open
     React.useEffect(() => 
