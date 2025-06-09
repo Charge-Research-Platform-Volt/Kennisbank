@@ -1,5 +1,6 @@
 using System.ClientModel;
 using System.Runtime.CompilerServices;
+using System.Text;
 using HandlebarsDotNet;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
@@ -87,17 +88,17 @@ public class Chat : Hub
             yield break;
         }
 
-        MessagesCreateDto messageDto = new MessagesCreateDto
-        {
-            SenderId = Guid.Parse(Context.UserIdentifier!),
-            ChatId = Guid.Parse(chatId),
-            MessageRole = "user",
-            Content = message
-        };
-
         // Save the user message to the database
         try
         {
+            MessagesCreateDto messageDto = new MessagesCreateDto
+            {
+                SenderId = Guid.Parse(Context.UserIdentifier!),
+                ChatId = Guid.Parse(chatId),
+                MessageRole = MessageRole.User.ToString(),
+                Content = message
+            };
+
             await _resourceManager.CreateMessageAsync(messageDto);
             _logger.Information("User message saved successfully for chat {ChatId}", chatId);
         }
@@ -107,11 +108,14 @@ public class Chat : Hub
             yield break;
         }
 
+
+        StringBuilder response = new StringBuilder();
         if (contentBased)
         {
             // Use content-based AI response
             await foreach (var content in StreamContentBasedAiResponse(message, cancellationToken))
             {
+                response.Append(content);
                 yield return content;
             }
         }
@@ -120,7 +124,29 @@ public class Chat : Hub
             // Use standard AI response
             await foreach (var content in StreamStandardAiResponse(message, cancellationToken))
             {
+                response.Append(content);
                 yield return content;
+            }
+        }
+
+        // Save the AI response to the database
+        if (response.Length > 0)
+        {
+            try
+            {
+                MessagesCreateDto aiMessage = new MessagesCreateDto
+                {
+                    SenderId = Guid.Parse(Context.UserIdentifier!),
+                    ChatId = Guid.Parse(chatId),
+                    MessageRole = MessageRole.System.ToString(),
+                    Content = response.ToString()
+                };
+                await _resourceManager.CreateMessageAsync(aiMessage);
+                _logger.Information("AI response saved successfully for chat {ChatId}", chatId);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to save AI response for chat {ChatId}", chatId);
             }
         }
 

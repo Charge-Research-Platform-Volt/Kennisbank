@@ -18,7 +18,7 @@ public class Messages
 
     [Column("message-role")]
     [MaxLength(50)]
-    public required string MessageRole { get; set; } // "user" or "system"
+    public required string MessageRole { get; set; }
 
     [Column("content")]
     public string Content { get; set; } = string.Empty;
@@ -31,14 +31,7 @@ public class Messages
 
 }
 
-public class MessagesDto
-{
-    public Guid Id { get; set; }
-    public Guid ChatId { get; set; }
-    public string MessageRole { get; set; } = string.Empty;
-    public string Content { get; set; } = string.Empty;
-    public DateTime CreationDate { get; set; }
-}
+
 
 public class MessagesCreateDto
 {
@@ -46,4 +39,11 @@ public class MessagesCreateDto
     public Guid ChatId { get; set; }
     public string MessageRole { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
+}
+
+// Message role enum
+public enum MessageRole
+{
+    User,
+    System
 }

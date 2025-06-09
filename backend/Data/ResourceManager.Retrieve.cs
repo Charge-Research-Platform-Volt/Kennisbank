@@ -1626,6 +1626,11 @@ namespace KnowledgeBank.Data
         private readonly Expression<Func<Chats, dynamic>> chatDefaultOrderBy = c => c.CreationDate;
         private const bool chatDefaultOrderDescending = true;
 
+        // GetChatAsync
+        public async Task<Chats?> GetChatAsync(Guid id)
+        { return await GetAsync(database.Chats, c => c.Id == id); }
+
+
         public async Task<Chats[]> GetAllChatsAsync(Expression<Func<Chats, dynamic>>? orderBy = null, bool orderDescending = chatDefaultOrderDescending, Expression<Func<Chats, bool>>? predicate = null, params string[] includeProperties)
         {
             orderBy ??= chatDefaultOrderBy;
@@ -1643,13 +1648,13 @@ namespace KnowledgeBank.Data
                 .ToDictionary(g => g.Key, g => g.OrderByDescending(c => c.CreationDate).ToArray());
         }
 
-
         // GetMessagesByChatIdAsync
-        // public async Task<Messages[]> GetMessagesByChatIdAsync(Guid chatId, Expression<Func<Messages, dynamic>>? orderBy = null, bool orderDescending = false, params string[] includeProperties)
-        // {
-        //     orderBy ??= m => m.CreationDate;
-        //     return await GetAllAsync(database.Messages, m => m.ChatId == chatId, orderBy, orderDescending, includeProperties);
-        // }
+        public async Task<Messages[]> GetMessagesByChatIdAsync(Guid chatId, Expression<Func<Messages, dynamic>>? orderBy = null, bool orderDescending = false, params string[] includeProperties)
+        {
+            orderBy ??= m => m.CreationDate;
+            return await GetAllAsync(database.Messages, orderBy, orderDescending, m => m.ChatId == chatId, includeProperties);
+        }
+
 
         #endregion
 

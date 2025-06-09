@@ -98,30 +98,67 @@ public class AIController : ControllerBase
         }
     }
 
+    // Delete chat by ID
+    [HttpDelete("delete-chat/{chatId}")]
+    public async Task<IActionResult> DeleteChat(Guid chatId)
+    {
+        if (!ValidityUtil.IsValidId(chatId.ToString()))
+            return BadRequest(new ApiResponse(false, "Invalid chat ID."));
 
-    // [HttpGet("messages/{chatId}")]
-    // public async Task<IActionResult> GetMessagesByChatId(Guid chatId)
-    // {
-    //     if (!ValidityUtil.IsValidId(chatId.ToString()))
-    //         return BadRequest(new ApiResponse(false, "Invalid chat ID."));
+        try
+        {
+            var result = await _resourceManager.DeleteChatAsync(chatId);
+            if (result)
+            {
+                _logger.Information("Chat with ID {ChatId} deleted successfully.", chatId);
+                return Ok(new ApiResponse(true, "Chat deleted successfully."));
+            }
+            else
+            {
+                _logger.Warning("Chat with ID {ChatId} not found.", chatId);
+                return NotFound(new ApiResponse(false, "Chat not found."));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "An error occurred while deleting chat with ID {ChatId}.", chatId);
+            return StatusCode(500, new ApiResponse(false, "An error occurred while deleting the chat."));
+        }
+    }
 
-    //     try
-    //     {
-    //         var messages = await _resourceManager.GetMessagesByChatIdAsync(chatId);
-    //         if (messages == null || !messages.Any())
-    //         {
-    //             _logger.Warning("No messages found for chat ID {ChatId}", chatId);
-    //             return NotFound(new ApiResponse(false, "No messages found for this chat."));
-    //         }
 
-    //         return Ok(new ApiResponse(true, "Messages retrieved successfully", new { Messages = messages }));
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         _logger.Error(ex, "An error occurred while retrieving messages for chat ID {ChatId}", chatId);
-    //         return StatusCode(500, new ApiResponse(false, "An error occurred while retrieving messages."));
-    //     }
-    // }
+    [HttpGet("messages/{chatId}")]
+    public async Task<IActionResult> GetMessagesByChatId(Guid chatId)
+    {
+        if (!ValidityUtil.IsValidId(chatId.ToString()))
+            return BadRequest(new ApiResponse(false, "Invalid chat ID."));
+
+        try
+        {
+            // First check if the chat exists
+            var chatExists = await _resourceManager.GetChatAsync(chatId);
+            if (chatExists == null)
+            {
+                _logger.Warning("Chat with ID {ChatId} not found", chatId);
+                return NotFound(new ApiResponse(false, "Chat not found."));
+            }
+
+            var messages = await _resourceManager.GetMessagesByChatIdAsync(chatId);
+
+            if (messages == null || !messages.Any())
+            {
+                _logger.Warning("No messages found for chat ID {ChatId}", chatId);
+                return NotFound(new ApiResponse(false, "No messages found for this chat."));
+            }
+
+            return Ok(new ApiResponse(true, "Messages retrieved successfully", new { Messages = messages }));
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "An error occurred while retrieving messages for chat ID {ChatId}", chatId);
+            return StatusCode(500, new ApiResponse(false, "An error occurred while retrieving messages."));
+        }
+    }
 
 
 }
