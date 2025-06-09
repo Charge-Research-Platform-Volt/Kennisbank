@@ -1,3 +1,5 @@
+"use client";
+
 import { useChat } from "@/context/chatbot-provider";
 import React from "react";
 
@@ -16,21 +18,23 @@ export default function ChatIntro() {
   ];
 
   return (
-    <div className="fade-in-animaiton mt-14 flex h-full w-full flex-col justify-center">
-      <h1 className="text-2xl font-bold text-gray-800">How can I help you?</h1>
-      <ul className="mt-4 list-disc pl-5 text-gray-600">
-        {questions.map((question, index) => (
-          <li
-            key={index}
-            className="mb-2 cursor-pointer hover:underline"
-            onClick={() => {
-              setUserInput(question);
-            }}
-          >
-            {question}
-          </li>
-        ))}
-      </ul>
+    <div className="mx-auto w-full max-w-[800px] flex-1">
+      <div className="fade-in-animaiton mt-14 flex h-full w-full flex-col justify-center">
+        <h1 className="text-2xl font-bold text-gray-800">How can I help you?</h1>
+        <ul className="mt-4 list-disc pl-5 text-gray-600">
+          {questions.map((question, index) => (
+            <li
+              key={index}
+              className="mb-2 cursor-pointer hover:underline"
+              onClick={() => {
+                setUserInput(question);
+              }}
+            >
+              {question}
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

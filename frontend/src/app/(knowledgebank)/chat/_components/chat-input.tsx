@@ -8,7 +8,7 @@ import LoadingSpin from "@/components/loading-spin";
 import { Toggle } from "@/components/ui/toggle";
 import Link from "next/link";
 
-export default function ChatInput() {
+export default function ChatInput({ chatId }: { chatId?: string }) {
   const { handleSubmit, userInput, setUserInput, isLoading, setKnowledgeBankContent, knowledgeBankContent } = useChat();
 
   // Handle keyboard events
@@ -22,7 +22,7 @@ export default function ChatInput() {
 
   return (
     <div className="sticky right-0 bottom-0 left-0 z-10 w-full">
-      <form className="bg-sidebar mx-auto w-full max-w-[800px] rounded-t-lg border p-1.5" onSubmit={handleSubmit}>
+      <form className="bg-sidebar mx-auto w-full max-w-[800px] rounded-t-lg border p-1.5" onSubmit={(e) => handleSubmit(e, chatId)}>
         <Textarea
           value={userInput}
           onChange={(e) => {

@@ -7,8 +7,8 @@ export default async function ChatPage({ params }: Readonly<{ params: { id: stri
   const { id } = await params;
   return (
     <div className="relative flex h-full min-h-screen flex-col gap-14 overflow-y-auto px-2 pt-2">
-      <ChatCanvas showIntro={false} id={id} />
-      <ChatInput />
+      <ChatCanvas chatId={id} />
+      <ChatInput chatId={id} />
       <ChatHistory />
     </div>
   );

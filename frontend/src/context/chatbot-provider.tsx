@@ -6,7 +6,8 @@ import * as signalR from "@microsoft/signalr";
 import type { Messages } from "@/types/chatbot.type";
 import { toast } from "sonner";
 import { usePathname, useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { NewApiResponse } from "@/types/apiResponse.type";
 
 type ChatBotContextType = {
   // * The userInput is the input provided by the user
@@ -21,26 +22,19 @@ type ChatBotContextType = {
   chatMessages: Messages;
   setChatMessages: Dispatch<SetStateAction<Messages>>;
 
-  // * The handlePromptSubmit function is used to handle the submission of user input
-  handlePromptSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
-
   // * The messagesEndRef is a reference to the end of the chat messages, used for scrolling
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
 
-  // * The handleStreamForceStop function is used to stop the current streaming response
-  handleStreamForceStop: () => void;
-
   // * The handleSubmit function is used to handle the form submission
-  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  handleSubmit: (e: React.FormEvent<HTMLFormElement>, chatId?: string) => void;
   handleClearChat: () => void;
 
   // * The knowledgeBankContent state indicates whether the knowledge bank content is enabled
   knowledgeBankContent: boolean;
   setKnowledgeBankContent: Dispatch<SetStateAction<boolean>>;
 
-  // * The currentChatId is the ID of the current chat session
-  currentChatId: string;
-  setCurrentChatId: Dispatch<SetStateAction<string>>;
+  // * The handleLoadChatHistory function is used to load the chat history
+  HandleLoadChatHistory: (chatId: string) => void;
 };
 
 // ------------------------------------------------------------------------------------
@@ -73,7 +67,6 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [knowledgeBankContent, setKnowledgeBankContent] = useState<boolean>(true);
   const [chatMessages, setChatMessages] = useState<Messages>([]);
-  const [currentChatId, setCurrentChatId] = useState<string>("");
 
   // This ref is used to scroll to the bottom of the chat messages
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -83,17 +76,17 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
   const currentStreamSubscription = useRef<signalR.ISubscription<string> | null>(null);
 
   // -- Functions ---------------------------------------------------------------------------------
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>, chatId?: string) => {
     e.preventDefault();
 
     if (!isLoading) {
-      handlePromptSubmit();
+      handlePromptSubmit(chatId);
     } else {
       handleStreamForceStop();
     }
   };
 
-  const handlePromptSubmit = () => {
+  const handlePromptSubmit = (chatId?: string) => {
     setIsLoading(() => true);
 
     // Check the user input
@@ -113,22 +106,19 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
     // If it's a new chat session, create a new chat ID
     // and navigate to the chat page
     if (newChatSession) {
-      connection
-        .invoke("CreateChat", userInput)
-        .then((chatId: string) => {
-          router.push(`/chat/${chatId}`);
-          queryClient.invalidateQueries({ queryKey: ["chats-history"] });
-        })
-        .finally(() => {
-          handleStream(userInput);
-        });
+      connection.invoke("CreateChat", userInput).then((newChatId: string) => {
+        router.push(`/chat/${newChatId}`);
+        queryClient.invalidateQueries({ queryKey: ["chats-history"] });
+        handleStream(userInput, newChatId);
+      });
     } else {
       // If not a new chat session, handle the streaming response
-      handleStream(userInput);
+      if (!chatId) throw new Error("Chat ID is required for streaming response.");
+      handleStream(userInput, chatId);
     }
   };
 
-  const handleStream = (userInput: string) => {
+  const handleStream = (userInput: string, chatId: string) => {
     // Check if the connection is established
     if (!connection) {
       toast.error("Connection to the server is not established.");
@@ -142,20 +132,20 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
     // Add the user input to the chat messages
     const userId = Date.now().toString() + "-user";
     setChatMessages((prev) => {
-      return [...prev, { id: userId, sender: "user", message: userMessageText }];
+      return [...prev, { id: userId, messageRole: "User", content: userMessageText }];
     });
 
     // Create a placeholder for the AI's streaming response
     const systemId = Date.now().toString() + "-system";
     setChatMessages((prev) => {
-      return [...prev, { id: systemId, sender: "system", message: "" }];
+      return [...prev, { id: systemId, messageRole: "System", content: "" }];
     });
 
     // Start the streaming response
     try {
-      currentStreamSubscription.current = connection.stream("StreamAiResponse", userMessageText, knowledgeBankContent, currentChatId).subscribe({
+      currentStreamSubscription.current = connection.stream("StreamAiResponse", userMessageText, knowledgeBankContent, chatId).subscribe({
         next: (chunk) => {
-          setChatMessages((prev) => prev.map((msg) => (msg.id === systemId ? { ...msg, message: msg.message + chunk } : msg)));
+          setChatMessages((prev) => prev.map((msg) => (msg.id === systemId ? { ...msg, content: msg.content + chunk } : msg)));
         },
         error: (error) => {
           setIsLoading(() => false);
@@ -170,7 +160,7 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
       setIsLoading(() => false);
       console.error("Error starting streaming:", error);
       toast.error("Error starting streaming");
-      setChatMessages((prev) => prev.map((msg) => (msg.id === systemId ? { ...msg, message: msg.message + "\n\n[Error starting stream]" } : msg)));
+      setChatMessages((prev) => prev.map((msg) => (msg.id === systemId ? { ...msg, content: msg.content + "\n\n[Error starting stream]" } : msg)));
     }
   };
 
@@ -188,7 +178,7 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
 
     // Update the last message to indicate that the stream was stopped
     setChatMessages((prev) => {
-      return prev.map((msg) => (msg.id === chatMessages[chatMessages.length - 1].id ? { ...msg, message: msg.message + "\n\n[Stream stopped]" } : msg));
+      return prev.map((msg) => (msg.id === chatMessages[chatMessages.length - 1].id ? { ...msg, content: msg.content + "\n\n[Stream stopped]" } : msg));
     });
   };
 
@@ -199,6 +189,20 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
     if (currentStreamSubscription.current) {
       currentStreamSubscription.current.dispose();
       currentStreamSubscription.current = null;
+    }
+  };
+
+  const HandleLoadChatHistory = (chatId: string) => {
+    const { data, isLoading, isError } = useQuery({ queryKey: ["chat-history", chatId], queryFn: () => GetChatMessages(chatId), refetchOnWindowFocus: false, refetchOnReconnect: false });
+
+    if (isLoading) {
+      setIsLoading(true);
+    } else if (isError) {
+      toast.error("An error occurred while loading chat history.");
+      setIsLoading(false);
+    } else {
+      setChatMessages(data || []);
+      setIsLoading(false);
     }
   };
 
@@ -257,15 +261,12 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
         setIsLoading,
         chatMessages,
         setChatMessages,
-        handlePromptSubmit,
         messagesEndRef,
-        handleStreamForceStop,
         handleSubmit,
         handleClearChat,
         knowledgeBankContent,
         setKnowledgeBankContent,
-        currentChatId,
-        setCurrentChatId,
+        HandleLoadChatHistory,
       }}
     >
       {children}

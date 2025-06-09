@@ -1,7 +1,7 @@
 export interface ChatMessage {
   id: string;
-  message: string;
-  sender: "user" | "system";
+  content: string;
+  messageRole: "User" | "System";
 }
 
 export type Messages = ChatMessage[];
