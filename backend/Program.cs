@@ -58,14 +58,6 @@ namespace KnowledgeBank
                             .AddEntityFrameworkStores<DatabaseContext>()
                             .AddApiEndpoints();
 
-
-            // Retrieval Augmented Generation system
-            builder.Services.AddSingleton<RAGSystem, RAGSystem>();
-
-            // Background services
-            builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
-            builder.Services.AddHostedService<QueuedHostedService>();
-
             // Swagger
             builder.Services.AddOpenApi();
             builder.Services.AddSwaggerGen(ConfigureSwagger);
@@ -77,7 +69,19 @@ namespace KnowledgeBank
             );
 
 
+            // Resource management
             builder.Services.AddScoped<ResourceManager>();
+
+
+            // Retrieval Augmented Generation system
+            builder.Services.AddSingleton<RAGSystem, RAGSystem>();
+            builder.Services.AddScoped<RAGManger>();
+
+
+            // Background services
+            builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
+            builder.Services.AddHostedService<QueuedHostedService>();
+
 
             // # Mailer;
             builder.Services.AddSingleton(new MailUtils(
