@@ -1,0 +1,166 @@
+using HandlebarsDotNet;
+
+namespace KnowledgeBank.Services;
+
+public class Prompts
+{
+    #region Prompts for Question Answering
+    private const string GenerateQuestionAnsweringPromptTemplate =
+@"You are provided with a question and a set of relevant information sources. Answer the question using the information provided.
+For each statement or claim in your answer, include an in-text citation referencing the specific source(s) (using the provided links) that support your response.
+
+The question:
+{{query}}
+
+Relevant Information:
+{{#each content}}
+Text: {{text}}
+Link: {{link}}
+--- 
+{{/each}}
+
+Instructions:
+- Base your answer on the provided information.
+- Be concise, accurate, and directly address the question.
+- If the information does not answer the question, state that explicitly and do not include any citations.
+- For each fact or claim, include a citation in the format: [Source Number](Source Link). Source Number corresponds to the link, two sources with the same link should have the same number.
+";
+
+    /// <summary>
+    /// Gets a compiled Handlebars template for generating question-answering prompts.
+    /// This template is pre-compiled from the GenerateAnswerPromptTemplate and can be used
+    /// to render question-answering prompts with dynamic data.
+    /// </summary>
+    /// <value>
+    /// A compiled Handlebars template that accepts an object as input and returns an object as output.
+    /// </value>
+    public static HandlebarsTemplate<object, object> QuestionAnsweringTemplate { get; } =
+        Handlebars.Compile(GenerateQuestionAnsweringPromptTemplate);
+
+    #endregion
+
+
+    #region Prompts for Document Processing and Tag Generation
+    private const string GenerateTagsPromptTemplate =
+@"You are tasked with generating relevant tags for a large document, which is provided to you in smaller chunks. For each batch, you will receive:
+- A list of tags that have already been generated for the document.
+- The current group of content chunks.
+
+Instructions:
+1. Carefully read the provided content chunks.
+2. Generate new, relevant tags that accurately reflect the content of these chunks.
+3. Do not repeat or include any tags that have already been generated (see the list below).
+4. The tags should be in English.
+5. Generate 2 to 3 new tags based on the content provided. 
+6. Ensure all tags are concise, specific, and directly related to the content.
+
+Previously Generated Tags:
+{{tags}}
+
+Current Document Chunks:
+{{#each content}}
+{{text}}
+---
+{{/each}}";
+
+
+    /// <summary>
+    /// Gets a compiled Handlebars template for generating tags-related prompts.
+    /// This template is pre-compiled from the GenerateTagsPromptTemplate and can be used
+    /// to render tag generation prompts with dynamic data.
+    /// </summary>
+    /// <value>
+    /// A compiled Handlebars template that accepts an object as input and returns an object as output.
+    /// </value>
+    public static HandlebarsTemplate<object, object> TagsTemplate { get; } =
+        Handlebars.Compile(GenerateTagsPromptTemplate);
+
+
+    /// <summary>
+    /// Gets the JSON schema definition for the tags extraction output format.
+    /// This schema defines the structure for API responses containing extracted tags from document chunks.
+    /// </summary>
+    /// <value>
+    /// A JSON schema string that specifies:
+    /// - An object with a required "Tags" property
+    /// - The "Tags" property as an array of strings
+    /// - Example values showing the expected format: ["tag1", "tag2", "tag3"]
+    /// </value>
+    public static string TagsOutputJsonSchema { get; } = """
+        {
+            "title": "Tags Extraction",
+            "type": "object",
+            "properties": {
+                "Tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "description": "A list of tags extracted from the document chunks.",
+                    "example": ["tag1", "tag2", "tag3"]
+                }
+            },
+            "required": ["Tags"]
+        }
+    """;
+    #endregion
+
+
+    #region Prompts for Chat Title Generation
+    private const string GenerateChatTitlePromptTemplate =
+@"Generate a concise and descriptive title for a chat based on the provided question. The title should capture the essence of the question and be suitable for use as a chat title.
+The title should be in English and should be short, ideally no more than 10 words.
+
+The question is:
+{{query}}
+";
+
+    /// <summary>
+    /// Gets a compiled Handlebars template for generating chat titles.
+    /// This template is pre-compiled from the GenerateChatTitlePromptTemplate and can be used
+    /// to render chat title prompts with dynamic data.
+    /// </summary>
+    /// <value>
+    /// A compiled Handlebars template that accepts an object as input and returns an object as output.
+    /// </value>
+    public static HandlebarsTemplate<object, object> ChatTitleTemplate { get; } =
+        Handlebars.Compile(GenerateChatTitlePromptTemplate);
+
+
+    /// <summary>
+    /// Gets the JSON schema definition for the chat title generation output format.
+    /// This schema defines the structure for API responses containing generated chat titles.
+    /// </summary>
+    /// <value>
+    /// A JSON schema string that specifies:
+    /// - An object with a required "Title" property
+    /// - The "Title" property as a string
+    /// - Example values showing the expected format: "Generated Chat Title"
+    /// </value>
+    public static string ChatTitleOutputJsonSchema { get; } = """
+        {
+            "title": "Title Generation",
+            "type": "object",
+            "properties": {
+                "Title": {
+                    "type": "string",
+                    "description": "The generated title for the chat.",
+                    "example": "Generated Chat Title"
+                }
+            },
+            "required": ["Title"]
+        }
+    """;
+    #endregion
+}
+
+
+public class TagsExtraction
+{
+    public required List<string> Tags { get; set; }
+}
+
+public class TitleGeneration
+{
+    public required string Title { get; set; }
+}

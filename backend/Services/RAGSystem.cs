@@ -1,5 +1,6 @@
 using System.ClientModel;
 using Azure;
+using Azure.AI.DocumentIntelligence;
 using Azure.AI.Inference;
 using Azure.AI.OpenAI;
 using KnowledgeBank.Data;
@@ -14,6 +15,9 @@ using static Qdrant.Client.Grpc.Conditions;
 
 namespace KnowledgeBank.Services;
 
+// enum for resource types
+public enum ChunkType { ContentText, MetaData }
+
 
 public class RAGSystem
 {
@@ -24,27 +28,27 @@ public class RAGSystem
 
     // Dependencies:
     private readonly Serilog.ILogger _logger;
-    private readonly IAzureBlobService _blobService;
-    private readonly ITools _toolbox;
-
+    public Tools Toolbox { get; private set; }
 
 
     // RAG System components:
     public QdrantClient QdrantClient { get; private set; }
     public EmbeddingsClient EmbeddingsClient { get; private set; }
 
+
+
     // chat
     public ChatCompletionsClient ChatCompletionsClient { get; private set; }
     public AzureOpenAIClient AzureOpenAIClient { get; private set; }
     public ChatClient ChatClient { get; private set; }
+    public DocumentIntelligenceClient DocumentIntelligenceClient { get; private set; }
+
 
 
     public RAGSystem(IAzureBlobService blobService, EnvironmentConfig environmentConfig)
     {
         _logger = Log.ForContext<RAGSystem>();
-        _blobService = blobService;
-
-        _toolbox = new Tools();
+        Toolbox = new Tools();
 
 
         // *************** RAF System Initialization ***************
@@ -72,15 +76,19 @@ public class RAGSystem
         EmbeddingsClient = new EmbeddingsClient(embeddingsEndpoint, embeddingsKeyCredential);
         _logger.Information("Embeddings client successfully initialized");
 
+        // Document Intelligence 
+        AzureKeyCredential credential = new AzureKeyCredential(environmentConfig.GetVariableValue(EnvironmentVariable.DOCUMENT_INTELLIGENCE_CLIENT_API_KEY));
+        DocumentIntelligenceClient = new DocumentIntelligenceClient(new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.DOCUMENT_INTELLIGENCE_CLIENT_ENDPOINT)), credential);
 
+
+        // Chat Completions - Azure OpenAI
         Uri azureOpenAiEndpoint = new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.AZURE_OPENAI_CLIENT_ENDPOINT));
         ApiKeyCredential azureOpenAiApiKeyCredential = new ApiKeyCredential(environmentConfig.GetVariableValue(EnvironmentVariable.AZURE_OPENAI_CLIENT_API_KEY));
         AzureOpenAIClient = new AzureOpenAIClient(azureOpenAiEndpoint, azureOpenAiApiKeyCredential);
         ChatClient = AzureOpenAIClient.GetChatClient("gpt-4.1");
-
         _logger.Information("Azure OpenAI client successfully initialized");
 
-
+        // Chat Completions - OpenAI
         Uri chatCompletionsEndpoint = new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.CHAT_COMPLETIONS_CLIENT_ENDPOINT));
         AzureKeyCredential chatCompletionsApiKeyCredential = new AzureKeyCredential(environmentConfig.GetVariableValue(EnvironmentVariable.CHAT_COMPLETIONS_CLIENT_API_KEY));
         ChatCompletionsClient = new ChatCompletionsClient(chatCompletionsEndpoint, chatCompletionsApiKeyCredential);
@@ -134,7 +142,6 @@ public class RAGSystem
         }
     }
 
-
     public async Task IndexPayloadFieldsAsync()
     {
         await QdrantClient.CreatePayloadIndexAsync(
@@ -161,46 +168,10 @@ public class RAGSystem
     }
 
 
+    // ---
 
-    /// <summary>
-    /// Processes a document through the RAG (Retrieval-Augmented Generation) pipeline.
-    /// </summary>
-    /// <param name="id">The unique identifier for the resource being processed.</param>
-    /// <param name="fileType">The type of file being processed (e.g., PDF, DOCX).</param>
-    /// <param name="chunk">An initial chunk of text to include in the processing.</param>
-    /// 
-    /// <returns>A task representing the asynchronous operation of processing the document.</returns>
-    /// <remarks>
-    /// The pipeline consists of the following steps:
-    /// 1. Extract text from the document
-    /// 2. Chunk the extracted text into smaller segments
-    /// 3. Generate vector embeddings for each chunk
-    /// 4. Store the chunks and their embeddings in the vector database
-    /// 
-    /// If no text is extracted from the document, the process will terminate early.
-    /// </remarks>
-    public async Task CreatePoints(Guid id, string chunk, string? fileType)
+    public async Task CreatePoints(Guid id, List<string> chunks)
     {
-        // Include metadata in the first chunk
-        List<string> chunks = [$"{chunk}",];
-
-        // -- Extract text from the document
-        if (!string.IsNullOrWhiteSpace(fileType))
-        {
-            string extractedText = await _toolbox.ExtractTextAsync(fileType, id, _blobService);
-
-            if (string.IsNullOrEmpty(extractedText))
-            {
-                _logger.Warning("No text extracted from the document");
-                return;
-            }
-
-            // -- Chunk the extracted text
-            chunks.AddRange(_toolbox.SplitTextIntoChunks(extractedText, true));
-        }
-
-
-        // -- Generate embeddings for the chunks
         List<PointStruct> pointsList = [];
 
         try
@@ -361,34 +332,6 @@ public class RAGSystem
             return false;
         }
     }
+
+
 }
-
-
-
-
-// ---notes
-
-
-//  Groups 
-// await _ragSystem.QdrantClient.CreatePayloadIndexAsync(
-//     collectionName: RAGSystem.COLLECTION_NAME,
-//     fieldName: "chunkType"
-// );
-
-// await _ragSystem.QdrantClient.CreatePayloadIndexAsync(
-//      collectionName: RAGSystem.COLLECTION_NAME,
-//      fieldName: "resourceId"
-//  );
-
-
-// // print the search results
-// Console.WriteLine($"Found {search.Count} results:");
-// foreach (var result2 in search)
-// {
-//     // var resourceId = result2.Payload.TryGetValue("resourceId", out var ridValue) ? ridValue.StringValue : "N/A";
-//     // var chunkText = result2.Payload.TryGetValue("chunkText", out var ctValue) ? ctValue.StringValue : "N/A";
-//     Console.WriteLine(result2);
-// }
-
-
-// --------------
