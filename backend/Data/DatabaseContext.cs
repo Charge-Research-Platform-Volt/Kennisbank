@@ -20,30 +20,35 @@ namespace KnowledgeBank.Data
         public DbSet<AudioMetadata> AudioMetadata { get; set; }
         public DbSet<VideoMetadata> VideoMetadata { get; set; }
         public DbSet<Person> Persons { get; set; }
-        public DbSet<Organisation> Organisations {get; set; }
+        public DbSet<Organisation> Organisations { get; set; }
         public DbSet<Region> Regions { get; set; }
         public DbSet<ResourceType> ResourceTypes { get; set; }
+        public DbSet<Chats> Chats { get; set; }
+        public DbSet<Messages> Messages { get; set; }
 
 
         public DbSet<ResourceAuthorRelation> ResourceAuthorRelations { get; set; }
         public DbSet<ResourceRelatedPersonRelation> ResourceRelatedPersonRelations { get; set; }
         public DbSet<ResourceOrganisationRelation> ResourceOrganisationRelations { get; set; }
         public DbSet<ResourceRelatedOrganisationRelation> ResourceRelatedOrganisationRelations { get; set; }
-        public DbSet<PersonOrganisationRelation> PersonOrganisationRelations { get; set;}
+        public DbSet<PersonOrganisationRelation> PersonOrganisationRelations { get; set; }
         public DbSet<PersonRelationship> PersonRelationships { get; set; }
         public DbSet<OrganisationRelationship> OrganisationRelationships { get; set; }
         public DbSet<ResourceRegionRelation> ResourceRegionRelations { get; set; }
         public DbSet<ResourceSourceRelation> ResourceSourceRelations { get; set; }
         public DbSet<ResourceRelatedSourceRelation> ResourceRelatedSourceRelations { get; set; }
-        
-        
+
+
+
+
         public DbSet<ResourceGridItem> ResourceGridItems { get; set; }
         public DbSet<ResourceGridSearchResult> ResourceGridSearchResults { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.HasPostgresExtension("pg_trgm");
-        
+
             modelBuilder.Entity<Resource>()
                 .HasOne(f => f.Vector)
                 .WithOne(v => v.Resource)
@@ -54,32 +59,32 @@ namespace KnowledgeBank.Data
                 .HasKey(ft => new { ft.ResourceId, ft.TagId }); // Define composite primary key
 
             modelBuilder.Entity<ResourceAuthorRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.PersonId});
-                
+                .HasKey(ft => new { ft.ResourceId, ft.PersonId });
+
             modelBuilder.Entity<ResourceRelatedPersonRelation>()
-               .HasKey(ft => new { ft.ResourceId, ft.PersonId});
-                
+               .HasKey(ft => new { ft.ResourceId, ft.PersonId });
+
             modelBuilder.Entity<ResourceOrganisationRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.OrganisationId});
+                .HasKey(ft => new { ft.ResourceId, ft.OrganisationId });
 
             modelBuilder.Entity<ResourceRelatedOrganisationRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.OrganisationId});
-                
+                .HasKey(ft => new { ft.ResourceId, ft.OrganisationId });
+
             modelBuilder.Entity<PersonOrganisationRelation>()
-                .HasKey(ft => new { ft.PersonId, ft.OrganisationId});
+                .HasKey(ft => new { ft.PersonId, ft.OrganisationId });
 
             modelBuilder.Entity<PersonRelationship>()
-                .HasKey(ft => new { ft.SourcePersonId, ft.TargetPersonId});
-                
+                .HasKey(ft => new { ft.SourcePersonId, ft.TargetPersonId });
+
             modelBuilder.Entity<OrganisationRelationship>()
-                .HasKey(ft => new { ft.SourceOrganisationId, ft.TargetOrganisationId});
-                
+                .HasKey(ft => new { ft.SourceOrganisationId, ft.TargetOrganisationId });
+
             modelBuilder.Entity<ResourceRegionRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.RegionId});
-                
+                .HasKey(ft => new { ft.ResourceId, ft.RegionId });
+
             modelBuilder.Entity<ResourceSourceRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.Url });
-                
+
             modelBuilder.Entity<ResourceRelatedSourceRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.Url });
 
@@ -102,6 +107,24 @@ namespace KnowledgeBank.Data
                 .HasOne(or => or.TargetPerson)
                 .WithMany(o => o.SourceRelationships)
                 .HasForeignKey(or => or.TargetPersonId);
+
+
+            // Configure Chat entity
+            modelBuilder.Entity<Chats>()
+                .HasKey(c => c.Id);
+
+            // Configure Message entity
+            modelBuilder.Entity<Messages>(entity =>
+             {
+                 entity.HasKey(e => e.Id);
+
+                 // Configure relationships
+                 entity.HasOne(m => m.Chat)
+                       .WithMany(c => c.Messages)
+                       .HasForeignKey(m => m.ChatId)
+                       .OnDelete(DeleteBehavior.Cascade);
+             });
+
 
             // Resource grid view
             modelBuilder.Entity<ResourceGridItem>(entity =>

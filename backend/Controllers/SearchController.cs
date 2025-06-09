@@ -77,6 +77,7 @@ public class SearchController : ControllerBase
         }
     }
 
+
     [HttpPost("search-description")]
     [SwaggerOperation(
         Summary = "Search database by description.",
@@ -174,7 +175,6 @@ public class SearchController : ControllerBase
 
                 var resourceIds = search.Select(result => Guid.Parse(result.Id.StringValue)).ToList();
 
-                Console.WriteLine($"ids found: {resourceIds[0]}");
 
                 // Use the resourceIds from vector search to filter results
                 items = await queryBuilder
