@@ -97,6 +97,7 @@ const [filteredItems, setFilteredItems] = useState<T[]>([]);
 const [open, setOpen] = React.useState(false)
 const [inputValue, setInputValue] = useState<string>("");
 const [selectedItems, updateItems] = useState<T[]>(standardItem ? [standardItem] : []);
+const [isDuringDebounce, setIsDuringDebounce] = useState<boolean>(false); // Whether or not we are in a debounced callback where we have to wait for the fetched results
 
 // Truncates a string to the length specified minus 3 characters used for adding "..."
 function truncateString(toShorten : string, len : number){
@@ -110,6 +111,13 @@ function truncateString(toShorten : string, len : number){
 // Update the input value when the user types a character
 const handleInputChange = (val : string) => {
     setInputValue(val);
+
+    // After setting the input value (that is not empty and we are able to select more items) we are in a debounced state, so we set the state to true
+    if (val !== "" && !(selectedItems.length !== 0 && !selectMultiple))
+        setIsDuringDebounce(true);
+
+    else
+        setIsDuringDebounce(false);
 };
 
   // Change the selected item
@@ -162,6 +170,7 @@ const filterItems = useDebouncedCallback( async() => {
 
     // And we update our state, leaving out any items we already have selected
     setFilteredItems(fetchedItems.filter(item => !selectedItems.includes(item)));
+    setIsDuringDebounce(false);
     }, 200);
 
 
@@ -204,7 +213,7 @@ return (
             <CommandInput placeholder={ placeholder } onValueChange={handleInputChange} value={inputValue} disabled={!selectMultiple && selectedItems.length != 0}/>
             <CommandList>
                 <CommandEmpty>
-                    {inputValue === "" ? "Start typing..." : "No Results."}
+                    {isDuringDebounce ? "Loading..." : (inputValue === "" ? "Start typing..." : "No Results.")}
                 </CommandEmpty>
                 {/* Fetched items after typing */}
                 <CommandGroup>
