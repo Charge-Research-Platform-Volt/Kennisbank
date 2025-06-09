@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { useChat } from "@/context/chatbot-provider";
 import LoadingSpin from "@/components/loading-spin";
 import { Toggle } from "@/components/ui/toggle";
+import Link from "next/link";
 
 export default function ChatInput() {
-  const { handleSubmit, userInput, setUserInput, isLoading, handleClearChat, setKnowledgeBankContent, knowledgeBankContent } = useChat();
+  const { handleSubmit, userInput, setUserInput, isLoading, setKnowledgeBankContent, knowledgeBankContent } = useChat();
 
   // Handle keyboard events
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -52,14 +53,12 @@ export default function ChatInput() {
               <kbd className="rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 font-mono text-xs">Enter</kbd>
               <span className="ml-1">To send</span>
             </div>
-            <span className="text-gray-400">•</span>
-            <span className="text-muted-foreground text-xs">Powered by Google Gemma3:4b</span>
           </div>
 
           <div className="flex items-center gap-2">
-            <Button type="button" variant="ghost" className="h-8 px-3 py-0 transition-all" onClick={handleClearChat}>
+            <Link type="button" className="text-xs" href={"/chat"}>
               <span>Clear</span>
-            </Button>
+            </Link>
 
             <Toggle
               variant="outline"

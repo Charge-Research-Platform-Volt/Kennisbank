@@ -19,7 +19,6 @@ export default async function StandardizedTagsPage() {
             </div>
           </ContentRoleGuard>
         </div>
-
         <ListTags />
       </div>
     </div>
