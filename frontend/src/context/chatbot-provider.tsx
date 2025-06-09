@@ -1,34 +1,25 @@
 "use client";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, Dispatch, SetStateAction, useContext, useEffect, useRef, useState } from "react";
 import * as signalR from "@microsoft/signalr";
 
 // Types
 import type { Messages } from "@/types/chatbot.type";
 import { toast } from "sonner";
-
-// Sidebar types
-// type SidebarType = QuickViewType | ChatHistoryType;
-
-// interface QuickViewType {
-//   id: string;
-// }
-
-// interface ChatHistoryType {
-//   id: string;
-// }
+import { usePathname, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 type ChatBotContextType = {
   // * The userInput is the input provided by the user
   userInput: string;
-  setUserInput: React.Dispatch<React.SetStateAction<string>>;
+  setUserInput: Dispatch<SetStateAction<string>>;
 
   // * The isLoading state indicates whether the chatbot is currently processing a request
   isLoading: boolean;
-  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsLoading: Dispatch<SetStateAction<boolean>>;
 
   // * The chatMessages is an array of messages exchanged between the user and the chatbot
   chatMessages: Messages;
-  setChatMessages: React.Dispatch<React.SetStateAction<Messages>>;
+  setChatMessages: Dispatch<SetStateAction<Messages>>;
 
   // * The handlePromptSubmit function is used to handle the submission of user input
   handlePromptSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
@@ -39,11 +30,17 @@ type ChatBotContextType = {
   // * The handleStreamForceStop function is used to stop the current streaming response
   handleStreamForceStop: () => void;
 
+  // * The handleSubmit function is used to handle the form submission
   handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   handleClearChat: () => void;
 
+  // * The knowledgeBankContent state indicates whether the knowledge bank content is enabled
   knowledgeBankContent: boolean;
-  setKnowledgeBankContent: React.Dispatch<React.SetStateAction<boolean>>;
+  setKnowledgeBankContent: Dispatch<SetStateAction<boolean>>;
+
+  // * The currentChatId is the ID of the current chat session
+  currentChatId: string;
+  setCurrentChatId: Dispatch<SetStateAction<string>>;
 };
 
 // ------------------------------------------------------------------------------------
@@ -64,13 +61,19 @@ export const useChat = () => {
 
 // This component provides the chatbot context to its children
 export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => {
-  const API_ENDPOINT = "http://localhost:8080/chat";
+  const router = useRouter();
+  const pathname = usePathname();
+  const queryClient = useQueryClient();
+
+  const API_ENDPOINT = "/api/chat";
+  const newChatSession = pathname === "/chat" ? true : false;
 
   // -- State -------------------------------------------------------------------------------------
   const [userInput, setUserInput] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [knowledgeBankContent, setKnowledgeBankContent] = useState<boolean>(true);
   const [chatMessages, setChatMessages] = useState<Messages>([]);
+  const [currentChatId, setCurrentChatId] = useState<string>("");
 
   // This ref is used to scroll to the bottom of the chat messages
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -107,6 +110,32 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
       return;
     }
 
+    // If it's a new chat session, create a new chat ID
+    // and navigate to the chat page
+    if (newChatSession) {
+      connection
+        .invoke("CreateChat", userInput)
+        .then((chatId: string) => {
+          router.push(`/chat/${chatId}`);
+          queryClient.invalidateQueries({ queryKey: ["chats-history"] });
+        })
+        .finally(() => {
+          handleStream(userInput);
+        });
+    } else {
+      // If not a new chat session, handle the streaming response
+      handleStream(userInput);
+    }
+  };
+
+  const handleStream = (userInput: string) => {
+    // Check if the connection is established
+    if (!connection) {
+      toast.error("Connection to the server is not established.");
+      setIsLoading(() => false);
+      return;
+    }
+
     const userMessageText = userInput;
     setUserInput("");
 
@@ -124,7 +153,7 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
 
     // Start the streaming response
     try {
-      currentStreamSubscription.current = connection.stream("StreamAiResponse", userMessageText, knowledgeBankContent).subscribe({
+      currentStreamSubscription.current = connection.stream("StreamAiResponse", userMessageText, knowledgeBankContent, currentChatId).subscribe({
         next: (chunk) => {
           setChatMessages((prev) => prev.map((msg) => (msg.id === systemId ? { ...msg, message: msg.message + chunk } : msg)));
         },
@@ -181,7 +210,7 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
       try {
         // Create a new SignalR connection
         // For debugging purposes, you can remove the configureLogging(signalR.LogLevel.None) or set it to signalR.LogLevel.Debug
-        const newConnection = new signalR.HubConnectionBuilder().withUrl(API_ENDPOINT).withAutomaticReconnect().configureLogging(signalR.LogLevel.None).build();
+        const newConnection = new signalR.HubConnectionBuilder().withUrl(API_ENDPOINT).withAutomaticReconnect().build();
         setConnection(newConnection);
       } catch (error) {
         console.error("Error creating SignalR connection:", error);
@@ -205,13 +234,19 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
         connection.stop().then(() => console.log("SignalR Disconnected."));
       };
     }
-  }, [connection]);
+  }, [connection, router, queryClient]);
 
+  // This useEffect is used to scroll to the bottom of the chat messages when they change
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [chatMessages]);
+
+  // This useEffect is used to clear the chat when the pathname is "/chat"
+  useEffect(() => {
+    if (newChatSession) handleClearChat();
+  }, [newChatSession]);
 
   return (
     <ChatBotContent.Provider
@@ -229,6 +264,8 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
         handleClearChat,
         knowledgeBankContent,
         setKnowledgeBankContent,
+        currentChatId,
+        setCurrentChatId,
       }}
     >
       {children}
@@ -239,64 +276,3 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-// [
-//     {
-//       id: Date.now().toString() + "-system",
-//       sender: "system",
-//       message: `# Heading 1
-
-// ## Heading 2
-
-// ### Heading 3
-
-// #### Heading 4
-
-// ##### Heading 5
-
-// ###### Heading 6
-
-// This is a paragraph with some **bold text**, some *italic text*, and some ~~strikethrough text~~.
-// Here is a [link to OpenAI](https://www.openai.com).
-
-// ---
-
-// > This is a blockquote.
-// > It can span multiple lines.
-
-// ---
-// ## List Example
-
-// - Unordered list item 1
-// - Unordered list item 2
-//   - Nested unordered item
-// - Unordered list item 3
-
-// ## Ordered List Example
-
-// 1. Ordered list item 1
-// 2. Ordered list item 2
-//    1. Nested ordered item
-// 3. Ordered list item 3
-
-// ---
-// ## Code Example
-
-// Here is an inline code example: \`console.log('Hello, world!');\`
-
-// \`\`\`python
-// # This is a code block
-// def hello():
-//     print("Hello, world!")
-// \`\`\`
-
-// ## Table Example
-
-// | Header 1 | Header 2 | Header 3 |
-// |----------|----------|----------|
-// | Row 1    | Data     | More     |
-// | Row 2    | Data     | More     |
-// | Row 3    | Data     | More     |
-// `,
-//     },
-//   ]

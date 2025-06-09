@@ -1,215 +1,237 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { usePathname, useSearchParams } from "next/navigation";
+import { ReadonlyURLSearchParams, usePathname, useSearchParams } from "next/navigation";
 import Stack from "@/lib/stack";
 
+// --------------------------------------------------------
+// TYPES AND ENUMS
+// --------------------------------------------------------
+
+// This type is used to define the mode of the sidebar
+type SidebarMode = "archive-info" | "chat-history";
+
 // Enumerator for the different types of items to be displayed in the right sidebar
-export enum MetadataTypeEnum { RESOURCE = "resource", PERSON = "person", ORGANISATION = "organisation" }
+export enum MetadataTypeEnum {
+  RESOURCE = "resource",
+  PERSON = "person",
+  ORGANISATION = "organisation",
+}
 
-export type SidebarContextType =
-{
-    // Info about currently selected item (The ID in the database and the type of it)
-    currentId: string;
-    currentType: MetadataTypeEnum;
-    openRightSidebar: (id: string, type: MetadataTypeEnum) => void;
-    
-    // Navigation
-    navigateForward: () => void;
-    navigateBack: () => void;
-    navigate: (id: string, type: MetadataTypeEnum) => void;
-    
-    isEmptyPrevs: () => boolean;
-    isEmptyNexts: () => boolean;
+export type SidebarContextType = {
+  // Info about currently selected item (The ID in the database and the type of it)
+  currentId: string;
+  currentType: MetadataTypeEnum;
+  openRightSidebar: (id: string, type: MetadataTypeEnum) => void;
 
-    // State and functions for the left sidebar
-    leftSidebarState: "expanded" | "collapsed";
-    leftSidebarOpen: boolean;
-    setLeftSidebarOpen: (open: boolean) => void;
-    toggleLeftSidebar: () => void;
+  // Navigation
+  navigateForward: () => void;
+  navigateBack: () => void;
+  navigate: (id: string, type: MetadataTypeEnum) => void;
 
-    // State and functions for the right sidebar
-    rightSidebarState: "expanded" | "collapsed";
-    rightSidebarOpen: boolean;
-    setRightSidebarOpen: (open: boolean) => void;
-    toggleRightSidebar: () => void;
+  isEmptyPrevs: () => boolean;
+  isEmptyNexts: () => boolean;
+
+  // State and functions for the left sidebar
+  leftSidebarState: "expanded" | "collapsed";
+  leftSidebarOpen: boolean;
+  setLeftSidebarOpen: (open: boolean) => void;
+  toggleLeftSidebar: () => void;
+
+  // State and functions for the right sidebar
+  rightSidebarState: "expanded" | "collapsed";
+  rightSidebarOpen: boolean;
+  setRightSidebarOpen: (open: boolean) => void;
+  toggleRightSidebar: () => void;
+
+  // The sidebar mode, used to determine which sidebar to show
+  sidebarMode: SidebarMode;
+  setSidebarMode: (mode: SidebarMode) => void;
 };
+
+// --------------------------------------------------------
+// CONTEXT AND PROVIDER
+// --------------------------------------------------------
 
 // This context is used to manage the state of the sidebar
 const SidebarContent = React.createContext<SidebarContextType | undefined>(undefined);
 
 // This hook is used to access the sidebar context
-export const useSidebar = () =>
-{
-    const context: SidebarContextType | undefined = React.useContext(SidebarContent);
+export const useSidebar = () => {
+  const context: SidebarContextType | undefined = React.useContext(SidebarContent);
 
-    if (!context) throw new Error("useSidebar must be used within a SidebarProvider");
+  if (!context) throw new Error("useSidebar must be used within a SidebarProvider");
 
-    return context;
+  return context;
 };
 
 // This component provides the sidebar context to its children
-export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSidebarDefaultState: boolean; children: React.ReactNode }) =>
-{
-    const pathname: string = usePathname();
-    const searchParams = useSearchParams();
+export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSidebarDefaultState: boolean; children: React.ReactNode }) => {
+  const pathname: string = usePathname();
 
-    // State for the selected item
-    const [currentId, setCurrentId] = React.useState<string>(searchParams.get('id') || '');
-    const [currentType, setCurrentType] = React.useState<MetadataTypeEnum>(MetadataTypeEnum.RESOURCE);
-    
-    // States for prevs and nexts stacks
-    const [prevs] = React.useState(() => new Stack<[string, MetadataTypeEnum]>());
-    const [nexts] = React.useState(() => new Stack<[string, MetadataTypeEnum]>());
-    
-    const isEmptyPrevs = (): boolean => { return prevs.isEmpty(); }
-    const isEmptyNexts = (): boolean => { return nexts.isEmpty(); }
+  const [sidebarMode, setSidebarMode] = React.useState<SidebarMode>("archive-info");
 
-    // - State and functions for the left sidebar
-    const [leftSidebarOpen, setLeftSidebarOpen] = React.useState<boolean>(leftSidebarDefaultState);
-    const leftSidebarState = leftSidebarOpen ? "expanded" : "collapsed";
-    const toggleLeftSidebar = () =>
-    {
-        setLeftSidebarOpen((prev) => !prev);
+  const searchParams: ReadonlyURLSearchParams = useSearchParams();
 
-        // set cookie for left sidebar state
-        document.cookie = `leftSidebar:state=${!leftSidebarOpen}; path=/; max-age=31536000; SameSite=None; Secure`;
-    };
+  // State for the selected item
+  const [currentId, setCurrentId] = React.useState<string>(searchParams.get("id") || "");
+  const [currentType, setCurrentType] = React.useState<MetadataTypeEnum>(MetadataTypeEnum.RESOURCE);
 
-    // - State and functions for the right sidebar
-    const [rightSidebarOpen, setRightSidebarOpen] = React.useState<boolean>(searchParams.get('id') ? true : false);
-    const rightSidebarState = rightSidebarOpen ? "expanded" : "collapsed";
-    const toggleRightSidebar = () =>
-    {
-        setRightSidebarOpen((prev) => !prev);
-    };
+  // States for prevs and nexts stacks
+  const [prevs] = React.useState(() => new Stack<[string, MetadataTypeEnum]>());
+  const [nexts] = React.useState(() => new Stack<[string, MetadataTypeEnum]>());
 
-    const openRightSidebar = (id: string, type: MetadataTypeEnum) => 
-    {
-        setCurrentId(id);
-        setCurrentType(type);
-        
-        prevs.clear();
-        nexts.clear();
-        
-        setRightSidebarOpen(true);
+  const isEmptyPrevs = (): boolean => {
+    return prevs.isEmpty();
+  };
+  const isEmptyNexts = (): boolean => {
+    return nexts.isEmpty();
+  };
+
+  // - State and functions for the left sidebar
+  const [leftSidebarOpen, setLeftSidebarOpen] = React.useState<boolean>(leftSidebarDefaultState);
+  const leftSidebarState = leftSidebarOpen ? "expanded" : "collapsed";
+  const toggleLeftSidebar = () => {
+    setLeftSidebarOpen((prev) => !prev);
+
+    // set cookie for left sidebar state
+    document.cookie = `leftSidebar:state=${!leftSidebarOpen}; path=/; max-age=31536000; SameSite=None; Secure`;
+  };
+
+  // - State and functions for the right sidebar
+  const [rightSidebarOpen, setRightSidebarOpen] = React.useState<boolean>(searchParams.get("id") ? true : false);
+  const rightSidebarState = rightSidebarOpen ? "expanded" : "collapsed";
+  const toggleRightSidebar = () => {
+    console.log("Toggling right sidebar");
+    setRightSidebarOpen((prev) => !prev);
+  };
+
+  const openRightSidebar = (id: string, type: MetadataTypeEnum) => {
+    // If clicking the same item, close the sidebar
+    if (currentId === id && currentType === type && rightSidebarOpen) {
+      setRightSidebarOpen(false);
+      return;
     }
-    
-    const navigate = (id: string, type: MetadataTypeEnum) =>
-    {
-        nexts.clear();
-        
-        prevs.push([currentId, currentType])
-        
-        setCurrentId(id);
-        setCurrentType(type);
+
+    setCurrentId(id);
+    setCurrentType(type);
+
+    prevs.clear();
+    nexts.clear();
+
+    setRightSidebarOpen(true);
+  };
+
+  const navigate = (id: string, type: MetadataTypeEnum) => {
+    nexts.clear();
+
+    prevs.push([currentId, currentType]);
+
+    setCurrentId(id);
+    setCurrentType(type);
+  };
+
+  const navigateForward = (): void => {
+    const next: [string, MetadataTypeEnum] | undefined = nexts.pop();
+
+    if (next) {
+      // Push current state to prevs
+      prevs.push([currentId, currentType]);
+
+      // Set current state as next
+      setCurrentId(next[0]);
+      setCurrentType(next[1]);
     }
-    
-    const navigateForward = (): void => 
-    {
-        const next: [string, MetadataTypeEnum] | undefined = nexts.pop();
-        
-        if (next) 
-        {
-            // Push current state to prevs
-            prevs.push([currentId, currentType]);
-        
-            // Set current state as next
-            setCurrentId(next[0]);
-            setCurrentType(next[1]);
-        }
+  };
+
+  const navigateBack = (): void => {
+    const prev: [string, MetadataTypeEnum] | undefined = prevs.pop();
+
+    if (prev) {
+      // Push current state to nexts
+      nexts.push([currentId, currentType]);
+
+      // Set current state as prev
+      setCurrentId(prev[0]);
+      setCurrentType(prev[1]);
     }
-    
-    const navigateBack = (): void => 
-    {
-        const prev: [string, MetadataTypeEnum] | undefined = prevs.pop();
-        
-        if (prev) 
-        {
-            // Push current state to nexts
-            nexts.push([currentId, currentType]);
-            
-            // Set current state as prev
-            setCurrentId(prev[0]);
-            setCurrentType(prev[1]);
-        }
+  };
+
+  // Effect for right sidebar open
+  useEffect(() => {
+    // On right sidebar open
+    if (rightSidebarOpen) {
+      // Close the right sidebar when no current ID is present
+      if (currentId === "" && pathname === "/archive") setRightSidebarOpen(false);
+      // Close the left sidebar on right sidebar open
+      else {
+        setLeftSidebarOpen(() => false);
+        document.cookie = `leftSidebar:state=false; path=/; max-age=31536000; SameSite=None; Secure`;
+      }
     }
-    
-    // Effect for right sidebar open
-    React.useEffect(() => 
-    {
-        // On right sidebar open
-        if (rightSidebarOpen) 
-        {
-            // Close the right sidebar when no current ID is present
-            if (currentId === "")
-                setRightSidebarOpen(false);
-                
-            // Close the left sidebar on right sidebar open
-            else
-                setLeftSidebarOpen(false);
-        }
-        
-        // On right sidebar close
-        else 
-        {
-            setCurrentId("");
-            prevs.clear();
-            nexts.clear();
-        }
-  }, [rightSidebarOpen, nexts, prevs]);
-    
-    // Effect for left sidebar open
-    React.useEffect(() => 
-    {
-        // On left sidebar open
-        if (leftSidebarOpen)
-            setRightSidebarOpen(false);
-    }, [leftSidebarOpen])
 
-    // Effect for pathname
-    React.useEffect(() => {
-        if (pathname !== "/archive")
-            setRightSidebarOpen(false);
-    }, [pathname]);
+    // On right sidebar close
+    else {
+      setCurrentId("");
+      prevs.clear();
+      nexts.clear();
+    }
+  }, [rightSidebarOpen, currentId, nexts, prevs, pathname]);
 
-    // Hotkey definitions
-    useHotkeys("esc", () => {
-        setRightSidebarOpen(false);
-    });
+  // Effect for left sidebar open
+  useEffect(() => {
+    // On left sidebar open
+    if (leftSidebarOpen) setRightSidebarOpen(false);
+  }, [leftSidebarOpen]);
 
-    return (
-        <SidebarContent.Provider
-            value={
-            {
-                currentId,
-                currentType,
-                openRightSidebar,
-                
-                navigateForward,
-                navigateBack,
-                navigate,
-                
-                isEmptyPrevs,
-                isEmptyNexts,
+  // Effect for pathname
+  useEffect(() => {
+    if (pathname === "/archive") setSidebarMode("archive-info");
+    else setSidebarMode("chat-history");
 
-                // Left sidebar
-                leftSidebarState,
-                leftSidebarOpen,
-                setLeftSidebarOpen,
-                toggleLeftSidebar,
+    if (!pathname.startsWith("/chat")) setRightSidebarOpen(false);
+  }, [pathname]);
 
-                // Right sidebar
-                rightSidebarState,
-                rightSidebarOpen,
-                setRightSidebarOpen,
-                toggleRightSidebar,
-            }}
-        >
-        {children}
-        </SidebarContent.Provider>
-    );
+  // Hotkey definitions
+  useHotkeys("esc", () => {
+    setRightSidebarOpen(false);
+  });
+
+  return (
+    <SidebarContent.Provider
+      value={{
+        currentId,
+        currentType,
+        openRightSidebar,
+
+        navigateForward,
+        navigateBack,
+        navigate,
+
+        isEmptyPrevs,
+        isEmptyNexts,
+
+        // Left sidebar
+        leftSidebarState,
+        leftSidebarOpen,
+        setLeftSidebarOpen,
+        toggleLeftSidebar,
+
+        // Right sidebar
+        rightSidebarState,
+        rightSidebarOpen,
+        setRightSidebarOpen,
+        toggleRightSidebar,
+
+        // The sidebar mode
+        sidebarMode,
+        setSidebarMode,
+      }}
+    >
+      {children}
+    </SidebarContent.Provider>
+  );
 };
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
