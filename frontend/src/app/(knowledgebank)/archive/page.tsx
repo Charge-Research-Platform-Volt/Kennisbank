@@ -16,8 +16,14 @@ import { TagFilterOptions } from "@/types/tag.type";
 import { SelectOption } from "@/components/ui/selection";
 import { useUserRole } from "@/context/user-role-context";
 import TrashIcon from "@/icons/trash-icon";
+import { ReadonlyURLSearchParams, useSearchParams } from "next/navigation";
+import ResourcesList from "@/components/archive/resources-list";
+import LayoutSwitch from "@/components/archive/layout-switch";
 
 export default function Page() {
+  const params: ReadonlyURLSearchParams = useSearchParams();
+  const isListLayout: boolean = params.get("layout") === "list" ? true : false;
+
   // Context
   const {
     searchInput,
@@ -87,9 +93,9 @@ export default function Page() {
   };
 
   return (
-    <div className="flex h-full w-full flex-col">
+    <div className="flex h-full w-full flex-col p-2">
       {/* Search bar/Trash title */}
-      <div className="z-10 flex h-[4rem] w-full flex-shrink-0 items-center gap-2 bg-white">
+      <div className="mb-2 flex w-full flex-shrink-0 items-center gap-2 bg-white">
         {!trashOpen && (
           <div className="relative flex-grow">
             {/* Search input */}
@@ -117,9 +123,13 @@ export default function Page() {
           </div>
         )}
 
+        <LayoutSwitch isListLayout={isListLayout} />
+
         {userRole === "admin" && (
           <Button
             variant="outline"
+            size="icon"
+            className={`h-10 transition-all ${!trashOpen ? "w-10" : "w-16"} text-gray-600 hover:bg-gray-100`}
             onClick={() => {
               setFiltersOpen(false);
               resetFilters();
@@ -220,7 +230,7 @@ export default function Page() {
       {/* Scrollable content area */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="w-full">
-          <ResourcesGrid />
+          {isListLayout ? <ResourcesList /> : <ResourcesGrid />}
 
           {/* Navigation buttons */}
           <div className="flex w-full justify-center gap-5 p-4">
