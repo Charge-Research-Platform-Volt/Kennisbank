@@ -10,11 +10,13 @@ import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
 import { OctagonAlert } from "lucide-react";
 import GetFileIcon from "./getFileIcon";
-import { ResourceResponse } from "@/types/resource.type";
 import { openFile } from "@/actions/openFileActions";
 import { useQuickSearch } from "../context/quick-search-provider";
 import Kbd from "./kbd";
 import { Button } from "./ui/button";
+import { GridRequest, GridRequestSchema } from "@/types/gridRequest.type";
+import { ResourceItem, ResourceResponse } from "./archive/resources-grid";
+import { NewApiResponse } from "@/types/apiResponse.type";
 
 /**
  *
@@ -23,7 +25,7 @@ import { Button } from "./ui/button";
 export default function QuickSearch({ minimize = false }: { minimize?: boolean }) {
   const { isOpen, setIsOpen } = useQuickSearch();
   const [shortcut, setShortcut] = useState("");
-  const [searchResults, setSearchResults] = useState<ResourceResponse[]>([]);
+  const [searchResults, setSearchResults] = useState<ResourceItem[]>([]);
 
   // Keyboard shortcut
   useHotkeys("mod+k", () => setIsOpen(true), { preventDefault: true });
@@ -37,22 +39,41 @@ export default function QuickSearch({ minimize = false }: { minimize?: boolean }
   const fetchSearchResults = async (query?: string) => {
     query = query?.trim();
 
+    const request: GridRequest = GridRequestSchema.parse({
+      pageIndex: 1,
+      pageSize: 20,
+      searchQuery: query,
+      sortBy: undefined,
+      sortDirection: undefined,
+      filterOptions: {
+        typeFilter: undefined,
+        pubdateMin: undefined,
+        pubdateMax: undefined,
+        tagFilter: undefined,
+        regionFilter: undefined,
+      },
+    });
+
     try {
-      const response = await fetch(`/api/Search/search-full-text?${query && `query=${query}&`}pageIndex=1&pageSize=10`, {
+      const response = await fetch(`/api/resources/grid`, {
         method: "POST",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
+        body: JSON.stringify(request),
       });
 
       if (!response.ok) {
-        toast.error("An error occurred while fetching search results.");
+        toast.error("An error occurred while getting the search results.");
         return;
       }
 
-      const data = await response.json();
-      setSearchResults(data.resources);
+      const data: NewApiResponse<ResourceResponse> = await response.json();
+      console.log("Search results:", data);
+
+      if (data.success) setSearchResults(data.body.items);
+      else throw new Error(data.message);
     } catch {
       toast.error("An error occurred.");
     }
@@ -128,7 +149,7 @@ export default function QuickSearch({ minimize = false }: { minimize?: boolean }
                 >
                   <div className={`${file.description !== "" && "mb-2"} flex items-start gap-2`}>
                     <GetFileIcon fileType={file.fileType} className="mt-[3px]" />
-                    <h3>{file.title}</h3>
+                    <h3>{file.name}</h3>
                   </div>
 
                   {file.description !== "" && <p className="text-muted-foreground/80 text-sm">{file.description}</p>}
