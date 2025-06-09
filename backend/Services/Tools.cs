@@ -11,14 +11,10 @@ namespace KnowledgeBank.Services;
 #pragma warning disable SKEXP0050, SKEXP0001 // 'Microsoft.SemanticKernel.Text.TextChunker' is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.SKEXP0050
 
 
-interface ITools
-{
-    Task<string> ExtractTextAsync(string fileType, Guid resourceId, IAzureBlobService blobService);
-    List<string> SplitTextIntoChunks(string extractedText, bool logChunks = false);
-}
 
 
-public class Tools : ITools
+
+public class Tools
 {
     private readonly Serilog.ILogger _logger;
 

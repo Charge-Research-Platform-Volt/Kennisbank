@@ -1,10 +1,11 @@
 using System.ClientModel;
 using System.Runtime.CompilerServices;
-using Azure;
-using Azure.AI.Inference;
 using HandlebarsDotNet;
+using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services;
+using KnowledgeBank.Utils;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using OpenAI.Chat;
 using SignalRSwaggerGen.Attributes;
@@ -15,21 +16,38 @@ namespace Hubs;
 // Todo: implement the SignalRHub and see how it results in the documentation website
 
 [SignalRHub]
-// [Authorize]
+[Authorize]
 public class Chat : Hub
 {
     private readonly Serilog.ILogger _logger;
     private readonly RAGSystem _ragSystem;
+    private readonly RAGManger _ragManager;
+    private readonly ResourceManager _resourceManager;
 
-
-
-    public Chat(RAGSystem ragSystem)
+    public Chat(RAGSystem ragSystem, RAGManger ragManager, ResourceManager resourceManager)
     {
         _logger = Serilog.Log.ForContext<Chat>();
         _ragSystem = ragSystem;
+        _ragManager = ragManager;
+        _resourceManager = resourceManager;
     }
 
 
+    public async Task<Guid> CreateChat(string message)
+    {
+        _logger.Information("Creating new chat");
+        string title = await _ragManager.GenerateChatTitleAsync(message);
+        ChatsCreateDto chat = new ChatsCreateDto
+        {
+            UserId = Guid.Parse(Context.UserIdentifier!),
+            Title = title,
+        };
+
+        Guid chatSessionId = await _resourceManager.CreateChatAsync(chat);
+        _logger.Information("New chat created successfully");
+
+        return chatSessionId;
+    }
 
     /// <summary>
     /// Streams an AI-generated response to the client based on the given message.
@@ -40,6 +58,7 @@ public class Chat : Hub
     /// - If true, streams a content-based response using knowledge base data.
     /// - If false, streams a standard AI response without additional knowledge.
     /// </param>
+    /// <param name="chatId">The ID of the chat session to which the message belongs.</param>
     /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
     /// <returns>An asynchronous enumerable of string chunks representing the streamed AI response.</returns>
     /// <remarks>
@@ -49,6 +68,7 @@ public class Chat : Hub
     public async IAsyncEnumerable<string> StreamAiResponse(
             string message,
             bool contentBased,
+            string chatId,
             [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         _logger.Information("Streaming AI response for {UserIdentifier}", Context.UserIdentifier);
@@ -60,8 +80,32 @@ public class Chat : Hub
             yield break;
         }
 
-        // Messages
+        // Validate the chat session ID
+        if (!ValidityUtil.IsValidId(chatId))
+        {
+            _logger.Error("Invalid chat session ID: {ChatId}", chatId);
+            yield break;
+        }
 
+        MessagesCreateDto messageDto = new MessagesCreateDto
+        {
+            SenderId = Guid.Parse(Context.UserIdentifier!),
+            ChatId = Guid.Parse(chatId),
+            MessageRole = "user",
+            Content = message
+        };
+
+        // Save the user message to the database
+        try
+        {
+            await _resourceManager.CreateMessageAsync(messageDto);
+            _logger.Information("User message saved successfully for chat {ChatId}", chatId);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to save user message for chat {ChatId}", chatId);
+            yield break;
+        }
 
         if (contentBased)
         {
@@ -111,37 +155,6 @@ public class Chat : Hub
             limit: 10
         );
 
-        // print the search results
-        Console.WriteLine($"Found {search.Count} results:");
-        foreach (var result2 in search)
-        {
-            var chunkText = result2.Payload.TryGetValue("chunkText", out var ctValue) ? ctValue.StringValue : "N/A";
-            Console.WriteLine(result2);
-        }
-
-        string source =
-@"You are provided with a question and a set of relevant information sources. Answer the question using the information provided.
-For each statement or claim in your answer, include an in-text citation referencing the specific source(s) (using the provided links) that support your response.
-
-The question:
-{{query}}
-
-Relevant Information:
-{{#each content}}
-Text: {{text}}
-Link: {{link}}
---- 
-{{/each}}
-
-Instructions:
-- Base your answer on the provided information.
-- Be concise, accurate, and directly address the question.
-- If the information does not answer the question, state that explicitly and do not include any citations.
-- For each fact or claim, include a citation in the format: [Source Number](Source Link). Source Number corresponds to the link, two sources with the same link should have the same number.
-";
-
-        var template = Handlebars.Compile(source);
-
         var data = new
         {
             query,
@@ -155,8 +168,8 @@ Instructions:
                 };
             }).ToList()
         };
-        var result = template(data);
-        Console.WriteLine(result);
+
+        var result = Prompts.QuestionAnsweringTemplate(data);
 
 
         List<ChatMessage> messages = new List<ChatMessage>
