@@ -24,7 +24,7 @@ interface BadgeListProps
     listType: resourceRelation | personRelation | organisationRelation;
     itemList: ListItem[] | null;
     onNew: (newItems: ListItem[]) => void;
-    onRemove: (removedItems: ListItem[]) => void;
+    onRemove: (removedItem: ListItem) => void;
 }
 
 const skeletonList = [1,2,3,4,5,6,7,8]
@@ -72,11 +72,11 @@ export default function BadgeList({
         }
     }
 
-    async function handleAiRemove(item: ListItem) {
+    async function handleRemove(item: ListItem) {
         try {
             
             await removeRelation(listType, currentType, currentId, item.id) 
-            onRemove([item]);
+            onRemove(item);
 
         } catch (error) {
             console.error("Error adding relations:", error);
@@ -111,7 +111,7 @@ export default function BadgeList({
                             </ContextMenuTrigger>
                             <ContextMenuContent className="select-none">
                                 {listType != "ai-tags" ? (
-                                    <ContextMenuItem className="select-none text-red-600" onClick={() => handleAiRemove(item)}>
+                                    <ContextMenuItem className="select-none text-red-600" onClick={() => handleRemove(item)}>
                                         <div className="select-none cursor-pointer">Remove relation</div>
                                     </ContextMenuItem>
                                 ) : (

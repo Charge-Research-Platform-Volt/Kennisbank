@@ -136,19 +136,19 @@ export function OrganisationContent()
             </Expandable>
             
             <Expandable variant="horizontal" title="Published">
-                <BadgeList listType="direct-resources" itemList={resources} onNew={(newItems) => setResources(resources ? resources.concat(newItems) : newItems)} onRemove={() => {}} />
+                <BadgeList listType="direct-resources" itemList={resources} onNew={(newItems) => setResources(resources ? resources.concat(newItems) : newItems)} onRemove={(removedItem) => setResources(resources ? resources.filter((item) => item != removedItem) : [])} />
             </Expandable>
 
             <Expandable variant="horizontal" title="Related">
-                <BadgeList listType="related-resources" itemList={relatedResources} onNew={(newItems) => setRelatedResources(relatedResources ? relatedResources.concat(newItems) : newItems)} onRemove={() => {}} />
+                <BadgeList listType="related-resources" itemList={relatedResources} onNew={(newItems) => setRelatedResources(relatedResources ? relatedResources.concat(newItems) : newItems)} onRemove={(removedItem) => setRelatedResources(relatedResources ? relatedResources.filter((item) => item != removedItem) : [])} />
             </Expandable>
 
             <Expandable variant="horizontal" title="Related Organisations">
-                <BadgeList listType="organisation-related-organisations" itemList={organisations} onNew={(newItems) => setOrganisations(organisations ? organisations.concat(newItems) : newItems)} onRemove={() => {}} />
+                <BadgeList listType="organisation-related-organisations" itemList={organisations} onNew={(newItems) => setOrganisations(organisations ? organisations.concat(newItems) : newItems)} onRemove={(removedItem) => setOrganisations(organisations ? organisations.filter((item) => item != removedItem) : [])} />
             </Expandable>
 
             <Expandable variant="horizontal" title="Related People">
-                <BadgeList listType="persons" itemList={persons} onNew={(newItems) => setPersons(persons ? persons.concat(newItems) : newItems)} onRemove={() => {}} />
+                <BadgeList listType="persons" itemList={persons} onNew={(newItems) => setPersons(persons ? persons.concat(newItems) : newItems)} onRemove={(removedItem) => setPersons(persons ? persons.filter((item) => item != removedItem) : [])} />
             </Expandable>
             
             <Expandable editButton={<Edit setNewText={setEmail} currentText={email} property="emailAddress" />} title="Email Address" collapsedHeight={100}>

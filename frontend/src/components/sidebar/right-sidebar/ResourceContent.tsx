@@ -219,7 +219,7 @@ export function ResourceContent()
             </Expandable>
             
             <Expandable variant="horizontal" title="Tags">
-                <BadgeList listType="tags" itemList={tags} onNew={(newItems) => setTags(tags ? tags.concat(newItems) : newItems)} onRemove={() => {}} />
+                <BadgeList listType="tags" itemList={tags} onNew={(newItems) => setTags(tags ? tags.concat(newItems) : newItems)} onRemove={(removedItem) => setTags(tags ? tags.filter((item) => item != removedItem) : [])} />
             </Expandable>
 
             <Expandable variant="horizontal" title="Recommended Tags">
@@ -227,29 +227,29 @@ export function ResourceContent()
             </Expandable>
 
             <Expandable variant="horizontal" title="Authors">
-                <BadgeList listType="authors" itemList={authors} onNew={(newItems) => setAuthors(authors ? authors.concat(newItems) : newItems)} onRemove={() => {}} />
+                <BadgeList listType="authors" itemList={authors} onNew={(newItems) => setAuthors(authors ? authors.concat(newItems) : newItems)} onRemove={(removedItem) => setAuthors(authors ? authors.filter((item) => item != removedItem) : [])} />
             </Expandable>
             
             <Expandable variant="horizontal" title="Organisations">
-                <BadgeList listType="organisations" itemList={organisations} onNew={(newItems) => setOrganisations(organisations ? organisations.concat(newItems) : newItems)} onRemove={() => {}} />
+                <BadgeList listType="organisations" itemList={organisations} onNew={(newItems) => setOrganisations(organisations ? organisations.concat(newItems) : newItems)} onRemove={(removedItem) => setOrganisations(organisations ? organisations.filter((item) => item != removedItem) : [])} />
             </Expandable>
 
             <Expandable variant="horizontal" title="Related People">
-                <BadgeList listType="related-persons" itemList={relatedPersons} onNew={(newItems) => setRelatedPersons(relatedPersons ? relatedPersons.concat(newItems) : newItems)} onRemove={() => {}} />
+                <BadgeList listType="related-persons" itemList={relatedPersons} onNew={(newItems) => setRelatedPersons(relatedPersons ? relatedPersons.concat(newItems) : newItems)} onRemove={(removedItem) => setRelatedPersons(relatedPersons ? relatedPersons.filter((item) => item != removedItem) : [])} />
             </Expandable>
             
             <Expandable variant="horizontal" title="Related Organisations">
-                <BadgeList listType="related-organisations" itemList={relatedOrganisations} onNew={(newItems) => setRelatedOrganisations(relatedOrganisations ? relatedOrganisations.concat(newItems) : newItems)} onRemove={() => {}} />
+                <BadgeList listType="related-organisations" itemList={relatedOrganisations} onNew={(newItems) => setRelatedOrganisations(relatedOrganisations ? relatedOrganisations.concat(newItems) : newItems)} onRemove={(removedItem) => setRelatedOrganisations(relatedOrganisations ? relatedOrganisations.filter((item) => item != removedItem) : [])} />
             </Expandable>
 
             <ResourceList header="Related Resources" resources={relatedResources}/>
 
             <Expandable variant="horizontal" title="Sources">
-                <BadgeList listType="sources" itemList={sourceList} onNew={(newItems) => setSourceList(sourceList ? sourceList.concat(newItems) : newItems)} onRemove={() => {}} />
+                <BadgeList listType="sources" itemList={sourceList} onNew={(newItems) => setSourceList(sourceList ? sourceList.concat(newItems) : newItems)} onRemove={(removedItem) => setSourceList(sourceList ? sourceList.filter((item) => item != removedItem) : [])} />
             </Expandable>
 
             <Expandable variant="horizontal" title="Regions">
-                <BadgeList listType="regions" itemList={regions} onNew={(newItems) => setRegions(regions ? regions.concat(newItems) : newItems)} onRemove={() => {}} />
+                <BadgeList listType="regions" itemList={regions} onNew={(newItems) => setRegions(regions ? regions.concat(newItems) : newItems)} onRemove={(removedItem) => setRegions(regions ? regions.filter((item) => item != removedItem) : [])} />
             </Expandable>
 
             {/* {resourceType === "Scientific Article" && (
