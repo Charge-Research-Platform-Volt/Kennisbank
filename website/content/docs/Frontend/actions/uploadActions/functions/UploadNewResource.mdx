@@ -1,0 +1,78 @@
+---
+title: UploadNewResource
+sidebar_position: 1
+---
+
+[frontend](../../..) • Docs
+
+***
+
+[frontend](../../..) / [actions/uploadActions](..) / UploadNewResource
+
+# Function: UploadNewResource()
+
+> **UploadNewResource**(`form`): `Promise`\<`string`\>
+
+## Parameters
+
+• **form**
+
+The form of the NewResource page
+
+• **form.abstract?**: `string`= `undefined`
+
+• **form.accessedOn?**: `string`= `undefined`
+
+• **form.authors**: `string`[]= `undefined`
+
+• **form.description?**: `string`= `undefined`
+
+• **form.file?**: `any`= `undefined`
+
+• **form.hash?**: `string`= `undefined`
+
+• **form.languageCode**: `string`= `undefined`
+
+• **form.length?**: `number`= `undefined`
+
+• **form.license?**: `string`= `undefined`
+
+• **form.note?**: `string`= `undefined`
+
+• **form.organisations**: `object`[]= `undefined`
+
+• **form.publicationCode?**: `string`= `undefined`
+
+• **form.publicationDate**: `string`= `undefined`
+
+• **form.regions**: `string`[]= `undefined`
+
+• **form.relatedOrganisations**: `object`[]= `undefined`
+
+• **form.relatedPersons**: `object`[]= `undefined`
+
+• **form.sources?**: `string`[]= `undefined`
+
+• **form.tags**: `string`[]= `undefined`
+
+• **form.title**: `string`= `undefined`
+
+• **form.typeId**: `string`= `undefined`
+
+• **form.uploadType**: `"document"` \| `"website"` \| `"audio"` \| `"video"`= `UploadTypeEnum`
+
+• **form.url**: `string`= `undefined`
+
+## Returns
+
+`Promise`\<`string`\>
+
+The ID of the new resource
+
+## Summary
+
+Uploads a new resource to the databse
+
+## Source
+
+src/actions/uploadActions.ts:103

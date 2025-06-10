@@ -1,0 +1,54 @@
+---
+title: FilterProjectDtoSchema
+sidebar_position: 1
+---
+
+[frontend](../../..) • Docs
+
+***
+
+[frontend](../../..) / [types/project.type](..) / FilterProjectDtoSchema
+
+# Variable: FilterProjectDtoSchema
+
+> `const` **FilterProjectDtoSchema**: `ZodObject`\<`object`, `"strip"`, `ZodTypeAny`, `object`, `object`\>
+
+Project filtering schema
+
+## Type declaration
+
+### createdBy
+
+> **createdBy**: `ZodOptional`\<`ZodNullable`\<`ZodString`\>\>
+
+### endDate
+
+> **endDate**: `ZodOptional`\<`ZodNullable`\<`ZodDate`\>\>
+
+### pageIndex
+
+> **pageIndex**: `ZodDefault`\<`ZodNumber`\>
+
+### pageSize
+
+> **pageSize**: `ZodDefault`\<`ZodNumber`\>
+
+### searchQuery
+
+> **searchQuery**: `ZodOptional`\<`ZodNullable`\<`ZodString`\>\>
+
+### startDate
+
+> **startDate**: `ZodOptional`\<`ZodNullable`\<`ZodDate`\>\>
+
+### tags
+
+> **tags**: `ZodOptional`\<`ZodNullable`\<`ZodArray`\<`ZodString`, `"many"`\>\>\>
+
+### usePaging
+
+> **usePaging**: `ZodDefault`\<`ZodBoolean`\>
+
+## Source
+
+src/types/project.type.ts:43

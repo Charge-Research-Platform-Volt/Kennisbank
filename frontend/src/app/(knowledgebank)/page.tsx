@@ -7,6 +7,7 @@ import GetFileIcon from "@/components/getFileIcon";
 import OpenFileButton from "@/components/open-file-button";
 import SearchButton from "../_components/search-button";
 import { z } from "zod";
+import ProjectIcon1 from "@/icons/project-icons/icon-1";
 
 export default async function Home() {
   // fetches all documents
@@ -40,7 +41,7 @@ export default async function Home() {
         <div className="mb-10 flex justify-center gap-10">
           <SearchButton />
           {[
-            // { icon: <Projects className="h-50 w-50" fill="#4b5563" />, text: "Projects", path: "/projects" },
+            { icon: <ProjectIcon1 className="h-50 w-50" fill="#4b5563" />, text: "Projects", path: "/projects" },
             { icon: <Archive className="h-50 w-50" fill="#4b5563" />, text: "Archive", path: "/archive" },
           ].map((btn, index) => (
             <Link key={index} href={btn.path}>
