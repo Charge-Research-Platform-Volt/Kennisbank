@@ -107,7 +107,7 @@ export default function BadgeList({
                     {itemList.map((item, index) =>(
                         <ContextMenu key={index}>
                             <ContextMenuTrigger>
-                                <Badge onClick={() => { navigateTo(item.id, item.type); }} variant={variant} className={className}>{item.name}</Badge>
+                                <Badge onClick={() => { navigateTo(item.id, item.type); }} variant={variant} className={`max-w-96 truncate inline-block justify-start ${className}`} title={item.name}>{item.name}</Badge>
                             </ContextMenuTrigger>
                             <ContextMenuContent className="select-none">
                                 {listType != "ai-tags" ? (

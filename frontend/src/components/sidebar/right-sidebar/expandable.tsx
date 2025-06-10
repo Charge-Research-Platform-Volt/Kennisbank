@@ -117,15 +117,14 @@ export default function Expandable({
                             </div>
                         </div>
                     </div>
-                    {/* Only show horizontal fade if content is wide/tall enough */}
-                    {shouldShowFade && (
-                        <div 
-                            className="absolute inset-y-0 right-0 w-16 pointer-events-none"
-                            style={{ 
-                                background: `linear-gradient(to left, ${gradientColor}, transparent)` 
-                            }}
-                        />
-                    )}
+                    
+                    {/* Overflow fade */}
+                    <div 
+                        className="absolute inset-y-0 right-0 w-16 pointer-events-none"
+                        style={{ 
+                            background: `linear-gradient(to left, ${gradientColor}, transparent)` 
+                        }}
+                    />
                 </div>
             )}
         </div>
