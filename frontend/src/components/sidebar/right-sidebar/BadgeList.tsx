@@ -44,7 +44,7 @@ export default function BadgeList({
     
     async function navigateTo(id: string, type: string)
     {
-        if ( ["author", "related-persons", "person-related-persons", "persons"].includes(listType))
+        if ( ["authors", "related-persons", "person-related-persons", "persons"].includes(listType))
         {
             navigate(id, MetadataTypeEnum.PERSON);
         }
