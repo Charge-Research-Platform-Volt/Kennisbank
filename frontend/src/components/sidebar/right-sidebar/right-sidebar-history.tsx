@@ -1,9 +1,8 @@
-import { Button } from "@/components/ui/button";
 import Divider from "../divider";
 import { NewApiResponse } from "@/types/apiResponse.type";
 import { toast } from "sonner";
 import { usePathname, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 
 interface Chat {
@@ -19,6 +18,7 @@ type Chats = { [date: string]: Chat[] };
 export default function RightSidebarHistory() {
   const route = useRouter();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
 
   const GetAllChatsList = async (): Promise<Chats> => {
     try {
@@ -69,10 +69,7 @@ export default function RightSidebarHistory() {
 
   return (
     <div className="p-2">
-      <Button variant="outline" className="" onClick={() => route.push("/chat")}>
-        New Chat
-      </Button>
-      <Divider className="my-2" />
+      <Divider className="my-2 mt-11" />
 
       <div className="mt-4 space-y-4">
         {Object.entries(chats).map(([date, chatList]) => (
@@ -91,7 +88,10 @@ export default function RightSidebarHistory() {
                   key={chat.id}
                   className={`${pathname === `/chat/${chat.id}` ? "bg-gray-100" : "bg-gray-50"} flex w-full cursor-pointer items-center justify-between rounded-md p-1 pl-2 transition-colors duration-200 hover:bg-gray-100`}
                   onClick={() => {
-                    if (pathname !== `/chat/${chat.id}`) route.push(`/chat/${chat.id}`);
+                    if (pathname !== `/chat/${chat.id}`) {
+                      queryClient.invalidateQueries({ queryKey: ["chat-messages", chat.id] });
+                      route.push(`/chat/${chat.id}`);
+                    }
                   }}
                   title={chat.title}
                 >

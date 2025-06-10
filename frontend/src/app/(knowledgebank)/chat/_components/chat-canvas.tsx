@@ -7,16 +7,17 @@ import { NewApiResponse } from "@/types/apiResponse.type";
 import { Messages } from "@/types/chatbot.type";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
+import ChatLoading from "./chat-loading";
 
 export default function ChatCanvas({ chatId }: { chatId?: string }) {
-  const { chatMessages, setChatMessages } = useChat();
+  const { chatMessages, isLoading, setChatMessages } = useChat();
 
-  const { data, isError } = useQuery({
+  const { isError, isLoading: fetchLoading } = useQuery({
     queryKey: ["chat-messages", chatId],
     queryFn: async () => {
-      if (!chatId) {
-        throw new Error("Chat ID is required to fetch messages.");
-      }
+      if (!chatId) throw new Error("Chat ID is required to fetch messages.");
+
+      setChatMessages([]);
 
       const response = await fetch(`/api/AI/messages/${chatId}`, {
         method: "GET",
@@ -34,24 +35,17 @@ export default function ChatCanvas({ chatId }: { chatId?: string }) {
         throw new Error("Failed to fetch chat messages");
       }
 
+      setChatMessages(result.body.messages);
       return result.body.messages;
     },
-    enabled: !!chatId,
+    enabled: !!chatId && !isLoading && chatMessages.length === 0,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
 
   useEffect(() => {
-    if (data) {
-      setChatMessages(data);
-    }
-  }, [data, setChatMessages]);
-
-  useEffect(() => {
-    if (isError) {
-      toast.error("An error occurred while fetching chat messages.");
-    }
+    if (isError) toast.error("An error occurred while fetching chat messages.");
   }, [isError]);
 
-  return <ChatResponses chatMessages={chatMessages} />;
+  return true ? <ChatLoading /> : <ChatResponses chatMessages={chatMessages} />;
 }

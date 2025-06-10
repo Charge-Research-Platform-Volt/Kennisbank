@@ -6,8 +6,7 @@ import * as signalR from "@microsoft/signalr";
 import type { Messages } from "@/types/chatbot.type";
 import { toast } from "sonner";
 import { usePathname, useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { NewApiResponse } from "@/types/apiResponse.type";
+import { useQueryClient } from "@tanstack/react-query";
 
 type ChatBotContextType = {
   // * The userInput is the input provided by the user
@@ -32,9 +31,6 @@ type ChatBotContextType = {
   // * The knowledgeBankContent state indicates whether the knowledge bank content is enabled
   knowledgeBankContent: boolean;
   setKnowledgeBankContent: Dispatch<SetStateAction<boolean>>;
-
-  // * The handleLoadChatHistory function is used to load the chat history
-  HandleLoadChatHistory: (chatId: string) => void;
 };
 
 // ------------------------------------------------------------------------------------
@@ -128,6 +124,7 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
 
     const userMessageText = userInput;
     setUserInput("");
+    setIsLoading(() => true); // Important to set loading state again here after loading the new chat/[id] page
 
     // Add the user input to the chat messages
     const userId = Date.now().toString() + "-user";
@@ -192,20 +189,6 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
     }
   };
 
-  const HandleLoadChatHistory = (chatId: string) => {
-    const { data, isLoading, isError } = useQuery({ queryKey: ["chat-history", chatId], queryFn: () => GetChatMessages(chatId), refetchOnWindowFocus: false, refetchOnReconnect: false });
-
-    if (isLoading) {
-      setIsLoading(true);
-    } else if (isError) {
-      toast.error("An error occurred while loading chat history.");
-      setIsLoading(false);
-    } else {
-      setChatMessages(data || []);
-      setIsLoading(false);
-    }
-  };
-
   // -- UseEffects --------------------------------------------------------------------------------
 
   // This useEffect is used to handle the SignalR connection
@@ -242,10 +225,10 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
 
   // This useEffect is used to scroll to the bottom of the chat messages when they change
   useEffect(() => {
-    if (messagesEndRef.current) {
+    if (messagesEndRef.current && isLoading) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [chatMessages]);
+  }, [chatMessages, isLoading]);
 
   // This useEffect is used to clear the chat when the pathname is "/chat"
   useEffect(() => {
@@ -266,7 +249,6 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
         handleClearChat,
         knowledgeBankContent,
         setKnowledgeBankContent,
-        HandleLoadChatHistory,
       }}
     >
       {children}
