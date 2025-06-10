@@ -102,12 +102,10 @@ namespace KnowledgeBank.Data
         /// <returns>Boolean indicating whether or not deletion was successful.</returns>
         public async Task<bool> RemoveAllFoldersFromProject(Guid projectId)
         {
-            List<ProjectFolderRelation> rootProjects = (await GetAllFolders(project => project.ParentId == projectId)).ToList();
+            List<ProjectFolderRelation> rootProjects = (await GetAllFolders(predicate: project => project.ParentId == projectId)).ToList();
             await DeleteAsync(database.Projects, project => project.Id == projectId);
             foreach (ProjectFolderRelation p in rootProjects)
-            {
                 await RemoveFolderFromProject(p.ChildId);
-            }
 
             return true;
         }
