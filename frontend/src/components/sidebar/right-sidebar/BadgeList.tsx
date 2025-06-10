@@ -72,7 +72,7 @@ export default function BadgeList({
         }
     }
 
-    async function handleAiRemove(item: ListItem) {
+    async function handleRemove(item: ListItem) {
         try {
             
             await removeRelation(listType, currentType, currentId, item.id) 
@@ -111,7 +111,7 @@ export default function BadgeList({
                             </ContextMenuTrigger>
                             <ContextMenuContent className="select-none">
                                 {listType != "ai-tags" ? (
-                                    <ContextMenuItem className="select-none text-red-600" onClick={() => handleAiRemove(item)}>
+                                    <ContextMenuItem className="select-none text-red-600" onClick={() => handleRemove(item)}>
                                         <div className="select-none cursor-pointer">Remove relation</div>
                                     </ContextMenuItem>
                                 ) : (
