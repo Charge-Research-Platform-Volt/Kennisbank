@@ -151,6 +151,7 @@ public class ProjectControllerTests : TestBase
         TypeId = DatabaseSeeder.UnknownResourceTypeId,
         LanguageCode = "NL",
         PublicationDate = DateTime.UtcNow,
+        CreationDate = DateTime.UtcNow
     };
 
     // Static method to provide test cases
