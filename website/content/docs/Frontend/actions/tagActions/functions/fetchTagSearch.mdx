@@ -1,0 +1,46 @@
+---
+title: FetchTagSearch
+sidebar_position: 1
+---
+
+[frontend](../../..) • Docs
+
+***
+
+[frontend](../../..) / [actions/tagActions](..) / fetchTagSearch
+
+# Function: fetchTagSearch()
+
+> **fetchTagSearch**(`searchQuery`?, `K`?): `Promise`\<`object`\>
+
+## Parameters
+
+• **searchQuery?**: `string`
+
+The name of the tag it tries to search
+
+• **K?**: `number`
+
+Max amount of tags to return
+
+## Returns
+
+`Promise`\<`object`\>
+
+A maximum of K tags that correspond with the query
+
+### body?
+
+> `optional` **body**: `any`
+
+### message
+
+> **message**: `string`
+
+### success
+
+> **success**: `boolean`
+
+## Source
+
+src/actions/tagActions.ts:251

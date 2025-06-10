@@ -1,0 +1,50 @@
+---
+title: PersonCreateDtoSchema
+sidebar_position: 1
+---
+
+[frontend](../../..) • Docs
+
+***
+
+[frontend](../../..) / [types/uploadTypes](..) / PersonCreateDtoSchema
+
+# Variable: PersonCreateDtoSchema
+
+> `const` **PersonCreateDtoSchema**: `ZodObject`\<`object`, `"strip"`, `ZodTypeAny`, `object`, `object`\>
+
+Schema for creating a person create DTO
+
+## Type declaration
+
+### Description
+
+> **Description**: `ZodOptional`\<`ZodString`\>
+
+### EmailAddress
+
+> **EmailAddress**: `ZodOptional`\<`ZodUnion`\<[`ZodString`, `ZodLiteral`\<`""`\>]\>\>
+
+### Linkedin
+
+> **Linkedin**: `ZodOptional`\<`ZodUnion`\<[`ZodString`, `ZodLiteral`\<`""`\>]\>\>
+
+### Name
+
+> **Name**: `ZodString`
+
+### Occupation
+
+> **Occupation**: `ZodString`
+
+### OrganisationRelations
+
+> **OrganisationRelations**: `ZodArray`\<`ZodObject`\<`object`, `"strip"`, `ZodTypeAny`, `object`, `object`\>, `"many"`\>
+
+### PersonRelations
+
+> **PersonRelations**: `ZodArray`\<`ZodObject`\<`object`, `"strip"`, `ZodTypeAny`, `object`, `object`\>, `"many"`\>
+
+## Source
+
+src/types/uploadTypes.ts:116

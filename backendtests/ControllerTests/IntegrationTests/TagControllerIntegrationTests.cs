@@ -16,6 +16,7 @@ public class TagControllerTests : TestBase
 {
     private TagsController _controller;
     private ResourceManager _resourceManager;
+    private ProjectManager _projectManager;
     private ClaimsPrincipal _regularUser;
     private ClaimsPrincipal _adminUser;
     private Guid _regularUserId;
@@ -41,7 +42,8 @@ public class TagControllerTests : TestBase
             "mock"));
 
         _resourceManager = new ResourceManager(Context);
-        _controller = new TagsController(_resourceManager);
+        _projectManager = new ProjectManager(Context);
+        _controller = new TagsController(_resourceManager, _projectManager);
         SetControllerUser(_regularUser); // Default to regular user
     }
     

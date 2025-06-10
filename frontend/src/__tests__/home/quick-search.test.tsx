@@ -105,14 +105,14 @@ describe("QuickSearch Component test", () => {
     }));
 
     // Reset timer mocks
-    vi.useFakeTimers();
+    //vi.useFakeTimers();
   });
 
   // ---------------------------------------------------------------------------
   // This code runs after each test
   // ---------------------------------------------------------------------------
   afterEach(() => {
-    vi.useRealTimers();
+    //vi.useRealTimers();
   });
 
   // ---------------------------------------------------------------------------
@@ -142,9 +142,7 @@ describe("QuickSearch Component test", () => {
     const searchButton = screen.getByText("Search");
 
     // Click the search button
-    await act(async () => {
-      userEvent.click(searchButton);
-    });
+    await userEvent.click(searchButton);
 
     // Check if search input is rendered
     expect(screen.getByPlaceholderText("Search")).toBeInTheDocument();
@@ -166,7 +164,6 @@ describe("QuickSearch Component test", () => {
     await act(async () => {
       (window as unknown as CustomWindow).hotkeyCallback();
     });
-
     // Check if search input is rendered
     expect(screen.getByPlaceholderText("Search")).toBeInTheDocument();
 
@@ -186,9 +183,7 @@ describe("QuickSearch Component test", () => {
     const searchButton = screen.getByText("Search");
 
     // Click the search button
-    await act(async () => {
-      userEvent.click(searchButton);
-    });
+    await userEvent.click(searchButton);
 
     // useEffect trigger fetch after dialog opens
     expect(fetch).toHaveBeenCalledTimes(1);
@@ -199,9 +194,7 @@ describe("QuickSearch Component test", () => {
     });
 
     // Resolve any pending promises
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await Promise.resolve();
 
     // Check if the results are displayed
     expect(screen.getByText("Document 1")).toBeInTheDocument();
@@ -229,16 +222,16 @@ describe("QuickSearch Component test", () => {
     const searchButton = screen.getByText("Search");
 
     // Click the search button
-    await act(async () => {
-      userEvent.click(searchButton);
-    });
+    await userEvent.click(searchButton);
 
     // Type in the search input "Document 1"
     const searchInput = screen.getByPlaceholderText("Search");
     const query = "Document 1";
-    userEvent.type(searchInput, query);
+    await userEvent.type(searchInput, query);
 
-    vi.advanceTimersByTime(300);
+    await new Promise(r => setTimeout(r, 300));
+
+    //vi.advanceTimersByTime(300);
 
     expect(fetch).toHaveBeenCalledTimes(2); //One when the dialog is opened and one when the search input is typed
     expect(fetch).toHaveBeenCalledWith(`/api/Search/search-full-text?query=${query}&pageIndex=1&pageSize=10`, {
@@ -248,9 +241,7 @@ describe("QuickSearch Component test", () => {
     });
 
     // Resolve any pending promises
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await Promise.resolve();
 
     // Check that Document 1 is still in the document
     expect(screen.getByText("Document 1")).toBeInTheDocument();
@@ -272,9 +263,7 @@ describe("QuickSearch Component test", () => {
 
     const searchButton = screen.getByText("Search");
 
-    await act(async () => {
-      userEvent.click(searchButton);
-    });
+    await userEvent.click(searchButton);
 
     // Mock fetch to return empty results for this specific query
     const query = "wefwefwopifwef09iqfopm09uf028r02394jfpo2jfp9023ur";
@@ -300,19 +289,20 @@ describe("QuickSearch Component test", () => {
     });
 
     // Type in the search input
-    const searchInput = screen.getByPlaceholderText("Search");
-    userEvent.type(searchInput, query);
+    const searchInput = await screen.findByPlaceholderText("Search");
+    await act(async () => {
+      userEvent.type(searchInput, query);
+    });
 
-    vi.advanceTimersByTime(300);
+    await new Promise(r => setTimeout(r, 3000)); // Wait for debounce
+
     expect(fetch).toHaveBeenCalledWith(`/api/Search/search-full-text?query=${query}&pageIndex=1&pageSize=10`, {
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       method: "POST",
     });
 
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await Promise.resolve();
 
     // Check that Document 1 is no longer in the document
     expect(screen.queryByText("Document 1")).not.toBeInTheDocument();
@@ -344,12 +334,10 @@ describe("QuickSearch Component test", () => {
     const searchButton = screen.getByText("Search");
 
     // Click the search button to open dialog
-    await act(async () => {
-      userEvent.click(searchButton);
+    await userEvent.click(searchButton);
 
-      // Wait for useEffect to trigger fetch after dialog opens
-      await Promise.resolve();
-    });
+    // Wait for useEffect to trigger fetch after dialog opens
+    await Promise.resolve();
 
     // Verify the toast error was called with the expected error message
     expect(toast.error).toHaveBeenCalledWith("An error occurred while fetching search results.");
@@ -372,7 +360,7 @@ describe("QuickSearch Component test", () => {
 
     // Click the search button to open dialog
     await act(async () => {
-      userEvent.click(searchButton);
+      await userEvent.click(searchButton);
 
       // Wait for useEffect to trigger fetch after dialog opens
       await Promise.resolve();
@@ -394,7 +382,7 @@ describe("QuickSearch Component test", () => {
 
     // Click the search button to open dialog
     await act(async () => {
-      userEvent.click(searchButton);
+      await userEvent.click(searchButton);
     });
 
     // Verify the dialog is open

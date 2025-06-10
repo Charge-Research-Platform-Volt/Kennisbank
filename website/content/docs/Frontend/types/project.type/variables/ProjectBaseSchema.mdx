@@ -1,0 +1,42 @@
+---
+title: ProjectBaseSchema
+sidebar_position: 1
+---
+
+[frontend](../../..) • Docs
+
+***
+
+[frontend](../../..) / [types/project.type](..) / ProjectBaseSchema
+
+# Variable: ProjectBaseSchema
+
+> `const` **ProjectBaseSchema**: `ZodObject`\<`object`, `"strip"`, `ZodTypeAny`, `object`, `object`\>
+
+Base project schema without ID
+
+## Type declaration
+
+### creationDate
+
+> **creationDate**: `ZodString`
+
+### deletionDate
+
+> **deletionDate**: `ZodOptional`\<`ZodString`\>
+
+### description
+
+> **description**: `ZodNullable`\<`ZodString`\>
+
+### projectType
+
+> **projectType**: `ZodEffects`\<`ZodString`, `string`, `string`\>
+
+### title
+
+> **title**: `ZodString`
+
+## Source
+
+src/types/project.type.ts:6

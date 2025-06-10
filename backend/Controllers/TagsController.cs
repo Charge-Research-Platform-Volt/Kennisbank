@@ -16,10 +16,11 @@ namespace KnowledgeBank.Controllers;
 [Route("[controller]")]
 [Produces("application/json")]
 [Authorize]
-public class TagsController(ResourceManager resourceManager) : ControllerBase
+public class TagsController(ResourceManager resourceManager, ProjectManager projectManager) : ControllerBase
 {
     // Database context
     private readonly ResourceManager resourceManager = resourceManager;
+    private readonly ProjectManager projectManager = projectManager;
 
     // ----------- Endpoints:
     
@@ -548,9 +549,26 @@ public class TagsController(ResourceManager resourceManager) : ControllerBase
                     await resourceManager.AddTagToResourceAsync(relation.ResourceId, tagId1);
                 }
             }
+
+            // Get all projects related to the second tag
+            ProjectTagRelation[]? projectTagRelations = await projectManager.GetAllTags(predicate: r => r.TagId == tagId2);
+
+            // Add the first tag to projects that don't already have it
+            foreach (ProjectTagRelation relation in projectTagRelations)
+            {
+                // Check if the project already has the first tag
+                bool hasFirstTag = await projectManager.ProjectTagRelationExistsAsync(
+                    r => r.ProjectId == relation.ProjectId && r.TagId == tagId1);
+
+                // If the project doesn't have the first tag, add it
+                if (!hasFirstTag)
+                {
+                    await projectManager.AddTagToProjectAsync(relation.ProjectId, tagId1);
+                }
+            }
             
-            // Delete the second tag
-            if (!await resourceManager.DeleteTagAsync(id2))
+            // Delete the second tag from both the resources and projects
+            if (!await resourceManager.DeleteTagAsync(id2) || !await projectManager.RemoveTagFromAllProjects(Guid.Parse(id2)))
             {
                 await resourceManager.Rollback();
                 Log.Error("Failed to delete tag {TagId2} during merge", id2);
