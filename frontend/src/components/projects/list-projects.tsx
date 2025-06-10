@@ -111,7 +111,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   const [isProjectsTagsModalOpen, setIsProjectTagsModalOpen] = useState(false);
   const [isProjectCreatorsModalOpen, setIsProjectCreatorsModalOpen] = useState(false);
   const [creatorsEdit, setCreatorsEdit] = useState<User[]>([]);
-
+  const [tagsEdit, setTagsEdit] = useState<Tag[]>([]);
 
   // Handles filtering the projects and resources based on the current query
   const filteredItems = useMemo(() => {
@@ -712,6 +712,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
         try {
           const { resources, projects, creators, tags } = await fetchProjectContent(selectedProjectForEdit.id);
           setCreatorsEdit(creators ? creators : []);
+          setTagsEdit(tags ? tags : [])
         } catch (error) {
           toast.error("Failed to fetch project creators.");
         }
@@ -727,6 +728,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
     setIsEditModalOpen(false);
     setSelectedProjectForEdit(null);
     setCreatorsEdit([]);
+    setTagsEdit([]);
   };
 
   const handleEditSuccess = async () => {
@@ -943,6 +945,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
         onSuccess={handleEditSuccess}
         project={selectedProjectForEdit}
         currentCreators={creatorsEdit}
+        currentTags={tagsEdit}
       />
     </div>
   );

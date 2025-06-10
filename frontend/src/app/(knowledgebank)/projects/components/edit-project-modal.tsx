@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Project } from '@/types/project.type';
 import { updateProject } from '@/actions/projectActions'; 
-import { AddUserDropdown, SelectTagDropdown, SelectUserDropdown } from '@/components/Selection/SelectionDropdown';
+import { AddUserDropdown, SelectTagDropdown } from '@/components/Selection/SelectionDropdown';
 import { Tag } from '@/types/tag.type';
 import { User } from '@/types/user.type';
 
@@ -18,6 +18,7 @@ interface EditProjectModalProps {
   onSuccess: () => void;
   project: Project | null;
   currentCreators: User[]
+  currentTags: Tag[]
 }
 
 /**
@@ -36,15 +37,15 @@ export default function EditProjectModal({
   onClose,
   onSuccess,
   project,
-  currentCreators
+  currentCreators,
+  currentTags
 }: EditProjectModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [tags, setTags] = useState<Tag[]>([]);
   const [creators, setCreators] = useState<User[]>();
-  
-  
+ 
   const [error, setError] = useState('');
 
   // Reset form when modal opens/closes or project changes
@@ -205,6 +206,7 @@ return (
                   </Label>
                   <SelectTagDropdown 
                     className="col-span-3"
+                    standardTag={currentTags}
                     selectMultiple={true}
                     onChangeAction={setTags}
                   />

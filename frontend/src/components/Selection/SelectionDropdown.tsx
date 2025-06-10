@@ -47,7 +47,7 @@ interface SelectDropdownProps<T extends Item> {
     // Which function to call in another component when a value is changed
     onChangeAction?: (selectedItems: T[]) => void;
     // Standard item(s) to pre-select
-    standardItem?: T | null;
+    standardItem?: T[] | null;
     // Boolean indicating whether or not you can select multiple values
     selectMultiple?: boolean;
     // Optional styling from parent component
@@ -96,7 +96,7 @@ function SelectDropDown<T extends Item>({
 const [filteredItems, setFilteredItems] = useState<T[]>([]);
 const [open, setOpen] = React.useState(false)
 const [inputValue, setInputValue] = useState<string>("");
-const [selectedItems, updateItems] = useState<T[]>(standardItem ? [standardItem] : []);
+const [selectedItems, updateItems] = useState<T[]>(standardItem ? standardItem : []);
 const [isDuringDebounce, setIsDuringDebounce] = useState<boolean>(false); // Whether or not we are in a debounced callback where we have to wait for the fetched results
 
 // Truncates a string to the length specified minus 3 characters used for adding "..."
@@ -182,7 +182,7 @@ useEffect(() => {
   }, [inputValue, filterItems]); // Run update on filter when the inputValue changes
 
 useEffect(() => {
-    updateItems(standardItem ? [standardItem] : [])
+    updateItems(standardItem ? standardItem : [])
   }, [standardItem]) // Run update on the current selectedTag when we reset the standard item in the parent component
 
 useEffect(() => {
@@ -282,7 +282,7 @@ const fetchTags = async (inputValue: string): Promise<Tag[]> => {
  * @param {string} className - Styling from parent component
  * @returns Selection box where the user can select tags
  */
-export function SelectTagDropdown({onChangeAction = () => {}, className, selectMultiple, standardTag} : {onChangeAction?: (selectedTags : Tag[]) => void, className?: string, selectMultiple: boolean, standardTag?: Tag})
+export function SelectTagDropdown({onChangeAction = () => {}, className, selectMultiple, standardTag} : {onChangeAction?: (selectedTags : Tag[]) => void, className?: string, selectMultiple: boolean, standardTag?: Tag[]})
 {
     return(
         <SelectDropDown
@@ -330,7 +330,7 @@ const fetchUsers = async (inputValue: string, exclude: string[]): Promise<Displa
 
 /**
  * Selection box where the user can select one or multiple creators.
- * 
+ *
  * @author Justin Liem
  * @param {DisplayUser[] => void} onChangeAction - Which function to call in another component when the creator selection is changed
  * @param {boolean} selectMultiple - Whether you can select one or multiple creators
