@@ -127,15 +127,15 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
     setIsLoading(() => true); // Important to set loading state again here after loading the new chat/[id] page
 
     // Add the user input to the chat messages
-    const userId = Date.now().toString() + "-user";
+    const userId = Date.now().toString() + "-User";
     setChatMessages((prev) => {
       return [...prev, { id: userId, messageRole: "User", content: userMessageText }];
     });
 
     // Create a placeholder for the AI's streaming response
-    const systemId = Date.now().toString() + "-system";
+    const systemId = Date.now().toString() + "-Assistant";
     setChatMessages((prev) => {
-      return [...prev, { id: systemId, messageRole: "System", content: "" }];
+      return [...prev, { id: systemId, messageRole: "Assistant", content: "" }];
     });
 
     // Start the streaming response

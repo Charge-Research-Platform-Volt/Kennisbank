@@ -1,51 +1,52 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useChat } from "@/context/chatbot-provider";
 import ChatResponses from "./chat-responses";
 import { NewApiResponse } from "@/types/apiResponse.type";
 import { Messages } from "@/types/chatbot.type";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
 import ChatLoading from "./chat-loading";
+import { useRouter } from "next/navigation";
 
 export default function ChatCanvas({ chatId }: { chatId?: string }) {
+  const route = useRouter();
   const { chatMessages, isLoading, setChatMessages } = useChat();
+  const [fetchLoading, setFetchLoading] = useState<boolean>(false);
 
-  const { isError, isLoading: fetchLoading } = useQuery({
-    queryKey: ["chat-messages", chatId],
-    queryFn: async () => {
-      if (!chatId) throw new Error("Chat ID is required to fetch messages.");
+  const fetchChatMessages = useCallback(async () => {
+    if (isLoading || !chatId) return;
 
-      setChatMessages([]);
-
+    setChatMessages([]);
+    try {
+      setFetchLoading(true);
       const response = await fetch(`/api/AI/messages/${chatId}`, {
         method: "GET",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch chat messages");
-      }
+      if (!response.ok) throw new Error("Failed to fetch chat messages");
 
       const result: NewApiResponse<{ messages: Messages }> = await response.json();
 
-      if (!result.success) {
+      if (result.success) {
+        setChatMessages(result.body.messages);
+      } else {
         throw new Error("Failed to fetch chat messages");
       }
-
-      setChatMessages(result.body.messages);
-      return result.body.messages;
-    },
-    enabled: !!chatId && !isLoading && chatMessages.length === 0,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  });
+    } catch {
+      toast.error("Failed to fetch chat messages");
+      route.push("/chat");
+    } finally {
+      setFetchLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatId, setChatMessages]);
 
   useEffect(() => {
-    if (isError) toast.error("An error occurred while fetching chat messages.");
-  }, [isError]);
+    fetchChatMessages();
+  }, [fetchChatMessages]);
 
-  return true ? <ChatLoading /> : <ChatResponses chatMessages={chatMessages} />;
+  return fetchLoading ? <ChatLoading /> : <ChatResponses chatMessages={chatMessages} />;
 }

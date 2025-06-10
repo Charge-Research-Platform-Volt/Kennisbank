@@ -3,6 +3,7 @@ import ChatCanvas from "../_components/chat-canvas";
 import ChatInput from "../_components/chat-input";
 import ChatHistory from "../_components/chat-history";
 
+export const dynamic = "force-dynamic";
 export default async function ChatPage({ params }: Readonly<{ params: { id: string } }>) {
   const { id } = await params;
   return (
