@@ -4,6 +4,7 @@
 //
 // Authors: Abel Dieterich, Elia Jabbour (AI parts and RAG system)
 
+using KnowledgeBank.Services;
 using Serilog;
 
 namespace KnowledgeBank.Data
@@ -14,10 +15,13 @@ namespace KnowledgeBank.Data
     /// Author: Abel Dieterich
     /// </summary>
     /// <param name="dbContext">The database context variable</param>
-    public partial class ResourceManager(DatabaseContext dbContext)
+    /// <param name="ragSystem">The RAG system variable</param>
+    public partial class ResourceManager(DatabaseContext dbContext, RAGSystem ragSystem)
     {
         private readonly DatabaseContext database = dbContext;
         private readonly Serilog.ILogger _logger = Log.ForContext<ResourceManager>();
+        private readonly RAGSystem _ragSystem = ragSystem;
+
 
         #region Transaction functions
 

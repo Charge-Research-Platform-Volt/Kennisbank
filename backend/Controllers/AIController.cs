@@ -7,6 +7,7 @@ using System.Text.Json;
 using KnowledgeBank.Responses;
 using KnowledgeBank.Utils;
 using KnowledgeBank.Data;
+using System.Security.Claims;
 
 namespace KnowledgeBank.Controllers;
 
@@ -82,7 +83,15 @@ public class AIController : ControllerBase
     {
         try
         {
-            var chats = await _resourceManager.GetChatsGroupedByDateAsync();
+            string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                _logger.Warning("User ID not found in claims.");
+                return BadRequest(new ApiResponse(false, "User ID not found."));
+            }
+
+            var chats = await _resourceManager.GetChatsGroupedByDateAsync(predicate: c => c.UserId == Guid.Parse(userId));
+
             if (chats == null)
             {
                 _logger.Warning("No chats found.");
@@ -107,7 +116,14 @@ public class AIController : ControllerBase
 
         try
         {
-            var result = await _resourceManager.DeleteChatAsync(chatId);
+            string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                _logger.Warning("User ID not found in claims.");
+                return BadRequest(new ApiResponse(false, "User ID not found."));
+            }
+
+            var result = await _resourceManager.DeleteChatAsync(chatId, Guid.Parse(userId));
             if (result)
             {
                 _logger.Information("Chat with ID {ChatId} deleted successfully.", chatId);
@@ -115,8 +131,8 @@ public class AIController : ControllerBase
             }
             else
             {
-                _logger.Warning("Chat with ID {ChatId} not found.", chatId);
-                return NotFound(new ApiResponse(false, "Chat not found."));
+                _logger.Warning("Failed to delete chat with ID {ChatId}. Chat not found or user not authorized.", chatId);
+                return BadRequest(new ApiResponse(false, "Chat not found or you are not authorized to delete it."));
             }
         }
         catch (Exception ex)
@@ -135,12 +151,26 @@ public class AIController : ControllerBase
 
         try
         {
+            string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                _logger.Warning("User ID not found in claims.");
+                return BadRequest(new ApiResponse(false, "User ID not found."));
+            }
+
             // First check if the chat exists
-            var chatExists = await _resourceManager.GetChatAsync(chatId);
+            var chatExists = await _resourceManager.GetChatAsync(c => c.Id == chatId);
             if (chatExists == null)
             {
                 _logger.Warning("Chat with ID {ChatId} not found", chatId);
                 return NotFound(new ApiResponse(false, "Chat not found."));
+            }
+
+            // Check if the user is authorized to access this chat
+            if (chatExists.UserId != Guid.Parse(userId))
+            {
+                _logger.Warning("User {UserId} is not authorized to access chat {ChatId}", userId, chatId);
+                return Unauthorized(new ApiResponse(false, "You are not authorized to access this chat."));
             }
 
             var messages = await _resourceManager.GetMessagesByChatIdAsync(chatId);
@@ -159,6 +189,4 @@ public class AIController : ControllerBase
             return StatusCode(500, new ApiResponse(false, "An error occurred while retrieving messages."));
         }
     }
-
-
 }

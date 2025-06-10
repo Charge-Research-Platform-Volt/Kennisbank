@@ -220,7 +220,7 @@ public class RAGManger
 
         List<ChatMessage> chat =
         [
-            new SystemChatMessage("You are a helpful AI assistant that generates a concise and descriptive title for a chat based on the provided question. Return the title as a JSON object with a single field 'Title'."),
+            new SystemChatMessage(Prompts.SystemPromptGenerateTitle),
             new UserChatMessage(result)
         ];
 

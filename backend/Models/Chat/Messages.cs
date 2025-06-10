@@ -45,5 +45,5 @@ public class MessagesCreateDto
 public enum MessageRole
 {
     User,
-    System
+    Assistant
 }

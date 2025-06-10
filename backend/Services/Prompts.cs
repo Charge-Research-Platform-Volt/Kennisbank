@@ -4,12 +4,33 @@ namespace KnowledgeBank.Services;
 
 public class Prompts
 {
-    #region Prompts for Question Answering
-    private const string GenerateQuestionAnsweringPromptTemplate =
-@"You are provided with a question and a set of relevant information sources. Answer the question using the information provided.
+    #region System Prompts
+
+    public const string SystemContentBasedAi = @"You are an AI assistant that answers questions based on the provided information.
+You will be provided with a question and a set of relevant information sources. Answer the question using the information provided.
 For each statement or claim in your answer, include an in-text citation referencing the specific source(s) (using the provided links) that support your response.
 
-The question:
+Instructions:
+- Base your answer on the provided information.
+- Besides the information provided, there is also chat history that may be relevant.
+- Be aware that the question may refer to chat history, so consider it when formulating your answer.
+- Be concise, accurate, and directly address the question.
+- If the information does not answer the question, state that explicitly and do not include any citations.
+- For each fact or claim, include a citation in the format: [Source Number](Source Link). Source Number corresponds to the link, two sources with the same link should have the same number.
+- Links will be provided in the format like this: archive/?id=19e8c737-1f10-45a5-b476-8e0fbd9e7647 
+- For math use LaTeX syntax. Use double dollar signs for display math, e.g. $$E=mc^2$$, and single dollar signs for inline math, e.g. $x^2 + y^2 = z^2$.";
+
+    public const string SystemPromptStandardAi = @"You are an AI assistant that helps people find information.
+For math use LaTeX syntax. Use double dollar signs for display math, e.g. $$E=mc^2$$, and single dollar signs for inline math, e.g. $x^2 + y^2 = z^2$.";
+
+    public const string SystemPromptGenerateTitle = @"You are a helpful AI assistant that generates a concise and descriptive title for a chat based on the provided question. Return the title as a JSON object with a single field 'Title'";
+
+    #endregion
+
+
+    #region Prompts for Question Answering
+    private const string GenerateQuestionAnsweringPromptTemplate =
+@"The question:
 {{query}}
 
 Relevant Information:
@@ -17,14 +38,7 @@ Relevant Information:
 Text: {{text}}
 Link: {{link}}
 --- 
-{{/each}}
-
-Instructions:
-- Base your answer on the provided information.
-- Be concise, accurate, and directly address the question.
-- If the information does not answer the question, state that explicitly and do not include any citations.
-- For each fact or claim, include a citation in the format: [Source Number](Source Link). Source Number corresponds to the link, two sources with the same link should have the same number.
-";
+{{/each}}";
 
     /// <summary>
     /// Gets a compiled Handlebars template for generating question-answering prompts.

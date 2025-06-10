@@ -23,6 +23,8 @@ using System.Buffers.Text;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
 using System.Linq.Expressions;
+using static Qdrant.Client.Grpc.Conditions;
+using Qdrant.Client.Grpc;
 
 
 
@@ -39,15 +41,18 @@ namespace KnowledgeBank.Controllers
     /// <param name="blobService">The Azure Blob Service for file storage</param>
     /// <param name="taskQueue">The background task queue for processing tasks asynchronously</param>
     /// <param name="ragSystem">The RAG system for handling document processing</param>
+    /// <param name="dbContext">The database context for database interactions</param>
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem) : ControllerBase
+    public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem, DatabaseContext dbContext) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<ResourcesController>();
         private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
         private readonly RAGSystem _ragSystem = ragSystem;
+        private readonly DatabaseContext database = dbContext;
+
 
         #region New
         /// <summary>
@@ -806,7 +811,7 @@ namespace KnowledgeBank.Controllers
             {
                 if (relation == "resource-related-resources")
                 {
-                    return (await GetRelatedResources(id));
+                    return await GetRelatedResources(id);
                 }
 
                 object? result = relation switch
@@ -1312,7 +1317,7 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Execute the search
-                GridSearchTemplate searchResult = await resourceManager.SearchResourceGridAsync(request, _ragSystem);
+                GridSearchTemplate searchResult = await resourceManager.SearchResourceGridAsync(request);
 
                 // Return result
                 return Ok(new ApiResponse(true, $"Found {searchResult.TotalCount} total items", searchResult));
@@ -1436,64 +1441,47 @@ namespace KnowledgeBank.Controllers
 
         private async Task<IActionResult> GetRelatedResources(string id)
         {
-            double standardizedTagWeight = 3.0;
-            double approvedTagWeight = 2.0;
-            double regularTagWeight = 1.0;
-
             try
             {
                 // Check if the resource exists
                 if (!await resourceManager.ResourceExistsAsync(id))
                     return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
 
-                ResourceTagRelation[] resourceTags = await resourceManager.GetAllResourceTagRelationsAsync(
-                    predicate: r => r.ResourceId.ToString() == id,
-                    includeProperties: new[] { "Tag" });
+                // Get vector points for the current resource
+                IReadOnlyList<ScoredPoint> pointsIds = await _ragSystem.QdrantClient.QueryAsync(
+                    RAGSystem.COLLECTION_NAME,
+                    filter: MatchKeyword("resourceId", id)
+                );
 
+                if (pointsIds.Count == 0)
+                    return Ok(new ApiResponse(true, "No vector points found for resource", Array.Empty<Resource>()));
 
-                if (resourceTags.Length == 0)
-                    return Ok(new ApiResponse(true, "No tags found for resource", Array.Empty<Resource>()));
+                // Find related resources using vector similarity
+                IReadOnlyList<PointGroup> results = await _ragSystem.QdrantClient.RecommendGroupsAsync(
+                    RAGSystem.COLLECTION_NAME,
+                    groupBy: "resourceId",
+                    positive: pointsIds.Select(p => p.Id).ToArray(),
+                    filter: !MatchKeyword("resourceId", id), // Exclude the current resource
+                    limit: 5
+                );
 
-                // Retrieve resources with at least one common tag
-                var documentTagIds = resourceTags.Select(r => r.TagId).ToHashSet();
+                // Retrieve the actual resource objects
+                if (results.Count == 0)
+                    return Ok(new ApiResponse(true, "No related resources found", Array.Empty<Resource>()));
 
-                ResourceTagRelation[] resourceTagRelations = await resourceManager.GetAllResourceTagRelationsAsync(
-                    predicate: r => documentTagIds.Contains(r.TagId) && r.ResourceId.ToString() != id,
-                    includeProperties: new[] { "Tag", "Resource" });
+                //ResourceIds ids
+                var resourceIds = results.Select(result => Guid.Parse(result.Id.StringValue)).ToList();
 
-                // Group by resource, and calculate similarity score
-                Resource[] relatedResources = resourceTagRelations
-                    .GroupBy(r => r.ResourceId)
-                    .Select(group =>
-                    {
-                        // Get resource
-                        var resource = group.First().Resource!;
+                // Retrieve resources based on the found IDs
+                var query = await resourceManager.GetAllResourcesAsync(
+                    predicate: r => resourceIds.Contains(r.Id)
+                );
 
-                        double similarityScore = 0;
-                        foreach (var r in group)
-                        {
-                            // Check to avoid possible errors
-                            if (r.Tag == null) continue;
-
-                            // Add appropriate weight
-                            if (r.Tag.IsStandardized) similarityScore += standardizedTagWeight;
-                            else if (r.Tag.IsApproved) similarityScore += approvedTagWeight;
-                            else similarityScore += regularTagWeight;
-                        }
-
-                        return new { Resource = resource, SimilarityScore = similarityScore };
-                    })
-                    .OrderByDescending(item => item.SimilarityScore)
-                    .Select(item => item.Resource)
-                    .Take(18)
-                    .ToArray();
-
-
-                if (relatedResources.Count() == 0)
+                // Check if any resources were found
+                if (query.Count() == 0)
                     return NotFound(new ApiResponse(true, "No related resources found", Array.Empty<Resource>()));
 
-                return Ok(new ApiResponse(true, "Related resources found", relatedResources));
-
+                return Ok(new ApiResponse(true, "Related resources found", query.ToArray()));
             }
 
             catch (Exception ex)
@@ -1501,7 +1489,6 @@ namespace KnowledgeBank.Controllers
                 logger.Error(ex, "Error retrieving relation 'resource-related-resources' for resource with ID '{Id}'", id);
                 return StatusCode(500, new ApiResponse(false, "Internal Server Error: Related Resources", ex.Message));
             }
-
         }
 
 

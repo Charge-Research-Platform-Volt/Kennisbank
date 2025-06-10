@@ -266,46 +266,51 @@ public class RAGSystem
         return responses;
     }
 
-    public async Task UpdateMetadataPointAsync(string id, string newChankText)
+    public async Task<bool> UpdateMetadataPointAsync(string id, string newChankText)
     {
-        if (string.IsNullOrWhiteSpace(id))
+        try
         {
-            _logger.Warning("Resource ID is null or empty. Cannot update metadata.");
-            throw new ArgumentException("Resource ID cannot be null or empty.", nameof(id));
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                _logger.Warning("Resource ID is null or empty. Cannot update metadata.");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(newChankText))
+            {
+                _logger.Warning("New chunk text is null or empty. Cannot update metadata.");
+                return false;
+            }
+
+            // Get the existing point ID
+            IReadOnlyList<ScoredPoint> restult = await QdrantClient.QueryAsync(
+                 collectionName: COLLECTION_NAME,
+                 filter: MatchKeyword("resourceId", id) & MatchKeyword("chunkType", ChunkType.MetaData.ToString()),
+                 limit: 1
+            );
+
+            float[] newEmbeding = await GenerateEmbedding(newChankText);
+
+            PointVectors pointVectors = new PointVectors
+            {
+                Id = restult[0].Id,
+                Vectors = newEmbeding,
+            };
+
+            await QdrantClient.UpdateVectorsAsync(
+                collectionName: COLLECTION_NAME,
+                points: new List<PointVectors> { pointVectors }
+            );
+
+            await QdrantClient.OverwritePayloadAsync(
+                collectionName: COLLECTION_NAME,
+                payload: new Dictionary<string, Value> { { "chunkText", newChankText } },
+                filter: MatchKeyword("resourceId", id) & MatchKeyword("chunkType", ChunkType.MetaData.ToString())
+            );
+
+            return true;
         }
-
-        if (string.IsNullOrWhiteSpace(newChankText))
-        {
-            _logger.Warning("New chunk text is null or empty. Cannot update metadata.");
-            throw new ArgumentException("New chunk text cannot be null or empty.", nameof(newChankText));
-        }
-
-        // Get the existing point ID
-        IReadOnlyList<ScoredPoint> restult = await QdrantClient.QueryAsync(
-             collectionName: COLLECTION_NAME,
-             filter: MatchKeyword("resourceId", id) & MatchKeyword("chunkType", ChunkType.MetaData.ToString()),
-             limit: 1
-        );
-
-        float[] newEmbeding = await GenerateEmbedding(newChankText);
-
-        PointVectors pointVectors = new PointVectors
-        {
-            Id = restult[0].Id,
-            Vectors = newEmbeding,
-        };
-
-        await QdrantClient.UpdateVectorsAsync(
-            collectionName: COLLECTION_NAME,
-            points: new List<PointVectors> { pointVectors }
-        );
-
-        await QdrantClient.OverwritePayloadAsync(
-            collectionName: COLLECTION_NAME,
-            payload: new Dictionary<string, Value> { { "chunkText", newChankText } },
-            filter: MatchKeyword("resourceId", id) & MatchKeyword("chunkType", ChunkType.MetaData.ToString())
-        );
-
+        catch { return false; }
     }
 
     public async Task<bool> DeleteAllPointsWithIdAsync(string id)
@@ -332,6 +337,4 @@ public class RAGSystem
             return false;
         }
     }
-
-
 }

@@ -63,9 +63,8 @@ public partial class ResourceManager
     /// Searches all resources, persons and organisations using the given parameters
     /// </summary>
     /// <param name="request">The request DTO</param>
-    /// <param name="ragSystem">The RAG system to use for generating embeddings</param>
     /// <returns>The result of the search</returns>
-    public async Task<GridSearchTemplate> SearchResourceGridAsync(GridRequest request, RAGSystem ragSystem)
+    public async Task<GridSearchTemplate> SearchResourceGridAsync(GridRequest request)
     {
         // Parse date filters
         DateTime? minDate = null;
@@ -96,7 +95,7 @@ public partial class ResourceManager
 
         // If there is a search query, execute search
         if (!string.IsNullOrEmpty(request.SearchQuery))
-            return await ExecuteSearchQuery(request.PageIndex, request.PageSize, request.SearchQuery, request.SortBy, request.SortDirection, filters, ragSystem);
+            return await ExecuteSearchQuery(request.PageIndex, request.PageSize, request.SearchQuery, request.SortBy, request.SortDirection, filters);
 
         // If not, execute regular query
         else
@@ -116,12 +115,12 @@ public partial class ResourceManager
     /// <param name="filters">A dictionary of filters to apply</param>
     /// <param name="ragSystem">The RAG system to use for generating embeddings</param>
     /// <returns>The search result</returns>
-    private async Task<GridSearchTemplate> ExecuteSearchQuery(int pageIndex, int pageSize, string search, string? sortBy, string? sortDirection, Dictionary<string, object?> filters, RAGSystem ragSystem)
+    private async Task<GridSearchTemplate> ExecuteSearchQuery(int pageIndex, int pageSize, string search, string? sortBy, string? sortDirection, Dictionary<string, object?> filters)
     {
         try
         {
             _logger.Information("Executing search using Qdrant");
-            return await ExecuteSearchQdrant(ragSystem, pageIndex, pageSize, search, filters);
+            return await ExecuteSearchQdrant(pageIndex, pageSize, search, filters);
         }
         catch (Exception)
         {
@@ -163,7 +162,7 @@ public partial class ResourceManager
     /// If embedding generation fails, it falls back to text-based matching using the search term.
     /// Results are grouped by resourceId.
     /// </remarks>
-    private async Task<GridSearchResultWithChunks> ExecuteSearchQdrant(RAGSystem ragSystem, int pageIndex, int pageSize, string search, Dictionary<string, object?> filters)
+    private async Task<GridSearchResultWithChunks> ExecuteSearchQdrant(int pageIndex, int pageSize, string search, Dictionary<string, object?> filters)
     {
         IReadOnlyList<PointGroup> searchresults;
 
@@ -172,10 +171,10 @@ public partial class ResourceManager
             _logger.Information("Executing semantic search using Qdrant");
 
             // Generate embedding for the search query
-            float[] embeddingData = await ragSystem.GenerateEmbedding(search);
+            float[] embeddingData = await _ragSystem.GenerateEmbedding(search);
 
             // Perform vector search in Qdrant
-            searchresults = await ragSystem.QdrantClient.QueryGroupsAsync(
+            searchresults = await _ragSystem.QdrantClient.QueryGroupsAsync(
                 RAGSystem.COLLECTION_NAME,
                 groupBy: "resourceId",
                 query: embeddingData,
@@ -188,7 +187,7 @@ public partial class ResourceManager
             _logger.Warning("Qdrant embedding generation failed, falling back to Qdrant text-based search");
 
             // If embedding generation fails, fallback to text-based search
-            searchresults = await ragSystem.QdrantClient.QueryGroupsAsync(
+            searchresults = await _ragSystem.QdrantClient.QueryGroupsAsync(
                 RAGSystem.COLLECTION_NAME,
                 groupBy: "resourceId",
                 filter: MatchText("chunkText", search),
@@ -308,7 +307,7 @@ public partial class ResourceManager
     /// <param name="query">The base query</param>
     /// <param name="filters">A dictionary of filters to apply</param>
     /// <returns>A new query with the filters applied</returns>
-    private IQueryable<ResourceGridItem> ApplyFilters(IQueryable<ResourceGridItem> query, Dictionary<string, object?> filters)
+    public IQueryable<ResourceGridItem> ApplyFilters(IQueryable<ResourceGridItem> query, Dictionary<string, object?> filters)
     {
         // Apply type filter
         if (filters.TryGetValue("type", out var typeFilter) && typeFilter != null && ((string[])typeFilter).Length > 0)

@@ -1627,9 +1627,11 @@ namespace KnowledgeBank.Data
         private const bool chatDefaultOrderDescending = true;
 
         // GetChatAsync
-        public async Task<Chats?> GetChatAsync(Guid id)
-        { return await GetAsync(database.Chats, c => c.Id == id); }
-
+        public async Task<Chats?> GetChatAsync(Expression<Func<Chats, bool>> predicate, Expression<Func<Chats, dynamic>>? orderBy = null, bool orderDescending = chatDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= chatDefaultOrderBy;
+            return await GetAsync(database.Chats, predicate, orderBy, orderDescending, includeProperties);
+        }
 
         public async Task<Chats[]> GetAllChatsAsync(Expression<Func<Chats, dynamic>>? orderBy = null, bool orderDescending = chatDefaultOrderDescending, Expression<Func<Chats, bool>>? predicate = null, params string[] includeProperties)
         {
@@ -1643,9 +1645,9 @@ namespace KnowledgeBank.Data
             var chats = await GetAllChatsAsync(chatDefaultOrderBy, chatDefaultOrderDescending, predicate, includeProperties);
 
             return chats
-                .GroupBy(c => c.CreationDate.Date)
-                .OrderByDescending(g => g.Key)
-                .ToDictionary(g => g.Key, g => g.OrderByDescending(c => c.CreationDate).ToArray());
+            .GroupBy(c => c.CreationDate.Date)
+            .OrderByDescending(g => g.Key)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(c => c.CreationDate).ToArray());
         }
 
         // GetMessagesByChatIdAsync

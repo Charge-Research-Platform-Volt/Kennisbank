@@ -88,6 +88,42 @@ public class Chat : Hub
             yield break;
         }
 
+        // Load chat messages from the database
+        List<ChatMessage> chatHistory = new List<ChatMessage>();
+        try
+        {
+            var chatMessages = await _resourceManager.GetChatAsync(c => c.Id == Guid.Parse(chatId), includeProperties: "Messages");
+            if (chatMessages == null || chatMessages.UserId != Guid.Parse(Context.UserIdentifier!))
+            {
+                _logger.Warning("Chat with ID {ChatId} not found or user not authorized", chatId);
+                yield break;
+            }
+
+            foreach (var messageItem in chatMessages.Messages)
+            {
+                if (messageItem.MessageRole == MessageRole.User.ToString())
+                {
+                    chatHistory.Add(new UserChatMessage(messageItem.Content));
+                }
+                else if (messageItem.MessageRole == MessageRole.Assistant.ToString())
+                {
+                    chatHistory.Add(new AssistantChatMessage(messageItem.Content));
+                }
+                else
+                {
+                    _logger.Warning("Unknown message role {MessageRole} in chat {ChatId}", messageItem.MessageRole, chatId);
+                }
+            }
+
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to load messages for chat {ChatId}", chatId);
+            yield break;
+        }
+
+
+
         // Save the user message to the database
         try
         {
@@ -113,7 +149,7 @@ public class Chat : Hub
         if (contentBased)
         {
             // Use content-based AI response
-            await foreach (var content in StreamContentBasedAiResponse(message, cancellationToken))
+            await foreach (var content in StreamContentBasedAiResponse(message, chatHistory, cancellationToken))
             {
                 response.Append(content);
                 yield return content;
@@ -122,7 +158,7 @@ public class Chat : Hub
         else
         {
             // Use standard AI response
-            await foreach (var content in StreamStandardAiResponse(message, cancellationToken))
+            await foreach (var content in StreamStandardAiResponse(message, chatHistory, cancellationToken))
             {
                 response.Append(content);
                 yield return content;
@@ -138,7 +174,7 @@ public class Chat : Hub
                 {
                     SenderId = Guid.Parse(Context.UserIdentifier!),
                     ChatId = Guid.Parse(chatId),
-                    MessageRole = MessageRole.System.ToString(),
+                    MessageRole = MessageRole.Assistant.ToString(),
                     Content = response.ToString()
                 };
                 await _resourceManager.CreateMessageAsync(aiMessage);
@@ -160,6 +196,7 @@ public class Chat : Hub
     /// </summary>
     /// <param name="query">The search query to process.</param>
     /// <param name="cancellationToken">A cancellation token to cancel the streaming operation.</param>
+    /// <param name="chatHistory">The chat history to include in the AI response.</param>
     /// <returns>An asynchronous enumerable of string chunks representing the streaming response.</returns>
     /// <remarks>
     /// This method performs the following operations:
@@ -169,6 +206,7 @@ public class Chat : Hub
     /// </remarks>
     private async IAsyncEnumerable<string> StreamContentBasedAiResponse(
         string query,
+        List<ChatMessage> chatHistory,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         _logger.Information("Content-based Ai initiated with query: {Query}", query);
@@ -197,12 +235,12 @@ public class Chat : Hub
 
         var result = Prompts.QuestionAnsweringTemplate(data);
 
-
-        List<ChatMessage> messages = new List<ChatMessage>
-        {
-            new SystemChatMessage(@"An AI assistant that answers questions based on the provided information."),
-            new UserChatMessage(result)
-        };
+        List<ChatMessage> messages =
+        [
+            new SystemChatMessage(Prompts.SystemContentBasedAi),
+            .. chatHistory,
+            new UserChatMessage(result),
+        ];
 
         // Stream the response
         AsyncCollectionResult<StreamingChatCompletionUpdate> responseStreaming;
@@ -233,6 +271,7 @@ public class Chat : Hub
     /// </summary>
     /// <param name="message">The user's input message to process.</param>
     /// <param name="cancellationToken">A token to cancel the streaming operation.</param>
+    /// <param name="chatHistory">The chat history to include in the AI response.</param>
     /// <returns>
     /// An asynchronous stream of string fragments representing the AI's response,
     /// with each fragment emitted as it becomes available.
@@ -249,25 +288,20 @@ public class Chat : Hub
     /// </remarks>
     private async IAsyncEnumerable<string> StreamStandardAiResponse(
         string message,
+        List<ChatMessage> chatHistory,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         _logger.Information("Standard Ai initiated with message: {Message}", message);
 
 
 
-        List<ChatMessage> messages = new List<ChatMessage>
-        {
-            new SystemChatMessage(@"You are an AI assistant that helps people find information.
-For math use LaTeX syntax. Use double dollar signs for display math, e.g. $$E=mc^2$$, and single dollar signs for inline math, e.g. $x^2 + y^2 = z^2$.
-            "),
+        List<ChatMessage> messages =
+        [
+            new SystemChatMessage(Prompts.SystemPromptStandardAi),
+            .. chatHistory,
             new UserChatMessage(message)
-        };
+        ];
 
-        // Todo: reduce the chat history if it exceeds a certain threshold
-        if (messages.Count > 20)
-        {
-            messages = messages.Skip(messages.Count - 20).ToList();
-        }
 
 
         // Stream the response

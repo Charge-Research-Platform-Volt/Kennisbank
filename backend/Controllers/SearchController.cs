@@ -168,7 +168,6 @@ public class SearchController : ControllerBase
                     RAGSystem.COLLECTION_NAME,
                     groupBy: "resourceId",
                     query: embeddingData,
-                    // filter: MatchText("chunkText", query ),
                     limit: 100,
                     groupSize: 4
                 );

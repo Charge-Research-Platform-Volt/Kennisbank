@@ -254,13 +254,13 @@ namespace KnowledgeBank.Data
 
 
         // --- Chat
-        public async Task<bool> DeleteChatAsync(Guid id)
+        public async Task<bool> DeleteChatAsync(Guid id, Guid userId)
         {
             bool startedTransaction = await BeginTransaction();
 
-            // Delete the chat itself
+            // Delete the chat itself (with user ownership verification)
             // All messages in this chat are deleted automatically due to the cascade delete rule
-            int count = await DeleteAsync(database.Chats, chat => chat.Id == id);
+            int count = await DeleteAsync(database.Chats, chat => chat.Id == id && chat.UserId == userId);
 
             if (startedTransaction) await Commit();
 
