@@ -5,6 +5,7 @@ import type { Tag } from "@/types/tag.type";
 import EditIcon from "@/icons/edit-icon";
 import { ApproveTagButton, DeleteTagButton, ConvertTagButton } from "./tag-list-buttons";
 import { useUserRole } from "@/context/user-role-context";
+import { TagMergeButton } from "./merge-tags-popup";
 interface TagActionButtonsProps {
   tag: Tag;
   onEditClick: (e: React.MouseEvent) => void;
@@ -23,6 +24,8 @@ interface TagActionButtonsProps {
  */
 export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
   const { userRole } = useUserRole();
+
+  console.log(userRole);
 
   // Common Edit Button that appears for all tag types
   const EditButton = () =>
@@ -46,6 +49,23 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
         <UsageCount />
         <EditButton />
         <DeleteTagButton tag={tag} />
+      </div>
+    );
+  }
+
+  // If unapproved user tag
+  if (!tag.isStandardized && !tag.isApproved) {
+    return (
+      <div>
+        {userRole == "admin" && (
+          <div className="flex">
+            <UsageCount />
+            <TagMergeButton tag={tag} />
+            <ApproveTagButton tag={tag} />
+            <EditButton />
+            <DeleteTagButton tag={tag} />
+          </div>
+        )}
       </div>
     );
   }
@@ -89,6 +109,7 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
         {userRole == "admin" && (
           <div className="flex">
             <UsageCount />
+            <TagMergeButton tag={tag} />
             <ConvertTagButton tag={tag} />
             <EditButton />
             <DeleteTagButton tag={tag} />
@@ -105,6 +126,7 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
         {userRole == "admin" && (
           <div className="flex">
             <UsageCount />
+            <TagMergeButton tag={tag} />
             <EditButton />
             <DeleteTagButton tag={tag} />
           </div>

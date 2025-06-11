@@ -5,7 +5,7 @@ import { Tag, TagArraySchema } from "@/types/tag.type";
 import { FInput, InputBlock, InputHeader } from "@/components/ui/Popup";
 import { Button } from "@/components/ui/button";
 import AdminTagIcon from "@/icons/tag-icons/admin-tag";
-import ApprovedTagIcon from "@/icons/tag-icons/aproved-tag";
+import ApprovedTagIcon from "@/icons/tag-icons/approved-tag";
 import { AddUserTag } from "@/actions/tagActions";
 import { toast } from "sonner";
 import { fetchTagSearch } from "@/actions/tagActions";

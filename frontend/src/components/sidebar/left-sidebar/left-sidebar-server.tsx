@@ -8,6 +8,8 @@ import Home from "@/icons/home";
 import Archive from "@/icons/archive";
 import Tags from "@/icons/tags-icon";
 import { MessageCircleMore, Users } from "lucide-react";
+import Projects from "@/icons/project-icons/icon-1";
+import { Users } from "lucide-react";
 
 /**
  * @summary This function does the needed fetches from a server component and gives them to the client side component for use.
@@ -44,6 +46,7 @@ export default async function LeftSidebarServer() {
     { id: 2, name: "Archive", path: "/archive", icon: <Archive className="h-4 w-4" /> },
     { id: 3, name: "Tags", path: "/tags", icon: <Tags className="h-4 w-4" /> },
     { id: 4, name: "ChatBot", path: "/chat", icon: <MessageCircleMore className="h-4 w-4" /> },
+    { id: 5, name: "Projects", path: "/projects", icon: <Projects className="h-4 w-4" /> },
   ];
 
   // Projects

@@ -71,6 +71,7 @@ namespace KnowledgeBank
 
             // Resource management
             builder.Services.AddScoped<ResourceManager>();
+            builder.Services.AddScoped<ProjectManager>();
 
 
             // Retrieval Augmented Generation system

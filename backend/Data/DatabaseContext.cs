@@ -10,6 +10,7 @@ namespace KnowledgeBank.Data
         public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options) { }
 
         public DbSet<Resource> Resources { get; set; }
+        public DbSet<Project> Projects { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<ResourceTagRelation> ResourceTagRelations { get; set; }
         public DbSet<User> AppUsers { get; set; } // Renamed to avoid conflict with IdentityDbContext.Users
@@ -37,6 +38,10 @@ namespace KnowledgeBank.Data
         public DbSet<ResourceRegionRelation> ResourceRegionRelations { get; set; }
         public DbSet<ResourceSourceRelation> ResourceSourceRelations { get; set; }
         public DbSet<ResourceRelatedSourceRelation> ResourceRelatedSourceRelations { get; set; }
+        public DbSet<ProjectFolderRelation> ProjectFolderRelations { get; set; }
+        public DbSet<ProjectTagRelation> ProjectTagRelations { get; set; }
+        public DbSet<ProjectResourceRelation> ProjectResourceRelations { get; set; }
+        public DbSet<ProjectCreatorRelation> ProjectCreatorRelations { get; set; }
 
 
 
@@ -147,6 +152,28 @@ namespace KnowledgeBank.Data
             modelBuilder.Entity<ResourceRegionRelation>()
                 .HasIndex(rr => rr.RegionId)
                 .HasDatabaseName("idx_resource_region_region_id");
+            // Projects
+            modelBuilder.Entity<ProjectResourceRelation>()
+                .HasKey(prr => new { prr.ProjectId, prr.ResourceId });
+
+            modelBuilder.Entity<ProjectCreatorRelation>()
+                .HasKey(pcr => new { pcr.ProjectId, pcr.CreatorId });
+
+            modelBuilder.Entity<ProjectTagRelation>()
+                .HasKey(ptr => new { ptr.ProjectId, ptr.TagId });
+
+            modelBuilder.Entity<ProjectFolderRelation>()
+                .HasKey(pfr => new { pfr.ParentId, pfr.ChildId });
+
+            modelBuilder.Entity<ProjectFolderRelation>()
+                .HasOne(pfr => pfr.ParentFolder)
+                .WithMany(u => u.ChildFolders)
+                .HasForeignKey(pfr => pfr.ParentId);
+
+            modelBuilder.Entity<ProjectFolderRelation>()
+                .HasOne(pfr => pfr.ChildFolder)
+                .WithMany(f => f.ParentFolders)
+                .HasForeignKey(pfr => pfr.ChildId);
 
             base.OnModelCreating(modelBuilder);
         }
@@ -171,6 +198,21 @@ namespace KnowledgeBank.Data
 
             // If there are any updated files, update their search vectors
             if (updatedResources.Count != 0) await UpdateResourceVectorAsync(updatedResources);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Same as SaveResourceChangeAsync, just for projects so it doesn't have to check for updating resource vectors.
+        /// 
+        /// Author: Justin Liem
+        /// </summary>
+        /// <param name="cancellationToken">A token used to observe operation cancellation.</param>
+        /// <returns>The number of state entries written to the database.</returns>
+        public async Task<int> SaveProjectChangesAsync(CancellationToken cancellationToken = default)
+        {
+            // Save the changes to the database
+            int result = await base.SaveChangesAsync(cancellationToken);
 
             return result;
         }
