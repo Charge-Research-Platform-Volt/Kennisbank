@@ -197,7 +197,7 @@ export const ChatBotProvider = ({ children }: { children: React.ReactNode }) => 
       try {
         // Create a new SignalR connection
         // For debugging purposes, you can remove the configureLogging(signalR.LogLevel.None) or set it to signalR.LogLevel.Debug
-        const newConnection = new signalR.HubConnectionBuilder().withUrl(API_ENDPOINT).withAutomaticReconnect().build();
+        const newConnection = new signalR.HubConnectionBuilder().withUrl(API_ENDPOINT).withAutomaticReconnect().configureLogging(signalR.LogLevel.None).build();
         setConnection(newConnection);
       } catch (error) {
         console.error("Error creating SignalR connection:", error);

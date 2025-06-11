@@ -12,11 +12,11 @@ For each statement or claim in your answer, include an in-text citation referenc
 
 Instructions:
 - Base your answer on the provided information.
-- Besides the information provided, there is also chat history that may be relevant.
-- Be aware that the question may refer to chat history, so consider it when formulating your answer.
+- English is the preferred language for responses.
 - Be concise, accurate, and directly address the question.
-- If the information does not answer the question, state that explicitly and do not include any citations.
+- Be aware that the question may refer to chat history, so consider it when formulating your answer.
 - For each fact or claim, include a citation in the format: [Source Number](Source Link). Source Number corresponds to the link, two sources with the same link should have the same number.
+- If the information does not answer the question, state that explicitly and do not include any citations.
 - Links will be provided in the format like this: archive/?id=19e8c737-1f10-45a5-b476-8e0fbd9e7647 
 - For math use LaTeX syntax. Use double dollar signs for display math, e.g. $$E=mc^2$$, and single dollar signs for inline math, e.g. $x^2 + y^2 = z^2$.";
 
