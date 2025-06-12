@@ -14,7 +14,7 @@ import GetFileIcon from "./getFileIcon";
 import { format, parseISO } from "date-fns";
 import OpenFileButton from "./open-file-button";
 import { useSidebar } from "@/context/sidebar-provider";
-import { handleOpenFile } from "@/actions/openFileActions";
+import { openFile } from "@/actions/openFileActions";
 import { TrashResource, UntrashResource } from "@/actions/trashResourceActions";
 import { toast } from "sonner";
 import { useUserRole } from "@/context/user-role-context";
@@ -31,7 +31,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
  * @param data - Data to display in the table, this is a page of the archive, possibly filtered through a search query or other means
  * @returns A table representation of the data
  */
-export default function ListResources({ data, initialLoadingComplete }: { data: ResourcePageWithTagsResponse, initialLoadingComplete: boolean }) {
+export default function ListResources({ data, initialLoadingComplete }: { data: ResourcePageWithTagsResponse; initialLoadingComplete: boolean }) {
   const { userRole } = useUserRole();
   const [resources, setResources] = useState<ResourceResponse[]>(data.resources);
   const [resourceListUpdating, setResourceListUpdating] = useState<boolean>(false);
@@ -42,15 +42,14 @@ export default function ListResources({ data, initialLoadingComplete }: { data: 
 
     const result = await TrashResource(selectedRowData ? selectedRowData.id : "");
 
-    if(result.success){
+    if (result.success) {
       toast.success(result.message);
       setResources((prevResources) => prevResources.filter((resource) => resource.id !== selectedRowData?.id));
-    }
-    else{
+    } else {
       toast.error(result.message);
     }
     setResourceListUpdating(false);
-  }
+  };
 
   // Handle unarchiving a file
   const handleUnarchiveResource = async (id: string) => {
@@ -58,15 +57,14 @@ export default function ListResources({ data, initialLoadingComplete }: { data: 
 
     const result = await UntrashResource(id);
 
-    if(result.success){
+    if (result.success) {
       toast.success(result.message);
       setResources((prevResources) => prevResources.filter((resource) => resource.id !== id));
-    }
-    else{
+    } else {
       toast.error(result.message);
     }
     setResourceListUpdating(false);
-  }
+  };
 
   // Handle restoring an archived file
   const HandleRestore = async () => {
@@ -74,15 +72,14 @@ export default function ListResources({ data, initialLoadingComplete }: { data: 
 
     const result = await UntrashResource(selectedRowData ? selectedRowData.id : "");
 
-    if(result.success){
+    if (result.success) {
       toast.success(result.message);
       setResources((prevResources) => prevResources.filter((resource) => resource.id !== selectedRowData?.id));
-    }
-    else{
+    } else {
       toast.error(result.message);
     }
     setResourceListUpdating(false);
-  }
+  };
 
   // Handle permanently deleting an archived file
   const HandlePermanentDelete = async () => {
@@ -90,15 +87,14 @@ export default function ListResources({ data, initialLoadingComplete }: { data: 
 
     const result = await DeleteResource(selectedRowData ? selectedRowData.id : "");
 
-    if(result.success){
+    if (result.success) {
       toast.success(result.message);
       setResources((prevResources) => prevResources.filter((resource) => resource.id !== selectedRowData?.id));
-    }
-    else{
+    } else {
       toast.error(result.message);
     }
     setResourceListUpdating(false);
-  }
+  };
 
   // Column definitions
   const columnDefs = useState<ColDef[]>([
@@ -131,9 +127,9 @@ export default function ListResources({ data, initialLoadingComplete }: { data: 
   useEffect(() => {
     const api = gridApiRef.current;
     if (!api) return;
-    
+
     // refresh the overlay text when the data changes
-    if(data.resources.length === 0) {
+    if (data.resources.length === 0) {
       api.hideOverlay();
       api.showNoRowsOverlay();
     }
@@ -176,41 +172,54 @@ export default function ListResources({ data, initialLoadingComplete }: { data: 
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-          contextMenuRef.current &&
-          !contextMenuRef.current.contains(event.target as Node)
-        ) {
-          setContextMenuPosition(null);
-        }
-      };
-
-      if (contextMenuPosition) {
-        document.addEventListener("mousedown", handleClickOutside);
+      if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
+        setContextMenuPosition(null);
       }
+    };
 
-      return () => {
-        document.removeEventListener("mousedown", handleClickOutside);
-      };
-    }, [contextMenuPosition]);
+    if (contextMenuPosition) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [contextMenuPosition]);
 
   return (
     <>
       {contextMenuPosition && (
         <div
           ref={contextMenuRef}
-          className="absolute z-50 bg-white border shadow-md rounded-md"
+          className="absolute z-50 rounded-md border bg-white shadow-md"
           style={{ top: contextMenuPosition.mouseY, left: contextMenuPosition.mouseX }}
           onClick={() => setContextMenuPosition(null)}
         >
           <ul>
-            {!selectedRowData?.archived && (<li onClick={() => selectedRowData ? handleOpenFile(selectedRowData) : () => {}} className="hover:bg-gray-100 cursor-pointer px-4">{selectedRowData?.fileType == "pdf" || selectedRowData?.fileType == "website" ? "Open" : "Dowload"}</li>)}
-            {userRole == "admin" && !selectedRowData?.archived ? (<li onClick={HandleArchive} className="hover:bg-gray-100 cursor-pointer px-4">Move to trash</li>) : null}
-            {userRole == "admin" && selectedRowData?.archived ? (<li onClick={HandleRestore} className="hover:bg-gray-100 cursor-pointer px-4">Restore file</li>) : null}
-            {userRole == "admin" && selectedRowData?.archived ? (<li onClick={HandlePermanentDelete} className="hover:bg-gray-100 cursor-pointer px-4">Delete permanently</li>) : null}
+            {!selectedRowData?.archived && (
+              <li onClick={() => (selectedRowData ? openFile(selectedRowData.id) : () => {})} className="cursor-pointer px-4 hover:bg-gray-100">
+                {selectedRowData?.fileType == "pdf" || selectedRowData?.fileType == "website" ? "Open" : "Dowload"}
+              </li>
+            )}
+            {userRole == "admin" && !selectedRowData?.archived ? (
+              <li onClick={HandleArchive} className="cursor-pointer px-4 hover:bg-gray-100">
+                Move to trash
+              </li>
+            ) : null}
+            {userRole == "admin" && selectedRowData?.archived ? (
+              <li onClick={HandleRestore} className="cursor-pointer px-4 hover:bg-gray-100">
+                Restore file
+              </li>
+            ) : null}
+            {userRole == "admin" && selectedRowData?.archived ? (
+              <li onClick={HandlePermanentDelete} className="cursor-pointer px-4 hover:bg-gray-100">
+                Delete permanently
+              </li>
+            ) : null}
           </ul>
         </div>
       )}
-      <div className={`h-[calc(100vh-4rem)] w-full ${resourceListUpdating ? "disabled-grid" : ""}`} >
+      <div className={`h-[calc(100vh-4rem)] w-full ${resourceListUpdating ? "disabled-grid" : ""}`}>
         <AgGridReact
           suppressMovableColumns={true}
           suppressCellFocus={true}
@@ -271,7 +280,7 @@ function createDownloadRenderer(handleUnarchiveResource: (id: string) => void) {
       <div className="download-button flex items-center justify-center">
         {params.data.archived ? (
           <Button
-            className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
+            className="text-muted-foreground bg-transparent shadow-none hover:bg-gray-200"
             variant="default"
             type="button"
             title="Restore"
@@ -279,10 +288,12 @@ function createDownloadRenderer(handleUnarchiveResource: (id: string) => void) {
           >
             <ArchiveRestore />
           </Button>
-        ) : (<OpenFileButton file={params.data} asIcon={true} />)}
+        ) : (
+          <OpenFileButton id={params.data.id} fileType={params.data.fileType} asIcon={true} />
+        )}
       </div>
     );
-  }
+  };
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
