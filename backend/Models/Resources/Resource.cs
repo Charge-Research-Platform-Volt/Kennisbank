@@ -106,7 +106,7 @@ public class ResourceCreateDto // Data Transfer Object (DTO)
     public required string LanguageCode { get; set; }
     public string? PublicationCode { get; set; }
     public required DateTime PublicationDate { get; set; }
-    public required DateTime CreationDate { get; set; }
+    public DateTime? CreationDate { get; set; }
     public string? License { get; set; }
     public string[] Sources { get; set; } = [];
     public string? Note { get; set; }
