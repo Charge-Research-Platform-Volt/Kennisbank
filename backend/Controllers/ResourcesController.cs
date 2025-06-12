@@ -1274,6 +1274,9 @@ namespace KnowledgeBank.Controllers
         #endregion
 
         #region Archive Trash Grid
+        /// <summary>
+        /// Retrieves the trashed resource grid items which are displayed in the trash section of the archive page
+        /// </summary>
         [HttpGet("trash-grid")]
         [SwaggerOperation(Summary = "Retrieves the resource trash items which are displayed on the archive page")]
         [SwaggerResponse(200, "The list of ResourceTrashItems", typeof(ApiResponse))]
@@ -1292,6 +1295,39 @@ namespace KnowledgeBank.Controllers
             catch (Exception e) 
             {
                 logger.Error(e, "Failed to fetch resource trash");
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        #endregion
+        
+        #region Get Metadata Type
+        [HttpGet("{id}/metadata-type")]
+        [SwaggerOperation(Summary = "Get the metadata type from the materialized view (resource/person/organisation)")]
+        [SwaggerResponse(200, "The metadata type", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Not Found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> GetMetadataType(string id) 
+        {
+            // Check id
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID"));
+        
+            try 
+            {
+                // Fetch the metadata type
+                string? mType = await resourceManager.GetMetadataType(id);
+
+                // metadata type is null when ID is not found
+                if (mType == null)
+                    return NotFound(new ApiResponse(false, "ID not found!"));
+
+                // Return metadata type
+                return Ok(new ApiResponse(true, "Metadata type found", mType));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Failed to fetch metadata type");
                 return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
             }
         }

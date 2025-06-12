@@ -1632,6 +1632,16 @@ namespace KnowledgeBank.Data
             return await GetPageAsync(database.ResourceTrashItems, projection, pageIndex, pageSize, orderBy ?? resourceTrashDefaultOrderBy, orderDescending ?? resourceTrashDefaultOrderDescending, predicate, includeProperties);
         }
         #endregion
+        
+        #region MetadataType
+        public async Task<string?> GetMetadataType(Guid id) 
+        {
+            return await GetPropertyOrDefaultAsync(database.ResourceGridItems, i => i.Id == id, "Type");
+        }
+        
+        public async Task<string?> GetMetadataType(string id)
+        { return await GetMetadataType(Guid.Parse(id)); }
+        #endregion
     }
 }
 

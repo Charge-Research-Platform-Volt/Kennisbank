@@ -2,8 +2,9 @@
 
 import React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import Stack from "@/lib/stack";
+import { ApiResponse } from "@/types/apiResponse.type";
 
 // Enumerator for the different types of items to be displayed in the right sidebar
 export enum MetadataTypeEnum { RESOURCE = "resource", PERSON = "person", ORGANISATION = "organisation" }
@@ -55,14 +56,43 @@ export const useSidebar = () =>
     return context;
 };
 
+const FetchMetadataType = async (id: string): Promise<MetadataTypeEnum> => 
+{
+    if (id === '') return MetadataTypeEnum.RESOURCE;
+    
+    const response = await fetch(`/api/resources/${id}/metadata-type`,
+        {
+            method: 'GET',
+            credentials: 'include'
+        });
+    
+    const data: ApiResponse = await response.json();
+    
+    if (response.ok) 
+    {
+        switch (data.body) 
+        {
+            case 'resource': return MetadataTypeEnum.RESOURCE;
+            case 'person': return MetadataTypeEnum.PERSON;
+            case 'organisation': return MetadataTypeEnum.ORGANISATION;
+            default: throw new Error("Invalid metadata type");
+        }    
+    }
+    else 
+    {
+        throw new Error("Failed to fetch metadata type");
+    }
+}
+
 // This component provides the sidebar context to its children
 export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSidebarDefaultState: boolean; children: React.ReactNode }) =>
 {
     const pathname: string = usePathname();
     const searchParams = useSearchParams();
-
+    const router = useRouter();
+    
     // State for the selected item
-    const [currentId, setCurrentId] = React.useState<string>(searchParams.get('id') || '');
+    const [currentId, setCurrentId] = React.useState<string>('');
     const [currentType, setCurrentType] = React.useState<MetadataTypeEnum>(MetadataTypeEnum.RESOURCE);
 
     // Creation Date and Publication Date (so they can be accessed in the Right Sidebar footer)
@@ -88,7 +118,7 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
     };
 
     // - State and functions for the right sidebar
-    const [rightSidebarOpen, setRightSidebarOpen] = React.useState<boolean>(searchParams.get('id') ? true : false);
+    const [rightSidebarOpen, setRightSidebarOpen] = React.useState<boolean>(false);
     const rightSidebarState = rightSidebarOpen ? "expanded" : "collapsed";
     const toggleRightSidebar = () =>
     {
@@ -146,6 +176,21 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
         }
     }
     
+    // Effect for fetching metadata type and opening right sidebar when page opens with an ID in search params
+    React.useEffect(() => 
+    {
+        const loadMetadataTypeAndOpenRightSidebar = async () => 
+        {
+            const id = searchParams.get('id');
+            
+            // Check if ID is set, and if so, fetch the type and use that to open the right sidebar
+            if (id)
+                openRightSidebar(id, await FetchMetadataType(id));
+        }
+        
+        loadMetadataTypeAndOpenRightSidebar();
+    }, [searchParams])
+    
     // Effect for right sidebar open
     React.useEffect(() => 
     {
@@ -153,12 +198,23 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
         if (rightSidebarOpen) 
         {
             // Close the right sidebar when no current ID is present
-            if (currentId === "")
+            if (currentId === "") 
+            {
                 setRightSidebarOpen(false);
+                return;
+            }
                 
             // Close the left sidebar on right sidebar open
-            else
-                setLeftSidebarOpen(false);
+            setLeftSidebarOpen(false);
+            
+            // Add the 'id' parameter from to the URL (only when not the same)
+            if (currentId !== searchParams.get('id')) 
+            {
+                const params = new URLSearchParams(searchParams.toString());
+                params.set('id', currentId);
+                const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+                router.replace(newUrl);
+            }
         }
         
         // On right sidebar close
@@ -167,8 +223,17 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
             setCurrentId("");
             prevs.clear();
             nexts.clear();
+            
+            // Clear the 'id' parameter from the URL (only if it exists)
+            if (searchParams.has('id')) 
+            {
+                const params = new URLSearchParams(searchParams.toString());
+                params.delete('id');
+                const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+                router.replace(newUrl);
+            }
         }
-    }, [rightSidebarOpen, currentId, nexts, prevs])
+    }, [rightSidebarOpen, currentId, nexts, prevs, searchParams, pathname, router])
     
     // Effect for left sidebar open
     React.useEffect(() => 

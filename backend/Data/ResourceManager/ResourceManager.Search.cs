@@ -238,7 +238,7 @@ public partial class ResourceManager
             ("creationdate", _) => query.OrderBy(x => x.CreationDate),
 
             // Default
-            _ => query.OrderBy(x => x.CreationDate)
+            _ => query.OrderByDescending(x => x.CreationDate)
         };
     }
     
