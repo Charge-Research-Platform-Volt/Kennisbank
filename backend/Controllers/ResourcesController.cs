@@ -605,18 +605,18 @@ namespace KnowledgeBank.Controllers
 
                 string projectionString = $"new({properties})";
                 
-                Expression<Func<Resource, bool>>? predicate = searchQuery != null ? r =>    EF.Functions.TrigramsAreSimilar(r.Title, searchQuery) || 
+                Expression<Func<Resource, bool>>? predicate = searchQuery != null ? r =>    (EF.Functions.TrigramsAreSimilar(r.Title, searchQuery) || 
                                                                                             EF.Functions.ILike(r.Title, $"{searchQuery}%") ||
-                                                                                            EF.Functions.ILike(r.Title, $"%{searchQuery}%")
+                                                                                            EF.Functions.ILike(r.Title, $"%{searchQuery}%"))
                                                                                             && r.Trashed == trash
                                                                                   : r =>    r.Trashed == trash;
-                
+
+
                 // No paging requested, list all resources
                 if (pageIndex == null || pageSize == null)
                     resources = string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllResourcesAsync(predicate: predicate) :
                         await resourceManager.GetAllResourcesAsync(projection: projectionString, predicate: predicate);
-
 
                 // Paging requested, retrieve resources on that page
                 else

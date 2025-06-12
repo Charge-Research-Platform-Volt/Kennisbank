@@ -352,14 +352,19 @@ namespace KnowledgeBank.Controllers
         /// <param name="pageSize">(Optional) The size of the page</param>
         /// <param name="properties">(Optional) The properties to select, separated by comma</param>
         /// <param name="searchQuery">(Optional) Filter on search query </param>
+        /// <param name="trash">(Optional) Whether to show trashed persons or non trashed presons</param>
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all persons")]
         [SwaggerResponse(200, "A list or page of all the persons in the archive", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties, string? searchQuery)
+        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties, string? searchQuery, bool trash = false)
         {
+
             // Verification
+            if (trash && !User.IsInRole("admin"))
+                return Unauthorized(new ApiResponse(false, "You are not authorized to view trashed persons."));
+
             if (pageIndex != null && pageIndex < 1)
                 return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1."));
 
@@ -377,10 +382,11 @@ namespace KnowledgeBank.Controllers
 
                 string projectionString = $"new({properties})";
 
-                Expression<Func<Person, bool>>? predicate = searchQuery != null ? p => EF.Functions.TrigramsAreSimilar(p.Name, searchQuery) ||
+                Expression<Func<Person, bool>>? predicate = searchQuery != null ? p => (EF.Functions.TrigramsAreSimilar(p.Name, searchQuery) ||
                                                                                             EF.Functions.ILike(p.Name, $"{searchQuery}%") ||
-                                                                                            EF.Functions.ILike(p.Name, $"%{searchQuery}%")
-                                                                                : null;
+                                                                                            EF.Functions.ILike(p.Name, $"%{searchQuery}%"))
+                                                                                            && p.Trashed == trash
+                                                                                  : p => p.Trashed == trash;
 
                 // No paging requested, list all persons
                 if (pageIndex == null || pageSize == null)
