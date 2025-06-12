@@ -72,7 +72,7 @@ export default function QuickSearch({ minimize = false }: { minimize?: boolean }
     <>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" className={`m-0 flex w-full items-center justify-between overflow-hidden p-2 transition-all duration-200 ${!minimize && "w-9"}`}>
+          <Button data-testid="open-quicksearch" variant="outline" className={`m-0 flex w-full items-center justify-between overflow-hidden p-2 transition-all duration-200 ${!minimize && "w-9"}`}>
             <div className="flex items-center gap-2">
               <Search className="h-4 w-4" />
               Search

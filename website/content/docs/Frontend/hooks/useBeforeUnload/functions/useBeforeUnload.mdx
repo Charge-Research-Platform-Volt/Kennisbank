@@ -1,0 +1,35 @@
+---
+title: UseBeforeUnload
+sidebar_position: 1
+---
+
+[frontend](../../..) • Docs
+
+***
+
+[frontend](../../..) / [hooks/useBeforeUnload](..) / useBeforeUnload
+
+# Function: useBeforeUnload()
+
+> **useBeforeUnload**(`hasUnsavedChanges`, `message`): `void`
+
+Hook to show a browser confirmation dialog when the user tries to close the tab
+or navigate away from the page while unsaved changes exist.
+
+## Parameters
+
+• **hasUnsavedChanges**: `boolean`
+
+Boolean indicating if there are unsaved changes
+
+• **message**: `string`= `"You have unsaved changes. Are you sure you want to leave?"`
+
+Optional custom message (note: modern browsers typically show their own generic message)
+
+## Returns
+
+`void`
+
+## Source
+
+src/hooks/useBeforeUnload.ts:12

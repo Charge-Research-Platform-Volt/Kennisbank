@@ -29,7 +29,7 @@ sidebar_position: 1
 
 ### resources
 
-> **resources**: `ZodArray`\<`ZodUnion`\<[`ZodObject`\<`extendShape`\<`object`, `object`\>, `"strip"`, `ZodTypeAny`, `object`, `object`\>, `ZodObject`\<`extendShape`\<`object`, `object`\>, `"strip"`, `ZodTypeAny`, `object`, `object`\>]\>, `"many"`\> = `ResourceResponseArraySchema`
+> **resources**: `ZodArray`\<`ZodUnion`\<[`ZodObject`\<`object` & `object`, `"strip"`, `ZodTypeAny`, `object`, `object`\>, `ZodObject`\<`object` & `object`, `"strip"`, `ZodTypeAny`, `object`, `object`\>]\>, `"many"`\> = `ResourceResponseArraySchema`
 
 ### responseType
 
@@ -37,4 +37,4 @@ sidebar_position: 1
 
 ## Source
 
-src/types/resource.type.ts:62
+src/types/resource.type.ts:64

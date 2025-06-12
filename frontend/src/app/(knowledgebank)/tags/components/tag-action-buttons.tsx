@@ -5,6 +5,7 @@ import { Tag } from "@/types/tag.type";
 import EditIcon from "@/icons/edit-icon";
 import { ApproveTagButton, DeleteTagButton, ConvertTagButton } from "./tag-list-buttons";
 import { useUserRole } from "@/context/user-role-context";
+import { TagMergeButton } from "./merge-tags-popup";
 interface TagActionButtonsProps {
   tag: Tag;
   onEditClick: (e: React.MouseEvent) => void;
@@ -24,6 +25,8 @@ interface TagActionButtonsProps {
 export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
   const { userRole } = useUserRole();
 
+  console.log(userRole);
+
   // Common Edit Button that appears for all tag types
   const EditButton = () => (
     tag.canEditAndDelete || userRole == "admin" ? (
@@ -31,7 +34,7 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
         className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
         variant="default"
         type="button"
-        title="Edit tag"
+        title="Edit Tag"
         onClick={onEditClick}
       >
         <EditIcon className="h-5 w-5" fill="#737373" />
@@ -41,17 +44,18 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
 
   // Usage Count styled as an icon-like element
   const UsageCount = () => (
-    <Button
-      className="bg-transparent cursor-default shadow-none text-muted-foreground"
-      variant="default"
-      type="button"
-      title={`Usage count: ${tag.usageCount || 0}`}
-      disabled
-    >
-      <span className="h-5 w-5 flex items-center justify-center font-bold">
-        {tag.usageCount || 0}
-      </span>
-    </Button>
+    <div title={`Usage Count: ${tag.usageCount || 0}`}>
+      <Button
+        className="bg-transparent cursor-default shadow-none text-muted-foreground"
+        variant="default"
+        type="button"
+        disabled
+      >
+        <span className="h-5 w-5 flex items-center justify-center font-bold">
+          {tag.usageCount || 0}
+        </span>
+      </Button>
+    </div>
   );
 
   // If the current user is not admin
@@ -73,6 +77,7 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
         userRole == "admin" &&
         <div className="flex">
           <UsageCount />
+          <TagMergeButton tag={tag}/>
           <ApproveTagButton tag={tag} />
           <EditButton />
           <DeleteTagButton tag={tag} />
@@ -90,6 +95,7 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
           userRole == "admin" && 
           <div className="flex">
             <UsageCount />
+            <TagMergeButton tag={tag}/>
             <ConvertTagButton tag={tag} />
             <EditButton />
             <DeleteTagButton tag={tag} />
@@ -107,6 +113,7 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
           userRole == "admin" &&
           <div className="flex">
             <UsageCount />
+            <TagMergeButton tag={tag}/>
             <EditButton />
             <DeleteTagButton tag={tag} />
           </div>

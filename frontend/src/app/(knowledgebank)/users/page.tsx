@@ -5,7 +5,7 @@ import InvitationCard from "./components/invitation-card";
 export default async function UsersPage() {   
   return (
     <PageRoleGuard requiredRole="admin">
-      <div className="p-4 w-full">
+      <div className="w-full">
         <div className="h-full w-full flex">
           <div className="flex h-full w-full">
             { /* Users list */ }

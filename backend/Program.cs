@@ -70,6 +70,7 @@ namespace KnowledgeBank
             ));
 
             builder.Services.AddScoped<ResourceManager>();
+            builder.Services.AddScoped<ProjectManager>();
 
             // # Mailer
             builder.Services.AddSingleton(new MailUtils(

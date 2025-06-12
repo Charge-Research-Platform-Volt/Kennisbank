@@ -131,7 +131,7 @@ export default function UserListItem({ user } : {user: User}) {
                                 className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
                                 variant="default"
                                 type="submit"
-                                title="Edit tag"
+                                title="Edit user"
                                 onClick={(e) => {
                                     e.preventDefault();
                                     setEditting(true);

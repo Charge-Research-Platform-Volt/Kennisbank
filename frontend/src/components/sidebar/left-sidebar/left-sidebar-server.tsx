@@ -7,6 +7,7 @@ import { SidebarItem } from "@/types/sidebar";
 import Home from "@/icons/home";
 import Archive from "@/icons/archive";
 import Tags from "@/icons/tags-icon";
+import Projects from "@/icons/project-icons/icon-1";
 import { Users } from "lucide-react";
 import { UserDataSchema } from "@/types/user.type";
 
@@ -36,6 +37,7 @@ export default async function LeftSidebarServer() {
     { id: 1, name: "Home", path: "/", icon: <Home className="h-4 w-4" /> },
     { id: 2, name: "Archive", path: "/archive", icon: <Archive className="h-4 w-4" /> },
     { id: 3, name: "Tags", path: "/tags", icon: <Tags className="h-4 w-4" /> },
+    { id: 4, name: "Projects", path: "/projects", icon: <Projects className="h-4 w-4" /> },
   ];
 
   // Projects
@@ -54,7 +56,7 @@ export default async function LeftSidebarServer() {
   // If admin: add settings to the bottom menu items at index 0
   if (userRole.data.role === "admin") {
     menuItems.splice(menuItems.length, 0, {
-      id: 4,
+      id: 5,
       path: "/users",
       icon: <Users color="black" className="h-4 w-4" />,
       name: "Users",

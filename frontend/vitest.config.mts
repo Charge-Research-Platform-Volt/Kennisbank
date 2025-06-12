@@ -16,5 +16,8 @@ export default defineConfig({
     deps: {
       moduleDirectories: ["node-modules", path.resolve("./package.json")],
     },
+    coverage:{
+      provider: 'v8'
+    },
   },
 });

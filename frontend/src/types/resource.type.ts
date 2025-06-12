@@ -79,6 +79,15 @@ export const ResourcePageWithTagsResponseSchema = ResourcePageResponseSchema.ext
   resources: ResourceWithTagsResponseArraySchema,
 });
 
+/**
+ * For projects implementation we use a wrapper
+ */
+
+export const ResourceProjectSchema = z.object({
+  resource: ResourceSchema,
+  addedBy: z.string(),
+})
+
 // Type definitions derived from the schemas
 export type ResourceBase = z.infer<typeof ResourceBaseSchema>;
 export type FileBase = z.infer<typeof FileResourceSchema>;
@@ -88,7 +97,7 @@ export type ResourcePageResponse = z.infer<typeof ResourcePageResponseSchema>;
 export type ResourceWithTagsResponse = z.infer<typeof ResourceWithTagsResponseSchema>;
 export type ResourcePageWithTagsResponse = z.infer<typeof ResourcePageWithTagsResponseSchema>;
 export type ResourceResponse = z.infer<typeof ResourceResponseSchema>;
-
+export type ResourceProject = z.infer<typeof ResourceProjectSchema>
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
