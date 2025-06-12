@@ -34,7 +34,7 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
         className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
         variant="default"
         type="button"
-        title="Edit tag"
+        title="Edit Tag"
         onClick={onEditClick}
       >
         <EditIcon className="h-5 w-5" fill="#737373" />
@@ -44,7 +44,7 @@ export function TagActionButtons({ tag, onEditClick }: TagActionButtonsProps) {
 
   // Usage Count styled as an icon-like element
   const UsageCount = () => (
-    <div title={`Usage count: ${tag.usageCount || 0}`}>
+    <div title={`Usage Count: ${tag.usageCount || 0}`}>
       <Button
         className="bg-transparent cursor-default shadow-none text-muted-foreground"
         variant="default"

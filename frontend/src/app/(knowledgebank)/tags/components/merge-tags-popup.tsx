@@ -80,7 +80,7 @@ export function TagMergeButton({tag, extraTag = null} : {tag:Tag; extraTag?: Tag
             <Dialog open={isOpen} onOpenChange={setIsOpen} modal>
                 {/* Button for triggering popup */}
                 <DialogTrigger asChild>
-                    <Button className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground" data-testid="open" title="Merge tag">
+                    <Button className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground" data-testid="open" title="Merge Tag">
                         <Merge className= "h-5 w-5" fill= "#737373" />
                     </Button>
                 </DialogTrigger>
