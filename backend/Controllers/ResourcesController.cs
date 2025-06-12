@@ -284,7 +284,6 @@ namespace KnowledgeBank.Controllers
             if (!ValidityUtil.IsValidId(id))
                 return BadRequest(new ApiResponse(false, "Invalid ID."));
 
-            logger.Information("gucci 1");
 
             try
             {
@@ -303,7 +302,6 @@ namespace KnowledgeBank.Controllers
 
                 // Try to retrieve the file
                 BlobDownloadResponse? maybeResponse = await blobService.DownloadBlobAsync(filetype, id);
-                logger.Information("gucci 2");
 
                 // If response is empty, the file does not exist in storage
                 if (maybeResponse == null)
@@ -317,7 +315,6 @@ namespace KnowledgeBank.Controllers
                 string title = await resourceManager.GetResourcePropertyAsync(id, "Title");
                 string extension = response.Metadata["extension"];
                 string fileName = SanitizeFileName(title) + extension;
-                logger.Information("gucci 3");
 
                 // Try to get contentType from the extension
                 if (Path.HasExtension(fileName))
