@@ -45,7 +45,7 @@ export default function DeleteUserButton({user} : {user: User}) {
           type="button"
           onClick={handleDelete}
           disabled={isPending}
-          title="Delete tag"
+          title="Delete user"
         >
           <DeleteIcon className="h-5 w-5" fill="#737373" />
         </Button>
