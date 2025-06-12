@@ -6,8 +6,8 @@ import ListTags from "./components/tag-list";
 export default async function StandardizedTagsPage() {
     return (
         <div className="flex">
-            <div className="flex-1 p6 p-4 w-full">
-                <div className="flex gap-2 w-full">
+            <div className="flex-1 p6 w-full">
+                <div className="flex gap-2 mb-2 w-full">
                     <div className="w-full">
                         <CreateUserTag />
                     </div>

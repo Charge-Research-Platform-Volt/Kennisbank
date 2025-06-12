@@ -27,7 +27,7 @@ export default function CreateUserTag() {
   }, [state]);
 
   return (
-    <form className="mb-4 flex space-x-2 w-full" action={action}>
+    <form className="flex space-x-2 w-full" action={action}>
       <div className="relative w-full">
         <Input
           data-testid="input"
