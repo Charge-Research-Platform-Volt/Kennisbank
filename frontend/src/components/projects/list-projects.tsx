@@ -983,7 +983,7 @@ function ItemRenderer(params: { data: ProjectOrResource; value: string }) {
 function DownloadRenderer({ data }: { data: any }) {
   return (
     <div className="download-button flex items-center justify-center">
-      <OpenFileButton file={data} asIcon={true} />
+      <OpenFileButton id={data.id} fileType={data.fileType} asIcon={true} />
     </div>
   );
 }
