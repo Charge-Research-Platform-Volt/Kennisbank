@@ -7,14 +7,12 @@ export default function ArchiveLayout({ children }: { children: React.ReactNode 
 {
     return (
         <UserRoleProvider>
-            <ArchiveProvider>
-                <div className="flex">
-                    <div className="h-full flex-1">
-                        {children}
-                    </div>
-                    <RightSidebar />
+            <div className="flex">
+                <div className="h-full flex-1">
+                    {children}
                 </div>
-            </ArchiveProvider>
+                <RightSidebar />
+            </div>
         </UserRoleProvider>
     )
 }

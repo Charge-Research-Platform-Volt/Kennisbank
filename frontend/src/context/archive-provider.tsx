@@ -1,7 +1,8 @@
 'use client'
 
 import React from 'react';
-import { usePathname, useSearchParams, useRouter } from 'next/navigation';
+import { usePathname, useSearchParams, useRouter, ReadonlyURLSearchParams } from 'next/navigation';
+import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 export type ArchiveContextType = {
 
@@ -39,6 +40,11 @@ export type ArchiveContextType = {
     // Triggers
     gridReloadTrigger: boolean;
     triggerGridReload: () => void;
+
+    // Router and SearchParams
+    router: AppRouterInstance;
+    searchParams: ReadonlyURLSearchParams;
+    pathname: string;
 };
 
 const ArchiveContext = React.createContext<ArchiveContextType | undefined>(undefined);
@@ -224,6 +230,11 @@ export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
                 // Triggers
                 gridReloadTrigger,
                 triggerGridReload,
+                
+                // Router and SearchParams
+                router,
+                searchParams,
+                pathname,
             }}>
         {children}
         </ArchiveContext.Provider>

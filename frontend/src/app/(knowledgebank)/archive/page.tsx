@@ -16,6 +16,8 @@ import { TagFilterOptions } from "@/types/tag.type";
 import { SelectOption } from "@/components/ui/selection";
 import { useUserRole } from "@/context/user-role-context";
 import TrashIcon from "@/icons/trash-icon";
+import { useRouter } from "next/router";
+import { useSearchParams } from "next/navigation";
 
 export default function Page() {
     // Context
@@ -38,14 +40,39 @@ export default function Page() {
         resetFilters,
         trashOpen,
         setTrashOpen,
+        router,
+        searchParams,
     } = useArchive();
     
     const { userRole } = useUserRole();
-    
+
     // States
     const [filtersOpen, setFiltersOpen] = React.useState<boolean>(false);
     const [trashAnimationTrigger, setTrashAnimationTrigger] = React.useState(Date.now());
     
+    // Handle URL parameters and apply filters on page load
+    React.useEffect(() => {
+        const listType = searchParams.get('listType');
+        const id = searchParams.get('id');
+        
+        if (listType && id) {
+            // Apply the appropriate filters based on listType
+            if (listType === 'tags') {
+                setTypeFilter(['resource']);
+                setTagFilter([id]);
+            } else if (listType === 'regions') {
+                setTypeFilter(['resource']);
+                setRegionFilter([id]);
+            }
+            
+            // Clean up the URL parameters after applying filters
+            const newParams = new URLSearchParams(searchParams.toString());
+            newParams.delete('listType');
+            newParams.delete('id');
+            router.replace(`/archive?${newParams.toString()}`);
+        }
+    }, [searchParams, setTypeFilter, setTagFilter, setRegionFilter, router]);
+
     // Create tag body function for the dynamic combobox
     const createTagBody = (searchQuery: string): unknown => 
     {

@@ -9,6 +9,7 @@ import NewBadge from "./NewBadge"
 import { useArchive } from "@/context/archive-provider"
 import { organisationRelation, personRelation, resourceRelation, removeRelation, tryAddNewTag, addRelation } from "@/actions/right-sidebarActions";
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "@/components/ui/context-menu";
+import { usePathname } from "next/navigation";
 
 export interface ListItem
 {
@@ -41,8 +42,9 @@ export default function BadgeList({
 {
     const { navigate, currentId, currentType } = useSidebar();
     const { setTagFilter, setTypeFilter, setRegionFilter } = useArchive();
+    const pathname: string = usePathname();
     
-    async function navigateTo(id: string, type: string)
+    function navigateTo(id: string, type: string)
     {
         if ( ["authors", "related-persons", "person-related-persons", "persons"].includes(listType))
         {
@@ -58,15 +60,33 @@ export default function BadgeList({
         }
         else if (listType == "tags")
         {
-            setTypeFilter(['resource']);
-            setTagFilter([id]);
+            if (pathname != `/archive`) {
+                const params = new URLSearchParams();
+                params.set('listType', listType);
+                params.set('id', id);
+                
+                window.location.href = `${window.location.origin}/archive?${params.toString()}`;
+            }
+            else {
+                setTypeFilter(['resource']);
+                setTagFilter([id]);
+            }
         }
         else if (listType == "regions")
         {
-            setTypeFilter(['resource']);
-            setRegionFilter([id]);
+            if (pathname != `/archive`) {
+                const params = new URLSearchParams();
+                params.set('listType', listType);
+                params.set('id', id);
+                
+                window.location.href = `${window.location.origin}/archive?${params.toString()}`;
+            }
+            else {
+                setTypeFilter(['resource']);
+                setRegionFilter([id]);
+            }
         }
-        else if (["sources", "related-sources"].includes(type))
+        else if (["sources", "related-sources"].includes(listType))
         {
             window.open(id)?.focus();
         }

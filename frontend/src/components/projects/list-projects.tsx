@@ -10,7 +10,7 @@ import { tableTheme } from "@/lib/tableConfig";
 import GetFileIcon from "../getFileIcon";
 import { format, parseISO } from "date-fns";
 import OpenFileButton from "../open-file-button";
-import { useSidebar } from "@/context/sidebar-provider";
+import { MetadataTypeEnum, useSidebar } from "@/context/sidebar-provider";
 import { ArrowLeftIcon, FolderIcon, HomeIcon, SparklesIcon, CircleXIcon, TagsIcon, Users, EditIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { addResourceToProject, fetchAllResources, ListProjectsPaged, removeResourceFromProject, deleteProject } from "@/actions/projectActions";
@@ -252,7 +252,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   const gridApiRef = useRef<GridApi | null>(null);
 
   // Use sidebar context
-  const { rightSidebarOpen, toggleRightSidebar } = useSidebar();
+  const { rightSidebarOpen, openRightSidebar } = useSidebar();
 
   // When grid is ready, set the gridApi
   const onGridReady = (params: GridReadyEvent) => {
@@ -534,7 +534,8 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
       await navigateToProject(rowData.id, rowData.title);
     } else if (rowData.itemType === 'resource') {
       // Toggle sidebar for resources
-      toggleRightSidebar(e.data);
+      
+      openRightSidebar(e.data.id, MetadataTypeEnum.RESOURCE);
       e.node.setSelected(true);
     }
   };
