@@ -48,7 +48,7 @@ export function DeleteTagButton({ tag }: { tag: Tag }) {
         successMessage="Tag deleted"
         onSuccessAction={() => window.dispatchEvent(new Event("tagListUpdated"))}
         icon={<DeleteIcon className= "h-5 w-5" fill= "#737373"/>}
-        title="Delete tag"
+        title="Delete Tag"
       />
     );
   }

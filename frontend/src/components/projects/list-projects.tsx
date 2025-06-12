@@ -758,7 +758,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
   return (
     <div className="flex flex-col h-full w-full">
       {/* Search bar */}
-      <div className="mb-4">
+      <div className="mb-2">
         <div className="relative w-full mb-2"> 
           <Input
             className="peer h-10 ps-9"
