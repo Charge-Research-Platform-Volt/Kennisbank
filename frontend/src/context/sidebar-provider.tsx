@@ -225,7 +225,7 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
             nexts.clear();
             
             // Clear the 'id' parameter from the URL (only if it exists)
-            if (searchParams && searchParams.has('id')) 
+            if (searchParams?.get('id')) 
             {
                 const params = new URLSearchParams(searchParams.toString());
                 params.delete('id');
