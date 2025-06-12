@@ -266,7 +266,7 @@ export const fetchTagSearch = async (searchQuery?: string, K?: number): Promise<
 
   const cookieHeader : ReadonlyRequestCookies = await cookies();
   const response = await fetch(
-      `${process.env.API_URL}/`,
+      `${process.env.API_URL}/tags/tags`,
       {
           method: "POST",
           credentials: "include",
