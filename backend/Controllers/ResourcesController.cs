@@ -138,7 +138,7 @@ namespace KnowledgeBank.Controllers
                         {
                             using var scope = HttpContext.RequestServices.CreateScope();
                             var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
-                            await ragManager.MainPipline(id: id, chunk: $"{dto.Title}\n{dto.Description}\n{((WebsiteCreateDto)dto).Url}", fileType: null);
+                            await ragManager.MainPipline(id: id, chunk: $"{dto.Title}\n{dto.Description}\n{((WebsiteCreateDto)dto).Url}");
                         });
                         break;
                     case "document":
@@ -146,9 +146,22 @@ namespace KnowledgeBank.Controllers
                         break;
                     case "audio":
                         id = await resourceManager.CreateAudioAsync((AudioCreateDto)dto);
+                        _taskQueue.QueueBackgroundWorkItem(async token =>
+                        {
+                            using var scope = HttpContext.RequestServices.CreateScope();
+                            var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
+                            await ragManager.MainPipline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
+                        });
+
                         break;
                     case "video":
                         id = await resourceManager.CreateVideoAsync((VideoCreateDto)dto);
+                        _taskQueue.QueueBackgroundWorkItem(async token =>
+                        {
+                            using var scope = HttpContext.RequestServices.CreateScope();
+                            var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
+                            await ragManager.MainPipline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
+                        });
                         break;
                     default:
                         id = await resourceManager.CreateResourceAsync(dto);
@@ -181,18 +194,12 @@ namespace KnowledgeBank.Controllers
                         case BLOB_STATUSCODE.OK:
                             logger.Information("File '{FileName}' uploaded successfully.", fDto.File.FileName);
 
-                            // If the file is a PDF, queue it for text extraction + vectorization (This will not block the request and will be done in the background)
-                            if (Filetype.trimExtension(extension).Equals("pdf", StringComparison.OrdinalIgnoreCase))
+                            _taskQueue.QueueBackgroundWorkItem(async token =>
                             {
-                                logger.Information("Queueing PDF {Id} for text extraction", id);
-
-                                _taskQueue.QueueBackgroundWorkItem(async token =>
-                                {
-                                    using var scope = HttpContext.RequestServices.CreateScope();
-                                    var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
-                                    await ragManager.MainPipline(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: fileType, fileStream: fDto.File.OpenReadStream());
-                                });
-                            }
+                                using var scope = HttpContext.RequestServices.CreateScope();
+                                var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
+                                await ragManager.MainPipline(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: fileType, fileStream: fDto.File.OpenReadStream());
+                            });
 
                             break;
 
@@ -497,11 +504,11 @@ namespace KnowledgeBank.Controllers
                 List<string> updatedProperties = [];
 
                 // Update the properties
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Resource), id, updates));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(WebsiteMetadata), id, updates));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(DocumentMetadata), id, updates));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(AudioMetadata), id, updates));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(VideoMetadata), id, updates));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Resource), id, updates, ragSystem));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(WebsiteMetadata), id, updates, ragSystem));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(DocumentMetadata), id, updates, ragSystem));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(AudioMetadata), id, updates, ragSystem));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(VideoMetadata), id, updates, ragSystem));
 
                 // No props were found
                 if (updatedProperties.Count == 0)

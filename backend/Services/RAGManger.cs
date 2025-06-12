@@ -30,75 +30,114 @@ public class RAGManger
     }
 
 
+
     /// <summary>
     /// Processes a document through the RAG (Retrieval-Augmented Generation) pipeline.
+    /// This method orchestrates the complete document processing workflow from text extraction
+    /// to vector storage and AI tag generation.
     /// </summary>
     /// <param name="id">The unique identifier for the resource being processed.</param>
-    /// <param name="fileType">The type of file being processed (e.g., PDF, DOCX).</param>
-    /// <param name="chunk">An initial chunk of text to include in the processing.</param>
-    /// <param name="fileStream">A stream representing the file to be processed.</param>
-    /// 
+    /// <param name="fileType">The type of file being processed. Currently unused but reserved for future implementations.</param>
+    /// <param name="chunk">An initial chunk of text (typically metadata) to include as the first chunk in processing.</param>
+    /// <param name="fileStream">A stream representing the file to be processed. If null, only the initial chunk will be processed.</param>
     /// <returns>A task representing the asynchronous operation of processing the document.</returns>
     /// <remarks>
-    /// The pipeline consists of the following steps:
-    /// 1. Extract text from the document
-    /// 2. Chunk the extracted text into smaller segments
-    /// 3. Generate vector embeddings for each chunk
-    /// 4. Store the chunks and their embeddings in the vector database
+    /// The RAG pipeline consists of the following sequential steps:
+    /// 1. Text Extraction: Extract text from the document using Azure Document Intelligence with markdown formatting
+    /// 2. Text Chunking: Split the extracted text into smaller, manageable segments for embedding generation
+    /// 3. Vector Embedding Generation: Create vector embeddings for each text chunk using the configured embedding model
+    /// 4. Vector Storage: Store the chunks and their corresponding embeddings in the Qdrant vector database
+    /// 5. AI Tag Generation: Generate contextual tags for the document using AI analysis of the processed chunks
     /// 
-    /// If no text is extracted from the document, the process will terminate early.
+    /// If no text is extracted from the document (empty or corrupted file), the process will terminate early
+    /// to prevent unnecessary processing. The method uses Azure Document Intelligence's prebuilt-layout model
+    /// with markdown output format for optimal text structure preservation.
     /// </remarks>
-    public async Task MainPipline(Guid id, string chunk, string? fileType, Stream? fileStream = null)
+    public async Task MainPipline(Guid id, string chunk, string? fileType = null, Stream? fileStream = null)
     {
         _logger.Information("Main RAG pipeline started for resource ID: {Id}", id);
 
-        //
-        if (fileStream != null)
+        try
         {
-            AnalyzeDocumentOptions options = new AnalyzeDocumentOptions(
-                modelId: "prebuilt-layout",
-                bytesSource: BinaryData.FromStream(fileStream)
-            )
+            // Initialize chunks collection with the provided metadata chunk
+            List<string> chunks = [$"{chunk}",];
+
+            // STEP 1: Document Text Extraction
+            // Extract text from the document using Azure Document Intelligence service
+            _logger.Information("Extracting text from the document for resource ID: {Id}", id);
+
+            if (fileStream != null)
             {
-                OutputContentFormat = DocumentContentFormat.Markdown,
-            };
+                // Configure Azure Document Intelligence options
+                AnalyzeDocumentOptions options = new AnalyzeDocumentOptions(
+                    modelId: "prebuilt-layout",
+                    bytesSource: BinaryData.FromStream(fileStream))
+                {
+                    OutputContentFormat = DocumentContentFormat.Markdown
+                };
 
-            // -- Analyze the document using Azure Document Intelligence
-            Operation<AnalyzeResult> operation = await _ragSystem.DocumentIntelligenceClient.AnalyzeDocumentAsync(WaitUntil.Completed, options);
-            // print the content of the document
-            AnalyzeResult result = operation.Value;
-            _logger.Information("Document analysis completed for resource ID: {Id}", id);
-            _logger.Information("Document content: {Content}", result.Content);
-        }
+                // Analyze the document and wait for completion
+                Operation<AnalyzeResult> operation = await _ragSystem.DocumentIntelligenceClient.AnalyzeDocumentAsync(WaitUntil.Completed, options);
 
+                string extractedText = operation.Value.Content;
 
-        //
-        List<string> chunks = [$"{chunk}",]; // Include metadata in the first chunk
+                // Validate that text extraction was successful
+                if (string.IsNullOrEmpty(extractedText))
+                {
+                    _logger.Warning("No text extracted from the document");
+                    return;
+                }
 
-        // -- Extract text from the document
-        if (!string.IsNullOrWhiteSpace(fileType))
-        {
-            string extractedText = await _ragSystem.Toolbox.ExtractTextAsync(fileType, id, _blobService);
+                // STEP 2: Text Chunking
+                // Split the extracted text into smaller chunks suitable for embedding generation
+                chunks.AddRange(_ragSystem.Toolbox.SplitTextIntoChunks(extractedText, false, markdownSplit: true));
 
-            if (string.IsNullOrEmpty(extractedText))
-            {
-                _logger.Warning("No text extracted from the document");
-                return;
+                _logger.Information("Successfully extracted and chunked text into {ChunkCount} segments for resource ID: {Id}", chunks.Count, id);
             }
 
-            // -- Chunk the extracted text
-            chunks.AddRange(_ragSystem.Toolbox.SplitTextIntoChunks(extractedText, false));
+
+            // STEP 3 & 4: Vector Embedding Generation and Storage
+            // Generate embeddings for each chunk and store them in the vector database
+            _logger.Information("Generating vector embeddings and storing {ChunkCount} chunks for resource ID: {Id}", chunks.Count, id);
+            await _ragSystem.CreatePoints(id, chunks);
+
+
+            // STEP 5: AI Tag Generation
+            // Generate contextual tags based on the processed document content
+            _logger.Information("Initiating AI tag generation for resource ID: {Id}", id);
+            await GenerateTagsAsync(id.ToString());
+
+            _logger.Information("RAG pipeline completed successfully for resource ID: {Id}", id);
+        }
+        catch (Exception ex)
+        {
+            // Todo: Add a way to notify the user that the pipeline failed, with some options to retry.
+
+            _logger.Error(ex, "An error occurred while processing the document for resource ID: {Id}. Pipeline execution failed.", id);
+            throw;
         }
 
-
-        // -- Generate points (vector embeddings) and store them in the vector database
-        _logger.Information("Generating vector embeddings and storing chunks for resource ID: {Id}", id);
-        await _ragSystem.CreatePoints(id, chunks);
-
-
-        // -- Generate AI tags for the resource
-        _logger.Information("Generating AI tags for resource ID: {Id}", id);
-        await GenerateTagsAsync(id.ToString());
+        //---------------------------------------------------------------------------------------------------
+        // LEGACY CODE: Alternative text extraction using PdfPig library
+        // Note: The following code is commented out as it uses PdfPig library which is not currently in use.
+        // This approach was replaced by Azure Document Intelligence for better accuracy and format support.
+        // Keeping this code for reference in case we need to fall back to PdfPig or support additional formats.
+        //---------------------------------------------------------------------------------------------------
+        // 
+        // -- Extract text from the document using PdfPig library (DEPRECATED)
+        // if (!string.IsNullOrWhiteSpace(fileType))
+        // {
+        //     string extractedText = await _ragSystem.Toolbox.ExtractTextAsync(fileType, id, _blobService);
+        //
+        //     if (string.IsNullOrEmpty(extractedText))
+        //     {
+        //         _logger.Warning("No text extracted from the document");
+        //         return;
+        //     }
+        //
+        //     // -- Chunk the extracted text using the legacy approach
+        //     chunks.AddRange(_ragSystem.Toolbox.SplitTextIntoChunks(extractedText, false));
+        // }
     }
 
 

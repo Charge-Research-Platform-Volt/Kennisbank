@@ -2,6 +2,17 @@ using HandlebarsDotNet;
 
 namespace KnowledgeBank.Services;
 
+
+// This file contains the prompts used by the AI assistant.
+/// <summary>
+/// The Prompts class contains predefined prompts for various AI tasks such as question answering, tag generation, and chat title generation.
+/// It includes system prompts, templates for generating specific prompts, and JSON schema definitions for output formats.
+/// </summary>
+/// <remarks>
+/// The prompts are designed to guide the AI assistant in providing accurate and relevant responses based on the provided information.
+/// The class uses Handlebars templates for dynamic prompt generation, allowing for flexible and reusable prompt structures.
+/// The JSON schema definitions ensure that the output formats are consistent and can be easily validated.
+/// </remarks>
 public class Prompts
 {
     #region System Prompts

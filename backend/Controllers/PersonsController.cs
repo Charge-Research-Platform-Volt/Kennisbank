@@ -171,7 +171,7 @@ namespace KnowledgeBank.Controllers
                 await resourceManager.BeginTransaction();
 
                 // Update the properties
-                List<string> updatedProperties = await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Person), id, updates);
+                List<string> updatedProperties = await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Person), id, updates, ragSystem);
 
                 // No props were found
                 if (updatedProperties.Count == 0)

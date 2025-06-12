@@ -1,6 +1,5 @@
 using System.Text;
 using KnowledgeBank.Data;
-using Microsoft.Extensions.VectorData;
 using Microsoft.SemanticKernel.Text;
 using Serilog;
 using UglyToad.PdfPig;
@@ -118,15 +117,27 @@ public class Tools
     /// </summary>
     /// <param name="extractedText">The text to be split into chunks.</param>
     /// <param name="logChunks">Optional parameter that determines whether to log each chunk. Default is false.</param>
+    /// <param name="markdownSplit">Optional parameter that determines whether to split the text as Markdown. Default is false.</param>
     /// <returns>A list of strings, where each string represents a chunk of the original text.</returns>
     /// <remarks>
     /// This method uses TextChunker to split the text with a maximum of 100 tokens per line.
     /// When logging is enabled, each chunk will be logged using the debug level.
     /// </remarks>
-    public List<string> SplitTextIntoChunks(string extractedText, bool logChunks = false)
+    public List<string> SplitTextIntoChunks(string extractedText, bool logChunks = false, bool markdownSplit = false)
     {
         // Split the extracted text into chunks
-        List<string> data = TextChunker.SplitPlainTextLines(extractedText, maxTokensPerLine: 100);
+        List<string> data;
+
+        if (markdownSplit)
+        {
+            // If markdown splitting is enabled, use the MarkdownTextChunker
+            data = TextChunker.SplitMarkDownLines(extractedText, maxTokensPerLine: 100);
+        }
+        else
+        {
+            // Otherwise, use the standard TextChunker
+            data = TextChunker.SplitPlainTextLines(extractedText, maxTokensPerLine: 100);
+        }
 
         // Log the chunks if required
         if (logChunks)

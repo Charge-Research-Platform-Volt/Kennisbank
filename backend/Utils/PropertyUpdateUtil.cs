@@ -7,6 +7,7 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using KnowledgeBank.Data;
+using KnowledgeBank.Services;
 
 namespace KnowledgeBank.Utils
 {
@@ -207,8 +208,9 @@ namespace KnowledgeBank.Utils
         /// <param name="type">The type of the database entry</param>
         /// <param name="id">The ID of the databse entry</param>
         /// <param name="updates">A dictionary of parameter names and their new values</param>
+        /// <param name="ragSystem">The RAG system to update metadata in</param>
         /// <returns>A list of successfully updated parameters</returns>
-        public static async Task<List<string>> UpdateProperties(object instance, string methodName, Type type, string id, Dictionary<string, object> updates)
+        public static async Task<List<string>> UpdateProperties(object instance, string methodName, Type type, string id, Dictionary<string, object> updates, RAGSystem ragSystem)
         {
             // Get the properties of the type
             PropertyInfo[] props = type.GetProperties();
@@ -231,6 +233,21 @@ namespace KnowledgeBank.Utils
 
                 // Add property to updated list
                 updatedProperties.Add(prop.Name);
+            }
+
+
+            if (updatedProperties.Count != 0)
+            {
+                // If updatedProperties contain Name or Description, we need to update qdrant 
+                // Get the new value for the Name or Description property
+                string? name = updates.ContainsKey("Name") ? updates["Name"].ToString() : null;
+                string? description = updates.ContainsKey("Description") ? updates["Description"].ToString() : null;
+
+                if (!string.IsNullOrEmpty(name) || !string.IsNullOrEmpty(description))
+                {
+                    // Update the metadata point in qdrant
+                    await ragSystem.UpdateMetadataPointAsync(id, $"{name}\n{description}");
+                }
             }
 
             return updatedProperties;

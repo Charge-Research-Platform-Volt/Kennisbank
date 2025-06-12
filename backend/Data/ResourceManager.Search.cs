@@ -113,7 +113,6 @@ public partial class ResourceManager
     /// <param name="sortBy">The attribute to sort by</param>
     /// <param name="sortDirection">The direction to sort in (asc or desc)</param>
     /// <param name="filters">A dictionary of filters to apply</param>
-    /// <param name="ragSystem">The RAG system to use for generating embeddings</param>
     /// <returns>The search result</returns>
     private async Task<GridSearchTemplate> ExecuteSearchQuery(int pageIndex, int pageSize, string search, string? sortBy, string? sortDirection, Dictionary<string, object?> filters)
     {
@@ -148,7 +147,6 @@ public partial class ResourceManager
 
 
     /// Executes a semantic search using Qdrant vector database with fallback to text matching.
-    /// <param name="ragSystem">The RAG system instance containing embedding generation and Qdrant client functionality.</param>
     /// <param name="pageIndex">The current page index for pagination (1-based).</param>
     /// <param name="pageSize">The number of items to return per page.</param>
     /// <param name="search">The search query string to find relevant resources.</param>
@@ -399,7 +397,7 @@ public partial class ResourceManager
             ("creationdate", _) => query.OrderBy(x => x.CreationDate),
 
             // Default
-            _ => query.OrderBy(x => x.CreationDate)
+            _ => query.OrderByDescending(x => x.CreationDate)
         };
     }
 
