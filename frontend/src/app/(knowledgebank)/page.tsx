@@ -3,11 +3,10 @@ import Link from "next/link";
 import Greeting from "../_components/greating-text";
 import Archive from "@/icons/archive";
 import GetFileIcon from "@/components/getFileIcon";
-import OpenFileButton from "@/components/open-file-button";
+// import OpenFileButton from "@/components/open-file-button";
 import SearchButton from "../_components/search-button";
 import { z } from "zod";
 import { ApiResponseSchema } from "@/types/apiResponse.type";
-import ProjectIcon1 from "@/icons/project-icons/icon-1";
 
 export default async function Home() {
   // fetches all documents
@@ -41,7 +40,7 @@ export default async function Home() {
         <div className="mb-10 flex justify-center gap-10">
           <SearchButton />
           {[
-            { icon: <ProjectIcon1 className="h-50 w-50" fill="#4b5563" />, text: "Projects", path: "/projects" },
+            // { icon: <Projects className="h-50 w-50" fill="#4b5563" />, text: "Projects", path: "/projects" },
             { icon: <Archive className="h-50 w-50" fill="#4b5563" />, text: "Archive", path: "/archive" },
           ].map((btn, index) => (
             <Link key={index} href={btn.path}>
@@ -67,7 +66,7 @@ export default async function Home() {
                   <span className="block w-[250px] truncate text-left text-sm md:w-[350px] lg:w-[450px]">{file.title}</span>
                 </span>
 
-                <OpenFileButton file={file} />
+                {/* <OpenFileButton file={file} /> */}
               </div>
             ))}
           </div>

@@ -93,7 +93,7 @@ namespace KnowledgeBank.Data
             return await query.Skip(skip).Take(pageSize).Select(projection).Cast<dynamic>().ToArrayAsync();
         }
 
-        protected async Task<TResult> GetPropertyAsync<TSet, TResult>(DbSet<TSet> dbSet, Expression<Func<TSet, bool>> predicate, Expression<Func<TSet, TResult>> selector, Expression<Func<TSet, object>>? orderBy = null, bool orderDescending = false) where TSet : class
+        protected async Task<dynamic> GetPropertyAsync<TSet>(DbSet<TSet> dbSet, Expression<Func<TSet, bool>> predicate, string selector, Expression<Func<TSet, dynamic>>? orderBy = null, bool orderDescending = false) where TSet : class
         {
             IQueryable<TSet> query = dbSet.Where(predicate);
 
@@ -235,9 +235,8 @@ namespace KnowledgeBank.Data
             return await GetPageAsync(database.Resources, projection, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
         }
 
-        public async Task<TResult[]> GetResourcePageAsync<TResult>(Expression<Func<Resource, TResult>> projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
+        public async Task<dynamic> GetResourcePageAsync(string projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
         { return await GetPageAsync(database.Resources, projection, pageIndex, pageSize, resourceDefaultOrderBy, resourceDefaultOrderDescending, null, includeProperties); }
-
 
         // Properties
 
@@ -1425,8 +1424,7 @@ namespace KnowledgeBank.Data
         }
 
 
-
-        public async Task<T?> GetTagPropertyOrDefaultAsync<T>(Guid TagId, Expression<Func<Tag, T>> selector, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending)
+        public async Task<dynamic?> GetTagPropertyOrDefaultAsync(Guid TagId, string selector, Expression<Func<Tag, dynamic>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending)
         {
             orderBy ??= tagDefaultOrderBy;
             return await GetPropertyOrDefaultAsync(database.Tags, t => t.Id == TagId, selector, orderBy, orderDescending);
@@ -1435,11 +1433,12 @@ namespace KnowledgeBank.Data
         public async Task<dynamic?> GetTagPropertyOrDefaultAsync(string TagId, string selector, Expression<Func<Tag, dynamic>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending)
         { return await GetTagPropertyOrDefaultAsync(Guid.Parse(TagId), selector, orderBy, orderDescending); }
 
-        public async Task<T?> GetTagPropertyOrDefaultAsync<T>(Expression<Func<Tag, bool>> predicate, Expression<Func<Tag, T>> selector, Expression<Func<Tag, object>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending)
+        public async Task<dynamic?> GetTagPropertyOrDefaultAsync(Expression<Func<Tag, bool>> predicate, string selector, Expression<Func<Tag, dynamic>>? orderBy = null, bool orderDescending = tagDefaultOrderDescending)
         {
             orderBy ??= tagDefaultOrderBy;
             return await GetPropertyOrDefaultAsync(database.Tags, predicate, selector, orderBy, orderDescending);
         }
+
 
         #endregion
 

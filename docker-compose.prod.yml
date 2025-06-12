@@ -29,14 +29,14 @@ x-imagebase: &imagebase
 services:
   database:
     volumes:
-      - postgres_data:/var/lib/postgresql/data  # Persistent volume
+      - postgres_data:/var/lib/postgresql/data # Persistent volume
     <<: *base
     ports:
       - 9004:5432
 
   storage:
     volumes:
-      - storage_data:/data  # Persistent volume
+      - storage_data:/data # Persistent volume
     <<: *base
     ports:
       - 9003:10000
@@ -45,6 +45,9 @@ services:
     <<: *imagebase
     environment:
       HOST_URL: ${FROTEND_DOMAIN:-http://localhost:${FRONTEND_PORT:-9000}} # Overwrite with frontend port default as 9000
+    env_file:
+      - path: .env.development
+        required: true
     healthcheck: # Slightly modify health check
       timeout: 5s
       retries: 3
@@ -62,17 +65,40 @@ services:
     <<: *base
     environment:
       - HELP_URL=${HELP_URL:-http://localhost:${WEBSITE_PORT:-9001}} # Overwrite with website port default as 9001
-    ports: 
+    ports:
       - ${FRONTEND_PORT:-9000}:3000
-  
+
   website:
     <<: *imagebase
     ports:
       - ${WEBSITE_PORT:-9001}:3001
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    ports:
+      - 6333:6333
+      - 6334:6334
+    expose:
+      - 6333
+      - 6334
+      - 6335
+    configs:
+      - source: qdrant_config
+        target: /qdrant/config/production.yaml
+    volumes:
+      - ./qdrant_data:/qdrant/storage
+    networks:
+      - prod_network
+
+configs:
+  qdrant_config:
+    content: |
+      log_level: INFO
+
 volumes:
-  postgres_data:  # Persistent volume for database
-  storage_data:   # Persistent volume for storage
+  postgres_data: # Persistent volume for database
+  storage_data: # Persistent volume for storage
 
 # This program has been developed by students from the bachelor Computer Science at Utrecht
 # University within the Software Project course.

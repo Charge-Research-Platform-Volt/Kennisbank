@@ -9,7 +9,6 @@ import Archive from "@/icons/archive";
 import Tags from "@/icons/tags-icon";
 import { MessageCircleMore, Users } from "lucide-react";
 import Projects from "@/icons/project-icons/icon-1";
-import { Users } from "lucide-react";
 
 /**
  * @summary This function does the needed fetches from a server component and gives them to the client side component for use.
@@ -65,7 +64,7 @@ export default async function LeftSidebarServer() {
   // If admin: add settings to the bottom menu items at index 0
   if (userRole.data.role === "admin") {
     menuItems.splice(menuItems.length, 0, {
-      id: 5,
+      id: 6,
       path: "/users",
       icon: <Users color="black" className="h-4 w-4" />,
       name: "Users",
