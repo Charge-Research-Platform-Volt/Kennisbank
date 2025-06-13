@@ -318,14 +318,14 @@ type DisplayUser = User & { name: string };
 
 const displayUsers = (selectedUsers: User[], selectMultiple: boolean, truncate: (s: string, len: number) => string) => {
     if (selectedUsers.length > 0 && !selectMultiple) {
-        return truncate(selectedUsers[0].username, 15);
+        return truncate(selectedUsers[0].email, 15);
     }
     return "Select user(s)...";
 };
 
 const fetchUsers = async (inputValue: string, exclude: string[]): Promise<DisplayUser[]> => {
     const fetchedUsers = (await ListUsersPaged(1, inputValue)).users?.filter(user => !exclude.includes(user.id)) ?? [];
-    return fetchedUsers.map(user => ({ ...user, name: user.username })); // assign name property so that it can be found in the selection box
+    return fetchedUsers.map(user => ({ ...user, name: user.email })); // assign name property so that it can be found in the selection box
 };
 
 /**
@@ -355,7 +355,7 @@ export function SelectUserDropdown({onChangeAction = () => {}, className, select
             )}
             renderSelectedItem={(user: User, onDelete) => (
                 <div className="flex items-center justify-between w-full overflow-x-auto">
-                    <span>{user.username}</span>
+                    <span>{user.email}</span>
                     <Button onClick={() => onDelete(user.id)} size="sm" className="ml-2 cursor-pointer" type="button">
                         Delete
                     </Button>
@@ -392,7 +392,7 @@ export function AddUserDropdown({onChangeAction = () => {}, className, selectMul
             )}
             renderSelectedItem={(user: User, onDelete) => (
                 <div className="flex items-center justify-between w-full overflow-x-auto">
-                    <span>{user.username}</span>
+                    <span>{user.email}</span>
                     <Button onClick={() => onDelete(user.id)} size="sm" className="ml-2 cursor-pointer" type="button">
                         Delete
                     </Button>
