@@ -62,7 +62,7 @@ public class RAGManger
             // Initialize chunks collection with the provided metadata chunk
             List<string> chunks = [$"{chunk}",];
 
-            // STEP 1: Document Text Extraction
+            // * STEP 1: Document Text Extraction
             // Extract text from the document using Azure Document Intelligence service
             _logger.Information("Extracting text from the document for resource ID: {Id}", id);
 
@@ -88,7 +88,7 @@ public class RAGManger
                     return;
                 }
 
-                // STEP 2: Text Chunking
+                // * STEP 2: Text Chunking
                 // Split the extracted text into smaller chunks suitable for embedding generation
                 chunks.AddRange(_ragSystem.Toolbox.SplitTextIntoChunks(extractedText, false, markdownSplit: true));
 
@@ -96,13 +96,13 @@ public class RAGManger
             }
 
 
-            // STEP 3 & 4: Vector Embedding Generation and Storage
+            // * STEP 3 & 4: Vector Embedding Generation and Storage
             // Generate embeddings for each chunk and store them in the vector database
             _logger.Information("Generating vector embeddings and storing {ChunkCount} chunks for resource ID: {Id}", chunks.Count, id);
             await _ragSystem.CreatePoints(id, chunks);
 
 
-            // STEP 5: AI Tag Generation
+            // * STEP 5: AI Tag Generation
             // Generate contextual tags based on the processed document content
             _logger.Information("Initiating AI tag generation for resource ID: {Id}", id);
             await GenerateTagsAsync(id.ToString());
@@ -141,6 +141,24 @@ public class RAGManger
     }
 
 
+
+    /// <summary>
+    /// Generates AI-powered tags for a resource by analyzing its content chunks using vector search and natural language processing.
+    /// </summary>
+    /// <param name="id">The unique identifier of the resource for which to generate tags.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a list of generated tags in lowercase format.</returns>
+    /// <remarks>
+    /// This method performs the following operations:
+    /// 1. Queries the vector database in batches to retrieve content chunks associated with the resource
+    /// 2. Uses AI chat completion with structured JSON output to extract relevant tags from the content
+    /// 3. Accumulates unique tags across all content chunks, normalizing them to lowercase
+    /// 4. Persists the generated tags to the database within a transaction
+    /// 5. Returns the complete list of generated tags
+    /// 
+    /// The method uses pagination to process large datasets efficiently and ensures data consistency
+    /// through database transactions with proper rollback handling on errors.
+    /// </remarks>
+    /// <exception cref="Exception">Thrown when an error occurs during database operations while saving the generated tags.</exception>
     public async Task<List<string>> GenerateTagsAsync(string id)
     {
         // If no existing tags, proceed to generate new tags
@@ -242,41 +260,59 @@ public class RAGManger
 
 
 
+    /// <summary>
+    /// Generates a descriptive title for a chat conversation based on the provided query.
+    /// </summary>
+    /// <param name="query">The user query or message content to generate a title from.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation. The task result contains a string 
+    /// representing the generated chat title, or "Untitled Chat" if title generation fails.
+    /// </returns>
+    /// <remarks>
+    /// This method uses AI chat completion with structured JSON output to generate meaningful 
+    /// titles from user queries. It utilizes predefined prompts and JSON schema validation 
+    /// to ensure consistent output format.
+    /// </remarks>
+    /// <exception cref="Exception">
+    /// May throw exceptions related to AI service communication or JSON deserialization failures.
+    /// </exception>
     public async Task<string> GenerateChatTitleAsync(string query)
     {
         _logger.Information("Generating chat title");
 
-        // Prepare the data for the template
-        var data = new { query };
-        string result = Prompts.ChatTitleTemplate(data);
-
-
-        ChatCompletionOptions options = new ChatCompletionOptions()
+        try
         {
-            ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat("TitleExtraction", BinaryData.FromString(Prompts.ChatTitleOutputJsonSchema))
-        };
+            var templateData = new { query };
+            string promptContent = Prompts.ChatTitleTemplate(templateData);
 
+            var options = new ChatCompletionOptions
+            {
+                ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat("TitleExtraction", BinaryData.FromString(Prompts.ChatTitleOutputJsonSchema))
+            };
 
-        List<ChatMessage> chat =
-        [
-            new SystemChatMessage(Prompts.SystemPromptGenerateTitle),
-            new UserChatMessage(result)
-        ];
+            var messages = new List<ChatMessage>
+            {
+                new SystemChatMessage(Prompts.SystemPromptGenerateTitle),
+                new UserChatMessage(promptContent)
+            };
 
-        // Get a completion with structured output
-        var response = await _ragSystem.ChatClient.CompleteChatAsync(chat, options);
+            var response = await _ragSystem.ChatClient.CompleteChatAsync(messages, options);
+            var jsonResponse = response.Value.Content[0].Text;
+            var titleGeneration = JsonSerializer.Deserialize<TitleGeneration>(jsonResponse);
 
-        var jsonOutput = response.Value.Content[0].Text;
-        var tagsExtraction = JsonSerializer.Deserialize<TitleGeneration>(jsonOutput);
-        if (tagsExtraction == null || tagsExtraction.Title == null)
+            if (titleGeneration?.Title == null)
+            {
+                _logger.Warning("Failed to generate chat title from response: {Response}", jsonResponse);
+                return "Untitled Chat";
+            }
+
+            _logger.Information("Successfully generated chat title");
+            return titleGeneration.Title;
+        }
+        catch (Exception ex)
         {
-            _logger.Error("Failed to generate chat title from the response: {Response}", jsonOutput);
+            _logger.Error(ex, "Error occurred while generating chat title");
             return "Untitled Chat";
         }
-
-        _logger.Information("Generated chat title successfully");
-        // Return the generated title
-        return tagsExtraction.Title;
     }
 }
-
