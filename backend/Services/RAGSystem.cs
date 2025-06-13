@@ -21,78 +21,82 @@ public enum ChunkType { ContentText, MetaData }
 
 public class RAGSystem
 {
-    // Constants:
-    public const string COLLECTION_NAME = "Knowledgebank";
-    public const int EMBEDDING_DIMENSIONS = 3072;
 
 
     // Dependencies:
     private readonly Serilog.ILogger _logger;
+    private readonly EnvironmentConfig _environmentConfig;
+
     public Tools Toolbox { get; private set; }
 
 
+
     // RAG System components:
+
+
     public QdrantClient QdrantClient { get; private set; }
+    public ulong EmbeddingsDimensions { get; private set; }
+    public string CollectionName { get; private set; }
+
+
+
+    public DocumentIntelligenceClient DocumentIntelligenceClient { get; private set; }
     public EmbeddingsClient EmbeddingsClient { get; private set; }
 
-
-
     // chat
-    public ChatCompletionsClient ChatCompletionsClient { get; private set; }
     public AzureOpenAIClient AzureOpenAIClient { get; private set; }
     public ChatClient ChatClient { get; private set; }
-    public DocumentIntelligenceClient DocumentIntelligenceClient { get; private set; }
-
 
 
     public RAGSystem(IAzureBlobService blobService, EnvironmentConfig environmentConfig)
     {
         _logger = Log.ForContext<RAGSystem>();
         Toolbox = new Tools();
-
+        _environmentConfig = environmentConfig;
 
         // *************** RAF System Initialization ***************
         _logger.Information("Initializing RAG system");
 
+
+        // * Qdrant (Vector Database) Initialization
+        EmbeddingsDimensions = ulong.Parse(_environmentConfig.GetVariableValue(EnvironmentVariable.QDRANT_EMBEDDINGS_DIMENSIONS));
+        CollectionName = _environmentConfig.GetVariableValue(EnvironmentVariable.QDRANT_COLLECTION_NAME);
+
         QdrantClient = new QdrantClient(
-            host: "qdrant",
-            port: 6334,
-            https: false,
-            apiKey: null // No API key needed for local Qdrant      
+            host: _environmentConfig.GetVariableValue(EnvironmentVariable.QDRANT_HOST),
+            https: bool.Parse(_environmentConfig.GetVariableValue(EnvironmentVariable.QDRANT_HTTPS)),
+            apiKey: string.IsNullOrEmpty(_environmentConfig.GetVariableValue(EnvironmentVariable.QDRANT_API_KEY))
+            ? null
+            : _environmentConfig.GetVariableValue(EnvironmentVariable.QDRANT_API_KEY)
         );
         _logger.Information("Qdrant client successfully initialized with host: {Host}, port: {Port}", "qdrant", 6334);
 
         // Ensure the Qdrant collection exists
         InitializeCollectionAsync().GetAwaiter().GetResult();
-        _logger.Information("Qdrant collection {CollectionName} checked and initialized if necessary", COLLECTION_NAME);
+        _logger.Information("Qdrant collection {CollectionName} checked and initialized if necessary", CollectionName);
 
         // Ensure the payload fields are indexed
         IndexPayloadFieldsAsync().GetAwaiter().GetResult();
 
 
-        // Embeddings
-        Uri embeddingsEndpoint = new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_CLIENT_ENDPOINT));
-        AzureKeyCredential embeddingsKeyCredential = new AzureKeyCredential(environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_CLIENT_API_KEY));
-        EmbeddingsClient = new EmbeddingsClient(embeddingsEndpoint, embeddingsKeyCredential);
-        _logger.Information("Embeddings client successfully initialized");
-
         // Document Intelligence 
-        AzureKeyCredential credential = new AzureKeyCredential(environmentConfig.GetVariableValue(EnvironmentVariable.DOCUMENT_INTELLIGENCE_CLIENT_API_KEY));
-        DocumentIntelligenceClient = new DocumentIntelligenceClient(new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.DOCUMENT_INTELLIGENCE_CLIENT_ENDPOINT)), credential);
+        AzureKeyCredential credential = new AzureKeyCredential(_environmentConfig.GetVariableValue(EnvironmentVariable.DOCUMENT_INTELLIGENCE_CLIENT_API_KEY));
+        DocumentIntelligenceClient = new DocumentIntelligenceClient(new Uri(_environmentConfig.GetVariableValue(EnvironmentVariable.DOCUMENT_INTELLIGENCE_CLIENT_ENDPOINT)), credential);
 
 
         // Chat Completions - Azure OpenAI
-        Uri azureOpenAiEndpoint = new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.AZURE_OPENAI_CLIENT_ENDPOINT));
-        ApiKeyCredential azureOpenAiApiKeyCredential = new ApiKeyCredential(environmentConfig.GetVariableValue(EnvironmentVariable.AZURE_OPENAI_CLIENT_API_KEY));
+        Uri azureOpenAiEndpoint = new Uri(_environmentConfig.GetVariableValue(EnvironmentVariable.AZURE_OPENAI_CLIENT_ENDPOINT));
+        ApiKeyCredential azureOpenAiApiKeyCredential = new ApiKeyCredential(_environmentConfig.GetVariableValue(EnvironmentVariable.AZURE_OPENAI_CLIENT_API_KEY));
         AzureOpenAIClient = new AzureOpenAIClient(azureOpenAiEndpoint, azureOpenAiApiKeyCredential);
-        ChatClient = AzureOpenAIClient.GetChatClient("gpt-4.1");
+        ChatClient = AzureOpenAIClient.GetChatClient(_environmentConfig.GetVariableValue(EnvironmentVariable.CHAT_DEPLOYMENT_NAME));
         _logger.Information("Azure OpenAI client successfully initialized");
 
-        // Chat Completions - OpenAI
-        Uri chatCompletionsEndpoint = new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.CHAT_COMPLETIONS_CLIENT_ENDPOINT));
-        AzureKeyCredential chatCompletionsApiKeyCredential = new AzureKeyCredential(environmentConfig.GetVariableValue(EnvironmentVariable.CHAT_COMPLETIONS_CLIENT_API_KEY));
-        ChatCompletionsClient = new ChatCompletionsClient(chatCompletionsEndpoint, chatCompletionsApiKeyCredential);
-        _logger.Information("Chat completions client successfully initialized");
+
+        // Embeddings
+        Uri embeddingsEndpoint = new Uri(_environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_CLIENT_ENDPOINT));
+        AzureKeyCredential embeddingsKeyCredential = new AzureKeyCredential(_environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_CLIENT_API_KEY));
+        EmbeddingsClient = new EmbeddingsClient(embeddingsEndpoint, embeddingsKeyCredential);
+        _logger.Information("Embeddings client successfully initialized");
 
         _logger.Information("RAG system successfully initialized");
     }
@@ -105,11 +109,11 @@ public class RAGSystem
     /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task InitializeCollectionAsync()
     {
-        bool exists = await QdrantClient.CollectionExistsAsync(COLLECTION_NAME);
+        bool exists = await QdrantClient.CollectionExistsAsync(CollectionName);
 
         if (!exists)
         {
-            _logger.Information("Collection {CollectionName} does not exist. Creating it now.", COLLECTION_NAME);
+            _logger.Information("Collection {CollectionName} does not exist. Creating it now.", CollectionName);
 
             // Configration:
             StrictModeConfig strictModeConfig = new StrictModeConfig
@@ -120,7 +124,7 @@ public class RAGSystem
 
             VectorParams vectorParams = new VectorParams
             {
-                Size = EMBEDDING_DIMENSIONS,
+                Size = EmbeddingsDimensions,
                 Distance = Distance.Cosine,
                 HnswConfig = new HnswConfigDiff
                 {
@@ -131,27 +135,27 @@ public class RAGSystem
             };
 
             await QdrantClient.CreateCollectionAsync(
-                collectionName: COLLECTION_NAME,
+                collectionName: CollectionName,
                 strictModeConfig: strictModeConfig,
                 vectorsConfig: vectorParams
             );
         }
         else
         {
-            _logger.Information("Collection {CollectionName} already exists. No action taken.", COLLECTION_NAME);
+            _logger.Information("Collection {CollectionName} already exists. No action taken.", CollectionName);
         }
     }
 
     public async Task IndexPayloadFieldsAsync()
     {
         await QdrantClient.CreatePayloadIndexAsync(
-            collectionName: COLLECTION_NAME,
+            collectionName: CollectionName,
             fieldName: "resourceId"
         );
 
         // Full text index for chunkText
         await QdrantClient.CreatePayloadIndexAsync(
-            collectionName: COLLECTION_NAME,
+            collectionName: CollectionName,
             fieldName: "chunkText",
             schemaType: PayloadSchemaType.Text,
             indexParams: new PayloadIndexParams
@@ -221,14 +225,14 @@ public class RAGSystem
 
                 PointStruct point = new PointStruct();
                 point.Id = Guid.NewGuid();
-                point.Vectors = new float[EMBEDDING_DIMENSIONS]; // Placeholder for empty vector
+                point.Vectors = new float[EmbeddingsDimensions]; // Placeholder for empty vector
                 point.Payload.Add(customPayload.ToPayload());
 
                 pointsList.Add(point);
             }
         }
 
-        await QdrantClient.UpsertAsync(COLLECTION_NAME, pointsList);
+        await QdrantClient.UpsertAsync(CollectionName, pointsList);
     }
 
     public async Task<float[]> GenerateEmbedding(string query)
@@ -239,7 +243,13 @@ public class RAGSystem
             throw new ArgumentException("Query cannot be null or empty.", nameof(query));
         }
 
-        EmbeddingsOptions requestOptions = new EmbeddingsOptions(new List<string> { query });
+
+        EmbeddingsOptions requestOptions = new EmbeddingsOptions([query])
+        {
+            Model = _environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_MODEL_NAME),
+        };
+
+
         Response<EmbeddingsResult> response = await EmbeddingsClient.EmbedAsync(requestOptions);
 
         float[]? embeddingData = response.Value.Data[0].Embedding.ToObjectFromJson<float[]>();
@@ -248,6 +258,7 @@ public class RAGSystem
             _logger.Warning("Generated embedding is null or empty.");
             throw new InvalidOperationException("Generated embedding is null or empty.");
         }
+        _logger.Information("Successfully generated embedding");
 
         return embeddingData;
     }
@@ -260,8 +271,13 @@ public class RAGSystem
             throw new ArgumentException("Chunks list cannot be null or empty.", nameof(chunks));
         }
 
-        EmbeddingsOptions requestOptions = new EmbeddingsOptions(chunks);
+        EmbeddingsOptions requestOptions = new EmbeddingsOptions(chunks)
+        {
+            Model = _environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_MODEL_NAME),
+        };
+
         Response<EmbeddingsResult> responses = await EmbeddingsClient.EmbedAsync(requestOptions);
+        _logger.Information("Successfully generated embeddings");
 
         return responses;
     }
@@ -284,7 +300,7 @@ public class RAGSystem
 
             // Get the existing point ID
             IReadOnlyList<ScoredPoint> restult = await QdrantClient.QueryAsync(
-                 collectionName: COLLECTION_NAME,
+                 collectionName: CollectionName,
                  filter: MatchKeyword("resourceId", id) & MatchKeyword("chunkType", ChunkType.MetaData.ToString()),
                  limit: 1
             );
@@ -298,12 +314,12 @@ public class RAGSystem
             };
 
             await QdrantClient.UpdateVectorsAsync(
-                collectionName: COLLECTION_NAME,
+                collectionName: CollectionName,
                 points: new List<PointVectors> { pointVectors }
             );
 
             await QdrantClient.OverwritePayloadAsync(
-                collectionName: COLLECTION_NAME,
+                collectionName: CollectionName,
                 payload: new Dictionary<string, Value> { { "chunkText", newChankText } },
                 filter: MatchKeyword("resourceId", id) & MatchKeyword("chunkType", ChunkType.MetaData.ToString())
             );
@@ -324,7 +340,7 @@ public class RAGSystem
         try
         {
             var deleteResult = await QdrantClient.DeleteAsync(
-                collectionName: COLLECTION_NAME,
+                collectionName: CollectionName,
                 filter: MatchKeyword("resourceId", id)
             );
 

@@ -1456,7 +1456,7 @@ namespace KnowledgeBank.Controllers
 
                 // Get vector points for the current resource
                 IReadOnlyList<ScoredPoint> pointsIds = await _ragSystem.QdrantClient.QueryAsync(
-                    RAGSystem.COLLECTION_NAME,
+                    _ragSystem.CollectionName,
                     filter: MatchKeyword("resourceId", id)
                 );
 
@@ -1465,7 +1465,7 @@ namespace KnowledgeBank.Controllers
 
                 // Find related resources using vector similarity
                 IReadOnlyList<PointGroup> results = await _ragSystem.QdrantClient.RecommendGroupsAsync(
-                    RAGSystem.COLLECTION_NAME,
+                    _ragSystem.CollectionName,
                     groupBy: "resourceId",
                     positive: pointsIds.Select(p => p.Id).ToArray(),
                     filter: !MatchKeyword("resourceId", id), // Exclude the current resource

@@ -214,7 +214,7 @@ public class Chat : Hub
         float[] embeddingData = await _ragSystem.GenerateEmbedding(query);
 
         var search = await _ragSystem.QdrantClient.QueryAsync(
-            RAGSystem.COLLECTION_NAME,
+            _ragSystem.CollectionName,
             query: embeddingData,
             limit: 10
         );

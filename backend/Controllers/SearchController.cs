@@ -165,7 +165,7 @@ public class SearchController : ControllerBase
                 float[] embeddingData = await _ragSystem.GenerateEmbedding(query);
 
                 var search = await _ragSystem.QdrantClient.QueryGroupsAsync(
-                    RAGSystem.COLLECTION_NAME,
+                    _ragSystem.CollectionName,
                     groupBy: "resourceId",
                     query: embeddingData,
                     limit: 100,

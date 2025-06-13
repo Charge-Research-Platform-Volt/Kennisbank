@@ -173,7 +173,7 @@ public partial class ResourceManager
 
             // Perform vector search in Qdrant
             searchresults = await _ragSystem.QdrantClient.QueryGroupsAsync(
-                RAGSystem.COLLECTION_NAME,
+                _ragSystem.CollectionName,
                 groupBy: "resourceId",
                 query: embeddingData,
                 limit: 1000,
@@ -186,7 +186,7 @@ public partial class ResourceManager
 
             // If embedding generation fails, fallback to text-based search
             searchresults = await _ragSystem.QdrantClient.QueryGroupsAsync(
-                RAGSystem.COLLECTION_NAME,
+                _ragSystem.CollectionName,
                 groupBy: "resourceId",
                 filter: MatchText("chunkText", search),
                 limit: 1000,

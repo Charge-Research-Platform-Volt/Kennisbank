@@ -160,7 +160,7 @@ public class RAGManger
         {
             // Perform a vector search to retrieve results
             var results = await _ragSystem.QdrantClient.QueryAsync(
-                RAGSystem.COLLECTION_NAME,
+                _ragSystem.CollectionName,
                 filter: MatchKeyword("resourceId", id),
                 limit: limit,
                 offset: offset
