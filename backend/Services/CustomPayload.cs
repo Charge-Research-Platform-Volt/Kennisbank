@@ -10,6 +10,20 @@ namespace KnowledgeBank.Models
         public string ChunkText { get; set; } = string.Empty;
         public int ChunkPart { get; set; }
 
+
+
+        /// <summary>
+        /// Creates a CustomPayload instance from a MapField containing string-Value pairs.
+        /// </summary>
+        /// <param name="payload">A MapField containing the payload data with keys: resourceId, chunkType, chunkText, and chunkPart</param>
+        /// <returns>A new CustomPayload instance populated with values from the payload, using default values for missing keys</returns>
+        /// <remarks>
+        /// Default values are applied when keys are missing:
+        /// - resourceId: empty string
+        /// - chunkType: empty string  
+        /// - chunkText: empty string
+        /// - chunkPart: -1
+        /// </remarks>
         public static CustomPayload FromPayload(MapField<string, Value> payload)
         {
             return new CustomPayload
@@ -21,6 +35,18 @@ namespace KnowledgeBank.Models
             };
         }
 
+
+
+        /// <summary>
+        /// Converts the current object to a dictionary payload format suitable for serialization or API communication.
+        /// </summary>
+        /// <returns>
+        /// A dictionary containing the object's properties as Value objects:
+        /// - "resourceId": String value containing the resource identifier
+        /// - "chunkType": String value indicating the type of chunk
+        /// - "chunkText": String value containing the actual chunk text content
+        /// - "chunkPart": Integer value representing the chunk part number
+        /// </returns>
         public Dictionary<string, Value> ToPayload()
         {
             return new Dictionary<string, Value>
