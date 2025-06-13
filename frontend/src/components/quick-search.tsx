@@ -10,13 +10,13 @@ import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
 import { OctagonAlert } from "lucide-react";
 import GetFileIcon from "./getFileIcon";
-import { openFile } from "@/actions/openFileActions";
 import { useQuickSearch } from "../context/quick-search-provider";
 import Kbd from "./kbd";
 import { Button } from "./ui/button";
 import { GridRequest, GridRequestSchema } from "@/types/gridRequest.type";
 import { ResourceItem, ResourceResponse } from "./archive/resources-grid";
 import { NewApiResponse } from "@/types/apiResponse.type";
+import Link from "next/link";
 
 /**
  *
@@ -141,8 +141,9 @@ export default function QuickSearch({ minimize = false }: { minimize?: boolean }
             {searchResults &&
               searchResults.length > 0 &&
               searchResults.map((file) => (
-                <div
-                  onClick={() => openFile(file.id)}
+                <Link
+                  href={`/archive?id=${file.id}`}
+                  onClick={() => setIsOpen(false)}
                   key={file.id}
                   role="button"
                   className="hover:bg-muted-foreground/20 focus-visible:bg-muted-foreground/20 cursor-pointer rounded-lg bg-transparent p-3 transition-colors outline-none"
@@ -153,7 +154,7 @@ export default function QuickSearch({ minimize = false }: { minimize?: boolean }
                   </div>
 
                   {file.description !== "" && <p className="text-muted-foreground/80 text-sm">{file.description}</p>}
-                </div>
+                </Link>
               ))}
           </div>
         </DialogContent>

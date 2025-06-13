@@ -1,12 +1,12 @@
 import type { Components, ExtraProps } from "react-markdown";
-import type { ComponentProps, ElementType } from "react";
+import type { ComponentProps } from "react";
 import { Heading } from "./heading";
 import { Paragraph } from "./paragraph";
 import { List } from "./list";
 import { HorizontalRule } from "./horizontal-rule";
 import { CodeBlock } from "./code-block";
 import { CodeInline } from "./code-inline";
-import { Link } from "./link";
+import { CustomLink } from "./CustomLink";
 import { TableRow } from "./table-row";
 import { TableCell } from "./table-cell";
 import { Table } from "./table";
@@ -93,9 +93,9 @@ export const components: CustomComponents = {
 
   // Link
   a: ({ children, href = "#", ...props }) => (
-    <Link href={href} {...props}>
+    <CustomLink href={href} {...props}>
       {children}
-    </Link>
+    </CustomLink>
   ),
 
   // Table

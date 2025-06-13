@@ -1,8 +1,10 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import React, { useState } from "react";
+
+// For development purposes, you can enable the React Query Devtools to inspect queries
+// import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 export function TanStackQueryProvider({ children }: { children: React.ReactNode }) {
   // To ensure the QueryClient is only created once per component lifecycle
@@ -21,7 +23,9 @@ export function TanStackQueryProvider({ children }: { children: React.ReactNode 
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <ReactQueryDevtools initialIsOpen={false} />
+
+      {/* For development purposes, you can enable the React Query Devtools to inspect queries */}
+      {/* <ReactQueryDevtools initialIsOpen={false} /> */}
     </QueryClientProvider>
   );
 }
