@@ -454,12 +454,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             }
 
             // Names of creators
-            // new UserResponse(new Guid(user.Id), user.UserName, user.Email, user.EmailConfirmed, roles.FirstOrDefault() ?? "No Role")
             List<UserResponse>? creatorNames = project.ProjectCreatorRelations?.Select(r => new UserResponse(
-                new Guid(r.Creator.Id),
-                r.Creator.UserName,
-                r.Creator.Email,
-                r.Creator.EmailConfirmed,
+                r.Creator!,
                 "No Role")).ToList() ?? [];
             List<Tag?>? tags = project.ProjectTagRelations?.Select(r => r.Tag).ToList() ?? [];
 
