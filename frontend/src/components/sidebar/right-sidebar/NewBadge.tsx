@@ -131,7 +131,7 @@ export default function NewBadge({
     async function handleAddSource() {
         try {
             await addRelation(relation, currentType, currentId, source);
-            onNew(selected as ListItem[]);
+            onNew([{name: source, id: source}] as ListItem[]);
 
             setIsOpen(false);
             setSearchQuery("");
@@ -149,7 +149,7 @@ export default function NewBadge({
             await addRelation("regions", currentType, currentId, addedRegionId);
 
             setIsOpen(false);
-            onNew(selected as ListItem[]);
+            onNew([{id: addedRegionId, name: searchQuery}] as ListItem[]);
             setSearchQuery("");
             setSelected([]);
             setSource("");

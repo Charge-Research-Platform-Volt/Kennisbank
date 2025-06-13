@@ -68,7 +68,7 @@ export function ResourceContent()
             ResourceRegionRelations.Select(new(Region.Id, Region.Name)) as Regions,
             ResourceRelatedPersonRelations.Select(new(Person.Id, Person.Name)) as RelatedPersons,
             ResourceRelatedOrganisationRelations.Select(new(Organisation.Id, Organisation.Name)) as RelatedOrganisations,
-            ResourceSourceRelations.Select(Url) as Sources,
+            ResourceSourceRelations.Select(new(Url as Id, Url as Name)) as Sources,
             ResourceTagRelations.Select(new(Tag.Id, Tag.Name)) as Tags
         `);
             
