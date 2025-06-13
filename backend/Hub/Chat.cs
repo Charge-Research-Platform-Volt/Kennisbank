@@ -12,7 +12,6 @@ using SignalRSwaggerGen.Attributes;
 
 namespace Hubs;
 
-
 [SignalRHub]
 [Authorize]
 public class Chat : Hub
@@ -31,97 +30,217 @@ public class Chat : Hub
     }
 
 
-    public async Task<Guid> CreateChat(string message)
-    {
-        _logger.Information("Creating new chat");
-        string title = await _ragManager.GenerateChatTitleAsync(message);
-        ChatsCreateDto chat = new ChatsCreateDto
-        {
-            UserId = Guid.Parse(Context.UserIdentifier!),
-            Title = title,
-        };
-
-        Guid chatSessionId = await _resourceManager.CreateChatAsync(chat);
-        _logger.Information("New chat created successfully");
-
-        return chatSessionId;
-    }
 
     /// <summary>
-    /// Streams an AI-generated response to the client based on the given message.
+    /// Creates a new chat session with an AI-generated title based on the initial message.
     /// </summary>
-    /// <param name="message">The user message to which the AI will respond.</param>
-    /// <param name="contentBased">
-    /// Determines the response type:
-    /// - If true, streams a content-based response using knowledge base data.
-    /// - If false, streams a standard AI response without additional knowledge.
-    /// </param>
-    /// <param name="chatId">The ID of the chat session to which the message belongs.</param>
-    /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
-    /// <returns>An asynchronous enumerable of string chunks representing the streamed AI response.</returns>
+    /// <param name="message">The initial message used to generate the chat title.</param>
+    /// <returns>The unique identifier of the newly created chat session.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the user identifier is not available.</exception>
+    /// <exception cref="ArgumentException">Thrown when the message is null or whitespace.</exception>
+    public async Task<Guid> CreateChat(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            _logger.Warning("Attempt to create chat with empty message from {UserIdentifier}", Context.UserIdentifier);
+            throw new ArgumentException("Message cannot be null or empty.", nameof(message));
+        }
+
+        if (string.IsNullOrEmpty(Context.UserIdentifier))
+        {
+            _logger.Error("User identifier is not available for chat creation");
+            throw new InvalidOperationException("User identifier is required to create a chat.");
+        }
+
+        _logger.Information("Creating new chat for user {UserIdentifier}", Context.UserIdentifier);
+
+        try
+        {
+            string title = await _ragManager.GenerateChatTitleAsync(message);
+
+            ChatsCreateDto chat = new ChatsCreateDto
+            {
+                UserId = Guid.Parse(Context.UserIdentifier),
+                Title = title,
+            };
+
+            Guid chatSessionId = await _resourceManager.CreateChatAsync(chat);
+
+            _logger.Information("Chat created successfully with ID {ChatId} for user {UserIdentifier}", chatSessionId, Context.UserIdentifier);
+
+            return chatSessionId;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to create chat for user {UserIdentifier}", Context.UserIdentifier);
+            throw;
+        }
+    }
+
+
+
+    /// <summary>
+    /// Streams an AI response asynchronously for a given message within a chat session.
+    /// </summary>
+    /// <param name="message">The user message to process. Must not be null or whitespace.</param>
+    /// <param name="contentBased">Indicates whether the response should be content-based.</param>
+    /// <param name="chatId">The unique identifier of the chat session. Must be a valid ID format.</param>
+    /// <param name="cancellationToken">Token to cancel the streaming operation.</param>
+    /// <returns>An async enumerable of string chunks representing the streamed AI response.</returns>
     /// <remarks>
-    /// The method logs the start and completion of the streaming process.
-    /// If the input message is empty or whitespace, the method yields no results and logs a warning.
+    /// This method performs the following operations:
+    /// 1. Validates input parameters (message and chatId)
+    /// 2. Loads existing chat history for the session
+    /// 3. Saves the user message to the database
+    /// 4. Streams the AI response in real-time chunks
+    /// 5. Saves the complete AI response to the database
+    /// 
+    /// The method will terminate early (yield break) if:
+    /// - The message is null or whitespace
+    /// - The chatId is invalid
+    /// - Chat history cannot be loaded
+    /// - The user message cannot be saved
     /// </remarks>
     public async IAsyncEnumerable<string> StreamAiResponse(
-            string message,
-            bool contentBased,
-            string chatId,
-            [EnumeratorCancellation] CancellationToken cancellationToken)
+        string message,
+        bool contentBased,
+        string chatId,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         _logger.Information("Streaming AI response for {UserIdentifier}", Context.UserIdentifier);
 
-        // Validate the input message
+
+        // Validate the inputs
         if (string.IsNullOrWhiteSpace(message))
         {
             _logger.Warning("Received empty message from {UserIdentifier}", Context.UserIdentifier);
             yield break;
         }
 
-        // Validate the chat session ID
         if (!ValidityUtil.IsValidId(chatId))
         {
             _logger.Error("Invalid chat session ID: {ChatId}", chatId);
             yield break;
         }
 
-        // Load chat messages from the database
-        List<ChatMessage> chatHistory = new List<ChatMessage>();
+
+        // Load the chat history
+        List<ChatMessage>? chatHistory = await LoadChatHistoryAsync(chatId);
+        if (chatHistory == null) yield break;
+
+        // Save the user message to the database
+        bool savedMessage = await SaveUserMessageAsync(message, chatId);
+        if (!savedMessage) yield break;
+
+
+        var response = new StringBuilder();
+
+
+        // Generate the AI response
+        await foreach (var content in GetAiResponseStream(message, contentBased, chatHistory, cancellationToken))
+        {
+            response.Append(content);
+            yield return content;
+        }
+
+
+        // Save the AI response to the database
+        bool savedResponse = await SaveAiResponseAsync(response.ToString(), chatId);
+        if (!savedResponse) yield break;
+
+        _logger.Information("Finished streaming AI response to {UserIdentifier}", Context.UserIdentifier);
+    }
+
+
+    /// <summary>
+    /// Asynchronously loads the chat history for a specific chat by its ID.
+    /// </summary>
+    /// <param name="chatId">The unique identifier of the chat to load history for.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation. The task result contains:
+    /// - A list of <see cref="ChatMessage"/> objects representing the chat history if successful and authorized.
+    /// - <c>null</c> if the chat is not found, the user is not authorized to access it, or an error occurs.
+    /// </returns>
+    /// <remarks>
+    /// This method performs authorization checks to ensure the requesting user owns the chat.
+    /// Any exceptions during the operation are logged and the method returns <c>null</c>.
+    /// </remarks>
+    private async Task<List<ChatMessage>?> LoadChatHistoryAsync(string chatId)
+    {
         try
         {
-            var chatMessages = await _resourceManager.GetChatAsync(c => c.Id == Guid.Parse(chatId), includeProperties: "Messages");
+            Chats? chatMessages = await _resourceManager.GetChatAsync(c => c.Id == Guid.Parse(chatId), includeProperties: "Messages");
+
             if (chatMessages == null || chatMessages.UserId != Guid.Parse(Context.UserIdentifier!))
             {
                 _logger.Warning("Chat with ID {ChatId} not found or user not authorized", chatId);
-                yield break;
+                return null;
             }
 
-            foreach (var messageItem in chatMessages.Messages)
-            {
-                if (messageItem.MessageRole == MessageRole.User.ToString())
-                {
-                    chatHistory.Add(new UserChatMessage(messageItem.Content));
-                }
-                else if (messageItem.MessageRole == MessageRole.Assistant.ToString())
-                {
-                    chatHistory.Add(new AssistantChatMessage(messageItem.Content));
-                }
-                else
-                {
-                    _logger.Warning("Unknown message role {MessageRole} in chat {ChatId}", messageItem.MessageRole, chatId);
-                }
-            }
-
+            return BuildChatHistory(chatMessages.Messages, chatId);
         }
         catch (Exception ex)
         {
             _logger.Error(ex, "Failed to load messages for chat {ChatId}", chatId);
-            yield break;
+            return null;
+        }
+    }
+
+
+    /// <summary>
+    /// Builds a list of chat messages from a collection of dynamic message objects.
+    /// </summary>
+    /// <param name="messages">The collection of dynamic message objects to convert into ChatMessage instances.</param>
+    /// <param name="chatId">The unique identifier of the chat, used for logging purposes.</param>
+    /// <returns>A list of ChatMessage objects representing the chat history. Unknown message roles are filtered out.</returns>
+    /// <remarks>
+    /// This method converts dynamic message objects into strongly typed ChatMessage instances based on their MessageRole property.
+    /// Supported roles are User and Assistant. Messages with unknown roles are logged as warnings and excluded from the result.
+    /// </remarks>
+    private List<ChatMessage> BuildChatHistory(IEnumerable<dynamic> messages, string chatId)
+    {
+        var chatHistory = new List<ChatMessage>();
+
+        foreach (var messageItem in messages)
+        {
+            ChatMessage? chatMessage = messageItem.MessageRole switch
+            {
+                var role when role == MessageRole.User.ToString() => new UserChatMessage(messageItem.Content),
+                var role when role == MessageRole.Assistant.ToString() => new AssistantChatMessage(messageItem.Content),
+                _ => null
+            };
+
+            if (chatMessage != null)
+            {
+                chatHistory.Add(chatMessage);
+            }
+            else
+            {
+                _logger.Warning("Unknown message role {MessageRole} in chat {ChatId}", messageItem.MessageRole, chatId);
+            }
         }
 
+        return chatHistory;
+    }
 
 
-        // Save the user message to the database
+
+    /// <summary>
+    /// Asynchronously saves a user message to the specified chat.
+    /// </summary>
+    /// <param name="message">The content of the message to be saved.</param>
+    /// <param name="chatId">The unique identifier of the chat where the message will be saved.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation. The task result contains a boolean value:
+    /// <c>true</c> if the message was saved successfully; otherwise, <c>false</c>.
+    /// </returns>
+    /// <remarks>
+    /// This method creates a <see cref="MessagesCreateDto"/> object with the user's message details,
+    /// including the sender ID from the current context, chat ID, message role as User, and message content.
+    /// Any exceptions during the save operation are logged and the method returns <c>false</c>.
+    /// </remarks>
+    private async Task<bool> SaveUserMessageAsync(string message, string chatId)
+    {
         try
         {
             MessagesCreateDto messageDto = new MessagesCreateDto
@@ -134,56 +253,81 @@ public class Chat : Hub
 
             await _resourceManager.CreateMessageAsync(messageDto);
             _logger.Information("User message saved successfully for chat {ChatId}", chatId);
+            return true;
         }
         catch (Exception ex)
         {
             _logger.Error(ex, "Failed to save user message for chat {ChatId}", chatId);
-            yield break;
+            return false;
         }
+    }
 
 
-        StringBuilder response = new StringBuilder();
+
+    /// <summary>
+    /// Asynchronously streams AI response content based on the specified mode.
+    /// </summary>
+    /// <param name="message">The user message to process.</param>
+    /// <param name="contentBased">Indicates whether to use content-based AI response (true) or standard AI response (false).</param>
+    /// <param name="chatHistory">The list of previous chat messages for context.</param>
+    /// <param name="cancellationToken">Token to cancel the asynchronous operation.</param>
+    /// <returns>An asynchronous enumerable of string content chunks from the AI response stream.</returns>
+    private async IAsyncEnumerable<string> GetAiResponseStream(
+        string message,
+        bool contentBased,
+        List<ChatMessage> chatHistory,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
         if (contentBased)
         {
-            // Use content-based AI response
             await foreach (var content in StreamContentBasedAiResponse(message, chatHistory, cancellationToken))
             {
-                response.Append(content);
                 yield return content;
             }
         }
         else
         {
-            // Use standard AI response
             await foreach (var content in StreamStandardAiResponse(message, chatHistory, cancellationToken))
             {
-                response.Append(content);
                 yield return content;
             }
         }
+    }
 
-        // Save the AI response to the database
-        if (response.Length > 0)
+
+
+    /// <summary>
+    /// Saves an AI assistant response message to the specified chat asynchronously.
+    /// </summary>
+    /// <param name="response">The AI response content to save. If null or empty, the operation will return false.</param>
+    /// <param name="chatId">The unique identifier of the chat where the message will be saved.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation. The task result contains a boolean value:
+    /// true if the AI response was saved successfully; otherwise, false.
+    /// </returns>
+    private async Task<bool> SaveAiResponseAsync(string response, string chatId)
+    {
+        if (string.IsNullOrEmpty(response)) return false;
+
+        try
         {
-            try
+            var aiMessage = new MessagesCreateDto
             {
-                MessagesCreateDto aiMessage = new MessagesCreateDto
-                {
-                    SenderId = Guid.Parse(Context.UserIdentifier!),
-                    ChatId = Guid.Parse(chatId),
-                    MessageRole = MessageRole.Assistant.ToString(),
-                    Content = response.ToString()
-                };
-                await _resourceManager.CreateMessageAsync(aiMessage);
-                _logger.Information("AI response saved successfully for chat {ChatId}", chatId);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(ex, "Failed to save AI response for chat {ChatId}", chatId);
-            }
-        }
+                SenderId = Guid.Parse(Context.UserIdentifier!),
+                ChatId = Guid.Parse(chatId),
+                MessageRole = MessageRole.Assistant.ToString(),
+                Content = response
+            };
 
-        _logger.Information("Finished streaming AI response to {UserIdentifier}", Context.UserIdentifier);
+            await _resourceManager.CreateMessageAsync(aiMessage);
+            _logger.Information("AI response saved successfully for chat {ChatId}", chatId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to save AI response for chat {ChatId}", chatId);
+            return false;
+        }
     }
 
 
@@ -251,7 +395,6 @@ public class Chat : Hub
             yield break;
         }
 
-
         await foreach (StreamingChatCompletionUpdate update in responseStreaming)
         {
             foreach (ChatMessageContentPart updatePart in update.ContentUpdate)
@@ -308,7 +451,6 @@ public class Chat : Hub
             _logger.Error(ex, "Error while getting streaming response for {UserIdentifier}", Context.UserIdentifier);
             yield break;
         }
-
 
         await foreach (StreamingChatCompletionUpdate update in response)
         {
