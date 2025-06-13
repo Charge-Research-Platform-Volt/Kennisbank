@@ -8,10 +8,11 @@ import { ResourceContent } from "./ResourceContent";
 import { PersonContent } from "./PersonContent";
 import { OrganisationContent } from "./OrganisationContent";
 import { Button } from "@/components/ui/button";
-import { openFile } from "@/actions/openFileActions";
 import HideMenu from "@/icons/menu/hide-menu";
 import { Calendar, Clock } from "lucide-react";
 import ShowDate from './showDate';
+import { getProperty } from "@/actions/right-sidebarActions";
+import { handleOpenFile } from "@/actions/openFileActionsClient";
 
 /**
  *
@@ -21,16 +22,15 @@ export default function RightSidebar()
 {
   	const { currentType, creationDate, publicationDate, currentId, navigateBack, navigateForward, setRightSidebarOpen, isEmptyPrevs, isEmptyNexts } = useSidebar();
 
-	const handleOpenClick = () => 
-	{
-		const str = openFile(currentId);
+	const [isLoading, setLoading] = React.useState<boolean>(false);
+	const [fileType, setFileType] = React.useState<string | null>(null);
 
-		str.then(response => {
-			
-		if (response != undefined) {
-			window.open(response, "_blank");
-		}
-	}).catch();
+
+	const handleOpenClick = async () => 
+	{
+		setLoading(true);
+		await handleOpenFile(currentId, fileType as string)
+		setLoading(false);
 	}
 
 	
@@ -42,7 +42,7 @@ export default function RightSidebar()
 				{/* Hide menu button */}
 				<Button data-testid="sidebar_hide" variant="outline" size="icon" onClick={() => { setRightSidebarOpen(false); }}><HideMenu flip={true} /></Button>
 			
-				<Button variant="outline" onClick={handleOpenClick} disabled={currentType === MetadataTypeEnum.RESOURCE ? false : true} className="flex-1">Download</Button>
+				<Button variant="outline" onClick={handleOpenClick} disabled={(!isLoading) && (fileType) && currentType === MetadataTypeEnum.RESOURCE ? false : true} className="flex-1">Download</Button>
 				
 				<div className="flex justify-center space-x-2">
 					<Button variant="outline" onClick={navigateBack} className="w-[8rem]" disabled={isEmptyPrevs()}>Previous</Button>
@@ -57,7 +57,7 @@ export default function RightSidebar()
 				    switch (currentType) 
 				    {
 				        case MetadataTypeEnum.RESOURCE:
-							return <ResourceContent />
+							return <ResourceContent fileType={fileType} setFileType={setFileType}  />
 						case MetadataTypeEnum.PERSON:
 							return <PersonContent />
 						case MetadataTypeEnum.ORGANISATION:

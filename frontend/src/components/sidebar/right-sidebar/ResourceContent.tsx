@@ -18,15 +18,20 @@ import Edit from "./Edit";
 import { TrashResource } from "@/actions/trashResourceActions"
 import { Badge } from "@/components/ui/badge";
 
+interface ResourceContentProps {
+  fileType: string | null;
+  setFileType: (type: string | null) => void;
+}
 
-export function ResourceContent()
+export function ResourceContent(
+    {fileType, setFileType }: ResourceContentProps
+)
 {
     const { currentId, rightSidebarOpen, setRightSidebarOpen, setCreationDate, setPublicationDate } = useSidebar();
     const { userRole } = useUserRole();
     const { triggerGridReload, trashOpen } = useArchive();
     const [confirmDialogOpen, setConfirmDialogOpen] = React.useState<boolean>(false);
 
-    const [ fileType, setFileType] = React.useState<string | null>(null);
     const [ title, setTitle ] = React.useState<string | null>(null);
     const [ url, setUrl ] = React.useState<string | undefined>(undefined);
     const [ description, setDescription ] = React.useState<string | null>(null);

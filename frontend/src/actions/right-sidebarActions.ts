@@ -21,6 +21,38 @@ export type personRelation = "authored-resources" | "related-resources" | "perso
 // declare relation types for organisations
 export type organisationRelation = "direct-resources" | "related-resources"| "organisation-related-organisations" | "persons";
 
+export const getProperty = async (
+    id: string,
+    type: string,
+    property: string,
+) : Promise<ApiResponse> => {
+
+    let endPoint;
+
+    if (type === "resource") {endPoint = "resources/info"}
+    else if (type === "person") {endPoint = "persons/info"}
+    else if (type === "organisation") {endPoint = "organisations/info"}
+
+    const cookieHeader : ReadonlyRequestCookies = await cookies();
+    const response = await fetch(
+        `${process.env.API_URL}/${endPoint}/${id}?properties=${encodeURIComponent(property)}`,
+        {
+            method: "GET",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
+        },
+    );
+
+    if (!response.ok) {
+        throw new Error(`Problem with getting property: ${property}`);
+    }
+    
+    const rawData = await response.json();
+    const data = ApiResponseSchema.parse(rawData);
+    return data;
+ }
+ 
+
 export const getProperties = async (
     id: string,
     type: string,
@@ -50,6 +82,7 @@ export const getProperties = async (
     const data = ApiResponseSchema.parse(rawData);
     return data;
 }
+
 
 export const getRelation = async (
     id: string,
