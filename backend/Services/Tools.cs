@@ -9,10 +9,6 @@ namespace KnowledgeBank.Services;
 
 #pragma warning disable SKEXP0050, SKEXP0001 // 'Microsoft.SemanticKernel.Text.TextChunker' is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.SKEXP0050
 
-
-
-
-
 public class Tools
 {
     private readonly Serilog.ILogger _logger;

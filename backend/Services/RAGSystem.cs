@@ -72,12 +72,12 @@ public class RAGSystem
         EmbeddingsDimensions = ulong.Parse(_environmentConfig.GetVariableValue(EnvironmentVariable.QDRANT_EMBEDDINGS_DIMENSIONS));
         CollectionName = _environmentConfig.GetVariableValue(EnvironmentVariable.QDRANT_COLLECTION_NAME);
 
+        string qdrantApiKey = _environmentConfig.GetVariableValue(EnvironmentVariable.QDRANT_API_KEY);
+
         QdrantClient = new QdrantClient(
             host: _environmentConfig.GetVariableValue(EnvironmentVariable.QDRANT_HOST),
             https: bool.Parse(_environmentConfig.GetVariableValue(EnvironmentVariable.QDRANT_HTTPS)),
-            apiKey: string.IsNullOrEmpty(_environmentConfig.GetVariableValue(EnvironmentVariable.QDRANT_API_KEY))
-            ? null
-            : _environmentConfig.GetVariableValue(EnvironmentVariable.QDRANT_API_KEY)
+            apiKey: qdrantApiKey.Equals("null", StringComparison.OrdinalIgnoreCase) ? null : qdrantApiKey
         );
         _logger.Information("Qdrant client successfully initialized with host: {Host}, port: {Port}", "qdrant", 6334);
 

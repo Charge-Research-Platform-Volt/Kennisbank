@@ -26,15 +26,18 @@ Instructions:
 - English is the preferred language for responses.
 - Be concise, accurate, and directly address the question.
 - Be aware that the question may refer to chat history, so consider it when formulating your answer.
-- For each fact or claim, include a citation in the format: [Source Number](Source Link). Source Number corresponds to the link, two sources with the same link should have the same number.
 - If the information does not answer the question, state that explicitly and do not include any citations.
-- Links will be provided in the format like this: archive/?id=19e8c737-1f10-45a5-b476-8e0fbd9e7647 
+- For each fact or claim, include a citation in the format: [Source Number](Source Link). Source Number corresponds to the link, two sources with the same link should have the same number.
+- Links will be provided in the format like this: /archive/?id=19e8c737-1f10-45a5-b476-8e0fbd9e7647
+- For links do not add http:// or https://, just use the path like this: /archive/?id=19e8c737-1f10-45a5-b476-8e0fbd9e7647
 - For math use LaTeX syntax. Use double dollar signs for display math, e.g. $$E=mc^2$$, and single dollar signs for inline math, e.g. $x^2 + y^2 = z^2$.";
 
     public const string SystemPromptStandardAi = @"You are an AI assistant that helps people find information.
 For math use LaTeX syntax. Use double dollar signs for display math, e.g. $$E=mc^2$$, and single dollar signs for inline math, e.g. $x^2 + y^2 = z^2$.";
 
     public const string SystemPromptGenerateTitle = @"You are a helpful AI assistant that generates a concise and descriptive title for a chat based on the provided question. Return the title as a JSON object with a single field 'Title'";
+
+    public const string SystemPromptGenerateTags = @"You are a helpful AI assistant that extracts tags from a document and returns them as a JSON";
 
     #endregion
 
@@ -76,7 +79,7 @@ Instructions:
 2. Generate new, relevant tags that accurately reflect the content of these chunks.
 3. Do not repeat or include any tags that have already been generated (see the list below).
 4. The tags should be in English.
-5. Generate 2 to 3 new tags based on the content provided. 
+5. Generate 4 to 6 new tags based on the content provided. 
 6. Ensure all tags are concise, specific, and directly related to the content.
 
 Previously Generated Tags:

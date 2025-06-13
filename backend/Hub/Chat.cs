@@ -1,7 +1,6 @@
 using System.ClientModel;
 using System.Runtime.CompilerServices;
 using System.Text;
-using HandlebarsDotNet;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services;
@@ -13,8 +12,6 @@ using SignalRSwaggerGen.Attributes;
 
 namespace Hubs;
 
-
-// Todo: implement the SignalRHub and see how it results in the documentation website
 
 [SignalRHub]
 [Authorize]
@@ -293,16 +290,12 @@ public class Chat : Hub
     {
         _logger.Information("Standard Ai initiated with message: {Message}", message);
 
-
-
         List<ChatMessage> messages =
         [
             new SystemChatMessage(Prompts.SystemPromptStandardAi),
             .. chatHistory,
             new UserChatMessage(message)
         ];
-
-
 
         // Stream the response
         AsyncCollectionResult<StreamingChatCompletionUpdate> response;
@@ -332,10 +325,6 @@ public class Chat : Hub
     /// Handles client connection to the SignalR hub.
     /// </summary>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    /// <remarks>
-    /// This method logs the client's connection using the connection ID
-    /// and calls the base implementation to complete the connection process.
-    /// </remarks>
     public override async Task OnConnectedAsync()
     {
         _logger.Information("Client connected: {ConnectionId}", Context.ConnectionId);
@@ -349,10 +338,6 @@ public class Chat : Hub
     /// </summary>
     /// <param name="exception">The exception that caused the disconnection, if any.</param>
     /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-    /// <remarks>
-    /// This method logs the client's disconnection using the connection ID
-    /// and calls the base implementation to complete the disconnection process.
-    /// </remarks>
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         _logger.Information("Client disconnected: {ConnectionId}", Context.ConnectionId);

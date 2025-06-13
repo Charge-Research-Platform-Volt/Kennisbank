@@ -50,6 +50,11 @@ public class EnvironmentConfig
     private readonly Dictionary<EnvironmentVariable, string> _variableNames = new();
 
 
+
+    /// <summary>
+    /// Initializes a new instance of the EnvironmentConfig class with the specified configuration.
+    /// </summary>
+    /// <param name="configuration">The IConfiguration instance used to access application configuration settings.</param>
     public EnvironmentConfig(IConfiguration configuration)
     {
         _configuration = configuration;
@@ -68,8 +73,8 @@ public class EnvironmentConfig
         _variableNames.Add(EnvironmentVariable.HOST_URL, "HOST_URL");
 
         // Vector DB
-        _variableNames.Add(EnvironmentVariable.QDRANT_EMBEDDINGS_DIMENSIONS, "EMBEDDINGS_DIMENSIONS");
-        _variableNames.Add(EnvironmentVariable.QDRANT_COLLECTION_NAME, "COLLECTION_NAME");
+        _variableNames.Add(EnvironmentVariable.QDRANT_EMBEDDINGS_DIMENSIONS, "QDRANT_EMBEDDINGS_DIMENSIONS");
+        _variableNames.Add(EnvironmentVariable.QDRANT_COLLECTION_NAME, "QDRANT_COLLECTION_NAME");
         _variableNames.Add(EnvironmentVariable.QDRANT_HOST, "QDRANT_HOST");
         _variableNames.Add(EnvironmentVariable.QDRANT_API_KEY, "QDRANT_API_KEY");
         _variableNames.Add(EnvironmentVariable.QDRANT_HTTPS, "QDRANT_HTTPS");

@@ -5,6 +5,15 @@ using System.Text.Json.Serialization;
 namespace KnowledgeBank.Models;
 
 
+
+/// <summary>
+/// Represents a message entity in the chat system, stored in the "messages" table.
+/// Contains message content, role information, and metadata for chat conversations.
+/// </summary>
+/// <remarks>
+/// This entity is mapped to the "messages" database table and represents individual messages
+/// within chat conversations. Each message is associated with a specific chat through the ChatId foreign key.
+/// </remarks>
 [Table("messages")]
 public class Messages
 {
@@ -28,11 +37,18 @@ public class Messages
 
     // Navigation properties
     [JsonIgnore] public virtual Chats Chat { get; set; } = null!;
-
 }
 
 
 
+/// <summary>
+/// Data Transfer Object for creating new chat messages.
+/// Contains the essential information required to create a message within a chat conversation.
+/// </summary>
+/// <remarks>
+/// This DTO is used when creating new messages in the chat system, containing references
+/// to the sender, the chat conversation, the role of the message sender, and the actual message content.
+/// </remarks>
 public class MessagesCreateDto
 {
     public Guid SenderId { get; set; }
@@ -40,6 +56,8 @@ public class MessagesCreateDto
     public string MessageRole { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
 }
+
+
 
 // Message role enum
 public enum MessageRole

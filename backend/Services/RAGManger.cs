@@ -9,6 +9,7 @@ using Serilog;
 using static Qdrant.Client.Grpc.Conditions;
 using Azure.AI.DocumentIntelligence;
 using Azure;
+using System.ClientModel;
 
 
 namespace KnowledgeBank.Services;
@@ -142,6 +143,8 @@ public class RAGManger
 
 
 
+    #region GenerateTagsAsync
+
     /// <summary>
     /// Generates AI-powered tags for a resource by analyzing its content chunks using vector search and natural language processing.
     /// </summary>
@@ -161,104 +164,150 @@ public class RAGManger
     /// <exception cref="Exception">Thrown when an error occurs during database operations while saving the generated tags.</exception>
     public async Task<List<string>> GenerateTagsAsync(string id)
     {
-        // If no existing tags, proceed to generate new tags
-        _logger.Information("Generating new AI tags");
+        _logger.Information("Generating new AI tags for resource {ResourceId}", id);
 
-        ulong offset = 0;
-        ulong limit = 20;
-        HashSet<string> uniqueTags = [];
-
-
+        HashSet<string> uniqueTags = new HashSet<string>();
         ChatCompletionOptions options = new ChatCompletionOptions()
         {
             ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat("TagsExtraction", BinaryData.FromString(Prompts.TagsOutputJsonSchema))
         };
 
+        await ProcessDocumentChunksAsync(id, uniqueTags, options);
+        List<string> generatedTags = uniqueTags.ToList();
+
+        if (generatedTags.Count > 0) await SaveTagsToResourceAsync(id, generatedTags);
+
+        _logger.Information("Tags generated successfully for resource {ResourceId}. Total tags: {TagCount}", id, generatedTags.Count);
+        return generatedTags;
+    }
+
+
+
+    /// <summary>
+    /// Processes document chunks in batches to extract and collect unique tags from a specific document resource.
+    /// </summary>
+    /// <param name="id">The resource identifier used to filter document chunks in the collection.</param>
+    /// <param name="uniqueTags">A collection of unique tags that will be populated with extracted tags from the document chunks.</param>
+    /// <param name="options">Chat completion options used for tag extraction processing.</param>
+    /// <returns>A task representing the asynchronous operation of processing all document chunks for the specified resource.</returns>
+    private async Task ProcessDocumentChunksAsync(string id, HashSet<string> uniqueTags, ChatCompletionOptions options)
+    {
+        ulong offset = 0;
+        const ulong batchSize = 20;
+
         while (true)
         {
-            // Perform a vector search to retrieve results
             var results = await _ragSystem.QdrantClient.QueryAsync(
                 _ragSystem.CollectionName,
                 filter: MatchKeyword("resourceId", id),
-                limit: limit,
+                limit: batchSize,
                 offset: offset
             );
 
             // If no results are returned, break the loop
             if (results.Count == 0) break;
 
-            // Prepare the data for the template
-            var data = new
-            {
-                tags = uniqueTags.Count == 0 ? "No tags generated yet." : string.Join(", ", uniqueTags),
-                content = results.Select(item =>
-                {
-                    var payload = CustomPayload.FromPayload(item.Payload);
-                    return new { text = payload.ChunkText };
-                }).ToList()
-            };
+            TagsExtraction? extractedTags = await ExtractTagsFromChunksAsync(results, uniqueTags, options);
+            AddTagsToCollection(extractedTags, uniqueTags);
 
-            string result = Prompts.TagsTemplate(data);
-
-            List<ChatMessage> chat =
-            [
-                new SystemChatMessage("You are a helpful AI assistant that extracts tags from a document and returns them as a JSON"),
-                new UserChatMessage(result)
-            ];
-
-            // Get a completion with structured output
-            var response = await _ragSystem.ChatClient.CompleteChatAsync(chat, options);
-
-            var jsonOutput = response.Value.Content[0].Text;
-            var tagsExtraction = JsonSerializer.Deserialize<TagsExtraction>(jsonOutput);
-            if (tagsExtraction == null || tagsExtraction.Tags == null) continue;
-
-            _logger.Information("Extracted tags: {Tags}", string.Join(", ", tagsExtraction.Tags));
-
-            // Add the tags to the unique set
-            foreach (var tag in tagsExtraction.Tags)
-            {
-                if (!string.IsNullOrWhiteSpace(tag))
-                {
-                    // Normalize the tag by trimming whitespace and converting to lowercase
-                    uniqueTags.Add(tag.Trim().ToLowerInvariant());
-                }
-            }
-
-            // Increment the offset for the next batch
-            offset += limit;
+            offset += batchSize;
         }
-
-
-        try
-        {
-            // Convert to list and save to database
-            var generatedTagsList = uniqueTags.ToList();
-
-            if (generatedTagsList.Count > 0)
-            {
-                await _resourceManager.BeginTransaction();
-
-                // Serialize the tags to JSON and save to the resource
-                var tagsJson = JsonSerializer.Serialize(generatedTagsList);
-                await _resourceManager.UpdateResourceAsync(Guid.Parse(id), r => r.AiGeneratedTags, tagsJson);
-                await _resourceManager.Commit();
-
-                _logger.Information("AI-generated tags saved to resource {ResourceId}", id);
-            }
-
-            _logger.Information("Tags generated successfully");
-        }
-        catch (Exception)
-        {
-            await _resourceManager.Rollback();
-            _logger.Error("An error occurred while saving AI-generated tags to the resource {ResourceId}", id);
-        }
-
-        return [.. uniqueTags];
     }
 
 
+
+    /// <summary>
+    /// Extracts tags from document chunks using AI completion and returns them as a structured object.
+    /// </summary>
+    /// <param name="results">A read-only list of scored points containing document chunks from vector search results.</param>
+    /// <param name="existingTags">A set of tags that have already been generated to provide context to the AI model.</param>
+    /// <param name="options">Configuration options for the chat completion request.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation. The task result contains a <see cref="TagsExtraction"/> object
+    /// with extracted tags, or null if deserialization fails.
+    /// </returns>
+    private async Task<TagsExtraction?> ExtractTagsFromChunksAsync(IReadOnlyList<Qdrant.Client.Grpc.ScoredPoint> results, HashSet<string> existingTags, ChatCompletionOptions options)
+    {
+        var templateData = new
+        {
+            tags = existingTags.Count == 0 ? "No tags generated yet." : string.Join(", ", existingTags),
+            content = results.Select(item =>
+            {
+                var payload = CustomPayload.FromPayload(item.Payload);
+                return new { text = payload.ChunkText };
+            }).ToList()
+        };
+        string prompt = Prompts.TagsTemplate(templateData);
+
+        // Prepare chat messages with the system prompt and user query
+        List<ChatMessage> messages = new List<ChatMessage>
+        {
+            new SystemChatMessage(Prompts.SystemPromptGenerateTags),
+            new UserChatMessage(prompt)
+        };
+
+        // Get a completion with structured output
+        ClientResult<ChatCompletion> response = await _ragSystem.ChatClient.CompleteChatAsync(messages, options);
+        string jsonOutput = response.Value.Content[0].Text;
+
+        return JsonSerializer.Deserialize<TagsExtraction>(jsonOutput);
+    }
+
+
+
+    /// <summary>
+    /// Adds tags from a TagsExtraction object to a collection of unique tags.
+    /// </summary>
+    /// <param name="tagsExtraction">The TagsExtraction object containing tags to be added. Can be null.</param>
+    /// <param name="uniqueTags">The HashSet collection to store unique tags. Tags are normalized to lowercase and trimmed.</param>
+    private void AddTagsToCollection(TagsExtraction? tagsExtraction, HashSet<string> uniqueTags)
+    {
+        if (tagsExtraction?.Tags == null) return;
+
+        // Add each tag to the unique set.
+        foreach (string tag in tagsExtraction.Tags)
+        {
+            if (!string.IsNullOrWhiteSpace(tag))
+            {
+                // Normalize the tag by trimming whitespace and converting to lowercase 
+                uniqueTags.Add(tag.Trim().ToLowerInvariant());
+            }
+        }
+    }
+
+
+
+    /// <summary>
+    /// Saves AI-generated tags to a resource in the database within a transaction.
+    /// </summary>
+    /// <param name="id">The unique identifier of the resource to update.</param>
+    /// <param name="tags">The list of AI-generated tags to save to the resource.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <exception cref="Exception">Thrown when an error occurs during the database transaction or update operation.</exception>
+    private async Task SaveTagsToResourceAsync(string id, List<string> tags)
+    {
+        try
+        {
+            await _resourceManager.BeginTransaction();
+
+            string tagsJson = JsonSerializer.Serialize(tags);
+            await _resourceManager.UpdateResourceAsync(Guid.Parse(id), r => r.AiGeneratedTags, tagsJson);
+            await _resourceManager.Commit();
+
+            _logger.Information("AI-generated tags saved to resource {ResourceId}", id);
+        }
+        catch (Exception ex)
+        {
+            await _resourceManager.Rollback();
+            _logger.Error(ex, "An error occurred while saving AI-generated tags to resource {ResourceId}", id);
+            throw;
+        }
+    }
+
+    #endregion
+
+
+    #region GenerateChatTitleAsync
 
     /// <summary>
     /// Generates a descriptive title for a chat conversation based on the provided query.
@@ -285,20 +334,20 @@ public class RAGManger
             var templateData = new { query };
             string promptContent = Prompts.ChatTitleTemplate(templateData);
 
-            var options = new ChatCompletionOptions
+            ChatCompletionOptions options = new ChatCompletionOptions
             {
                 ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat("TitleExtraction", BinaryData.FromString(Prompts.ChatTitleOutputJsonSchema))
             };
 
-            var messages = new List<ChatMessage>
+            List<ChatMessage> messages = new List<ChatMessage>
             {
                 new SystemChatMessage(Prompts.SystemPromptGenerateTitle),
                 new UserChatMessage(promptContent)
             };
 
-            var response = await _ragSystem.ChatClient.CompleteChatAsync(messages, options);
-            var jsonResponse = response.Value.Content[0].Text;
-            var titleGeneration = JsonSerializer.Deserialize<TitleGeneration>(jsonResponse);
+            ClientResult<ChatCompletion> response = await _ragSystem.ChatClient.CompleteChatAsync(messages, options);
+            string jsonResponse = response.Value.Content[0].Text;
+            TitleGeneration? titleGeneration = JsonSerializer.Deserialize<TitleGeneration>(jsonResponse);
 
             if (titleGeneration?.Title == null)
             {
@@ -315,4 +364,6 @@ public class RAGManger
             return "Untitled Chat";
         }
     }
+
+    #endregion
 }
