@@ -152,6 +152,7 @@ namespace KnowledgeBank.Controllers
                             throw new Exception("Failed to upload avatar");
 
                         user.CustomAvatarVersion++;
+                        user.HasCustom = true;
                     }
 
                     // save the user

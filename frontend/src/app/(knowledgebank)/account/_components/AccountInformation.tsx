@@ -63,7 +63,7 @@ export default function AccountInformation({ userData }: { userData: UserData })
     setIsLoadingDetails(true);
 
     try {
-      await UploadWithDto("/api/user/update", dto);
+      await UploadWithDto("/api/user/update-details", dto);
       toast.success("Account information updated successfully");
       RevalidatePathFromClient("/account");
     } catch (error) {
@@ -121,7 +121,7 @@ export default function AccountInformation({ userData }: { userData: UserData })
   async function updateAvatar(body: FormData | null) {
     setIsLoadingAvatar(true)
     
-    const response = await fetch("api/user/update/avatar", {
+    const response = await fetch("api/user/update-avatar", {
       method: "PATCH",
       body,
     });

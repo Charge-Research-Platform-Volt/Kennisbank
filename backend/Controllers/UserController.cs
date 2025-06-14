@@ -236,7 +236,7 @@ public class UserController(DatabaseContext database, IAzureBlobService blobServ
     /// </summary>
     /// <param name="newAvatar">The new avatar for the current user.</param>
     /// <returns>A response code and text response with information about the success of the action.</returns>
-    [HttpPatch("update/avatar")]
+    [HttpPatch("update-avatar")]
     [SwaggerOperation(
         Summary = "Update the current user.",
         Description = "Updates the current user's information."
@@ -294,7 +294,7 @@ public class UserController(DatabaseContext database, IAzureBlobService blobServ
         if (!result.Succeeded)
             return StatusCode(500, "Failed to update user record.");
 
-        return Ok("Avatar updated successfully");
+        return Ok("Avatar updated successfully.");
     }
 
 
@@ -306,7 +306,7 @@ public class UserController(DatabaseContext database, IAzureBlobService blobServ
     /// </summary>
     /// <param name="dto">The data transfer object containing the user's updated information.</param>
     /// <returns>An IActionResult with information about the success of the action.</returns>
-    [HttpPatch("update/details")]
+    [HttpPatch("update-details")]
     [SwaggerOperation(
         Summary = "Update the current user.",
         Description = "Updates the current user's information."
@@ -315,7 +315,7 @@ public class UserController(DatabaseContext database, IAzureBlobService blobServ
     [SwaggerResponse(400, "User email already exists.")]
     [SwaggerResponse(404, "User not found.")]
     [SwaggerResponse(500, "Internal server error.")]
-    public async Task<IActionResult> Update([FromForm] UpdateUserDto dto)
+    public async Task<IActionResult> UpdateDetails([FromForm] UpdateUserDto dto)
     {
         try
         {
