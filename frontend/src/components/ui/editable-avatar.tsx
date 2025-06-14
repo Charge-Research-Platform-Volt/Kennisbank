@@ -7,9 +7,8 @@ import { toast } from "sonner";
 import { Settings, Upload, Ban } from "lucide-react";
 
 // intialUrl can't actually ever be 0 because zod validates it, but its impossible to tell typescrip this
-export default function EditableAvatar({ initialUrl, onNewAvatar }: { initialUrl: string | null; onNewAvatar: (blob: Blob | null) => void }) {
+export default function EditableAvatar({ url, onConfirm, onDefault }: { url: string; onConfirm: (blob: Blob) => void, onDefault: () => void }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(initialUrl);
   const [inputFile, setInputFile] = useState<Blob | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [animating, setAnimating] = useState(false);
@@ -63,18 +62,6 @@ export default function EditableAvatar({ initialUrl, onNewAvatar }: { initialUrl
     if (!opening) setDialogOpen(false);
   };
 
-  const handleConfirm = (blob: Blob) => {
-    setAvatarUrl(URL.createObjectURL(blob));
-    if (avatarUrl) URL.revokeObjectURL(avatarUrl);
-    onNewAvatar(blob);
-  };
-
-  const handleDefault = () => {
-    if (avatarUrl) URL.revokeObjectURL(avatarUrl);
-    setAvatarUrl(null);
-    onNewAvatar(null);
-  };
-
   return (
     <>
     <div
@@ -89,7 +76,7 @@ export default function EditableAvatar({ initialUrl, onNewAvatar }: { initialUrl
               </li>
             }
             {
-              <li onClick={handleDefault} className="cursor-pointer px-4 hover:bg-gray-200">
+              <li onClick={onDefault} className="cursor-pointer px-4 hover:bg-gray-200">
                 Default avatar
               </li>
             }
@@ -111,11 +98,10 @@ export default function EditableAvatar({ initialUrl, onNewAvatar }: { initialUrl
         role="button"
       >
         <img
-          src={avatarUrl || "/img/default-profile-picture.svg"}
+          src={url}
           alt="Profile avatar"
           className={`cursor-inherit pointer-events-none absolute inset-0 h-full w-full object-cover transition duration-300 ${
-            isDraggedFileValid === null ? "group-hover:brightness-75" : "brightness-75"
-          }`}
+            isDraggedFileValid === null ? "group-hover:brightness-75" : "brightness-75"}`}
         />
 
         {/* Overlay Symbol, if hovering: Search, if dragging image: Drop box, if dragging else: X */}
@@ -140,7 +126,7 @@ export default function EditableAvatar({ initialUrl, onNewAvatar }: { initialUrl
             setAnimating(false);
           }}
         >
-          <AvatarEditorDialog inputFile={inputFile!} onConfirm={handleConfirm} onDefault={handleDefault} animating={animating} />
+          <AvatarEditorDialog inputFile={inputFile!} onConfirm={(blob) => onConfirm(blob)} onDefault={() => onDefault()} animating={animating} />
         </DialogContent>
       </Dialog>
     </>

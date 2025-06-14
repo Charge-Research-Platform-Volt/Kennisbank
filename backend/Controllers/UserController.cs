@@ -181,7 +181,6 @@ public class UserController(DatabaseContext database, IAzureBlobService blobServ
         Description = "Updates the email of the user."
     )]
     [SwaggerResponse(200, "User email updated successfully.")]
-    [SwaggerResponse(400, "User email already exists.")]
     [SwaggerResponse(404, "User not found.")]
     [SwaggerResponse(500, "Internal server error.")]
     public async Task<IActionResult> UpdateMail([FromBody] UpdateEmailDto dto)
@@ -233,13 +232,81 @@ public class UserController(DatabaseContext database, IAzureBlobService blobServ
     }
 
     /// <summary>
+    /// Updates the current user's avatar.
+    /// </summary>
+    /// <param name="newAvatar">The new avatar for the current user.</param>
+    /// <returns>A response code and text response with information about the success of the action.</returns>
+    [HttpPatch("update/avatar")]
+    [SwaggerOperation(
+        Summary = "Update the current user.",
+        Description = "Updates the current user's information."
+    )]
+    [SwaggerResponse(200, "User updated successfully.")]
+    [SwaggerResponse(400, "User email already exists.")]
+    [SwaggerResponse(404, "User not found.")]
+    [SwaggerResponse(500, "Internal server error.")]
+    public async Task<IActionResult> UpdateAvatar(IFormFile? newAvatar)
+    {
+        if (User.Identity == null || !User.Identity.IsAuthenticated)
+            return BadRequest("User not authenticated.");
+
+        // Get the user ID from the claims
+        string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        // Check if the user ID is null or empty
+        if (string.IsNullOrEmpty(userId))
+            return BadRequest("User not found.");
+
+        // Find the user by ID
+        User? user = await userManager.FindByIdAsync(userId);
+
+        // Check if the user exists
+        if (user == null)
+            return NotFound("User not found.");
+
+        if (newAvatar != null)
+        {
+            if (newAvatar.Length > Constants.MaxAvatarSize)
+                return BadRequest($"Avatar file is too large (max {Constants.MaxAvatarSizeInMb}MB)");
+
+            if (newAvatar.ContentType != "image/png")
+                return BadRequest("Invalid image type. Png expected");
+
+            BLOB_STATUSCODE upload = await blobService.UploadBlobAsync("avatar", userId, new Dictionary<string, string>(), newAvatar.OpenReadStream(), overwrite: true);
+            if (upload != BLOB_STATUSCODE.OK)
+                return StatusCode(500, "Failed to upload avatar.");
+
+            user.CustomAvatarVersion++;
+            user.HasCustom = true;
+        }
+        else if (user.HasCustom)
+        {
+            // Changed avatar AND New avatar is null AND The user had a custom avatar
+            BLOB_STATUSCODE delete = await blobService.DeleteBlobAsync("avatar", userId);
+            if (delete != BLOB_STATUSCODE.OK)
+                return StatusCode(500, "Failed to delete avatar.");
+
+            user.HasCustom = false;
+        }
+
+        // If this fails the image and version will be misaligned, at worst slow user updates.
+        var result = await userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+            return StatusCode(500, "Failed to update user record.");
+
+        return Ok("Avatar updated successfully");
+    }
+
+
+
+    /// <summary>
     /// Updates the current user.
     /// This method updates the current user's information, including their first name, last name, and email.
     /// It requires the user to be authenticated.
     /// </summary>
     /// <param name="dto">The data transfer object containing the user's updated information.</param>
     /// <returns>An IActionResult with information about the success of the action.</returns>
-    [HttpPatch("update")]
+    [HttpPatch("update/details")]
     [SwaggerOperation(
         Summary = "Update the current user.",
         Description = "Updates the current user's information."
@@ -257,7 +324,7 @@ public class UserController(DatabaseContext database, IAzureBlobService blobServ
             // Check if user is authenticated
             if (User.Identity == null || !User.Identity.IsAuthenticated)
                 return BadRequest("User not authenticated.");
-            
+
             // Get the user ID from the claims
             string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -280,7 +347,7 @@ public class UserController(DatabaseContext database, IAzureBlobService blobServ
                     // Update the first and last name
                     if (!string.IsNullOrEmpty(dto.NewFirstName))
                         user.FirstName = dto.NewFirstName;
-                    
+
                     if (!string.IsNullOrEmpty(dto.NewLastName))
                         user.LastName = dto.NewLastName;
 
@@ -300,34 +367,6 @@ public class UserController(DatabaseContext database, IAzureBlobService blobServ
                         // Check if the username update was successful
                         if (!usernameResponse.Succeeded)
                             return Ok(new ApiResponse(false, "Email format is not supported in our database."));
-                    }
-
-                    if (dto.ChangedAvatar)
-                    {
-                        if (dto.NewAvatar != null)
-                        {
-                            if (dto.NewAvatar.Length > Constants.MaxAvatarSize)
-                                return BadRequest($"Avatar file is too large (max {Constants.MaxAvatarSizeInMb}MB)");
-
-                            string contentType = dto.NewAvatar.ContentType;
-                            if (dto.NewAvatar.ContentType != "image/png")
-                                return BadRequest("Invalid image type. Png expected");
-
-                            BLOB_STATUSCODE upload = await blobService.UploadBlobAsync("avatar", userId, new Dictionary<string, string>(), dto.NewAvatar.OpenReadStream(), overwrite: true);
-                            if (upload != BLOB_STATUSCODE.OK)
-                                throw new Exception("Failed to upload avatar.");
-
-                            user.CustomAvatarVersion++;
-                        }
-                        else if (user.CustomAvatarVersion != 0)
-                        {
-                            // Changed avatar AND New avatar is null AND The user had a custom avatar
-                            BLOB_STATUSCODE delete = await blobService.DeleteBlobAsync("avatar", userId);
-                            if (delete != BLOB_STATUSCODE.OK)
-                                throw new Exception("Failed to delete avatar.");
-
-                            user.CustomAvatarVersion = 0;
-                        }
                     }
 
                     IdentityResult updateResponse = await userManager.UpdateAsync(user);

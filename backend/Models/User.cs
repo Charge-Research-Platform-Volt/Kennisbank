@@ -13,10 +13,11 @@ public class User : IdentityUser
     [MaxLength(100)]
     public string LastName { get; set; } = null!;
 
-    // Technically able to hit integer limit, practically impossible
-    // 0 means the user has the default avatar. Increment when user doesn't.
-    [Required]
+    // Technically able to hit integer limit, practically impossible.
+    // Increments when the user selects a new custom avatar.
     public int CustomAvatarVersion { get; set; } = 0;
+
+    public bool HasCustom { get; set; }
 
     [Obsolete("Only for EF Core and Identity or testing without a real database. Use the parameterized constructor instead.")]
     public User() { } // Default constructor for EF Core
@@ -55,8 +56,6 @@ public class UpdateUserDto
     public string? NewLastName { get; set; }
     [RegularExpression(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", ErrorMessage = "Incorrect email format.")]  
     public string? NewEmail { get; set; }
-    public bool ChangedAvatar { get; set; }
-    public IFormFile? NewAvatar { get; set; }
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

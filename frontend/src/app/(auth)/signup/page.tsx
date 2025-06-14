@@ -16,13 +16,15 @@ const initialState: FormResponse<RegisterRequest> = {
   message: "",
 };
 
+type AvatarState = { url: string, blob: Blob | null }
+
 export default function SignUpPage() {
   const [firstName, setFirstName] = useState<string>("");
   const [lastName, setLastName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [retypePassword, setRetypePassword] = useState<string>("");
-  const [avatar, setAvatar] = useState<Blob | null | undefined>(undefined);
+  const [avatar, setAvatar] = useState<AvatarState>({ url: "/img/default-profile-picture.svg", blob: null });
   const [termsBox, setTermsBox] = useState<boolean>(false);
 
   const [state, action, isPending] = useActionState(Register, initialState);
@@ -42,12 +44,30 @@ export default function SignUpPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    if (avatar) formData.append("avatar", avatar);
+    if (avatar.blob) formData.append("avatar", avatar.blob);
 
     startTransition(() => {
       action(formData);
     });
   };
+
+  const handleConfirm = (blob: Blob) => {
+    if (avatar.url) URL.revokeObjectURL(avatar.url);
+    setAvatar({ url: URL.createObjectURL(blob), blob });
+  };
+
+  const handleDefault = () => {
+    if (avatar.url) URL.revokeObjectURL(avatar.url);
+    setAvatar({ url: "/img/default-profile-picture.svg", blob: null });
+  };
+
+  const handleNewAvatar = (blob: Blob | null) => {
+    if (blob) {
+      setAvatar({ url: "/api/user/account/avatar", blob })
+    } else {
+      setAvatar({ url: "/img/default-profile-picture.svg", blob })
+    }
+  }
 
   return (
     <div className="flex h-full w-full">
@@ -86,7 +106,7 @@ export default function SignUpPage() {
               <Input value={password} type="password" placeholder="Password" name="password" onChange={(e) => setPassword(e.target.value)} required />
             </div>
             <div>
-              <EditableAvatar initialUrl={null} onNewAvatar={setAvatar} />
+              <EditableAvatar url={avatar.url} onConfirm={handleConfirm} onDefault={handleDefault} />
             </div>
             <div>
               <label htmlFor="passwordcheck" className="font-bold">

@@ -15,14 +15,14 @@ import Divider from "@/components/sidebar/divider";
 import DeleteAccountConfirmationDialog from "./DeleteAccountConfirmationDialog";
 import EditableAvatar from "@/components/ui/editable-avatar";
 import { usePathname, useRouter } from "next/navigation";
-import { ApiResponse } from "@/types/apiResponse.type";
+import { Loader, LoaderCircle } from "lucide-react";
 
 export default function AccountInformation({ userData }: { userData: UserData }) {
-  const [isLoading, setIsLoading] = useState(false);
+  const avatarUrl = userData.customAvatarVersion ? `/api/user/current/avatar?v=${userData.customAvatarVersion}` : "/img/default-profile-picture.svg"
+  const [isLoadingAvatar, setIsLoadingAvatar] = useState(false);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isLoadingPassword, setIsLoadingPassword] = useState(false);
   const [deleteAccountConfirmationDialogOpen, setDeleteAccountConfirmationDialogOpen] = useState(false);
-  const [newAvatar, setNewAvatar] = useState<Blob | null>(null);
-  const [changedAvatar, setChangedAvatar] = useState<boolean>(false);
 
   const router = useRouter();
   const pathName = usePathname();
@@ -59,37 +59,21 @@ export default function AccountInformation({ userData }: { userData: UserData })
   });
 
   // Function to be called when the form is submitted
-  async function onSubmit(dto: ChangeInfoForm) {
-    setIsLoading(true);
+  async function onSubmitDetails(dto: ChangeInfoForm) {
+    setIsLoadingDetails(true);
 
-    const formData = new FormData();
-
-    if (dto.newFirstName?.trim()) formData.append("newFirstName", dto.newFirstName.trim());
-    if (dto.newLastName?.trim()) formData.append("newLastName", dto.newLastName.trim());
-    if (dto.newEmail?.trim()) formData.append("newEmail", dto.newEmail.trim());
-
-    formData.append("changedAvatar", String(changedAvatar));
-    if (changedAvatar && newAvatar) formData.append("newAvatar", newAvatar);
-
-    // Send FormData to backend
-    const response = await fetch("/api/user/update", {
-      method: "PATCH",
-      body: formData,
-    });
-
-    if (!response.ok) toast.error(await response.text());
-    else {
-      const apiResponse = (await response.json()) as ApiResponse;
-      if (!apiResponse.success) toast.error(apiResponse.message);
-      else {
-        setChangedAvatar(false);
-        RevalidatePathFromClient("/account");
-        router.push(pathName);
-        toast.success("Account information updated succesfully.")
-      }
+    try {
+      await UploadWithDto("/api/user/update", dto);
+      toast.success("Account information updated successfully");
+      RevalidatePathFromClient("/account");
+    } catch (error) {
+      console.error("Error updating account information:", error);
+      if (error instanceof Error && !error.message.toLowerCase().includes("json")) toast.error(error.message);
+      else if (typeof error === "string" && !error.toLowerCase().includes("json")) toast.error(error);
+      else toast.error("Failed to update account information");
+    } finally {
+      setIsLoadingDetails(false);
     }
-
-    setIsLoading(false);
   }
 
   const formPassword = useForm<ChangePasswordDto>({
@@ -134,9 +118,46 @@ export default function AccountInformation({ userData }: { userData: UserData })
     }
   }
 
-  function handleNewAvatar(blob: Blob | null) {
-    setNewAvatar(blob);
-    setChangedAvatar(true);
+  async function updateAvatar(body: FormData | null) {
+    setIsLoadingAvatar(true)
+    
+    const response = await fetch("api/user/update/avatar", {
+      method: "PATCH",
+      body,
+    });
+
+    if (response.ok) {
+      toast.success(response.text());
+      await RevalidatePathFromClient("/account");
+      router.push(pathName);
+      router.refresh();
+    } else {
+      toast.error(response.text());
+      setIsLoadingAvatar(false);
+    } 
+  }
+
+  async function handleConfirm(blob: Blob) {
+    const formData = new FormData();
+    formData.append("newAvatar", blob);
+    updateAvatar(formData)
+  }
+
+  useEffect(() => {
+    setIsLoadingAvatar(true)
+    const img = new Image()
+    img.src = avatarUrl
+    img.onload = async () => {
+      setIsLoadingAvatar(false)
+    }
+    img.onerror = () => {
+      toast.error("Failed to load avatar.")
+      setIsLoadingAvatar(false)
+    }
+  }, [avatarUrl])
+
+  async function handleDefault() {
+    updateAvatar(null);
   }
 
   return (
@@ -145,9 +166,20 @@ export default function AccountInformation({ userData }: { userData: UserData })
 
       <hr className="mb-4" />
 
+      {isLoadingAvatar ? (
+        <div className="h-32 flex items-center justify-center">
+          <LoaderCircle className="h-8 w-8 animate-spin text-gray-500" />
+        </div>
+      ) : (
+        <EditableAvatar
+          url={avatarUrl}
+          onConfirm={handleConfirm}
+          onDefault={handleDefault}
+        />
+      )}
+
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-2">
-          <EditableAvatar initialUrl={userData.customAvatarVersion ? "/api/user/current/avatar" : null} onNewAvatar={handleNewAvatar} />
+        <form onSubmit={form.handleSubmit(onSubmitDetails)} className="flex flex-col gap-2">
           {/* First name input */}
           <FormField
             control={form.control}
@@ -194,8 +226,8 @@ export default function AccountInformation({ userData }: { userData: UserData })
           />
 
           {/* Submit button */}
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Saving..." : "Save"}
+          <Button type="submit" className="w-full" disabled={isLoadingDetails}>
+            {isLoadingDetails ? "Saving..." : "Save"}
           </Button>
         </form>
       </Form>

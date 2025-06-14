@@ -18,7 +18,7 @@ public struct UserResponse
         this.FirstName = user.FirstName;
         this.LastName = user.LastName;
         this.Email = user.Email!;
-        this.CustomAvatarVersion = user.CustomAvatarVersion;
+        this.CustomAvatarVersion = user.HasCustom ? user.CustomAvatarVersion : null;
         this.EmailConfirmed = user.EmailConfirmed;
         this.Role = role;
     }
