@@ -133,7 +133,7 @@ public class UserControllerUnitTests
         Assert.That(response.Id, Is.EqualTo(Guid.Parse(user.Id)));
         Assert.That(response.Email, Is.EqualTo("john@example.com"));
         Assert.That(response.EmailConfirmed, Is.EqualTo(true));
-        Assert.That(response.CustomAvatarVersion, Is.EqualTo(0));
+        Assert.That(response.CustomAvatarVersion, Is.EqualTo(null));
         Assert.That(response.Role, Is.EqualTo("User"));        
     }
 
