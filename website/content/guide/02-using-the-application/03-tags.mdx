@@ -4,6 +4,14 @@ description: "Learn how to browse, create, and manage tags for organizing conten
 ---
 **Author:** Rens van Moorsel & Jelle van het Schut
 
+import AdminIcon from '../../icons/tag-icons/admin-tag.tsx';
+import ApprovedTagIcon from '../../icons/tag-icons/approved-tag.tsx';
+import ApproveTagIcon from '../../icons/tag-icons/approve-tag-icon.tsx';
+import EditIcon from '../../icons/edit-icon.tsx';
+import DeleteIcon from '../../icons/delete-icon.tsx';
+import MergeIcon from '../../icons/merge-icon.tsx';
+
+
 ## Introduction
 
 By the end of this guide, you'll be able to:
@@ -39,13 +47,13 @@ The system uses four types of tags, each with different levels of authority and 
 2. **Approved Tags**
     - **Created by:** Admins (from existing normal tags)
     - **Purpose:** Verified, important tags with higher authority
-    - **Appearance:** ![Approved icon](/public/images/guides/approved-icon.png) icon
+    - **Appearance:** {<AdminIcon className="w-5 h-5 inline align-text-bottom" fill="#777" />} icon
     - **Quality:** Admin-verified for accuracy and relevance
 
 3. **Standardized Tags**
     - **Created by:** Admins
     - **Purpose:** Core themes and essential categories
-    - **Appearance:** ![Admin icon](/public/images/guides/admin-icon.png) icon
+    - **Appearance:** {<ApprovedTagIcon className="w-5 h-5 inline align-text-bottom" fill="#777" />}  icon
     - **Consistency:** Ensures uniform categorization across the platform
 
 4. **AI-Recommended Tags**
@@ -76,11 +84,11 @@ The tags page displays all available tags with:
 
 Alongside the normal tag functionality, admins can:
 
-- **Delete Tag** - By clicking the ![Delete icon](/public/images/guides/delete-icon.png) icon
-- **Edit Tag name** - By clicking the ![Edit icon](/public/images/guides/edit-icon.png) icon
-- **Approve Tag** - By clicking the ![Approve icon](/public/images/guides/approve-icon.png) icon. This converts a normal tag into an approved tag
-- **Standardize Tag** By clicking the ![Standardize icon](/public/images/guides/admin-icon.png) icon. This converts an approved tag into a standardized tag
-- **Merge Tags** - By clicking the ![Standardize icon](/public/images/guides/merge-icon.png) icon. This merges two tags, the resources related to the second tag are now related to the first tag
+- **Delete Tag** - By clicking the {<DeleteIcon className="w-5 h-5 inline align-text-bottom" fill="#777" />}  icon
+- **Edit Tag name** - By clicking the {<EditIcon className="w-5 h-5 inline align-text-bottom" fill="#777" />}  icon
+- **Approve Tag** - By clicking the {<ApproveTagIcon className="w-5 h-5 inline align-text-bottom" fill="#777" />}  icon. This converts a normal tag into an approved tag
+- **Standardize Tag** By clicking the {<AdminIcon className="w-5 h-5 inline align-text-bottom" fill="#777" />}  icon. This converts an approved tag into a standardized tag
+- **Merge Tags** - By clicking the {<MergeIcon className="w-5 h-5 inline align-text-bottom" fill="#777" />}  icon. This merges two tags, the resources related to the second tag are now related to the first tag
 
 <Callout title="Important: Merging Tags">
 Please do note that when merging tags, the second tag is merged into the first tag, not the other way around. Thus, the merge button should be interpreted as "Merge Into".
