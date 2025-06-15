@@ -60,7 +60,7 @@ describe('Projects page', () =>{
             fetchProjectAction={getProjectContentById}
             currentUserId=''
             userRole="admin"/></SidebarProvider>)
-        const user = userEvent.setup();
+        const user = userEvent;
 
         // CLICK "CREATE NEW PROJECT"
         const addButton = await screen.findByTestId("add");
@@ -82,7 +82,7 @@ describe('Projects page', () =>{
     });
 
     test('Test if deleting projects calls the correct function', async() => {
-        const user = userEvent.setup();
+        const user = userEvent;
 
         render(<SidebarProvider leftSidebarDefaultState={true}><ListProjects 
             initialProjects={
@@ -108,7 +108,7 @@ describe('Projects page', () =>{
     });
 
     test('Test if updating projects calls the correct function', async() => {
-        const user = userEvent.setup();
+        const user = userEvent;
 
         render(<SidebarProvider leftSidebarDefaultState={true}><ListProjects 
             initialProjects={
