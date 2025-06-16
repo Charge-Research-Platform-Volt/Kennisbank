@@ -12,14 +12,11 @@ export default function Home() {
                 {/* Hero Section */}
                 <section className="py-20 text-center">
                     <div className="max-w-4xl mx-auto">
-                        <div className="mb-8">
-                            <Logo size="medium" />
-                        </div>
                         <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
                             Welcome to <span className="text-blue-600 dark:text-blue-400">Ohmega Help</span>
                         </h1>
                         <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
-                            Your comprehensive guide to getting started, understanding the platform, and building amazing projects with Ohmega.
+                            Your comprehensive guide to getting started, understanding the platform, and improving your workflow!
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <Link 
@@ -90,7 +87,7 @@ export default function Home() {
                                 </div>
                                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Meet the Team</h3>
                                 <p className="text-gray-600 dark:text-gray-300 mb-6">
-                                    Learn about the talented developers from Utrecht University who built this platform.
+                                    Learn about the developers from Utrecht University who built this platform.
                                 </p>
                                 <Link 
                                     href="/team"
