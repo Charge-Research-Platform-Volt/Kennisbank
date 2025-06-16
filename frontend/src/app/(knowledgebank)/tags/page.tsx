@@ -6,15 +6,13 @@ import ListTags from "./components/tag-list";
 export default async function StandardizedTagsPage() {
     return (
         <div className="flex">
-            <div className="flex-1 p6 p-4 w-full">
-                <div className="flex gap-2 w-full">
+            <div className="flex-1 p6 w-full">
+                <div className="flex gap-2 mb-2 w-full">
                     <div className="w-full">
-                        <h1 className="text-xl font-bold mb-2">Tags:</h1>
                         <CreateUserTag />
                     </div>
                     <ContentRoleGuard requiredRole="admin">
                         <div className="w-full">
-                            <h1 className="text-xl font-bold mb-2">Create Standardized Tag:</h1>
                             <CreateStandardizedTag />
                         </div>
                     </ContentRoleGuard>

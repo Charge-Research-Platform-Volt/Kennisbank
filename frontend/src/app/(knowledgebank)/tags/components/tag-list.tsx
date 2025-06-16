@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useDebouncedCallback } from "use-debounce";
 import { Input } from "@/components/ui/input";
 import Search from "@/icons/search-icon";
+import { UserRoleProvider, useUserRole } from "@/context/user-role-context";
 
 /**
  * 
@@ -17,6 +18,7 @@ import Search from "@/icons/search-icon";
  * @returns A page where the user, dependent on whether or not its an admin, can see, edit, promote, add, delete and search on tags
  */
 export default function ListTags() {
+    const { userRole } = useUserRole();
 
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -121,54 +123,56 @@ export default function ListTags() {
                 </div>
                 </div>
             </div>
-        {error.length > 0 ? 
-        //display error message if any
-        (
-            <div className="text-center text-gray-500">
-                {error}
-            </div>
-        ) : isLoading ? 
-        //display if loading
-        (
-            <div className="text-center text-gray-500">
-                Loading tags...
-            </div>
-        ) : tags.length > 0 ? 
-        //display the tags
-        (
-            <div>
-                <div className="flex flex-col space-y-4">
-                    {tags.map((tag) => (
-                        <div key={tag.id} className="mb-2 flex justify-between items-center w-full">
-                            {
-                                <TagListItem key={tag.id} tag={tag}/>
-                            }
-                        </div>
-                    ))}
+        <UserRoleProvider>
+            {error.length > 0 ? 
+            //display error message if any
+            (
+                <div className="text-center text-gray-500">
+                    {error}
                 </div>
-                <div className="flex justify-between items-center border-t py-4 mt-4">
-                    <Button
-                        className="btn btn-primary"
-                        onClick={() => goToPage(Math.max(pageNumber - 1, 1))}
-                        disabled={pageNumber === 1}
-                    >
-                        Previous
-                    </Button>
-                    <p>Page: {pageNumber}/{pageCount}</p>
-                    <Button
-                        className="btn btn-primary"
-                        onClick={() => goToPage(Math.min(pageNumber + 1, pageCount))}
-                        disabled={pageNumber === pageCount}
-                    >
-                        Next
-                    </Button>
+            ) : isLoading ? 
+            //display if loading
+            (
+                <div className="text-center text-gray-500">
+                    Loading tags...
                 </div>
-            </div>
-        ) : (
-            <div className="text-center text-gray-500">
-                No tags found.
-            </div>
-        )}
+            ) : tags.length > 0 ? 
+            //display the tags
+            (
+                <div>
+                    <div className="flex flex-col space-y-4">
+                        {tags.map((tag) => (
+                            <div key={tag.id} className="mb-2 flex justify-between items-center w-full">
+                                {
+                                    <TagListItem key={tag.id} tag={tag} role={userRole}/>
+                                }
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex justify-between items-center border-t py-4 mt-4">
+                        <Button
+                            className="btn btn-primary"
+                            onClick={() => goToPage(Math.max(pageNumber - 1, 1))}
+                            disabled={pageNumber === 1}
+                        >
+                            Previous
+                        </Button>
+                        <p>Page: {pageNumber}/{pageCount}</p>
+                        <Button
+                            className="btn btn-primary"
+                            onClick={() => goToPage(Math.min(pageNumber + 1, pageCount))}
+                            disabled={pageNumber === pageCount}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </div>
+            ) : (
+                <div className="text-center text-gray-500">
+                    No tags found.
+                </div>
+            )}
+        </UserRoleProvider>
     </div>
    )
 }

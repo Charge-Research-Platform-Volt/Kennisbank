@@ -55,7 +55,7 @@ export default async function Home() {
 
         {/* Files */}
         <div className="mx-auto w-full max-w-xl rounded-lg bg-gray-100 p-1">
-          <h2 className="mt-1 mb-1 text-xl font-semibold">Files</h2>
+          <h2 className="mt-1 mb-1 text-xl font-semibold">Recently Uploaded Files</h2>
           <div className="flex flex-col">
             {files.map((file: any, index: number) => (
               <div
