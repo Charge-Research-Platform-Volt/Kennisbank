@@ -5,12 +5,90 @@ import path from "node:path";
 
 const out = "./content/docs/(api)";
 const swaggerURL = `http://localhost:8080/swagger/v1/swagger.json`;
-const swaggerFilePath = "./public/swagger.json";
+const swaggerFilePath = "./swagger.json";
+const publicSwaggerPath = "./public/swagger.json";
+
+// Fix unsupported media types in swagger data
+function fixMediaTypes(swaggerData) {
+    const data = JSON.parse(JSON.stringify(swaggerData)); // Deep clone
+    
+    // Map of unsupported -> supported media types
+    const mediaTypeMap = {
+        'text/json': 'application/json',
+        'application/json; charset=utf-8': 'application/json',
+        'text/json; charset=utf-8': 'application/json',
+        'application/*+json': 'application/json', // Add this new one
+        'application/problem+json': 'application/json',
+        'application/vnd.api+json': 'application/json',
+    };
+    
+    function processObject(obj) {
+        if (typeof obj !== 'object' || obj === null) return;
+        
+        for (const key in obj) {
+            if (key === 'content' && typeof obj[key] === 'object') {
+                const content = obj[key];
+                const contentKeys = Object.keys(content);
+                
+                for (const mediaType of contentKeys) {
+                    if (mediaTypeMap[mediaType]) {
+                        // Replace unsupported media type with supported one
+                        content[mediaTypeMap[mediaType]] = content[mediaType];
+                        delete content[mediaType];
+                        console.log(`Fixed media type: ${mediaType} -> ${mediaTypeMap[mediaType]}`);
+                    }
+                }
+            } else if (typeof obj[key] === 'object') {
+                processObject(obj[key]);
+            }
+        }
+    }
+    
+    processObject(data);
+    return data;
+}
+
+// Fix document paths in generated MDX files
+async function fixDocumentPaths() {
+    console.log("Fixing document paths in generated files...");
+    
+    async function processDirectory(dirPath) {
+        const entries = await fs.readdir(dirPath, { withFileTypes: true });
+        
+        for (const entry of entries) {
+            const fullPath = path.join(dirPath, entry.name);
+            
+            if (entry.isDirectory()) {
+                await processDirectory(fullPath);
+            } else if (entry.name.endsWith('.mdx')) {
+                let content = await fs.readFile(fullPath, 'utf-8');
+                
+                // Replace the document path to point to public directory correctly
+                const originalContent = content;
+                content = content.replace(
+                    /document=\{"\.\/swagger\.json"\}/g,
+                    'document={"/swagger.json"}'
+                );
+                
+                if (content !== originalContent) {
+                    await fs.writeFile(fullPath, content);
+                    console.log(`Fixed document path in: ${path.relative(process.cwd(), fullPath)}`);
+                }
+            }
+        }
+    }
+    
+    await processDirectory(out);
+    console.log("Document paths fixed!");
+}
 
 // Fetch Swagger JSON from the API endpoint, with delay because the API may not be ready yet.
 async function fetchSwaggerJSON() {
     const MAX_RETRIES = 20;
     const RETRY_DELAY = 2000;
+
+    // Ensure public directory exists
+    await fs.mkdir("./public", { recursive: true });
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
@@ -26,13 +104,18 @@ async function fetchSwaggerJSON() {
             }
 
             const swaggerData = await response.json();
+            
+            // Fix media types before saving
+            const fixedSwaggerData = fixMediaTypes(swaggerData);
+            const swaggerContent = JSON.stringify(fixedSwaggerData, null, 2);
 
-            await fs.writeFile(
-                swaggerFilePath,
-                JSON.stringify(swaggerData, null, 2),
-            );
-
+            // Save to root for build process
+            await fs.writeFile(swaggerFilePath, swaggerContent);
             console.log(`Swagger JSON saved to ${swaggerFilePath}`);
+            
+            // Save to public for runtime access
+            await fs.writeFile(publicSwaggerPath, swaggerContent);
+            console.log(`Swagger JSON saved to ${publicSwaggerPath}`);
 
             return true;
         } catch (error) {
@@ -54,47 +137,6 @@ async function fetchSwaggerJSON() {
     return false;
 }
 
-// Fix the document paths in generated files
-async function fixDocumentPaths(dir) {
-    try {
-        const entries = await fs.readdir(dir, { withFileTypes: true });
-        
-        for (const entry of entries) {
-            const fullPath = path.join(dir, entry.name);
-            
-            if (entry.isDirectory()) {
-                await fixDocumentPaths(fullPath);
-            } else if (entry.name.endsWith('.mdx')) {
-                try {
-                    let content = await fs.readFile(fullPath, 'utf-8');
-                    
-                    // Replace relative path with absolute path
-                    content = content.replace(
-                        /document=\{"\.\/swagger\.json"\}/g,
-                        'document={"/swagger.json"}'
-                    );
-                    
-                    // Fix frontmatter formatting if needed
-                    if (!content.includes('title: "') && content.includes('title: ')) {
-                        content = content.replace(
-                            /^(---\ntitle: )([^\n]+)(\nfull: true)/m,
-                            '$1"$2"$3'
-                        );
-                    }
-                    
-                    await fs.writeFile(fullPath, content);
-                    console.log(`Fixed: ${fullPath}`);
-                } catch (error) {
-                    console.error(`Error processing ${fullPath}:`, error);
-                }
-            }
-        }
-    } catch (error) {
-        console.log(`Directory ${dir} doesn't exist yet, skipping...`);
-        console.error(error);
-    }
-}
-
 // Clean generated files
 rimrafSync(out, {
     filter(v) {
@@ -108,32 +150,24 @@ async function main() {
 
     if (!success) {
         console.error(
-            `Failed to fetch Swagger JSON. Make sure the API is running at localhost:8080`,
+            `Failed to fetch Swagger JSON. Make sure the API is running at ${process.env.API_URL}`,
         );
         process.exit(1);
     }
 
     console.log("Generating API documentation...");
-    
-    try {
-        await OpenAPI.generateFiles({
-            input: [swaggerFilePath],
-            output: out,
-            per: "operation",
-            groupBy: "tag",
-        });
-        
-        console.log("API documentation generated successfully!");
-        
-        // Post-process the generated files to fix the document path
-        console.log("Post-processing files for static export...");
-        await fixDocumentPaths(out);
-        console.log("Post-processing completed!");
-        
-    } catch (error) {
-        console.error("Error during generation:", error);
-        process.exit(1);
-    }
+    await OpenAPI.generateFiles({
+        // input files
+        input: [swaggerFilePath],
+        output: out,
+        per: "operation",
+        groupBy: "tag",
+    });
+
+    // Fix the document paths after generation
+    await fixDocumentPaths();
+
+    console.log("API documentation generated successfully!");
 }
 
 // Run the main function
