@@ -63,14 +63,14 @@ public class TagsController(ResourceManager resourceManager, ProjectManager proj
                     pageIndex: filterOptions.PageIndex,
                     pageSize: filterOptions.PageSize,
                     predicate: predicate,
-                    includeProperties: filterOptions.IncludeUsageCount ? "ResourceTagRelations" : string.Empty
+                    includeProperties: filterOptions.IncludeUsageCount ? ["ResourceTagRelations"] : [] // fails if IncludeUsageCount is false
                 );
             }
             else
             {
                 tags = await resourceManager.GetAllTagsAsync(
                     predicate: predicate,
-                    includeProperties: filterOptions.IncludeUsageCount ? "ResourceTagRelations": string.Empty
+                    includeProperties: filterOptions.IncludeUsageCount ? ["ResourceTagRelations"] : [] // fails if IncludeUsageCount is false
                 );
             }
 
@@ -120,7 +120,7 @@ public class TagsController(ResourceManager resourceManager, ProjectManager proj
                 tags = PropertyMatcher.SortByProperty(tags, filterOptions.SortBy, filterOptions.SortDescending, filterOptions.SortBy).ToArray();
             }
 
-            if(filterOptions.UsePaging)
+            if (filterOptions.UsePaging)
             {
                 // calculate the total number of tags
                 int totalCount = await resourceManager.TagCountAsync(predicate);
@@ -244,7 +244,12 @@ public class TagsController(ResourceManager resourceManager, ProjectManager proj
         if (tagExists)
         {
             Log.Error("Tag already exists..");
-            return Conflict(new ApiResponse(false, "Tag already exists."));
+            object? existingTagId = null;
+            existingTagId = await resourceManager.GetTagPropertyOrDefaultAsync(t => t.Name == dto.Name, selector: "Id");
+            if (existingTagId != null)
+            {
+                return Conflict(new ApiResponse(false, "Tag already exists.", existingTagId.ToString() ?? ""));
+            }
         }
 
         // Add the tag

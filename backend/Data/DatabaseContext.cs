@@ -15,7 +15,6 @@ namespace KnowledgeBank.Data
         public DbSet<ResourceTagRelation> ResourceTagRelations { get; set; }
         public DbSet<User> AppUsers { get; set; } // Renamed to avoid conflict with IdentityDbContext.Users
         public DbSet<Invitation> Invitations { get; set; }
-        public DbSet<ResourceVector> Vectors { get; set; }
         public DbSet<DocumentMetadata> DocumentMetadata { get; set; }
         public DbSet<WebsiteMetadata> WebsiteMetadata { get; set; }
         public DbSet<AudioMetadata> AudioMetadata { get; set; }
@@ -40,14 +39,15 @@ namespace KnowledgeBank.Data
         public DbSet<ProjectTagRelation> ProjectTagRelations { get; set; }
         public DbSet<ProjectResourceRelation> ProjectResourceRelations { get; set; }
         public DbSet<ProjectCreatorRelation> ProjectCreatorRelations { get; set; }
+        
+        
+        public DbSet<ResourceGridItem> ResourceGridItems { get; set; }
+        public DbSet<ResourceGridSearchResult> ResourceGridSearchResults { get; set; }
+        public DbSet<ResourceTrashItem> ResourceTrashItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Resource>()
-                .HasOne(f => f.Vector)
-                .WithOne(v => v.Resource)
-                .HasForeignKey<ResourceVector>(v => v.ResourceId)
-                .OnDelete(DeleteBehavior.Cascade);    // Automatically deletes vector on file delete
+            modelBuilder.HasPostgresExtension("pg_trgm");
 
             modelBuilder.Entity<ResourceTagRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.TagId }); // Define composite primary key
@@ -125,6 +125,35 @@ namespace KnowledgeBank.Data
                 .WithMany(f => f.ParentFolders)
                 .HasForeignKey(pfr => pfr.ChildId);
 
+            // Resource grid view
+            modelBuilder.Entity<ResourceGridItem>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToView("resourcegridview");
+            });
+
+            modelBuilder.Entity<ResourceGridSearchResult>(entity =>
+            {
+                entity.HasNoKey();
+                entity.ToView(null);
+            });
+
+            // Relation indexes for better query performance
+            modelBuilder.Entity<ResourceTagRelation>()
+                .HasIndex(rt => rt.TagId)
+                .HasDatabaseName("idx_resource_tag_tag_id");
+
+            modelBuilder.Entity<ResourceRegionRelation>()
+                .HasIndex(rr => rr.RegionId)
+                .HasDatabaseName("idx_resource_region_region_id");
+
+            // Resource trash view
+            modelBuilder.Entity<ResourceTrashItem>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToView("resourcetrashview");
+            });
+
             base.OnModelCreating(modelBuilder);
         }
 
@@ -148,21 +177,6 @@ namespace KnowledgeBank.Data
 
             // If there are any updated files, update their search vectors
             if (updatedResources.Count != 0) await UpdateResourceVectorAsync(updatedResources);
-
-            return result;
-        }
-
-        /// <summary>
-        /// Same as SaveResourceChangeAsync, just for projects so it doesn't have to check for updating resource vectors.
-        /// 
-        /// Author: Justin Liem
-        /// </summary>
-        /// <param name="cancellationToken">A token used to observe operation cancellation.</param>
-        /// <returns>The number of state entries written to the database.</returns>
-        public async Task<int> SaveProjectChangesAsync(CancellationToken cancellationToken = default)
-        {
-            // Save the changes to the database
-            int result = await base.SaveChangesAsync(cancellationToken);
 
             return result;
         }

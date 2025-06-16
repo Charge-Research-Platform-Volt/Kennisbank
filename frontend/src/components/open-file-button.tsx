@@ -1,8 +1,7 @@
 "use client";
 
-import { handleOpenFile } from "@/actions/openFileActions";
+import { handleOpenFile } from "@/actions/openFileActionsClient";
 import { Button } from "@/components/ui/button";
-import { ResourceResponse } from "@/types/resource.type";
 import GetDownloadIcon from "./getDownloadIcon";
 
 /**
@@ -13,11 +12,13 @@ import GetDownloadIcon from "./getDownloadIcon";
  * @returns A button where users can either visit the page or open the file in question
  */
 export default function OpenFileButton({
-  file,
+  id,
+  fileType,
   asIcon = false,
   variant = "default",
 }: {
-  file: ResourceResponse,
+  id: string,
+  fileType: string,
   asIcon?: boolean,
   variant?: "default" | "link" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined;
 }) {
@@ -25,7 +26,7 @@ export default function OpenFileButton({
   // Text when hovering over the button and the icon is loaded.
   function buttonText(): string 
   {
-    switch(file.fileType)
+    switch(fileType)
     {
       case "pdf":
         return "Open PDF"
@@ -39,7 +40,7 @@ export default function OpenFileButton({
   // Text of the button otherwise.
   function buttonAltText(): string 
   {
-    switch(file.fileType)
+    switch(fileType)
     {
       case "pdf":
         return "Open"
@@ -55,15 +56,15 @@ export default function OpenFileButton({
           className="bg-transparent hover:bg-gray-200 shadow-none text-muted-foreground"
           variant="default"
           type="button"
-          onClick={() => handleOpenFile(file)}
+          onClick={async () => await handleOpenFile(id, fileType)}
           title={buttonText()}
         >
-          <GetDownloadIcon fileType={file.fileType} className="h-5 w-5" />
+          <GetDownloadIcon fileType={fileType} className="h-5 w-5" />
         </Button>
 
     ) : 
     (
-        <Button onClick={() => handleOpenFile(file)} className="w-[99.08px]" variant={variant}>{buttonAltText()}</Button>
+        <Button onClick={() => handleOpenFile(id, fileType)} className="w-[99.08px]" variant={variant}>{buttonAltText()}</Button>
     );
 }
 

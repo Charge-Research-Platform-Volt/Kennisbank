@@ -51,7 +51,6 @@ public class TagControllerTests : TestBase
     {
         // Enable extension for text-search-vectors
         await context.Database.ExecuteSqlRawAsync("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
-        await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""resource-vectors"" ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
         await DatabaseSeeder.SeedTemplate(context);
     }
 
@@ -685,7 +684,8 @@ public class TagControllerTests : TestBase
             Title = "Test Resource", 
             TypeId = resourceType.Id.ToString(),
             LanguageCode = "??",
-            PublicationDate = DateTime.UtcNow
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
         Guid resourceId = await _resourceManager.CreateResourceAsync(testDto);
         
@@ -701,7 +701,8 @@ public class TagControllerTests : TestBase
             Title = "Test Resource 2", 
             TypeId = resourceType.Id.ToString(),
             LanguageCode = "??",
-            PublicationDate = DateTime.UtcNow
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
         Guid resource2Id = await _resourceManager.CreateResourceAsync(testDto2);
         await _resourceManager.AddTagToResourceAsync(resource2Id, tag2Id);
@@ -1214,7 +1215,8 @@ public class TagControllerTests : TestBase
             Title = "Test Resource", 
             TypeId = resourceType.Id.ToString(),
             LanguageCode = "??",
-            PublicationDate = DateTime.UtcNow
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
 
         await _resourceManager.CreateResourceAsync(testDto);
@@ -1251,7 +1253,8 @@ public class TagControllerTests : TestBase
             Title = "Test Resource", 
             TypeId = resourceType.Id.ToString(),
             LanguageCode = "??",
-            PublicationDate = DateTime.UtcNow
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
 
         await _resourceManager.CreateResourceAsync(testDto);
@@ -1533,7 +1536,8 @@ public class TagControllerTests : TestBase
             Title = "Test Resource",
             TypeId = resourceType.Id.ToString(),
             LanguageCode = "en",
-            PublicationDate = DateTime.UtcNow
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
         await _resourceManager.CreateResourceAsync(resourceDto);
         
@@ -1588,14 +1592,16 @@ public class TagControllerTests : TestBase
             Title = "Resource 1",
             TypeId = resourceType.Id.ToString(),
             LanguageCode = "en",
-            PublicationDate = DateTime.UtcNow
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
         ResourceCreateDto resource2Dto = new()
         {
             Title = "Resource 2",
             TypeId = resourceType.Id.ToString(),
             LanguageCode = "en",
-            PublicationDate = DateTime.UtcNow
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
         
         await _resourceManager.CreateResourceAsync(resource1Dto);

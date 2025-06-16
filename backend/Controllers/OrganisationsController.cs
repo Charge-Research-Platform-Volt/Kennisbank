@@ -2,7 +2,6 @@
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
 //
-// Author: Abel Dieterich
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
@@ -14,7 +13,8 @@ using KnowledgeBank.Models;
 using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
-using System.Reflection;
+using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Controllers
 {
@@ -67,6 +67,86 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
 
+        #region Trash
+        /// <summary>
+        /// Trashes an organisation
+        /// </summary>
+        /// <param name="id">The ID of the organisation</param>
+        [HttpPatch("trash/{id}")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Trashes an organisation.")]
+        [SwaggerResponse(200, "Organisation trashed successfully", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Trash(string id) 
+        {
+            // Check if the ID is valid
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID."));
+                
+            try 
+            {
+                // Check if the organisation exists
+                if (!await resourceManager.OrganisationExistsAsync(id))
+                    return NotFound(new ApiResponse(false, $"Organisation with ID '{id}' does not exist."));
+
+                logger.Information("Trashing organisation with ID: {ID}", id);
+                    
+                // Trash the organisation
+                await resourceManager.TrashOrganisationAsync(id);
+
+                logger.Information("Trashed organisation with ID '{ID}' successfully.", id);
+                return Ok(new ApiResponse(true, "Organisation trashed successfully."));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error trashing organisation with ID {ID}.", id);
+                return StatusCode(500, new ApiResponse(false, "Error trashing organisation", e.Message));
+            }
+        }
+        #endregion
+
+        #region Untrash
+        /// <summary>
+        /// Untrashes an organisation
+        /// </summary>
+        /// <param name="id">The ID of the organisation</param>
+        [HttpPatch("untrash/{id}")]
+        [Authorize(Policy = "RequireAdminRole")]
+        [SwaggerOperation(Summary = "Untrashes an organisation.")]
+        [SwaggerResponse(200, "Organisation untrashed successfully", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Untrash(string id) 
+        {
+            // Check if the ID is valid
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID."));
+                
+            try 
+            {
+                // Check if the organisation exists
+                if (!await resourceManager.OrganisationExistsAsync(id))
+                    return NotFound(new ApiResponse(false, $"Organisation with ID '{id}' does not exist."));
+
+                logger.Information("Untrashing organisation with ID: {ID}", id);
+                    
+                // Untrash the organisation
+                await resourceManager.UntrashOrganisationAsync(id);
+
+                logger.Information("Untrashed organisation with ID '{ID}' successfully.", id);
+                return Ok(new ApiResponse(true, "Organisation untrashed successfully."));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error untrashing organisation with ID {ID}.", id);
+                return StatusCode(500, new ApiResponse(false, "Error untrashing organisation", e.Message));
+            }
+        }
+        #endregion
+        
         #region Delete
         /// <summary>
         /// Deletes an organisation
@@ -112,14 +192,14 @@ namespace KnowledgeBank.Controllers
         /// <summary>
         /// Updates a organistation
         /// </summary>
-        /// <param name="id">The ID of the organistation</param>
+        /// <param name="id">The ID of the organisation</param>
         /// <param name="updates">The dictionary of propertynames to update and their new values</param>
         [HttpPatch("update/{id}")]
         [Authorize(Policy = "RequireAdminRole")]
-        [SwaggerOperation(Summary = "Updates an organistation")]
-        [SwaggerResponse(200, "Organistation updated", typeof(ApiResponse))]
+        [SwaggerOperation(Summary = "Updates an organisation")]
+        [SwaggerResponse(200, "Organisation updated", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Organistation not found", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
         [SwaggerResponse(409, "Already exists", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
         public async Task<IActionResult> Update(string id, [FromBody] Dictionary<string, object> updates)
@@ -136,7 +216,7 @@ namespace KnowledgeBank.Controllers
 
             try
             {
-                // Check if organistation exsists
+                // Check if organisation exsists
                 if (!await resourceManager.OrganisationExistsAsync(id))
                     return NotFound(new ApiResponse(false, "The organisation does not exist"));
 
@@ -201,16 +281,15 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Retrieve the ID of the person if it already exists
-                Guid organisationId = Guid.Empty;
+                object? organisationId = null;
 
                 // Handle name
                 if (!string.IsNullOrEmpty(name))
-                    organisationId = await resourceManager.GetOrganisationPropertyOrDefaultAsync(predicate: p => p.Name == name, selector: p => p.Id);
-
+                    organisationId = await resourceManager.GetOrganisationPropertyOrDefaultAsync(predicate: p => p.Name == name, selector: "Id");
 
 
                 // ID is empty, so no person was found
-                if (organisationId == Guid.Empty)
+                if (organisationId == null)
                     return Ok(new ApiResponse(true, "Person does not exist", new { exists = false, id = "" }));
 
                 // ID was not empty, so organisation already exists, return the ID
@@ -229,13 +308,14 @@ namespace KnowledgeBank.Controllers
         /// Gets the information of the organisation (database row)
         /// </summary>
         /// <param name="id">The ID of the organisation</param>
+        /// <param name="properties">The properties you are trying to receive, separated by comma</param>
         [HttpGet("info/{id}")]
         [SwaggerOperation(Summary = "Get the information of the organisation")]
         [SwaggerResponse(200, "Organisation information", typeof(ApiResponse))]
         [SwaggerResponse(404, "Organisation Not Found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Info(string id)
+        public async Task<IActionResult> Info(string id, [FromQuery] string? properties)
         {
             // Check if the ID is valid
             if (!ValidityUtil.IsValidId(id))
@@ -244,7 +324,9 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Retrieve the organisation
-                Organisation? organisation = await resourceManager.GetOrganisationAsync(id);
+                object? organisation = string.IsNullOrEmpty(properties) ?
+                    await resourceManager.GetOrganisationAsync(id) :
+                    await resourceManager.GetOrganisationPropertyAsync(id, $"new({properties})");
 
                 // If null, the organisation was not found
                 if (organisation == null)
@@ -267,14 +349,20 @@ namespace KnowledgeBank.Controllers
         /// </summary>
         /// <param name="pageIndex">(Optional) The index of the page</param>
         /// <param name="pageSize">(Optional) The size of the page</param>
+        /// <param name="properties">(Optional) The properties to select, separated by comma</param>
+        /// <param name="searchQuery">(Optional) Filter on search query </param>
+        /// <param name="trash">(Optional) Whether to show trashed organisations or non trashed organisations</param>
         [HttpGet("list")]
         [SwaggerOperation(Summary = "Retrieves a list or page of all organisations")]
         [SwaggerResponse(200, "A list or page of all the organisations in the archive", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> List(int? pageIndex, int? pageSize)
+        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties, string? searchQuery, bool trash = false)
         {
             // Verification
+            if (trash && !User.IsInRole("admin"))
+                return Unauthorized(new ApiResponse(false, "You are not authorized to view trashed organisations."));
+
             if (pageIndex != null && pageIndex < 1)
                 return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1"));
 
@@ -288,15 +376,27 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // All organisations to be returned
-                Organisation[]? organisations = [];
+                object[]? organisations = [];
+                
+                string projectionString = $"new({properties})";
+                
+                Expression<Func<Organisation, bool>>? predicate = searchQuery != null ? o =>    (EF.Functions.TrigramsAreSimilar(o.Name, searchQuery) ||
+                                                                                                EF.Functions.ILike(o.Name, $"{searchQuery}%") ||
+                                                                                                EF.Functions.ILike(o.Name, $"%{searchQuery}%"))
+                                                                                            && o.Trashed == trash
+                                                                                  : o => o.Trashed == trash;
 
                 // No paging requested, list all organisations
                 if (pageIndex == null || pageSize == null)
-                    organisations = await resourceManager.GetAllOrganisationsAsync();
+                    organisations = string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllOrganisationsAsync(predicate: predicate) :
+                        await resourceManager.GetAllOrganisationsAsync(projection: projectionString, predicate: predicate);
 
                 // Paging requested, retrieve organisations on that page
                 else
-                    organisations = await resourceManager.GetOrganisationPageAsync((int)pageIndex, (int)pageSize);
+                    organisations = string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetOrganisationPageAsync((int)pageIndex, (int)pageSize, predicate: predicate) :
+                        await resourceManager.GetOrganisationPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: predicate);
 
                 // Return found organisations
                 return Ok(new ApiResponse(true, $"Found {organisations.Length} organisations", organisations));
@@ -305,6 +405,195 @@ namespace KnowledgeBank.Controllers
             {
                 logger.Error(e, "Error listing organisations");
                 return StatusCode(500, new ApiResponse(false, "Error listing organisations", e.Message));
+            }
+        }
+        #endregion
+        
+        #region Relation fetches
+        /// <summary>
+        /// Retrieves all relations of the given type for the given organisation ID
+        /// </summary>
+        /// <param name="relation">The relation to retrieve</param>
+        /// <param name="id">The ID of the organisation</param>
+        /// <param name="properties">(Optional) The properties to select from the result</param>
+        [HttpGet("{id}/relations/{relation}")]
+        [SwaggerOperation(Summary = "Retrieves all relations of the given type for the given organisation ID")]
+        [SwaggerResponse(200, "The relations", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Relations(string relation, string id, string? properties) 
+        {
+            // Check if relation is filled in
+            if (string.IsNullOrEmpty(relation))
+                return BadRequest(new ApiResponse(false, "Invalid relation"));
+
+            // Check ID
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID"));
+                
+            try 
+            {
+                object? result = relation switch
+                {
+                    // Directly related resources resources
+                    "direct-resources" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceOrganisationRelationsAsync(r => r.OrganisationId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceOrganisationRelationsAsync(predicate: r => r.OrganisationId == Guid.Parse(id), projection: $"new({properties})"),
+
+                    // Related resources
+                    "related-resources" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(r => r.OrganisationId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(predicate: r => r.OrganisationId == Guid.Parse(id), projection: $"new({properties})"),
+                    
+                    // Related organisations
+                    "organisation-related-organisations" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllOrganisationRelationshipsAsync(predicate: p => p.SourceOrganisationId == Guid.Parse(id) || p.TargetOrganisationId == Guid.Parse(id)) :
+                        await resourceManager.GetAllOrganisationRelationshipsAsync(predicate: p => p.SourceOrganisationId == Guid.Parse(id) || p.TargetOrganisationId == Guid.Parse(id), projection: $"new({properties})"),
+                        
+                    // Related persons
+                    "persons" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllPersonOrganisationRelationsAsync(predicate: p => p.OrganisationId == Guid.Parse(id)) :
+                        await resourceManager.GetAllPersonOrganisationRelationsAsync(predicate: p => p.OrganisationId == Guid.Parse(id), projection: $"new({properties})"),
+                    
+                    // Default
+                    _ => null
+                };
+
+                if (result == null)
+                    return NotFound(new ApiResponse(false, "ID or relation not found"));
+
+                return Ok(new ApiResponse(true, "Successfully retrieved relations", result));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error retrieving relation '{Relation}' for organisation with ID '{Id}'", relation, id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        #endregion
+        
+        #region Add Relations
+        /// <summary>
+        /// Adds a relation for this organisation
+        /// </summary>
+        /// <param name="id">The ID of the organisation</param>
+        /// <param name="relation">The relation to be made</param>
+        /// <param name="targetId">The ID of the other item in the relation</param>
+        /// <param name="relationInfo">(Optional) Extra information over the relation</param>
+        [HttpGet("{id}/relations/add/{relation}/{targetId}")]
+        [SwaggerOperation(Summary = "Adds a relation to the organisation")]
+        [SwaggerResponse(200, "Successfully added relation", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> AddRelation(string id, string relation, string targetId, [FromQuery]string? relationInfo) 
+        {
+            // Check if relation is filled in
+            if (string.IsNullOrEmpty(relation))
+                return BadRequest(new ApiResponse(false, "Invalid relation"));
+
+            // Check if ids are valid
+            if (!ValidityUtil.IsValidId(id)) return BadRequest(new ApiResponse(false, "Invalid ID"));
+            if (!ValidityUtil.IsValidId(targetId)) return BadRequest(new ApiResponse(false, "Invalid target ID"));
+            
+            try 
+            {
+                switch (relation) 
+                {
+                    // Direct resources
+                    case "direct-resources":
+                        await resourceManager.AddOrganisationToResourceAsync(targetId, id, relationInfo ?? "");
+                        break;
+                    
+                    // Related resources
+                    case "related-resources":
+                        await resourceManager.AddRelatedOrganisationToResourceAsync(targetId, id, relationInfo ?? "");
+                        break;
+                    
+                    // Organisations
+                    case "organisation-related-organisations":
+                        await resourceManager.AddOrganisationRelationshipAsync(id, relationInfo, targetId);
+                        break;
+                    
+                    // Persons
+                    case "persons":
+                        await resourceManager.AddPersonToOrganisationAsync(targetId, relationInfo, id);
+                        break;
+                        
+                    // Default
+                    default:
+                        return BadRequest(new ApiResponse(false, "Invalid relation"));
+                }
+
+                return Ok(new ApiResponse(true, "Relation added successfully"));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error creating relation '{Relation}' for person with ID '{Id}'", relation, id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        #endregion
+
+        #region Remove Relations
+        /// <summary>
+        /// Removes a relation for this organisation
+        /// </summary>
+        /// <param name="id">The ID of the organisation</param>
+        /// <param name="relation">The relation to be removed</param>
+        /// <param name="targetId">The ID of the other item in the relation</param>
+        [HttpGet("{id}/relations/remove/{relation}/{targetId}")]
+        [SwaggerOperation(Summary = "Removes a relation to the organisation")]
+        [SwaggerResponse(200, "Successfully remoed relation", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> RemoveRelation(string id, string relation, string targetId)
+        {
+            // Check if relation is filled in
+            if (string.IsNullOrEmpty(relation))
+                return BadRequest(new ApiResponse(false, "Invalid relation"));
+
+            // Check if ids are valid
+            if (!ValidityUtil.IsValidId(id)) return BadRequest(new ApiResponse(false, "Invalid ID"));
+            if (!ValidityUtil.IsValidId(targetId)) return BadRequest(new ApiResponse(false, "Invalid target ID"));
+
+            try
+            {
+                switch (relation)
+                {
+                    // Direct resources
+                    case "direct-resources":
+                        await resourceManager.RemoveOrganisationFromResourceAsync(targetId, id);
+                        break;
+
+                    // Related resources
+                    case "related-resources":
+                        await resourceManager.RemoveRelatedOrganisationFromResourceAsync(targetId, id);
+                        break;
+
+                    // Organisations
+                    case "organisation-related-organisations":
+                        await resourceManager.RemoveOrganisationRelationshipAsync(id, targetId);
+                        break;
+
+                    // Persons
+                    case "persons":
+                        await resourceManager.RemovePersonFromOrganisationAsync(targetId, id);
+                        break;
+
+                    // Default
+                    default:
+                        return BadRequest(new ApiResponse(false, "Invalid relation"));
+                }
+
+                return Ok(new ApiResponse(true, "Relation removed successfully"));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error removing relation '{Relation}' for person with ID '{Id}'", relation, id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
             }
         }
         #endregion

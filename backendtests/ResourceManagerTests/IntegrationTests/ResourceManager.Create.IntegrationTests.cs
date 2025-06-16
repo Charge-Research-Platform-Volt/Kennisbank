@@ -56,7 +56,6 @@ public class ResourceManagerCreateTests : TestBase
     {
         // Enable extension for text-search-vectors
         await context.Database.ExecuteSqlRawAsync("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
-        await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""resource-vectors"" ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
         await DatabaseSeeder.SeedTemplate(context);
     }
 
@@ -74,6 +73,7 @@ public class ResourceManagerCreateTests : TestBase
             TypeId = resourceType.Id.ToString(),
             LanguageCode = "??",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
 
         // Act
@@ -110,7 +110,8 @@ public class ResourceManagerCreateTests : TestBase
             Description = "Should fail",
             TypeId = "not-a-guid",
             LanguageCode = "??",
-            PublicationDate = DateTime.UtcNow
+            PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
         };
 
         // Act + Assert
@@ -138,6 +139,7 @@ public class ResourceManagerCreateTests : TestBase
             TypeId = resourceType.Id.ToString(),
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
             Tags = [testTagId.ToString()]
         };
 
@@ -168,13 +170,15 @@ public class ResourceManagerCreateTests : TestBase
         PersonCreateDto testPersonDto = new PersonCreateDto
         {
             Name = "Test Name",
-            Occupation = "Test Occupation"
+            Occupation = "Test Occupation",
+            CreationDate = DateTime.UtcNow,
         };
         Guid testPersonId = await resourceManager.CreatePersonAsync(testPersonDto);
 
         OrganisationCreateDto testOrganisationDto = new OrganisationCreateDto
         {
-            Name = "Utrecht University"
+            Name = "Utrecht University",
+            CreationDate = DateTime.UtcNow,
         };
         Guid testOrganisationId = await resourceManager.CreateOrganisationAsync(testOrganisationDto);
 
@@ -193,6 +197,7 @@ public class ResourceManagerCreateTests : TestBase
             TypeId = type.Id.ToString(),
             LanguageCode = "en",
             PublicationDate = DateTime.UtcNow,
+            CreationDate = DateTime.UtcNow,
             Tags = [testTagId.ToString()],
             Authors = [testPersonId.ToString()],
             Organisations = [new RelatedEntry { Id = testOrganisationId.ToString(), Relation = "boss" }],

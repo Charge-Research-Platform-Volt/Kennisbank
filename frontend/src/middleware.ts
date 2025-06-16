@@ -1,7 +1,30 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
+    const pathname = request.nextUrl.pathname;
+    
+    // Handle API proxying before auth checks
+    if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/')) 
+    {
+        const apiUrl = process.env.API_URL || 'http://localhost:8080';
+        const targetUrl = new URL(pathname.replace('/api', ''), apiUrl);
+        
+        // Copy search params
+        targetUrl.search = request.nextUrl.search;
+        
+        // Copy all headers including cookies
+        const headers = new Headers(request.headers);
+        
+        return NextResponse.rewrite(targetUrl,
+        {
+            request:
+            {
+                headers: headers,
+            }
+        });
+    }
+
     try {
         // Check in backend if logged in
         const response = await fetch(`${process.env.API_URL}/Auth/ping`, {
@@ -13,7 +36,6 @@ export async function middleware(request: NextRequest) {
         });
 
         // If endpoint is /login or /signup, don't redirect if not logged in, redirect if logged in
-        const pathname = request.nextUrl.pathname;
         if (pathname.startsWith("/login") || pathname.startsWith("/signup")) {
             if (!response.ok) {
                 console.warn("Auth check failed:", response.status);

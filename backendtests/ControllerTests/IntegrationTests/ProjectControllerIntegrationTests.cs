@@ -80,7 +80,6 @@ public class ProjectControllerTests : TestBase
     {
         // Enable extension for text-search-vectors
         await context.Database.ExecuteSqlRawAsync("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
-        await context.Database.ExecuteSqlRawAsync(@"ALTER TABLE ""resource-vectors"" ALTER COLUMN vector SET DATA TYPE tsvector USING vector::tsvector;");
         await DatabaseSeeder.SeedTemplate(context);
     }
 
@@ -151,6 +150,7 @@ public class ProjectControllerTests : TestBase
         TypeId = DatabaseSeeder.UnknownResourceTypeId,
         LanguageCode = "NL",
         PublicationDate = DateTime.UtcNow,
+        CreationDate = DateTime.UtcNow
     };
 
     // Static method to provide test cases

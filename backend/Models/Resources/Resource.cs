@@ -44,20 +44,23 @@ public class Resource
     [Column("filetype")]
     [MaxLength(50)]
     public required string FileType { get; set; }
+    
+    [Column("file-ext")]
+    [MaxLength(5)]
+    public string? FileExt { get; set; }
 
     [Column("hash")]
     [MaxLength(64)]
     public string? Hash { get; set; }
 
-    [Column("archived")]
-    public bool Archived { get; set; } = false;
+    [Column("trashed")]
+    public bool Trashed { get; set; } = false;
 
-    [Column("archive-date")]
-    public DateTime? ArchiveDate { get; set; } = null;
+    [Column("trash-date")]
+    public DateTime? TrashDate { get; set; } = null;
 
     #region Direct navigation properties
     // Navigation property for Vector (one to one). JsonIgnore excludes it from response bodies.
-    [JsonIgnore] public ResourceVector? Vector { get; set; }
 
     // Navigation property for Document metadata (1:1)
     [JsonIgnore] public DocumentMetadata? DocumentMetadata { get; set; }
@@ -80,6 +83,7 @@ public class Resource
     [JsonIgnore] public ICollection<ResourceAuthorRelation>? ResourceAuthorRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceOrganisationRelation>? ResourceOrganisationRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceRegionRelation>? ResourceRegionRelations { get; set; }
+    [JsonIgnore] public ICollection<ResourceRelatedPersonRelation>? ResourceRelatedPersonRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceRelatedOrganisationRelation>? ResourceRelatedOrganisationRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceRelatedSourceRelation>? ResourceRelatedSourceRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceSourceRelation>? ResourceSourceRelations { get; set; }
@@ -102,6 +106,7 @@ public class ResourceCreateDto // Data Transfer Object (DTO)
     public required string LanguageCode { get; set; }
     public string? PublicationCode { get; set; }
     public required DateTime PublicationDate { get; set; }
+    public DateTime? CreationDate { get; set; }
     public string? License { get; set; }
     public string[] Sources { get; set; } = [];
     public string? Note { get; set; }
@@ -136,12 +141,6 @@ public class ResourceUploadDto
     public required string Dto { get; set; }
     public required string UploadType { get; set; }
     public IFormFile? File { get; set; }
-}
-
-public class ResourceRenameDto
-{
-    public required string Id { get; set; }
-    public required string Title { get; set; }
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

@@ -147,7 +147,7 @@ export default function LeftSidebarClient({
           }}
           style={{ marginRight: `${!open ? sidebarPartsScrollbarWidth : 0}px` }}
         >
-          {open ? <HideMenu /> : <ShowMenu /> }
+          <HideMenu flipArrow={!open} />
         </Button>
       </div>
 
