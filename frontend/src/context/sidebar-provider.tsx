@@ -125,7 +125,7 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
         setRightSidebarOpen((prev) => !prev);
     };
 
-    const openRightSidebar = (id: string, type: MetadataTypeEnum) => 
+    const openRightSidebar = React.useCallback((id: string, type: MetadataTypeEnum) => 
     {
         setCurrentId(id);
         setCurrentType(type);
@@ -134,7 +134,7 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
         nexts.clear();
         
         setRightSidebarOpen(true);
-    }
+    }, [nexts, prevs])
     
     const navigate = (id: string, type: MetadataTypeEnum) =>
     {
@@ -184,12 +184,25 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
             const id = searchParams.get('id');
             
             // Check if ID is set, and if so, fetch the type and use that to open the right sidebar
-            if (id)
+            if (id && !rightSidebarOpen)
                 openRightSidebar(id, await FetchMetadataType(id));
         }
         
         loadMetadataTypeAndOpenRightSidebar();
-    }, [searchParams])
+    }, [openRightSidebar, rightSidebarOpen, searchParams])
+    
+    // Effect for syncing URL when currentId changes
+    React.useEffect(() => 
+    {
+        // Only sync when sidebar is open and currentId is different from URL id
+        if (rightSidebarOpen && currentId && currentId !== searchParams.get('id')) 
+        {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('id', currentId);
+            const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+            router.replace(newUrl);
+        }
+    }, [currentId, rightSidebarOpen, searchParams, pathname, router]);
     
     // Effect for right sidebar open
     React.useEffect(() => 
@@ -206,15 +219,6 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
                 
             // Close the left sidebar on right sidebar open
             setLeftSidebarOpen(false);
-            
-            // Add the 'id' parameter from to the URL (only when not the same)
-            if (currentId !== searchParams.get('id')) 
-            {
-                const params = new URLSearchParams(searchParams.toString());
-                params.set('id', currentId);
-                const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
-                router.replace(newUrl);
-            }
         }
         
         // On right sidebar close
@@ -233,7 +237,7 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
                 router.replace(newUrl);
             }
         }
-    }, [rightSidebarOpen, currentId, nexts, prevs, searchParams, pathname, router])
+    }, [rightSidebarOpen, nexts, prevs, searchParams, pathname, router, currentId])
     
     // Effect for left sidebar open
     React.useEffect(() => 

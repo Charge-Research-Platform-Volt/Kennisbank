@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import HideMenu from "@/icons/menu/hide-menu";
 import { Calendar, Clock } from "lucide-react";
 import ShowDate from './showDate';
-import { getProperty } from "@/actions/right-sidebarActions";
 import { handleOpenFile } from "@/actions/openFileActionsClient";
 
 /**

@@ -16,8 +16,6 @@ import { TagFilterOptions } from "@/types/tag.type";
 import { SelectOption } from "@/components/ui/selection";
 import { useUserRole } from "@/context/user-role-context";
 import TrashIcon from "@/icons/trash-icon";
-import { useRouter } from "next/router";
-import { useSearchParams } from "next/navigation";
 
 export default function Page() {
     // Context
