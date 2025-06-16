@@ -66,9 +66,9 @@ export function PersonContent()
             
             setName(data.body.name || "Name missing.");
             setDescription(data.body.description || "No description.");
-            setOccupation(data.body.occupation || "Unknown.");
-            setEmail(data.body.email || "Unknown.");
-            setLinkedIn(data.body.linkedin || "LinkedIn unkown.");
+            setOccupation(data.body.occupation || "Occupation unknown.");
+            setEmail(data.body.email || "Email unknown.");
+            setLinkedIn(data.body.linkedin || "LinkedIn unknown.");
             setTrashed(data.body.trashed || false);
             setAuthored(data.body.authored || []);
             setRelated(data.body.related || []);
