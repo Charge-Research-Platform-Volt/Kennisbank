@@ -233,6 +233,27 @@ public OrganisationsController(ResourceManager resourceManager)
 ## Methods
 
 ---
+###  AddRelation\(string, string, string, string?\)
+
+Adds a relation for this organisation
+
+```csharp
+[HttpGet("{id}/relations/add/{relation}/{targetId}")]
+[SwaggerOperation(null, null, Summary = "Adds a relation to the organisation")]
+[SwaggerResponse(200, "Successfully added relation", typeof(ApiResponse))]
+[SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
+[SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+[SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+public Task<IActionResult> AddRelation(string id, string relation, string targetId, string? relationInfo)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The ID of the organisation"},{"name":"relation","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The relation to be made"},{"name":"targetId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The ID of the other item in the relation"},{"name":"relationInfo","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"(Optional) Extra information over the relation"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />
+
+---
 ###  Delete\(string\)
 
 Deletes an organisation
@@ -276,7 +297,7 @@ public Task<IActionResult> Exists(string? name)
 <TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />
 
 ---
-###  Info\(string\)
+###  Info\(string, string?\)
 
 Gets the information of the organisation (database row)
 
@@ -287,17 +308,17 @@ Gets the information of the organisation (database row)
 [SwaggerResponse(404, "Organisation Not Found", typeof(ApiResponse))]
 [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
 [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-public Task<IActionResult> Info(string id)
+public Task<IActionResult> Info(string id, string? properties)
 ```
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
-<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The ID of the organisation"}]} />
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The ID of the organisation"},{"name":"properties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The properties you are trying to receive, separated by comma"}]} />
 
 <h4 className='mb-0 ml-1'>Returns</h4>
 <TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />
 
 ---
-###  List\(int?, int?\)
+###  List\(int?, int?, string?, string?, bool\)
 
 Retrieves a list or page of all organisations
 
@@ -307,11 +328,11 @@ Retrieves a list or page of all organisations
 [SwaggerResponse(200, "A list or page of all the organisations in the archive", typeof(ApiResponse))]
 [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
 [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-public Task<IActionResult> List(int? pageIndex, int? pageSize)
+public Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties, string? searchQuery, bool trash = false)
 ```
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
-<TypeTable types={[{"name":"pageIndex","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"(Optional) The index of the page"},{"name":"pageSize","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"(Optional) The size of the page"}]} />
+<TypeTable types={[{"name":"pageIndex","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"(Optional) The index of the page"},{"name":"pageSize","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"(Optional) The size of the page"},{"name":"properties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"(Optional) The properties to select, separated by comma"},{"name":"searchQuery","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"(Optional) Filter on search query"},{"name":"trash","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"(Optional) Whether to show trashed organisations or non trashed organisations"}]} />
 
 <h4 className='mb-0 ml-1'>Returns</h4>
 <TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />
@@ -338,6 +359,92 @@ public Task<IActionResult> New(OrganisationCreateDto dto)
 <TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />
 
 ---
+###  Relations\(string, string, string?\)
+
+Retrieves all relations of the given type for the given organisation ID
+
+```csharp
+[HttpGet("{id}/relations/{relation}")]
+[SwaggerOperation(null, null, Summary = "Retrieves all relations of the given type for the given organisation ID")]
+[SwaggerResponse(200, "The relations", typeof(ApiResponse))]
+[SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
+[SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+[SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+public Task<IActionResult> Relations(string relation, string id, string? properties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"relation","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The relation to retrieve"},{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The ID of the organisation"},{"name":"properties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"(Optional) The properties to select from the result"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />
+
+---
+###  RemoveRelation\(string, string, string\)
+
+Removes a relation for this organisation
+
+```csharp
+[HttpGet("{id}/relations/remove/{relation}/{targetId}")]
+[SwaggerOperation(null, null, Summary = "Removes a relation to the organisation")]
+[SwaggerResponse(200, "Successfully remoed relation", typeof(ApiResponse))]
+[SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
+[SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+[SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+public Task<IActionResult> RemoveRelation(string id, string relation, string targetId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The ID of the organisation"},{"name":"relation","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The relation to be removed"},{"name":"targetId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The ID of the other item in the relation"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />
+
+---
+###  Trash\(string\)
+
+Trashes an organisation
+
+```csharp
+[HttpPatch("trash/{id}")]
+[Authorize]
+[SwaggerOperation(null, null, Summary = "Trashes an organisation.")]
+[SwaggerResponse(200, "Organisation trashed successfully", typeof(ApiResponse))]
+[SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
+[SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
+[SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+public Task<IActionResult> Trash(string id)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The ID of the organisation"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />
+
+---
+###  Untrash\(string\)
+
+Untrashes an organisation
+
+```csharp
+[HttpPatch("untrash/{id}")]
+[Authorize(Policy = "RequireAdminRole")]
+[SwaggerOperation(null, null, Summary = "Untrashes an organisation.")]
+[SwaggerResponse(200, "Organisation untrashed successfully", typeof(ApiResponse))]
+[SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
+[SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
+[SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+public Task<IActionResult> Untrash(string id)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The ID of the organisation"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />
+
+---
 ###  Update\(string, Dictionary\<string, object\>\)
 
 Updates a organistation
@@ -345,17 +452,17 @@ Updates a organistation
 ```csharp
 [HttpPatch("update/{id}")]
 [Authorize(Policy = "RequireAdminRole")]
-[SwaggerOperation(null, null, Summary = "Updates an organistation")]
-[SwaggerResponse(200, "Organistation updated", typeof(ApiResponse))]
+[SwaggerOperation(null, null, Summary = "Updates an organisation")]
+[SwaggerResponse(200, "Organisation updated", typeof(ApiResponse))]
 [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-[SwaggerResponse(404, "Organistation not found", typeof(ApiResponse))]
+[SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
 [SwaggerResponse(409, "Already exists", typeof(ApiResponse))]
 [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
 public Task<IActionResult> Update(string id, Dictionary<string, object> updates)
 ```
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
-<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The ID of the organistation"},{"name":"updates","type":"Dictionary<string, object>","links":["https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2","https://learn.microsoft.com/dotnet/api/system.string","https://learn.microsoft.com/dotnet/api/system.object"],"description":"The dictionary of propertynames to update and their new values"}]} />
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The ID of the organisation"},{"name":"updates","type":"Dictionary<string, object>","links":["https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2","https://learn.microsoft.com/dotnet/api/system.string","https://learn.microsoft.com/dotnet/api/system.object"],"description":"The dictionary of propertynames to update and their new values"}]} />
 
 <h4 className='mb-0 ml-1'>Returns</h4>
 <TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />

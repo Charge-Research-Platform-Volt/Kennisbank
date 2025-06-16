@@ -276,7 +276,7 @@ public Task<IActionResult> Exists(string? name)
 <TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />
 
 ---
-###  Info\(string\)
+###  Info\(string, string?\)
 
 Gets the information of the region (database row)
 
@@ -287,17 +287,17 @@ Gets the information of the region (database row)
 [SwaggerResponse(404, "Region Not Found", typeof(ApiResponse))]
 [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
 [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-public Task<IActionResult> Info(string id)
+public Task<IActionResult> Info(string id, string? properties)
 ```
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
-<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The ID of the region"}]} />
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The ID of the region"},{"name":"properties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The properties you are trying to receive, separated by comma"}]} />
 
 <h4 className='mb-0 ml-1'>Returns</h4>
 <TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />
 
 ---
-###  List\(int?, int?\)
+###  List\(int?, int?, string?, string?\)
 
 Retrieves a list or page of all regions
 
@@ -307,11 +307,11 @@ Retrieves a list or page of all regions
 [SwaggerResponse(200, "A list or page of all the regions in the archive", typeof(ApiResponse))]
 [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
 [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-public Task<IActionResult> List(int? pageIndex, int? pageSize)
+public Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties, string? searchQuery)
 ```
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
-<TypeTable types={[{"name":"pageIndex","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"(Optional) The index of the page"},{"name":"pageSize","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"(Optional) The size of the page"}]} />
+<TypeTable types={[{"name":"pageIndex","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"(Optional) The index of the page"},{"name":"pageSize","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"(Optional) The size of the page"},{"name":"properties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"(Optional) The properties to select, separated by comma"},{"name":"searchQuery","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"(Optional) Filter on search query"}]} />
 
 <h4 className='mb-0 ml-1'>Returns</h4>
 <TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />

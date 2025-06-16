@@ -98,6 +98,13 @@ public class DatabaseContext : IdentityDbContext, IInfrastructure<IServiceProvid
 </CollapsibleInherited>
 
 ---
+#### Extension Methods
+
+[DatabaseContextExtensions.CreateResourceGridViewAsync\(DatabaseContext\)](KnowledgeBank.Extensions.DatabaseContextExtensions.md\#KnowledgeBank\_Extensions\_DatabaseContextExtensions\_CreateResourceGridViewAsync\_KnowledgeBank\_Data\_DatabaseContext\_), 
+[DatabaseContextExtensions.CreateResourceTrashViewAsync\(DatabaseContext\)](KnowledgeBank.Extensions.DatabaseContextExtensions.md\#KnowledgeBank\_Extensions\_DatabaseContextExtensions\_CreateResourceTrashViewAsync\_KnowledgeBank\_Data\_DatabaseContext\_), 
+[DatabaseContextExtensions.EnsureViewsCreatedAsync\(DatabaseContext\)](KnowledgeBank.Extensions.DatabaseContextExtensions.md\#KnowledgeBank\_Extensions\_DatabaseContextExtensions\_EnsureViewsCreatedAsync\_KnowledgeBank\_Data\_DatabaseContext\_)
+
+---
 ## Constructors
 
 ---
@@ -306,6 +313,30 @@ public DbSet<ResourceAuthorRelation> ResourceAuthorRelations { get; set; }
  <a href='https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DbSet' /></a>\<<a href='../Models/ResourceAuthorRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceAuthorRelation' /></a>\>
 
 ---
+###  ResourceGridItems
+
+```csharp
+public DbSet<ResourceGridItem> ResourceGridItems { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DbSet' /></a>\<<a href='../Models/ResourceGridItem' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceGridItem' /></a>\>
+
+---
+###  ResourceGridSearchResults
+
+```csharp
+public DbSet<ResourceGridSearchResult> ResourceGridSearchResults { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DbSet' /></a>\<<a href='../Models/ResourceGridSearchResult' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceGridSearchResult' /></a>\>
+
+---
 ###  ResourceOrganisationRelations
 
 ```csharp
@@ -390,6 +421,18 @@ public DbSet<ResourceTagRelation> ResourceTagRelations { get; set; }
  <a href='https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DbSet' /></a>\<<a href='../Models/ResourceTagRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceTagRelation' /></a>\>
 
 ---
+###  ResourceTrashItems
+
+```csharp
+public DbSet<ResourceTrashItem> ResourceTrashItems { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DbSet' /></a>\<<a href='../Models/ResourceTrashItem' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceTrashItem' /></a>\>
+
+---
 ###  ResourceTypes
 
 ```csharp
@@ -424,18 +467,6 @@ public DbSet<Tag> Tags { get; set; }
 #### Property Value
 
  <a href='https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DbSet' /></a>\<<a href='../Models/Tag' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Tag' /></a>\>
-
----
-###  Vectors
-
-```csharp
-public DbSet<ResourceVector> Vectors { get; set; }
-```
-
----
-#### Property Value
-
- <a href='https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DbSet' /></a>\<<a href='../Models/ResourceVector' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceVector' /></a>\>
 
 ---
 ###  VideoMetadata
@@ -475,23 +506,6 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
 <TypeTable types={[{"name":"modelBuilder","type":"ModelBuilder","links":["https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.modelbuilder"],"description":""}]} />
-
----
-###  SaveProjectChangesAsync\(CancellationToken\)
-
-Same as SaveResourceChangeAsync, just for projects so it doesn't have to check for updating resource vectors.
-
-Author: Justin Liem
-
-```csharp
-public Task<int> SaveProjectChangesAsync(CancellationToken cancellationToken = default)
-```
-
-<h4 className='mb-0 ml-1'>Parameters</h4>
-<TypeTable types={[{"name":"cancellationToken","type":"CancellationToken","links":["https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken"],"description":"A token used to observe operation cancellation."}]} />
-
-<h4 className='mb-0 ml-1'>Returns</h4>
-<TypeTable types={[{"name":"","type":"Task<int>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.int32"],"description":"The number of state entries written to the database."}]} />
 
 ---
 ###  SaveResourceChangesAsync\(CancellationToken\)

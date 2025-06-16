@@ -35,6 +35,19 @@ public class Person
 ## Properties
 
 ---
+###  CreationDate
+
+```csharp
+[Column("creation-date")]
+public required DateTime CreationDate { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.datetime' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DateTime' /></a>
+
+---
 ###  Description
 
 ```csharp
@@ -140,6 +153,19 @@ public ICollection<ResourceAuthorRelation>? ResourceAuthorRelations { get; set; 
  <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='ResourceAuthorRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceAuthorRelation' /></a>\>?
 
 ---
+###  ResourceRelatedPersonRelations
+
+```csharp
+[JsonIgnore]
+public ICollection<ResourceRelatedPersonRelation>? ResourceRelatedPersonRelations { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='ResourceRelatedPersonRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceRelatedPersonRelation' /></a>\>?
+
+---
 ###  SourceRelationships
 
 ```csharp
@@ -166,4 +192,30 @@ public ICollection<PersonRelationship>? TargetRelationships { get; set; }
 #### Property Value
 
  <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='PersonRelationship' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='PersonRelationship' /></a>\>?
+
+---
+###  TrashDate
+
+```csharp
+[Column("trash-date")]
+public DateTime? TrashDate { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.datetime' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DateTime' /></a>?
+
+---
+###  Trashed
+
+```csharp
+[Column("trashed")]
+public bool Trashed { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.boolean' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='bool' /></a>
 

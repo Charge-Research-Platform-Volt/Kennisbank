@@ -34,32 +34,6 @@ public class Resource
 ## Properties
 
 ---
-###  ArchiveDate
-
-```csharp
-[Column("archive-date")]
-public DateTime? ArchiveDate { get; set; }
-```
-
----
-#### Property Value
-
- <a href='https://learn.microsoft.com/dotnet/api/system.datetime' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DateTime' /></a>?
-
----
-###  Archived
-
-```csharp
-[Column("archived")]
-public bool Archived { get; set; }
-```
-
----
-#### Property Value
-
- <a href='https://learn.microsoft.com/dotnet/api/system.boolean' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='bool' /></a>
-
----
 ###  AudioMetadata
 
 ```csharp
@@ -110,6 +84,20 @@ public DocumentMetadata? DocumentMetadata { get; set; }
 #### Property Value
 
  <a href='DocumentMetadata' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DocumentMetadata' /></a>?
+
+---
+###  FileExt
+
+```csharp
+[Column("file-ext")]
+[MaxLength(5)]
+public string? FileExt { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>?
 
 ---
 ###  FileType
@@ -272,6 +260,19 @@ public ICollection<ResourceRelatedOrganisationRelation>? ResourceRelatedOrganisa
  <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='ResourceRelatedOrganisationRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceRelatedOrganisationRelation' /></a>\>?
 
 ---
+###  ResourceRelatedPersonRelations
+
+```csharp
+[JsonIgnore]
+public ICollection<ResourceRelatedPersonRelation>? ResourceRelatedPersonRelations { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='ResourceRelatedPersonRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceRelatedPersonRelation' /></a>\>?
+
+---
 ###  ResourceRelatedSourceRelations
 
 ```csharp
@@ -337,6 +338,32 @@ public required string Title { get; set; }
  <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>
 
 ---
+###  TrashDate
+
+```csharp
+[Column("trash-date")]
+public DateTime? TrashDate { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.datetime' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DateTime' /></a>?
+
+---
+###  Trashed
+
+```csharp
+[Column("trashed")]
+public bool Trashed { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.boolean' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='bool' /></a>
+
+---
 ###  TypeId
 
 ```csharp
@@ -349,19 +376,6 @@ public required Guid TypeId { get; set; }
 #### Property Value
 
  <a href='https://learn.microsoft.com/dotnet/api/system.guid' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Guid' /></a>
-
----
-###  Vector
-
-```csharp
-[JsonIgnore]
-public ResourceVector? Vector { get; set; }
-```
-
----
-#### Property Value
-
- <a href='ResourceVector' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceVector' /></a>?
 
 ---
 ###  VideoMetadata
