@@ -25,6 +25,13 @@ export default function AvatarEditorDialog({
   const cropperContainerRef = useRef<HTMLDivElement>(null);
   const cropperRef = useRef<Cropper>(null);
 
+  // Make sure that object URL is revoked no matter what.
+  useEffect(() => {
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, []);
+
   // This cropper is kind off stupid, but atleast it doesn't cause epilepsy...
   // We need to manually set the crop size because the library uses the CSS scaled container size,
   // meaning the cropper is too small if the container zooms out after mounting
@@ -56,12 +63,10 @@ export default function AvatarEditorDialog({
 
   const handleConfirm = async () => {
     const newBlob = (await getCroppedImg())!;
-    URL.revokeObjectURL(url);
     onConfirm(newBlob);
   };
 
   const handleDefault = () => {
-    URL.revokeObjectURL(url);
     onDefault();
   }
 

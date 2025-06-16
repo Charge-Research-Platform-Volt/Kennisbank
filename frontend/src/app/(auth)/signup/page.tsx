@@ -31,6 +31,14 @@ export default function SignUpPage() {
 
   const router = useRouter();
 
+
+  // Make sure that the avatars last url is revoked once the component unmounts.
+  useEffect(() => {
+    return () => {
+      URL.revokeObjectURL(avatar.url);
+    };
+  }, []);
+
   useEffect(() => {
     if (state.success) {
       toast.success(state.message);
@@ -60,14 +68,6 @@ export default function SignUpPage() {
     if (avatar.url) URL.revokeObjectURL(avatar.url);
     setAvatar({ url: "/img/default-profile-picture.svg", blob: null });
   };
-
-  const handleNewAvatar = (blob: Blob | null) => {
-    if (blob) {
-      setAvatar({ url: "/api/user/account/avatar", blob })
-    } else {
-      setAvatar({ url: "/img/default-profile-picture.svg", blob })
-    }
-  }
 
   return (
     <div className="flex h-full w-full">
