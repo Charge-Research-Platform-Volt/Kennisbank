@@ -211,17 +211,35 @@ public class AuthController : ControllerBase
 ## Constructors
 
 ---
-###  AuthController\(SignInManager\<User\>, DatabaseContext\)
+###  AuthController\(IConfiguration, SignInManager\<User\>, DatabaseContext, MailUtils\)
 
 ```csharp
-public AuthController(SignInManager<User> signInManager, DatabaseContext context)
+public AuthController(IConfiguration config, SignInManager<User> signInManager, DatabaseContext context, MailUtils mailUtils)
 ```
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
-<TypeTable types={[{"name":"signInManager","type":"SignInManager<User>","links":["https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.identity.signinmanager-1","../Models/User"],"description":""},{"name":"context","type":"DatabaseContext","links":["../Data/DatabaseContext"],"description":""}]} />
+<TypeTable types={[{"name":"config","type":"IConfiguration","links":["https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration.iconfiguration"],"description":""},{"name":"signInManager","type":"SignInManager<User>","links":["https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.identity.signinmanager-1","../Models/User"],"description":""},{"name":"context","type":"DatabaseContext","links":["../Data/DatabaseContext"],"description":""},{"name":"mailUtils","type":"MailUtils","links":["../Utils/MailUtils"],"description":""}]} />
 
 ---
 ## Methods
+
+---
+###  GetUserId\(\)
+
+Gets the id of the current user.
+
+Author: Justin Liem
+
+```csharp
+[HttpGet("get-user-id")]
+[SwaggerOperation(null, null, Summary = "Gets current user id", Description = "Gets the id of the current user.")]
+[SwaggerResponse(200, "User id fetched successfully", null)]
+[SwaggerResponse(500, "Server error", null)]
+public Task<IActionResult> GetUserId()
+```
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":"User id of the current user"}]} />
 
 ---
 ###  Invite\(string\)
@@ -289,6 +307,23 @@ public Task<IActionResult> Register(SignUpDto signUpDto)
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
 <TypeTable types={[{"name":"signUpDto","type":"SignUpDto","links":["../Models/SignUpDto"],"description":""}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />
+
+---
+###  UpdatePassword\(ChangePasswordDto\)
+
+```csharp
+[HttpPut("update-password")]
+[SwaggerOperation(null, null, Summary = "Updates the user's password", Description = "Updates the user's password")]
+[SwaggerResponse(200, "The password has been changed", null)]
+[SwaggerResponse(400, "Bad request", null)]
+public Task<IActionResult> UpdatePassword(ChangePasswordDto changePasswordDto)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"changePasswordDto","type":"ChangePasswordDto","links":["../Models/ChangePasswordDto"],"description":""}]} />
 
 <h4 className='mb-0 ml-1'>Returns</h4>
 <TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />

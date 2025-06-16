@@ -247,7 +247,7 @@ public Task<IActionResult> FullTextSearch(string? query, int pageIndex = 1, int 
 
 ```csharp
 [HttpGet("get-oldest-document")]
-[SwaggerOperation(null, null, Summary = "Returns the oldest document.", Description = "Searches the whole Resources table and returns the oldest one from that table.")]
+[SwaggerOperation(null, null, Summary = "Returns the oldest document year.", Description = "Searches the whole Resources table and returns the oldest one from that table.")]
 [SwaggerResponse(200, "Oldest document", typeof(List<Resource>))]
 [SwaggerResponse(500, "Internal server error", null)]
 public Task<IActionResult> GetOldestDocument()

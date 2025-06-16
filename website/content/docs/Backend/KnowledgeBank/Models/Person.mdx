@@ -35,19 +35,6 @@ public class Person
 ## Properties
 
 ---
-###  AuthoredResources
-
-```csharp
-[JsonIgnore]
-public ICollection<ResourceAuthorRelation>? AuthoredResources { get; set; }
-```
-
----
-#### Property Value
-
- <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='ResourceAuthorRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceAuthorRelation' /></a>\>?
-
----
 ###  Description
 
 ```csharp
@@ -127,17 +114,30 @@ public required string Occupation { get; set; }
  <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>
 
 ---
-###  RelatedOrganisations
+###  PersonOrganisationRelations
 
 ```csharp
 [JsonIgnore]
-public ICollection<PersonOrganisationRelation>? RelatedOrganisations { get; set; }
+public ICollection<PersonOrganisationRelation>? PersonOrganisationRelations { get; set; }
 ```
 
 ---
 #### Property Value
 
  <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='PersonOrganisationRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='PersonOrganisationRelation' /></a>\>?
+
+---
+###  ResourceAuthorRelations
+
+```csharp
+[JsonIgnore]
+public ICollection<ResourceAuthorRelation>? ResourceAuthorRelations { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='ResourceAuthorRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceAuthorRelation' /></a>\>?
 
 ---
 ###  SourceRelationships

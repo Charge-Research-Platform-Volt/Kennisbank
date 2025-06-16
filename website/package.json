@@ -3,11 +3,11 @@
     "version": "0.1.0",
     "private": true,
     "scripts": {
-        "dev": "node ./scripts/generate-docs.mjs && next dev",
+        "dev": "next dev",
         "build": "next build",
         "start": "next start",
         "lint": "next lint",
-        "build:docs": "node ./scripts/generate-docs.mjs && node ./scripts/generate-frontend-docs.mjs"
+        "build:docs": "node ./scripts/generate-docs.mjs && node ./scripts/generate-frontend-docs.mjs && node ./generate-backend-docs.js"
     },
     "dependencies": {
         "@radix-ui/react-collapsible": "^1.1.4",
@@ -19,6 +19,7 @@
         "fumadocs-mdx": "^11.5.6",
         "fumadocs-openapi": "^6.3.0",
         "fumadocs-ui": "^15.0.15",
+        "fuse.js": "^7.1.0",
         "glob": "^11.0.1",
         "lucide-react": "^0.479.0",
         "next": "^15.2.3",

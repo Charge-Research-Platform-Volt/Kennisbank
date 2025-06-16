@@ -357,6 +357,7 @@ public Task<IActionResult> Rename(ResourceRenameDto dto)
 
 ```csharp
 [HttpPut("upload")]
+[Obsolete]
 [SwaggerOperation(null, null, Summary = "Upload a file to storage.", Description = "Uploads a file to Azure Blob Storage and returns metadata.")]
 [SwaggerResponse(200, "File was uploaded successfully", typeof(StorageResponse))]
 [SwaggerResponse(404, "Container does not exist", typeof(StorageResponse))]

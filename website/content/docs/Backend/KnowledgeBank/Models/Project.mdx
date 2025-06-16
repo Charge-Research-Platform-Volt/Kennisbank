@@ -1,0 +1,188 @@
+---
+title: Project
+---
+import { CollapsibleInherited } from "@/components/collapsible"
+import { TypeTable } from "@/components/type_table"
+import { CSharpType } from "@/components/csharp_type"
+
+
+Namespace: <a href='../Models'>KnowledgeBank.Models</a>  
+Assembly: backend.dll  
+
+A project is a structure that is defined by its ID, and has an unique title. A description is optional, and a creation
+date / deletion date is always given at its creation (deletion date due to it not being implemented at the moment). Project type
+is always either root project or a folder, which is a project, without the optional description and no tags.
+
+Author: Justin Liem
+
+```csharp
+[Table("projects")]
+public class Project
+```
+
+#### Inheritance
+
+<a href='https://learn.microsoft.com/dotnet/api/system.object' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='object' /></a> ← <a href='' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Project' /></a>
+
+
+
+<CollapsibleInherited title='Show Inherited Members (7)'>
+[object.Equals\(object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\)), 
+[object.Equals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\-system\-object\)), 
+[object.GetHashCode\(\)](https://learn.microsoft.com/dotnet/api/system.object.gethashcode), 
+[object.GetType\(\)](https://learn.microsoft.com/dotnet/api/system.object.gettype), 
+[object.MemberwiseClone\(\)](https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone), 
+[object.ReferenceEquals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.referenceequals), 
+[object.ToString\(\)](https://learn.microsoft.com/dotnet/api/system.object.tostring)
+</CollapsibleInherited>
+
+---
+## Properties
+
+---
+###  ChildFolders
+
+```csharp
+[JsonIgnore]
+[InverseProperty("ParentFolder")]
+public ICollection<ProjectFolderRelation>? ChildFolders { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='ProjectFolderRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ProjectFolderRelation' /></a>\>?
+
+---
+###  CreationDate
+
+```csharp
+[Column("creation-date")]
+public required DateTime CreationDate { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.datetime' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DateTime' /></a>
+
+---
+###  DeletionDate
+
+```csharp
+[Column("deletion-date")]
+public required DateTime DeletionDate { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.datetime' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DateTime' /></a>
+
+---
+###  Description
+
+```csharp
+[Column("description")]
+public string? Description { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>?
+
+---
+###  Id
+
+```csharp
+[Column("id")]
+[Key]
+public required Guid Id { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.guid' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Guid' /></a>
+
+---
+###  ParentFolders
+
+```csharp
+[JsonIgnore]
+[InverseProperty("ChildFolder")]
+public ICollection<ProjectFolderRelation>? ParentFolders { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='ProjectFolderRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ProjectFolderRelation' /></a>\>?
+
+---
+###  ProjectCreatorRelations
+
+```csharp
+[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+public ICollection<ProjectCreatorRelation>? ProjectCreatorRelations { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='ProjectCreatorRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ProjectCreatorRelation' /></a>\>?
+
+---
+###  ProjectResourcesRelations
+
+```csharp
+[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+public ICollection<ProjectResourceRelation>? ProjectResourcesRelations { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='ProjectResourceRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ProjectResourceRelation' /></a>\>?
+
+---
+###  ProjectTagRelations
+
+```csharp
+[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+public ICollection<ProjectTagRelation>? ProjectTagRelations { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='ProjectTagRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ProjectTagRelation' /></a>\>?
+
+---
+###  ProjectType
+
+```csharp
+[Column("project-type")]
+[MaxLength(10)]
+public required string ProjectType { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>
+
+---
+###  Title
+
+```csharp
+[Column("title")]
+public required string Title { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>
+

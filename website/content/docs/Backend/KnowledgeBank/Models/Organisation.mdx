@@ -88,24 +88,11 @@ public required string Name { get; set; }
  <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>
 
 ---
-###  OwnedResources
+###  PersonOrganisationRelations
 
 ```csharp
 [JsonIgnore]
-public ICollection<ResourceOrganisationRelation>? OwnedResources { get; set; }
-```
-
----
-#### Property Value
-
- <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='ResourceOrganisationRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceOrganisationRelation' /></a>\>?
-
----
-###  RelatedPersons
-
-```csharp
-[JsonIgnore]
-public ICollection<PersonOrganisationRelation>? RelatedPersons { get; set; }
+public ICollection<PersonOrganisationRelation>? PersonOrganisationRelations { get; set; }
 ```
 
 ---
@@ -114,11 +101,24 @@ public ICollection<PersonOrganisationRelation>? RelatedPersons { get; set; }
  <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='PersonOrganisationRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='PersonOrganisationRelation' /></a>\>?
 
 ---
-###  RelatedResources
+###  ResourceOrganisationRelations
 
 ```csharp
 [JsonIgnore]
-public ICollection<ResourceRelatedOrganisationRelation>? RelatedResources { get; set; }
+public ICollection<ResourceOrganisationRelation>? ResourceOrganisationRelations { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='ResourceOrganisationRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceOrganisationRelation' /></a>\>?
+
+---
+###  ResourceRelatedOrganisationRelations
+
+```csharp
+[JsonIgnore]
+public ICollection<ResourceRelatedOrganisationRelation>? ResourceRelatedOrganisationRelations { get; set; }
 ```
 
 ---

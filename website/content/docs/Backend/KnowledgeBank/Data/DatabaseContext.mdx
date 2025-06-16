@@ -222,6 +222,66 @@ public DbSet<Person> Persons { get; set; }
  <a href='https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DbSet' /></a>\<<a href='../Models/Person' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Person' /></a>\>
 
 ---
+###  ProjectCreatorRelations
+
+```csharp
+public DbSet<ProjectCreatorRelation> ProjectCreatorRelations { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DbSet' /></a>\<<a href='../Models/ProjectCreatorRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ProjectCreatorRelation' /></a>\>
+
+---
+###  ProjectFolderRelations
+
+```csharp
+public DbSet<ProjectFolderRelation> ProjectFolderRelations { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DbSet' /></a>\<<a href='../Models/ProjectFolderRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ProjectFolderRelation' /></a>\>
+
+---
+###  ProjectResourceRelations
+
+```csharp
+public DbSet<ProjectResourceRelation> ProjectResourceRelations { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DbSet' /></a>\<<a href='../Models/ProjectResourceRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ProjectResourceRelation' /></a>\>
+
+---
+###  ProjectTagRelations
+
+```csharp
+public DbSet<ProjectTagRelation> ProjectTagRelations { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DbSet' /></a>\<<a href='../Models/ProjectTagRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ProjectTagRelation' /></a>\>
+
+---
+###  Projects
+
+```csharp
+public DbSet<Project> Projects { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DbSet' /></a>\<<a href='../Models/Project' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Project' /></a>\>
+
+---
 ###  Regions
 
 ```csharp
@@ -415,6 +475,23 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
 <TypeTable types={[{"name":"modelBuilder","type":"ModelBuilder","links":["https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.modelbuilder"],"description":""}]} />
+
+---
+###  SaveProjectChangesAsync\(CancellationToken\)
+
+Same as SaveResourceChangeAsync, just for projects so it doesn't have to check for updating resource vectors.
+
+Author: Justin Liem
+
+```csharp
+public Task<int> SaveProjectChangesAsync(CancellationToken cancellationToken = default)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"cancellationToken","type":"CancellationToken","links":["https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken"],"description":"A token used to observe operation cancellation."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<int>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.int32"],"description":"The number of state entries written to the database."}]} />
 
 ---
 ###  SaveResourceChangesAsync\(CancellationToken\)

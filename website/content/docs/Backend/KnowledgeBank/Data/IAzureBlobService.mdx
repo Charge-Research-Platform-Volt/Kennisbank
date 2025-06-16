@@ -33,6 +33,21 @@ Task<BLOB_STATUSCODE> BlobExistsAsync(string containerName, string blobName)
 <TypeTable types={[{"name":"","type":"Task<BLOB_STATUSCODE>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","BLOB_STATUSCODE"],"description":"If the blob exists in the given container"}]} />
 
 ---
+###  CommitBlockListAsync\(string, string, List\<string\>, Dictionary\<string, string\>\)
+
+Commits a list of previously uploaded blocks to form a complete blob
+
+```csharp
+Task<BLOB_STATUSCODE> CommitBlockListAsync(string resourceId, string containerName, List<string> blockIds, Dictionary<string, string> metadata)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"resourceId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The unique identifier of the blob"},{"name":"containerName","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The name of the container where the blob is stored"},{"name":"blockIds","type":"List<string>","links":["https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1","https://learn.microsoft.com/dotnet/api/system.string"],"description":"The list of Base64-encoded block IDs in the correct order"},{"name":"metadata","type":"Dictionary<string, string>","links":["https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2","https://learn.microsoft.com/dotnet/api/system.string","https://learn.microsoft.com/dotnet/api/system.string"],"description":"Optional metadata to associate with the blob"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<BLOB_STATUSCODE>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","BLOB_STATUSCODE"],"description":"If the operation was successful"}]} />
+
+---
 ###  CopyBlobAsync\(string, string, string, string, bool, bool\)
 
 Copies a blob to a new location

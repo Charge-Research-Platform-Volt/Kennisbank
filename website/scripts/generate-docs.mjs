@@ -3,7 +3,7 @@ import { rimrafSync } from "rimraf";
 import fs from "node:fs/promises";
 
 const out = "./content/docs/(api)";
-const swaggerURL = `${process.env.API_URL}/swagger/v1/swagger.json`;
+const swaggerURL = `http://localhost:8080/swagger/v1/swagger.json`;
 const swaggerFilePath = "./swagger.json";
 
 // Fetch Swagger JSON from the API endpoint, with delay because the API may not be ready yet.

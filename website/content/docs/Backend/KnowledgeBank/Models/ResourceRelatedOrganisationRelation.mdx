@@ -34,6 +34,19 @@ public class ResourceRelatedOrganisationRelation
 ## Properties
 
 ---
+###  Organisation
+
+```csharp
+[JsonIgnore]
+public Organisation? Organisation { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='Organisation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Organisation' /></a>?
+
+---
 ###  OrganisationId
 
 ```csharp
@@ -46,19 +59,6 @@ public required Guid OrganisationId { get; set; }
 #### Property Value
 
  <a href='https://learn.microsoft.com/dotnet/api/system.guid' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Guid' /></a>
-
----
-###  RelatedOrganisation
-
-```csharp
-[JsonIgnore]
-public Organisation? RelatedOrganisation { get; set; }
-```
-
----
-#### Property Value
-
- <a href='Organisation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Organisation' /></a>?
 
 ---
 ###  Resource
