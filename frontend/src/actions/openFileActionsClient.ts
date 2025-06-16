@@ -1,7 +1,7 @@
-import { ResourceResponse, WebsiteResponseSchema } from "@/types/resource.type";
+"use client"
 
-export const handleOpenFile = async (file: ResourceResponse) => {
-
+export const handleOpenFile = async (id: string, fileType: string) =>
+{
     let url: string | undefined;
 
     // If the website is of the form www.input.nl or similar, put https:// before it so it doesn't use the
@@ -16,8 +16,8 @@ export const handleOpenFile = async (file: ResourceResponse) => {
     }
 
     // Anything but a website at the moment we'll just open from the storage
-    if(file.fileType != "website"){
-        url = `/api/storage/download/${file.id}`;
+    if(fileType != "website"){
+        url = `/api/resources/download/${id}`;
         try {
             const response : Response = await fetch(url, {
                 method: 'GET',
@@ -39,12 +39,7 @@ export const handleOpenFile = async (file: ResourceResponse) => {
     }
     // If it is a website, get the url of the archive file and go to that website
     else{
-        const website = WebsiteResponseSchema.safeParse(file);
-        if(!website.success){
-            console.error(`Error fetching website`);
-            return;
-        }
-        url = `/api/websiteupload/get-website/${file.id}`;
+        url = `/api/resources/info/${id}?properties=${encodeURIComponent('WebsiteMetadata.Url')}`;
 
         try {
             await fetch(url, {
@@ -63,7 +58,7 @@ export const handleOpenFile = async (file: ResourceResponse) => {
                 // if all succeeds open the window, making it valid (otherwise it will direct to our domain + url)
             }).then(jsonresponse =>
                 {
-                    window.open(makeValid(jsonresponse), '_blank') 
+                    window.open(makeValid(jsonresponse.body.url), '_blank') 
                 })
         // other errors
         } catch (error) {
@@ -71,9 +66,3 @@ export const handleOpenFile = async (file: ResourceResponse) => {
         }
     }
   }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

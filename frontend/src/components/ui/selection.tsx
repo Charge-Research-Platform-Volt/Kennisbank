@@ -24,6 +24,7 @@ interface SelectionProps extends Omit<React.ComponentPropsWithoutRef<typeof Butt
     hasCreateButton?: boolean;
     onCreateButton?: () => void;
     container?: HTMLElement | null;
+    badge?: any
 }
 
 /**
@@ -47,7 +48,8 @@ export function Selection({
     hasCreateButton = false,
     onCreateButton,
     className,
-    container = null
+    container = null,
+    badge = null
 }: SelectionProps) 
 {
     const { error } = useFormField();
@@ -155,6 +157,7 @@ export function Selection({
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
+                {!badge ? (
                 <div 
                     className={cn(
                         "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm",
@@ -177,6 +180,7 @@ export function Selection({
                     />
                     <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50 ml-2 self-center" />
                 </div>
+                ) : (badge)}
             </PopoverTrigger>
             <PopoverContent className="w-full p-0" container={container} forceMount>
                 <Command>

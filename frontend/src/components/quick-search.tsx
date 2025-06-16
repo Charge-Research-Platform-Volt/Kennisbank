@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { OctagonAlert } from "lucide-react";
 import GetFileIcon from "./getFileIcon";
 import { ResourceResponse } from "@/types/resource.type";
-import { handleOpenFile } from "@/actions/openFileActions";
+import { handleOpenFile } from "@/actions/openFileActionsClient";
 import { useQuickSearch } from "../context/quick-search-provider";
 import Kbd from "./kbd";
 import { Button } from "./ui/button";
@@ -122,7 +122,7 @@ export default function QuickSearch({ minimize = false }: { minimize?: boolean }
               searchResults.length > 0 &&
               searchResults.map((file) => (
                 <div
-                  onClick={() => handleOpenFile(file)}
+                  onClick={() => handleOpenFile(file.id, file.fileType)}
                   key={file.id}
                   role="button"
                   className="hover:bg-muted-foreground/20 focus-visible:bg-muted-foreground/20 cursor-pointer rounded-lg bg-transparent p-3 transition-colors outline-none"
