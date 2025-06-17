@@ -1,17 +1,18 @@
 "use client";
 
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Cropper, { Area, MediaSize, Size } from "react-easy-crop";
 import { Button } from "@/components/ui/button";
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { ImageSet } from "./editable-avatar";
 
 export default function AvatarEditorDialog({
-  inputFile,
+  url,
   onConfirm,
   onDefault,
   animating,
 }: {
-  inputFile: Blob;
+  url: string;
   onConfirm: (blob: Blob) => void;
   onDefault: () => void;
   animating: boolean;
@@ -21,16 +22,9 @@ export default function AvatarEditorDialog({
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [key, setKey] = useState(0);
-  const url = URL.createObjectURL(inputFile);
+
   const cropperContainerRef = useRef<HTMLDivElement>(null);
   const cropperRef = useRef<Cropper>(null);
-
-  // Make sure that object URL is revoked no matter what.
-  useEffect(() => {
-    return () => {
-      URL.revokeObjectURL(url);
-    };
-  }, []);
 
   // This cropper is kind off stupid, but atleast it doesn't cause epilepsy...
   // We need to manually set the crop size because the library uses the CSS scaled container size,

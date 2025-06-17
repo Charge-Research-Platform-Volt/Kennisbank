@@ -7,8 +7,6 @@ import { toast } from "sonner";
 import { FormResponse } from "@/types/return.type";
 import { RegisterRequest } from "@/types/registerRequest.type";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import { FileInput } from "@/components/ui/file-input";
 import EditableAvatar from "@/components/ui/editable-avatar";
 
 const initialState: FormResponse<RegisterRequest> = {
@@ -16,7 +14,7 @@ const initialState: FormResponse<RegisterRequest> = {
   message: "",
 };
 
-type AvatarState = { url: string, blob: Blob | null }
+type AvatarState = { url: string; blob: Blob | null };
 
 export default function SignUpPage() {
   const [firstName, setFirstName] = useState<string>("");
@@ -31,12 +29,13 @@ export default function SignUpPage() {
 
   const router = useRouter();
 
+  function revokeBlobUrl() {
+    if (avatar.blob) URL.revokeObjectURL(avatar.url);
+  }
 
   // Make sure that the avatars last url is revoked once the component unmounts.
   useEffect(() => {
-    return () => {
-      URL.revokeObjectURL(avatar.url);
-    };
+    return () => revokeBlobUrl()
   }, []);
 
   useEffect(() => {
@@ -59,14 +58,9 @@ export default function SignUpPage() {
     });
   };
 
-  const handleConfirm = (blob: Blob) => {
-    if (avatar.url) URL.revokeObjectURL(avatar.url);
-    setAvatar({ url: URL.createObjectURL(blob), blob });
-  };
-
-  const handleDefault = () => {
-    if (avatar.url) URL.revokeObjectURL(avatar.url);
-    setAvatar({ url: "/img/default-profile-picture.svg", blob: null });
+  const handleChange = (blob: Blob | null) => {
+    revokeBlobUrl();
+    setAvatar({ url: blob ? URL.createObjectURL(blob) : "/img/default-profile-picture.svg", blob });
   };
 
   return (
@@ -106,7 +100,7 @@ export default function SignUpPage() {
               <Input value={password} type="password" placeholder="Password" name="password" onChange={(e) => setPassword(e.target.value)} required />
             </div>
             <div>
-              <EditableAvatar url={avatar.url} onConfirm={handleConfirm} onDefault={handleDefault} />
+              <EditableAvatar url={avatar.url} onConfirm={handleChange} onDefault={() => handleChange(null)} />
             </div>
             <div>
               <label htmlFor="passwordcheck" className="font-bold">

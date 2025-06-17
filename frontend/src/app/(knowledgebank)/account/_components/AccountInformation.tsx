@@ -137,6 +137,10 @@ export default function AccountInformation({ userData }: { userData: UserData })
     } 
   }
 
+  async function handleDefault() {
+    updateAvatar(null);
+  }
+
   async function handleConfirm(blob: Blob) {
     const formData = new FormData();
     formData.append("newAvatar", blob);
@@ -155,10 +159,6 @@ export default function AccountInformation({ userData }: { userData: UserData })
       setIsLoadingAvatar(false)
     }
   }, [avatarUrl])
-
-  async function handleDefault() {
-    updateAvatar(null);
-  }
 
   return (
     <div className="container mx-auto mt-5 max-w-7xl px-4 sm:px-6 lg:px-8">
