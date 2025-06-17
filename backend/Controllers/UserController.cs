@@ -113,7 +113,7 @@ public class UserController(DatabaseContext database, IAzureBlobService blobServ
         catch (Exception e)
         {
             logger.Error(e, "Error listing all users.");
-            return StatusCode(500, new StorageResponse("Error listing all users."));
+            return StatusCode(500, new ApiResponse(false, "Error listing all users."));
         }
     }
 
@@ -128,11 +128,11 @@ public class UserController(DatabaseContext database, IAzureBlobService blobServ
     public async Task<IActionResult> GetUsersPaged(int pageIndex = 1, int pageSize = 100, string? searchQuery = null)
     {
         if (pageIndex < 1)
-            return BadRequest(new StorageResponse("Page index cannot be lower than 1."));
+                return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1."));
 
         if (pageSize < 1)
-            return BadRequest(new StorageResponse("Page size cannot be lower than 1."));
-
+            return BadRequest(new ApiResponse(false, "Page size cannot be lower than 1."));
+        
         try
         {
             // Calculate how many records we need to skip
@@ -170,7 +170,7 @@ public class UserController(DatabaseContext database, IAzureBlobService blobServ
         catch (Exception e)
         {
             logger.Error(e, "Error listing users on page {PageIndex} of size {PageSize}.", pageIndex, pageSize);
-            return StatusCode(500, new StorageResponse("Error listing users."));
+            return StatusCode(500, new ApiResponse(false, "Error listing users."));
         }
     }
 

@@ -37,7 +37,7 @@ public class FilterDto
 
         if(this.Archived != null)
         {
-            queryBuilder = queryBuilder.Where(f => f.Archived == this.Archived);
+            queryBuilder = queryBuilder.Where(f => f.Trashed == this.Archived);
         }
 
         return queryBuilder;

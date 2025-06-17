@@ -28,7 +28,7 @@ export default function UnsavedDialog({ open, onOpenChange, onConfirmation, onCa
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => { if (onOpenChange) onOpenChange(false); if (onCancel) onCancel}} className="cursor-pointer">
+                    <AlertDialogCancel onClick={() => { if (onOpenChange) onOpenChange(false); if (onCancel) onCancel()}} className="cursor-pointer">
                         Cancel
                     </AlertDialogCancel>
                     <AlertDialogAction onClick={onConfirmation} className="cursor-pointer">

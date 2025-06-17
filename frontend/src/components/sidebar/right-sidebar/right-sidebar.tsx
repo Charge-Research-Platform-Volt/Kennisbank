@@ -1,83 +1,100 @@
 "use client";
 
 import React from "react";
-import { Sidebar } from "../../ui/sidebar";
+import { Sidebar } from "@/components/ui/sidebar";
 import { useSidebar } from "@/context/sidebar-provider";
-import { Button } from "../../ui/button";
-import OpenFileButton from "../../open-file-button";
-import Divider from "../divider";
-import Kbd from "@/components/kbd";
+import { MetadataTypeEnum } from "@/context/sidebar-provider";
+import { ResourceContent } from "./ResourceContent";
+import { PersonContent } from "./PersonContent";
+import { OrganisationContent } from "./OrganisationContent";
+import { Button } from "@/components/ui/button";
+import HideMenu from "@/icons/menu/hide-menu";
+import { Calendar, Clock } from "lucide-react";
+import ShowDate from './showDate';
+import { handleOpenFile } from "@/actions/openFileActionsClient";
 
 /**
  *
  * @returns The right sidebar visible when clicked on an item in the archive. Displays useful information such as metadata and related files (soon).
  */
-export default function RightSidebar() {
-  const { selectedDocument, toggleRightSidebar } = useSidebar();
+export default function RightSidebar()
+{
+  	const { currentType, creationDate, publicationDate, currentId, navigateBack, navigateForward, setRightSidebarOpen, isEmptyPrevs, isEmptyNexts } = useSidebar();
 
-  return (
-    <Sidebar side="right" width="400px" collapsible="offcanvas">
-      {selectedDocument ? (
-        <>
-          <div className="bg-sidebar sticky top-0 z-10 mb-6">
-            <div className="flex items-center justify-between p-2">
-              <OpenFileButton file={selectedDocument} variant="outline" />
-              <Button
-                onClick={() => {
-                  toggleRightSidebar(null);
-                }}
-                variant="outline"
-              >
-                Close
-                <Kbd>ESC</Kbd>
-              </Button>
-            </div>
-            <Divider className="px-2" />
-          </div>
+	const [isLoading, setLoading] = React.useState<boolean>(false);
+	const [fileType, setFileType] = React.useState<string | null>(null);
 
-          <h2 className="mb-6 px-2 text-xl font-semibold">{selectedDocument.title}</h2>
 
-          <div className={"flex min-h-0 flex-1 flex-col gap-2 overflow-auto px-2"}>
-            {selectedDocument.description && <p className="mb-6 text-sm font-medium">{selectedDocument.description}</p>}
+	const handleOpenClick = async () => 
+	{
+		setLoading(true);
+		await handleOpenFile(currentId, fileType as string)
+		setLoading(false);
+	}
 
-            {selectedDocument.tagRelations && selectedDocument.tagRelations.length > 0 && (
-              <>
-                <Divider name="tags" />
-                <div className="flex flex-wrap gap-2">
-                  {selectedDocument.tagRelations.map(
-                    (tagRelation) =>
-                      tagRelation.tag && (
-                        <span key={tagRelation.tag.id} className="rounded-md bg-gray-200 px-2 py-1 text-xs font-medium">
-                          {tagRelation.tag.name}
-                        </span>
-                      ),
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+	
 
-          <div className="bg-sidebar sticky bottom-0 z-10">
-            <Divider className="px-2" />
-            <div data-slot="sidebar-footer" data-sidebar="footer" className={"flex flex-col gap-1 p-2 text-xs font-medium text-gray-500"}>
-              <p>Created At: {selectedDocument.creationDate ? new Date(selectedDocument.creationDate).toLocaleString() : "Not available"}</p>
-            </div>
-          </div>
-        </>
-      ) : (
-        <NoDocumentSelected />
-      )}
-    </Sidebar>
-  );
-}
+  	return (
+		<Sidebar side="right" width="40rem" collapsible="offcanvas">
+			{/* Navigation buttons */}
+			<div className="w-full flex justify-between p-4 space-x-2">
+				{/* Hide menu button */}
+				<Button data-testid="sidebar_hide" variant="outline" size="icon" onClick={() => { setRightSidebarOpen(false); }}><HideMenu flip={true} /></Button>
+			
+				<Button variant="outline" onClick={handleOpenClick} disabled={(!isLoading) && (fileType) && currentType === MetadataTypeEnum.RESOURCE ? false : true} className="flex-1">Download</Button>
+				
+				<div className="flex justify-center space-x-2">
+					<Button variant="outline" onClick={navigateBack} className="w-[8rem]" disabled={isEmptyPrevs()}>Previous</Button>
+					<Button variant="outline" onClick={navigateForward} className="w-[8rem]" disabled={isEmptyNexts()}>Next</Button>
+				</div>
+			</div>
+			
+			{/* Content area */}
+			<div className="w-full h-full flex-1 overflow-y-auto p-4 pb-25">
+				{(() => 
+				{
+				    switch (currentType) 
+				    {
+				        case MetadataTypeEnum.RESOURCE:
+							return <ResourceContent fileType={fileType} setFileType={setFileType}  />
+						case MetadataTypeEnum.PERSON:
+							return <PersonContent />
+						case MetadataTypeEnum.ORGANISATION:
+							return <OrganisationContent />
+						default:
+							<h1>Error displaying content.</h1>
+				    }
+				})()}
+			</div>
+			
+			{/* Footer */}
+			<div className="w-full flex justify-center mt-3">
+				{publicationDate && creationDate ? (
+					<div className="flex items-center justify-between gap-4 text-sm text-gray-700 mb-2">
+						<ShowDate date={creationDate}
+								  text="Created"
+								  icon={<Clock className="w-4 h-4 flex-shrink-0 text-gray-700" />}
+								  cName="flex items-center gap-2 min-w-0"/>
 
-export function NoDocumentSelected() {
-  return (
-    <div className="flex h-full flex-col items-center justify-center">
-      <h2 className="text-lg font-semibold">No Document Selected</h2>
-      <p className="text-gray-500">Please select a document to view details.</p>
-    </div>
-  );
+						<div className="w-px h-8 bg-gray-200" />
+						<ShowDate date={publicationDate}
+								text="Published"
+								icon={<Calendar className="w-4 h-4 flex-shrink-0 text-gray-700"/>}
+								cName="flex items-center gap-2 min-w-0"/>
+					</div>
+				) : creationDate && (
+					<div className="flex items-center justify-between gap-4 text-sm text-gray-700 mb-2">
+						<ShowDate date={creationDate}
+									text="Created"
+									icon={<Clock className="w-4 h-4 flex-shrink-0 text-gray-700" />}
+									cName="flex items-center gap-2 min-w-0"/>
+					</div>
+				)
+				}
+
+			</div>
+		</Sidebar>
+	);
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

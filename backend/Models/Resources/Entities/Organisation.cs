@@ -24,6 +24,15 @@ public class Organisation
     
     [Column("email-address")]
     public string? EmailAddress { get; set; }
+    
+    [Column("creation-date")]
+    public required DateTime CreationDate { get; set; }
+
+    [Column("trashed")]
+    public bool Trashed { get; set; } = false;
+
+    [Column("trash-date")]
+    public DateTime? TrashDate { get; set; } = null;
 
     // Navigation properties
     [JsonIgnore] public ICollection<ResourceOrganisationRelation>? ResourceOrganisationRelations { get; set; }
@@ -40,6 +49,8 @@ public class OrganisationCreateDto
     public string? Description { get; set; }
     public string? Website { get; set; }
     public string? EmailAddress { get; set; }
+
+    public required DateTime CreationDate { get; set; }
     // Tuple: (OrganisationId, Relation?)
     public RelatedEntry[] OrganisationRelations { get; set; } = Array.Empty<RelatedEntry>();
 }

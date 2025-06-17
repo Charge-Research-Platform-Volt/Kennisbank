@@ -27,10 +27,20 @@ public class Person
     
     [Column("linkedin")]
     public string? Linkedin { get; set; }
+    
+    [Column("creation-date")]
+    public required DateTime CreationDate { get; set; }
+
+    [Column("trashed")]
+    public bool Trashed { get; set; } = false;
+
+    [Column("trash-date")]
+    public DateTime? TrashDate { get; set; } = null;
 
     // Navigation property for the Author Resource Relation (1:m)
     [JsonIgnore] public ICollection<ResourceAuthorRelation>? ResourceAuthorRelations { get; set; }
     [JsonIgnore] public ICollection<PersonOrganisationRelation>? PersonOrganisationRelations { get; set; }
+    [JsonIgnore] public ICollection<ResourceRelatedPersonRelation>? ResourceRelatedPersonRelations { get; set; }
 
     [JsonIgnore][InverseProperty("SourcePerson")] public ICollection<PersonRelationship>? TargetRelationships { get; set; }
     [JsonIgnore][InverseProperty("TargetPerson")] public ICollection<PersonRelationship>? SourceRelationships { get; set; }
@@ -44,6 +54,7 @@ public class PersonCreateDto
     public string? Description { get; set; }
     public string? EmailAddress { get; set; }
     public string? Linkedin { get; set; }
+    public required DateTime CreationDate { get; set; }
     // Tuple: (OrganisationId, Role?)
     public RelatedEntry[] OrganisationRelations { get; set; } = Array.Empty<RelatedEntry>();
     // Tuple: (PersonId, Relation?)

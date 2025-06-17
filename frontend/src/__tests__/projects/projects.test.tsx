@@ -1,10 +1,25 @@
-import { expect, test, vi, beforeEach, describe } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { expect, test, vi, beforeEach, describe, beforeAll } from 'vitest'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import React from 'react';
 import { createNewProject, deleteProject, getProjectContentById, updateProject } from '@/actions/projectActions';
 import ListProjects from '@/components/projects/list-projects';
 import { SidebarProvider } from '@/context/sidebar-provider';
 import userEvent from '@testing-library/user-event';
+
+vi.mock('next/navigation', () => ({
+    useSearchParams: vi.fn(() => ({
+        get: vi.fn(() => null)
+    })),
+    usePathname: vi.fn(() => '/'),
+    useRouter: vi.fn(() => ({
+        push: vi.fn(),
+        replace: vi.fn(),
+        prefetch: vi.fn(),
+        back: vi.fn(),
+        forward: vi.fn(),
+        refresh: vi.fn()
+    }))
+}));
 
 vi.mock('@/actions/projectActions', () => ({
     ListProjectsPaged: vi.fn().mockResolvedValue({ success: true, message: 'Projects fetched successfully.', body: { pageCount: 1, pageIndex: 1, pageSize: 50, projects: [{ creationDate: "2025-05-29T10:32:11.319683Z", deletionDate: "2025-05-29T10:32:11.319683Z", description: null, id: "89279395-9c59-4ede-9039-70cf15d8a958", projectType: "root", title: "test project" }]} }),
@@ -32,7 +47,8 @@ vi.mock('@/actions/projectActions', () => ({
 describe('Projects page', () =>{
     beforeEach(() => {
         vi.clearAllMocks();
-});
+    });
+
     beforeAll(() => {
         window.PointerEvent = MouseEvent as typeof PointerEvent;
     });
@@ -44,28 +60,29 @@ describe('Projects page', () =>{
             fetchProjectAction={getProjectContentById}
             currentUserId=''
             userRole="admin"/></SidebarProvider>)
-        const user = userEvent.setup();
+        const user = userEvent;
 
         // CLICK "CREATE NEW PROJECT"
         const addButton = await screen.findByTestId("add");
-        user.click(addButton);
+        await user.click(addButton);
         const createProjectButton = await screen.findByTestId("add-project");
-        user.click(createProjectButton);
+        await user.click(createProjectButton);
 
         // FILL IN ONLY TITLE TO JUST TEST CALL
         const titleInput = await screen.findByTestId("input-project-title");
-        act(() => {
-            fireEvent.change(titleInput, {target: {value:"test title"} });
+        await act(async () => {
+            await user.clear(titleInput);
+            await user.type(titleInput, "test title");
         });
 
         // CLICK ON CREATE
         const createButton = await screen.findByTestId("create-project");
-        user.click(createButton);
+        await user.click(createButton);
         await waitFor(() => expect(createNewProject).toHaveBeenCalledTimes(1));
     });
 
     test('Test if deleting projects calls the correct function', async() => {
-        const user = userEvent.setup();
+        const user = userEvent;
 
         render(<SidebarProvider leftSidebarDefaultState={true}><ListProjects 
             initialProjects={
@@ -86,12 +103,12 @@ describe('Projects page', () =>{
 
         // DELETE PROJECT
         const delButton = await screen.findByTestId("delete-project-or-resource");
-        user.click(delButton);
+        await user.click(delButton);
         await waitFor(() => expect(deleteProject).toHaveBeenCalledTimes(1));
     });
 
     test('Test if updating projects calls the correct function', async() => {
-        const user = userEvent.setup();
+        const user = userEvent;
 
         render(<SidebarProvider leftSidebarDefaultState={true}><ListProjects 
             initialProjects={
@@ -112,17 +129,18 @@ describe('Projects page', () =>{
 
         // CLICK BUTTON TO OPEN PROJECT UPDATER
         const editButton = await screen.findByTestId("edit-project-or-folder");
-        user.click(editButton);
+        await user.click(editButton);
 
         // FILL IN ONLY TITLE TO JUST TEST CALL
         const titleInput = await screen.findByTestId("change-project-title");
-        act(() => {
-            fireEvent.change(titleInput, {target: {value:"test title"} });
+        await act(async () => {
+            await user.clear(titleInput);
+            await user.type(titleInput, "test title");
         });
 
         // CLICK ON UPDATE
         const updateButton = await screen.findByTestId("project-submit-update");
-        user.click(updateButton);
+        await user.click(updateButton);
 
         await waitFor(() => expect(updateProject).toHaveBeenCalledTimes(1));
     });

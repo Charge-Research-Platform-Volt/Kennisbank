@@ -110,3 +110,12 @@
   background-size: 20px 20px;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
 }
+
+  
+.ag-row {
+  cursor: pointer;
+}
+
+.ag-header-cell-centered .ag-header-cell-label {
+    justify-content: center;
+}
