@@ -29,13 +29,13 @@ export default function SignUpPage() {
 
   const router = useRouter();
 
-  function revokeBlobUrl() {
+  const revokeBlobUrl = () => {
     if (avatar.blob) URL.revokeObjectURL(avatar.url);
-  }
+  };
 
   // Make sure that the avatars last url is revoked once the component unmounts.
   useEffect(() => {
-    return () => revokeBlobUrl()
+    return revokeBlobUrl;
   }, []);
 
   useEffect(() => {

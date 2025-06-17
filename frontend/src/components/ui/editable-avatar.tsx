@@ -6,8 +6,6 @@ import AvatarEditorDialog from "@/components/ui/avatar-editor-dialog";
 import { toast } from "sonner";
 import { Settings, Upload, Ban } from "lucide-react";
 
-export type ImageSet = { url: string, blob: Blob }
-
 export default function EditableAvatar({ url, onConfirm, onDefault }: { url: string; onConfirm: (blob: Blob) => void; onDefault: () => void }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [inputFileUrl, setInputFileUrl] = useState("");
@@ -16,20 +14,23 @@ export default function EditableAvatar({ url, onConfirm, onDefault }: { url: str
   const [isDraggedFileValid, setIsDraggedFileValid] = useState<Boolean | null>(null);
   const [avatarMenuPosition, setAvatarMenuPosition] = useState<{ mouseX: number; mouseY: number } | null>(null);
 
+  // Revoke URL when it changes and not null.
   useEffect(() => {
-    return () => { if (inputFileUrl) URL.revokeObjectURL(inputFileUrl) }
-  }, [])
+    return () => {
+      if (inputFileUrl) URL.revokeObjectURL(inputFileUrl);
+    };
+  }, [inputFileUrl]);
 
   const handleFile = (file: File) => {
-    setInputFileUrl(URL.createObjectURL(file));
-    if (inputFileUrl) URL.revokeObjectURL(inputFileUrl)
+    const url = URL.createObjectURL(file);
+    setInputFileUrl(url);
     setDialogOpen(true);
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) handleFile(file);
-    e.target.value = ""; // Without this line, duplicate file wont trigger on change
+    e.target.value = ""; // Without this line, duplicate file wont trigger on change.
   };
 
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
@@ -65,7 +66,11 @@ export default function EditableAvatar({ url, onConfirm, onDefault }: { url: str
   };
 
   const handleOpenChange = (opening: boolean) => {
-    if (!opening) setDialogOpen(false);
+    if (!opening) {
+      setDialogOpen(false);
+      // We don't need it anymore.
+      setInputFileUrl("");
+    }
   };
 
   return (

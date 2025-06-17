@@ -15,10 +15,10 @@ import Divider from "@/components/sidebar/divider";
 import DeleteAccountConfirmationDialog from "./DeleteAccountConfirmationDialog";
 import EditableAvatar from "@/components/ui/editable-avatar";
 import { usePathname, useRouter } from "next/navigation";
-import { Loader, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 
 export default function AccountInformation({ userData }: { userData: UserData }) {
-  const avatarUrl = userData.customAvatarVersion ? `/api/user/current/avatar?v=${userData.customAvatarVersion}` : "/img/default-profile-picture.svg"
+  const avatarUrl = userData.customAvatarVersion ? `/api/user/current/avatar?v=${userData.customAvatarVersion}` : "/img/default-profile-picture.svg";
   const [isLoadingAvatar, setIsLoadingAvatar] = useState(false);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isLoadingPassword, setIsLoadingPassword] = useState(false);
@@ -102,7 +102,7 @@ export default function AccountInformation({ userData }: { userData: UserData })
   }, [newPassword, newPasswordRepeat, formPassword]);
 
   // Function to be called when the form is submitted
-  async function onSubmitPassword(dto: ChangePasswordDto) {
+  const onSubmitPassword = async (dto: ChangePasswordDto) => {
     setIsLoadingPassword(true);
 
     try {
@@ -116,11 +116,11 @@ export default function AccountInformation({ userData }: { userData: UserData })
     } finally {
       setIsLoadingPassword(false);
     }
-  }
+  };
 
-  async function updateAvatar(body: FormData | null) {
-    setIsLoadingAvatar(true)
-    
+  const updateAvatar = async (body: FormData | null) => {
+    setIsLoadingAvatar(true);
+
     const response = await fetch("api/user/update-avatar", {
       method: "PATCH",
       body,
@@ -134,31 +134,31 @@ export default function AccountInformation({ userData }: { userData: UserData })
     } else {
       toast.error(response.text());
       setIsLoadingAvatar(false);
-    } 
-  }
+    }
+  };
 
-  async function handleDefault() {
+  const handleDefault = () => {
     updateAvatar(null);
-  }
+  };
 
-  async function handleConfirm(blob: Blob) {
+  const handleConfirm = (blob: Blob) => {
     const formData = new FormData();
     formData.append("newAvatar", blob);
-    updateAvatar(formData)
-  }
+    updateAvatar(formData);
+  };
 
   useEffect(() => {
-    setIsLoadingAvatar(true)
-    const img = new Image()
-    img.src = avatarUrl
+    setIsLoadingAvatar(true);
+    const img = new Image();
+    img.src = avatarUrl;
     img.onload = async () => {
-      setIsLoadingAvatar(false)
-    }
+      setIsLoadingAvatar(false);
+    };
     img.onerror = () => {
-      toast.error("Failed to load avatar.")
-      setIsLoadingAvatar(false)
-    }
-  }, [avatarUrl])
+      toast.error("Failed to load avatar.");
+      setIsLoadingAvatar(false);
+    };
+  }, [avatarUrl]);
 
   return (
     <div className="container mx-auto mt-5 max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -167,15 +167,11 @@ export default function AccountInformation({ userData }: { userData: UserData })
       <hr className="mb-4" />
 
       {isLoadingAvatar ? (
-        <div className="h-32 flex items-center justify-center">
+        <div className="flex h-32 items-center justify-center">
           <LoaderCircle className="h-8 w-8 animate-spin text-gray-500" />
         </div>
       ) : (
-        <EditableAvatar
-          url={avatarUrl}
-          onConfirm={handleConfirm}
-          onDefault={handleDefault}
-        />
+        <EditableAvatar url={avatarUrl} onConfirm={handleConfirm} onDefault={handleDefault} />
       )}
 
       <Form {...form}>

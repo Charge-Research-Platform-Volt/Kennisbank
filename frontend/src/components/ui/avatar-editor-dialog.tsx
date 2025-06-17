@@ -4,19 +4,8 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import Cropper, { Area, MediaSize, Size } from "react-easy-crop";
 import { Button } from "@/components/ui/button";
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { ImageSet } from "./editable-avatar";
 
-export default function AvatarEditorDialog({
-  url,
-  onConfirm,
-  onDefault,
-  animating,
-}: {
-  url: string;
-  onConfirm: (blob: Blob) => void;
-  onDefault: () => void;
-  animating: boolean;
-}) {
+export default function AvatarEditorDialog({ url, onConfirm, onDefault, animating }: { url: string; onConfirm: (blob: Blob) => void; onDefault: () => void; animating: boolean }) {
   const [cropSize, setCropSize] = useState<Size>({ height: 0, width: 0 });
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -36,8 +25,8 @@ export default function AvatarEditorDialog({
         requestAnimationFrame(checkAndSetSize); // Try again on next frame
       } else {
         const imageHeight = mediaSize.naturalHeight;
-        const containerHeight = container.offsetHeight
-        const scale = Math.max(1, mediaSize.naturalWidth / container.offsetWidth)
+        const containerHeight = container.offsetHeight;
+        const scale = Math.max(1, mediaSize.naturalWidth / container.offsetWidth);
         const size = Math.min(imageHeight / scale, containerHeight);
         setCropSize({ width: size, height: size });
       }
@@ -62,7 +51,7 @@ export default function AvatarEditorDialog({
 
   const handleDefault = () => {
     onDefault();
-  }
+  };
 
   async function getCroppedImg(): Promise<Blob | null> {
     if (!croppedAreaPixels) return null;
