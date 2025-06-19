@@ -106,157 +106,176 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
     const isEmptyPrevs = (): boolean => { return prevs.isEmpty(); }
     const isEmptyNexts = (): boolean => { return nexts.isEmpty(); }
 
-    // - State and functions for the left sidebar
+    // Sidebar states
     const [leftSidebarOpen, setLeftSidebarOpen] = React.useState<boolean>(leftSidebarDefaultState);
-    const leftSidebarState = leftSidebarOpen ? "expanded" : "collapsed";
-    const toggleLeftSidebar = () =>
-    {
-        setLeftSidebarOpen((prev) => !prev);
-
-        // set cookie for left sidebar state
-        document.cookie = `leftSidebar:state=${!leftSidebarOpen}; path=/; max-age=31536000; SameSite=None; Secure`;
-    };
-
-    // - State and functions for the right sidebar
     const [rightSidebarOpen, setRightSidebarOpen] = React.useState<boolean>(false);
+    
+    const leftSidebarState = leftSidebarOpen ? "expanded" : "collapsed";
     const rightSidebarState = rightSidebarOpen ? "expanded" : "collapsed";
-    const toggleRightSidebar = () =>
-    {
-        setRightSidebarOpen((prev) => !prev);
-    };
-
-    const openRightSidebar = React.useCallback((id: string, type: MetadataTypeEnum) => 
-    {
-        setCurrentId(id);
-        setCurrentType(type);
-        
-        prevs.clear();
-        nexts.clear();
-        
-        setRightSidebarOpen(true);
-    }, [nexts, prevs])
     
-    const navigate = (id: string, type: MetadataTypeEnum) =>
+    // URL Management
+    const updateUrlWithId = React.useCallback((id: string) => 
     {
-        nexts.clear();
-        
-        prevs.push([currentId, currentType])
-        
-        setCurrentId(id);
-        setCurrentType(type);
-    }
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('id', id);
+        const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+        router.replace(newUrl);
+    }, [searchParams, pathname, router]);
     
-    const navigateForward = (): void => 
+    const clearUrlId = React.useCallback(() => 
     {
-        const next: [string, MetadataTypeEnum] | undefined = nexts.pop();
-        
-        if (next) 
-        {
-            // Push current state to prevs
-            prevs.push([currentId, currentType]);
-        
-            // Set current state as next
-            setCurrentId(next[0]);
-            setCurrentType(next[1]);
-        }
-    }
-    
-    const navigateBack = (): void => 
-    {
-        const prev: [string, MetadataTypeEnum] | undefined = prevs.pop();
-        
-        if (prev) 
-        {
-            // Push current state to nexts
-            nexts.push([currentId, currentType]);
-            
-            // Set current state as prev
-            setCurrentId(prev[0]);
-            setCurrentType(prev[1]);
-        }
-    }
-    
-    // Effect for fetching metadata type and opening right sidebar when page opens with an ID in search params
-    React.useEffect(() => 
-    {
-        const loadMetadataTypeAndOpenRightSidebar = async () => 
-        {
-            const id = searchParams.get('id');
-            
-            // Check if ID is set, and if so, fetch the type and use that to open the right sidebar
-            if (id && !rightSidebarOpen)
-                openRightSidebar(id, await FetchMetadataType(id));
-        }
-        
-        loadMetadataTypeAndOpenRightSidebar();
-    }, [openRightSidebar, rightSidebarOpen, searchParams])
-    
-    // Effect for syncing URL when currentId changes
-    React.useEffect(() => 
-    {
-        // Only sync when sidebar is open and currentId is different from URL id
-        if (rightSidebarOpen && currentId && currentId !== searchParams.get('id')) 
+        if (searchParams?.get('id')) 
         {
             const params = new URLSearchParams(searchParams.toString());
-            params.set('id', currentId);
+            params.delete('id');
             const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
             router.replace(newUrl);
         }
-    }, [currentId, rightSidebarOpen, searchParams, pathname, router]);
+    }, [searchParams, pathname, router]);
     
-    // Effect for right sidebar open
+    // Sidebar control functions
+    const toggleLeftSidebar = React.useCallback(() =>
+    {
+        const newState = !leftSidebarOpen;
+        setLeftSidebarOpen(newState);
+        
+        // Close right sidebar when opening left
+        if (newState)
+            setRightSidebarOpen(false);
+
+        // set cookie for left sidebar state
+        document.cookie = `leftSidebar:state=${newState}; path=/; max-age=31536000; SameSite=None; Secure`;
+    }, [leftSidebarOpen]);
+    
+    const toggleRightSidebar = React.useCallback(() => 
+    {
+        const newState = !rightSidebarOpen;
+        setRightSidebarOpen(newState);
+        
+        // Close left sidebar on right sidebar open
+        if (newState)
+            setLeftSidebarOpen(false);
+    }, [rightSidebarOpen]);
+
+    const openRightSidebar = React.useCallback((id: string, type: MetadataTypeEnum) => 
+    {
+        // Clear navigation history
+        prevs.clear();
+        nexts.clear();
+        
+        // Set current item
+        setCurrentId(id);
+        setCurrentType(type);
+        
+        // Close left sidebar and open right
+        setLeftSidebarOpen(false);
+        setRightSidebarOpen(true);
+        
+        // Update the URL
+        updateUrlWithId(id);
+    }, [prevs, nexts, updateUrlWithId]);
+    
+    const closeRightSidebar = React.useCallback(() => 
+    {
+        setRightSidebarOpen(false);
+        setCurrentId('');
+        
+        // Clear navigation history
+        prevs.clear()
+        nexts.clear()
+        
+        // Clear the URL
+        clearUrlId();
+    }, [prevs, nexts, clearUrlId]);
+    
+    // Navigation functions
+    const navigate = React.useCallback((id: string, type: MetadataTypeEnum) => 
+    {
+        nexts.clear();
+        prevs.push([currentId, currentType]);
+        
+        setCurrentId(id);
+        setCurrentType(type);
+        
+        // Update URL
+        updateUrlWithId(id);
+    }, [currentId, currentType, nexts, prevs, updateUrlWithId]);
+    
+    const navigateForward = React.useCallback(() => 
+    {
+        const next = nexts.pop();
+        
+        if (next) 
+        {
+            prevs.push([currentId, currentType]);
+            setCurrentId(next[0]);
+            setCurrentType(next[1]);
+            updateUrlWithId(next[0]);
+        }
+    }, [nexts, prevs, currentId, currentType, updateUrlWithId]);
+    
+    const navigateBack = React.useCallback(() => 
+    {
+        const prev = prevs.pop();
+        
+        if (prev) 
+        {
+            nexts.push([currentId, currentType]);
+            setCurrentId(prev[0]);
+            setCurrentType(prev[1]);
+            updateUrlWithId(prev[0]);
+        }
+    }, [nexts, prevs, currentId, currentType, updateUrlWithId]);
+    
+    // Initialize from URL on mount (only runs once)
     React.useEffect(() => 
     {
-        // On right sidebar open
-        if (rightSidebarOpen) 
+        const initializeFromUrl = async () => 
         {
-            // Close the right sidebar when no current ID is present
-            if (currentId === "") 
+            const id = searchParams.get('id');
+            
+            if (id && pathname === '/archive') 
             {
-                setRightSidebarOpen(false);
-                return;
+                try 
+                {
+                    const type = await FetchMetadataType(id);
+                    setCurrentId(id);
+                    setCurrentType(type);
+                    setRightSidebarOpen(true);
+                    setLeftSidebarOpen(false);
+                }
+                catch (error) 
+                {
+                    console.error('Failed to fetch metadata type: ', error);
+                    clearUrlId();
+                }
             }
-                
-            // Close the left sidebar on right sidebar open
-            setLeftSidebarOpen(false);
         }
         
-        // On right sidebar close
-        else 
-        {
-            setCurrentId("");
-            prevs.clear();
-            nexts.clear();
-            
-            // Clear the 'id' parameter from the URL (only if it exists)
-            if (searchParams?.get('id')) 
-            {
-                const params = new URLSearchParams(searchParams.toString());
-                params.delete('id');
-                const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
-                router.replace(newUrl);
-            }
-        }
-    }, [rightSidebarOpen, nexts, prevs, searchParams, pathname, router, currentId])
+        initializeFromUrl();
+    }, [clearUrlId]); // eslint-disable-line react-hooks/exhaustive-deps
     
-    // Effect for left sidebar open
+    // Handle page navigation (pathname changes)
     React.useEffect(() => 
     {
-        // On left sidebar open
-        if (leftSidebarOpen)
-            setRightSidebarOpen(false);
-    }, [leftSidebarOpen])
-
-    // Effect for pathname
-    React.useEffect(() => {
-        if (pathname !== "/archive")
-            setRightSidebarOpen(false);
-    }, [pathname]);
-
-    // Hotkey definitions
-    useHotkeys("esc", () => {
-        setRightSidebarOpen(false);
-    });
+        if (pathname !== '/archive')
+            closeRightSidebar();
+    }, [pathname, closeRightSidebar]);
+    
+    // Handle right sidebar cleanup when closed
+    React.useEffect(() => 
+    {
+        if (!rightSidebarOpen && currentId) 
+        {
+            setCurrentId('');
+            prevs.clear();
+            nexts.clear();
+            clearUrlId();
+        }
+    }, [rightSidebarOpen, currentId, prevs, nexts, clearUrlId]);
+    
+    // Hotkeys
+    useHotkeys('esc', closeRightSidebar);
 
     return (
         <SidebarContent.Provider
