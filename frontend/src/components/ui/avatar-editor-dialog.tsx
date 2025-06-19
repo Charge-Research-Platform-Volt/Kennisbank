@@ -111,11 +111,6 @@ export default function AvatarEditorDialog({ url, onConfirm, onDefault, animatin
 
       <DialogFooter>
         <div className="mt-4 flex w-full items-center justify-between gap-0 gap-6">
-          <DialogClose asChild>
-            <Button variant="outline" onClick={handleDefault} className="w-full flex-1">
-              Default Avatar
-            </Button>
-          </DialogClose>
           <div className="flex flex-1 items-center justify-center">
             <input className="accent-purple w-full" type="range" min={1} max={5} step={0.001} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} />
           </div>

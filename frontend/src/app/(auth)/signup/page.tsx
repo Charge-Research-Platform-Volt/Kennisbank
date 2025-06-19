@@ -42,6 +42,7 @@ export default function SignUpPage() {
     if (state.success) {
       toast.success(state.message);
       router.push("/login");
+      router.refresh();
     } else if (state.message) {
       toast.error(state.message);
     }
