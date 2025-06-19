@@ -27,7 +27,7 @@ export function ResourceContent(
     {fileType, setFileType }: ResourceContentProps
 )
 {
-    const { currentId, rightSidebarOpen, setRightSidebarOpen, setCreationDate, setPublicationDate } = useSidebar();
+    const { currentId, rightSidebarOpen, setRightSidebarOpen, setCreationDate, setPublicationDate, setEditMode, editMode } = useSidebar();
     const { userRole } = useUserRole();
     const { triggerGridReload, trashOpen } = useArchive();
     const [confirmDialogOpen, setConfirmDialogOpen] = React.useState<boolean>(false);
@@ -219,7 +219,10 @@ export function ResourceContent(
 
             {langCode}
         
-            <Expandable editButton={<Edit setNewText={setDescription} currentText={description} property="description" />} title="Description" collapsedHeight={100}>
+            <Expandable title="Description" collapsedHeight={100}>
+                {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
+                                    <Edit setNewText={setDescription} currentText={description} property="description" />
+                                </div>)}
                 {description || <Skeleton />}
             </Expandable>
             
@@ -263,23 +266,48 @@ export function ResourceContent(
                 </Expandable> 
             )} */}
             
-            <Expandable editButton={<Edit setNewText={setNote} currentText={note} property="note" />} title="Notes" collapsedHeight={100}>
+            <Expandable title="Notes" collapsedHeight={100}>
+                {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
+                                    <Edit setNewText={setNote} currentText={note} property="note" />
+                                </div>)}
                 {note || <Skeleton />}
             </Expandable>
 
-            <Expandable editButton={<Edit setNewText={setPubCode} currentText={pubCode} property="publicationCode" />} title="Publication Code" collapsedHeight={100}>
+            <Expandable title="Publication Code" collapsedHeight={100}>
+                {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
+                                    <Edit setNewText={setPubCode} currentText={pubCode} property="publicationCode" />
+                                </div>)}
                 {pubCode || <Skeleton />}
             </Expandable>
 
-            <Expandable editButton={<Edit setNewText={setLicense} currentText={license} property="license" />} title="License Code" collapsedHeight={100}>
+            <Expandable title="License Code" collapsedHeight={100}>
+                {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
+                                   <Edit setNewText={setLicense} currentText={license} property="license" />
+                                </div>)}
                 {license || <Skeleton />}
             </Expandable>
 
-            { userRole === 'admin' && !trashOpen &&
-                <div className="w-full flex justify-center mt-10">
-                    <Button onClick={() => setConfirmDialogOpen(true)} variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600">Delete Resource</Button>
+            <div className="w-full flex justify-center mt-10">
+                <div className="flex gap-4">
+                    <Button
+                        onClick={() => setEditMode(!editMode)}
+                        variant={editMode ? "default" : "outline"}
+                        className={editMode ? "bg-green-600 hover:bg-green-700 text-white" : "text-gray-700 border-gray-300 hover:bg-gray-100"}
+                    >
+                        {editMode ? "Disable Edit Mode" : "Enable Edit Mode"}
+                    </Button>
+
+                    {userRole === 'admin' && !trashOpen && (
+                        <Button
+                            onClick={() => setConfirmDialogOpen(true)}
+                            variant="outline"
+                            className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600"
+                        >
+                            Delete Resource
+                        </Button>
+                    )}
                 </div>
-            }
+            </div>
             
             
         </>
