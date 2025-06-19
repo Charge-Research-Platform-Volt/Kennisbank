@@ -65,22 +65,22 @@ export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
     const pathname = usePathname();
 
     // Filters
-    const [tagFilter, setTagFilter] = React.useState<string[]>(searchParams.getAll('tagFilter'));
-    const [typeFilter, setTypeFilter] = React.useState<string[]>(searchParams.getAll('typeFilter').length > 0 ? searchParams.getAll('typeFilter') : ['resource', 'person', 'organisation']);
-    const [publicationDateRangeMin, setPublicationDateRangeMin] = React.useState<string>(searchParams.get('pubdateMin') || '');
-    const [publicationDateRangeMax, setPublicationDateRangeMax] = React.useState<string>(searchParams.get('pubdateMax') || '');
-    const [regionFilter, setRegionFilter] = React.useState<string[]>(searchParams.getAll('regionFilter'));
-    
-    // Refs
-    const isResettingRef = React.useRef<boolean>(false);
-    const isInitialLoadRef = React.useRef<boolean>(true);
+    const [tagFilter, setTagFilter] = React.useState<string[]>(() => searchParams.getAll('tagFilter'));
+    const [typeFilter, setTypeFilter] = React.useState<string[]>(() => 
+    {
+        const urlTypes = searchParams.getAll('typeFilter');
+        return urlTypes.length > 0 ? urlTypes : ['resource', 'person', 'organisation'];
+    });
+    const [publicationDateRangeMin, setPublicationDateRangeMin] = React.useState<string>(() => searchParams.get('pubdateMin') || '');
+    const [publicationDateRangeMax, setPublicationDateRangeMax] = React.useState<string>(() => searchParams.get('pubdateMax') || '');
+    const [regionFilter, setRegionFilter] = React.useState<string[]>(() => searchParams.getAll('regionFilter'));
     
     // Search
-    const [searchInput, setSearchInput] = React.useState<string>(searchParams.get('query') || '');
-    const [searchQuery, setSearchQuery] = React.useState<string>(searchParams.get('query') || '');
+    const [searchInput, setSearchInput] = React.useState<string>(() => searchParams.get('query') || '');
+    const [searchQuery, setSearchQuery] = React.useState<string>(() => searchParams.get('query') || '');
     
     // Pagination
-    const [currentPage, setCurrentPage] = React.useState<number>(Number(searchParams.get('page')) || 1);
+    const [currentPage, setCurrentPage] = React.useState<number>(() => Number(searchParams.get('page')) || 1);
     const [pageSize, setPageSize] = React.useState<number>(20);
     const [totalItems, setTotalItems] = React.useState<number>(0);
     const [totalPages, setTotalPages] = React.useState<number>(1);
@@ -91,107 +91,155 @@ export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
     // Triggers
     const [gridReloadTrigger, setGridReloadTrigger] = React.useState<boolean>(false);
     
-    // Update search parameters helper
-    const updateParam = React.useCallback((key: string, value?: string | string[] | undefined) => 
-    {
-        if (isResettingRef.current) return;
+    // Track if initial load to prevent resets
+    const [isInitialLoad, setIsInitialLoad] = React.useState(true);
     
+    // URL Management
+    const syncToUrl = React.useCallback((updates: Record<string, string | string[] | undefined>) => 
+    {
         const params = new URLSearchParams(searchParams.toString());
         
-        // Delete existing value
-        params.delete(key);
-        
-        // Only add when value is provided
-        if (value) 
+        Object.entries(updates).forEach(([key, value]) => 
         {
-            // Handle arrays
-            if (Array.isArray(value))
-                value.forEach((item) => params.append(key, item));
-                
-            // Single item
-            else
-                params.set(key, String(value));
-        }
+            params.delete(key);
+            
+            if (value !== undefined && value !== '' && !(Array.isArray(value) && value.length === 0)) 
+            {
+                if (Array.isArray(value))
+                    value.forEach(item => params.append(key, item));
+                else
+                    params.set(key, String(value));
+            }
+        });
         
-        // Update address bar
         router.replace(`${pathname}?${params.toString()}`);
-    }, [pathname, router, searchParams]);
+    }, [searchParams, router, pathname])
     
-    // Debounce search query
-    React.useEffect(() => 
+    // Filter management
+    const resetFilters = React.useCallback(() => 
     {
-        const timer = setTimeout(() => 
-        {
-            setSearchQuery(searchInput);
-        }, 500); // 500 ms delay
+        const defaultTypes = ['resource', 'person', 'organisation'];
         
-        return () => clearTimeout(timer);
-    }, [searchInput]);
-    
-    // Reset to first page when filters/search change
-    React.useEffect(() => 
-    {
-        // Don´t reset when it is initial load
-        if (isInitialLoadRef.current) 
-        {
-            isInitialLoadRef.current = false;
-            return;
-        }
-    
-        setCurrentPage(prev => prev !== 1 ? 1 : prev);
-    }, [searchQuery, typeFilter, tagFilter, publicationDateRangeMax, publicationDateRangeMin]);
-    
-    // Calculate total pages on total items or page size change
-    React.useEffect(() => 
-    {
-        setTotalPages(Math.ceil(totalItems / pageSize));
-    }, [totalItems, pageSize])
-    
-    // Page helper
-    const goToPage = (pageIndex: number) => 
-    {
-        if (pageIndex >= 1)
-            setCurrentPage(pageIndex <= totalPages ? pageIndex : totalPages);
-    };
-    
-    // Filter reset function
-    const resetFilters = () =>
-    {
-        isResettingRef.current = true
-    
-        setTypeFilter(['resource', 'person', 'organisation']);
+        setTypeFilter(defaultTypes);
         setPublicationDateRangeMax('');
         setPublicationDateRangeMin('');
         setTagFilter([]);
         setRegionFilter([]);
         
-        const params = new URLSearchParams();
-        
-        // Only keep non-filter params
-        if (searchQuery) params.set('query', searchQuery);
-        if (currentPage > 1) params.set('page', String(currentPage));
-        
-        // Update address bar
-        router.replace(`${pathname}?${params.toString()}`);
-        
-        // Set isResetting to false in the next tick to prevent race conditions
-        setTimeout(() => isResettingRef.current = false, 0);
-    };
+        // Sync to URL
+        syncToUrl(
+        {
+            typeFilter: undefined,
+            pubdateMin: undefined,
+            pubdateMax: undefined,
+            tagFilter: undefined,
+            regionFilter: undefined,
+            query: searchQuery || undefined,
+            page: currentPage > 1 ? String(currentPage) : undefined
+        });
+    }, [searchQuery, currentPage, syncToUrl]);
     
-    // Search param updaters for each filter, search and pagination:
-    React.useEffect(() => updateParam('tagFilter', tagFilter), [updateParam, tagFilter]);
-    React.useEffect(() => updateParam('typeFilter', typeFilter.length === 3 ? undefined : typeFilter), [updateParam, typeFilter]);
-    React.useEffect(() => updateParam('pubdateMin', publicationDateRangeMin), [updateParam, publicationDateRangeMin]);
-    React.useEffect(() => updateParam('pubdateMax', publicationDateRangeMax), [updateParam, publicationDateRangeMax]);
-    React.useEffect(() => updateParam('regionFilter', regionFilter), [updateParam, regionFilter]);
-    React.useEffect(() => updateParam('query', searchQuery), [updateParam, searchQuery]);
-    React.useEffect(() => updateParam('page', currentPage > 1 ? String(currentPage) : undefined), [updateParam, currentPage]);
+    // Pagination
+    const goToPage = React.useCallback((pageIndex: number) => 
+    {
+        if (pageIndex >= 1) 
+        {
+            const newPage = pageIndex <= totalPages ? pageIndex : totalPages;
+            setCurrentPage(newPage);
+        }
+    }, [totalPages]);
 
-    // Define triggerse
-    const triggerGridReload = () => 
+    // Reload trigger
+    const triggerGridReload = React.useCallback(() => 
     {
         setGridReloadTrigger(prev => !prev);
-    }
+    }, []);
+    
+    // Debounced search query update
+    React.useEffect(() => 
+    {
+        const timer = setTimeout(() => 
+        {
+            setSearchQuery(searchInput);
+        }, 500);
+        
+        return () => clearTimeout(timer);
+    }, [searchInput]);
+    
+    // Reset to first page when filters change (after initial load)
+    React.useEffect(() => 
+    {
+        if (isInitialLoad) 
+        {
+            setIsInitialLoad(false);
+            return;
+        }
+        
+        if (currentPage !== 1)
+            setCurrentPage(1);
+        }, [searchQuery, typeFilter, tagFilter, publicationDateRangeMax, publicationDateRangeMin, regionFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+    
+    // Calculate total pages on total items change
+    React.useEffect(() => 
+    {
+        setTotalPages(Math.ceil(totalItems / pageSize));
+    }, [totalItems, pageSize]);
+    
+    // Sync filters to URL
+    React.useEffect(() => 
+    {
+        if (isInitialLoad) return;
+        
+        syncToUrl(
+        {
+            tagFilter: tagFilter.length > 0 ? tagFilter : undefined,
+            typeFilter: typeFilter.length === 3 ? undefined : typeFilter,
+            pubdateMin: publicationDateRangeMin || undefined,
+            pubdateMax: publicationDateRangeMax || undefined,
+            regionFilter: regionFilter.length > 0 ? regionFilter : undefined,
+        });
+    }, [tagFilter, typeFilter, publicationDateRangeMin, publicationDateRangeMax, regionFilter, isInitialLoad, syncToUrl]);
+    
+    // Sync search and pagination to URL
+    React.useEffect(() => 
+    {
+        if (isInitialLoad) return;
+        
+        syncToUrl(
+        {
+            query: searchQuery || undefined,
+            page: currentPage > 1 ? String(currentPage) : undefined
+        });
+    }, [searchQuery, currentPage, isInitialLoad, syncToUrl]);
+    
+    // Clear state when navigating away from /archive
+    React.useEffect(() => 
+    {
+        if (pathname !== '/archive') 
+        {
+            // Reset all filters to defaults
+            setTagFilter([]);
+            setTypeFilter(['resource', 'person', 'organisation']);
+            setPublicationDateRangeMin('');
+            setPublicationDateRangeMax('');
+            setRegionFilter([]);
+            
+            // Reset search
+            setSearchInput('');
+            setSearchQuery('');
+            
+            // Reset pagination
+            setCurrentPage(1);
+            setTotalItems(0);
+            setTotalPages(1);
+            
+            // Reset other state
+            setTrashOpen(false);
+            
+            // Mark as initial load for when user returns to /archive
+            setIsInitialLoad(true);
+        }
+    }, [pathname]);
     
     return (
         <ArchiveContext.Provider 
