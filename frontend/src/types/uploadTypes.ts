@@ -195,3 +195,10 @@ export const LargeFileFinalizeDtoSchema = z.object(
  * DTO to send to backend to finalize large file upload
  */
 export type LargeFileFinalizeDto = z.infer<typeof LargeFileFinalizeDtoSchema>;
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

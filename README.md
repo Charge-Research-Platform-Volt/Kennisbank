@@ -42,3 +42,8 @@ Here are some VSCode extensions that you might find useful:
 
 This extension may be useful later on when we start working with Azure:
 - [Azure Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-node-azure-pack)
+
+## Copyright notice
+This program has been developed by students from the bachelor Computer Science at Utrecht
+University within the Software Project course.
+© Copyright Utrecht University (Department of Information and Computing Sciences)

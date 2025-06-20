@@ -85,3 +85,9 @@ export const CSharpType = ({ type, links }: { type: string, links: string[] }) =
         <code className="px-1.5 py-0.5 rounded text-sm font-mono">{colorizeType(type, links)}</code>
     );
 };
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+
