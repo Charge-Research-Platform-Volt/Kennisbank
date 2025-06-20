@@ -24,46 +24,61 @@ export default function UsersList() {
     const [error, setError] = useState("");
     const [pageCount, setPageCount] = useState(0);
     const [searchQuery, setSearchQuery] = useState("");
+    const [prevQuery, setPrevQuery] = useState("");
     const fetches = useRef(0);
+    const initialFetchDone = useRef(false);
 
     //load user page when the page number changes
     useEffect(() => {
-         async function fetchUsers() {
-            const fetchAmount = fetches.current + 1;
-            fetches.current = fetchAmount;
+        // Do not rerender if the first fetch is done, we are on the same page, and the searchquery is the same or empty
+        if (initialFetchDone.current && pageNumber === initialPage && searchQuery === prevQuery)
+            return;
+
+        // Mark that an initial fetch has been attempted
+        initialFetchDone.current = true;
+
+
+        async function fetchUsers() {
+            const fetchAmount = ++fetches.current; // Increment and assign immediately
+
             setError("");
+            setIsLoading(true);
+
             try {
                 const response = await ListUsersPaged(pageNumber, searchQuery);
-                
-                if(!response.success) {
+
+                if (!response.success) {
                     setError(response.message);
+                    if (fetchAmount === fetches.current) {
+                        setIsLoading(false);
+                    }
                     return;
                 }
 
-                // only update the state if this is the latest fetch
-                if(fetchAmount === fetches.current) {
+                if (fetchAmount === fetches.current) {
                     setUsers(response.users || []);
                     setPageCount(response.pageCount || 0);
                     setIsLoading(false);
                 }
             }
             catch {
-               toast.error("Error loading users.");
+                toast.error("Error loading users.");
 
-               if(fetchAmount === fetches.current) {
+                if (fetchAmount === fetches.current) {
                     setError("Error loading users.");
                     setIsLoading(false);
                 }
-            } 
+            }
         }
 
         fetchUsers();
-    }
-    , [pageNumber, searchQuery]);
+
+    }, [pageNumber, searchQuery, initialPage, searchParams]);
 
     const handleInputChange = useDebouncedCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         const value = event.target.value;
         setPageNumber(1); //reset page number to 1 when searching
+        setPrevQuery(searchQuery);
         setSearchQuery(value);
     }, 300);
 
