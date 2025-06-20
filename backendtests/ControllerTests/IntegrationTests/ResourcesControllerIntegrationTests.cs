@@ -415,7 +415,7 @@ public class ResourcesControllerTests : TestBaseBlob
         Guid resourceId = (Guid)initResponse.Body;
 
         string fileType = Filetype.ConvertExtensionToFiletype(".txt"); // Assuming a helper or direct value
-        string blockId = "block001";
+        string blockId = Convert.ToHexString(Encoding.UTF8.GetBytes("block001"));
         byte[] chunkData = Encoding.UTF8.GetBytes("This is a file chunk.");
         _controller.ControllerContext.HttpContext = new DefaultHttpContext();
         _controller.Request.Body = new MemoryStream(chunkData);
@@ -546,7 +546,7 @@ public class ResourcesControllerTests : TestBaseBlob
         Guid resourceId = (Guid)initResponse.Body;
 
         string fileTypeForChunk = Filetype.ConvertExtensionToFiletype(".txt");
-        string blockId1 = "finalBlock001";
+        string blockId1 = Convert.ToHexString(Encoding.UTF8.GetBytes("finalBlock001"));
         string base64BlockId1 = Convert.ToBase64String(Encoding.UTF8.GetBytes(blockId1));
         byte[] chunkData = Encoding.UTF8.GetBytes("Final chunk.");
         
@@ -560,7 +560,7 @@ public class ResourcesControllerTests : TestBaseBlob
             ResourceId = resourceId.ToString(),
             FileType = fileTypeForChunk, 
             FileName = "finalized-test-file.txt",
-            BlockIds = new List<string> { base64BlockId1 }
+            BlockIds = new List<string> { blockId1 }
         };
 
         // Act
@@ -725,7 +725,7 @@ public class ResourcesControllerTests : TestBaseBlob
         Guid resourceId = (Guid)initResponse.Body;
 
         string fileType = Filetype.ConvertExtensionToFiletype(".txt"); // Assuming a helper or direct value
-        string blockId = "block001";
+        string blockId = Convert.ToHexString(Encoding.UTF8.GetBytes("block001"));
         byte[] chunkData = Encoding.UTF8.GetBytes("This is a file chunk.");
         _controller.ControllerContext.HttpContext = new DefaultHttpContext();
         _controller.Request.Body = new MemoryStream(chunkData);
