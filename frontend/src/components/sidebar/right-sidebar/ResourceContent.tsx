@@ -237,7 +237,7 @@ export function ResourceContent(
             </Expandable>
 
             <Expandable variant="horizontal" title="Recommended Tags">
-                <BadgeList listType="ai-tags" itemList={aiTags} onNew={() => {}} onRemove={() => {}} />
+                <BadgeList listType="ai-tags" itemList={aiTags} onNew={(newItems) => setTags(tags ? tags.concat(newItems) : newItems)} onRemove={() => {}} />
             </Expandable>
 
             <Expandable variant="horizontal" title="Authors">
