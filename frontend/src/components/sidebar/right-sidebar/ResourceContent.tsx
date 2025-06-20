@@ -45,10 +45,11 @@ export function ResourceContent(
     const [ relatedResources, setRelatedResources ] = React.useState<ListItem[] | null>(null);
     const [ sourceList, setSourceList ] = React.useState<ListItem[] | null>(null);
     const [ regions, setRegions ] = React.useState<ListItem[] | null>(null);
-    const [ langCode, setLangCode ] = React.useState<string | null>(null); //ToDo
+    const [ langCode, setLangCode ] = React.useState<string | null>(null);
     const [ pubCode, setPubCode ] = React.useState<string | null>(null);
     const [ license, setLicense ] = React.useState<string | null>(null);
     const [ trashed, setTrashed ] = React.useState<boolean>(false);
+    const [ abstract, setAbstract ] = React.useState<string | null>(null);
 
     // Loads all content at once
     const loadContent = React.useCallback(async () => 
@@ -68,6 +69,7 @@ export function ResourceContent(
             FileType,
             Trashed,
             WebsiteMetadata.Url as Url,
+            DocumentMetadata.Abstract as Abstract,
             ResourceAuthorRelations.Select(new(Person.Id, Person.Name)) as Authors,
             ResourceOrganisationRelations.Select(new(Organisation.Id, Organisation.Name)) as Organisations,
             ResourceRegionRelations.Select(new(Region.Id, Region.Name)) as Regions,
@@ -99,6 +101,7 @@ export function ResourceContent(
             setFileType(data.body.fileType || "Unknown.");
             setTrashed(data.body.trashed);
             setUrl(data.body.url || "No URL found.");
+            setAbstract(data.body.abstract || null);
             setAuthors(data.body.authors || []);
             setOrganisations(data.body.organisations || []);
             setRegions(data.body.regions || []);
@@ -263,11 +266,14 @@ export function ResourceContent(
                 <BadgeList listType="regions" itemList={regions} onNew={(newItems) => setRegions(regions ? regions.concat(newItems) : newItems)} onRemove={(removedItem) => setRegions(regions ? regions.filter((item) => item != removedItem) : [])} />
             </Expandable>
 
-            {/* {resourceType === "Scientific Article" && (
+            {abstract && (
                 <Expandable title="Abstract" collapsedHeight={100}>
-                    {<>insert abstract</> || <Skeleton />}
+                    {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
+                                        <Edit setNewText={setAbstract} currentText={abstract} property="abstract" />
+                                    </div>)}
+                    {abstract || <Skeleton />}
                 </Expandable> 
-            )} */}
+            )}
             
             <Expandable title="Notes" collapsedHeight={100}>
                 {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
