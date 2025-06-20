@@ -32,7 +32,10 @@ export default function ListTags() {
     const [pageCount, setPageCount] = useState(0);
     const [searchQuery, setSearchQuery] = useState("");
     const [refreshKey, setRefreshKey] = useState(0); // to trigger re-fetching of tags
+    const [prevQuery, setPrevQuery] = useState("");
     const fetches = useRef(0); // to keep track of the number of fetches
+    const initialFetchDone = useRef(false);
+
 
     useEffect(() => {
         const handleTagListUpdated = () => {
@@ -47,68 +50,125 @@ export default function ListTags() {
             window.removeEventListener("tagListUpdated", handleTagListUpdated);
         };
     }, []);
-
+    
     //load user page when the page number changes
     useEffect(() => {
-        async function fetchTags() {
-            const fetchAmount = fetches.current + 1;
-            fetches.current = fetchAmount;
-            setError("");
-           try {
-               const response = await ListTagsPaged(pageNumber, searchQuery);
-                
-               if(!response.success) {
-                   setError(response.message);
-                   return;
-               }
-               
-               // only update the state if this is the latest fetch
-               if(fetches.current === fetchAmount) {
-                   setTags(response.body['tags'] || []);
-                   setPageCount(response.body['pageCount'] || 0);
-                   setIsLoading(false);
-               }
+        // --- Logic to prevent redundant initial fetches and being stuck on loading ---
+        // This condition checks if:
+        // 1. Initial fetch is done
+        // 2. The current pageNumber is the same
+        // 3. The current searchQuery is the same or empty
+        // 4. The refreshKey hasn't changed
+        if (initialFetchDone.current && pageNumber === initialPage && searchQuery === prevQuery)
+                return;
 
-           }
-           catch {
-            toast.error("Error loading users.");
-            // only update the state if this is the latest fetch
-            if (fetches.current === fetchAmount) {
-                setIsLoading(false);
-                setError("Error loading tags.");
+        initialFetchDone.current = true;
+
+        async function fetchTags() {
+            const currentFetchId = ++fetches.current; // Increment and assign immediately
+
+            setError("");
+            setIsLoading(true);
+
+            try {
+                const response = await ListTagsPaged(pageNumber, searchQuery);
+
+                if (!response.success) {
+                    setError(response.message);
+                    if (currentFetchId === fetches.current) {
+                        setIsLoading(false);
+                    }
+                    return;
+                }
+
+                if (currentFetchId === fetches.current) {
+                    setTags(response.body?.tags || []);
+                    setPageCount(response.body?.pageCount || 0);
+                    setIsLoading(false);
+                }
+
+            }
+
+            catch {
+                toast.error("Error loading tags.");
+
+                if (currentFetchId === fetches.current) {
+                    setIsLoading(false);
+                    setError("Failed to load tags due to an unexpected error.");
                 }
             }
         }
 
-       fetchTags();
-   }
-   , [pageNumber, searchQuery, refreshKey]);
+        fetchTags();
 
-   const handleInputChange = useDebouncedCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    }, [pageNumber, searchQuery, initialPage, searchParams]);
+
+    useEffect(() => {
+        async function fetchTags() {
+            const currentFetchId = ++fetches.current; // Increment and assign immediately
+
+            setError("");
+            setIsLoading(true);
+
+            try {
+                const response = await ListTagsPaged(pageNumber, searchQuery);
+
+                if (!response.success) {
+                    setError(response.message);
+                    if (currentFetchId === fetches.current) {
+                        setIsLoading(false);
+                    }
+                    return;
+                }
+
+                if (currentFetchId === fetches.current) {
+                    setTags(response.body?.tags || []);
+                    setPageCount(response.body?.pageCount || 0);
+                    setIsLoading(false);
+                }
+
+            }
+
+            catch {
+                toast.error("Error loading tags.");
+
+                if (currentFetchId === fetches.current) {
+                    setIsLoading(false);
+                    setError("Failed to load tags due to an unexpected error.");
+                }
+            }
+        }
+
+        fetchTags();
+    }, [refreshKey])
+
+
+    const handleInputChange = useDebouncedCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         const value = event.target.value;
         setPageNumber(1); //reset page number to 1 when searching
+        setPrevQuery(searchQuery);
         setSearchQuery(value);
     }, 300);
 
 
-   //update the url parameters when changing page, without reloading
-   const updatePageInUrl = (newPage: number) => {
-       const params : URLSearchParams = new URLSearchParams(searchParams.toString());
-       if (newPage > 1) {
-           params.set("page", newPage.toString());
-       } else {
-           params.delete("page"); 
-       }
-       router.replace(`?${params.toString()}`, { scroll: false });
-   };
+    //update the url parameters when changing page, without reloading
+    const updatePageInUrl = (newPage: number) => {
+        const params : URLSearchParams = new URLSearchParams(searchParams.toString());
+        if (newPage > 1) {
+            params.set("page", newPage.toString());
+        } else {
+            params.delete("page");
+        }
+        router.replace(`?${params.toString()}`, { scroll: false });
+    };
 
-   //go to other page
-   const goToPage = (newPage: number) => {
-       setPageNumber(newPage);
-       updatePageInUrl(newPage);
-   };
+    //go to other page
+    const goToPage = (newPage: number) => {
+        setPageNumber(newPage);
+        updatePageInUrl(newPage);
+    };
 
-   return (
+    return (
         <div className="w-full">
             <div className="pb-2">
                 <div className="relative w-full">
@@ -174,11 +234,9 @@ export default function ListTags() {
             )}
         </UserRoleProvider>
     </div>
-   )
+    )
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-
