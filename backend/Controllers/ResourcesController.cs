@@ -1141,18 +1141,38 @@ namespace KnowledgeBank.Controllers
                 string extension = Path.GetExtension(finalizeDto.FileName);
                 string fileType = Filetype.ConvertExtensionToFiletype(extension);
                 
-                // Convert blockIds to base64 if needed
-                List<string> base64BlockIds = finalizeDto.BlockIds.Select(id => 
-                    Base64.IsValid(id) ? id : Convert.ToBase64String(Convert.FromHexString(id))).ToList();
-                
+                // Convert blockIds to base64
+                List<string> base64BlockIds;
+                try 
+                {
+                    base64BlockIds = finalizeDto.BlockIds.Select(id => 
+                        Convert.ToBase64String(Convert.FromHexString(id))).ToList();
+                }
+                catch (Exception hexException)
+                {
+                    logger.Error(hexException, "Failed to convert block IDs from hex to base64 for resource {ResourceId}", resourceId);
+                    return BadRequest(new ApiResponse(false, "Invalid block ID format, unable to convert from hex."));
+                }
+                    
                 // Create metadata to add to blob
                 Dictionary<string, string> metadata = new() { { "extension", extension } };
                 
                 BLOB_STATUSCODE code = await blobService.CommitBlockListAsync(resourceId.ToString(), fileType, base64BlockIds, metadata);
                 
-                logger.Information("Large file upload finalized for resource {ResourceId}", resourceId);
-                
-                return Ok(new ApiResponse(true, "File upload finalized successfully", resourceId));
+                switch (code)
+                {
+                    case BLOB_STATUSCODE.OK:
+                        logger.Information("Large file upload finalized successfully for resource {ResourceId}", resourceId);
+                        return Ok(new ApiResponse(true, "File upload finalized successfully", resourceId));
+                    case BLOB_STATUSCODE.FAILED:
+                        logger.Error("Block list commit failed for resource {ResourceId}, some blocks may be missing or invalid", resourceId);
+                        await resourceManager.Rollback();
+                        return Conflict(new ApiResponse(false, "Failed to commit block list. Some uploaded blocks may be missing or invalid."));
+                    default:
+                        logger.Error("Unexpected blob service response {StatusCode} for resource {ResourceId}", code, resourceId);
+                        await resourceManager.Rollback();
+                        return StatusCode(500, new ApiResponse(false, "Unexpected error during finalization."));
+                }
             }
             catch (Exception e)
             {
