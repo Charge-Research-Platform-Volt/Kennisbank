@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using Microsoft.Extensions.Options;
 
 namespace KnowledgeBank.Controllers;
 
@@ -22,12 +23,14 @@ public class UserController : ControllerBase
     private readonly Serilog.ILogger logger;
     private readonly DatabaseContext database;
     private readonly UserManager<User> userManager;
+    private readonly OwnerUserConfig ownerConfig;
 
-    public UserController(DatabaseContext databaseContext, UserManager<User> userManager)
+    public UserController(DatabaseContext databaseContext, UserManager<User> userManager, IOptions<OwnerUserConfig> ownerConfig)
     {
         this.logger = Log.ForContext<UserController>();
         this.database = databaseContext;
         this.userManager = userManager;
+        this.ownerConfig = ownerConfig.Value;
     }
 
     /// <summary>
@@ -263,6 +266,7 @@ public class UserController : ControllerBase
     [SwaggerResponse(400, "User email already exists.")]
     [SwaggerResponse(404, "User not found.")]
     [SwaggerResponse(500, "Internal server error.")]
+    [SwaggerResponse(403, "This action is forbidden")]
     public async Task<IActionResult> UpdateMail([FromBody] UpdateEmailDto dto)
     {
         try
@@ -272,6 +276,9 @@ public class UserController : ControllerBase
             if (user == null)
                 return NotFound("Invalid user ID.");
 
+            if (user.Email == ownerConfig.Email)
+                return StatusCode(403, "Email of owner account cannot be changed!");
+            
             if (user.Email == dto.Email)
                 return BadRequest($"User has already the email '{dto.Email}'.");
 
@@ -327,6 +334,7 @@ public class UserController : ControllerBase
     [SwaggerResponse(400, "User email already exists.")]
     [SwaggerResponse(404, "User not found.")]
     [SwaggerResponse(500, "Internal server error.")]
+    [SwaggerResponse(403, "This action is forbidden")]
     public async Task<IActionResult> Update([FromBody] UpdateUserDto dto)
     {
         try
@@ -350,6 +358,9 @@ public class UserController : ControllerBase
             // Check if the user exists
             if (user == null)
                 return NotFound("User not found.");
+
+            if (user.Email == ownerConfig.Email)
+                return StatusCode(403, "The owner account cannot be altered.");
 
             // Use a transaction to ensure that all changes are saved or none
             using (Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction = await database.Database.BeginTransactionAsync())
@@ -412,6 +423,7 @@ public class UserController : ControllerBase
     )]
     [SwaggerResponse(200, "User deleted successfully.")]
     [SwaggerResponse(404, "User not found.")]
+    [SwaggerResponse(403, "This action is forbidden")]
     [SwaggerResponse(500, "Internal server error.")]
     public async Task<IActionResult> Delete(string? userId)
     {
@@ -426,7 +438,7 @@ public class UserController : ControllerBase
 
             if (currentUser == null)
                 return NotFound("Current user not found.");
-
+            
             if (string.IsNullOrEmpty(userId))
             {
                 userId = currentUser.Id;
@@ -444,6 +456,9 @@ public class UserController : ControllerBase
 
             if (user == null)
                 return NotFound("Invalid user ID.");
+                
+            if (user.Email == ownerConfig.Email)
+                return StatusCode(403, "Owner user cannot be deleted");
 
             IdentityResult response = await userManager.DeleteAsync(user);
 

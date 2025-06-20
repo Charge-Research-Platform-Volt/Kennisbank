@@ -55,6 +55,10 @@ services:
       EMAIL_ADDRESS: ${EMAIL_ADDRESS:?Email address is required}
       EMAIL_PASSWORD: ${EMAIL_PASSWORD:?Email password is required}
       EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-$EMAIL_ADDRESS}
+      OwnerUser__Email: ${OwnerUser__Email:?OwnerUser email is required}
+      OwnerUser__Password: ${OwnerUser__Password:?OwnerUser password is required}
+      OwnerUser__FirstName: ${OwnerUser__FirstName:-Owner}
+      OwnerUser__LastName: ${OwnerUser__LastName:-Owner}
     depends_on:
       database:
         condition: service_healthy
