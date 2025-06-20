@@ -17,6 +17,7 @@ import { useArchive } from "@/context/archive-provider"
 import Edit from "./Edit";
 import { TrashResource } from "@/actions/trashResourceActions"
 import { Badge } from "@/components/ui/badge";
+import GetFileIcon from "@/components/getFileIcon"
 
 interface ResourceContentProps {
   fileType: string | null;
@@ -209,7 +210,10 @@ export function ResourceContent(
                 </Badge>
             }
             
-            <h1 className="pb-2 font-bold select-none text-2xl">{title || <Skeleton />}</h1>
+            <div className="flex justify-start items-center gap-2 pb-2">
+                <GetFileIcon fileType={fileType ?? ''} className="w-5 h-5" />
+                <h1 className="font-bold select-none text-2xl">{title || <Skeleton />}</h1>
+            </div>
             
             { fileType === "website" &&
                 <a href={url} className="select-none" target="_blank" rel="noreferror">

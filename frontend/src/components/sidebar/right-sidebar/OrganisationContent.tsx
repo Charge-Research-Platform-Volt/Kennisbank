@@ -13,6 +13,7 @@ import { TrashResource } from "@/actions/trashResourceActions";
 import ConfirmDeleteDialog from "@/components/ui/confirm-delete-dialog";
 import { ApiResponse } from "@/types/apiResponse.type";
 import { Badge } from "@/components/ui/badge";
+import OrganisationIcon from "@/icons/organisation-icon";
 
 export function OrganisationContent() 
 {
@@ -118,7 +119,11 @@ export function OrganisationContent()
                 </Badge>
             }
             
-            <h1 className="pb-2 font-bold select-none text-2xl">{name || <Skeleton />}</h1>
+            <div className="flex justify-start gap-2 items-center pb-2">
+                <OrganisationIcon className="w-5 h-5" />
+                <h1 className="font-bold select-none text-2xl">{name || <Skeleton />}</h1>
+            </div>
+                        
             {name ? (
                 <div className="flex justify-between flex-1">
                     {website ? (
