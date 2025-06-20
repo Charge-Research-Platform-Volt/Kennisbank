@@ -246,21 +246,21 @@ namespace KnowledgeBank.Data
         #region Resource-Person (Author)
 
         // Range
-        public async Task AddAuthorToResourceRangeAsync(Guid resourceId, Guid[] personIds)
+        public async Task AddAuthorToResourceRangeAsync(Guid resourceId, Guid[] authorIds)
         {
-            if (personIds.Length == 0) return;
+            if (authorIds.Length == 0) return;
 
             bool startedTransaction = await BeginTransaction();
 
             // Create entry
-            ResourceAuthorRelation[] relations = new ResourceAuthorRelation[personIds.Length];
+            ResourceAuthorRelation[] relations = new ResourceAuthorRelation[authorIds.Length];
 
-            for (int i = 0; i < personIds.Length; i++)
+            for (int i = 0; i < authorIds.Length; i++)
             {
                 relations[i] = new()
                 {
                     ResourceId = resourceId,
-                    PersonId = personIds[i],
+                    AuthorId = authorIds[i],
                 };
             }
 

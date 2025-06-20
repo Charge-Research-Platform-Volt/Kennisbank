@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Badge } from "@/components/ui/badge"
-import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider"
+import { useSidebar, MetadataTypeEnum, FetchMetadataType } from "@/context/sidebar-provider"
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 import NewBadge from "./NewBadge"
@@ -44,9 +44,14 @@ export default function BadgeList({
     const { setTagFilter, setTypeFilter, setRegionFilter } = useArchive();
     const pathname: string = usePathname();
     
-    function navigateTo(id: string)
+    async function navigateTo(id: string)
     {
-        if ( ["authors", "related-persons", "person-related-persons", "persons"].includes(listType))
+        if (["authors"].includes(listType)) 
+        {
+            // Authors can be either persons or organisations, so fetch the type first
+            navigate(id, await FetchMetadataType(id));
+        }
+        else if ( ["related-persons", "person-related-persons", "persons"].includes(listType))
         {
             navigate(id, MetadataTypeEnum.PERSON);
         }

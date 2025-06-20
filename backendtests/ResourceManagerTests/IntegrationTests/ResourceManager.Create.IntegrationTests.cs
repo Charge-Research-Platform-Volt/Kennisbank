@@ -171,14 +171,12 @@ public class ResourceManagerCreateTests : TestBase
         {
             Name = "Test Name",
             Occupation = "Test Occupation",
-            CreationDate = DateTime.UtcNow,
         };
         Guid testPersonId = await resourceManager.CreatePersonAsync(testPersonDto);
 
         OrganisationCreateDto testOrganisationDto = new OrganisationCreateDto
         {
             Name = "Utrecht University",
-            CreationDate = DateTime.UtcNow,
         };
         Guid testOrganisationId = await resourceManager.CreateOrganisationAsync(testOrganisationDto);
 
@@ -217,7 +215,7 @@ public class ResourceManagerCreateTests : TestBase
 
 
         Assert.That(resource.ResourceTagRelations.Any(t => t.TagId == testTagId));
-        Assert.That(resource.ResourceAuthorRelations.Any(a => a.PersonId == testPersonId));
+        Assert.That(resource.ResourceAuthorRelations.Any(a => a.AuthorId == testPersonId));
         Assert.That(resource.ResourceOrganisationRelations.Any(o => o.OrganisationId == testOrganisationId));
         Assert.That(resource.ResourceRegionRelations.Any(r => r.RegionId == testRegionId));
     }

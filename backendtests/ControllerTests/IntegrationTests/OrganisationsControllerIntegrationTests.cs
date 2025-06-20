@@ -85,7 +85,6 @@ public class OrganisationsControllerTests : TestBase
             Name = "New Test Organisation",
             Description = "This is a new test organisation",
             Website = "https://newtestorg.example.com",
-            CreationDate = DateTime.UtcNow,
         };
 
         // Act
@@ -118,7 +117,6 @@ public class OrganisationsControllerTests : TestBase
             Name = "", // Empty name
             Description = "This organisation has no name",
             Website = "https://noname.example.com",
-            CreationDate = DateTime.UtcNow,
         };
 
         // Act
@@ -149,7 +147,6 @@ public class OrganisationsControllerTests : TestBase
             Name = "Organisation To Delete",
             Description = "This organisation will be deleted",
             Website = "https://delete.example.com",
-            CreationDate = DateTime.UtcNow,
         };
         
         OkObjectResult? createResult = await _controller.New(dto) as OkObjectResult;
@@ -586,7 +583,6 @@ public class OrganisationsControllerTests : TestBase
                 Name = $"Paged Organisation {i}",
                 Description = $"This is paged organisation {i}",
                 Website = $"https://paged{i}.example.com",
-                CreationDate = DateTime.UtcNow,
             };
             await _controller.New(dto);
         }

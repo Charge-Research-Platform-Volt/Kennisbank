@@ -218,30 +218,30 @@ export function Selection({
                                 })
                             }
                         </CommandGroup>
-                        
-                         {/* Create button section with fixed HR and text alignment */}
-                         {hasCreateButton && (
-                            <>
-                                <div className="px-2 py-1">
-                                    <hr className="my-2 border-t border-gray-200" />
-                                    <div className="w-full flex justify-center">
-                                        <Button 
-                                            type="button" 
-                                            variant="ghost" 
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                setOpen(false);
-                                                if (onCreateButton) onCreateButton();
-                                            }}
-                                            className="w-full"
-                                        >
-                                            Create new
-                                        </Button>
-                                    </div>
-                                </div>
-                            </>
-                        )}
                     </CommandList>
+                    
+                    {/* Create button section with fixed HR and text alignment */}
+                        {hasCreateButton && (
+                        <>
+                            <div className="px-2 py-1">
+                                <hr className="my-2 border-t border-gray-200" />
+                                <div className="w-full flex justify-center">
+                                    <Button 
+                                        type="button" 
+                                        variant="ghost" 
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setOpen(false);
+                                            if (onCreateButton) onCreateButton();
+                                        }}
+                                        className="w-full"
+                                    >
+                                        Create new
+                                    </Button>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </Command>
             </PopoverContent>
         </Popover>
