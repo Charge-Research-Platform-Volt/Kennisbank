@@ -124,6 +124,9 @@ export function PersonContent()
                 </Badge>
             }
             
+            {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
+                                                <Edit setNewText={setName} currentText={name} property="name" />
+                                            </div>)}
             <h1 className="pb-2 font-bold select-none text-2xl">{name || <Skeleton />}</h1>
             
             {occupation ? (

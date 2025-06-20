@@ -208,7 +208,10 @@ export function ResourceContent(
                     <span className="flex-1 mb-1">Contact an admin if you think this is a mistake.</span>
                 </Badge>
             }
-            
+
+            {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
+                                    <Edit setNewText={setTitle} currentText={title} property="title" />
+                                </div>)}
             <h1 className="pb-2 font-bold select-none text-2xl">{title || <Skeleton />}</h1>
             
             { fileType === "website" &&
