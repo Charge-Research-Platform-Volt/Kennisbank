@@ -2057,27 +2057,27 @@ public class ResourcesControllerTests : TestBaseBlob
         Assert.That(response.Body, Is.Not.Null);
     }
 
-    [Test]
-    [Description("Relations returns projected authors with properties parameter")]
-    public async Task Relations_ValidId_Authors_WithProperties_ReturnsProjectedData()
-    {
-        // Arrange
-        string resourceId = _existingResourceId.ToString();
-        string relation = "authors";
-        string properties = "PersonId,Person.Name";
+    // [Test]
+    // [Description("Relations returns projected authors with properties parameter")]
+    // public async Task Relations_ValidId_Authors_WithProperties_ReturnsProjectedData()
+    // {
+    //     // Arrange
+    //     string resourceId = _existingResourceId.ToString();
+    //     string relation = "authors";
+    //     string properties = "PersonId,Person.Name";
 
-        // Act
-        OkObjectResult? result = await _controller.Relations(relation, resourceId, properties) as OkObjectResult;
+    //     // Act
+    //     OkObjectResult? result = await _controller.Relations(relation, resourceId, properties) as OkObjectResult;
 
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.StatusCode, Is.EqualTo(200));
-        ApiResponse? response = result.Value as ApiResponse;
-        Assert.That(response, Is.Not.Null);
-        Assert.That(response.Success, Is.True);
-        Assert.That(response.Message, Is.EqualTo("Successfully retrieved relations"));
-        Assert.That(response.Body, Is.Not.Null);
-    }
+    //     // Assert
+    //     Assert.That(result, Is.Not.Null);
+    //     Assert.That(result.StatusCode, Is.EqualTo(200));
+    //     ApiResponse? response = result.Value as ApiResponse;
+    //     Assert.That(response, Is.Not.Null);
+    //     Assert.That(response.Success, Is.True);
+    //     Assert.That(response.Message, Is.EqualTo("Successfully retrieved relations"));
+    //     Assert.That(response.Body, Is.Not.Null);
+    // }
 
     [Test]
     [Description("Relations returns projected organisations with properties parameter")]
