@@ -1143,7 +1143,7 @@ namespace KnowledgeBank.Controllers
                 
                 // Convert blockIds to base64 if needed
                 List<string> base64BlockIds = finalizeDto.BlockIds.Select(id => 
-                    Base64.IsValid(id) ? id : Convert.ToBase64String(Encoding.UTF8.GetBytes(id))).ToList();
+                    Base64.IsValid(id) ? id : Convert.ToBase64String(Convert.FromHexString(id))).ToList();
                 
                 // Create metadata to add to blob
                 Dictionary<string, string> metadata = new() { { "extension", extension } };
