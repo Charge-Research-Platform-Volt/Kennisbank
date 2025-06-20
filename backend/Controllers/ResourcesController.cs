@@ -1080,12 +1080,8 @@ namespace KnowledgeBank.Controllers
             {
                 Guid parsedResourceId = Guid.Parse(resourceId);
                 
-                // Make sure blockId is base64 encoded
-                string base64BlockId = blockId;
-                if (!Base64.IsValid(blockId))
-                {
-                    base64BlockId = Convert.ToBase64String(Encoding.UTF8.GetBytes(blockId));
-                }
+                // Convert hex blockId to base64
+                string base64BlockId = Convert.ToBase64String(Convert.FromHexString(blockId));
                 
                 // Get container
                 BlobContainerClient container = await blobService.GetOrCreateContainerAsync(fileType);

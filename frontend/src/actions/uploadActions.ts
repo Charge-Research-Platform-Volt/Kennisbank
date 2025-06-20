@@ -273,7 +273,7 @@ export async function UploadNewLargeResource(form: z.infer<typeof resourceCreate
       const end = Math.min(start + MAX_CHUNK_SIZE, file.size);
       const chunk = file.slice(start, end);
 
-      const blockId = Buffer.from(`block-${i}`).toString('base64');
+      const blockId = Buffer.from(`block-${i}`).toString('hex');
       blockIds.push(blockId);
 
       try {
