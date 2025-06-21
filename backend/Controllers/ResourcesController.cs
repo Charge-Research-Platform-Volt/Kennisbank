@@ -20,6 +20,7 @@ using System.Text.Json;
 using System.Buffers.Text;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
+using Azure.Storage.Blobs.Models;
 using System.Linq.Expressions;
 
 namespace KnowledgeBank.Controllers 
@@ -324,10 +325,39 @@ namespace KnowledgeBank.Controllers
                         contentType = type;
                 }
 
-                // Return the file
-                logger.Information("Downloaded file with ID '{ID}' successfully.", id);
-                return File(response.FileStream, contentType, fileName);
+                logger.Information("Streaming file with ID '{ID}' to client.", id);
+                string BlobHeader; // Header determining whether we should open the file in the browser in a tab or it should download directly
+                const long maxFileSize = 500 * 1024 * 1024; // Some browsers only support up to 512, so 500 MB should be the max
+
+                // As long as it is NOT a ppt it can be opened in the browser
+                bool canBeOpened = (
+                    contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase) ||
+                    contentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) ||
+                    contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ||
+                    contentType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase));
+
+                // Check if file is less than 500MB size and can be opened in another tab, change the headers based on that
+                if (canBeOpened && (response.ContentLength <= maxFileSize))
+                    BlobHeader = $"inline; filename=\"{fileName}\"";
+
+                else
+                {
+                    // Big files or ppt get downloaded
+                    BlobHeader = $"attachment; filename=\"{fileName}\"";
+                    logger.Information("The file with id:{ID} is unsupported for opening in browser or too large, so downloading directly to user system.", id);
+
+                }
+
+                Response.ContentType = contentType;
+                Response.Headers.Add("Content-Disposition", BlobHeader); // add the header
+
+                // Copy the blob stream directly to the HTTP response body to not buffer all of it in backend memory and get error 137 again
+                await response.FileStream.CopyToAsync(Response.Body);
+
+                logger.Information("File with ID '{ID}' downloaded successfully.", id);
+                return new EmptyResult();
             }
+
             catch (Exception e)
             {
                 logger.Error(e, "Error downloading resource with ID {ID}.", id);
@@ -1426,8 +1456,15 @@ namespace KnowledgeBank.Controllers
                 else if (c == ' ' && !preserveSpaces)
                     sb.Append('_');
 
-                // If char is valid, append
-                else if (!invalidChars.Contains(c))
+                // If char is valid, append, this also means excluding header specific invalid chars!
+                else if (!invalidChars.Contains(c) &&
+                            c != '’' &&
+                            c != '‘' &&
+                            c != '“' &&
+                            c != '”' &&
+                            c != '—' &&
+                            c != '–' &&
+                            c != '…')
                     sb.Append(c);
 
                 // If char is invalid, put underscore
