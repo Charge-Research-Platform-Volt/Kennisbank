@@ -334,6 +334,7 @@ namespace KnowledgeBank.Controllers
                     contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase) ||
                     contentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) ||
                     contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ||
+                    contentType.Equals("text/plain", StringComparison.OrdinalIgnoreCase) ||
                     contentType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase));
 
                 // Check if file is less than 500MB size and can be opened in another tab, change the headers based on that

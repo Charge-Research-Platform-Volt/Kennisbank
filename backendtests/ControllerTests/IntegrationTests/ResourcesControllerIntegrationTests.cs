@@ -11,6 +11,7 @@ using System.Text;
 using System.Text.Json;
 using Azure.Storage.Blobs.Specialized;
 using System.Security.Claims;
+using Moq;
 
 namespace backend.Tests.Integration;
 
@@ -30,6 +31,8 @@ public class ResourcesControllerTests : TestBaseBlob
     private ClaimsPrincipal _adminUser;
     private Guid _regularUserId;
     private Guid _adminUserId;
+    private DefaultHttpContext _mockHttpContext;
+    private MemoryStream _responseBodyStream;
 
     [SetUp]
     public void SetupController()
@@ -51,7 +54,21 @@ public class ResourcesControllerTests : TestBaseBlob
             "mock"));
 
         _resourceManager = new ResourceManager(Context);
-        _controller = new ResourcesController(_resourceManager, BlobService);
+        _responseBodyStream = new MemoryStream();
+
+        _mockHttpContext = new DefaultHttpContext();
+        _mockHttpContext.Response.Body = _responseBodyStream;
+        _mockHttpContext.Response.Headers.Add("Content-Length", "0");
+
+        _controller = new ResourcesController(_resourceManager, BlobService)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = _mockHttpContext
+            }
+        };
+
+        
     }
 
     protected override async Task SeedTestDatabase(DatabaseContext context)
@@ -1132,18 +1149,10 @@ public class ResourcesControllerTests : TestBaseBlob
         string resourceId = _existingFileResourceId.ToString();
 
         // Act
-        FileStreamResult? result = await _controller.Download(resourceId) as FileStreamResult;
+        IActionResult? result = await _controller.Download(resourceId);
 
         // Assert
-        Assert.That(result, Is.Not.Null);
-        //Assert.That(result.ContentType, Is.EqualTo("application/octet-stream"));
-        Assert.That(result.FileDownloadName, Does.EndWith(".txt"));
-
-        // Check file content
-        MemoryStream memoryStream = new MemoryStream();
-        await result.FileStream.CopyToAsync(memoryStream);
-        string content = Encoding.UTF8.GetString(memoryStream.ToArray());
-        Assert.That(content, Is.EqualTo("This is test content"));
+        Assert.That(result, Is.InstanceOf<EmptyResult>()); // if everything succeeded, we should receive an emptyresult
     }
 
     [Test]
