@@ -20,12 +20,14 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   # Start storage
   storage:
     image: mcr.microsoft.com/azure-storage/azurite
     ports:
       - ${STORAGE_PORT:-10000}:10000
+    restart: unless-stopped
 
   # Start backend with database and storage
   backend:
@@ -70,6 +72,7 @@ services:
       timeout: 10s
       retries: 5
       start_period: 150s
+    restart: unless-stopped
 
   # Start frontend after backend
   frontend:
@@ -86,6 +89,7 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    restart: unless-stopped
 
   # Start website after backend
   website:
@@ -100,6 +104,7 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    restart: unless-stopped
 
 # This program has been developed by students from the bachelor Computer Science at Utrecht
 # University within the Software Project course.
