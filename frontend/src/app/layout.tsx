@@ -4,9 +4,6 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { TabletSmartphone } from "lucide-react";
 import { Inter } from "next/font/google";
-import { SidebarProvider } from "@/context/sidebar-provider";
-import { cookies } from "next/headers";
-//import LeftSidebarServer from "@/components/left-sidebar/left-sidebar-server";
 
 // Metadata
 export const metadata: Metadata = {
@@ -21,17 +18,10 @@ const inter = Inter({
 });
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  // Get the state of the right sidebar from cookies
-  const leftSidebar = (await cookies()).get("leftSidebar:state");
-  let leftSidebarDefault = true;
-  if (leftSidebar) {
-    leftSidebarDefault = leftSidebar.value === "true";
-  }
-
   return (
     <html className={inter.className} lang="en">
       <body className="flex h-screen w-screen overflow-hidden">
-        <SidebarProvider leftSidebarDefaultState={leftSidebarDefault}>{children}</SidebarProvider>
+        {children}
         <Toaster />
 
         {/* Mobile device warning */}

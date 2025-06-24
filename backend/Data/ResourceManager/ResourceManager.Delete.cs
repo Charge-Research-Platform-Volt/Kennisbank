@@ -26,7 +26,7 @@ namespace KnowledgeBank.Data
         public async Task<bool> DeleteResourceAsync(Guid id)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             // Delete the resource itself
             int count = await DeleteAsync(database.Resources, resource => resource.Id == id);
 
@@ -76,7 +76,7 @@ namespace KnowledgeBank.Data
         public async Task<bool> DeletePersonAsync(Guid id)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             // Delete the person itself
             int count = await DeleteAsync(database.Persons, person => person.Id == id);
 
@@ -91,7 +91,7 @@ namespace KnowledgeBank.Data
 
             // Delete all resource-related_person relations containing this person
             await RemoveRelatedPersonFromAllResourcesAsync(id);
-            
+
             if (startedTransaction) await Commit();
 
             return count > 0;
@@ -105,7 +105,7 @@ namespace KnowledgeBank.Data
         public async Task<bool> DeleteOrganisationAsync(Guid id)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             // Delete the organisation itself
             int count = await DeleteAsync(database.Organisations, organisation => organisation.Id == id);
 
@@ -120,7 +120,7 @@ namespace KnowledgeBank.Data
 
             // Delete all resource-organisation relations containing this organisation
             await RemoveRelatedOrganisationFromAllResourcesAsync(id);
-            
+
             if (startedTransaction) await Commit();
 
             return count > 0;
@@ -134,13 +134,13 @@ namespace KnowledgeBank.Data
         public async Task<bool> DeleteRegionAsync(Guid id)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             // Delete the region itself
             int count = await DeleteAsync(database.Regions, region => region.Id == id);
 
             // Delete region from all resources
             await RemoveRegionFromAllResourcesAsync(id);
-            
+
             if (startedTransaction) await Commit();
 
             return count > 0;
@@ -154,10 +154,10 @@ namespace KnowledgeBank.Data
         public async Task<bool> DeleteAudioMetadataAsync(Guid resourceId)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             // Delete the metadata itself
             int count = await DeleteAsync(database.AudioMetadata, metadata => metadata.ResourceId == resourceId);
-            
+
             if (startedTransaction) await Commit();
 
             return count > 0;
@@ -171,9 +171,9 @@ namespace KnowledgeBank.Data
         public async Task<bool> DeleteVideoMetadataAsync(Guid resourceId)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             int count = await DeleteAsync(database.VideoMetadata, metadata => metadata.ResourceId == resourceId);
-            
+
             if (startedTransaction) await Commit();
 
             return count > 0;
@@ -187,9 +187,9 @@ namespace KnowledgeBank.Data
         public async Task<bool> DeleteWebsiteMetadataAsync(Guid resourceId)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             int count = await DeleteAsync(database.WebsiteMetadata, metadata => metadata.ResourceId == resourceId);
-            
+
             if (startedTransaction) await Commit();
 
             return count > 0;
@@ -203,9 +203,9 @@ namespace KnowledgeBank.Data
         public async Task<bool> DeleteDocumentMetadataAsync(Guid resourceId)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             int count = await DeleteAsync(database.DocumentMetadata, metadata => metadata.ResourceId == resourceId);
-            
+
             if (startedTransaction) await Commit();
 
             return count > 0;
@@ -219,17 +219,17 @@ namespace KnowledgeBank.Data
         public async Task<bool> DeleteTagAsync(Guid id)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             int count = await DeleteAsync(database.Tags, tag => tag.Id == id);
 
             // Remove all resource-tag relations containing this tag
             await RemoveTagFromAllResourcesAsync(id);
-            
+
             if (startedTransaction) await Commit();
 
             return count > 0;
         }
-        
+
         public async Task<bool> DeleteTagAsync(string id)
         { return await DeleteTagAsync(Guid.Parse(id)); }
 
@@ -238,7 +238,7 @@ namespace KnowledgeBank.Data
         public async Task<bool> DeleteResourceTypeAsync(Guid id)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             int count = await DeleteAsync(database.ResourceTypes, type => type.Id == id);
 
             // Set the type of all resources with this type to unknown
@@ -251,6 +251,23 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> DeleteResourceTypeAsync(string id)
         { return await DeleteResourceTypeAsync(Guid.Parse(id)); }
+
+
+        // --- Chat
+        public async Task<bool> DeleteChatAsync(Guid id, Guid userId)
+        {
+            bool startedTransaction = await BeginTransaction();
+
+            // Delete the chat itself (with user ownership verification)
+            // All messages in this chat are deleted automatically due to the cascade delete rule
+            int count = await DeleteAsync(database.Chats, chat => chat.Id == id && chat.UserId == userId);
+
+            if (startedTransaction) await Commit();
+
+            return count > 0;
+        }
+
+
     }
 }
 

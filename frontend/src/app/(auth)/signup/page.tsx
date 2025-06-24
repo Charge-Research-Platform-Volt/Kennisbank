@@ -74,6 +74,13 @@ export default function SignUpPage() {
               <h1 className="mb-1 text-3xl font-bold">Sign up</h1>
               <p>Enter your personal data to create your account.</p>
             </div>
+            
+            {/* Avatar section - full width */}
+            <div className="flex w-full justify-center">
+              <EditableAvatar url={avatar.url} onConfirm={handleChange} onDefault={() => handleChange(null)} />
+            </div>
+            
+            {/* Name fields section */}
             <div className="flex w-full gap-5">
               <div className="w-full">
                 <label htmlFor="firstname" className="font-bold">
@@ -88,6 +95,7 @@ export default function SignUpPage() {
                 <Input value={lastName} type="text" placeholder="Last name" name="lastname" onChange={(e) => setLastName(e.target.value)} required />
               </div>
             </div>
+            
             <div>
               <label htmlFor="email" className="font-bold">
                 EMAIL
@@ -100,9 +108,7 @@ export default function SignUpPage() {
               </label>
               <Input value={password} type="password" placeholder="Password" name="password" onChange={(e) => setPassword(e.target.value)} required />
             </div>
-            <div>
-              <EditableAvatar url={avatar.url} onConfirm={handleChange} onDefault={() => handleChange(null)} />
-            </div>
+            
             <div>
               <label htmlFor="passwordcheck" className="font-bold">
                 RETYPE PASSWORD
@@ -119,6 +125,7 @@ export default function SignUpPage() {
                 </label>
               </div>
             </div>
+            
             <Button
               type="submit"
               className="w-full"
@@ -132,7 +139,3 @@ export default function SignUpPage() {
     </div>
   );
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)

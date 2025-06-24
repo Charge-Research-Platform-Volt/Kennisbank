@@ -10,7 +10,7 @@ import React from "react";
 export default function Divider({ name, className, minimize }: { name?: string; className?: string; minimize?: boolean }) {
   return (
     <div className={cn(`flex w-full flex-row items-center ${minimize ? "gap-2" : "gap-0"}`, className)}>
-      {name && <div className={`text-xs font-medium text-gray-400 uppercase whitespace-nowrap ${!minimize ? "max-w-0 opacity-0" : "max-w-full opacity-100"} transition-all duration-300`}>{name}</div>}
+      {name && <div className={`text-xs font-medium whitespace-nowrap text-gray-400 uppercase ${!minimize ? "max-w-0 opacity-0" : "max-w-full opacity-100"} transition-all duration-300`}>{name}</div>}
       <div className="h-px flex-1 bg-gray-300"></div>
     </div>
   );

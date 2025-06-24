@@ -65,7 +65,7 @@ export function OrganisationContent()
             const data: ApiResponse = await response.json();
             
             setName(data.body.name || "Name missing.");
-            setWebsite(data.body.website || "Website missing.");
+            setWebsite(data.body.website || "Website unknown.");
             setDescription(data.body.description || "No description.");
             setCreationDate(data.body.creationDate || "Unknown.");
             setEmail(data.body.email || "Unknown.");
@@ -132,11 +132,11 @@ export function OrganisationContent()
                         
             {name ? (
                 <div className="flex justify-between flex-1">
-                    {website ? (
+                    {website && website.startsWith('http') ? (
                         <a href={website} className="select-none" target="_blank" rel="noreferror">
                             <h1 className="mb-2 select-none text-blue-500 underline">{website}</h1>
                         </a>
-                    ) : (
+                    ) : website ? <h1 className="mb-2 select-none">{website}</h1> : (
                         <h1 className="mb-2 select-none">No Website</h1>
                     )}
                     <div className="flex justify-end">{editMode && (<Edit setNewText={setWebsite} currentText={website ? (website) : ""} property="website" />)}</div>

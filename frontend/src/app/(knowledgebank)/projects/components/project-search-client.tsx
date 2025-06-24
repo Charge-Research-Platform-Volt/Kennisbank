@@ -14,7 +14,7 @@ interface ProjectSearchClientProps {
 
 /**
  * Projects content
- * 
+ *
  * @author Jelle v.h. Schut
  * @param {FolderProject[]} projects - Projects or folders to display
  * @param {ResourceProject[]} resources - Resources to display
@@ -22,18 +22,11 @@ interface ProjectSearchClientProps {
  * @param {string | null} userRole - Role of the current user
  * @returns - View of all contents that currently need to be displayed
  */
-export default function ProjectSearchClient({ projects, resources = [], currentUserId, userRole}: ProjectSearchClientProps) {
-
+export default function ProjectSearchClient({ projects, resources = [], currentUserId, userRole }: ProjectSearchClientProps) {
   return (
     <>
-      <div className="flex flex-grow h-[calc(100vh-1rem)]">
-        <ListProjects 
-          initialResources={resources} 
-          initialProjects={projects} 
-          fetchProjectAction={getProjectContentById}
-          currentUserId={currentUserId}
-          userRole={userRole}
-        />
+      <div className="flex h-[calc(100vh-1rem)] flex-grow p-2">
+        <ListProjects initialResources={resources} initialProjects={projects} fetchProjectAction={getProjectContentById} currentUserId={currentUserId} userRole={userRole} />
       </div>
     </>
   );

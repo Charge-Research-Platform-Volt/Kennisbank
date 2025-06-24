@@ -19,7 +19,7 @@ namespace KnowledgeBank.Data
             if (targetOrganisationIds.Length == 0) return;
 
             if (relations.Length != targetOrganisationIds.Length) throw new Exception("Relations and target organisation IDs array should be the same size");
-            
+
             bool startedTransaction = await BeginTransaction();
 
             // Create entries
@@ -97,7 +97,7 @@ namespace KnowledgeBank.Data
             if (organisationIds.Length == 0) return;
 
             if (roles.Length != organisationIds.Length) throw new Exception("Roles array and organisationIds array should be the same size.");
-            
+
             bool startedTransaction = await BeginTransaction();
 
             // Create entries
@@ -280,7 +280,7 @@ namespace KnowledgeBank.Data
         { await AddAuthorToResourceRangeAsync(Guid.Parse(resourceId), StringToGuidArray(personIds)); }
 
         // Single
-        
+
         /// <summary>
         /// Adds a person as an author to a resource.
         /// 
@@ -724,7 +724,7 @@ namespace KnowledgeBank.Data
         public async Task AddResourceTypeToResourceAsync(Guid resourceId, Guid resourceTypeId)
         {
             bool startedTransaction = await BeginTransaction();
-        
+
             Resource? resource = await GetResourceAsync(resourceId);
 
             if (resource == null) return;
@@ -750,7 +750,7 @@ namespace KnowledgeBank.Data
         public async Task AddAudioMetadataToResourceAsync(Guid resourceId)
         {
             if (await GetAudioMetadataAsync(resourceId) != null) return;
-            
+
             bool startedTransaction = await BeginTransaction();
 
             await database.AudioMetadata.AddAsync(new()
@@ -771,7 +771,7 @@ namespace KnowledgeBank.Data
         public async Task AddVideoMetadataToResourceAsync(Guid resourceId)
         {
             if (await GetVideoMetadataAsync(resourceId) != null) return;
-            
+
             bool startedTransaction = await BeginTransaction();
 
             await database.VideoMetadata.AddAsync(new()
@@ -792,7 +792,7 @@ namespace KnowledgeBank.Data
         public async Task AddDocumentMetadataToResourceAsync(Guid resourceId)
         {
             if (await GetDocumentMetadataAsync(resourceId) != null) return;
-            
+
             bool startedTransaction = await BeginTransaction();
 
             await database.DocumentMetadata.AddAsync(new()
@@ -813,7 +813,7 @@ namespace KnowledgeBank.Data
         public async Task AddWebsiteMetadataToResourceAsync(Guid resourceId, string url)
         {
             if (await GetWebsiteMetadataAsync(resourceId) != null) return;
-            
+
             bool startedTransaction = await BeginTransaction();
 
             await database.WebsiteMetadata.AddAsync(new()

@@ -23,6 +23,8 @@ namespace KnowledgeBank.Data
         /// <returns></returns>
         public static async Task Seed(IServiceProvider serviceProvider)
         {
+            return;
+        
             using IServiceScope scope = serviceProvider.CreateScope();
             blobService = scope.ServiceProvider.GetRequiredService<IAzureBlobService>();
             resourceManager = scope.ServiceProvider.GetRequiredService<ResourceManager>();

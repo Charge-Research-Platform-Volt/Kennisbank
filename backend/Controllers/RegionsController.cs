@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Cors;
 using System.Reflection;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using KnowledgeBank.Services;
 
 namespace KnowledgeBank.Controllers
 {
@@ -24,8 +25,12 @@ namespace KnowledgeBank.Controllers
     /// Author: Abel Dieterich
     /// </summary>
     /// <param name="resourceManager">The resource manager service for database interactions</param>
-    [ApiController] [Route("[controller]")] [Produces("application/json")] [Authorize]
-    public class RegionsController(ResourceManager resourceManager) : ControllerBase
+    /// <param name="ragSystem">The RAG system for handling region-related operations</param>
+    [ApiController]
+    [Route("[controller]")]
+    [Produces("application/json")]
+    [Authorize]
+    public class RegionsController(ResourceManager resourceManager, RAGSystem ragSystem) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<RegionsController>();
 
@@ -54,7 +59,7 @@ namespace KnowledgeBank.Controllers
                 Guid id = await resourceManager.CreateRegionAsync(dto);
 
                 logger.Information("Region '{Name}' created successfully.", dto.Name);
-                return Ok(new ApiResponse(true, "Region created successfully", id ));
+                return Ok(new ApiResponse(true, "Region created successfully", id));
             }
             catch (Exception e)
             {
@@ -131,7 +136,7 @@ namespace KnowledgeBank.Controllers
                 return BadRequest(new ApiResponse(false, "No updates were provided."));
 
             logger.Information("Updating person with ID '{ID}'...", id);
-            
+
             try
             {
                 // Check if region exists
@@ -142,7 +147,7 @@ namespace KnowledgeBank.Controllers
                 await resourceManager.BeginTransaction();
 
                 // Update the properties
-                List<string> updatedProperties = await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Region), id, updates);
+                List<string> updatedProperties = await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Region), id, updates, ragSystem);
 
                 // No props were found
                 if (updatedProperties.Count == 0)
@@ -298,7 +303,7 @@ namespace KnowledgeBank.Controllers
                 Expression<Func<Region, bool>>? predicate = searchQuery != null ? r =>  /*EF.Functions.TrigramsAreSimilar(r.Name, searchQuery) || {NOT ALLOWED IN AZURE POSTGRES} */
                                                                                         EF.Functions.ILike(r.Name, $"{searchQuery}%") ||
                                                                                         EF.Functions.ILike(r.Name, $"%{searchQuery}%") : null;
-                
+
                 // No paging requested, list all regions
                 if (pageIndex == null || pageSize == null)
                     regions = string.IsNullOrEmpty(properties) ?

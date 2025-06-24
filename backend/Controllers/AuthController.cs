@@ -17,9 +17,8 @@ namespace KnowledgeBank.Controllers
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
-    public class AuthController(IConfiguration config, SignInManager<User> signInManager, IAzureBlobService blobService, DatabaseContext context, MailUtils mailUtils) : ControllerBase
+    public class AuthController (SignInManager<User> signInManager, DatabaseContext context, EnvironmentConfig _environmentConfig, MailUtils _mailUtils, IAzureBlobService blobService) : ControllerBase
     {
-        private readonly string frontendDomain = config["HOST_URL"] ?? throw new ArgumentNullException("HOST_URL needs to be set");
         private readonly Serilog.ILogger logger = Log.ForContext<AuthController>();
 
         [HttpPost]
@@ -52,7 +51,7 @@ namespace KnowledgeBank.Controllers
         )]
         [SwaggerResponse(200, "User id fetched successfully")]
         [SwaggerResponse(500, "Server error")]
-        public async Task<IActionResult> GetUserId()
+        public IActionResult GetUserId()
         {
             string userID = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid.ToString() : null ?? "";
             return Ok(new ApiResponse(true, "Fetched user id", userID ));
@@ -98,10 +97,11 @@ namespace KnowledgeBank.Controllers
                     Token = ShaUtils.Sha256(token.ToString()),
                     CreatedAt = DateTime.UtcNow
                 });
+
                 await context.SaveChangesAsync();
 
                 // send the email
-                mailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: {frontendDomain}/signup?token={token}");
+                _mailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: {_environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL)}/signup?token={token}");
             }
             catch (Exception e)
             {
