@@ -132,14 +132,20 @@ export function PersonContent()
             {occupation ? (
                 <div className="flex justify-between flex-1">
                     <h2 className="mb-2 select-none">{occupation}</h2>
-                    <div className="flex justify-end"><Edit setNewText={setOccupation} currentText={occupation} property="occupation" /></div>
+                    {editMode && <div className="flex justify-end"><Edit setNewText={setOccupation} currentText={occupation} property="occupation" /></div>}
                 </div>
             ) : (<Skeleton />) }
 
             {linkedIn ? (
                 <div className="flex justify-between flex-1">
-                    <h2 className="mb-2 select-none">{linkedIn}</h2>
-                    <div className="flex justify-end"><Edit setNewText={setLinkedIn} currentText={linkedIn} property="linkedIn" /></div>
+                    {
+                        linkedIn.startsWith('http') ?
+                        (<a href={linkedIn} className="select-none" target="_blank" rel="noreferror">
+                                <h2 className="mb-2 slecet-none text-blue-500 underline">{linkedIn}</h2>
+                        </a>) :
+                        (<h2 className="mb-2 select-none">{linkedIn}</h2>)
+                    }
+                    {editMode && <div className="flex justify-end"><Edit setNewText={setLinkedIn} currentText={linkedIn} property="linkedIn" /></div>}
                 </div>
             ) : (<Skeleton />) }
 
