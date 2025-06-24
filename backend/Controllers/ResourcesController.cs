@@ -1246,7 +1246,6 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Delete the database entry
-                await resourceManager.BeginTransaction();
                 string? fileType = await resourceManager.GetResourcePropertyOrDefaultAsync(parsedResourceId.ToString(), "FileType");
                 if (fileType is not null)
                 {
@@ -1269,7 +1268,6 @@ namespace KnowledgeBank.Controllers
                         logger.Error("Error deleting blob {ResourceId} in storage", resourceId);
                         return StatusCode(500, new ApiResponse(false, "Error deleting blob in storage"));
                     }
-            
                 }
                 else
                 {
