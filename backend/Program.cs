@@ -67,6 +67,7 @@ namespace KnowledgeBank
                 foreach (string roleName in RoleInitializer.roleNames)
                 {
                     options.AddPolicy($"Require{char.ToUpper(roleName[0]) + roleName.Substring(1)}Role", policy => policy.RequireRole(roleName));
+                    options.AddPolicy($"Require{char.ToUpper(roleName[0]) + roleName.Substring(1)}Role", policy => policy.RequireRole(roleName));
                 }
 
                 // This line terminates the handler on first failure, when more information is required, set this to true.
@@ -78,12 +79,24 @@ namespace KnowledgeBank
             // Add this line after the code below to enable authentication with JWT tokens: .AddBearerToken(IdentityConstants.BearerScheme);
             builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
 
+
             builder.Services.AddIdentityCore<User>()
                             .AddRoles<IdentityRole>()
                             .AddEntityFrameworkStores<DatabaseContext>()
                             .AddApiEndpoints();
 
-            // Swagger
+            builder.Services.Configure<IdentityOptions>(options =>
+            {
+                // Currently the only addition is +, we could use this string to add even more email compatibility:
+                // "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+!#$%'&*=/^`{|}~"
+                // Another option: use guid as user name in asp net databse
+                options.User.AllowedUserNameCharacters =
+                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+
+                options.User.RequireUniqueEmail = true;
+            });
+
+
             builder.Services.AddOpenApi();
             builder.Services.AddSwaggerGen(ConfigureSwagger);
             builder.Services.AddScoped<RoleInitializer>();
@@ -98,6 +111,17 @@ namespace KnowledgeBank
             // Resource management
             builder.Services.AddScoped<ResourceManager>();
             builder.Services.AddScoped<ProjectManager>();
+
+
+            // Retrieval Augmented Generation system
+            builder.Services.AddSingleton<RAGSystem, RAGSystem>();
+            builder.Services.AddScoped<RAGManger>();
+
+
+            // Background services
+            builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
+            builder.Services.AddHostedService<QueuedHostedService>();
+
 
 
             // Retrieval Augmented Generation system
@@ -131,6 +155,7 @@ namespace KnowledgeBank
                 });
             });
 
+
             builder.Services.Configure<FormOptions>(options =>
             {
                 // Set the limit to 100 MB
@@ -141,6 +166,7 @@ namespace KnowledgeBank
 
             builder.Services.AddHostedService<TrashbinCleanupService>(); // Add the background service for cleaning up the trashbin
             builder.Services.AddHostedService<InvitationsCleanupService>(); // Add the background service for cleaning up invitations
+
 
             builder.WebHost.ConfigureKestrel(serverOptions =>
             {
@@ -153,6 +179,31 @@ namespace KnowledgeBank
             // # Create database if it does not exist
             app.EnsureCreatedDatabase();
 
+            // # Reset database if env var is set
+            if (app.Configuration.GetValue<bool>("RESET_DATABASE")) 
+            {
+                try
+                {
+                    using var scope = app.Services.CreateScope();
+                    var context = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+                    
+                    Console.WriteLine("Starting full database reset...");
+                    
+                    await context.Database.EnsureDeletedAsync();
+                    await context.Database.EnsureCreatedAsync();
+                    
+                    Console.WriteLine("Database recreated from EF models");
+                    
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Failed to reset database: {e.Message}");
+                    Console.WriteLine($"Stack trace: {e.StackTrace}");
+                    throw; // Fail fast if database reset fails
+                }
+            }
+
+            
             // # Middleware
             if (app.Environment.IsDevelopment())
             {
@@ -171,6 +222,7 @@ namespace KnowledgeBank
                 
                 await DatabaseSeeder.Seed(app.Services);
                 await scope.ServiceProvider.GetRequiredService<DatabaseContext>().EnsureViewsCreatedAsync();
+
 
                 if (app.Environment.IsDevelopment())
                 {
@@ -191,6 +243,7 @@ namespace KnowledgeBank
 
             app.MapGroup("Auth").MapIdentityApi<User>().WithTags("Auth").WithOpenApi(ConfigureIdentityApiOptions).AddEndpointFilter(async (efiContext, next) =>
             {
+                if (HideEndpointFilter.PathsToHide.Any(p => p == efiContext.HttpContext.Request.Path))
                 if (HideEndpointFilter.PathsToHide.Any(p => p == efiContext.HttpContext.Request.Path))
                     return Results.Forbid();
                 return await next(efiContext);

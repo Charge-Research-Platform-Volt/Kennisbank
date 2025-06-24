@@ -1,5 +1,4 @@
 import { docsSource } from "@/lib/source";
-
 import {
     DocsPage,
     DocsBody,
@@ -9,6 +8,7 @@ import {
 import { notFound } from "next/navigation";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import { openapi } from "@/lib/source";
+import { APIPage } from "fumadocs-openapi/ui"; // Import APIPage
 
 export default async function Page(props: {
     params: Promise<{ slug?: string[] }>;
@@ -27,7 +27,7 @@ export default async function Page(props: {
                 <MDX
                     components={{
                         ...defaultMdxComponents,
-                        APIPage: openapi.APIPage,
+                        APIPage: (props) => <APIPage {...openapi.getAPIPageProps(props)} />, // Use getAPIPageProps
                     }}
                 />
             </DocsBody>
@@ -51,10 +51,3 @@ export async function generateMetadata(props: {
         description: page.data.description,
     };
 }
-
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

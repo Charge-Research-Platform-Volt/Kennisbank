@@ -39,7 +39,7 @@ namespace KnowledgeBank.Data
             if (existingOwner == null) 
             {
                 // Create the owner user
-                User owner = new User { Email = ownerConfig.Email, UserName = ownerConfig.Email, FirstName = ownerConfig.FirstName, LastName = ownerConfig.LastName };
+                User owner = new User(ownerConfig.FirstName, ownerConfig.LastName, ownerConfig.Email);
                 IdentityResult adminResult = await userManager.CreateAsync(owner, ownerConfig.Password);
 
                 if (adminResult.Succeeded)

@@ -1,0 +1,1937 @@
+---
+title: ProjectManager
+---
+import { CollapsibleInherited } from "@/components/collapsible"
+import { TypeTable } from "@/components/type_table"
+import { CSharpType } from "@/components/csharp_type"
+
+
+Namespace: <a href='../Data'>KnowledgeBank.Data</a>  
+Assembly: backend.dll  
+
+This class is responsible for all database interactions regarding projects.
+
+Author: Justin Liem
+
+```csharp
+public class ProjectManager
+```
+
+#### Inheritance
+
+<a href='https://learn.microsoft.com/dotnet/api/system.object' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='object' /></a> ← <a href='' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ProjectManager' /></a>
+
+
+
+<CollapsibleInherited title='Show Inherited Members (7)'>
+[object.Equals\(object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\)), 
+[object.Equals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\-system\-object\)), 
+[object.GetHashCode\(\)](https://learn.microsoft.com/dotnet/api/system.object.gethashcode), 
+[object.GetType\(\)](https://learn.microsoft.com/dotnet/api/system.object.gettype), 
+[object.MemberwiseClone\(\)](https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone), 
+[object.ReferenceEquals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.referenceequals), 
+[object.ToString\(\)](https://learn.microsoft.com/dotnet/api/system.object.tostring)
+</CollapsibleInherited>
+
+---
+## Constructors
+
+---
+###  ProjectManager\(DatabaseContext\)
+
+This class is responsible for all database interactions regarding projects.
+
+Author: Justin Liem
+
+```csharp
+public ProjectManager(DatabaseContext dbContext)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"dbContext","type":"DatabaseContext","links":["DatabaseContext"],"description":"The database context variable"}]} />
+
+---
+## Methods
+
+---
+###  AddCreatorToProjectAsync\(Guid, Guid\)
+
+Adds a creator to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddCreatorToProjectAsync(Guid projectId, Guid userId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Project id of the project to add the creator to."},{"name":"userId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the creator to add to the project."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddCreatorToProjectAsync\(string, Guid\)
+
+Adds a creator to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddCreatorToProjectAsync(string projectId, Guid userId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Project id of the project to add the creator to."},{"name":"userId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the creator to add to the project."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddCreatorToProjectAsync\(Guid, string\)
+
+Adds a creator to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddCreatorToProjectAsync(Guid projectId, string userId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Project id of the project to add the creator to."},{"name":"userId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Id of the creator to add to the project."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddCreatorToProjectAsync\(string, string\)
+
+Adds a creator to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddCreatorToProjectAsync(string projectId, string userId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Project id of the project to add the creator to."},{"name":"userId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Id of the creator to add to the project."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddCreatorToProjectRangeAsync\(Guid, Guid\[\]\)
+
+Adds multiple creators to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddCreatorToProjectRangeAsync(Guid projectId, Guid[] userIds)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Project id of the project to add the creators to."},{"name":"userIds","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Ids of the creators to add to the project."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddCreatorToProjectRangeAsync\(Guid, string\[\]\)
+
+```csharp
+public Task AddCreatorToProjectRangeAsync(Guid projectId, string[] userIds)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":""},{"name":"userIds","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":""}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":""}]} />
+
+---
+###  AddCreatorToProjectRangeAsync\(string, Guid\[\]\)
+
+Adds multiple creators to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddCreatorToProjectRangeAsync(string projectId, Guid[] userIds)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Project id of the project to add the creators to."},{"name":"userIds","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Ids of the creators to add to the project."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddCreatorToProjectRangeAsync\(string, string\[\]\)
+
+Adds multiple creators to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddCreatorToProjectRangeAsync(string projectId, string[] userIds)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Project id of the project to add the creators to."},{"name":"userIds","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Ids of the creators to add to the project."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddFolderToProjectAsync\(Guid, Guid, Guid\)
+
+Adds a folder to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddFolderToProjectAsync(Guid projectId, Guid folderId, Guid addedBy)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Project id of the project to add the folder to."},{"name":"folderId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the folder to add to the project."},{"name":"addedBy","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the user that has created this folder."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddFolderToProjectAsync\(string, Guid, Guid\)
+
+Adds a folder to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddFolderToProjectAsync(string projectId, Guid folderId, Guid addedBy)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Project id of the project to add the folder to."},{"name":"folderId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the folder to add to the project."},{"name":"addedBy","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the user that has created this folder."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddFolderToProjectAsync\(Guid, string, Guid\)
+
+Adds a folder to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddFolderToProjectAsync(Guid projectId, string folderId, Guid addedBy)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Project id of the project to add the folder to."},{"name":"folderId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Id of the folder to add to the project."},{"name":"addedBy","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the user that has created this folder."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddFolderToProjectAsync\(string, string, Guid\)
+
+Adds a folder to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddFolderToProjectAsync(string projectId, string folderId, Guid addedBy)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Project id of the project to add the folder to."},{"name":"folderId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Id of the folder to add to the project."},{"name":"addedBy","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the user that has created this folder."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddResourceToProjectAsync\(Guid, Guid, Guid\)
+
+Adds a resource to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddResourceToProjectAsync(Guid projectId, Guid resourceId, Guid addedBy)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Project / folder id of the project to add the resource to."},{"name":"resourceId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the resource to add to the project."},{"name":"addedBy","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the user that has added the resource to this project / folder."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddResourceToProjectAsync\(string, Guid, Guid\)
+
+Adds a resource to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddResourceToProjectAsync(string projectId, Guid resourceId, Guid addedBy)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Project / folder id of the project to add the resource to."},{"name":"resourceId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the resource to add to the project."},{"name":"addedBy","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the user that has added the resource to this project / folder."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddResourceToProjectAsync\(Guid, string, Guid\)
+
+Adds a resource to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddResourceToProjectAsync(Guid projectId, string resourceId, Guid addedBy)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Project / folder id of the project to add the resource to."},{"name":"resourceId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Id of the resource to add to the project."},{"name":"addedBy","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the user that has added the resource to this project / folder."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddResourceToProjectAsync\(string, string, Guid\)
+
+Adds a resource to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddResourceToProjectAsync(string projectId, string resourceId, Guid addedBy)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Project / folder id of the project to add the resource to."},{"name":"resourceId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Id of the resource to add to the project."},{"name":"addedBy","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the user that has added the resource to this project / folder."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddResourceToProjectRangeAsync\(Guid, Guid\[\], Guid\)
+
+Adds resources to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddResourceToProjectRangeAsync(Guid projectId, Guid[] resourceIds, Guid addedBy)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Project / folder id of the project to add the resources to."},{"name":"resourceIds","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Ids of the resources to add to the project."},{"name":"addedBy","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the user that has added the resources to this project / folder."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddResourceToProjectRangeAsync\(Guid, string\[\], Guid\)
+
+Adds resources to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddResourceToProjectRangeAsync(Guid projectId, string[] resourceIds, Guid addedBy)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Project / folder id of the project to add the resources to."},{"name":"resourceIds","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Ids of the resources to add to the project."},{"name":"addedBy","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the user that has added the resources to this project / folder."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddResourceToProjectRangeAsync\(string, Guid\[\], Guid\)
+
+Adds resources to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddResourceToProjectRangeAsync(string projectId, Guid[] resourceIds, Guid addedBy)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Project / folder id of the project to add the resources to."},{"name":"resourceIds","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Ids of the resources to add to the project."},{"name":"addedBy","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the user that has added the resources to this project / folder."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddResourceToProjectRangeAsync\(string, string\[\], Guid\)
+
+Adds resources to a project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddResourceToProjectRangeAsync(string projectId, string[] resourceIds, Guid addedBy)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Project / folder id of the project to add the resources to."},{"name":"resourceIds","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Ids of the resources to add to the project."},{"name":"addedBy","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the user that has added the resources to this project / folder."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddTagToProjectAsync\(Guid, Guid\)
+
+Adds a single tag to the project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddTagToProjectAsync(Guid projectId, Guid tagId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Project id of the project to add the tag to."},{"name":"tagId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the tag to add to the project."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddTagToProjectAsync\(string, Guid\)
+
+Adds a single tag to the project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddTagToProjectAsync(string projectId, Guid tagId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Project id of the project to add the tag to."},{"name":"tagId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the tag to add to the project."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddTagToProjectAsync\(Guid, string\)
+
+Adds a single tag to the project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddTagToProjectAsync(Guid projectId, string tagId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Project id of the project to add the tag to."},{"name":"tagId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Id of the tag to add to the project."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddTagToProjectAsync\(string, string\)
+
+Adds a single tag to the project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddTagToProjectAsync(string projectId, string tagId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Project id of the project to add the tag to."},{"name":"tagId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Id of the tag to add to the project."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddTagToProjectRangeAsync\(Guid, Guid\[\]\)
+
+Adds a range of tags to the project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddTagToProjectRangeAsync(Guid projectId, Guid[] tagIds)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Project id of the project to add the tags to."},{"name":"tagIds","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Ids of the tags to add to the project."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddTagToProjectRangeAsync\(Guid, string\[\]\)
+
+Adds a range of tags to the project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddTagToProjectRangeAsync(Guid projectId, string[] tagIds)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Project id of the project to add the tags to."},{"name":"tagIds","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Ids of the tags to add to the project."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddTagToProjectRangeAsync\(string, Guid\[\]\)
+
+Adds a range of tags to the project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddTagToProjectRangeAsync(string projectId, Guid[] tagIds)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Project id of the project to add the tags to."},{"name":"tagIds","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Ids of the tags to add to the project."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  AddTagToProjectRangeAsync\(string, string\[\]\)
+
+Adds a range of tags to the project.
+
+Author: Justin Liem
+
+```csharp
+public Task AddTagToProjectRangeAsync(string projectId, string[] tagIds)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Project id of the project to add the tags to."},{"name":"tagIds","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Ids of the tags to add to the project."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"Nothing, just updates the database."}]} />
+
+---
+###  BeginTransaction\(\)
+
+Starts a database transaction
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> BeginTransaction()
+```
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"If the transaction was started or not (if false, there was already a transaction running)"}]} />
+
+---
+###  Commit\(\)
+
+Commits the current database transaction
+
+Author: Justin Liem
+
+```csharp
+public Task Commit()
+```
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":""}]} />
+
+---
+###  CreateProject\(ProjectCreateDto\)
+
+Creates a project given a dto with initial values.
+
+Author: Justin Liem
+
+```csharp
+public Task<Guid> CreateProject(ProjectCreateDto dto)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"dto","type":"ProjectCreateDto","links":["../Models/ProjectCreateDto"],"description":"Dto to create the project with."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Guid>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.guid"],"description":"The guid of the created project."}]} />
+
+---
+###  DeleteAllWhereAsync\<T\>\(DbSet\<T\>, Expression\<Func\<T, bool\>\>\)
+
+Deletes multiple entities from the database given a table and a predicate
+
+Author: Justin Liem
+
+```csharp
+protected Task<int> DeleteAllWhereAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate) where T : class
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"dbSet","type":"DbSet","links":["https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset-1"],"description":"Table where deletion takes place."},{"name":"predicate","type":"Expression<Func, bool>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Predicate for deleting multiple entities"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<int>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Amount of rows deleted in the database."}]} />
+
+---
+#### Type Parameters
+
+`T` 
+
+Type of the entity to delete from the database.
+
+---
+###  DeleteAsync\<T\>\(DbSet\<T\>, Expression\<Func\<T, bool\>\>\)
+
+Deletes something from the database given a table and a predicate
+
+Author: Justin Liem
+
+```csharp
+protected Task<int> DeleteAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate) where T : class
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"dbSet","type":"DbSet","links":["https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset-1"],"description":"Table where deletion takes place."},{"name":"predicate","type":"Expression<Func, bool>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Predicate for deleting."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<int>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Amount of rows deleted in the database."}]} />
+
+---
+#### Type Parameters
+
+`T` 
+
+Type of the entity to delete from the database.
+
+---
+###  DeleteProject\(Guid\)
+
+Delets a project given an id. Also deletes all linked resources, folder, creators and tags. It does this
+with a cascading delete so that relations between subfolders and resources are also deleted.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> DeleteProject(Guid id)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the project to delete"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Whether or not the deletion was successful."}]} />
+
+---
+###  DeleteProject\(string\)
+
+Delets a project given an id. Also deletes all linked resources, folder, creators and tags. It does this
+with a cascading delete so that relations between subfolders and resources are also deleted.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> DeleteProject(string id)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Id of the project to delete"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Whether or not the deletion was successful."}]} />
+
+---
+###  ExistsAsync\<T\>\(DbSet\<T\>, Expression\<Func\<T, bool\>\>\)
+
+Checks if something exists in the table using a predicate.
+
+Author: Justin Liem
+
+```csharp
+protected Task<bool> ExistsAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate) where T : class
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"dbSet","type":"DbSet","links":["https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset-1"],"description":"Table to check in."},{"name":"predicate","type":"Expression<Func, bool>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Predicate used to check if some entity exists."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not the entity exists."}]} />
+
+---
+#### Type Parameters
+
+`T` 
+
+Type of the thing to check.
+
+---
+###  GetAllAsync\<T\>\(DbSet\<T\>, Expression\<Func\<T, object\>\>?, bool, Expression\<Func\<T, bool\>\>?, params string\[\]\)
+
+Gets all entities given options.
+
+Author: Justin Liem
+
+```csharp
+protected Task<T[]> GetAllAsync<T>(DbSet<T> dbSet, Expression<Func<T, object>>? orderBy = null, bool orderDescending = false, Expression<Func<T, bool>>? predicate = null, params string[] includeProperties) where T : class
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"dbSet","type":"DbSet","links":["https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset-1"],"description":"Table to fetch in."},{"name":"orderBy","type":"Expression<Func, object>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object"],"description":"What to order the returned entities by."},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Whether or not the returned entities should be ordered descending or not."},{"name":"predicate","type":"Expression<Func, bool>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Predicate used to return the entities that satisfy the predicate."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Extra navigation properties"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1"],"description":"All entities of some type fetched and optionally filtered/ordered."}]} />
+
+---
+#### Type Parameters
+
+`T` 
+
+Type of entity to retrieve.
+
+---
+###  GetAllAsync\<TSet, TResult\>\(DbSet\<TSet\>, Expression\<Func\<TSet, TResult\>\>, Expression\<Func\<TSet, object\>\>?, bool, Expression\<Func\<TSet, bool\>\>?, params string\[\]\)
+
+Gets all entities given options.
+
+Author: Justin Liem
+
+```csharp
+protected Task<TResult[]> GetAllAsync<TSet, TResult>(DbSet<TSet> dbSet, Expression<Func<TSet, TResult>> projection, Expression<Func<TSet, object>>? orderBy = null, bool orderDescending = false, Expression<Func<TSet, bool>>? predicate = null, params string[] includeProperties) where TSet : class
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"dbSet","type":"DbSet","links":["https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset-1"],"description":"Table to fetch in."},{"name":"projection","type":"Expression<Func>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2"],"description":"Which column to fetch"},{"name":"orderBy","type":"Expression<Func, object>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object"],"description":"What to order the returned entities by."},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Whether or not the returned entities should be ordered descending or not."},{"name":"predicate","type":"Expression<Func, bool>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Predicate used to return the entities that satisfy the predicate."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Extra navigation properties"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1"],"description":"All entities of some type fetched and optionally filtered/ordered."}]} />
+
+---
+#### Type Parameters
+
+`TSet` 
+
+`TResult` 
+
+---
+###  GetAllCreators\(Expression\<Func\<ProjectCreatorRelation, object\>\>?, bool, Expression\<Func\<ProjectCreatorRelation, bool\>\>?\)
+
+Gets all creators of a project given a predicate.
+
+Author: Justin Liem
+
+```csharp
+public Task<ProjectCreatorRelation[]> GetAllCreators(Expression<Func<ProjectCreatorRelation, object>>? orderBy = null, bool orderDescending = true, Expression<Func<ProjectCreatorRelation, bool>>? predicate = null)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"orderBy","type":"Expression<Func, object, ProjectCreatorRelation>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object","../Models/ProjectCreatorRelation"],"description":"What to oder creators by."},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Whether to order descending or not."},{"name":"predicate","type":"Expression<Func, bool, ProjectCreatorRelation>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean","../Models/ProjectCreatorRelation"],"description":"Predicate used to filter all project-creator relations."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<ProjectCreatorRelation>[]","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/ProjectCreatorRelation"],"description":"All project-creator relations satisfying the predicate."}]} />
+
+---
+###  GetAllFolders\(Expression\<Func\<ProjectFolderRelation, object\>\>?, bool, Expression\<Func\<ProjectFolderRelation, bool\>\>?\)
+
+Gets all folders given a predicate.
+
+Author: Justin Liem
+
+```csharp
+public Task<ProjectFolderRelation[]> GetAllFolders(Expression<Func<ProjectFolderRelation, object>>? orderBy = null, bool orderDescending = true, Expression<Func<ProjectFolderRelation, bool>>? predicate = null)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"orderBy","type":"Expression<Func, object, ProjectFolderRelation>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object","../Models/ProjectFolderRelation"],"description":"What to oder folders by."},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Whether to order descending or not."},{"name":"predicate","type":"Expression<Func, bool, ProjectFolderRelation>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean","../Models/ProjectFolderRelation"],"description":"Predicate used to filter all project-folder relations."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<ProjectFolderRelation>[]","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/ProjectFolderRelation"],"description":"All project-folder relations satisfying the predicate."}]} />
+
+---
+###  GetAllProjectsAsync\(Expression\<Func\<Project, object\>\>?, bool, Expression\<Func\<Project, bool\>\>?\)
+
+Fetches all projects using a predicate and optional ordering.
+
+Author: Justin Liem
+
+```csharp
+public Task<Project[]> GetAllProjectsAsync(Expression<Func<Project, object>>? orderBy = null, bool orderDescending = false, Expression<Func<Project, bool>>? predicate = null)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"orderBy","type":"Expression<Func, object, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object","../Models/Project"],"description":"What to order the projects by."},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Whether to order descending or not."},{"name":"predicate","type":"Expression<Func, bool, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean","../Models/Project"],"description":"Predicate used to fetch the projects the user wants to fetch."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Project>[]","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/Project"],"description":"All projects satisfying the predicate and optionally ordered."}]} />
+
+---
+###  GetAllProjectsAsync\(Expression\<Func\<Project, bool\>\>?, params string\[\]\)
+
+Fetches all projects using a predicate with extra navigation properties.
+
+Author: Justin Liem
+
+```csharp
+public Task<Project[]> GetAllProjectsAsync(Expression<Func<Project, bool>>? predicate = null, params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"predicate","type":"Expression<Func, bool, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean","../Models/Project"],"description":"Predicate used to fetch the projects the user wants to fetch."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Extra navigation properties"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Project>[]","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/Project"],"description":"All projects satisfying the predicate with the navigation properties."}]} />
+
+---
+###  GetAllProjectsAsync\(Expression\<Func\<Project, object\>\>?, bool, params string\[\]\)
+
+Fetches all projects using with optional ordering and extra navigation properties.
+
+Author: Justin Liem
+
+```csharp
+public Task<Project[]> GetAllProjectsAsync(Expression<Func<Project, object>>? orderBy = null, bool orderDescending = false, params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"orderBy","type":"Expression<Func, object, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object","../Models/Project"],"description":"What to order the projects by."},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Whether to order descending or not."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Extra navigation properties"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Project>[]","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/Project"],"description":"All projects optionally ordered with navigation properties."}]} />
+
+---
+###  GetAllProjectsAsync\(params string\[\]\)
+
+Fetches all projects with extra navigation properties.
+
+Author: Justin Liem
+
+```csharp
+public Task<Project[]> GetAllProjectsAsync(params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Extra navigation properties"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Project>[]","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/Project"],"description":"All projects with navigation properties."}]} />
+
+---
+###  GetAllProjectsAsync\<TResult\>\(Expression\<Func\<Project, TResult\>\>, Expression\<Func\<Project, object\>\>?, bool, Expression\<Func\<Project, bool\>\>?\)
+
+Fetches all projects using a predicate and optional ordering and projection of a column.
+
+Author: Justin Liem
+
+```csharp
+public Task<TResult[]> GetAllProjectsAsync<TResult>(Expression<Func<Project, TResult>> projection, Expression<Func<Project, object>>? orderBy = null, bool orderDescending = false, Expression<Func<Project, bool>>? predicate = null)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projection","type":"Expression<Func, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","../Models/Project"],"description":"Which column to display."},{"name":"orderBy","type":"Expression<Func, object, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object","../Models/Project"],"description":"What to order the projects by."},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Whether to order descending or not."},{"name":"predicate","type":"Expression<Func, bool, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean","../Models/Project"],"description":"Predicate used to fetch the projects the user wants to fetch."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1"],"description":"All projects satisfying the predicate and optionally ordered."}]} />
+
+---
+#### Type Parameters
+
+`TResult` 
+
+---
+###  GetAllProjectsAsync\<TResult\>\(Expression\<Func\<Project, TResult\>\>, Expression\<Func\<Project, bool\>\>?, params string\[\]\)
+
+Fetches all projects using a predicate with extra navigation properties and projection of a column.
+
+Author: Justin Liem
+
+```csharp
+public Task<TResult[]> GetAllProjectsAsync<TResult>(Expression<Func<Project, TResult>> projection, Expression<Func<Project, bool>>? predicate = null, params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projection","type":"Expression<Func, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","../Models/Project"],"description":"Which column to display."},{"name":"predicate","type":"Expression<Func, bool, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean","../Models/Project"],"description":"Predicate used to fetch the projects the user wants to fetch."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Extra navigation properties"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1"],"description":"All projects satisfying the predicate with the navigation properties."}]} />
+
+---
+#### Type Parameters
+
+`TResult` 
+
+---
+###  GetAllProjectsAsync\<TResult\>\(Expression\<Func\<Project, TResult\>\>, Expression\<Func\<Project, object\>\>?, bool, params string\[\]\)
+
+Fetches all projects using with optional ordering and extra navigation properties and projection of a column.
+
+Author: Justin Liem
+
+```csharp
+public Task<TResult[]> GetAllProjectsAsync<TResult>(Expression<Func<Project, TResult>> projection, Expression<Func<Project, object>>? orderBy = null, bool orderDescending = false, params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projection","type":"Expression<Func, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","../Models/Project"],"description":"Which column to display."},{"name":"orderBy","type":"Expression<Func, object, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object","../Models/Project"],"description":"What to order the projects by."},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Whether to order descending or not."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Extra navigation properties"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1"],"description":"All projects optionally ordered with navigation properties."}]} />
+
+---
+#### Type Parameters
+
+`TResult` 
+
+---
+###  GetAllProjectsAsync\<TResult\>\(Expression\<Func\<Project, TResult\>\>, params string\[\]\)
+
+Fetches all projects with extra navigation properties and projection of a column.
+
+Author: Justin Liem
+
+```csharp
+public Task<TResult[]> GetAllProjectsAsync<TResult>(Expression<Func<Project, TResult>> projection, params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projection","type":"Expression<Func, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","../Models/Project"],"description":"Which column to display."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Extra navigation properties"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1"],"description":"All projects with navigation properties."}]} />
+
+---
+#### Type Parameters
+
+`TResult` 
+
+---
+###  GetAllResources\(Expression\<Func\<ProjectResourceRelation, object\>\>?, bool, Expression\<Func\<ProjectResourceRelation, bool\>\>?\)
+
+Gets all resources of a project given a predicate.
+
+Author: Justin Liem
+
+```csharp
+public Task<ProjectResourceRelation[]> GetAllResources(Expression<Func<ProjectResourceRelation, object>>? orderBy = null, bool orderDescending = true, Expression<Func<ProjectResourceRelation, bool>>? predicate = null)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"orderBy","type":"Expression<Func, object, ProjectResourceRelation>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object","../Models/ProjectResourceRelation"],"description":"What to oder resources by."},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Whether to order descending or not."},{"name":"predicate","type":"Expression<Func, bool, ProjectResourceRelation>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean","../Models/ProjectResourceRelation"],"description":"Predicate used to filter all project-resource relations."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<ProjectResourceRelation>[]","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/ProjectResourceRelation"],"description":"All project-resource relations satisfying the predicate."}]} />
+
+---
+###  GetAllTags\(Expression\<Func\<ProjectTagRelation, object\>\>?, bool, Expression\<Func\<ProjectTagRelation, bool\>\>?\)
+
+Gets all tags of a project given a predicate.
+
+Author: Justin Liem
+
+```csharp
+public Task<ProjectTagRelation[]> GetAllTags(Expression<Func<ProjectTagRelation, object>>? orderBy = null, bool orderDescending = true, Expression<Func<ProjectTagRelation, bool>>? predicate = null)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"orderBy","type":"Expression<Func, object, ProjectTagRelation>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object","../Models/ProjectTagRelation"],"description":"What to oder tags by."},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Whether to order descending or not."},{"name":"predicate","type":"Expression<Func, bool, ProjectTagRelation>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean","../Models/ProjectTagRelation"],"description":"Predicate used to filter all project-tag relations."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<ProjectTagRelation>[]","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/ProjectTagRelation"],"description":"All project-tag relations satisfying the predicate."}]} />
+
+---
+###  GetAsync\<T\>\(DbSet\<T\>, Expression\<Func\<T, bool\>\>, Expression\<Func\<T, object\>\>?, bool, params string\[\]\)
+
+Gets some entity given options.
+
+Author: Justin Liem
+
+```csharp
+protected Task<T?> GetAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate, Expression<Func<T, object>>? orderBy = null, bool orderDescending = false, params string[] includeProperties) where T : class
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"dbSet","type":"DbSet","links":["https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset-1"],"description":"Table to fetch in."},{"name":"predicate","type":"Expression<Func, bool>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Predicate used to return the entities that satisfy the predicate."},{"name":"orderBy","type":"Expression<Func, object>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object"],"description":"What to order the returned entities by."},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Whether or not the returned entities should be ordered descending or not."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Extra navigation properties"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1"],"description":"Entities fetched and optionally ordered."}]} />
+
+---
+#### Type Parameters
+
+`T` 
+
+Type of entity to retrieve.
+
+---
+###  GetAsync\<T\>\(DbSet\<T\>, Expression\<Func\<T, bool\>\>, params string\[\]\)
+
+Gets some entity given options.
+
+Author: Justin Liem
+
+```csharp
+protected Task<T?> GetAsync<T>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate, params string[] includeProperties) where T : class
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"dbSet","type":"DbSet","links":["https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset-1"],"description":"Table to fetch in."},{"name":"predicate","type":"Expression<Func, bool>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Predicate used to return the entities that satisfy the predicate."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Extra navigation properties"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1"],"description":"Entities fetched."}]} />
+
+---
+#### Type Parameters
+
+`T` 
+
+Type of entity to retrieve.
+
+---
+###  GetCount\<T\>\(DbSet\<T\>, Expression\<Func\<T, bool\>\>?\)
+
+Gets the count of an entity given a predicate.
+
+Author: Justin Liem
+
+```csharp
+protected Task<int> GetCount<T>(DbSet<T> dbSet, Expression<Func<T, bool>>? predicate = null) where T : class
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"dbSet","type":"DbSet","links":["https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset-1"],"description":"Table to count in."},{"name":"predicate","type":"Expression<Func, bool>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Predicate used to check the count of some entity."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<int>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Count of the entity."}]} />
+
+---
+#### Type Parameters
+
+`T` 
+
+Type of the thing to count.
+
+---
+###  GetPageAsync\<T\>\(DbSet\<T\>, int, int, Expression\<Func\<T, object\>\>?, bool, Expression\<Func\<T, bool\>\>?, params string\[\]\)
+
+```csharp
+protected Task<T[]> GetPageAsync<T>(DbSet<T> dbSet, int pageIndex = 1, int pageSize = 100, Expression<Func<T, object>>? orderBy = null, bool orderDescending = false, Expression<Func<T, bool>>? predicate = null, params string[] includeProperties) where T : class
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"dbSet","type":"DbSet","links":["https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset-1"],"description":""},{"name":"pageIndex","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":""},{"name":"pageSize","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":""},{"name":"orderBy","type":"Expression<Func, object>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object"],"description":""},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":""},{"name":"predicate","type":"Expression<Func, bool>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":""},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":""}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1"],"description":""}]} />
+
+---
+#### Type Parameters
+
+`T` 
+
+---
+###  GetPageAsync\<TSet, TResult\>\(DbSet\<TSet\>, Expression\<Func\<TSet, TResult\>\>, int, int, Expression\<Func\<TSet, object\>\>?, bool, Expression\<Func\<TSet, bool\>\>?, params string\[\]\)
+
+Gets paged results of a specific entity.
+
+Author: Justin Liem
+
+```csharp
+protected Task<TResult[]> GetPageAsync<TSet, TResult>(DbSet<TSet> dbSet, Expression<Func<TSet, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<TSet, object>>? orderBy = null, bool orderDescending = false, Expression<Func<TSet, bool>>? predicate = null, params string[] includeProperties) where TSet : class
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"dbSet","type":"DbSet","links":["https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset-1"],"description":"Table to fetch in."},{"name":"projection","type":"Expression<Func>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2"],"description":"Columns to retrieve."},{"name":"pageIndex","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Which page to retrieve."},{"name":"pageSize","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"How many items are retrieved per page."},{"name":"orderBy","type":"Expression<Func, object>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object"],"description":"What to order items by."},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Whether or not the items should be ordered descending."},{"name":"predicate","type":"Expression<Func, bool>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Which items to take."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Extra navigation properties."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1"],"description":"Paged contents of some item."}]} />
+
+---
+#### Type Parameters
+
+`TSet` 
+
+Input type
+
+`TResult` 
+
+Output type
+
+---
+###  GetProjectAsync\(Guid\)
+
+Retrieves project given an id.
+
+Author: Justin Liem
+
+```csharp
+public Task<Project?> GetProjectAsync(Guid id)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Project id."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Project>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/Project"],"description":"Project retrieved."}]} />
+
+---
+###  GetProjectAsync\(string\)
+
+Retrieves project given an id.
+
+Author: Justin Liem
+
+```csharp
+public Task<Project?> GetProjectAsync(string id)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Project id."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Project>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/Project"],"description":"Project retrieved."}]} />
+
+---
+###  GetProjectAsync\(Expression\<Func\<Project, bool\>\>, Expression\<Func\<Project, object\>\>?, bool, params string\[\]\)
+
+Retrieves single project given a predicate.
+
+```csharp
+public Task<Project?> GetProjectAsync(Expression<Func<Project, bool>> predicate, Expression<Func<Project, object>>? orderBy = null, bool orderDescending = false, params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"predicate","type":"Expression<Func, bool, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean","../Models/Project"],"description":"What the retrieved project should satisfy."},{"name":"orderBy","type":"Expression<Func, object, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object","../Models/Project"],"description":"unused."},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"unused."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Extra navigation properties."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Project>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/Project"],"description":"Project retrieved with navigation properties."}]} />
+
+---
+###  GetProjectAsync\(Guid, Expression\<Func\<Project, object\>\>?, bool, params string\[\]\)
+
+Retrieves a single project with navigation properties.
+
+Author: Justin Liem
+
+```csharp
+public Task<Project?> GetProjectAsync(Guid id, Expression<Func<Project, object>>? orderBy = null, bool orderDescending = false, params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the project to retrieve"},{"name":"orderBy","type":"Expression<Func, object, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object","../Models/Project"],"description":"unused"},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"unused"},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Extra navigation properties"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Project>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/Project"],"description":"Project retrieved with navigation properties."}]} />
+
+---
+###  GetProjectAsync\(string, Expression\<Func\<Project, object\>\>?, bool, params string\[\]\)
+
+Retrieves a single project with navigation properties.
+
+Author: Justin Liem
+
+```csharp
+public Task<Project?> GetProjectAsync(string id, Expression<Func<Project, object>>? orderBy = null, bool orderDescending = false, params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Id of the project to retrieve"},{"name":"orderBy","type":"Expression<Func, object, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object","../Models/Project"],"description":"unused"},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"unused"},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Extra navigation properties"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Project>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/Project"],"description":"Project retrieved with navigation properties."}]} />
+
+---
+###  GetProjectAsync\(Expression\<Func\<Project, bool\>\>, params string\[\]\)
+
+Gets a project given a predicate and extra navigation properties.
+
+Author: Justin Liem
+
+```csharp
+public Task<Project?> GetProjectAsync(Expression<Func<Project, bool>> predicate, params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"predicate","type":"Expression<Func, bool, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean","../Models/Project"],"description":"Predicate to fetch project with."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Extra navigation properties"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Project>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/Project"],"description":"Project retrieved with navigation properties."}]} />
+
+---
+###  GetProjectAsync\(Guid, params string\[\]\)
+
+Gets a project given an id and extra navigation properties.
+
+Author: Justin Liem
+
+```csharp
+public Task<Project?> GetProjectAsync(Guid id, params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id to fetch project with."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Extra navigation properties"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Project>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/Project"],"description":"Project retrieved with navigation properties."}]} />
+
+---
+###  GetProjectAsync\(string, params string\[\]\)
+
+Gets a project given an id and extra navigation properties.
+
+Author: Justin Liem
+
+```csharp
+public Task<Project?> GetProjectAsync(string id, params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Id to fetch project with."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Extra navigation properties"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Project>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/Project"],"description":"Project retrieved with navigation properties."}]} />
+
+---
+###  GetProjectChildrenAsync\(Guid\)
+
+Gets the contents of a specific project. This includes the resources, folders, tags, and creators.
+
+Author: Jelle v.h. Schut
+
+```csharp
+public Task<Project?> GetProjectChildrenAsync(Guid id)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of project to fetch contents of"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Project>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/Project"],"description":"Project with contents included."}]} />
+
+---
+###  GetProjectChildrenAsync\(string\)
+
+Gets the contents of a specific project. This includes the resources, folders, tags, and creators.
+
+Author: Jelle v.h. Schut
+
+```csharp
+public Task<Project?> GetProjectChildrenAsync(string id)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Id of project to fetch contents of"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Project>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/Project"],"description":"Project with contents included."}]} />
+
+---
+###  GetProjectPageAsync\(int, int, Expression\<Func\<Project, object\>\>?, bool, Expression\<Func\<Project, bool\>\>?\)
+
+Gets a page of projects.
+
+Author: Justin Liem
+
+```csharp
+public Task<Project[]> GetProjectPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<Project, object>>? orderBy = null, bool orderDescending = false, Expression<Func<Project, bool>>? predicate = null)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"pageIndex","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Index of the page to fetch."},{"name":"pageSize","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Size of pages."},{"name":"orderBy","type":"Expression<Func, object, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object","../Models/Project"],"description":"What to order projects by."},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Whether to order in descending order or not."},{"name":"predicate","type":"Expression<Func, bool, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean","../Models/Project"],"description":"Predicate to filter projects on."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Project>[]","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/Project"],"description":"Page of projects, of the indicated size (or less if there aren't that many) and filtered by the predicate."}]} />
+
+---
+###  GetProjectPageAsync\(int, int, Expression\<Func\<Project, bool\>\>?, params string\[\]\)
+
+Gets a page of projects using predicate and with properties.
+
+Author: Justin Liem
+
+```csharp
+public Task<Project[]> GetProjectPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<Project, bool>>? predicate = null, params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"pageIndex","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Index of the page to fetch."},{"name":"pageSize","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Size of pages."},{"name":"predicate","type":"Expression<Func, bool, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean","../Models/Project"],"description":"Predicate to filter projects on."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":""}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Project>[]","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/Project"],"description":"Page of projects, of the indicated size (or less if there aren't that many) and filtered by the predicate, with properties."}]} />
+
+---
+###  GetProjectPageAsync\(int, int, Expression\<Func\<Project, object\>\>?, bool, params string\[\]\)
+
+Gets a page of projects, including some navigation properties.
+
+Author: Justin Liem
+
+```csharp
+public Task<Project[]> GetProjectPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<Project, object>>? orderBy = null, bool orderDescending = false, params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"pageIndex","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Index of the page to fetch."},{"name":"pageSize","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Size of pages."},{"name":"orderBy","type":"Expression<Func, object, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object","../Models/Project"],"description":"What to order projects by."},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Whether to order in descending order or not."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Navigation properties to include"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Project>[]","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/Project"],"description":"Page of projects, of the indicated size (or less if there aren't that many) with extra properties."}]} />
+
+---
+###  GetProjectPageAsync\(int, int, params string\[\]\)
+
+Gets a page of projects.
+
+Author: Justin Liem
+
+```csharp
+public Task<Project[]> GetProjectPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"pageIndex","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Index of the page to fetch."},{"name":"pageSize","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Size of pages."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Navigation properties to include"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Project>[]","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","../Models/Project"],"description":"Page of projects, of the indicated size (or less if there aren't that many) with extra properties."}]} />
+
+---
+###  GetProjectPageAsync\<TResult\>\(Expression\<Func\<Project, TResult\>\>, int, int, Expression\<Func\<Project, object\>\>?, bool, Expression\<Func\<Project, bool\>\>?\)
+
+Gets a page of projects and projection of a column.
+
+Author: Justin Liem
+
+```csharp
+public Task<TResult[]> GetProjectPageAsync<TResult>(Expression<Func<Project, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Project, object>>? orderBy = null, bool orderDescending = false, Expression<Func<Project, bool>>? predicate = null)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projection","type":"Expression<Func, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","../Models/Project"],"description":"Which column to display."},{"name":"pageIndex","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Index of the page to fetch."},{"name":"pageSize","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Size of pages."},{"name":"orderBy","type":"Expression<Func, object, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object","../Models/Project"],"description":"What to order projects by."},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Whether to order in descending order or not."},{"name":"predicate","type":"Expression<Func, bool, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean","../Models/Project"],"description":"Predicate to filter projects on."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1"],"description":"Page of projects, of the indicated size (or less if there aren't that many) and filtered by the predicate."}]} />
+
+---
+#### Type Parameters
+
+`TResult` 
+
+---
+###  GetProjectPageAsync\<TResult\>\(Expression\<Func\<Project, TResult\>\>, int, int, Expression\<Func\<Project, bool\>\>?, params string\[\]\)
+
+Gets a page of projects using predicate and with properties and projection of a column.
+
+Author: Justin Liem
+
+```csharp
+public Task<TResult[]> GetProjectPageAsync<TResult>(Expression<Func<Project, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Project, bool>>? predicate = null, params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projection","type":"Expression<Func, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","../Models/Project"],"description":"Which column to display."},{"name":"pageIndex","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Index of the page to fetch."},{"name":"pageSize","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Size of pages."},{"name":"predicate","type":"Expression<Func, bool, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean","../Models/Project"],"description":"Predicate to filter projects on."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":""}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1"],"description":"Page of projects, of the indicated size (or less if there aren't that many) and filtered by the predicate, with properties."}]} />
+
+---
+#### Type Parameters
+
+`TResult` 
+
+---
+###  GetProjectPageAsync\<TResult\>\(Expression\<Func\<Project, TResult\>\>, int, int, Expression\<Func\<Project, object\>\>?, bool, params string\[\]\)
+
+Gets a page of projects, including some navigation properties and projection of a column.
+
+Author: Justin Liem
+
+```csharp
+public Task<TResult[]> GetProjectPageAsync<TResult>(Expression<Func<Project, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Project, object>>? orderBy = null, bool orderDescending = false, params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projection","type":"Expression<Func, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","../Models/Project"],"description":"Which column to display."},{"name":"pageIndex","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Index of the page to fetch."},{"name":"pageSize","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Size of pages."},{"name":"orderBy","type":"Expression<Func, object, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.object","../Models/Project"],"description":"What to order projects by."},{"name":"orderDescending","type":"bool","links":["https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Whether to order in descending order or not."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Navigation properties to include"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1"],"description":"Page of projects, of the indicated size (or less if there aren't that many) with extra properties."}]} />
+
+---
+#### Type Parameters
+
+`TResult` 
+
+---
+###  GetProjectPageAsync\<TResult\>\(Expression\<Func\<Project, TResult\>\>, int, int, params string\[\]\)
+
+Gets a page of projects and projection of a column.
+
+Author: Justin Liem
+
+```csharp
+public Task<TResult[]> GetProjectPageAsync<TResult>(Expression<Func<Project, TResult>> projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projection","type":"Expression<Func, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","../Models/Project"],"description":"Which column to display."},{"name":"pageIndex","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Index of the page to fetch."},{"name":"pageSize","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Size of pages."},{"name":"includeProperties","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Navigation properties to include"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1"],"description":"Page of projects, of the indicated size (or less if there aren't that many) with extra properties."}]} />
+
+---
+#### Type Parameters
+
+`TResult` 
+
+---
+###  GetUserNamesByIds\(HashSet\<string\>\)
+
+Gets the user names given a list of ids.
+
+Author: Justin Liem
+
+```csharp
+public Task<Dictionary<string, string>> GetUserNamesByIds(HashSet<string> ids)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"ids","type":"HashSet<string>","links":["https://learn.microsoft.com/dotnet/api/system.collections.generic.hashset-1","https://learn.microsoft.com/dotnet/api/system.string"],"description":"Ids to fetch usernames of."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<Dictionary, string, string>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.collections.generic.dictionary-2","https://learn.microsoft.com/dotnet/api/system.string","https://learn.microsoft.com/dotnet/api/system.string"],"description":"Usernames corresponding to the ids given."}]} />
+
+---
+###  ProjectCount\(Expression\<Func\<Project, bool\>\>?\)
+
+Checks the count of projects using a predicate.
+
+Author: Justin Liem
+
+```csharp
+public Task<int> ProjectCount(Expression<Func<Project, bool>>? predicate = null)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"predicate","type":"Expression<Func, bool, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean","../Models/Project"],"description":"Predicate used to calculate the count."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<int>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Count of projects."}]} />
+
+---
+###  ProjectExistsAsync\(Guid\)
+
+Checks if a project exists using an id.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> ProjectExistsAsync(Guid projectId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Project id in question."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not the project exists."}]} />
+
+---
+###  ProjectExistsAsync\(string\)
+
+Checks if a project exists using an id.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> ProjectExistsAsync(string projectId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Project id in question."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not the project exists."}]} />
+
+---
+###  ProjectExistsAsync\(Expression\<Func\<Project, bool\>\>\)
+
+Checks if a project exists using a predicate.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> ProjectExistsAsync(Expression<Func<Project, bool>> predicate)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"predicate","type":"Expression<Func, bool, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean","../Models/Project"],"description":"Predicate in question."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not the project exists."}]} />
+
+---
+###  ProjectTagRelationExistsAsync\(Expression\<Func\<ProjectTagRelation, bool\>\>\)
+
+Checks if some project-tag relation exists given a predicate
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> ProjectTagRelationExistsAsync(Expression<Func<ProjectTagRelation, bool>> predicate)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"predicate","type":"Expression<Func, bool, ProjectTagRelation>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean","../Models/ProjectTagRelation"],"description":"Predicate to filter on"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not some tag relation exists or not."}]} />
+
+---
+###  RemoveAllCreatorsFromProject\(Guid\)
+
+Deletes all creators from a project.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> RemoveAllCreatorsFromProject(Guid projectId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the project to remove all creators from."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not deletion was successful."}]} />
+
+---
+###  RemoveAllFoldersFromProject\(Guid\)
+
+Method for deleting all folders in a project. This is a cascading delete.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> RemoveAllFoldersFromProject(Guid projectId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Project to remove all folders from."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not deletion was successful."}]} />
+
+---
+###  RemoveAllResourcesFromProject\(Guid\)
+
+Removes all resources from the project or folder.
+THIS IS FOR SPECIFICALLY DELETING RESOURCES, NOT FOLDERS, AND THUS IT DOES NOT DO A CASCADING DELETE.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> RemoveAllResourcesFromProject(Guid projectId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Project id to remove all resources from"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not deletion was successful."}]} />
+
+---
+###  RemoveAllTagsFromProject\(Guid\)
+
+Deletes all tags from a project.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> RemoveAllTagsFromProject(Guid projectId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the project to remove the tags from."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not deletion was successful."}]} />
+
+---
+###  RemoveCreatorFromProject\(Guid, string\)
+
+Deletes a creator from a project.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> RemoveCreatorFromProject(Guid projectId, string creatorId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the project to remove the creator from."},{"name":"creatorId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Creator id of the creator to remove."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not deletion was successful."}]} />
+
+---
+###  RemoveFolderFromProject\(Guid\)
+
+Removes a folder from the project or folder.
+This deletes all resources and folders inside the folder associated with that id.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> RemoveFolderFromProject(Guid folderId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"folderId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Folder id to remove from the project or folder"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not deletion was successful."}]} />
+
+---
+###  RemoveResourceFromProject\(Guid, Guid\)
+
+Removes a resource from the project or folder.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> RemoveResourceFromProject(Guid projectId, Guid resourceId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Project id to remove the resource from"},{"name":"resourceId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Resource id to remove from the project"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not deletion was successful."}]} />
+
+---
+###  RemoveResourceFromProject\(string, string\)
+
+Removes a resource from the project or folder.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> RemoveResourceFromProject(string projectId, string resourceId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Project id to remove the resource from"},{"name":"resourceId","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Resource id to remove from the project"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not deletion was successful."}]} />
+
+---
+###  RemoveTagFromAllProjects\(Guid\)
+
+Deletes all project-tag relations containing the tag.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> RemoveTagFromAllProjects(Guid tagId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"tagId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the tag to delete"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not the deletion was successful"}]} />
+
+---
+###  RemoveTagFromProject\(Guid, Guid\)
+
+Deletes a tag from a project.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> RemoveTagFromProject(Guid projectId, Guid tagId)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"projectId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the project to remove the tag from."},{"name":"tagId","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Tag id of the tag to remove."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not deletion was successful."}]} />
+
+---
+###  Rollback\(\)
+
+Rolls back the current database transaction
+
+Author: Justin Liem
+
+```csharp
+public Task Rollback()
+```
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":""}]} />
+
+---
+###  UpdateProjectAsync\<T, TProperty\>\(DbSet\<T\>, Expression\<Func\<T, bool\>\>, Expression\<Func\<T, TProperty\>\>, TProperty\)
+
+Updates property of a project.
+
+Author: Justin Liem
+
+```csharp
+protected Task<int> UpdateProjectAsync<T, TProperty>(DbSet<T> dbSet, Expression<Func<T, bool>> predicate, Expression<Func<T, TProperty>> propertySelector, TProperty newValue) where T : class
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"dbSet","type":"DbSet","links":["https://learn.microsoft.com/dotnet/api/microsoft.entityframeworkcore.dbset-1"],"description":"Table to update in."},{"name":"predicate","type":"Expression<Func, bool>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Predicate to select project with"},{"name":"propertySelector","type":"Expression<Func>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2"],"description":"Property selector used to update."}]} />
+
+`newValue` TProperty
+
+New value of the property to be updated.
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<int>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.int32"],"description":"Number of rows updated in database."}]} />
+
+---
+#### Type Parameters
+
+`T` 
+
+Type of entity to be updated.
+
+`TProperty` 
+
+Type of property to be updated
+
+---
+###  UpdateProjectAsync\<T\>\(Guid, Expression\<Func\<Project, T\>\>, T\)
+
+Updates a project.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> UpdateProjectAsync<T>(Guid id, Expression<Func<Project, T>> propertySelector, T newValue)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of project to update"},{"name":"propertySelector","type":"Expression<Func, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","../Models/Project"],"description":"Selector of property to update"}]} />
+
+`newValue` T
+
+New value of the property
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not update was successful."}]} />
+
+---
+#### Type Parameters
+
+`T` 
+
+Value type to update
+
+---
+###  UpdateProjectAsync\<T\>\(string, Expression\<Func\<Project, T\>\>, T\)
+
+Updates a project.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> UpdateProjectAsync<T>(string id, Expression<Func<Project, T>> propertySelector, T newValue)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Id of project to update"},{"name":"propertySelector","type":"Expression<Func, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","../Models/Project"],"description":"Selector of property to update"}]} />
+
+`newValue` T
+
+New value of the property
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not update was successful."}]} />
+
+---
+#### Type Parameters
+
+`T` 
+
+Value type to update
+
+---
+###  UpdateProjectAsync\<T\>\(Expression\<Func\<Project, bool\>\>, Expression\<Func\<Project, T\>\>, T\)
+
+Updates a project.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> UpdateProjectAsync<T>(Expression<Func<Project, bool>> predicate, Expression<Func<Project, T>> propertySelector, T newValue)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"predicate","type":"Expression<Func, bool, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","https://learn.microsoft.com/dotnet/api/system.boolean","../Models/Project"],"description":"Predicate to select project to update"},{"name":"propertySelector","type":"Expression<Func, Project>","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression-1","https://learn.microsoft.com/dotnet/api/system.func-2","../Models/Project"],"description":"Selector of property to update"}]} />
+
+`newValue` T
+
+New value of the property
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not update was successful."}]} />
+
+---
+#### Type Parameters
+
+`T` 
+
+Value type to update
+
+---
+###  UpdateProjectCreatorsAsync\(Guid, Guid\[\]\)
+
+Updates creators of project, keep in mind we can only ever add to the creators list as we never
+want to remove access by updating.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> UpdateProjectCreatorsAsync(Guid id, Guid[] newValue)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the project to alter creators of"},{"name":"newValue","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Ids of new creators"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not update was successful."}]} />
+
+---
+###  UpdateProjectCreatorsAsync\(string, string\[\]\)
+
+Updates creators of project, keep in mind we can only ever add to the creators list as we never
+want to remove access by updating.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> UpdateProjectCreatorsAsync(string id, string[] newValue)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Id of the project to alter creators of"},{"name":"newValue","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Ids of new creators"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not update was successful."}]} />
+
+---
+###  UpdateProjectCreatorsAsync\(Guid, string\[\]\)
+
+Updates creators of project, keep in mind we can only ever add to the creators list as we never
+want to remove access by updating.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> UpdateProjectCreatorsAsync(Guid id, string[] newValue)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the project to alter creators of"},{"name":"newValue","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Ids of new creators"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not update was successful."}]} />
+
+---
+###  UpdateProjectCreatorsAsync\(string, Guid\[\]\)
+
+Updates creators of project, keep in mind we can only ever add to the creators list as we never
+want to remove access by updating.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> UpdateProjectCreatorsAsync(string id, Guid[] newValue)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Id of the project to alter creators of"},{"name":"newValue","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Ids of new creators"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not update was successful."}]} />
+
+---
+###  UpdateProjectTagsAsync\(Guid, Guid\[\]\)
+
+Updates tags of project, to do this we remove all previous tags.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> UpdateProjectTagsAsync(Guid id, Guid[] newValue)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the project to alter tags of"},{"name":"newValue","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Ids of new tags"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not update was successful."}]} />
+
+---
+###  UpdateProjectTagsAsync\(string, string\[\]\)
+
+Updates tags of project, to do this we remove all previous tags.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> UpdateProjectTagsAsync(string id, string[] newValue)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Id of the project to alter tags of"},{"name":"newValue","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Ids of new tags"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not update was successful."}]} />
+
+---
+###  UpdateProjectTagsAsync\(Guid, string\[\]\)
+
+Updates tags of project, to do this we remove all previous tags.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> UpdateProjectTagsAsync(Guid id, string[] newValue)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Id of the project to alter tags of"},{"name":"newValue","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Ids of new tags"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not update was successful."}]} />
+
+---
+###  UpdateProjectTagsAsync\(string, Guid\[\]\)
+
+Updates tags of project, to do this we remove all previous tags.
+
+Author: Justin Liem
+
+```csharp
+public Task<bool> UpdateProjectTagsAsync(string id, Guid[] newValue)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Id of the project to alter tags of"},{"name":"newValue","type":"Guid","links":["https://learn.microsoft.com/dotnet/api/system.guid"],"description":"Ids of new tags"}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<bool>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/system.boolean"],"description":"Boolean indicating whether or not update was successful."}]} />

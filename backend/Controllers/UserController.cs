@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using KnowledgeBank.Utils;
 using Microsoft.Extensions.Options;
 
 namespace KnowledgeBank.Controllers;
@@ -22,146 +23,81 @@ public class UserController : ControllerBase
 {
     private readonly Serilog.ILogger logger;
     private readonly DatabaseContext database;
+    private readonly IAzureBlobService blobService;
     private readonly UserManager<User> userManager;
     private readonly OwnerUserConfig ownerConfig;
 
-    public UserController(DatabaseContext databaseContext, UserManager<User> userManager, IOptions<OwnerUserConfig> ownerConfig)
+    public UserController(DatabaseContext databaseContext, IAzureBlobService blobService, UserManager<User> userManager, IOptions<OwnerUserConfig> ownerConfig)
     {
         this.logger = Log.ForContext<UserController>();
         this.database = databaseContext;
+        this.blobService = blobService;
         this.userManager = userManager;
         this.ownerConfig = ownerConfig.Value;
     }
 
     /// <summary>
-    /// Gets the current user's full name.
+    /// Gets the current user's account info.
     /// </summary>
-    /// <returns>The user's full name.</returns>
-    [HttpGet("current-user-name")]
-    [AllowAnonymous]
+    /// <returns>The user's account info.</returns>
+    [HttpGet("current/account")]
+    [Authorize]
     [SwaggerOperation(
-        Summary = "Get current user's name.",
-        Description = "Returns the current user's name or an empty string if not authenticated"
+        Summary = "Get the current user's account info.",
+        Description = "Gets the current user's account info."
     )]
-    [SwaggerResponse(200, "The current user's name.")]
-    [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> GetCurrentUserName()
+    [SwaggerResponse(200, "Account info found.")]
+    [SwaggerResponse(500, "Internal server error.")]
+    public async Task<ObjectResult> GetCurrentAccount()
     {
         try
         {
-            // Check if user is authenticated
-            if (User.Identity == null || !User.Identity.IsAuthenticated)
-                return Ok(new { name = "", isAuthenticated = false });
+            string userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new Exception("User authenticated yet not found, probably a concurrency fault");
+            User user = await userManager.FindByIdAsync(userId) ?? throw new Exception("User authenticated yet not found, probably a concurrency fault");
 
-            // Get the user ID from the claims
-            string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            IList<string> roles = await userManager.GetRolesAsync(user);
+            UserResponse userResponse = new UserResponse(user, roles.FirstOrDefault() ?? "No Role");
 
-            // Check if the user ID is null or empty
-            if (string.IsNullOrEmpty(userId))
-                return Ok(new { name = "", isAuthenticated = true });
-
-            // Find the user by ID
-            User? user = await userManager.FindByIdAsync(userId);
-
-            // Check if the user exists
-            if (user == null)
-                return Ok(new { name = "", isAuthenticated = true });
-            
-            // Return the user's full name
-            return Ok(new { name = user.FirstName + " " + user.LastName, isAuthenticated = true });
+            return Ok(userResponse);
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error retrieving current user's name");
-            return StatusCode(500, "Internal server error.");
+            logger.Error(e, "Error getting the current user's account info.");
+            return StatusCode(500, new { message = "Internal server error." });
         }
     }
 
-    /// <summary>
-    /// Gets the current user's first name.
-    /// </summary>
-    /// <returns>The user's first name.</returns>
-    [HttpGet("current-user-first-name")]
-    [AllowAnonymous]
+    [HttpGet("current/avatar/{userId}")]
     [SwaggerOperation(
-        Summary = "Get current user's first name.",
-        Description = "Returns the current user's first name or an empty string if not authenticated"
+        Summary = "Get the current user's profile avatar.",
+        Description = "Gets the current user's profile avatar."
     )]
-    [SwaggerResponse(200, "The current user's first name.")]
-    [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> GetCurrentUserFirstName()
+    [SwaggerResponse(200, "Profile avatar returned.")]
+    [SwaggerResponse(404, "No avatar found for user.")]
+    [SwaggerResponse(500, "Internal server error.")]
+    public async Task<IActionResult> GetCurrentAvatar(string userId)
     {
         try
         {
-            // Check if user is authenticated
-            if (User.Identity == null || !User.Identity.IsAuthenticated)
-                return Ok(new { firstName = "", isAuthenticated = false });
+            BlobAvatarResponse? avatarResponse = await blobService.RetreiveUserAvatarStream(userId);
 
-            // Get the user ID from the claims
-            string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            // Check if the user ID is null or empty
-            if (string.IsNullOrEmpty(userId))
-                return Ok(new { firstName = "", isAuthenticated = true });
-
-            // Find the user by ID
-            User? user = await userManager.FindByIdAsync(userId);
-
-            // Check if the user exists
-            if (user == null)
-                return Ok(new { firstName = "", isAuthenticated = true });
-
-            // Return the user's first name
-            return Ok(new { firstName = user.FirstName, isAuthenticated = true });
+            if (avatarResponse == null)
+            {
+                return NotFound(new { message = "No avatar found for user." });
+            }
+            else
+            {
+                Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+                Response.Headers.Append("Pragma", "no-cache");
+                Response.Headers.Append("Expires", "0");
+                return File(avatarResponse.stream, avatarResponse.contentType);
+            }
         }
         catch (Exception e)
         {
-            logger.Error(e, "Error retrieving current user's first name");
-            return StatusCode(500, "Internal server error.");
-        }
-    }
-
-    /// <summary>
-    /// Gets the current user's last name.
-    /// </summary>
-    /// <returns>The user's last name</returns>
-    [HttpGet("current-user-last-name")]
-    [AllowAnonymous]
-    [SwaggerOperation(
-        Summary = "Get current user's last name.",
-        Description = "Returns the current user's name or an empty string if not authenticated"
-    )]
-    [SwaggerResponse(200, "The current user's last name.")]
-    [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> GetCurrentUserLastName()
-    {
-        try
-        {
-            // Check if user is authenticated
-            if (User.Identity == null || !User.Identity.IsAuthenticated)
-                return Ok(new { lastName = "", isAuthenticated = false });
-
-            // Get the user ID from the claims
-            string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            // Check if the user ID is null or empty
-            if (string.IsNullOrEmpty(userId))
-                return Ok(new { lastName = "", isAuthenticated = true });
-
-            // Find the user by ID
-            User? user = await userManager.FindByIdAsync(userId);
-
-            // Check if the user exists
-            if (user == null)
-                return Ok(new { lastName = "", isAuthenticated = true });
-
-            // Return the user's last name
-            return Ok(new { lastName = user.LastName, isAuthenticated = true });
-        }
-        catch (Exception e)
-        {
-            logger.Error(e, "Error retrieving current user's last name");
-            return StatusCode(500, "Internal server error.");
+            logger.Error(e, "Error getting the current user's avatar.");
+            return StatusCode(500, new { message = "Internal server error." });
         }
     }
 
@@ -177,7 +113,7 @@ public class UserController : ControllerBase
     {
         try
         {
-            User[]? users = await database.AppUsers.OrderBy(u => u.Email).ToArrayAsync();
+            User[]? users = await database.Users.OrderBy(u => u.Email).ToArrayAsync();
 
             if (users == null)
                 return Ok(Array.Empty<UserResponse>());
@@ -187,7 +123,7 @@ public class UserController : ControllerBase
             {
                 User user = users[i];
                 IList<string> roles = await userManager.GetRolesAsync(user);
-                userResponses[i] = new UserResponse(new Guid(user.Id), user.UserName, user.Email, user.EmailConfirmed, roles.FirstOrDefault() ?? "No Role");
+                userResponses[i] = new UserResponse(user, roles.FirstOrDefault() ?? "No Role");
             }
 
             return Ok(userResponses);
@@ -223,15 +159,15 @@ public class UserController : ControllerBase
             // filter based on the search query
             IQueryable<User> filteredUsers;
             if (!string.IsNullOrEmpty(searchQuery))
-                filteredUsers = database.AppUsers.Where(u => EF.Functions.ILike(u.Email ?? "", $"%{searchQuery}%"));
+                filteredUsers = database.Users.Where(u => EF.Functions.ILike(u.Email ?? "", $"%{searchQuery}%"));
             else
-                filteredUsers = database.AppUsers;
+                filteredUsers = database.Users;
 
             // Get the users for the current page
             User[]? users = await filteredUsers.OrderBy(u => u.Email).Skip(skip).Take(pageSize).ToArrayAsync();
 
             // Calculate total amount of pages
-            int totalUsers = await database.AppUsers.CountAsync();
+            int totalUsers = await database.Users.CountAsync();
             int pageCount = (int)Math.Ceiling((double)totalUsers / pageSize);
 
             // Create the response
@@ -240,7 +176,7 @@ public class UserController : ControllerBase
             {
                 User user = users[i];
                 IList<string> roles = await userManager.GetRolesAsync(user);
-                userResponses[i] = new UserResponse(new Guid(user.Id), user.UserName, user.Email, user.EmailConfirmed, roles[0].ToString());
+                userResponses[i] = new UserResponse(user, roles[0].ToString());
             }
 
             // Check if there are no users on this page
@@ -263,7 +199,6 @@ public class UserController : ControllerBase
         Description = "Updates the email of the user."
     )]
     [SwaggerResponse(200, "User email updated successfully.")]
-    [SwaggerResponse(400, "User email already exists.")]
     [SwaggerResponse(404, "User not found.")]
     [SwaggerResponse(500, "Internal server error.")]
     [SwaggerResponse(403, "This action is forbidden")]
@@ -319,13 +254,11 @@ public class UserController : ControllerBase
     }
 
     /// <summary>
-    /// Updates the current user.
-    /// This method updates the current user's information, including their first name, last name, and email.
-    /// It requires the user to be authenticated.
+    /// Updates the current user's avatar.
     /// </summary>
-    /// <param name="dto">The data transfer object containing the user's updated information.</param>
-    /// <returns>An IActionResult with information about the success of the action.</returns>
-    [HttpPut("update")]
+    /// <param name="newAvatar">The new avatar for the current user.</param>
+    /// <returns>A response code and text response with information about the success of the action.</returns>
+    [HttpPatch("update-avatar")]
     [SwaggerOperation(
         Summary = "Update the current user.",
         Description = "Updates the current user's information."
@@ -334,8 +267,77 @@ public class UserController : ControllerBase
     [SwaggerResponse(400, "User email already exists.")]
     [SwaggerResponse(404, "User not found.")]
     [SwaggerResponse(500, "Internal server error.")]
-    [SwaggerResponse(403, "This action is forbidden")]
-    public async Task<IActionResult> Update([FromBody] UpdateUserDto dto)
+    public async Task<IActionResult> UpdateAvatar(IFormFile? newAvatar)
+    {
+        if (User.Identity == null || !User.Identity.IsAuthenticated)
+            return BadRequest("User not authenticated.");
+
+        // Get the user ID from the claims
+        string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        // Check if the user ID is null or empty
+        if (string.IsNullOrEmpty(userId))
+            return BadRequest("User not found.");
+
+        // Find the user by ID
+        User? user = await userManager.FindByIdAsync(userId);
+
+        // Check if the user exists
+        if (user == null)
+            return NotFound("User not found.");
+
+        if (newAvatar != null)
+        {
+            if (newAvatar.Length > Constants.MaxAvatarSize)
+                return BadRequest($"Avatar file is too large (max {Constants.MaxAvatarSizeInMb}MB)");
+
+            if (newAvatar.ContentType != "image/png")
+                return BadRequest("Invalid image type. Png expected");
+
+            BLOB_STATUSCODE upload = await blobService.UploadBlobAsync("avatar", userId, new Dictionary<string, string>(), newAvatar.OpenReadStream(), overwrite: true);
+            if (upload != BLOB_STATUSCODE.OK)
+                return StatusCode(500, "Failed to upload avatar.");
+
+            user.CustomAvatarVersion++;
+            user.HasCustom = true;
+        }
+        else if (user.HasCustom)
+        {
+            // Changed avatar AND New avatar is null AND The user had a custom avatar
+            BLOB_STATUSCODE delete = await blobService.DeleteBlobAsync("avatar", userId);
+            if (delete != BLOB_STATUSCODE.OK)
+                return StatusCode(500, "Failed to delete avatar.");
+
+            user.HasCustom = false;
+        }
+
+        // If this fails the image and version will be misaligned, at worst slow user updates.
+        var result = await userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+            return StatusCode(500, "Failed to update user record.");
+
+        return Ok("Avatar updated successfully.");
+    }
+
+
+
+    /// <summary>
+    /// Updates the current user.
+    /// This method updates the current user's information, including their first name, last name, and email.
+    /// It requires the user to be authenticated.
+    /// </summary>
+    /// <param name="dto">The data transfer object containing the user's updated information.</param>
+    /// <returns>An IActionResult with information about the success of the action.</returns>
+    [HttpPatch("update-details")]
+    [SwaggerOperation(
+        Summary = "Update the current user.",
+        Description = "Updates the current user's information."
+    )]
+    [SwaggerResponse(200, "User updated successfully.")]
+    [SwaggerResponse(400, "User email already exists.")]
+    [SwaggerResponse(404, "User not found.")]
+    [SwaggerResponse(500, "Internal server error.")]
+    public async Task<IActionResult> UpdateDetails([FromBody] UpdateUserDto dto)
     {
         try
         {
@@ -344,7 +346,7 @@ public class UserController : ControllerBase
             // Check if user is authenticated
             if (User.Identity == null || !User.Identity.IsAuthenticated)
                 return BadRequest("User not authenticated.");
-            
+
             // Get the user ID from the claims
             string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -368,28 +370,35 @@ public class UserController : ControllerBase
                 try
                 {
                     // Update the first and last name
-                    user.FirstName = dto.FirstName;
-                    user.LastName = dto.LastName;
+                    if (!string.IsNullOrEmpty(dto.NewFirstName))
+                        user.FirstName = dto.NewFirstName;
+
+                    if (!string.IsNullOrEmpty(dto.NewLastName))
+                        user.LastName = dto.NewLastName;
+
+                    // Update the email
+                    if (!string.IsNullOrEmpty(dto.NewEmail))
+                    {
+                        string token = await userManager.GenerateChangeEmailTokenAsync(user, dto.NewEmail);
+                        IdentityResult emailResponse = await userManager.ChangeEmailAsync(user, dto.NewEmail, token);
+
+                        // Check if the email update was successful
+                        if (!emailResponse.Succeeded)
+                            return Ok(new ApiResponse(false, "User email already exists."));
+
+                        // Update the username
+                        IdentityResult usernameResponse = await userManager.SetUserNameAsync(user, dto.NewEmail);
+
+                        // Check if the username update was successful
+                        if (!usernameResponse.Succeeded)
+                            return Ok(new ApiResponse(false, "Email format is not supported in our database."));
+                    }
+
                     IdentityResult updateResponse = await userManager.UpdateAsync(user);
 
                     // Check if the update was successful
                     if (!updateResponse.Succeeded)
                         return Ok(new ApiResponse(false, "Failed to update the data."));
-
-                    // Update the email
-                    string token = await userManager.GenerateChangeEmailTokenAsync(user, dto.Email);
-                    IdentityResult emailResponse = await userManager.ChangeEmailAsync(user, dto.Email, token);
-
-                    // Check if the email update was successful
-                    if (!emailResponse.Succeeded)
-                        return Ok(new ApiResponse(false, "User email already exists."));
-
-                    // Update the username
-                    IdentityResult usernameResponse = await userManager.SetUserNameAsync(user, dto.Email);
-
-                    // Check if the username update was successful
-                    if (!usernameResponse.Succeeded)
-                        return Ok(new ApiResponse(false, "User email already exists."));
 
                     // Save the changes to the database
                     await database.SaveChangesAsync();
@@ -418,8 +427,8 @@ public class UserController : ControllerBase
 
     [HttpDelete("delete")]
     [SwaggerOperation(
-        Summary = "Delete a user.",
-        Description = "Deletes a user by ID."
+        Summary = "Delete current user.",
+        Description = "Deletes current user."
     )]
     [SwaggerResponse(200, "User deleted successfully.")]
     [SwaggerResponse(404, "User not found.")]
@@ -473,7 +482,6 @@ public class UserController : ControllerBase
             return StatusCode(500, "Internal server error.");
         }
     }
-    
 }
 
 

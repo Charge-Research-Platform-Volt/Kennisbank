@@ -212,14 +212,14 @@ public class TagsController : ControllerBase
 ## Constructors
 
 ---
-###  TagsController\(ResourceManager\)
+###  TagsController\(ResourceManager, ProjectManager\)
 
 ```csharp
-public TagsController(ResourceManager resourceManager)
+public TagsController(ResourceManager resourceManager, ProjectManager projectManager)
 ```
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
-<TypeTable types={[{"name":"resourceManager","type":"ResourceManager","links":["../Data/ResourceManager"],"description":""}]} />
+<TypeTable types={[{"name":"resourceManager","type":"ResourceManager","links":["../Data/ResourceManager"],"description":""},{"name":"projectManager","type":"ProjectManager","links":["../Data/ProjectManager"],"description":""}]} />
 
 ---
 ## Methods
@@ -241,7 +241,7 @@ public Task<IActionResult> AddStandardTag(TagCreateDto dto)
 ```
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
-<TypeTable types={[{"name":"dto","type":"TagCreateDto","links":["../Models/TagCreateDto"],"description":""}]} />
+<TypeTable types={[{"name":"dto","type":"TagCreateDto","links":["../Models/TagCreateDto"],"description":"The DTO for tag creation."}]} />
 
 <h4 className='mb-0 ml-1'>Returns</h4>
 <TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":"Returns a 200 OK response containing the added tag."}]} />
@@ -289,12 +289,15 @@ public Task<IActionResult> ApproveTag(string id)
 ---
 ###  ChangeTagName\(string, string\)
 
+Changes the name of a tag.
+
 ```csharp
 [HttpPatch("rename-tag/{id}/{newName}")]
-[Authorize(Policy = "RequireAdminRole")]
-[SwaggerOperation(null, null, Summary = "Change tag name.", Description = "Lets an admin change the name of a tag.")]
+[Authorize]
+[SwaggerOperation(null, null, Summary = "Change tag name.", Description = "Lets admins change the name of any tag, and users their own tags if not assigned to resources.")]
 [SwaggerResponse(200, "Tag name changed", null)]
 [SwaggerResponse(400, "Bad request", null)]
+[SwaggerResponse(403, "Forbidden - User cannot edit this tag", null)]
 [SwaggerResponse(404, "Tag not found", null)]
 [SwaggerResponse(409, "Tag already exists", null)]
 [SwaggerResponse(500, "Internal server error", null)]
@@ -302,30 +305,33 @@ public Task<IActionResult> ChangeTagName(string id, string newName)
 ```
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
-<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":""},{"name":"newName","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":""}]} />
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The id of the tag."},{"name":"newName","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The new name of the tag."}]} />
 
 <h4 className='mb-0 ml-1'>Returns</h4>
-<TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />
+<TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":"Returns a 200 OK response."}]} />
 
 ---
 ###  DeleteTag\(string\)
 
+Deletes a tag from the tag list.
+
 ```csharp
 [HttpDelete("delete-tag/{id}")]
-[Authorize(Policy = "RequireAdminRole")]
-[SwaggerOperation(null, null, Summary = "Delete standard tag.", Description = "Lets and admin delete a tag from the list of standardized tags.")]
+[Authorize]
+[SwaggerOperation(null, null, Summary = "Deletes a tag.", Description = "Lets admins delete any tag, and users delete their own tags if not assigned to resources.")]
 [SwaggerResponse(200, "Tag deleted", null)]
 [SwaggerResponse(400, "Bad request", null)]
+[SwaggerResponse(403, "Forbidden - User cannot delete this tag", null)]
 [SwaggerResponse(404, "Tag not found", null)]
 [SwaggerResponse(500, "Internal server error", null)]
 public Task<IActionResult> DeleteTag(string id)
 ```
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
-<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":""}]} />
+<TypeTable types={[{"name":"id","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The id of the tag to delete."}]} />
 
 <h4 className='mb-0 ml-1'>Returns</h4>
-<TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />
+<TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":"Returns a 200 OK response containing the deleted tag."}]} />
 
 ---
 ###  GetAll\(\)
@@ -333,6 +339,7 @@ public Task<IActionResult> DeleteTag(string id)
 Retrieves all tags from the drive.
 
 ```csharp
+[Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
 [HttpGet("all-tags")]
 [SwaggerOperation(null, null, Summary = "List all tags.", Description = "List all tags.")]
 [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
@@ -344,18 +351,19 @@ public Task<IActionResult> GetAll()
 <TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":"Returns a 200 OK response containing a list of all tags."}]} />
 
 ---
-###  GetAllPaged\(int, int\)
+###  GetAllPaged\(int, int, string?\)
 
 ```csharp
+[Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
 [HttpGet("tag-page")]
 [SwaggerOperation(null, null, Summary = "List all tags paged.", Description = "List all tags paged.")]
 [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
 [SwaggerResponse(500, "Internal server error", null)]
-public Task<IActionResult> GetAllPaged(int pageIndex = 1, int pageSize = 100)
+public Task<IActionResult> GetAllPaged(int pageIndex = 1, int pageSize = 100, string? searchQuery = null)
 ```
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
-<TypeTable types={[{"name":"pageIndex","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":""},{"name":"pageSize","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":""}]} />
+<TypeTable types={[{"name":"pageIndex","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":""},{"name":"pageSize","type":"int","links":["https://learn.microsoft.com/dotnet/api/system.int32"],"description":""},{"name":"searchQuery","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":""}]} />
 
 <h4 className='mb-0 ml-1'>Returns</h4>
 <TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />
@@ -366,6 +374,7 @@ public Task<IActionResult> GetAllPaged(int pageIndex = 1, int pageSize = 100)
 Retrieves all standardized tags from the drive.
 
 ```csharp
+[Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
 [HttpGet("all-standard-tags")]
 [SwaggerOperation(null, null, Summary = "List all standardized tags.", Description = "List all standardizedtags.")]
 [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
@@ -380,6 +389,7 @@ public Task<IActionResult> GetAllStandardized()
 ###  GetAllStandardizedPaged\(int, int\)
 
 ```csharp
+[Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
 [HttpGet("standard-tag-page")]
 [SwaggerOperation(null, null, Summary = "List all standardized tags paged.", Description = "List all standardized tags paged.")]
 [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
@@ -399,6 +409,7 @@ public Task<IActionResult> GetAllStandardizedPaged(int pageIndex = 1, int pageSi
 Retrieves all standardized tags from the drive.
 
 ```csharp
+[Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
 [HttpGet("all-user-tags")]
 [SwaggerOperation(null, null, Summary = "List all user tags.", Description = "List all user tags.")]
 [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
@@ -413,6 +424,7 @@ public Task<IActionResult> GetAllUser()
 ###  GetAllUserPaged\(int, int\)
 
 ```csharp
+[Obsolete("Deprecated, use GetTags instead. Method can be removed once frontend is updated")]
 [HttpGet("user-tag-page")]
 [SwaggerOperation(null, null, Summary = "List all user tags paged.", Description = "List all user tags paged.")]
 [SwaggerResponse(200, "List of tags", typeof(Tag[]))]
@@ -425,6 +437,26 @@ public Task<IActionResult> GetAllUserPaged(int pageIndex = 1, int pageSize = 100
 
 <h4 className='mb-0 ml-1'>Returns</h4>
 <TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />
+
+---
+###  GetTags\(TagFilterOptions\)
+
+Retrieves tags with advanced filtering, searching, paging and sorting capabilities
+
+```csharp
+[HttpPost("tags")]
+[SwaggerOperation(null, null, Summary = "Get tags with advanced filtering and sorting", Description = "Retrieve tags with options for pagination, filtering by multiple properties, and sorting")]
+[SwaggerResponse(200, "List of tags", typeof(Tag[]))]
+[SwaggerResponse(400, "Bad request", null)]
+[SwaggerResponse(500, "Internal server error", null)]
+public Task<IActionResult> GetTags(TagFilterOptions filterOptions)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"filterOptions","type":"TagFilterOptions","links":["../Models/TagFilterOptions"],"description":""}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":"Returns a 200 OK response containing a list of tags."}]} />
 
 ---
 ###  MakeStandardized\(string\)
@@ -444,3 +476,27 @@ public Task<IActionResult> MakeStandardized(string id)
 
 <h4 className='mb-0 ml-1'>Returns</h4>
 <TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":""}]} />
+
+---
+###  Merge\(string, string\)
+
+Merges the second tag into the first tag. This is done by 
+finding all the relations of the second tag, and then transferring
+these relations to the first tag. 
+\<b>Keep in mind that the second tag is deleted after the relations have been transferred.\</b>
+
+```csharp
+[HttpPatch("merge/{id1}/{id2}")]
+[Authorize(Policy = "RequireAdminRole")]
+[SwaggerResponse(200, "Tags merged", null)]
+[SwaggerResponse(400, "Bad request", null)]
+[SwaggerResponse(404, "Tag(s) not found", null)]
+[SwaggerResponse(500, "Internal server error", null)]
+public Task<IActionResult> Merge(string id1, string id2)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"id1","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The id of the first tag."},{"name":"id2","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"The id of the second tag."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task<IActionResult>","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task-1","https://learn.microsoft.com/dotnet/api/microsoft.aspnetcore.mvc.iactionresult"],"description":"Returns a 200 OK response."}]} />

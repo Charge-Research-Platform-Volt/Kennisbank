@@ -34,6 +34,19 @@ public class ResourceRelatedPersonRelation
 ## Properties
 
 ---
+###  Person
+
+```csharp
+[JsonIgnore]
+public Person? Person { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='Person' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Person' /></a>?
+
+---
 ###  PersonId
 
 ```csharp
@@ -46,19 +59,6 @@ public required Guid PersonId { get; set; }
 #### Property Value
 
  <a href='https://learn.microsoft.com/dotnet/api/system.guid' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Guid' /></a>
-
----
-###  RelatedPerson
-
-```csharp
-[JsonIgnore]
-public Person? RelatedPerson { get; set; }
-```
-
----
-#### Property Value
-
- <a href='Person' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Person' /></a>?
 
 ---
 ###  Resource

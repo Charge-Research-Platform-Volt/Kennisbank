@@ -30,7 +30,7 @@ export const UserRoleProvider = ({ children }: { children: React.ReactNode }) =>
   useEffect(() => {
     const fetchRole = async () => {
       try {
-        const res = await fetch(`api/roles/current`);
+        const res = await fetch(`/api/roles/current`);
         const data = await res.json();
         setUserRole(data.role);
       } catch (error) {
