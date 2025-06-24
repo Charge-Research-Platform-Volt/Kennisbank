@@ -7,6 +7,8 @@ using KnowledgeBank.Controllers;
 using KnowledgeBank.Responses;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
+using KnowledgeBank.Data;
+using Microsoft.Extensions.Options;
 
 namespace backend.Tests.Integration;
 
@@ -16,6 +18,7 @@ public class UserControllerTests : TestBase
 {
     private UserController _controller;
     private Mock<UserManager<User>> _userManagerMock;
+    private Mock<IOptions<OwnerUserConfig>> ownerConfigOptionsMock;
 
     [SetUp]
     public void SetupController()
@@ -26,8 +29,20 @@ public class UserControllerTests : TestBase
            Mock.Of<IUserStore<User>>(),
            null, null, null, null, null, null, null, null
        );
+       
+       // Mock the OwnerUserConfig options
+        var ownerConfig = new OwnerUserConfig
+        {
+            Email = "owner@test.com",
+            Password = "TestPassword123!",
+            FirstName = "Test",
+            LastName = "Owner"
+        };
 
-        _controller = new UserController(Context, _userManagerMock.Object);
+        ownerConfigOptionsMock = new Mock<IOptions<OwnerUserConfig>>();
+        ownerConfigOptionsMock.Setup(x => x.Value).Returns(ownerConfig);
+
+        _controller = new UserController(Context, _userManagerMock.Object, ownerConfigOptionsMock.Object);
     }
 
     private void SetUserIdentity(UserController controller, string userId)
@@ -231,7 +246,7 @@ public class UserControllerTests : TestBase
         _userManagerMock.Setup(m => m.ChangeEmailAsync(user, "new@example.com", "token")).ReturnsAsync(IdentityResult.Success);
         _userManagerMock.Setup(m => m.SetUserNameAsync(user, "new@example.com")).ReturnsAsync(IdentityResult.Success);
 
-        var controller = new UserController(Context, _userManagerMock.Object);
+        var controller = new UserController(Context, _userManagerMock.Object, ownerConfigOptionsMock.Object);
         SetUserIdentity(controller, userId);
 
         var dto = new UpdateUserDto { FirstName = "New", LastName = "Name", Email = "new@example.com" };
@@ -259,7 +274,7 @@ public class UserControllerTests : TestBase
         _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(user);
         _userManagerMock.Setup(m => m.UpdateAsync(user)).ReturnsAsync(IdentityResult.Failed());
 
-        var controller = new UserController(Context, _userManagerMock.Object);
+        var controller = new UserController(Context, _userManagerMock.Object, ownerConfigOptionsMock.Object);
         SetUserIdentity(controller, userId);
 
         var dto = new UpdateUserDto { FirstName = "New", LastName = "Name", Email = "new@example.com" };
@@ -288,7 +303,7 @@ public class UserControllerTests : TestBase
         _userManagerMock.Setup(m => m.GenerateChangeEmailTokenAsync(user, "new@example.com")).ReturnsAsync("token");
         _userManagerMock.Setup(m => m.ChangeEmailAsync(user, "new@example.com", "token")).ReturnsAsync(IdentityResult.Failed());
 
-        var controller = new UserController(Context, _userManagerMock.Object);
+        var controller = new UserController(Context, _userManagerMock.Object, ownerConfigOptionsMock.Object);
         SetUserIdentity(controller, userId);
 
         var dto = new UpdateUserDto { FirstName = "New", LastName = "Name", Email = "new@example.com" };
@@ -318,7 +333,7 @@ public class UserControllerTests : TestBase
         _userManagerMock.Setup(m => m.ChangeEmailAsync(user, "new@example.com", "token")).ReturnsAsync(IdentityResult.Success);
         _userManagerMock.Setup(m => m.SetUserNameAsync(user, "new@example.com")).ReturnsAsync(IdentityResult.Failed());
 
-        var controller = new UserController(Context, _userManagerMock.Object);
+        var controller = new UserController(Context, _userManagerMock.Object, ownerConfigOptionsMock.Object);
         SetUserIdentity(controller, userId);
 
         var dto = new UpdateUserDto { FirstName = "New", LastName = "Name", Email = "new@example.com" };
@@ -341,7 +356,7 @@ public class UserControllerTests : TestBase
 
         _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync((User)null!);
 
-        var controller = new UserController(Context, _userManagerMock.Object);
+        var controller = new UserController(Context, _userManagerMock.Object, ownerConfigOptionsMock.Object);
         SetUserIdentity(controller, userId);
 
         var dto = new UpdateUserDto { FirstName = "New", LastName = "Name", Email = "new@example.com" };
@@ -363,7 +378,7 @@ public class UserControllerTests : TestBase
 
         _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ThrowsAsync(new Exception("Database failure"));
 
-        var controller = new UserController(Context, _userManagerMock.Object);
+        var controller = new UserController(Context, _userManagerMock.Object, ownerConfigOptionsMock.Object);
         SetUserIdentity(controller, userId);
 
         var dto = new UpdateUserDto { FirstName = "New", LastName = "Name", Email = "new@example.com" };
