@@ -27,7 +27,7 @@ export function ResourceContent(
     {fileType, setFileType }: ResourceContentProps
 )
 {
-    const { currentId, rightSidebarOpen, setRightSidebarOpen, setCreationDate, setPublicationDate } = useSidebar();
+    const { currentId, rightSidebarOpen, setRightSidebarOpen, setCreationDate, setPublicationDate, setEditMode, editMode } = useSidebar();
     const { userRole } = useUserRole();
     const { triggerGridReload, trashOpen } = useArchive();
     const [confirmDialogOpen, setConfirmDialogOpen] = React.useState<boolean>(false);
@@ -45,10 +45,11 @@ export function ResourceContent(
     const [ relatedResources, setRelatedResources ] = React.useState<ListItem[] | null>(null);
     const [ sourceList, setSourceList ] = React.useState<ListItem[] | null>(null);
     const [ regions, setRegions ] = React.useState<ListItem[] | null>(null);
-    const [ langCode, setLangCode ] = React.useState<string | null>(null); //ToDo
+    const [ langCode, setLangCode ] = React.useState<string | null>(null);
     const [ pubCode, setPubCode ] = React.useState<string | null>(null);
     const [ license, setLicense ] = React.useState<string | null>(null);
     const [ trashed, setTrashed ] = React.useState<boolean>(false);
+    const [ abstract, setAbstract ] = React.useState<string | null>(null);
 
     // Loads all content at once
     const loadContent = React.useCallback(async () => 
@@ -68,6 +69,7 @@ export function ResourceContent(
             FileType,
             Trashed,
             WebsiteMetadata.Url as Url,
+            DocumentMetadata.Abstract as Abstract,
             ResourceAuthorRelations.Select(new(Person.Id, Person.Name)) as Authors,
             ResourceOrganisationRelations.Select(new(Organisation.Id, Organisation.Name)) as Organisations,
             ResourceRegionRelations.Select(new(Region.Id, Region.Name)) as Regions,
@@ -99,6 +101,7 @@ export function ResourceContent(
             setFileType(data.body.fileType || "Unknown.");
             setTrashed(data.body.trashed);
             setUrl(data.body.url || "No URL found.");
+            setAbstract(data.body.abstract || null);
             setAuthors(data.body.authors || []);
             setOrganisations(data.body.organisations || []);
             setRegions(data.body.regions || []);
@@ -208,7 +211,10 @@ export function ResourceContent(
                     <span className="flex-1 mb-1">Contact an admin if you think this is a mistake.</span>
                 </Badge>
             }
-            
+
+            {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
+                                    <Edit setNewText={setTitle} currentText={title} property="title" />
+                                </div>)}
             <h1 className="pb-2 font-bold select-none text-2xl">{title || <Skeleton />}</h1>
             
             { fileType === "website" &&
@@ -219,7 +225,10 @@ export function ResourceContent(
 
             {langCode}
         
-            <Expandable editButton={<Edit setNewText={setDescription} currentText={description} property="description" />} title="Description" collapsedHeight={100}>
+            <Expandable title="Description" collapsedHeight={100}>
+                {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
+                                    <Edit setNewText={setDescription} currentText={description} property="description" />
+                                </div>)}
                 {description || <Skeleton />}
             </Expandable>
             
@@ -228,7 +237,7 @@ export function ResourceContent(
             </Expandable>
 
             <Expandable variant="horizontal" title="Recommended Tags">
-                <BadgeList listType="ai-tags" itemList={aiTags} onNew={() => {}} onRemove={() => {}} />
+                <BadgeList listType="ai-tags" itemList={aiTags} onNew={(newItems) => setTags(tags ? tags.concat(newItems) : newItems)} onRemove={() => {}} />
             </Expandable>
 
             <Expandable variant="horizontal" title="Authors">
@@ -257,29 +266,57 @@ export function ResourceContent(
                 <BadgeList listType="regions" itemList={regions} onNew={(newItems) => setRegions(regions ? regions.concat(newItems) : newItems)} onRemove={(removedItem) => setRegions(regions ? regions.filter((item) => item != removedItem) : [])} />
             </Expandable>
 
-            {/* {resourceType === "Scientific Article" && (
+            {abstract && (
                 <Expandable title="Abstract" collapsedHeight={100}>
-                    {<>insert abstract</> || <Skeleton />}
+                    {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
+                                        <Edit setNewText={setAbstract} currentText={abstract} property="abstract" />
+                                    </div>)}
+                    {abstract || <Skeleton />}
                 </Expandable> 
-            )} */}
+            )}
             
-            <Expandable editButton={<Edit setNewText={setNote} currentText={note} property="note" />} title="Notes" collapsedHeight={100}>
+            <Expandable title="Notes" collapsedHeight={100}>
+                {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
+                                    <Edit setNewText={setNote} currentText={note} property="note" />
+                                </div>)}
                 {note || <Skeleton />}
             </Expandable>
 
-            <Expandable editButton={<Edit setNewText={setPubCode} currentText={pubCode} property="publicationCode" />} title="Publication Code" collapsedHeight={100}>
+            <Expandable title="Publication Code" collapsedHeight={100}>
+                {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
+                                    <Edit setNewText={setPubCode} currentText={pubCode} property="publicationCode" />
+                                </div>)}
                 {pubCode || <Skeleton />}
             </Expandable>
 
-            <Expandable editButton={<Edit setNewText={setLicense} currentText={license} property="license" />} title="License Code" collapsedHeight={100}>
+            <Expandable title="License Code" collapsedHeight={100}>
+                {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
+                                   <Edit setNewText={setLicense} currentText={license} property="license" />
+                                </div>)}
                 {license || <Skeleton />}
             </Expandable>
 
-            { userRole === 'admin' && !trashOpen &&
-                <div className="w-full flex justify-center mt-10">
-                    <Button onClick={() => setConfirmDialogOpen(true)} variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600">Delete Resource</Button>
+            <div className="w-full flex justify-center mt-10">
+                <div className="flex gap-4">
+                    <Button
+                        onClick={() => setEditMode(!editMode)}
+                        variant={editMode ? "default" : "outline"}
+                        className={editMode ? "bg-green-600 hover:bg-green-700 text-white" : "text-gray-700 border-gray-300 hover:bg-gray-100"}
+                    >
+                        {editMode ? "Disable Edit Mode" : "Enable Edit Mode"}
+                    </Button>
+
+                    {userRole === 'admin' && !trashOpen && (
+                        <Button
+                            onClick={() => setConfirmDialogOpen(true)}
+                            variant="outline"
+                            className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600"
+                        >
+                            Delete Resource
+                        </Button>
+                    )}
                 </div>
-            }
+            </div>
             
             
         </>

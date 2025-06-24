@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 
 export function PersonContent() 
 {
-    const { currentId, rightSidebarOpen, setRightSidebarOpen, setCreationDate, setPublicationDate } = useSidebar();
+    const { currentId, rightSidebarOpen, setRightSidebarOpen, setCreationDate, setPublicationDate, setEditMode, editMode  } = useSidebar();
     const { userRole } = useUserRole();
     const { triggerGridReload, trashOpen } = useArchive();
     const [confirmDialogOpen, setConfirmDialogOpen] = React.useState<boolean>(false);
@@ -42,6 +42,7 @@ export function PersonContent()
             Name,
             Description,
             Occupation,
+            CreationDate,
             EmailAddress as Email,
             Linkedin,
             Trashed,
@@ -67,6 +68,7 @@ export function PersonContent()
             setName(data.body.name || "Name missing.");
             setDescription(data.body.description || "No description.");
             setOccupation(data.body.occupation || "Occupation unknown.");
+            setCreationDate(data.body.creationDate || "Unknown.");
             setEmail(data.body.email || "Email unknown.");
             setLinkedIn(data.body.linkedin || "LinkedIn unknown.");
             setTrashed(data.body.trashed || false);
@@ -122,6 +124,9 @@ export function PersonContent()
                 </Badge>
             }
             
+            {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
+                                                <Edit setNewText={setName} currentText={name} property="name" />
+                                            </div>)}
             <h1 className="pb-2 font-bold select-none text-2xl">{name || <Skeleton />}</h1>
             
             {occupation ? (
@@ -139,7 +144,10 @@ export function PersonContent()
             ) : (<Skeleton />) }
 
             
-            <Expandable editButton={<Edit setNewText={setDescription} currentText={description} property="description" />} title="Description" collapsedHeight={100}>
+            <Expandable title="Description" collapsedHeight={100}>
+                    {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
+                                        <Edit setNewText={setDescription} currentText={description} property="description" />
+                                    </div>)}
                     {description || <Skeleton />}
             </Expandable>
 
@@ -159,15 +167,34 @@ export function PersonContent()
                 <BadgeList listType="organisations" itemList={organisations} onNew={(newItems) => setOrganisations(organisations ? organisations.concat(newItems) : newItems)} onRemove={(removedItem) => setOrganisations(organisations ? organisations.filter((item) => item != removedItem) : [])} />
             </Expandable>
 
-            <Expandable editButton={<Edit setNewText={setEmail} currentText={email} property="emailAddress" />} title="Email Address" collapsedHeight={100}>
+            <Expandable title="Email Address" collapsedHeight={100}>
+                {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
+                                    <Edit setNewText={setEmail} currentText={email} property="emailAddress" />
+                                </div>)}
                 {email || <Skeleton />}
             </Expandable>
             
-            { userRole === 'admin' && !trashOpen &&
-                <div className="w-full flex justify-center mt-10">
-                    <Button onClick={() => setConfirmDialogOpen(true)} variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600">Delete Person</Button>
+            <div className="w-full flex justify-center mt-10">
+                <div className="flex gap-4">
+                    <Button
+                        onClick={() => setEditMode(!editMode)}
+                        variant={editMode ? "default" : "outline"}
+                        className={editMode ? "bg-green-600 hover:bg-green-700 text-white" : "text-gray-700 border-gray-300 hover:bg-gray-100"}
+                    >
+                        {editMode ? "Disable Edit Mode" : "Enable Edit Mode"}
+                    </Button>
+
+                    {userRole === 'admin' && !trashOpen && (
+                        <Button
+                            onClick={() => setConfirmDialogOpen(true)}
+                            variant="outline"
+                            className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600"
+                        >
+                            Delete Resource
+                        </Button>
+                    )}
                 </div>
-            }
+            </div>
         </>
     )
 }
