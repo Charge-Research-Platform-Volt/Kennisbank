@@ -302,12 +302,12 @@ public partial class ResourceManager
             }
 
             // Strategy 4: Fuzzy matching using similarity
-            searchConditions.Add(@"(
-                similarity(""Name"", {" + paramIndex + @"}) > 0.3 OR
-                similarity(coalesce(""Description"", ''), {" + paramIndex + @"}) > 0.2
-            )");
-            parameters.Add(searchTerm);
-            paramIndex++;
+            // searchConditions.Add(@"(
+            //     similarity(""Name"", {" + paramIndex + @"}) > 0.3 OR
+            //     similarity(coalesce(""Description"", ''), {" + paramIndex + @"}) > 0.2
+            // )");
+            // parameters.Add(searchTerm);
+            // paramIndex++;
 
             // Strategy 5: ILIKE for substring matching
             searchConditions.Add(@"(
@@ -475,7 +475,7 @@ public partial class ResourceManager
                             ELSE 0.0 END +
                         
                         -- Name similarity bonus
-                        similarity(""Name"", {{2}}) * 2.0 +
+                        -- similarity(""Name"", {{2}}) * 2.0 +
                         
                         -- Name starts with search term bonus
                         CASE WHEN ""Name"" ILIKE {{4}} THEN 1.0 ELSE 0.0 END

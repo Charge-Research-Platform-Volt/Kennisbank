@@ -141,6 +141,31 @@ namespace KnowledgeBank
             // # Create database if it does not exist
             app.EnsureCreatedDatabase();
 
+            // # Reset database if env var is set
+            if (app.Configuration.GetValue<bool>("RESET_DATABASE")) 
+            {
+                try
+                {
+                    using var scope = app.Services.CreateScope();
+                    var context = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+                    
+                    Console.WriteLine("Starting full database reset...");
+                    
+                    await context.Database.EnsureDeletedAsync();
+                    await context.Database.EnsureCreatedAsync();
+                    
+                    Console.WriteLine("Database recreated from EF models");
+                    
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Failed to reset database: {e.Message}");
+                    Console.WriteLine($"Stack trace: {e.StackTrace}");
+                    throw; // Fail fast if database reset fails
+                }
+            }
+
+            
             // # Middleware
             if (app.Environment.IsDevelopment())
             {

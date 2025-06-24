@@ -46,7 +46,7 @@ namespace KnowledgeBank.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.HasPostgresExtension("pg_trgm");
+            // modelBuilder.HasPostgresExtension("pg_trgm");
 
             modelBuilder.Entity<ResourceTagRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.TagId }); // Define composite primary key
