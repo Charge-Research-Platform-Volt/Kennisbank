@@ -60,7 +60,7 @@ export const useSidebar = () =>
     return context;
 };
 
-const FetchMetadataType = async (id: string): Promise<MetadataTypeEnum> => 
+export const FetchMetadataType = async (id: string): Promise<MetadataTypeEnum> => 
 {
     if (id === '') return MetadataTypeEnum.RESOURCE;
     

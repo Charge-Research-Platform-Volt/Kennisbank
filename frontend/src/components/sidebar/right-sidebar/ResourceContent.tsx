@@ -70,7 +70,7 @@ export function ResourceContent(
             Trashed,
             WebsiteMetadata.Url as Url,
             DocumentMetadata.Abstract as Abstract,
-            ResourceAuthorRelations.Select(new(Person.Id, Person.Name)) as Authors,
+            ResourceAuthorRelations.Select(new(Author.Id, Author.Name)) as Authors,
             ResourceOrganisationRelations.Select(new(Organisation.Id, Organisation.Name)) as Organisations,
             ResourceRegionRelations.Select(new(Region.Id, Region.Name)) as Regions,
             ResourceRelatedPersonRelations.Select(new(Person.Id, Person.Name)) as RelatedPersons,
@@ -111,7 +111,7 @@ export function ResourceContent(
             setTags(data.body.tags || []);
             setLicense(data.body.license || "Unknown.");
         }
-    }, [currentId, setCreationDate, setPublicationDate]);
+    }, [currentId, setCreationDate, setFileType, setPublicationDate]);
     
     // Loads the related resources
     const loadRelatedResources = React.useCallback(async () =>
@@ -188,7 +188,7 @@ export function ResourceContent(
             loadRelatedResources();
             loadAiTags();
         }
-    }, [currentId, loadContent, loadRelatedResources, loadAiTags, rightSidebarOpen, setPublicationDate, setCreationDate]);
+    }, [currentId, loadContent, loadRelatedResources, loadAiTags, rightSidebarOpen, setPublicationDate, setCreationDate, setFileType]);
     
     // Deletes resource
     const confirmDelete = async () => 

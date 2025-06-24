@@ -12,15 +12,14 @@ public class ResourceAuthorRelation
     [ForeignKey("Resource")]
     public required Guid ResourceId { get; set; }
 
-    [Column("person-id")]
-    [ForeignKey("Person")]
-    public required Guid PersonId { get; set; }
+    [Column("author-id")]
+    public required Guid AuthorId { get; set; }
 
     // Navigation property to Resource (1:1)
     [JsonIgnore] public Resource? Resource { get; set; }
 
     // Navigation property to Person (1:1)
-    [JsonIgnore] public Person? Person { get; set; }
+    [JsonIgnore] public ResourceGridItem? Author { get; set; }
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

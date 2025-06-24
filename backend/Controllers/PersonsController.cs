@@ -442,8 +442,8 @@ namespace KnowledgeBank.Controllers
                 {
                     // Authored resources
                     "authored-resources" => string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetAllResourceAuthorRelationsAsync(r => r.PersonId == Guid.Parse(id)) :
-                        await resourceManager.GetAllResourceAuthorRelationsAsync(predicate: r => r.PersonId == Guid.Parse(id), projection: $"new({properties})"),
+                        await resourceManager.GetAllResourceAuthorRelationsAsync(r => r.AuthorId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceAuthorRelationsAsync(predicate: r => r.AuthorId == Guid.Parse(id), projection: $"new({properties})"),
 
                     // Related resources
                     "related-resources" => string.IsNullOrEmpty(properties) ?
