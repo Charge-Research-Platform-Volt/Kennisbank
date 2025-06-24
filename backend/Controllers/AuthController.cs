@@ -17,21 +17,9 @@ namespace KnowledgeBank.Controllers
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
-    public class AuthController : ControllerBase
+    public class AuthController (SignInManager<User> signInManager, DatabaseContext context, EnvironmentConfig _environmentConfig, MailUtils _mailUtils, IAzureBlobService blobService) : ControllerBase
     {
-        private readonly Serilog.ILogger _logger;
-        private readonly SignInManager<User> _signInManager;
-        private readonly DatabaseContext _context;
-        private readonly EnvironmentConfig _environmentConfig;
-        private readonly MailUtils _mailUtils;
-        public AuthController(SignInManager<User> signInManager, DatabaseContext context, EnvironmentConfig environmentConfig, MailUtils mailUtils, IConfiguration config, IAzureBlobService blobService)
-        {
-            _signInManager = signInManager;
-            _logger = Log.ForContext<AuthController>();
-            _context = context;
-            _mailUtils = mailUtils;
-            _environmentConfig = environmentConfig;
-        }
+        private readonly Serilog.ILogger logger = Log.ForContext<AuthController>();
 
         [HttpPost]
         [Authorize]
@@ -110,7 +98,7 @@ namespace KnowledgeBank.Controllers
                     CreatedAt = DateTime.UtcNow
                 });
 
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
 
                 // send the email
                 _mailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: {_environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL)}/signup?token={token}");
@@ -197,12 +185,12 @@ namespace KnowledgeBank.Controllers
         {
             try
             {
-                string?? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
                 if (userId == null)
                     return BadRequest(new ApiResponse(false, "User not found"));
 
-                User?? user = await signInManager.UserManager.FindByIdAsync(userId);
+                User? user = await signInManager.UserManager.FindByIdAsync(userId);
 
                 if (user == null)
                     return NotFound("User not found.");

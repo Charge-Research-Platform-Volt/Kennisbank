@@ -23,8 +23,8 @@ public class PersonsControllerTests : TestBase
     [SetUp]
     public void SetupController()
     { 
-        _resourceManager = new ResourceManager(Context);
-        _controller = new PersonsController(_resourceManager);
+        _resourceManager = new ResourceManager(Context, null);
+        _controller = new PersonsController(_resourceManager, null, null);
     }
     
     protected override async Task SeedTestDatabase (DatabaseContext context)

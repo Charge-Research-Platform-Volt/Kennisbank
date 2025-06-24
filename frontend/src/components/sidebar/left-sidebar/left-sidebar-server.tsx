@@ -9,7 +9,6 @@ import Archive from "@/icons/archive";
 import Tags from "@/icons/tags-icon";
 import { MessageCircleMore, Users } from "lucide-react";
 import Projects from "@/icons/project-icons/icon-1";
-import { Users } from "lucide-react";
 import { UserDataSchema } from "@/types/user.type";
 
 /**

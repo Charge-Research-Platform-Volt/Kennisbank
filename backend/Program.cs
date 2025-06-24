@@ -20,7 +20,6 @@ namespace KnowledgeBank
 {
     public class Program
     {
-    {
         public static async Task Main(string[] args)
         {
             // Ensure the current directory is set to the directory of the executable

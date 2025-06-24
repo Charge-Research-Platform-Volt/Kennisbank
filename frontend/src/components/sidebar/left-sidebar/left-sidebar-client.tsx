@@ -16,7 +16,6 @@ import ProfileDropdown from "./profile-dropdown";
 import { cn } from "@/lib/utils";
 import { usePathname, useSearchParams } from "next/navigation";
 import { UserData } from "@/types/user.type";
-import ShowMenu from "@/icons/menu/show-menu";
 
 /**
  *

@@ -22,8 +22,8 @@ public class OrganisationsControllerTests : TestBase
     [SetUp]
     public void SetupController()
     { 
-        _resourceManager = new ResourceManager(Context);
-        _controller = new OrganisationsController(_resourceManager);
+        _resourceManager = new ResourceManager(Context, null);
+        _controller = new OrganisationsController(_resourceManager, null, null);
     }
     
     protected override async Task SeedTestDatabase (DatabaseContext context)
