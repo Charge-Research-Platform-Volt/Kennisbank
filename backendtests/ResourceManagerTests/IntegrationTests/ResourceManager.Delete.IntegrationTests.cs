@@ -113,14 +113,12 @@ public class ResourceManagerDeleteTests : TestBase
         {
             Name = "Delete Test Author",
             Occupation = "Test Occupation",
-            CreationDate = DateTime.UtcNow,
         };
         Guid testPersonId = await _resourceManager.CreatePersonAsync(testPersonDto);
 
         OrganisationCreateDto testOrganisationDto = new OrganisationCreateDto
         {
             Name = "Delete Test Organisation",
-            CreationDate = DateTime.UtcNow,
         };
         Guid testOrganisationId = await _resourceManager.CreateOrganisationAsync(testOrganisationDto);
 
@@ -190,7 +188,6 @@ public class ResourceManagerDeleteTests : TestBase
         {
             Name = "Person To Delete",
             Occupation = "Test Delete",
-            CreationDate = DateTime.UtcNow,
         };
         Guid personId = await _resourceManager.CreatePersonAsync(personDto);       
         // Create a resource with this person as author
@@ -219,7 +216,7 @@ public class ResourceManagerDeleteTests : TestBase
         Assert.That(deletedPerson, Is.Null);
 
         // Author relation should be deleted
-        ResourceAuthorRelation? authorRelation = await Context.ResourceAuthorRelations.FirstOrDefaultAsync(r => r.PersonId == personId);
+        ResourceAuthorRelation? authorRelation = await Context.ResourceAuthorRelations.FirstOrDefaultAsync(r => r.AuthorId == personId);
         Assert.That(authorRelation, Is.Null);
         
         // Resource should still exist
@@ -234,7 +231,6 @@ public class ResourceManagerDeleteTests : TestBase
         OrganisationCreateDto orgDto = new OrganisationCreateDto
         {
             Name = "Organisation To Delete",
-            CreationDate = DateTime.UtcNow,
         };
         Guid orgId = await _resourceManager.CreateOrganisationAsync(orgDto);
         

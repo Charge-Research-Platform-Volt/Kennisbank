@@ -372,10 +372,10 @@ export const tryAddNewTag = async (
 
     const rawbody: TagCreateDto = {
         name: tag,
-      };
+    };
 
     const response = await fetch(
-        `${process.env.API_URL}/Regions/new`,
+        `${process.env.API_URL}/Tags/add-user-tag`,
         {
             method: "PUT",
             credentials: "include",
@@ -387,15 +387,30 @@ export const tryAddNewTag = async (
 
     if (!response.ok) {
         const errorText = await response.text();
-        console.error("Tag already exists, returned id: " + errorText);
-    }
 
+        if (response.status != 409 || !errorText.includes("Tag already exists")) {
+            console.error("Problem adding tag " + errorText);
+            throw new Error(`Problem adding tag: ${response.status} - ${errorText}`);
+        }
+        
+        console.log("Tag already exists, returned id");
+        // If it's a 409 conflict (tag exists), we need to parse the response as JSON
+        // But we already read it as text, so we need to parse the text as JSON
+        try {
+            const data = JSON.parse(errorText);
+            const parsedData = ApiResponseSchema.parse(data);
+            return parsedData.body;
+        } catch (parseError) {
+            console.error("Error parsing existing tag response:", parseError);
+            throw new Error(`Problem parsing existing tag response: ${parseError}`);
+        }
+    }
     
+    // Only read as JSON if the response was OK
     const rawData = await response.json();
     const data = ApiResponseSchema.parse(rawData);
 
     return (data.body);
-
 }
 
 

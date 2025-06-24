@@ -48,7 +48,6 @@ namespace KnowledgeBank.Data
                     Description = record.Description,
                     Website = record.Website,
                     EmailAddress = record.EmailAddress,
-                    CreationDate = DateTime.UtcNow,
                 });
             
             foreach (OrganisationCreateDto dto in organisationDtos)
@@ -77,7 +76,6 @@ namespace KnowledgeBank.Data
                     Description = record.Description,
                     EmailAddress = record.EmailAddress,
                     Linkedin = record.Linkedin,
-                    CreationDate = DateTime.UtcNow,
                 });
             
             // Go through all records and create the persons
@@ -195,7 +193,7 @@ namespace KnowledgeBank.Data
 
                                 // Add the person to the resource
                                 if (author != null)
-                                    await resourceManager.AddRelatedPersonToResourceAsync(resourceId, author.Id);
+                                    await resourceManager.AddAuthorToResourceAsync(resourceId, author.Id);
                             }
                         }
 
