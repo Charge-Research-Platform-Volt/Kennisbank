@@ -79,7 +79,7 @@ Instructions:
 2. Generate new, relevant tags that accurately reflect the content of these chunks.
 3. Do not repeat or include any tags that have already been generated (see the list below).
 4. The tags should be in English.
-5. Generate 4 to 6 new tags based on the content provided. 
+5. Generate 5 to 7 new tags based on the content provided. 
 6. Ensure all tags are concise, specific, and directly related to the content.
 
 Previously Generated Tags:

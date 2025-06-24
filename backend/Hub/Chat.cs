@@ -357,7 +357,7 @@ public class Chat : Hub
         var search = await _ragSystem.QdrantClient.QueryAsync(
             _ragSystem.CollectionName,
             query: embeddingData,
-            limit: 10
+            limit: 100
         );
 
         var data = new

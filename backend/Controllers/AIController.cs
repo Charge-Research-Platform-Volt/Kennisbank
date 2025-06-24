@@ -66,9 +66,7 @@ public class AIController : ControllerBase
                 }
             }
 
-
-            _logger.Information("No existing AI-generated tags found for resource {ResourceId}. Generating new tags.", id);
-            return Ok(new ApiResponse(true, "Tags generated successfully", new { Tags = _ragManger.GenerateTagsAsync(id) }));
+            return Ok(new ApiResponse(true, "Tags generated successfully", new { Tags = new List<string>() }));
         }
         catch (Exception)
         {

@@ -91,7 +91,7 @@ public class RAGManger
 
                 // * STEP 2: Text Chunking
                 // Split the extracted text into smaller chunks suitable for embedding generation
-                chunks.AddRange(_ragSystem.Toolbox.SplitTextIntoChunks(extractedText, false, markdownSplit: false));
+                chunks.AddRange(_ragSystem.Toolbox.SplitTextIntoChunks(extractedText, logChunks: false, markdownSplit: false));
 
                 _logger.Information("Successfully extracted and chunked text into {ChunkCount} segments for resource ID: {Id}", chunks.Count, id);
             }
@@ -193,7 +193,7 @@ public class RAGManger
     private async Task ProcessDocumentChunksAsync(string id, HashSet<string> uniqueTags, ChatCompletionOptions options)
     {
         ulong offset = 0;
-        const ulong batchSize = 20;
+        const ulong batchSize = 1000;
 
         while (true)
         {

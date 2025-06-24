@@ -299,38 +299,53 @@ public class RAGSystem
     /// <exception cref="Exception">Logs an error if embedding generation fails and continues with placeholder vectors.</exception>
     public async Task CreatePoints(Guid id, List<string> chunks)
     {
+        _logger.Information("Creating points for resource ID: {ResourceId}", id);
+        _logger.Debug("Chunks count: {ChunksCount}", chunks.Count);
+
         List<PointStruct> pointsList = [];
 
         try
         {
-            Response<EmbeddingsResult> response = await GenerateEmbeddings(chunks);
+            const int batchSize = 96; // Maximum allowed by the API
+            int totalProcessed = 0;
 
-            foreach (EmbeddingItem item in response.Value.Data)
+            for (int i = 0; i < chunks.Count; i += batchSize)
             {
-                float[]? embeddingData = item.Embedding.ToObjectFromJson<float[]>();
-                if (embeddingData == null || embeddingData.Length == 0) continue;
+                var batch = chunks.Skip(i).Take(batchSize).ToList();
+                Response<EmbeddingsResult> response = await GenerateEmbeddings(batch);
 
-                string ChunkTypeString = item.Index == 0 ? ChunkType.MetaData.ToString() : ChunkType.ContentText.ToString();
-
-                CustomPayload customPayload = new CustomPayload
+                foreach (EmbeddingItem item in response.Value.Data)
                 {
-                    ResourceId = id.ToString(),
-                    ChunkType = ChunkTypeString,
-                    ChunkText = chunks[item.Index],
-                    ChunkPart = item.Index
-                };
+                    float[]? embeddingData = item.Embedding.ToObjectFromJson<float[]>();
+                    if (embeddingData == null || embeddingData.Length == 0) continue;
 
-                PointStruct point = new PointStruct();
-                point.Id = Guid.NewGuid();
-                point.Vectors = embeddingData;
-                point.Payload.Add(customPayload.ToPayload());
+                    int actualIndex = totalProcessed + item.Index;
+                    string ChunkTypeString = actualIndex == 0 ? ChunkType.MetaData.ToString() : ChunkType.ContentText.ToString();
 
-                pointsList.Add(point);
+                    CustomPayload customPayload = new()
+                    {
+                        ResourceId = id.ToString(),
+                        ChunkType = ChunkTypeString,
+                        ChunkText = chunks[actualIndex],
+                        ChunkPart = actualIndex
+                    };
+
+                    PointStruct point = new()
+                    {
+                        Id = Guid.NewGuid(),
+                        Vectors = embeddingData
+                    };
+                    point.Payload.Add(customPayload.ToPayload());
+
+                    pointsList.Add(point);
+                }
+
+                totalProcessed += batch.Count;
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            _logger.Error("Failed to generate embeddings for the chunks. Ensure the Azure OpenAI service is configured correctly.");
+            _logger.Error(ex, "Failed to generate embeddings for the chunks.");
             _logger.Information("Indexing only the text without embeddings");
 
             int index = 0;
