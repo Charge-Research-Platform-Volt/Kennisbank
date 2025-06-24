@@ -273,13 +273,13 @@ export async function UploadNewLargeResource(form: z.infer<typeof resourceCreate
       const end = Math.min(start + MAX_CHUNK_SIZE, file.size);
       const chunk = file.slice(start, end);
 
-      const blockId = Buffer.from(`block-${i}`).toString('base64');
+      const blockId = Buffer.from(i.toString().padStart(8, '0')).toString('hex');
       blockIds.push(blockId);
 
       try {
         await UploadChunk(resourceId, fileType, blockId, chunk);
-      } catch {
-        throw new Error(`Failed to upload chunk ${i+1}/${numberOfChunks}`);
+      } catch (error) {
+        throw new Error(`Failed to upload chunk ${i+1}/${numberOfChunks}. ERROR: ${error}`);
       }
     }
 

@@ -28,11 +28,13 @@ namespace KnowledgeBank.Data
     {
         public Stream FileStream { get; }
         public IDictionary<string, string> Metadata { get; }
+        public long ContentLength { get; }
 
-        public BlobDownloadResponse(Stream stream, IDictionary<string, string> metadata)
+        public BlobDownloadResponse(Stream stream, IDictionary<string, string> metadata, long ContentLength)
         {
             this.FileStream = stream;
             this.Metadata = metadata;
+            this.ContentLength = ContentLength;
         }
     }
 
@@ -232,23 +234,33 @@ namespace KnowledgeBank.Data
         /// <inheritdoc/>
         public async Task<BlobDownloadResponse?> DownloadBlobAsync(string containerName, string blobName)
         {
-            BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
-            BlobClient blob = container.GetBlobClient(blobName);
+            BlobContainerClient containerClient = blobService.GetBlobContainerClient(containerName);
+            BlobClient blobClient = containerClient.GetBlobClient(blobName);
 
-            if (!await blob.ExistsAsync())
+            if (!await blobClient.ExistsAsync())
             {
-                logger.Information("Blob {BlobName} not found in container {ContainerName}.", blobName, containerName);
+                logger.Information("Blob '{BlobName}' not found in container '{ContainerName}'.", blobName, containerName);
                 return null;
             }
 
-            MemoryStream stream = new MemoryStream();
-            await blob.DownloadToAsync(stream);
-            stream.Position = 0;
+            // Use DownloadAsync to get a stream directly from the blob
+            Response<BlobDownloadInfo> blobResponse = await blobClient.DownloadAsync();
 
-            BlobProperties props = await blob.GetPropertiesAsync();
+            if (blobResponse == null || blobResponse.Value == null || blobResponse.Value.Content == null)
+            {
+                logger.Warning("Blob '{BlobName}' not found or content is null in container '{ContainerName}'.", blobName, containerName);
+                return null;
+            }
+
+            // Extract the actual streaming content and metadata
+            Stream blobStream = blobResponse.Value.Content;
+            IDictionary<string, string> metadata = blobResponse.Value.Details.Metadata;
+
+            long contentLength = blobResponse.Value.Details.ContentLength;
 
             logger.Information("Blob {BlobName} downloaded from container {ContainerName}.", blobName, containerName);
-            return new BlobDownloadResponse(stream, props.Metadata);
+
+            return new BlobDownloadResponse(blobStream, metadata, contentLength);
         }
 
         /// <inheritdoc/>

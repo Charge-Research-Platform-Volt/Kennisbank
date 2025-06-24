@@ -20,6 +20,7 @@ using System.Text.Json;
 using System.Buffers.Text;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
+using Azure.Storage.Blobs.Models;
 using System.Linq.Expressions;
 
 namespace KnowledgeBank.Controllers 
@@ -324,10 +325,39 @@ namespace KnowledgeBank.Controllers
                         contentType = type;
                 }
 
-                // Return the file
-                logger.Information("Downloaded file with ID '{ID}' successfully.", id);
-                return File(response.FileStream, contentType, fileName);
+                logger.Information("Streaming file with ID '{ID}' to client.", id);
+                string BlobHeader; // Header determining whether we should open the file in the browser in a tab or it should download directly
+                const long maxFileSize = 500 * 1024 * 1024; // Some browsers only support up to 512, so 500 MB should be the max
+
+                // As long as it is NOT a ppt or a .txt it can be opened in the browser and downloaded
+                bool canBeOpened = (
+                    contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase) ||
+                    contentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) ||
+                    contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ||
+                    contentType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase));
+
+                // Check if file is less than 500MB size and can be opened in another tab, change the headers based on that
+                if (canBeOpened && (response.ContentLength <= maxFileSize))
+                    BlobHeader = $"inline; filename=\"{fileName}\"";
+
+                else
+                {
+                    // Big files or ppt get downloaded
+                    BlobHeader = $"attachment; filename=\"{fileName}\"";
+                    logger.Information("The file with id:{ID} is unsupported for opening in browser or too large, so downloading directly to user system.", id);
+
+                }
+
+                Response.ContentType = contentType;
+                Response.Headers.Add("Content-Disposition", BlobHeader); // add the header
+
+                // Copy the blob stream directly to the HTTP response body to not buffer all of it in backend memory and get error 137 again
+                await response.FileStream.CopyToAsync(Response.Body);
+
+                logger.Information("File with ID '{ID}' downloaded successfully.", id);
+                return new EmptyResult();
             }
+
             catch (Exception e)
             {
                 logger.Error(e, "Error downloading resource with ID {ID}.", id);
@@ -1040,6 +1070,12 @@ namespace KnowledgeBank.Controllers
 
                 await resourceManager.Commit();
                 
+                if (dto is FileResourceCreateDto fileDto && fileDto.File != null) 
+                {
+                    string extension = Path.GetExtension(fileDto.File.FileName).Replace(".", "");
+                    await resourceManager.UpdateResourceAsync(id, r => r.FileExt, extension);
+                }
+                
                 // Return the resource Id
                 return Ok(new ApiResponse(true, "Upload session initialized", id));
             }
@@ -1080,12 +1116,8 @@ namespace KnowledgeBank.Controllers
             {
                 Guid parsedResourceId = Guid.Parse(resourceId);
                 
-                // Make sure blockId is base64 encoded
-                string base64BlockId = blockId;
-                if (!Base64.IsValid(blockId))
-                {
-                    base64BlockId = Convert.ToBase64String(Encoding.UTF8.GetBytes(blockId));
-                }
+                // Convert hex blockId to base64
+                string base64BlockId = Convert.ToBase64String(Convert.FromHexString(blockId));
                 
                 // Get container
                 BlobContainerClient container = await blobService.GetOrCreateContainerAsync(fileType);
@@ -1145,18 +1177,38 @@ namespace KnowledgeBank.Controllers
                 string extension = Path.GetExtension(finalizeDto.FileName);
                 string fileType = Filetype.ConvertExtensionToFiletype(extension);
                 
-                // Convert blockIds to base64 if needed
-                List<string> base64BlockIds = finalizeDto.BlockIds.Select(id => 
-                    Base64.IsValid(id) ? id : Convert.ToBase64String(Encoding.UTF8.GetBytes(id))).ToList();
-                
+                // Convert blockIds to base64
+                List<string> base64BlockIds;
+                try 
+                {
+                    base64BlockIds = finalizeDto.BlockIds.Select(id => 
+                        Convert.ToBase64String(Convert.FromHexString(id))).ToList();
+                }
+                catch (Exception hexException)
+                {
+                    logger.Error(hexException, "Failed to convert block IDs from hex to base64 for resource {ResourceId}", resourceId);
+                    return BadRequest(new ApiResponse(false, "Invalid block ID format, unable to convert from hex."));
+                }
+                    
                 // Create metadata to add to blob
                 Dictionary<string, string> metadata = new() { { "extension", extension } };
                 
                 BLOB_STATUSCODE code = await blobService.CommitBlockListAsync(resourceId.ToString(), fileType, base64BlockIds, metadata);
                 
-                logger.Information("Large file upload finalized for resource {ResourceId}", resourceId);
-                
-                return Ok(new ApiResponse(true, "File upload finalized successfully", resourceId));
+                switch (code)
+                {
+                    case BLOB_STATUSCODE.OK:
+                        logger.Information("Large file upload finalized successfully for resource {ResourceId}", resourceId);
+                        return Ok(new ApiResponse(true, "File upload finalized successfully", resourceId));
+                    case BLOB_STATUSCODE.FAILED:
+                        logger.Error("Block list commit failed for resource {ResourceId}, some blocks may be missing or invalid", resourceId);
+                        await resourceManager.Rollback();
+                        return Conflict(new ApiResponse(false, "Failed to commit block list. Some uploaded blocks may be missing or invalid."));
+                    default:
+                        logger.Error("Unexpected blob service response {StatusCode} for resource {ResourceId}", code, resourceId);
+                        await resourceManager.Rollback();
+                        return StatusCode(500, new ApiResponse(false, "Unexpected error during finalization."));
+                }
             }
             catch (Exception e)
             {
@@ -1194,7 +1246,6 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Delete the database entry
-                await resourceManager.BeginTransaction();
                 string? fileType = await resourceManager.GetResourcePropertyOrDefaultAsync(parsedResourceId.ToString(), "FileType");
                 if (fileType is not null)
                 {
@@ -1217,7 +1268,6 @@ namespace KnowledgeBank.Controllers
                         logger.Error("Error deleting blob {ResourceId} in storage", resourceId);
                         return StatusCode(500, new ApiResponse(false, "Error deleting blob in storage"));
                     }
-            
                 }
                 else
                 {
@@ -1410,8 +1460,15 @@ namespace KnowledgeBank.Controllers
                 else if (c == ' ' && !preserveSpaces)
                     sb.Append('_');
 
-                // If char is valid, append
-                else if (!invalidChars.Contains(c))
+                // If char is valid, append, this also means excluding header specific invalid chars!
+                else if (!invalidChars.Contains(c) &&
+                            c != '’' &&
+                            c != '‘' &&
+                            c != '“' &&
+                            c != '”' &&
+                            c != '—' &&
+                            c != '–' &&
+                            c != '…')
                     sb.Append(c);
 
                 // If char is invalid, put underscore
