@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import React from "react";
 import "@/app/globals.css";
@@ -8,7 +8,9 @@ import type { ColDef, GridReadyEvent, RowClickedEvent, SortChangedEvent } from "
 import { tableTheme } from "@/lib/tableConfig";
 import { MetadataTypeEnum, useSidebar } from "@/context/sidebar-provider";
 import GetFileIcon from "../getFileIcon";
+import { ApiResponse } from "@/types/apiResponse.type";
 import { useArchive } from "@/context/archive-provider";
+import { GridRequest, GridRequestSchema } from "@/types/gridRequest.type";
 import OpenFileButton from "../open-file-button";
 import RestoreIcon from "@/icons/restore-icon";
 import { Button } from "@/components/ui/button";
@@ -16,25 +18,15 @@ import { UntrashResource } from "@/actions/trashResourceActions";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-export type ResourceResponse = {
-  items: ResourceItem[];
-  searchTerm?: string;
-  isSearchResult?: boolean;
-  totalCount: number;
-  pageIndex: number;
-  pageSize: number;
-};
-
-export type ResourceItem = {
-  id: string;
-  name: string;
-  description: string;
-  publicationDate: string;
-  type: MetadataTypeEnum;
-  fileType: string;
-  creationDate: string;
-  chunks?: string[];
-};
+export type ResourceGridItem =
+{
+    id: string;
+    name: string;
+    publicationDate: string;
+    type: MetadataTypeEnum;
+    fileType: string;
+    creationDate: string;
+}
 
 export default function ResourcesGrid() 
 {
@@ -261,5 +253,4 @@ export default function ResourcesGrid()
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
-
 
