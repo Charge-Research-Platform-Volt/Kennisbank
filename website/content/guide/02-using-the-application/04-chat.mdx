@@ -1,6 +1,162 @@
 ---
 title: "Chatbot"
-description: "Learn how to use the chatbot"
+description: "Learn how to use the AI-powered chatbot to get answers from your uploaded resources"
 ---
 
-Work in progress
+## Introduction
+
+By the end of this guide, you'll be able to:
+
+- Access and use the AI-powered chatbot effectively
+- Ask questions that get the most relevant answers from your resources
+- Understand how the chatbot retrieves information from uploaded content
+- Use advanced questioning techniques for better results
+
+## Prerequisites 
+
+Before you begin, make sure you have:
+
+- [Logged in to your account](/guide/01-getting-started/02-login)
+- [Uploaded some resources to query against](/guide/02-using-the-application/03-new)
+- Basic understanding of your organization's uploaded content
+
+## Overview
+
+The chatbot is an AI-powered assistant that can answer questions based on the content of all uploaded resources in your KnowledgeBank. The chatbot uses Retrieval-Augmented Generation (RAG) technology to provide accurate, context-aware responses by leveraging the same underlying LLM and retrieval system used for Intelligent Search.
+
+![Chatbot interface](/images/guides/chatbot-interface.png)
+*The chatbot interface showing a conversation with contextual answers*
+
+## How the Chatbot Works
+
+The chatbot uses Retrieval-Augmented Generation (RAG) technology to provide accurate answers:
+
+1. **Question Processing:** When you ask a question, the system embeds your question using the same embedding model used when content was stored in the vector database
+2. **Content Retrieval:** A similarity search is performed in the vector database to find relevant content chunks related to your question
+3. **Answer Generation:** The retrieved content chunks are provided to the Large Language Model for chat completion
+4. **Response Delivery:** The LLM generates a response based on the retrieved information, which is then returned to you
+
+<Callout title="Content Coverage">
+The chatbot can access and analyze content from Word documents, PDFs, and PowerPoint files that have been uploaded to the system. For document resources, the system extracts and processes the full content. For non-document resources, the system uses titles and descriptions.
+</Callout>
+
+### Context Modes
+
+The chatbot offers two distinct modes of operation, controlled by the purple "KB" button in the interface:
+
+**KnowledgeBank Mode (KB Active):**
+
+- When the KB button is active, the chatbot limits its responses to information found in your uploaded resources
+- Answers are generated exclusively using the RAG system and the content stored in your vector database
+- This ensures all responses are based on your organization's specific documents and information
+
+**General AI Mode (KB Inactive):**
+
+- When the KB button is not active, the chatbot operates as a general AI assistant
+- Can answer questions using its broader knowledge base beyond your uploaded resources
+- Useful for general research, definitions, or topics not covered in your KnowledgeBank
+
+![KB button](/images/guides/kb-button.png)
+*The KB button, used to toggle between context modes*
+
+## Accessing the Chatbot
+
+### Starting a Conversation
+
+1. **Open the chat interface** by clicking the chat section
+2. **Type your question** in the message input field at the bottom
+3. **Press Enter** or click the send button
+4. **Wait for the response** - the AI will process your question and provide an answer
+
+## Asking Effective Questions
+
+### Types of Questions That Work Well
+
+**Policy Research Questions:**
+- "What are the key provisions of the European integration strategy?"
+- "How many citizens participated in the consultation on EU directives?"
+- "What are the main findings from the trade policy analysis?"
+
+**Legislative Analysis Questions:**
+- "What are the budget implications mentioned in the digital single market proposal?"
+- "How has public support for European cooperation changed over recent years?"
+- "What recommendations were made by the committee on climate and energy policy?"
+
+**Comparative Policy Questions:**
+- "How do our environmental targets compare to EU standards?"
+- "What are the differences between the current migration policy and the European framework?"
+- "Which policy areas show the strongest alignment with European values?"
+
+**Briefing and Summary Requests:**
+- "Summarize the key points from the European affairs committee meeting"
+- "What are the main concerns raised in the public consultation on trade agreements?"
+- "Give me an overview of the proposed digital rights legislation"
+
+### Question Formatting Tips
+
+**Be Specific:**
+- Poor: "Tell me about the policy"
+- Better: "What are the implementation timelines for the European Green Deal initiatives?"
+
+**Provide Context:**
+- Poor: "What's the budget?"
+- Better: "What funding is allocated for cross-border infrastructure projects?"
+
+**Use Natural Language:**
+- Poor: "EU policy 2024 implementation"
+- Better: "How will the new EU regulations be implemented in our jurisdiction?"
+
+**Ask Follow-up Questions:**
+- Build on previous responses for deeper insights
+- Reference earlier parts of your conversation for context
+- Ask for clarification 
+
+## Understanding Responses
+
+### Response Components
+
+**Answer:**
+- The primary response to your question
+- Generated based on relevant content from your resources
+- Written in natural, conversational language
+
+**Source References:**
+- Citations showing which resources were used
+- Links to original documents when available
+
+## How the System Works
+
+The chatbot leverages the same RAG (Retrieval-Augmented Generation) system used for Intelligent Search. When you ask a question, the system:
+
+1. **Embeds your question** using the same embedding model used during content processing
+2. **Searches the vector database** to find the most relevant content chunks
+3. **Retrieves relevant information** from uploaded resources based on similarity matching
+4. **Generates a response** using the Large Language Model with the retrieved context
+5. **Returns the answer** based on the information found in your uploaded resources
+
+The system can process and understand content from Word documents, PDFs, and PowerPoint files, using both the extracted text content and resource metadata like titles and descriptions.
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| No relevant answers found | • Check if related content has been uploaded<br/>• Try rephrasing your question<br/>• Use broader or more general terms |
+| Incomplete or vague responses | • Ask more specific questions<br/>• Provide additional context<br/>• Break complex questions into smaller parts |
+| Outdated information | • Ensure latest versions of documents are uploaded<br/>• Check if newer resources need to be added<br/>• Specify time periods in your questions |
+| Sources not showing | • This may indicate the answer is synthesized from multiple sources<br/>• Ask for specific source information<br/>• Try more targeted questions about specific documents |
+
+## Next Steps
+
+Now that you understand the chatbot:
+
+- [Explore how AI-generated tags can improve content organization](/guide/02-components/03-tags)
+
+## Need Help?
+
+If you need assistance:
+
+- Try rephrasing your questions using different terminology
+- Contact administrators about adding missing content to the knowledge base
+- Review existing resources to understand what information is available
+- Ask colleagues about effective questioning strategies they've discovered
+- Continue with the guide!
