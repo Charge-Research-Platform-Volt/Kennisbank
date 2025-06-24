@@ -241,15 +241,20 @@ export default function NewResource({ personOptions, organisationOptions, resour
         
         setIsChecking(true);
         
-        const fileHasher = getFileHasher();
-        const result = await fileHasher.checkDuplicate(file);
+        const MAX_HASH_FILE_SIZE = 2 * 1024 * 1024 * 1024;
+        if (file.size < MAX_HASH_FILE_SIZE) {
+            const fileHasher = getFileHasher();
+            const result = await fileHasher.checkDuplicate(file);
         
-        setDuplicateId(result.isDuplicate ? result.id : "");
-        form.setValue("hash", result.hash);
+            setDuplicateId(result.isDuplicate ? result.id : "");
+            form.setValue("hash", result.hash);
         
-        // Display a toast
-        if (result.isDuplicate)
-            toast.warning("This file already exists!");
+            // Display a toast
+            if (result.isDuplicate)
+                toast.warning("This file already exists!");
+        } else {
+            form.setValue("hash", '')
+        }
         
         form.trigger("file");
         
