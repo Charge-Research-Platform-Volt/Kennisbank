@@ -1,0 +1,108 @@
+---
+title: ProjectFolderRelation
+---
+import { CollapsibleInherited } from "@/components/collapsible"
+import { TypeTable } from "@/components/type_table"
+import { CSharpType } from "@/components/csharp_type"
+
+
+Namespace: <a href='../Models'>KnowledgeBank.Models</a>  
+Assembly: backend.dll  
+
+Relation describing that of 2 projects, with the parent being either a root project or a folder,
+while the child can only be a folder. Has navigation properties to the parent/child "folder". This
+is a many-to-many relationship.
+
+Author: Justin Liem
+
+```csharp
+[Table("project-folder")]
+public class ProjectFolderRelation
+```
+
+#### Inheritance
+
+<a href='https://learn.microsoft.com/dotnet/api/system.object' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='object' /></a> ← <a href='' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ProjectFolderRelation' /></a>
+
+
+
+<CollapsibleInherited title='Show Inherited Members (7)'>
+[object.Equals\(object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\)), 
+[object.Equals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\-system\-object\)), 
+[object.GetHashCode\(\)](https://learn.microsoft.com/dotnet/api/system.object.gethashcode), 
+[object.GetType\(\)](https://learn.microsoft.com/dotnet/api/system.object.gettype), 
+[object.MemberwiseClone\(\)](https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone), 
+[object.ReferenceEquals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.referenceequals), 
+[object.ToString\(\)](https://learn.microsoft.com/dotnet/api/system.object.tostring)
+</CollapsibleInherited>
+
+---
+## Properties
+
+---
+###  AddedBy
+
+```csharp
+[Column("added-by")]
+public string? AddedBy { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>?
+
+---
+###  ChildFolder
+
+```csharp
+[ForeignKey("ChildId")]
+[JsonIgnore]
+public Project? ChildFolder { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='Project' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Project' /></a>?
+
+---
+###  ChildId
+
+```csharp
+[Column("child-id")]
+public required Guid ChildId { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.guid' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Guid' /></a>
+
+---
+###  ParentFolder
+
+```csharp
+[ForeignKey("ParentId")]
+[JsonIgnore]
+public Project? ParentFolder { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='Project' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Project' /></a>?
+
+---
+###  ParentId
+
+```csharp
+[Column("parent-id")]
+public required Guid ParentId { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.guid' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Guid' /></a>
+

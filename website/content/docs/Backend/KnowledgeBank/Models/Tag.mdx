@@ -61,6 +61,19 @@ public DateTime? ApprovedOn { get; set; }
  <a href='https://learn.microsoft.com/dotnet/api/system.datetime' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DateTime' /></a>?
 
 ---
+###  CanEditAndDelete
+
+```csharp
+[NotMapped]
+public bool CanEditAndDelete { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.boolean' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='bool' /></a>
+
+---
 ###  CreatedBy
 
 ```csharp
@@ -140,15 +153,28 @@ public required string Name { get; set; }
  <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>
 
 ---
-###  Resources
+###  ResourceTagRelations
 
 ```csharp
 [JsonIgnore]
-public ICollection<ResourceTagRelation>? Resources { get; set; }
+public ICollection<ResourceTagRelation>? ResourceTagRelations { get; set; }
 ```
 
 ---
 #### Property Value
 
  <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='ResourceTagRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceTagRelation' /></a>\>?
+
+---
+###  UsageCount
+
+```csharp
+[NotMapped]
+public int UsageCount { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.int32' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='int' /></a>
 

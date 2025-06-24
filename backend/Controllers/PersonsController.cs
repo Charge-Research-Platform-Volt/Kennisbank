@@ -408,7 +408,7 @@ namespace KnowledgeBank.Controllers
 
                 string projectionString = $"new({properties})";
 
-                Expression<Func<Person, bool>>? predicate = searchQuery != null ? p => (EF.Functions.TrigramsAreSimilar(p.Name, searchQuery) ||
+                Expression<Func<Person, bool>>? predicate = searchQuery != null ? p => (/*EF.Functions.TrigramsAreSimilar(p.Name, searchQuery) || {NOT ALLOWED IN AZURE POSTGRES} */
                                                                                             EF.Functions.ILike(p.Name, $"{searchQuery}%") ||
                                                                                             EF.Functions.ILike(p.Name, $"%{searchQuery}%"))
                                                                                             && p.Trashed == trash

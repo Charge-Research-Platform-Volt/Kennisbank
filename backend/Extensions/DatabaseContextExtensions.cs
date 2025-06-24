@@ -20,8 +20,8 @@ public static class DatabaseContextExtensions
         try 
         {
             // Step 0: Enable required extensions for fuzzy search
-            await context.Database.ExecuteSqlRawAsync(@"
-                CREATE EXTENSION IF NOT EXISTS pg_trgm;");
+            // await context.Database.ExecuteSqlRawAsync(@"
+            //     CREATE EXTENSION IF NOT EXISTS pg_trgm;");
         
             // Step 1: Drop existing objects
             await context.Database.ExecuteSqlRawAsync(@"
@@ -119,11 +119,11 @@ public static class DatabaseContextExtensions
             await context.Database.ExecuteSqlRawAsync(@"
                 CREATE INDEX idx_resourcegridview_search ON ResourceGridView USING GIN(""SearchVector"");");
 
-            await context.Database.ExecuteSqlRawAsync(@"
-                CREATE INDEX idx_resourcegridview_name_trgm ON ResourceGridView USING GIN(""Name"" gin_trgm_ops);");
+            // await context.Database.ExecuteSqlRawAsync(@"
+            //     CREATE INDEX idx_resourcegridview_name_trgm ON ResourceGridView USING GIN(""Name"" gin_trgm_ops);");
 
-            await context.Database.ExecuteSqlRawAsync(@"
-                CREATE INDEX idx_resourcegridview_desc_trgm ON ResourceGridView USING GIN(""Description"" gin_trgm_ops);");
+            // await context.Database.ExecuteSqlRawAsync(@"
+            //     CREATE INDEX idx_resourcegridview_desc_trgm ON ResourceGridView USING GIN(""Description"" gin_trgm_ops);");
 
             // Step 4: Create refresh function
             await context.Database.ExecuteSqlRawAsync(@"

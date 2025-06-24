@@ -1,19 +1,25 @@
+using KnowledgeBank.Models;
+
 namespace KnowledgeBank.Responses;
 
 public struct UserResponse
 {
     public Guid Id { get; }
-    public string? Username { get; }
+    public string? FirstName { get; }
+    public string? LastName { get; }
     public string? Email { get; }
-    public bool emailConfirmed { get; }
+    public int? CustomAvatarVersion { get; }
+    public bool EmailConfirmed { get; }
     public string Role { get; }
 
-    public UserResponse(Guid id, string? username, string? email, bool emailConfirmed, string role)
+    public UserResponse(User user, string role)
     {
-        this.Id = id;
-        this.Username = username;
-        this.Email = email;
-        this.emailConfirmed = emailConfirmed;
+        this.Id = new Guid(user.Id);
+        this.FirstName = user.FirstName;
+        this.LastName = user.LastName;
+        this.Email = user.Email!;
+        this.CustomAvatarVersion = user.HasCustom ? user.CustomAvatarVersion : null;
+        this.EmailConfirmed = user.EmailConfirmed;
         this.Role = role;
     }
 }

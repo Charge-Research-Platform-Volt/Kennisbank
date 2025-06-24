@@ -1,0 +1,94 @@
+---
+title: ProjectCreatorRelation
+---
+import { CollapsibleInherited } from "@/components/collapsible"
+import { TypeTable } from "@/components/type_table"
+import { CSharpType } from "@/components/csharp_type"
+
+
+Namespace: <a href='../Models'>KnowledgeBank.Models</a>  
+Assembly: backend.dll  
+
+Relation describing that of a project and a creator. Has navigation properties of
+the corresponding project and creator. This is a many-to-many relationship.
+
+Author: Justin Liem
+
+```csharp
+[Table("project-creator")]
+public class ProjectCreatorRelation
+```
+
+#### Inheritance
+
+<a href='https://learn.microsoft.com/dotnet/api/system.object' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='object' /></a> ← <a href='' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ProjectCreatorRelation' /></a>
+
+
+
+<CollapsibleInherited title='Show Inherited Members (7)'>
+[object.Equals\(object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\)), 
+[object.Equals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\-system\-object\)), 
+[object.GetHashCode\(\)](https://learn.microsoft.com/dotnet/api/system.object.gethashcode), 
+[object.GetType\(\)](https://learn.microsoft.com/dotnet/api/system.object.gettype), 
+[object.MemberwiseClone\(\)](https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone), 
+[object.ReferenceEquals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.referenceequals), 
+[object.ToString\(\)](https://learn.microsoft.com/dotnet/api/system.object.tostring)
+</CollapsibleInherited>
+
+---
+## Properties
+
+---
+###  Creator
+
+```csharp
+[JsonIgnore]
+public User? Creator { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='User' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='User' /></a>?
+
+---
+###  CreatorId
+
+```csharp
+[Column("creator-id")]
+[ForeignKey("Creator")]
+public required string CreatorId { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>
+
+---
+###  Project
+
+```csharp
+[JsonIgnore]
+public Project? Project { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='Project' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Project' /></a>?
+
+---
+###  ProjectId
+
+```csharp
+[Column("project-id")]
+[ForeignKey("Project")]
+public required Guid ProjectId { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.guid' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Guid' /></a>
+

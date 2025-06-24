@@ -15,11 +15,12 @@ import Divider from "../divider";
 import ProfileDropdown from "./profile-dropdown";
 import { cn } from "@/lib/utils";
 import { usePathname, useSearchParams } from "next/navigation";
+import { UserData } from "@/types/user.type";
+import ShowMenu from "@/icons/menu/show-menu";
 
 /**
  *
- * @param userEmail - Email of the user
- * @param userRole - Role of the user (admin or user currently)
+ * @param userData - Data of the user
  * @param menuItems - Menu items to display (home, archive, tags)
  * @param projects - Recent projects to display
  * @param bottomMenuItems - Items at the bottom of the sidebar (settings, help)
@@ -27,14 +28,12 @@ import { usePathname, useSearchParams } from "next/navigation";
  * @returns The left side bar
  */
 export default function LeftSidebarClient({
-  userEmail,
-  userName,
+  userData,
   menuItems,
   projects,
   bottomMenuItems,
 }: {
-  userEmail: string;
-  userName: string;
+  userData: UserData;
   menuItems: SidebarItem[];
   projects: SidebarItem[];
   bottomMenuItems: SidebarItem[];
@@ -191,7 +190,7 @@ export default function LeftSidebarClient({
 
           {/* Account settings and help */}
           <li>
-            <ProfileDropdown handleLogoutAction={handleLogout} userEmail={userEmail} userName={userName} minimize={open} />
+            <ProfileDropdown handleLogoutAction={handleLogout} userData={userData} minimize={open} />
           </li>
         </ul>
       </nav>

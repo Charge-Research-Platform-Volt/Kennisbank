@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace KnowledgeBank.Data
 {
-    public class DatabaseContext : IdentityDbContext
+    public class DatabaseContext : IdentityDbContext<User>
     {
         public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options) { }
 
@@ -13,7 +13,6 @@ namespace KnowledgeBank.Data
         public DbSet<Project> Projects { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<ResourceTagRelation> ResourceTagRelations { get; set; }
-        public DbSet<User> AppUsers { get; set; } // Renamed to avoid conflict with IdentityDbContext.Users
         public DbSet<Invitation> Invitations { get; set; }
         public DbSet<DocumentMetadata> DocumentMetadata { get; set; }
         public DbSet<WebsiteMetadata> WebsiteMetadata { get; set; }
@@ -49,7 +48,7 @@ namespace KnowledgeBank.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.HasPostgresExtension("pg_trgm");
+            // modelBuilder.HasPostgresExtension("pg_trgm");
 
             modelBuilder.Entity<ResourceTagRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.TagId }); // Define composite primary key

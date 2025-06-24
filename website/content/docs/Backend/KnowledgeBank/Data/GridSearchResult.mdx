@@ -1,0 +1,108 @@
+---
+title: GridSearchResult
+---
+import { CollapsibleInherited } from "@/components/collapsible"
+import { TypeTable } from "@/components/type_table"
+import { CSharpType } from "@/components/csharp_type"
+
+
+Namespace: <a href='../Data'>KnowledgeBank.Data</a>  
+Assembly: backend.dll  
+
+Class to hold data for a search result on the grid
+
+```csharp
+public class GridSearchResult
+```
+
+#### Inheritance
+
+<a href='https://learn.microsoft.com/dotnet/api/system.object' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='object' /></a> ← <a href='' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='GridSearchResult' /></a>
+
+
+
+<CollapsibleInherited title='Show Inherited Members (7)'>
+[object.Equals\(object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\)), 
+[object.Equals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\-system\-object\)), 
+[object.GetHashCode\(\)](https://learn.microsoft.com/dotnet/api/system.object.gethashcode), 
+[object.GetType\(\)](https://learn.microsoft.com/dotnet/api/system.object.gettype), 
+[object.MemberwiseClone\(\)](https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone), 
+[object.ReferenceEquals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.referenceequals), 
+[object.ToString\(\)](https://learn.microsoft.com/dotnet/api/system.object.tostring)
+</CollapsibleInherited>
+
+---
+## Properties
+
+---
+###  IsSearchResult
+
+```csharp
+public bool IsSearchResult { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.boolean' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='bool' /></a>
+
+---
+###  Items
+
+```csharp
+public required ResourceGridItem[] Items { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='../Models/ResourceGridItem' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceGridItem' /></a>\[\]
+
+---
+###  PageIndex
+
+```csharp
+public int PageIndex { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.int32' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='int' /></a>
+
+---
+###  PageSize
+
+```csharp
+public int PageSize { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.int32' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='int' /></a>
+
+---
+###  SearchTerm
+
+```csharp
+public string? SearchTerm { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>?
+
+---
+###  TotalCount
+
+```csharp
+public int TotalCount { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.int32' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='int' /></a>
+

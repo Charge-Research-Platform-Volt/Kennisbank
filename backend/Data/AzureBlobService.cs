@@ -29,13 +29,17 @@ namespace KnowledgeBank.Data
     {
         public Stream FileStream { get; }
         public IDictionary<string, string> Metadata { get; }
+        public long ContentLength { get; }
 
-        public BlobDownloadResponse(Stream stream, IDictionary<string, string> metadata)
+        public BlobDownloadResponse(Stream stream, IDictionary<string, string> metadata, long ContentLength)
         {
             this.FileStream = stream;
             this.Metadata = metadata;
+            this.ContentLength = ContentLength;
         }
     }
+
+    public record BlobAvatarResponse(Stream stream, string contentType);
 
     /// <summary>
     /// Service for interacting with Azure Blob Storage
@@ -157,6 +161,12 @@ namespace KnowledgeBank.Data
         /// <param name="metadata">Optional metadata to associate with the blob</param>
         /// <returns>If the operation was successful</returns>
         Task<BLOB_STATUSCODE> CommitBlockListAsync(string resourceId, string containerName, List<string> blockIds, Dictionary<string, string> metadata);
+
+        /// <summary>
+        /// Retrieves a users profile picture
+        /// </summary>
+        /// 
+        Task<BlobAvatarResponse?> RetreiveUserAvatarStream(string userId);
     }
 
     /// <summary>
@@ -228,23 +238,33 @@ namespace KnowledgeBank.Data
         /// <inheritdoc/>
         public async Task<BlobDownloadResponse?> DownloadBlobAsync(string containerName, string blobName)
         {
-            BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
-            BlobClient blob = container.GetBlobClient(blobName);
+            BlobContainerClient containerClient = blobService.GetBlobContainerClient(containerName);
+            BlobClient blobClient = containerClient.GetBlobClient(blobName);
 
-            if (!await blob.ExistsAsync())
+            if (!await blobClient.ExistsAsync())
             {
-                logger.Information("Blob {BlobName} not found in container {ContainerName}.", blobName, containerName);
+                logger.Information("Blob '{BlobName}' not found in container '{ContainerName}'.", blobName, containerName);
                 return null;
             }
 
-            MemoryStream stream = new MemoryStream();
-            await blob.DownloadToAsync(stream);
-            stream.Position = 0;
+            // Use DownloadAsync to get a stream directly from the blob
+            Response<BlobDownloadInfo> blobResponse = await blobClient.DownloadAsync();
 
-            BlobProperties props = await blob.GetPropertiesAsync();
+            if (blobResponse == null || blobResponse.Value == null || blobResponse.Value.Content == null)
+            {
+                logger.Warning("Blob '{BlobName}' not found or content is null in container '{ContainerName}'.", blobName, containerName);
+                return null;
+            }
+
+            // Extract the actual streaming content and metadata
+            Stream blobStream = blobResponse.Value.Content;
+            IDictionary<string, string> metadata = blobResponse.Value.Details.Metadata;
+
+            long contentLength = blobResponse.Value.Details.ContentLength;
 
             logger.Information("Blob {BlobName} downloaded from container {ContainerName}.", blobName, containerName);
-            return new BlobDownloadResponse(stream, props.Metadata);
+
+            return new BlobDownloadResponse(blobStream, metadata, contentLength);
         }
 
         /// <inheritdoc/>
@@ -439,6 +459,25 @@ namespace KnowledgeBank.Data
                 logger.Error("Committing the blocks failed", e.Message);
                 return BLOB_STATUSCODE.FAILED;
             }
+        }
+
+        /// <inheritdoc/>
+        public async Task<BlobAvatarResponse?> RetreiveUserAvatarStream(string userId) {
+            BlobContainerClient container = blobService.GetBlobContainerClient("avatar");
+            BlobClient blob = container.GetBlobClient(userId);
+
+            if (!await blob.ExistsAsync())
+            {
+                logger.Information("Blob {BlobName} not found in avatar container.", userId);
+                return null;
+            }
+
+            // TODO: run parallel
+            BlobProperties props = await blob.GetPropertiesAsync();
+            BlobDownloadStreamingResult streamResult = (await blob.DownloadStreamingAsync()).Value;
+
+            logger.Information("Blob {BlobName} downloaded from avatar container.", userId);
+            return new BlobAvatarResponse(streamResult.Content, props.ContentType);
         }
     }
 }

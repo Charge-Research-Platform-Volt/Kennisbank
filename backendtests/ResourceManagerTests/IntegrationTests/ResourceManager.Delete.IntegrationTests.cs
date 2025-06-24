@@ -31,22 +31,19 @@ public class ResourceManagerDeleteTests : TestBase
         UserStore<User> userStore = new UserStore<User>(Context);
         _userManager = new UserManager<User>(
            userStore,
-            null,
+            null!,
             new PasswordHasher<User>(),
             new[] { new UserValidator<User>() },
             new[] { new PasswordValidator<User>() }, 
             new UpperInvariantLookupNormalizer(),
             new IdentityErrorDescriber(),
-            null, 
-            null 
+            null!, 
+            null! 
         );
 
-        User user = new() {
-            UserName = "admin",
-        };
-
+        User user = new("admin", "admin", "admin");
         await _userManager.CreateAsync(user, "Admin123!");
-        testUserId = Context.Users.FirstOrDefault(u => u.UserName == "admin").Id;
+        testUserId = Context.Users.First(u => u.UserName == "admin").Id;
 
         _mockBlobService = new Mock<IAzureBlobService>();
         _resourceManager = new ResourceManager(Context);

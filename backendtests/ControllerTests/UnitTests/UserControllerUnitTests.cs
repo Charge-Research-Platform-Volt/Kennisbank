@@ -9,6 +9,11 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using backend.Tests.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Testing;
+using KnowledgeBank;
+using KnowledgeBank.Responses;
+using System.Reflection.Metadata;
 
 namespace backend.Tests.Unit;
 
@@ -20,6 +25,7 @@ public class UserControllerUnitTests
     private Mock<UserManager<User>> _mockUserManager;
     private Mock<IOptions<OwnerUserConfig>> ownerConfigOptionsMock;
 
+    private Mock<IAzureBlobService> _blobMock;
     private UserController _controller;
 
     [SetUp]
@@ -28,9 +34,9 @@ public class UserControllerUnitTests
         // Mock UserManager<User>
         Mock<IUserStore<User>> userStoreMock = new Mock<IUserStore<User>>();
         _mockUserManager = new Mock<UserManager<User>>(
-            userStoreMock.Object, null, null, null, null, null, null, null, null
+            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!
         );
-        
+
         // Mock the OwnerUserConfig options
         var ownerConfig = new OwnerUserConfig
         {
@@ -43,8 +49,9 @@ public class UserControllerUnitTests
         ownerConfigOptionsMock = new Mock<IOptions<OwnerUserConfig>>();
         ownerConfigOptionsMock.Setup(x => x.Value).Returns(ownerConfig);
 
+        _blobMock = new Mock<IAzureBlobService>();
         _mockDbContext = new Mock<DatabaseContext>(new DbContextOptions<DatabaseContext>());
-        _controller = new UserController(_mockDbContext.Object, _mockUserManager.Object, ownerConfigOptionsMock.Object);
+        _controller = new UserController(_mockDbContext.Object, _blobMock.Object, _mockUserManager.Object, ownerConfigOptionsMock.Object);
     }
 
     private void SetUserContext(bool isAuthenticated, string? userId = null)
@@ -66,7 +73,7 @@ public class UserControllerUnitTests
     {
         // Arrange
         UpdateEmailDto dto = new UpdateEmailDto { UserId = "123", Email = "newemail@example.com" };
-        _mockUserManager.Setup(m => m.FindByIdAsync(dto.UserId)).ReturnsAsync((User)null);
+        _mockUserManager.Setup(m => m.FindByIdAsync(dto.UserId)).ReturnsAsync((User)null!);
 
         // Act
         IActionResult result = await _controller.UpdateMail(dto);
@@ -79,9 +86,9 @@ public class UserControllerUnitTests
     public async Task Delete_ReturnsNotFound_WhenUserDoesNotExist()
     {
         // Arrange
-        _mockUserManager.Setup(m => m.FindByIdAsync("123")).ReturnsAsync((User)null);
+        _mockUserManager.Setup(m => m.FindByIdAsync("123")).ReturnsAsync((User)null!);
         SetUserContext(true, "345");
-        
+
         // Act
         IActionResult result = await _controller.Delete("123");
 
@@ -89,108 +96,125 @@ public class UserControllerUnitTests
         Assert.That(result, Is.InstanceOf<NotFoundObjectResult>());
     }
 
+
+    #region GetCurrentAccount
+
+    // I am not going to test unauthorized because it should be handled by ASP NET
+
+    // Ideally an impossible scenario
     [Test]
-    public async Task GetCurrentUserName_ReturnsEmpty_WhenUnauthenticated()
+    public async Task GetCurrentAccount_Returns500_WhenAuthorizedButNoUser()
     {
         // Arrange
-        SetUserContext(false);
+        SetUserContext(true);
 
         // Act
-        var result = await _controller.GetCurrentUserName() as OkObjectResult;
+        var result = await _controller.GetCurrentAccount();
 
         // Assert
-        var json = JsonSerializer.Serialize(result.Value);
-        var doc = JsonDocument.Parse(json).RootElement;
-        Assert.That(doc.GetProperty("name").GetString(), Is.EqualTo(""));
-        Assert.That(doc.GetProperty("isAuthenticated").GetBoolean(), Is.False);
+        Assert.That(result.StatusCode, Is.EqualTo(500));
+    }
+
+    // Ideally an impossible scenario
+    [Test]
+    public async Task GetCurrentAccount_Returns500_WhenAuthorizedButUserNotFound()
+    {
+        // Arrange
+        SetUserContext(true, "John Dough");
+
+        // Act
+        var result = await _controller.GetCurrentAccount();
+
+        // Assert
+        Assert.That(result.StatusCode, Is.EqualTo(500));
     }
 
     [Test]
-    public async Task GetCurrentUserName_ReturnsEmpty_WhenNoUserIdClaim()
+    public async Task GetCurrentAccount_ReturnsUser_WhenUserExists()
     {
         // Arrange
-        SetUserContext(true); // Authenticated, but no NameIdentifier
-
-        // Act
-        var result = await _controller.GetCurrentUserName() as OkObjectResult;
-
-        // Assert
-        var json = JsonSerializer.Serialize(result.Value);
-        var doc = JsonDocument.Parse(json).RootElement;
-        Assert.That(doc.GetProperty("name").GetString(), Is.EqualTo(""));
-        Assert.That(doc.GetProperty("isAuthenticated").GetBoolean(), Is.True);
-    }
-
-    [Test]
-    public async Task GetCurrentUserName_ReturnsEmpty_WhenUserNotFound()
-    {
-        // Arrange
-        SetUserContext(true, "user123");
-        _mockUserManager.Setup(m => m.FindByIdAsync("user123")).ReturnsAsync((User)null);
-
-        // Act
-        var result = await _controller.GetCurrentUserName() as OkObjectResult;
-
-        // Assert
-        var json = JsonSerializer.Serialize(result.Value);
-        var doc = JsonDocument.Parse(json).RootElement;
-        Assert.That(doc.GetProperty("name").GetString(), Is.EqualTo(""));
-        Assert.That(doc.GetProperty("isAuthenticated").GetBoolean(), Is.True);
-    }
-
-    [Test]
-    public async Task GetCurrentUserName_ReturnsFullName_WhenUserExists()
-    {
-        // Arrange
-        var user = new User { FirstName = "John", LastName = "Doe" };
+        var user = new User("John", "Doe", "john@example.com") { EmailConfirmed = true };
         SetUserContext(true, "user123");
         _mockUserManager.Setup(m => m.FindByIdAsync("user123")).ReturnsAsync(user);
+        _mockUserManager.Setup(m => m.GetRolesAsync(user)).ReturnsAsync(new List<string> { "User" });
 
         // Act
-        var result = await _controller.GetCurrentUserName() as OkObjectResult;
+        var result = await _controller.GetCurrentAccount();
 
         // Assert
-        var json = JsonSerializer.Serialize(result.Value);
-        var doc = JsonDocument.Parse(json).RootElement;
-        Assert.That(doc.GetProperty("name").GetString(), Is.EqualTo("John Doe"));
-        Assert.That(doc.GetProperty("isAuthenticated").GetBoolean(), Is.True);
+        UserResponse response = (UserResponse)result.Value!;
+        Assert.That(response.FirstName, Is.EqualTo("John"));
+        Assert.That(response.LastName, Is.EqualTo("Doe"));
+        Assert.That(response.Id, Is.EqualTo(Guid.Parse(user.Id)));
+        Assert.That(response.Email, Is.EqualTo("john@example.com"));
+        Assert.That(response.EmailConfirmed, Is.EqualTo(true));
+        Assert.That(response.CustomAvatarVersion, Is.EqualTo(null));
+        Assert.That(response.Role, Is.EqualTo("User"));        
+    }
+
+    #endregion
+
+    #region GetCurrentAvatar
+
+    // I am not going to test unauthorized because it should be handled by ASP NET
+
+    // Ideally an impossible scenario
+
+    [Test]
+    public async Task GetCurrentAVatar_Returns404_WhenAvatarDoesNotExist()
+    {
+        // Arrange
+        var userId = "user123";
+        var user = new User("John", "Doe", "john@example.com") { EmailConfirmed = true };
+        SetUserContext(true, "user123");
+        _mockUserManager.Setup(m => m.FindByIdAsync("user123")).ReturnsAsync(user);
+        _blobMock.Setup(m => m.RetreiveUserAvatarStream(user.Id)).ReturnsAsync((BlobAvatarResponse?)null);
+
+
+        // Act
+        var result = (NotFoundObjectResult)await _controller.GetCurrentAvatar(userId);
+
+        // Assert
+        Assert.That(result.StatusCode, Is.EqualTo(404));
+        Assert.That(ObjectComparer.AreObjectsEqual(result.Value, new { message = "No avatar found for user." }));
     }
 
     [Test]
-    public async Task GetCurrentUserFirstName_ReturnsFirstName_WhenUserExists()
+    public async Task GetUserAvatar_Returns500_WhenBlobServiceThrowsException()
     {
         // Arrange
-        var user = new User { FirstName = "Jane", LastName = "Doe" };
-        SetUserContext(true, "user456");
-        _mockUserManager.Setup(m => m.FindByIdAsync("user456")).ReturnsAsync(user);
+        var userId = "user123";
+        _blobMock.Setup(m => m.RetreiveUserAvatarStream(userId)).ThrowsAsync(new InvalidOperationException("Simulated blob service error"));
 
         // Act
-        var result = await _controller.GetCurrentUserFirstName() as OkObjectResult;
+        var result = (ObjectResult)await _controller.GetCurrentAvatar(userId);
 
         // Assert
-        var json = JsonSerializer.Serialize(result.Value);
-        var doc = JsonDocument.Parse(json).RootElement;
-        Assert.That(doc.GetProperty("firstName").GetString(), Is.EqualTo("Jane"));
-        Assert.That(doc.GetProperty("isAuthenticated").GetBoolean(), Is.True);
+        Assert.That(result.StatusCode, Is.EqualTo(500));
+        Assert.That(ObjectComparer.AreObjectsEqual(result.Value, new { message = "Internal server error." }));
     }
 
     [Test]
-    public async Task GetCurrentUserLastName_ReturnsLastName_WhenUserExists()
+    public async Task GetCurrentAVatar_ReturnsAvatar_WhenUserExists()
     {
         // Arrange
-        var user = new User { FirstName = "Max", LastName = "Verstappen" };
-        SetUserContext(true, "f1champ");
-        _mockUserManager.Setup(m => m.FindByIdAsync("f1champ")).ReturnsAsync(user);
+        var userId = "user123";
+        var user = new User("John", "Doe", "john@example.com") { EmailConfirmed = true };
+        SetUserContext(true, "user123");
+        _mockUserManager.Setup(m => m.FindByIdAsync("user123")).ReturnsAsync(user);
+        var _mockStream = new Mock<Stream>();
+        _blobMock.Setup(m => m.RetreiveUserAvatarStream("user123")).ReturnsAsync(new BlobAvatarResponse(_mockStream.Object, "image/png"));
+
 
         // Act
-        var result = await _controller.GetCurrentUserLastName() as OkObjectResult;
+        var result = (FileStreamResult)await _controller.GetCurrentAvatar(userId);
 
         // Assert
-        var json = JsonSerializer.Serialize(result.Value);
-        var doc = JsonDocument.Parse(json).RootElement;
-        Assert.That(doc.GetProperty("lastName").GetString(), Is.EqualTo("Verstappen"));
-        Assert.That(doc.GetProperty("isAuthenticated").GetBoolean(), Is.True);
+        Assert.That(result.FileStream, Is.EqualTo(_mockStream.Object));
+        Assert.That(result.ContentType, Is.EqualTo("image/png"));
     }
+
+    #endregion
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

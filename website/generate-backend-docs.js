@@ -1,17 +1,17 @@
-const { exec } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+import { exec } from 'child_process';
+import { resolve, dirname, basename } from 'path';
+import { rmSync } from 'fs';
 
 // Path to your MJS script
-const mjsScriptPath = path.resolve('./scripts/parse-docfx.mjs');
-const mjsDirectory = path.dirname(mjsScriptPath);
+const mjsScriptPath = resolve('./scripts/parse-docfx.mjs');
+const mjsDirectory = dirname(mjsScriptPath);
 
 // Target folder where docfx metadata should run
-const targetFolder = path.resolve('../backend');
+const targetFolder = resolve('../backend');
 
 // First delete docfx-files folder
 console.log("Removing old DocFX Files...");
-fs.rmSync('./docfx-files', { recursive: true, force: true });
+rmSync('./docfx-files', { recursive: true, force: true });
 
 // First run docfx metadata command in the target folder
 console.log(`Running docfx metadata in ${targetFolder}`);
@@ -42,7 +42,7 @@ exec('docfx metadata', (error, stdout, stderr) => {
   console.log(`Changed directory to run MJS script from: ${mjsDirectory}`);
   
   // Run the MJS script using child_process to avoid ESM URL issues
-  const mjsFileName = path.basename(mjsScriptPath);
+  const mjsFileName = basename(mjsScriptPath);
   console.log(`Running: node ${mjsFileName}`);
   
   exec(`node ${mjsFileName}`, (error, stdout, stderr) => {

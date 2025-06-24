@@ -137,8 +137,8 @@ describe("UsersList", () => {
       success: true,
       message: "Users fetched successfully",
       users: [
-        { id: crypto.randomUUID(), email: "user1@example.com", username: "user1@example.com", role: "user", emailConfirmed: true },
-        { id: crypto.randomUUID(), email: "user2@example.com", username: "user2@example.com", role: "admin", emailConfirmed: true },
+        { id: crypto.randomUUID(), email: 'user1@example.com', role: 'user', emailConfirmed: true },
+        { id: crypto.randomUUID(), email: 'user2@example.com', role: 'admin', emailConfirmed: true }
       ],
       pageCount: 2,
     });
@@ -166,9 +166,11 @@ describe("UsersList", () => {
     // Mocking a successful response with multiple pages
     vi.mocked(ListUsersPaged).mockResolvedValue({
       success: true,
-      message: "Users fetched successfully",
-      users: [{ id: crypto.randomUUID(), email: "user1@example.com", username: "user1@example.com", role: "user", emailConfirmed: true }],
-      pageCount: 3,
+      message: 'Users fetched successfully',
+      users: [
+        { id: crypto.randomUUID(), email: 'user1@example.com', role: 'user', emailConfirmed: true },
+      ],
+      pageCount: 3
     });
 
     render(<UsersList />);

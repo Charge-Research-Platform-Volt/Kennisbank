@@ -33,13 +33,12 @@ export const Register = async (
 
         // Raw data from the form.
         const rawData: RegisterRequest = {
-            // firstname: (formData.get("firstname") as string)?.trim(),
-            // lastname: (formData.get("lastname") as string)?.trim(),
+            firstName: (formData.get("firstname") as string)?.trim(),
+            lastName: (formData.get("lastname") as string)?.trim(),
             email: (formData.get("email") as string)?.trim(),
             password: (formData.get("password") as string)?.trim(),
             token: (token as string)?.trim(),
-            firstname: (formData.get("firstname") as string)?.trim(),
-            lastname: (formData.get("lastname") as string)?.trim(),
+            avatar: formData.get("avatar") as Blob | null,
         };
 
         // Validate the raw data, if it fails, return an error.
@@ -48,22 +47,26 @@ export const Register = async (
         if (!validatedData.success) {
             return {
                 success: false,
-                message: validatedData.error.errors[0].message,
+                message: validatedData.error.message,
                 inputs: rawData,
             };
         }
 
+        // Create new FormData to send to the backend
+        const uploadData = new FormData();
+        uploadData.append("firstName", rawData.firstName);
+        uploadData.append("lastName", rawData.lastName);
+        uploadData.append("email", rawData.email);
+        uploadData.append("password", rawData.password);
+        uploadData.append("token", rawData.token);
+
+        // Optional: include avatar if it exists
+        if (rawData.avatar) uploadData.append("avatar", rawData.avatar)
+
         // Send the data to the backend.
-        const response : Response = await fetch("/api/Auth/signup", {
+        const response = await fetch("/api/Auth/signup", {
             method: "POST",
-            body: JSON.stringify({
-                email: rawData.email,
-                password: rawData.password,
-                token: rawData.token,
-                firstName: rawData.firstname,
-                lastName: rawData.lastname,
-            }),
-            headers: { "Content-Type": "application/json" },
+            body: uploadData, // send as multipart/form-data
         });
 
         // Check if the request was successful, if not, return an error.

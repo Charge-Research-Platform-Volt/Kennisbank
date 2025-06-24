@@ -50,12 +50,14 @@ public const string UnknownResourceTypeId = "0cc285a8-0f07-11f0-a0a6-5600051f138
 ---
 ###  Seed\(IServiceProvider\)
 
+Method for seeding the database in Program.cs
+
 ```csharp
 public static Task Seed(IServiceProvider serviceProvider)
 ```
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
-<TypeTable types={[{"name":"serviceProvider","type":"IServiceProvider","links":["https://learn.microsoft.com/dotnet/api/system.iserviceprovider"],"description":""}]} />
+<TypeTable types={[{"name":"serviceProvider","type":"IServiceProvider","links":["https://learn.microsoft.com/dotnet/api/system.iserviceprovider"],"description":"All services such as blob, database and resource manager"}]} />
 
 <h4 className='mb-0 ml-1'>Returns</h4>
 <TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":""}]} />
@@ -63,12 +65,14 @@ public static Task Seed(IServiceProvider serviceProvider)
 ---
 ###  SeedTemplate\(DatabaseContext\)
 
+Method for seeding the template databases in TestBase
+
 ```csharp
 public static Task SeedTemplate(DatabaseContext database)
 ```
 
 <h4 className='mb-0 ml-1'>Parameters</h4>
-<TypeTable types={[{"name":"database","type":"DatabaseContext","links":["DatabaseContext"],"description":""}]} />
+<TypeTable types={[{"name":"database","type":"DatabaseContext","links":["DatabaseContext"],"description":"Database to be seeded with a template"}]} />
 
 <h4 className='mb-0 ml-1'>Returns</h4>
 <TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":""}]} />

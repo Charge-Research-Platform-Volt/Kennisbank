@@ -33,6 +33,18 @@ public class PersonCreateDto
 ## Properties
 
 ---
+###  CreationDate
+
+```csharp
+public required DateTime CreationDate { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.datetime' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DateTime' /></a>
+
+---
 ###  Description
 
 ```csharp
@@ -96,23 +108,23 @@ public required string Occupation { get; set; }
 ###  OrganisationRelations
 
 ```csharp
-public (string, string?)[] OrganisationRelations { get; set; }
+public RelatedEntry[] OrganisationRelations { get; set; }
 ```
 
 ---
 #### Property Value
 
- \(<a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>, <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>?\)\[\]
+ <a href='RelatedEntry' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='RelatedEntry' /></a>\[\]
 
 ---
 ###  PersonRelations
 
 ```csharp
-public (string, string?)[] PersonRelations { get; set; }
+public RelatedEntry[] PersonRelations { get; set; }
 ```
 
 ---
 #### Property Value
 
- \(<a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>, <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>?\)\[\]
+ <a href='RelatedEntry' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='RelatedEntry' /></a>\[\]
 

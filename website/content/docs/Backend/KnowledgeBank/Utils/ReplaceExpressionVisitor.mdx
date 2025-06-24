@@ -1,0 +1,105 @@
+---
+title: ReplaceExpressionVisitor
+---
+import { CollapsibleInherited } from "@/components/collapsible"
+import { TypeTable } from "@/components/type_table"
+import { CSharpType } from "@/components/csharp_type"
+
+
+Namespace: <a href='../Utils'>KnowledgeBank.Utils</a>  
+Assembly: backend.dll  
+
+An ExpressionVisitor that replaces all occurrences of a specified expression with a new one.
+Useful for parameter substitution in expression trees.
+
+```csharp
+public class ReplaceExpressionVisitor : ExpressionVisitor
+```
+
+#### Inheritance
+
+<a href='https://learn.microsoft.com/dotnet/api/system.object' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='object' /></a> ← <a href='https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ExpressionVisitor' /></a> ← <a href='' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ReplaceExpressionVisitor' /></a>
+
+
+
+<CollapsibleInherited title='Show Inherited Members (46)'>
+[ExpressionVisitor.Visit\(ReadOnlyCollection\<Expression\>\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visit\#system\-linq\-expressions\-expressionvisitor\-visit\(system\-collections\-objectmodel\-readonlycollection\(\(system\-linq\-expressions\-expression\)\)\)), 
+[ExpressionVisitor.Visit\(Expression?\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visit\#system\-linq\-expressions\-expressionvisitor\-visit\(system\-linq\-expressions\-expression\)), 
+[ExpressionVisitor.VisitAndConvert\<T\>\(ReadOnlyCollection\<T\>, string?\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitandconvert\#system\-linq\-expressions\-expressionvisitor\-visitandconvert\-1\(system\-collections\-objectmodel\-readonlycollection\(\(\-0\)\)\-system\-string\)), 
+[ExpressionVisitor.VisitAndConvert\<T\>\(T?, string?\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitandconvert\#system\-linq\-expressions\-expressionvisitor\-visitandconvert\-1\(\-0\-system\-string\)), 
+[ExpressionVisitor.VisitBinary\(BinaryExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitbinary), 
+[ExpressionVisitor.VisitBlock\(BlockExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitblock), 
+[ExpressionVisitor.VisitCatchBlock\(CatchBlock\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitcatchblock), 
+[ExpressionVisitor.VisitConditional\(ConditionalExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitconditional), 
+[ExpressionVisitor.VisitConstant\(ConstantExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitconstant), 
+[ExpressionVisitor.VisitDebugInfo\(DebugInfoExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitdebuginfo), 
+[ExpressionVisitor.VisitDefault\(DefaultExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitdefault), 
+[ExpressionVisitor.VisitDynamic\(DynamicExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitdynamic), 
+[ExpressionVisitor.VisitElementInit\(ElementInit\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitelementinit), 
+[ExpressionVisitor.VisitExtension\(Expression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitextension), 
+[ExpressionVisitor.VisitGoto\(GotoExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitgoto), 
+[ExpressionVisitor.VisitIndex\(IndexExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitindex), 
+[ExpressionVisitor.VisitInvocation\(InvocationExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitinvocation), 
+[ExpressionVisitor.VisitLabel\(LabelExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitlabel), 
+[ExpressionVisitor.VisitLabelTarget\(LabelTarget?\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitlabeltarget), 
+[ExpressionVisitor.VisitLambda\<T\>\(Expression\<T\>\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitlambda), 
+[ExpressionVisitor.VisitListInit\(ListInitExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitlistinit), 
+[ExpressionVisitor.VisitLoop\(LoopExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitloop), 
+[ExpressionVisitor.VisitMember\(MemberExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitmember), 
+[ExpressionVisitor.VisitMemberAssignment\(MemberAssignment\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitmemberassignment), 
+[ExpressionVisitor.VisitMemberBinding\(MemberBinding\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitmemberbinding), 
+[ExpressionVisitor.VisitMemberInit\(MemberInitExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitmemberinit), 
+[ExpressionVisitor.VisitMemberListBinding\(MemberListBinding\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitmemberlistbinding), 
+[ExpressionVisitor.VisitMemberMemberBinding\(MemberMemberBinding\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitmembermemberbinding), 
+[ExpressionVisitor.VisitMethodCall\(MethodCallExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitmethodcall), 
+[ExpressionVisitor.VisitNew\(NewExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitnew), 
+[ExpressionVisitor.VisitNewArray\(NewArrayExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitnewarray), 
+[ExpressionVisitor.VisitParameter\(ParameterExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitparameter), 
+[ExpressionVisitor.VisitRuntimeVariables\(RuntimeVariablesExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitruntimevariables), 
+[ExpressionVisitor.VisitSwitch\(SwitchExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitswitch), 
+[ExpressionVisitor.VisitSwitchCase\(SwitchCase\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitswitchcase), 
+[ExpressionVisitor.VisitTry\(TryExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visittry), 
+[ExpressionVisitor.VisitTypeBinary\(TypeBinaryExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visittypebinary), 
+[ExpressionVisitor.VisitUnary\(UnaryExpression\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visitunary), 
+[ExpressionVisitor.Visit\<T\>\(ReadOnlyCollection\<T\>, Func\<T, T\>\)](https://learn.microsoft.com/dotnet/api/system.linq.expressions.expressionvisitor.visit\#system\-linq\-expressions\-expressionvisitor\-visit\-1\(system\-collections\-objectmodel\-readonlycollection\(\(\-0\)\)\-system\-func\(\(\-0\-0\)\)\)), 
+[object.Equals\(object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\)), 
+[object.Equals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\-system\-object\)), 
+[object.GetHashCode\(\)](https://learn.microsoft.com/dotnet/api/system.object.gethashcode), 
+[object.GetType\(\)](https://learn.microsoft.com/dotnet/api/system.object.gettype), 
+[object.MemberwiseClone\(\)](https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone), 
+[object.ReferenceEquals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.referenceequals), 
+[object.ToString\(\)](https://learn.microsoft.com/dotnet/api/system.object.tostring)
+</CollapsibleInherited>
+
+---
+## Constructors
+
+---
+###  ReplaceExpressionVisitor\(Expression, Expression\)
+
+Initializes a new instance of the \<xref href="KnowledgeBank.Utils.ReplaceExpressionVisitor" data-throw-if-not-resolved="false">\</xref> class.
+
+```csharp
+public ReplaceExpressionVisitor(Expression oldValue, Expression newValue)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"oldValue","type":"Expression","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression"],"description":"The expression to be replaced."},{"name":"newValue","type":"Expression","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression"],"description":"The expression to replace with."}]} />
+
+---
+## Methods
+
+---
+###  Visit\(Expression?\)
+
+Visits an expression and replaces it if it matches the target expression.
+
+```csharp
+public override Expression? Visit(Expression? node)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"node","type":"Expression","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression"],"description":"The current expression node being visited."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Expression","links":["https://learn.microsoft.com/dotnet/api/system.linq.expressions.expression"],"description":"The original node, the replacement node, or a recursively visited version."}]} />
