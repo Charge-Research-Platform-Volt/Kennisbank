@@ -72,3 +72,10 @@ export const MemoizedMarkdown = memo(({ content, id }: { content: string; id: st
 });
 
 MemoizedMarkdown.displayName = "MemoizedMarkdown";
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+
