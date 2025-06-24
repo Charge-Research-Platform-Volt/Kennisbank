@@ -18,7 +18,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { LoaderCircle } from "lucide-react";
 
 export default function AccountInformation({ userData }: { userData: UserData }) {
-  const avatarUrl = userData.customAvatarVersion ? `/api/user/current/avatar?v=${userData.customAvatarVersion}` : "/img/default-profile-picture.svg";
+  const avatarUrl = userData.customAvatarVersion ? `/api/user/current/avatar/${userData.id}?v=${userData.customAvatarVersion}` : "/img/default-profile-picture.svg";
   const [isLoadingAvatar, setIsLoadingAvatar] = useState(false);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isLoadingPassword, setIsLoadingPassword] = useState(false);

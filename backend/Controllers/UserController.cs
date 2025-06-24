@@ -67,7 +67,7 @@ public class UserController : ControllerBase
         }
     }
 
-    [HttpGet("current/avatar")]
+    [HttpGet("current/avatar/{userId}")]
     [SwaggerOperation(
         Summary = "Get the current user's profile avatar.",
         Description = "Gets the current user's profile avatar."
@@ -75,14 +75,12 @@ public class UserController : ControllerBase
     [SwaggerResponse(200, "Profile avatar returned.")]
     [SwaggerResponse(404, "No avatar found for user.")]
     [SwaggerResponse(500, "Internal server error.")]
-    public async Task<IActionResult> GetCurrentAvatar()
+    public async Task<IActionResult> GetCurrentAvatar(string userId)
     {
         try
         {
-            string userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new Exception("User authenticated yet not found, probably a concurrency fault");
-            User user = await userManager.FindByIdAsync(userId) ?? throw new Exception("User authenticated yet not found, probably a concurrency fault");
-
             BlobAvatarResponse? avatarResponse = await blobService.RetreiveUserAvatarStream(userId);
+
 
             if (avatarResponse == null)
             {
@@ -90,6 +88,9 @@ public class UserController : ControllerBase
             }
             else
             {
+                Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+                Response.Headers.Append("Pragma", "no-cache");
+                Response.Headers.Append("Expires", "0");
                 return File(avatarResponse.stream, avatarResponse.contentType);
             }
         }
