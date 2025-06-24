@@ -22,6 +22,31 @@ namespace KnowledgeBank
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
             ConfigureLogging();
 
+            // # Configuration
+            builder.Services.Configure<OwnerUserConfig>(builder.Configuration.GetSection(OwnerUserConfig.SectionName));
+            
+            // Validate owner config
+            OwnerUserConfig? ownerConfig = builder.Configuration.GetSection(OwnerUserConfig.SectionName).Get<OwnerUserConfig>();
+            if (ownerConfig == null)
+            {
+                Log.Fatal("OwnerUser configuration section is missing from configuration.");
+                throw new InvalidOperationException("OwnerUser configuration section is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(ownerConfig.Email))
+            {
+                Log.Fatal("OwnerUser: Email is required but not configured.");
+                throw new InvalidOperationException("OwnerUser: Email configuration is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(ownerConfig.Password))
+            {
+                Log.Fatal("OwnerUser: Password is required but not configured.");
+                throw new InvalidOperationException("OwnerUser: Password configuration is required.");
+            }
+
+            Log.Information("OwnerUser configuration validated successfully for: {Email}", ownerConfig.Email);
+            
             // # Services
             builder.Services.AddControllers();
             builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
@@ -50,6 +75,7 @@ namespace KnowledgeBank
 
             builder.Services.AddOpenApi();
             builder.Services.AddSwaggerGen(ConfigureSwagger);
+            builder.Services.AddScoped<RoleInitializer>();
 
 
             // # Database context
@@ -117,7 +143,9 @@ namespace KnowledgeBank
             // Seeding the database with initial data
             using (IServiceScope scope = app.Services.CreateScope())
             {
-                await RoleInitializer.InitializeAsync(app.Services);
+                RoleInitializer roleInitializer = scope.ServiceProvider.GetRequiredService<RoleInitializer>();
+                await roleInitializer.InitializeAsync();
+                
                 await DatabaseSeeder.Seed(app.Services);
                 await scope.ServiceProvider.GetRequiredService<DatabaseContext>().EnsureViewsCreatedAsync();
                 

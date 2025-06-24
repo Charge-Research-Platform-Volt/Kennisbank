@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Newtonsoft.Json;
 using System.Security.Claims;
+using Microsoft.Extensions.Options;
+using KnowledgeBank.Data;
 
 namespace backend.Tests.Unit;
 
@@ -13,6 +15,8 @@ public class RolesControllerUnitTests
 {
     private readonly Mock<UserManager<User>> _mockUserManager;
     private readonly Mock<RoleManager<IdentityRole>> _mockRoleManager;
+    private Mock<IOptions<OwnerUserConfig>> ownerConfigOptionsMock;
+
     private RolesController _controller;
 
     public RolesControllerUnitTests()
@@ -26,8 +30,20 @@ public class RolesControllerUnitTests
         Mock<IRoleStore<IdentityRole>> roleStoreMock = new Mock<IRoleStore<IdentityRole>>();
         _mockRoleManager = new Mock<RoleManager<IdentityRole>>(
             roleStoreMock.Object, null, null, null, null);
+            
+        // Mock the OwnerUserConfig options
+        var ownerConfig = new OwnerUserConfig
+        {
+            Email = "owner@test.com",
+            Password = "TestPassword123!",
+            FirstName = "Test",
+            LastName = "Owner"
+        };
 
-        _controller = new RolesController(_mockRoleManager.Object, _mockUserManager.Object);
+        ownerConfigOptionsMock = new Mock<IOptions<OwnerUserConfig>>();
+        ownerConfigOptionsMock.Setup(x => x.Value).Returns(ownerConfig);
+
+        _controller = new RolesController(_mockRoleManager.Object, _mockUserManager.Object, ownerConfigOptionsMock.Object);
     }
 
     [Test]

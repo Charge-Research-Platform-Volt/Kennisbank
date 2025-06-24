@@ -6,6 +6,8 @@ using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using Microsoft.Extensions.Options;
+using KnowledgeBank.Data;
 
 namespace KnowledgeBank.Controllers
 {
@@ -17,12 +19,14 @@ namespace KnowledgeBank.Controllers
         private readonly RoleManager<IdentityRole> roleManager;
         private readonly UserManager<User> userManager;
         private readonly Serilog.ILogger logger;
+        private readonly OwnerUserConfig ownerConfig;
 
-        public RolesController(RoleManager<IdentityRole> roleManager, UserManager<User> userManager)
+        public RolesController(RoleManager<IdentityRole> roleManager, UserManager<User> userManager, IOptions<OwnerUserConfig> ownerConfig)
         {
             this.roleManager = roleManager;
             this.userManager = userManager;
             this.logger = Log.ForContext<RolesController>();
+            this.ownerConfig = ownerConfig.Value;
         }
 
         [HttpGet("current")]
@@ -93,6 +97,7 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(404, "User or role not found.")]
         [SwaggerResponse(400, "Cannot assign role.")]
         [SwaggerResponse(500, "Internal server error.")]
+        [SwaggerResponse(403, "This action is forbidden")]
         public async Task<IActionResult> AssignRole([FromBody] RoleAssignDto dto)
         {
             try
@@ -101,6 +106,9 @@ namespace KnowledgeBank.Controllers
 
                 if (user == null)
                     return NotFound(new {message = "Invalid user ID."});
+
+                if (user.Email == ownerConfig.Email)
+                    return StatusCode(403, "Role of the owner account cannot be changed!");            
 
                 if (!await roleManager.RoleExistsAsync(dto.RoleName))
                     return NotFound(new { message = "Invalid role name."});

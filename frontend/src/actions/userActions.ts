@@ -30,17 +30,20 @@ export const DeleteUser = async (user: User ): Promise<FormResponse<User>> => {
             headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
         },
     );
-
-    //parse the data from the response
-    const data = await response.json();
+    
+    if (response.status == 403)
+        return {success: false, message: "This action is forbidden."}
 
     // Check if the request was succesful, if not, return an error
     if (!response.ok) {
         return {
             success: false,
-            message: data.message,
+            message: await response.text(),
         };
     }
+    
+    //parse the data from the response
+    const data = await response.json();
 
     // Revalidate the cache for the usertags page
     revalidatePath("/users");
@@ -63,7 +66,10 @@ export const DeleteOwnAccount = async (): Promise<FormResponse<void>> => {
             headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
         },
     );
-
+    
+    if (response.status == 403)
+        return {success: false, message: "This action is forbidden."}
+    
     //parse the data from the response
     const data = await response.json();
 
@@ -97,9 +103,9 @@ export const GetCurrentUserId = async (): Promise<ApiResponse> => {
             headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
         },
     );
-
-    //parse the data from the response
-    const data = await response.json();
+    
+    if (response.status == 403)
+        return {success: false, message: "This action is forbidden."}
 
     // Check if the request was succesful, if not, return an error
     if (!response.ok) {
@@ -109,6 +115,9 @@ export const GetCurrentUserId = async (): Promise<ApiResponse> => {
         };
     }
 
+    //parse the data from the response
+    const data = await response.json();
+    
     return {
         success: true,
         message: "",
@@ -152,7 +161,10 @@ export const SaveUser = async (
                 }),
             },
         );
-
+        
+        if (response.status == 403)
+            return {success: false, message: "This action is forbidden.", user: newUser}
+        
         //parse the data from the response
         const data = await response.json();
 
@@ -185,6 +197,9 @@ export const SaveUser = async (
                 }),
             },
         );
+        
+        if (response.status == 403)
+            return {success: false, message: "This action is forbidden.", user: newUser}
 
         //parse the data from the response
         const data = await response.json();
