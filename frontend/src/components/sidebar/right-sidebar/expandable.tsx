@@ -12,7 +12,6 @@ interface ExpandableProps
     fadeColor?: string;
     variant?: "vertical" | "horizontal";
     minHeight?: number;
-    editButton?: JSX.Element;
 }
 
 export default function Expandable({
@@ -22,7 +21,6 @@ export default function Expandable({
     fadeColor = "bg-gray-50",
     variant = "vertical",
     minHeight = 30,
-    editButton,
 }: ExpandableProps) 
 {
     const [open, setOpen] = React.useState<boolean>(false);
@@ -76,12 +74,6 @@ export default function Expandable({
                     <div className={`w-full mt-2 select-none ${isHorizontal ? "flex flex-wrap gap-2" : ""}`}>
                         {children}
                     </div>
-
-                    {editButton && (
-                        <div className="mt-1 text-sm flex justify-center select-none">
-                            {editButton}
-                        </div>
-                    )}
                 </CollapsibleContent>
             </Collapsible>
             

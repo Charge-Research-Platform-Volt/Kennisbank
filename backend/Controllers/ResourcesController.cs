@@ -438,7 +438,7 @@ namespace KnowledgeBank.Controllers
         /// <param name="id">The ID of the resource</param>
         /// <param name="updates">A dictionary with property names and their new values</param>
         [HttpPatch("update/{id}")]
-        [Authorize(Policy = "RequireAdminRole")]
+        [Authorize]
         [SwaggerOperation(Summary = "Updates a resource.")]
         [SwaggerResponse(200, "Resource updated.", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]

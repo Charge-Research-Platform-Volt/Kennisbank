@@ -1,22 +1,31 @@
-﻿using KnowledgeBank.Models;
+﻿using CsvHelper.Configuration.Attributes;
+using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 
 namespace KnowledgeBank.Data
 {
-    public static class RoleInitializer
+    public class RoleInitializer
     {
         public static readonly string[] roleNames =
-        {
+        [
             "admin",
             "user"
-        };
+        ];
 
-        public static async Task InitializeAsync(IServiceProvider serviceProvider)
+        private readonly RoleManager<IdentityRole> roleManager;
+        private readonly UserManager<User> userManager;
+        private readonly OwnerUserConfig ownerConfig;
+        
+        public RoleInitializer(RoleManager<IdentityRole> roleManager, UserManager<User> userManager, IOptions<OwnerUserConfig> ownerConfig) 
         {
-            using IServiceScope scope = serviceProvider.CreateScope();
-            RoleManager<IdentityRole> roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-            UserManager<User> userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            this.roleManager = roleManager;
+            this.userManager = userManager;
+            this.ownerConfig = ownerConfig.Value;
+        }
 
+        public async Task InitializeAsync()
+        {
             // Create all the roles
             foreach (string roleName in roleNames)
             {
@@ -24,18 +33,26 @@ namespace KnowledgeBank.Data
                     await roleManager.CreateAsync(new IdentityRole(roleName));
             }
 
-            // Create a default admin user
-            User admin = new User { Email = "admin@admin.nl", UserName = "admin@admin.nl", FirstName = "Admin", LastName = "Admin" };
-            IdentityResult adminResult = await userManager.CreateAsync(admin, "Admin123!");
+            // Check if owner user already exists
+            User? existingOwner = await userManager.FindByEmailAsync(ownerConfig.Email);
+            
+            if (existingOwner == null) 
+            {
+                // Create the owner user
+                User owner = new User { Email = ownerConfig.Email, UserName = ownerConfig.Email, FirstName = ownerConfig.FirstName, LastName = ownerConfig.LastName };
+                IdentityResult adminResult = await userManager.CreateAsync(owner, ownerConfig.Password);
 
-            //Create default User user
-            User user = new User { Email = "user@user.nl", UserName = "user@user.nl", FirstName = "User", LastName = "User" };
-            IdentityResult userResult = await userManager.CreateAsync(user, "User123!");
-
-            if (adminResult.Succeeded)
-                await userManager.AddToRoleAsync(admin, "admin");
-            if (userResult.Succeeded)
-                await userManager.AddToRoleAsync(user, "user");
+                if (adminResult.Succeeded)
+                    await userManager.AddToRoleAsync(owner, "admin");
+                else
+                    throw new InvalidOperationException($"Failed to create owner user: {string.Join(", ", adminResult.Errors.Select(e => e.Description))}");
+            }
+            else 
+            {
+                // Ensure admin role for owner, just to be safe
+                if (!await userManager.IsInRoleAsync(existingOwner, "admin"))
+                    await userManager.AddToRoleAsync(existingOwner, "admin");
+            }
         }
     }
 }

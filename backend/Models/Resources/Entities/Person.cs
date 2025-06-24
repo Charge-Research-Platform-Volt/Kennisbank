@@ -54,7 +54,6 @@ public class PersonCreateDto
     public string? Description { get; set; }
     public string? EmailAddress { get; set; }
     public string? Linkedin { get; set; }
-    public required DateTime CreationDate { get; set; }
     // Tuple: (OrganisationId, Role?)
     public RelatedEntry[] OrganisationRelations { get; set; } = Array.Empty<RelatedEntry>();
     // Tuple: (PersonId, Relation?)
