@@ -1070,6 +1070,12 @@ namespace KnowledgeBank.Controllers
 
                 await resourceManager.Commit();
                 
+                if (dto is FileResourceCreateDto fileDto && fileDto.File != null) 
+                {
+                    string extension = Path.GetExtension(fileDto.File.FileName).Replace(".", "");
+                    await resourceManager.UpdateResourceAsync(id, r => r.FileExt, extension);
+                }
+                
                 // Return the resource Id
                 return Ok(new ApiResponse(true, "Upload session initialized", id));
             }
