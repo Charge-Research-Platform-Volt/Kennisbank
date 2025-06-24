@@ -179,10 +179,12 @@ public partial class ResourceManager
                 limit: 1000,
                 groupSize: 4
             );
+
+            Console.WriteLine($"Qdrant search results: {searchresults}");
         }
         catch (Exception)
         {
-            _logger.Warning("Qdrant embedding generation failed, falling back to Qdrant text-based search");
+            _logger.Error("Qdrant embedding generation failed, falling back to Qdrant text-based search");
 
             // If embedding generation fails, fallback to text-based search
             searchresults = await _ragSystem.QdrantClient.QueryGroupsAsync(
