@@ -329,12 +329,11 @@ namespace KnowledgeBank.Controllers
                 string BlobHeader; // Header determining whether we should open the file in the browser in a tab or it should download directly
                 const long maxFileSize = 500 * 1024 * 1024; // Some browsers only support up to 512, so 500 MB should be the max
 
-                // As long as it is NOT a ppt it can be opened in the browser
+                // As long as it is NOT a ppt or a .txt it can be opened in the browser and downloaded
                 bool canBeOpened = (
                     contentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase) ||
                     contentType.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) ||
                     contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ||
-                    contentType.Equals("text/plain", StringComparison.OrdinalIgnoreCase) ||
                     contentType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase));
 
                 // Check if file is less than 500MB size and can be opened in another tab, change the headers based on that

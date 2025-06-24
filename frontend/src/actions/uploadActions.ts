@@ -278,8 +278,8 @@ export async function UploadNewLargeResource(form: z.infer<typeof resourceCreate
 
       try {
         await UploadChunk(resourceId, fileType, blockId, chunk);
-      } catch {
-        throw new Error(`Failed to upload chunk ${i+1}/${numberOfChunks}`);
+      } catch (error) {
+        throw new Error(`Failed to upload chunk ${i+1}/${numberOfChunks}. ERROR: ${error}`);
       }
     }
 
