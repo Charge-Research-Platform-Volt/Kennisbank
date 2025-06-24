@@ -13,6 +13,7 @@ import { useArchive } from "@/context/archive-provider";
 import { Button } from "@/components/ui/button";
 import { ApiResponse } from "@/types/apiResponse.type";
 import { Badge } from "@/components/ui/badge";
+import PersonIcon from "@/icons/person-icon";
 
 export function PersonContent() 
 {
@@ -124,10 +125,13 @@ export function PersonContent()
                 </Badge>
             }
             
-            {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
+            <div className="flex justify-start gap-2 items-center pb-2">
+                <PersonIcon className="w-5 h-5" />
+                {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
                                                 <Edit setNewText={setName} currentText={name} property="name" />
                                             </div>)}
-            <h1 className="pb-2 font-bold select-none text-2xl">{name || <Skeleton />}</h1>
+            <h1 className="font-bold select-none text-2xl">{name || <Skeleton />}</h1>
+            </div>
             
             {occupation ? (
                 <div className="flex justify-between flex-1">
