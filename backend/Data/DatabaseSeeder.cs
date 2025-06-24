@@ -1,4 +1,5 @@
 ﻿using KnowledgeBank.Models;
+using KnowledgeBank.Services;
 using Npgsql.Replication;
 
 namespace KnowledgeBank.Data
@@ -8,6 +9,8 @@ namespace KnowledgeBank.Data
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         public const string UnknownResourceTypeId = "0cc285a8-0f07-11f0-a0a6-5600051f1387";
         private static DatabaseContext database;
+        private static RAGSystem ragSystem;
+
         private static ResourceManager resourceManager;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
@@ -18,7 +21,7 @@ namespace KnowledgeBank.Data
         private static async Task SeedData()
         {
             // Seed data (this part is common between both Seed and SeedTemplate methods)
-            
+
             // Add the unknown resource type if it doesn't exist
             if (!await resourceManager.ResourceTypeExistsAsync(UnknownResourceTypeId))
                 await database.ResourceTypes.AddAsync(new() { Id = new Guid(UnknownResourceTypeId), Name = "Unknown" });
@@ -42,6 +45,7 @@ namespace KnowledgeBank.Data
             using IServiceScope scope = serviceProvider.CreateScope();
             database = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
             resourceManager = scope.ServiceProvider.GetRequiredService<ResourceManager>();
+            ragSystem = scope.ServiceProvider.GetRequiredService<RAGSystem>();
 
             // Call the common seed logic
             await SeedData();
@@ -55,8 +59,8 @@ namespace KnowledgeBank.Data
         public static async Task SeedTemplate(DatabaseContext database)
         {
             DatabaseSeeder.database = database;
-            DatabaseSeeder.resourceManager = new ResourceManager(database);
-        
+            resourceManager = new ResourceManager(database, ragSystem);
+
             // Call the common seed logic for the template database
             await SeedData();
         }

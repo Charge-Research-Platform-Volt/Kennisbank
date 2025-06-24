@@ -12,7 +12,7 @@ import ApprovedTagIcon from "@/icons/tag-icons/approved-tag";
 import AdminIcon from "@/icons/tag-icons/admin-tag";
 import { TagActionButtons } from "./tag-action-buttons";
 import { TagMergeButton } from "./merge-tags-popup";
-
+import { UserRoleProvider } from "@/context/user-role-context";
 
 const initialStateTag: FormResponse<TagRenameDto> = {
   success: false,
@@ -21,12 +21,12 @@ const initialStateTag: FormResponse<TagRenameDto> = {
 
 /**
  * TagListItem - Component for displaying and managing tags in the interface
- * 
+ *
  * This component handles both standardized tags and user tags, providing:
  * - Tag display with appropriate icons
  * - Inline editing functionality
  * - Action buttons based on tag type and state
- * 
+ *
  * @param {Tag} [props.tag] - Tag object
  * @returns {ReactElement} The rendered tag list item
  */
@@ -55,12 +55,13 @@ export default function TagListItem({ tag, role}: { tag: Tag, role: string | nul
     e.preventDefault();
     setEditing(true);
   };
-  
+
   // Determine which form action to use
   const formAction = saveTagAction;
-  const isSaving : boolean = savingTagIsPending;
-  const tagId : string = tag.id;
+  const isSaving: boolean = savingTagIsPending;
+  const tagId: string = tag.id;
   return (
+    <UserRoleProvider>
     <div className="flex w-full items-center justify-between gap-2">
       {editing ? (
         <form className="relative w-full" action={formAction}>
@@ -123,11 +124,10 @@ export default function TagListItem({ tag, role}: { tag: Tag, role: string | nul
         </div>
       )}
     </div>
+    </UserRoleProvider>
   );
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

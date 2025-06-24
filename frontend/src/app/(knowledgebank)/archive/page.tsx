@@ -16,8 +16,14 @@ import { TagFilterOptions } from "@/types/tag.type";
 import { SelectOption } from "@/components/ui/selection";
 import { useUserRole } from "@/context/user-role-context";
 import TrashIcon from "@/icons/trash-icon";
+import { ReadonlyURLSearchParams, useSearchParams } from "next/navigation";
+import ResourcesList from "@/components/archive/resources-list";
+import LayoutSwitch from "@/components/archive/layout-switch";
 
 export default function Page() {
+  const searchParams = useSearchParams();
+  const isListLayout: boolean = searchParams.get("layout") === "list" ? true : false;
+
     // Context
     const {
         searchInput,
@@ -39,11 +45,10 @@ export default function Page() {
         trashOpen,
         setTrashOpen,
         router,
-        searchParams,
     } = useArchive();
     
     const { userRole } = useUserRole();
-
+    
     // States
     const [filtersOpen, setFiltersOpen] = React.useState<boolean>(false);
     const [trashAnimationTrigger, setTrashAnimationTrigger] = React.useState(Date.now());
@@ -116,9 +121,9 @@ export default function Page() {
     }
 
     return (
-        <div className="@container flex flex-col h-full w-full">
+        <div className="@container flex flex-col h-full w-full p-2">
             {/* Search bar/Trash title */}
-            <div className="w-full h-[4rem] flex items-center gap-2 flex-shrink-0 bg-white z-10">
+            <div className="w-full h-[4rem] flex items-center gap-2 flex-shrink-0 bg-white z-10 mb-2">
                 {
                     !trashOpen &&
                     <div className="relative flex-grow">
@@ -147,6 +152,8 @@ export default function Page() {
                         <h1 className="text-3xl font-bold text-gray-900">Trash</h1>
                     </div>
                 }
+                
+                <LayoutSwitch isListLayout={isListLayout} />
                 
                 {
                     userRole === 'admin' &&

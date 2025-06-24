@@ -17,12 +17,18 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using System.Text.Json;
+using KnowledgeBank.BackgroundServices;
+using KnowledgeBank.Services;
 using System.Buffers.Text;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
 using System.Linq.Expressions;
+using static Qdrant.Client.Grpc.Conditions;
+using Qdrant.Client.Grpc;
 
-namespace KnowledgeBank.Controllers 
+
+
+namespace KnowledgeBank.Controllers
 {
 
 
@@ -33,10 +39,20 @@ namespace KnowledgeBank.Controllers
     /// </summary>
     /// <param name="resourceManager">The resource manager service for database interactions</param>
     /// <param name="blobService">The Azure Blob Service for file storage</param>
-    [ApiController][Route("[controller]")][Produces("application/json")][Authorize]
-    public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService) : ControllerBase
+    /// <param name="taskQueue">The background task queue for processing tasks asynchronously</param>
+    /// <param name="ragSystem">The RAG system for handling document processing</param>
+    /// <param name="dbContext">The database context for database interactions</param>
+    [ApiController]
+    [Route("[controller]")]
+    [Produces("application/json")]
+    [Authorize]
+    public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem, DatabaseContext dbContext) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<ResourcesController>();
+        private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
+        private readonly RAGSystem _ragSystem = ragSystem;
+        private readonly DatabaseContext database = dbContext;
+
 
         #region New
         /// <summary>
@@ -113,14 +129,45 @@ namespace KnowledgeBank.Controllers
                 await resourceManager.BeginTransaction();
 
                 // Create the resource in the database and retrieve the ID
-                Guid id = uploadDto.UploadType switch
+                Guid id = Guid.Empty;
+                switch (uploadDto.UploadType)
                 {
-                    "website" => await resourceManager.CreateWebsiteAsync((WebsiteCreateDto)dto),
-                    "document" => await resourceManager.CreateDocumentAsync((DocumentCreateDto)dto),
-                    "audio" => await resourceManager.CreateAudioAsync((AudioCreateDto)dto),
-                    "video" => await resourceManager.CreateVideoAsync((VideoCreateDto)dto),
-                    _ => await resourceManager.CreateResourceAsync(dto)
-                };
+                    case "website":
+                        id = await resourceManager.CreateWebsiteAsync((WebsiteCreateDto)dto);
+                        _taskQueue.QueueBackgroundWorkItem(async token =>
+                        {
+                            using var scope = HttpContext.RequestServices.CreateScope();
+                            var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
+                            await ragManager.MainPipline(id: id, chunk: $"{dto.Title}\n{dto.Description}\n{((WebsiteCreateDto)dto).Url}");
+                        });
+                        break;
+                    case "document":
+                        id = await resourceManager.CreateDocumentAsync((DocumentCreateDto)dto);
+                        break;
+                    case "audio":
+                        id = await resourceManager.CreateAudioAsync((AudioCreateDto)dto);
+                        _taskQueue.QueueBackgroundWorkItem(async token =>
+                        {
+                            using var scope = HttpContext.RequestServices.CreateScope();
+                            var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
+                            await ragManager.MainPipline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
+                        });
+
+                        break;
+                    case "video":
+                        id = await resourceManager.CreateVideoAsync((VideoCreateDto)dto);
+                        _taskQueue.QueueBackgroundWorkItem(async token =>
+                        {
+                            using var scope = HttpContext.RequestServices.CreateScope();
+                            var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
+                            await ragManager.MainPipline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
+                        });
+                        break;
+                    default:
+                        id = await resourceManager.CreateResourceAsync(dto);
+                        break;
+                }
+
 
                 // If the resource is a file, upload it to storage
                 if (dto is FileResourceCreateDto fDto)
@@ -131,7 +178,7 @@ namespace KnowledgeBank.Controllers
 
                     // Get the extension and filetype
                     string extension = Path.GetExtension(fDto.File.FileName);
-                    string fileType = Filetype.ConvertExtensionToFiletype(extension);
+                    string fileType = Filetype.ConvertExtensionToFiletype(extension); // Resource type
 
                     logger.Information("Uploading file '{FileName}' to storage...", fDto.File.FileName);
 
@@ -146,6 +193,14 @@ namespace KnowledgeBank.Controllers
                         // Upload was successfull
                         case BLOB_STATUSCODE.OK:
                             logger.Information("File '{FileName}' uploaded successfully.", fDto.File.FileName);
+
+                            _taskQueue.QueueBackgroundWorkItem(async token =>
+                            {
+                                using var scope = HttpContext.RequestServices.CreateScope();
+                                var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
+                                await ragManager.MainPipline(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: fileType, fileStream: fDto.File.OpenReadStream());
+                            });
+
                             break;
 
                         // Container is missing
@@ -170,7 +225,7 @@ namespace KnowledgeBank.Controllers
 
                 // Commit changes to the database and return success response
                 await resourceManager.Commit();
-                if (dto is FileResourceCreateDto fileDto && fileDto.File != null) 
+                if (dto is FileResourceCreateDto fileDto && fileDto.File != null)
                 {
                     string extension = Path.GetExtension(fileDto.File.FileName).Replace(".", "");
                     await resourceManager.UpdateResourceAsync(id, r => r.FileExt, extension);
@@ -199,13 +254,13 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Trash(string id) 
+        public async Task<IActionResult> Trash(string id)
         {
             // Check if the ID is valid
             if (!ValidityUtil.IsValidId(id))
                 return BadRequest(new ApiResponse(false, "Invalid ID."));
-                
-            try 
+
+            try
             {
                 // Check if the resource exists
                 if (!await resourceManager.ResourceExistsAsync(id))
@@ -219,7 +274,7 @@ namespace KnowledgeBank.Controllers
                 logger.Information("Trashed resource with ID '{ID}' successfully.", id);
                 return Ok(new ApiResponse(true, "Resource trashed successfully."));
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 logger.Error(e, "Error trashing resource with ID {ID}.", id);
                 return StatusCode(500, new ApiResponse(false, "Error trashing resource", e.Message));
@@ -239,13 +294,13 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Untrash(string id) 
+        public async Task<IActionResult> Untrash(string id)
         {
             // Check if the ID is valid
             if (!ValidityUtil.IsValidId(id))
                 return BadRequest(new ApiResponse(false, "Invalid ID."));
-                
-            try 
+
+            try
             {
                 // Check if the resource exists
                 if (!await resourceManager.ResourceExistsAsync(id))
@@ -259,14 +314,14 @@ namespace KnowledgeBank.Controllers
                 logger.Information("Untrashed resource with ID '{ID}' successfully.", id);
                 return Ok(new ApiResponse(true, "Resource untrashed successfully."));
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 logger.Error(e, "Error untrashing resource with ID {ID}.", id);
                 return StatusCode(500, new ApiResponse(false, "Error untrashing resource", e.Message));
             }
         }
         #endregion
-        
+
         #region Download
         /// <summary>
         /// Downloads a resource
@@ -389,6 +444,14 @@ namespace KnowledgeBank.Controllers
                 // Delete the resource from the database
                 await resourceManager.DeleteResourceAsync(id);
 
+                // Delete the chunks from the vector database
+                bool chunkDeleted = await _ragSystem.DeleteAllPointsWithIdAsync(id);
+                if (!chunkDeleted)
+                {
+                    logger.Warning("Something went wrong while deleting chunks for resource with ID '{ID}'", id);
+                    return StatusCode(500, new ApiResponse(false, "Error deleting chunks from vector database."));
+                }
+
                 logger.Information("Deleted resource with ID '{ID}' successfully", id);
                 return Ok(new ApiResponse(true, "Resource deleted successfully."));
             }
@@ -438,11 +501,11 @@ namespace KnowledgeBank.Controllers
                 List<string> updatedProperties = [];
 
                 // Update the properties
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Resource), id, updates));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(WebsiteMetadata), id, updates));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(DocumentMetadata), id, updates));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(AudioMetadata), id, updates));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(VideoMetadata), id, updates));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Resource), id, updates, ragSystem));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(WebsiteMetadata), id, updates, ragSystem));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(DocumentMetadata), id, updates, ragSystem));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(AudioMetadata), id, updates, ragSystem));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(VideoMetadata), id, updates, ragSystem));
 
                 // No props were found
                 if (updatedProperties.Count == 0)
@@ -723,7 +786,7 @@ namespace KnowledgeBank.Controllers
             }
         }
         #endregion
-        
+
         #region Relation fetches
         /// <summary>
         /// Retrieves all relations of the given type for the given resource ID
@@ -737,21 +800,21 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Relations(string relation, string id, string? properties) 
+        public async Task<IActionResult> Relations(string relation, string id, string? properties)
         {
             // Check if relation is filled in
             if (string.IsNullOrEmpty(relation))
                 return BadRequest(new ApiResponse(false, "Invalid relation"));
-                
+
             // Check ID
             if (!ValidityUtil.IsValidId(id))
                 return BadRequest(new ApiResponse(false, "Invalid ID"));
 
-            try 
+            try
             {
                 if (relation == "resource-related-resources")
                 {
-                    return (await GetRelatedResources(id));
+                    return await GetRelatedResources(id);
                 }
 
                 object? result = relation switch
@@ -785,7 +848,7 @@ namespace KnowledgeBank.Controllers
                     "sources" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllResourceSourceRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
                         await resourceManager.GetAllResourceSourceRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
-                    
+
                     // Sources
                     "related-sources" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllResourceRelatedSourceRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
@@ -802,20 +865,20 @@ namespace KnowledgeBank.Controllers
                     // Default
                     _ => null
                 };
-                
+
                 if (result == null)
                     return NotFound(new ApiResponse(false, "ID or relation not found"));
 
                 return Ok(new ApiResponse(true, "Successfully retrieved relations", result));
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 logger.Error(e, "Error retrieving relation '{Relation}' for resource with ID '{Id}'", relation, id);
-                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message ));
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
             }
         }
         #endregion
-        
+
         #region Add Relations
         /// <summary>
         /// Adds a relation for this resource
@@ -830,7 +893,7 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(404, "Resource not found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> AddRelation(string id, string relation, string targetId, [FromQuery]string? relationInfo) 
+        public async Task<IActionResult> AddRelation(string id, string relation, string targetId, [FromQuery] string? relationInfo)
         {
             // Check if relation is filled in
             if (string.IsNullOrEmpty(relation))
@@ -840,35 +903,35 @@ namespace KnowledgeBank.Controllers
             if (!ValidityUtil.IsValidId(id)) return BadRequest(new ApiResponse(false, "Invalid ID"));
             if (!ValidityUtil.IsValidId(targetId) && !ValidityUtil.IsValidUrl(targetId)) return BadRequest(new ApiResponse(false, "Invalid target ID/URL"));
 
-            try 
+            try
             {
-                switch (relation) 
+                switch (relation)
                 {
                     // Authors
                     case "authors":
                         await resourceManager.AddAuthorToResourceAsync(id, targetId);
                         break;
-                        
+
                     // Organisations
                     case "organisations":
                         await resourceManager.AddOrganisationToResourceAsync(id, targetId, relationInfo ?? "");
                         break;
-                    
+
                     // Regions
                     case "regions":
                         await resourceManager.AddRegionToResourceAsync(id, targetId);
                         break;
-                    
+
                     // Related organisations
                     case "related-organisations":
                         await resourceManager.AddRelatedOrganisationToResourceAsync(id, targetId, relationInfo ?? "");
                         break;
-                    
+
                     // Related persons
                     case "related-persons":
                         await resourceManager.AddRelatedPersonToResourceAsync(id, targetId, relationInfo);
                         break;
-                    
+
                     // Sources
                     case "sources":
                         await resourceManager.AddSourceToResourceAsync(id, System.Net.WebUtility.UrlDecode(targetId));
@@ -883,7 +946,7 @@ namespace KnowledgeBank.Controllers
                     case "tags":
                         await resourceManager.AddTagToResourceAsync(id, targetId);
                         break;
-                        
+
                     // Default
                     default:
                         return BadRequest(new ApiResponse(false, "Invalid relation"));
@@ -891,7 +954,7 @@ namespace KnowledgeBank.Controllers
 
                 return Ok(new ApiResponse(true, "Relation added successfully"));
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 logger.Error(e, "Error creating relation '{Relation}' for person with ID '{Id}'", relation, id);
                 return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
@@ -995,17 +1058,17 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
         public async Task<IActionResult> InitLargeFileUpload([FromForm] ResourceUploadDto uploadDto)
-        {        
+        {
             ResourceCreateDto? dto = null;
-            
+
             if (uploadDto.UploadType == "website")
                 dto = JsonSerializer.Deserialize<WebsiteCreateDto>(uploadDto.Dto);
             else if (uploadDto.File != null)
                 dto = DeserializeWithFile(uploadDto.UploadType, uploadDto.Dto, uploadDto.File);
-            
+
             if (dto == null)
                 return BadRequest(new ApiResponse(false, "Invalid DTO sent"));
-        
+
             // Check if there is a title
             if (string.IsNullOrEmpty(dto.Title))
                 return BadRequest(new ApiResponse(false, "No name was provided."));
@@ -1021,16 +1084,16 @@ namespace KnowledgeBank.Controllers
             // Check if there is a publication date
             if (dto.PublicationDate == DateTime.MinValue)
                 return BadRequest(new ApiResponse(false, "No publication date was provided"));
-                
+
             logger.Information("Creating resource '{Title}'...", dto.Title);
-            
-            try 
+
+            try
             {
                 // Start a transaction on the database, since we are going to perform multiple actions
                 await resourceManager.BeginTransaction();
 
                 // Create the resource in the database and retrieve the ID
-                Guid id = uploadDto.UploadType switch 
+                Guid id = uploadDto.UploadType switch
                 {
                     "document" => await resourceManager.CreateDocumentAsync((DocumentCreateDto)dto),
                     "audio" => await resourceManager.CreateAudioAsync((AudioCreateDto)dto),
@@ -1039,11 +1102,11 @@ namespace KnowledgeBank.Controllers
                 };
 
                 await resourceManager.Commit();
-                
+
                 // Return the resource Id
                 return Ok(new ApiResponse(true, "Upload session initialized", id));
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 await resourceManager.Rollback();
                 logger.Error(e, "Error initializing large file upload for resource {Title}.", dto.Title);
@@ -1066,43 +1129,43 @@ namespace KnowledgeBank.Controllers
         {
             if (Request.Body == null)
                 return BadRequest(new ApiResponse(false, "No chunk data was provided."));
-                
+
             if (string.IsNullOrEmpty(resourceId) || !ValidityUtil.IsValidId(resourceId))
                 return BadRequest(new ApiResponse(false, "Invalid resource ID."));
-                
+
             if (string.IsNullOrEmpty(fileType))
                 return BadRequest(new ApiResponse(false, "No file type was provided."));
-                
+
             if (string.IsNullOrEmpty(blockId))
                 return BadRequest(new ApiResponse(false, "No block ID was provided."));
-                
+
             try
             {
                 Guid parsedResourceId = Guid.Parse(resourceId);
-                
+
                 // Make sure blockId is base64 encoded
                 string base64BlockId = blockId;
                 if (!Base64.IsValid(blockId))
                 {
                     base64BlockId = Convert.ToBase64String(Encoding.UTF8.GetBytes(blockId));
                 }
-                
+
                 // Get container
                 BlobContainerClient container = await blobService.GetOrCreateContainerAsync(fileType);
-                   
+
                 // Get block blob client
                 BlockBlobClient blockBlobClient = container.GetBlockBlobClient(resourceId);
-                
+
                 // Parse request body to a memorystream
                 MemoryStream memoryStream = new MemoryStream();
                 await Request.Body.CopyToAsync(memoryStream);
                 memoryStream.Position = 0;
-                                
+
                 // Stage the current chunk
                 await blockBlobClient.StageBlockAsync(base64BlockId, memoryStream);
-                
+
                 logger.Information("Chunk {BlockId} uploaded for resource {ResourceId}", blockId, resourceId);
-                
+
                 return Ok(new ApiResponse(true, "Chunk uploaded successfully"));
             }
             catch (Exception e)
@@ -1111,7 +1174,7 @@ namespace KnowledgeBank.Controllers
                 return StatusCode(500, new ApiResponse(false, "Error uploading chunk", e.Message));
             }
         }
-        
+
         /// <summary>
         /// Finalizes a large file upload by committing all uploaded blocks
         /// </summary>
@@ -1125,37 +1188,37 @@ namespace KnowledgeBank.Controllers
         {
             if (string.IsNullOrEmpty(finalizeDto.ResourceId) || !ValidityUtil.IsValidId(finalizeDto.ResourceId))
                 return BadRequest(new ApiResponse(false, "Invalid resource ID."));
-                
+
             if (string.IsNullOrEmpty(finalizeDto.FileType))
                 return BadRequest(new ApiResponse(false, "No file type was provided."));
-                
+
             if (string.IsNullOrEmpty(finalizeDto.FileName))
                 return BadRequest(new ApiResponse(false, "No file name was provided."));
-                
+
             if (finalizeDto.BlockIds == null || finalizeDto.BlockIds.Count == 0)
                 return BadRequest(new ApiResponse(false, "No block IDs were provided."));
 
             // Get the resource ID
             Guid resourceId = Guid.Parse(finalizeDto.ResourceId);
-                        
+
             try
             {
                 logger.Information("Finalizing large file upload for resource {ResourceId}", resourceId);
-                                
+
                 string extension = Path.GetExtension(finalizeDto.FileName);
                 string fileType = Filetype.ConvertExtensionToFiletype(extension);
-                
+
                 // Convert blockIds to base64 if needed
-                List<string> base64BlockIds = finalizeDto.BlockIds.Select(id => 
+                List<string> base64BlockIds = finalizeDto.BlockIds.Select(id =>
                     Base64.IsValid(id) ? id : Convert.ToBase64String(Encoding.UTF8.GetBytes(id))).ToList();
-                
+
                 // Create metadata to add to blob
                 Dictionary<string, string> metadata = new() { { "extension", extension } };
-                
+
                 BLOB_STATUSCODE code = await blobService.CommitBlockListAsync(resourceId.ToString(), fileType, base64BlockIds, metadata);
-                
+
                 logger.Information("Large file upload finalized for resource {ResourceId}", resourceId);
-                
+
                 return Ok(new ApiResponse(true, "File upload finalized successfully", resourceId));
             }
             catch (Exception e)
@@ -1165,7 +1228,7 @@ namespace KnowledgeBank.Controllers
                 return StatusCode(500, new ApiResponse(false, "Error finalizing upload", e.Message));
             }
         }
-        
+
         /// <summary>
         /// Cleans up a failed large file upload by deleting database entry. Cleaning of block blobs
         /// is automatically handled, uncommitted blocks are deleted.
@@ -1180,7 +1243,7 @@ namespace KnowledgeBank.Controllers
         {
             if (string.IsNullOrEmpty(resourceId) || !ValidityUtil.IsValidId(resourceId))
                 return BadRequest(new ApiResponse(false, "Invalid resource ID."));
-                
+
             Guid parsedResourceId;
             try
             {
@@ -1217,7 +1280,7 @@ namespace KnowledgeBank.Controllers
                         logger.Error("Error deleting blob {ResourceId} in storage", resourceId);
                         return StatusCode(500, new ApiResponse(false, "Error deleting blob in storage"));
                     }
-            
+
                 }
                 else
                 {
@@ -1232,9 +1295,9 @@ namespace KnowledgeBank.Controllers
                 return StatusCode(500, new ApiResponse(false, "Error cleaning up upload", e.Message));
             }
         }
-        
+
         #endregion
-        
+
         #region Archive Grid
         /// <summary>
         /// Retrieves the resource grid items which are displayed on the archive page
@@ -1245,7 +1308,7 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(200, "The list of ResourceGridItems", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> GetGrid([FromBody]GridRequest request) 
+        public async Task<IActionResult> GetGrid([FromBody] GridRequest request)
         {
             // Check page settings
             if (request.PageIndex < 1)
@@ -1253,16 +1316,16 @@ namespace KnowledgeBank.Controllers
 
             if (request.PageSize < 1)
                 return BadRequest(new ApiResponse(false, "Page size cannot be lower than 1"));
-                
-            try 
+
+            try
             {
                 // Execute the search
-                GridSearchResult searchResult = await resourceManager.SearchResourceGridAsync(request);
-                
+                GridSearchTemplate searchResult = await resourceManager.SearchResourceGridAsync(request);
+
                 // Return result
-                return Ok(new ApiResponse(true, $"Found {searchResult.Items?.Length ?? 0} items", searchResult));
+                return Ok(new ApiResponse(true, $"Found {searchResult.TotalCount} total items", searchResult));
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
                 logger.Error(e, "Failed to fetch resource grid");
                 return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
@@ -1441,64 +1504,47 @@ namespace KnowledgeBank.Controllers
 
         private async Task<IActionResult> GetRelatedResources(string id)
         {
-            double standardizedTagWeight = 3.0;
-            double approvedTagWeight = 2.0;
-            double regularTagWeight = 1.0;
-
             try
             {
                 // Check if the resource exists
                 if (!await resourceManager.ResourceExistsAsync(id))
                     return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
 
-                ResourceTagRelation[] resourceTags = await resourceManager.GetAllResourceTagRelationsAsync(
-                    predicate: r => r.ResourceId.ToString() == id,
-                    includeProperties: new[] { "Tag" });
+                // Get vector points for the current resource
+                IReadOnlyList<ScoredPoint> pointsIds = await _ragSystem.QdrantClient.QueryAsync(
+                    _ragSystem.CollectionName,
+                    filter: MatchKeyword("resourceId", id)
+                );
 
+                if (pointsIds.Count == 0)
+                    return Ok(new ApiResponse(true, "No vector points found for resource", Array.Empty<Resource>()));
 
-                if (resourceTags.Length == 0)
-                    return Ok(new ApiResponse(true, "No tags found for resource", Array.Empty<Resource>()));
+                // Find related resources using vector similarity
+                IReadOnlyList<PointGroup> results = await _ragSystem.QdrantClient.RecommendGroupsAsync(
+                    _ragSystem.CollectionName,
+                    groupBy: "resourceId",
+                    positive: pointsIds.Select(p => p.Id).ToArray(),
+                    filter: !MatchKeyword("resourceId", id), // Exclude the current resource
+                    limit: 5
+                );
 
-                // Retrieve resources with at least one common tag
-                var documentTagIds = resourceTags.Select(r => r.TagId).ToHashSet();
+                // Retrieve the actual resource objects
+                if (results.Count == 0)
+                    return Ok(new ApiResponse(true, "No related resources found", Array.Empty<Resource>()));
 
-                ResourceTagRelation[] resourceTagRelations = await resourceManager.GetAllResourceTagRelationsAsync(
-                    predicate: r => documentTagIds.Contains(r.TagId) && r.ResourceId.ToString() != id,
-                    includeProperties: new[] { "Tag", "Resource" });
+                //ResourceIds ids
+                var resourceIds = results.Select(result => Guid.Parse(result.Id.StringValue)).ToList();
 
-                // Group by resource, and calculate similarity score
-                Resource[] relatedResources = resourceTagRelations
-                    .GroupBy(r => r.ResourceId)
-                    .Select(group =>
-                    {
-                        // Get resource
-                        var resource = group.First().Resource!;
+                // Retrieve resources based on the found IDs
+                var query = await resourceManager.GetAllResourcesAsync(
+                    predicate: r => resourceIds.Contains(r.Id)
+                );
 
-                        double similarityScore = 0;
-                        foreach (var r in group)
-                        {
-                            // Check to avoid possible errors
-                            if (r.Tag == null) continue;
-
-                            // Add appropriate weight
-                            if (r.Tag.IsStandardized) similarityScore += standardizedTagWeight;
-                            else if (r.Tag.IsApproved) similarityScore += approvedTagWeight;
-                            else similarityScore += regularTagWeight;
-                        }
-
-                        return new { Resource = resource, SimilarityScore = similarityScore };
-                    })
-                    .OrderByDescending(item => item.SimilarityScore)
-                    .Select(item => item.Resource)
-                    .Take(18)
-                    .ToArray();
-
-
-                if (relatedResources.Count() == 0)
+                // Check if any resources were found
+                if (query.Count() == 0)
                     return NotFound(new ApiResponse(true, "No related resources found", Array.Empty<Resource>()));
 
-                return Ok(new ApiResponse(true, "Related resources found", relatedResources));
-
+                return Ok(new ApiResponse(true, "Related resources found", query.ToArray()));
             }
 
             catch (Exception ex)
@@ -1506,7 +1552,6 @@ namespace KnowledgeBank.Controllers
                 logger.Error(ex, "Error retrieving relation 'resource-related-resources' for resource with ID '{Id}'", id);
                 return StatusCode(500, new ApiResponse(false, "Internal Server Error: Related Resources", ex.Message));
             }
-
         }
 
 

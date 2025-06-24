@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import Expandable from "./expandable"
 import BadgeList from "./BadgeList"
@@ -141,7 +141,7 @@ export function ResourceContent(
         aiTagsPromise.then(response =>
         {
             //Add translation logic from ai tags to ListItem[] here
-            const list: ListItem[] = response.body.map((item: string) => ({
+            const list: ListItem[] = response.body.tags.map((item: string) => ({
                 id: item,
                 name: item,
                 type: "ai-tag",
@@ -260,7 +260,7 @@ export function ResourceContent(
                 <BadgeList listType="related-organisations" itemList={relatedOrganisations} onNew={(newItems) => setRelatedOrganisations(relatedOrganisations ? relatedOrganisations.concat(newItems) : newItems)} onRemove={(removedItem) => setRelatedOrganisations(relatedOrganisations ? relatedOrganisations.filter((item) => item != removedItem) : [])} />
             </Expandable>
 
-            <ResourceList header="Related Resources" resources={relatedResources}/>
+      <ResourceList header="Related Resources" resources={relatedResources} />
 
             <Expandable variant="horizontal" title="Sources">
                 <BadgeList listType="sources" itemList={sourceList} onNew={(newItems) => setSourceList(sourceList ? sourceList.concat(newItems) : newItems)} onRemove={(removedItem) => setSourceList(sourceList ? sourceList.filter((item) => item != removedItem) : [])} />

@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import React from 'react';
 import { usePathname, useSearchParams, useRouter, ReadonlyURLSearchParams } from 'next/navigation';
@@ -49,20 +49,18 @@ export type ArchiveContextType = {
 
 const ArchiveContext = React.createContext<ArchiveContextType | undefined>(undefined);
 
-export const useArchive = (): ArchiveContextType =>
-{
-    const context = React.useContext(ArchiveContext);
+export const useArchive = (): ArchiveContextType => {
+  const context = React.useContext(ArchiveContext);
 
-    if (!context) throw new Error("useArchive must be used within a ArchiveProvider");
+  if (!context) throw new Error("useArchive must be used within a ArchiveProvider");
 
-    return context;
-}
+  return context;
+};
 
-export const ArchiveProvider = ({children}: {children: React.ReactNode}) =>
-{
-    const searchParams = useSearchParams();
-    const router = useRouter();
-    const pathname = usePathname();
+export const ArchiveProvider = ({ children }: { children: React.ReactNode }) => {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
 
     // Filters
     const [tagFilter, setTagFilter] = React.useState<string[]>(() => searchParams.getAll('tagFilter'));

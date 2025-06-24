@@ -1,40 +1,50 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { usePathname, useSearchParams, useRouter } from "next/navigation";
+import { ReadonlyURLSearchParams, usePathname, useSearchParams, useRouter } from "next/navigation";
 import Stack from "@/lib/stack";
 import { ApiResponse } from "@/types/apiResponse.type";
 
+// --------------------------------------------------------
+// TYPES AND ENUMS
+// --------------------------------------------------------
+
+// This type is used to define the mode of the sidebar
+type SidebarMode = "archive-info" | "chat-history";
+
 // Enumerator for the different types of items to be displayed in the right sidebar
-export enum MetadataTypeEnum { RESOURCE = "resource", PERSON = "person", ORGANISATION = "organisation" }
+export enum MetadataTypeEnum {
+  RESOURCE = "resource",
+  PERSON = "person",
+  ORGANISATION = "organisation",
+}
 
-export type SidebarContextType =
-{
-    // Info about currently selected item (The ID in the database and the type of it)
-    currentId: string;
-    currentType: MetadataTypeEnum;
-    openRightSidebar: (id: string, type: MetadataTypeEnum) => void;
-    
-    // Navigation
-    navigateForward: () => void;
-    navigateBack: () => void;
-    navigate: (id: string, type: MetadataTypeEnum) => void;
-    
-    isEmptyPrevs: () => boolean;
-    isEmptyNexts: () => boolean;
+export type SidebarContextType = {
+  // Info about currently selected item (The ID in the database and the type of it)
+  currentId: string;
+  currentType: MetadataTypeEnum;
+  openRightSidebar: (id: string, type: MetadataTypeEnum) => void;
 
-    // State and functions for the left sidebar
-    leftSidebarState: "expanded" | "collapsed";
-    leftSidebarOpen: boolean;
-    setLeftSidebarOpen: (open: boolean) => void;
-    toggleLeftSidebar: () => void;
+  // Navigation
+  navigateForward: () => void;
+  navigateBack: () => void;
+  navigate: (id: string, type: MetadataTypeEnum) => void;
 
-    // State and functions for the right sidebar
-    rightSidebarState: "expanded" | "collapsed";
-    rightSidebarOpen: boolean;
-    setRightSidebarOpen: (open: boolean) => void;
-    toggleRightSidebar: () => void;
+  isEmptyPrevs: () => boolean;
+  isEmptyNexts: () => boolean;
+
+  // State and functions for the left sidebar
+  leftSidebarState: "expanded" | "collapsed";
+  leftSidebarOpen: boolean;
+  setLeftSidebarOpen: (open: boolean) => void;
+  toggleLeftSidebar: () => void;
+
+  // State and functions for the right sidebar
+  rightSidebarState: "expanded" | "collapsed";
+  rightSidebarOpen: boolean;
+  setRightSidebarOpen: (open: boolean) => void;
+  toggleRightSidebar: () => void;
 
     // Is editing enabled
     editMode: boolean;
@@ -45,19 +55,26 @@ export type SidebarContextType =
     setCreationDate: (date: Date | null) => void;
     publicationDate: Date | null;
     setPublicationDate : (date: Date | null) => void;
+
+  // The sidebar mode, used to determine which sidebar to show
+  sidebarMode: SidebarMode;
+  setSidebarMode: (mode: SidebarMode) => void;
 };
+
+// --------------------------------------------------------
+// CONTEXT AND PROVIDER
+// --------------------------------------------------------
 
 // This context is used to manage the state of the sidebar
 const SidebarContent = React.createContext<SidebarContextType | undefined>(undefined);
 
 // This hook is used to access the sidebar context
-export const useSidebar = () =>
-{
-    const context: SidebarContextType | undefined = React.useContext(SidebarContent);
+export const useSidebar = () => {
+  const context: SidebarContextType | undefined = React.useContext(SidebarContent);
 
-    if (!context) throw new Error("useSidebar must be used within a SidebarProvider");
+  if (!context) throw new Error("useSidebar must be used within a SidebarProvider");
 
-    return context;
+  return context;
 };
 
 export const FetchMetadataType = async (id: string): Promise<MetadataTypeEnum> => 
@@ -94,6 +111,8 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
     const pathname: string = usePathname();
     const searchParams = useSearchParams();
     const router = useRouter();
+    
+    const [sidebarMode, setSidebarMode] = React.useState<SidebarMode>("archive-info");
     
     // State for the selected item
     const [currentId, setCurrentId] = React.useState<string>('');
@@ -270,9 +289,11 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
     
     // Handle page navigation (pathname changes)
     React.useEffect(() => 
-    {
-        if (pathname !== '/archive')
-            closeRightSidebar();
+    {   
+      setSidebarMode(pathname === 'archive' ? 'archive-info' : "chat-history");
+      
+      if (pathname !== '/archive' && !pathname.startsWith("/chat"))
+        closeRightSidebar();
     }, [pathname, closeRightSidebar]);
     
     // Handle right sidebar cleanup when closed
@@ -290,47 +311,50 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
     // Hotkeys
     useHotkeys('esc', closeRightSidebar);
 
-    return (
-        <SidebarContent.Provider
-            value={
-            {
-                currentId,
-                currentType,
-                openRightSidebar,
-                
-                navigateForward,
-                navigateBack,
-                navigate,
-                
-                isEmptyPrevs,
-                isEmptyNexts,
+  return (
+    <SidebarContent.Provider
+      value={{
+        currentId,
+        currentType,
+        openRightSidebar,
 
-                // Left sidebar
-                leftSidebarState,
-                leftSidebarOpen,
-                setLeftSidebarOpen,
-                toggleLeftSidebar,
+        navigateForward,
+        navigateBack,
+        navigate,
 
-                // Right sidebar
-                rightSidebarState,
-                rightSidebarOpen,
-                setRightSidebarOpen,
-                toggleRightSidebar,
+        isEmptyPrevs,
+        isEmptyNexts,
 
-                // Edit mode
-                editMode,
-                setEditMode,
+        // Left sidebar
+        leftSidebarState,
+        leftSidebarOpen,
+        setLeftSidebarOpen,
+        toggleLeftSidebar,
 
-                //Creation & Publication Date
-                creationDate,
-                publicationDate,
-                setCreationDate,
-                setPublicationDate,
-            }}
-        >
-        {children}
-        </SidebarContent.Provider>
-    );
+        // Right sidebar
+        rightSidebarState,
+        rightSidebarOpen,
+        setRightSidebarOpen,
+        toggleRightSidebar,
+
+        // The sidebar mode
+        sidebarMode,
+        setSidebarMode,
+
+        // Edit mode
+        editMode,
+        setEditMode,
+
+        //Creation & Publication Date
+        creationDate,
+        publicationDate,
+        setCreationDate,
+        setPublicationDate,
+      }}
+    >
+      {children}
+    </SidebarContent.Provider>
+  );
 };
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

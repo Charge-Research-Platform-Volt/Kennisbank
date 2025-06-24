@@ -1,20 +1,34 @@
 import LeftSidebarServer from "@/components/sidebar/left-sidebar/left-sidebar-server";
-import { QuickSearchProvider } from "@/context/quick-search-provider";
 import RightSidebar from "@/components/sidebar/right-sidebar/right-sidebar";
 import { UserRoleProvider } from "@/context/user-role-context";
 import { ArchiveProvider } from "@/context/archive-provider";
+import { QuickSearchProvider } from "@/context/quick-search-provider";
+import { SidebarProvider } from "@/context/sidebar-provider";
+import { TanStackQueryProvider } from "@/context/tanStack-query-provider";
+import { cookies } from "next/headers";
 
 export default async function KnowledgeBankLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // Get the state of the right sidebar from cookies
+  const leftSidebar = (await cookies()).get("leftSidebar:state");
+  let leftSidebarDefault = true;
+  if (leftSidebar) {
+    leftSidebarDefault = leftSidebar.value === "true";
+  }
+
   return (
-    
-        <ArchiveProvider>
-          <QuickSearchProvider>
+    <TanStackQueryProvider>
+      <SidebarProvider leftSidebarDefaultState={leftSidebarDefault}>
+        <QuickSearchProvider>
+          <ArchiveProvider>
             <div className="flex h-screen w-full">
               <LeftSidebarServer />
               <main className="w-full overflow-y-auto p-2">{children}</main>
+              <RightSidebar />
             </div>
+          </ArchiveProvider>
         </QuickSearchProvider>
-      </ArchiveProvider>
+      </SidebarProvider>
+    </TanStackQueryProvider>
   );
 }
 

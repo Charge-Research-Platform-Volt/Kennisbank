@@ -9,18 +9,28 @@ using Microsoft.OpenApi.Models;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
+using KnowledgeBank.BackgroundServices;
+using KnowledgeBank.Services;
+using Hubs;
+
 using Microsoft.AspNetCore.Http.Features;
 using KnowledgeBank.Utils;
 
 namespace KnowledgeBank
 {
     public class Program
-    {    
+    {
         public static async Task Main(string[] args)
         {
+            // Ensure the current directory is set to the directory of the executable
             // # Builder
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
             ConfigureLogging();
+
+            // The environment variables are loaded from the .env file configured in the docker-compose file.
+            EnvironmentConfig environmentConfig = new EnvironmentConfig(builder.Configuration);
+            environmentConfig.CheckEnvironmentVariables();
+            builder.Services.AddSingleton(environmentConfig);
 
             // # Configuration
             builder.Services.Configure<OwnerUserConfig>(builder.Configuration.GetSection(OwnerUserConfig.SectionName));
@@ -49,13 +59,14 @@ namespace KnowledgeBank
             
             // # Services
             builder.Services.AddControllers();
+            builder.Services.AddSignalR();
             builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
             builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, CustomAuthorizationMiddlewareResultHandler>();
             builder.Services.AddAuthorization(options =>
             {
                 foreach (string roleName in RoleInitializer.roleNames)
                 {
-                    options.AddPolicy($"Require{ char.ToUpper(roleName[0]) + roleName.Substring(1) }Role", policy => policy.RequireRole(roleName));
+                    options.AddPolicy($"Require{char.ToUpper(roleName[0]) + roleName.Substring(1)}Role", policy => policy.RequireRole(roleName));
                 }
 
                 // This line terminates the handler on first failure, when more information is required, set this to true.
@@ -63,16 +74,16 @@ namespace KnowledgeBank
                 // authorization scenarios. This setting only affects the authorization middleware, not the controllers.
                 options.InvokeHandlersAfterFailure = false;
             });
-            //
+
             // Add this line after the code below to enable authentication with JWT tokens: .AddBearerToken(IdentityConstants.BearerScheme);
             builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
-            
+
             builder.Services.AddIdentityCore<User>()
                             .AddRoles<IdentityRole>()
                             .AddEntityFrameworkStores<DatabaseContext>()
                             .AddApiEndpoints();
 
-
+            // Swagger
             builder.Services.AddOpenApi();
             builder.Services.AddSwaggerGen(ConfigureSwagger);
             builder.Services.AddScoped<RoleInitializer>();
@@ -80,12 +91,24 @@ namespace KnowledgeBank
 
             // # Database context
             builder.Services.AddDbContext<DatabaseContext>(
-                // DATABASE_CONNECTION_STRING is set in docker-compose.dev.yml file
-                options => options.UseNpgsql(builder.Configuration.GetValue<string>("DATABASE_CONNECTION_STRING")
-            ));
+                options => options.UseNpgsql(environmentConfig.GetVariableValue(EnvironmentVariable.CONNECTION_STRING))
+            );
 
+
+            // Resource management
             builder.Services.AddScoped<ResourceManager>();
             builder.Services.AddScoped<ProjectManager>();
+
+
+            // Retrieval Augmented Generation system
+            builder.Services.AddSingleton<RAGSystem, RAGSystem>();
+            builder.Services.AddScoped<RAGManger>();
+
+
+            // Background services
+            builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
+            builder.Services.AddHostedService<QueuedHostedService>();
+
 
             // # Mailer;
             builder.Services.AddSingleton(new MailUtils(
@@ -107,7 +130,7 @@ namespace KnowledgeBank
                           .AllowCredentials();
                 });
             });
-            
+
             builder.Services.Configure<FormOptions>(options =>
             {
                 // Set the limit to 100 MB
@@ -118,7 +141,7 @@ namespace KnowledgeBank
 
             builder.Services.AddHostedService<TrashbinCleanupService>(); // Add the background service for cleaning up the trashbin
             builder.Services.AddHostedService<InvitationsCleanupService>(); // Add the background service for cleaning up invitations
-            
+
             builder.WebHost.ConfigureKestrel(serverOptions =>
             {
                 serverOptions.Limits.MaxRequestBodySize = 110100480; // 105 MB in bytes
@@ -148,7 +171,7 @@ namespace KnowledgeBank
                 
                 await DatabaseSeeder.Seed(app.Services);
                 await scope.ServiceProvider.GetRequiredService<DatabaseContext>().EnsureViewsCreatedAsync();
-                
+
                 if (app.Environment.IsDevelopment())
                 {
                     // Seed test data only in development environment:
@@ -161,11 +184,14 @@ namespace KnowledgeBank
             app.UseCors("AllowFrontend");
             app.UseAuthentication();
             app.UseAuthorization();
+
+            // Hub and Controllers must be added after Authentication and Authorization
+            app.MapHub<Chat>("/chat"); // SignalR hub for chat functionality
             app.MapControllers();
 
             app.MapGroup("Auth").MapIdentityApi<User>().WithTags("Auth").WithOpenApi(ConfigureIdentityApiOptions).AddEndpointFilter(async (efiContext, next) =>
             {
-                if(HideEndpointFilter.PathsToHide.Any(p => p == efiContext.HttpContext.Request.Path))
+                if (HideEndpointFilter.PathsToHide.Any(p => p == efiContext.HttpContext.Request.Path))
                     return Results.Forbid();
                 return await next(efiContext);
             });
@@ -186,6 +212,7 @@ namespace KnowledgeBank
             c.SwaggerDoc("v1", new OpenApiInfo { Title = "KnowledgeBank", Version = "v1" });
             c.EnableAnnotations();
             c.DocumentFilter<HideEndpointFilter>();
+            c.AddSignalRSwaggerGen(); // Add SignalR support for Swagger
         }
 
 
@@ -202,6 +229,7 @@ namespace KnowledgeBank
             c.SwaggerEndpoint("/swagger/v1/swagger.json", "Version-1");
             c.RoutePrefix = "docs";
             c.DocumentTitle = "KnowledgeBank API";
+            c.DocExpansion(DocExpansion.None);
         }
 
 

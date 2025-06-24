@@ -1,6 +1,7 @@
 ﻿using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using KnowledgeBank.Utils;
 using Azure.Storage.Blobs.Specialized;
 using Serilog;
 
@@ -146,7 +147,7 @@ namespace KnowledgeBank.Data
         /// <param name="prefix">A prefix to filter results</param>
         /// <returns>A BlobPage which contains the current page, the total amount of pages and the list of blobs on the current page</returns>
         Task<BlobPageResponse> ListBlobsPagedAsync(string containerName, int pageSize, string? continuationToken = null, string prefix = "");
-        
+
         /// <summary>
         /// Commits a list of previously uploaded blocks to form a complete blob
         /// </summary>
@@ -170,16 +171,11 @@ namespace KnowledgeBank.Data
         /// Initializes a new instance of AzureBlobService
         /// </summary>
         /// <param name="configuration">Application configuration</param>
-        /// <exception cref="InvalidOperationException">Thown when no Azure Storage connection string is configured</exception>
-        public AzureBlobService(IConfiguration configuration)
+        /// <param name="environmentConfig">Environment configuration for accessing environment variables</param>
+        public AzureBlobService(IConfiguration configuration, EnvironmentConfig environmentConfig)
         {
-            string? connectionString = configuration["STORAGE_CONNECTION_STRING"];
-
-            if (string.IsNullOrEmpty(connectionString))
-                throw new InvalidOperationException("Azure Storage connection string not configured.");
-
-            this.blobService = new BlobServiceClient(connectionString);
-            this.logger = Log.ForContext<AzureBlobService>();
+            blobService = new BlobServiceClient(environmentConfig.GetVariableValue(EnvironmentVariable.AZURE_STORAGE_CONNECTION_STRING));
+            logger = Log.ForContext<AzureBlobService>();
         }
 
         /// <inheritdoc/>
@@ -425,13 +421,13 @@ namespace KnowledgeBank.Data
         {
             BlobContainerClient container = await GetOrCreateContainerAsync(containerName);
             BlockBlobClient blockBlobClient = container.GetBlockBlobClient(resourceId);
-            
+
             if (!await container.ExistsAsync())
             {
                 logger.Information("The container {ContainerName} does not exist.", containerName);
                 return BLOB_STATUSCODE.NOTFOUND;
             }
-            
+
             // Try committing the blocks
             try
             {

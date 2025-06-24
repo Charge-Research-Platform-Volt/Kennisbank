@@ -13,6 +13,9 @@ using KnowledgeBank.Models;
 using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
+using System.Reflection;
+using KnowledgeBank.BackgroundServices;
+using KnowledgeBank.Services;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,13 +27,20 @@ namespace KnowledgeBank.Controllers
     /// Author: Abel Dieterich
     /// </summary>
     /// <param name="resourceManager">The resource manager service for database interactions</param>
+    /// <param name="taskQueue">The background task queue for handling long-running tasks</param>
+    /// <param name="ragSystem">The RAG system for handling retrieval-augmented generation tasks</param>
+    /// <param name="ragManger">The RAG manager for managing RAG-related tasks</param>
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class OrganisationsController(ResourceManager resourceManager) : ControllerBase
+    public class OrganisationsController(ResourceManager resourceManager, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem, RAGManger ragManger) : ControllerBase
     {
-        private readonly Serilog.ILogger logger = Log.ForContext<OrganisationsController>();
+        private readonly Serilog.ILogger _logger = Log.ForContext<OrganisationsController>();
+        private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
+        private readonly RAGSystem _ragSystem = ragSystem;
+        private readonly RAGManger _ragManger = ragManger;
+
 
         #region New
         /// <summary>
@@ -49,19 +59,27 @@ namespace KnowledgeBank.Controllers
             if (string.IsNullOrEmpty(dto.Name))
                 return BadRequest(new ApiResponse(false, "No name was given"));
 
-            logger.Information("Creating organisation '{Name}'...", dto.Name);
+            _logger.Information("Creating organisation '{Name}'...", dto.Name);
 
             try
             {
                 // Create the organisation and return the ID
                 Guid id = await resourceManager.CreateOrganisationAsync(dto);
 
-                logger.Information("Organisation '{Name}' created successfully.", dto.Name);
+                // Add the organisation to the vector database
+                _taskQueue.QueueBackgroundWorkItem(async token =>
+                {
+                    using var scope = HttpContext.RequestServices.CreateScope();
+                    var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
+                    await ragManager.MainPipline(id: id, chunk: $"{dto.Name}\n{dto.Description}", fileType: null);
+                });
+
+                _logger.Information("Organisation '{Name}' created successfully.", dto.Name);
                 return Ok(new ApiResponse(true, "Organisation created successfully", id));
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error creating organisation '{Name}'.", dto.Name);
+                _logger.Error(e, "Error creating organisation '{Name}'.", dto.Name);
                 return StatusCode(500, new ApiResponse(false, "Error creating organisation", e.Message));
             }
         }
@@ -167,22 +185,31 @@ namespace KnowledgeBank.Controllers
 
             try
             {
-                // Delete organisation
-                logger.Information("Deleting organistation with ID: {ID}", id);
-                bool found = await resourceManager.DeleteOrganisationAsync(id);
+                _logger.Information("Deleting organisation with ID: {ID}", id);
 
-                if (found)
+                // Delete organisation from database
+                bool organisationFound = await resourceManager.DeleteOrganisationAsync(id);
+
+                if (!organisationFound)
                 {
-                    logger.Information("Organistaion with ID '{ID}' deleted successfully", id);
-                    return Ok(new ApiResponse(true, "Organisation deleted successfully"));
+                    _logger.Information("Organisation with ID '{ID}' not found.", id);
+                    return NotFound(new ApiResponse(false, "Organisation does not exist"));
                 }
 
-                logger.Information("Organisation with ID '{ID}' not found.", id);
-                return NotFound(new ApiResponse(false, "Organisation does not exist"));
+                // Delete the organisation chunks from the vector database
+                bool chunkDeleted = await _ragSystem.DeleteAllPointsWithIdAsync(id);
+                if (!chunkDeleted)
+                {
+                    _logger.Warning("Something went wrong while deleting the organisation chunks from the vector database for ID: {ID}", id);
+                    return StatusCode(500, new ApiResponse(false, "Error deleting organisation chunks from vector database"));
+                }
+
+                _logger.Information("Organisation with ID '{ID}' deleted successfully", id);
+                return Ok(new ApiResponse(true, "Organisation deleted successfully"));
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error deleting organisation with ID {ID}", id);
+                _logger.Error(e, "Error deleting organisation with ID {ID}", id);
                 return StatusCode(500, new ApiResponse(false, "Error deleting organisation"));
             }
         }
@@ -212,7 +239,7 @@ namespace KnowledgeBank.Controllers
             if (updates == null || updates.Count == 0)
                 return BadRequest(new ApiResponse(false, "No updates were provided."));
 
-            logger.Information("Updating organisation with ID '{ID}'...", id);
+            _logger.Information("Updating organisation with ID '{ID}'...", id);
 
             try
             {
@@ -224,7 +251,7 @@ namespace KnowledgeBank.Controllers
                 await resourceManager.BeginTransaction();
 
                 // Update the properties
-                List<string> updatedProperties = await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Organisation), id, updates);
+                List<string> updatedProperties = await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Organisation), id, updates, ragSystem);
 
                 // No props were found
                 if (updatedProperties.Count == 0)
@@ -242,20 +269,20 @@ namespace KnowledgeBank.Controllers
                 // If all properties were updated
                 if (updatedProperties.Count == updates.Count)
                 {
-                    logger.Information("Successfully updated organisation with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
+                    _logger.Information("Successfully updated organisation with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
                     return Ok(new ApiResponse(true, $"Person updated successfully.", updatedProperties));
                 }
 
                 // If not all properties were updated
                 else
                 {
-                    logger.Information("Partially updated person with ID '{ID}'. Updated properties: {props}", updatedPropertiesString);
+                    _logger.Information("Partially updated person with ID '{ID}'. Updated properties: {props}", updatedPropertiesString);
                     return Ok(new ApiResponse(true, $"Person updated partially.", updatedProperties));
                 }
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error updating person with ID '{ID}'", id);
+                _logger.Error(e, "Error updating person with ID '{ID}'", id);
                 return StatusCode(500, new ApiResponse(false, "Error updating person", e.Message));
             }
         }
@@ -297,7 +324,7 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error while checking if organisation exists");
+                _logger.Error(e, "Error while checking if organisation exists");
                 return StatusCode(500, new ApiResponse(false, "Error while checking if organisation exists", e.Message));
             }
         }
@@ -337,7 +364,7 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error retrieving organisation info.");
+                _logger.Error(e, "Error retrieving organisation info.");
                 return StatusCode(500, new ApiResponse(false, "Error retrieving organisation info", e.Message));
             }
         }
@@ -377,7 +404,7 @@ namespace KnowledgeBank.Controllers
             {
                 // All organisations to be returned
                 object[]? organisations = [];
-                
+
                 string projectionString = $"new({properties})";
                 
                 Expression<Func<Organisation, bool>>? predicate = searchQuery != null ? o =>    (EF.Functions.TrigramsAreSimilar(o.Name, searchQuery) ||
@@ -403,12 +430,12 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error listing organisations");
+                _logger.Error(e, "Error listing organisations");
                 return StatusCode(500, new ApiResponse(false, "Error listing organisations", e.Message));
             }
         }
         #endregion
-        
+
         #region Relation fetches
         /// <summary>
         /// Retrieves all relations of the given type for the given organisation ID
@@ -422,7 +449,7 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Relations(string relation, string id, string? properties) 
+        public async Task<IActionResult> Relations(string relation, string id, string? properties)
         {
             // Check if relation is filled in
             if (string.IsNullOrEmpty(relation))
@@ -431,8 +458,8 @@ namespace KnowledgeBank.Controllers
             // Check ID
             if (!ValidityUtil.IsValidId(id))
                 return BadRequest(new ApiResponse(false, "Invalid ID"));
-                
-            try 
+
+            try
             {
                 object? result = relation switch
                 {
@@ -445,17 +472,17 @@ namespace KnowledgeBank.Controllers
                     "related-resources" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(r => r.OrganisationId == Guid.Parse(id)) :
                         await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(predicate: r => r.OrganisationId == Guid.Parse(id), projection: $"new({properties})"),
-                    
+
                     // Related organisations
                     "organisation-related-organisations" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllOrganisationRelationshipsAsync(predicate: p => p.SourceOrganisationId == Guid.Parse(id) || p.TargetOrganisationId == Guid.Parse(id)) :
                         await resourceManager.GetAllOrganisationRelationshipsAsync(predicate: p => p.SourceOrganisationId == Guid.Parse(id) || p.TargetOrganisationId == Guid.Parse(id), projection: $"new({properties})"),
-                        
+
                     // Related persons
                     "persons" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllPersonOrganisationRelationsAsync(predicate: p => p.OrganisationId == Guid.Parse(id)) :
                         await resourceManager.GetAllPersonOrganisationRelationsAsync(predicate: p => p.OrganisationId == Guid.Parse(id), projection: $"new({properties})"),
-                    
+
                     // Default
                     _ => null
                 };
@@ -465,14 +492,14 @@ namespace KnowledgeBank.Controllers
 
                 return Ok(new ApiResponse(true, "Successfully retrieved relations", result));
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
-                logger.Error(e, "Error retrieving relation '{Relation}' for organisation with ID '{Id}'", relation, id);
+                _logger.Error(e, "Error retrieving relation '{Relation}' for organisation with ID '{Id}'", relation, id);
                 return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
             }
         }
         #endregion
-        
+
         #region Add Relations
         /// <summary>
         /// Adds a relation for this organisation
@@ -487,7 +514,7 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(404, "Organisation not found", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> AddRelation(string id, string relation, string targetId, [FromQuery]string? relationInfo) 
+        public async Task<IActionResult> AddRelation(string id, string relation, string targetId, [FromQuery] string? relationInfo)
         {
             // Check if relation is filled in
             if (string.IsNullOrEmpty(relation))
@@ -496,31 +523,31 @@ namespace KnowledgeBank.Controllers
             // Check if ids are valid
             if (!ValidityUtil.IsValidId(id)) return BadRequest(new ApiResponse(false, "Invalid ID"));
             if (!ValidityUtil.IsValidId(targetId)) return BadRequest(new ApiResponse(false, "Invalid target ID"));
-            
-            try 
+
+            try
             {
-                switch (relation) 
+                switch (relation)
                 {
                     // Direct resources
                     case "direct-resources":
                         await resourceManager.AddOrganisationToResourceAsync(targetId, id, relationInfo ?? "");
                         break;
-                    
+
                     // Related resources
                     case "related-resources":
                         await resourceManager.AddRelatedOrganisationToResourceAsync(targetId, id, relationInfo ?? "");
                         break;
-                    
+
                     // Organisations
                     case "organisation-related-organisations":
                         await resourceManager.AddOrganisationRelationshipAsync(id, relationInfo, targetId);
                         break;
-                    
+
                     // Persons
                     case "persons":
                         await resourceManager.AddPersonToOrganisationAsync(targetId, relationInfo, id);
                         break;
-                        
+
                     // Default
                     default:
                         return BadRequest(new ApiResponse(false, "Invalid relation"));
@@ -528,9 +555,9 @@ namespace KnowledgeBank.Controllers
 
                 return Ok(new ApiResponse(true, "Relation added successfully"));
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
-                logger.Error(e, "Error creating relation '{Relation}' for person with ID '{Id}'", relation, id);
+                _logger.Error(e, "Error creating relation '{Relation}' for person with ID '{Id}'", relation, id);
                 return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
             }
         }
@@ -592,7 +619,7 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error removing relation '{Relation}' for person with ID '{Id}'", relation, id);
+                _logger.Error(e, "Error removing relation '{Relation}' for person with ID '{Id}'", relation, id);
                 return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
             }
         }
