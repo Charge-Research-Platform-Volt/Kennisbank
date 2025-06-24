@@ -16,7 +16,8 @@ export type ResourceGridItem =
     fileType: string;
     creationDate: string;
     chunks?: string[];
-        description: string;
+    description: string;
+    items: any;
 }
 
 export type ArchiveContextType = {

@@ -10,15 +10,13 @@ import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
 import { OctagonAlert } from "lucide-react";
 import GetFileIcon from "./getFileIcon";
-import { ResourceResponse } from "@/types/resource.type";
-import { handleOpenFile } from "@/actions/openFileActionsClient";
 import { useQuickSearch } from "../context/quick-search-provider";
 import Kbd from "./kbd";
 import { Button } from "./ui/button";
 import { GridRequest, GridRequestSchema } from "@/types/gridRequest.type";
-import { ResourceItem, ResourceResponse } from "./archive/resources-grid";
 import { NewApiResponse } from "@/types/apiResponse.type";
 import Link from "next/link";
+import { ResourceGridItem } from "@/context/archive-provider";
 
 /**
  *
@@ -27,7 +25,7 @@ import Link from "next/link";
 export default function QuickSearch({ minimize = false }: { minimize?: boolean }) {
   const { isOpen, setIsOpen } = useQuickSearch();
   const [shortcut, setShortcut] = useState("");
-  const [searchResults, setSearchResults] = useState<ResourceItem[]>([]);
+  const [searchResults, setSearchResults] = useState<ResourceGridItem[]>([]);
 
   // Keyboard shortcut
   useHotkeys("mod+k", () => setIsOpen(true), { preventDefault: true });
@@ -71,7 +69,7 @@ export default function QuickSearch({ minimize = false }: { minimize?: boolean }
         return;
       }
 
-      const data: NewApiResponse<ResourceResponse> = await response.json();
+      const data: NewApiResponse<ResourceGridItem> = await response.json();
       console.log("Search results:", data);
 
       if (data.success) setSearchResults(data.body.items);

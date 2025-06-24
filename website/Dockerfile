@@ -31,32 +31,52 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 EXPOSE $PORT
 
-# -- Build the app,
-# Do not use the default env variables because before docker compose would normally override the, they are already being used.
-# Instead pass any needed env variables as build args for the build, which will be available as env variables during the build.
+# -- Build the app for static export
 FROM base-image AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
-
-# -- Run the app
-FROM base AS production
+# -- Serve static files with nginx
+FROM nginx:alpine AS production
 ENV NODE_ENV=production
-WORKDIR /app
 
-# Create a non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Copy the static export (out directory) to nginx html directory
+COPY --from=builder /app/out /usr/share/nginx/html
 
-# Copy only necessary files
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Create custom nginx configuration for SPA routing
+RUN echo 'server { \
+    listen 80; \
+    server_name localhost; \
+    root /usr/share/nginx/html; \
+    index index.html; \
+    \
+    # Handle client-side routing \
+    location / { \
+        try_files $uri $uri/ $uri.html /index.html; \
+    } \
+    \
+    # Security headers \
+    add_header X-Frame-Options "SAMEORIGIN" always; \
+    add_header X-XSS-Protection "1; mode=block" always; \
+    add_header X-Content-Type-Options "nosniff" always; \
+    add_header Referrer-Policy "no-referrer-when-downgrade" always; \
+    \
+    # Cache static assets \
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ { \
+        expires 1y; \
+        add_header Cache-Control "public, immutable"; \
+    } \
+    \
+    # Gzip compression \
+    gzip on; \
+    gzip_vary on; \
+    gzip_min_length 1024; \
+    gzip_proxied expired no-cache no-store private must-revalidate auth; \
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json; \
+}' > /etc/nginx/conf.d/default.conf
 
-USER nextjs
-EXPOSE $PORT
-ENV HOSTNAME="0.0.0.0"
+EXPOSE 80
 
-CMD ["node", "server.js"]
+CMD ["nginx", "-g", "daemon off;"]
