@@ -1,10 +1,16 @@
 import Link from "next/link";
 import Logo from "./logo";
+import { SearchWrapper } from "./search-wrapper";
 
 export default function Navbar() {
     return (
         <nav className="flex items-center justify-between py-4">
             <Logo size="medium" />
+            
+            <div className="hidden md:block max-w-md flex-1 mx-8">
+                <SearchWrapper />
+            </div>
+            
             <ul className="flex items-center gap-10">
                 <Item href="/">Home</Item>
                 <Item href="/guide">Guide</Item>

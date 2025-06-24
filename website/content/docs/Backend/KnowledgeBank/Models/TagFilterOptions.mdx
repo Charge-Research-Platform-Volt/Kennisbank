@@ -1,0 +1,243 @@
+---
+title: TagFilterOptions
+---
+import { CollapsibleInherited } from "@/components/collapsible"
+import { TypeTable } from "@/components/type_table"
+import { CSharpType } from "@/components/csharp_type"
+
+
+Namespace: <a href='../Models'>KnowledgeBank.Models</a>  
+Assembly: backend.dll  
+
+DTO for tag filtering options
+
+```csharp
+public class TagFilterOptions
+```
+
+#### Inheritance
+
+<a href='https://learn.microsoft.com/dotnet/api/system.object' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='object' /></a> ← <a href='' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='TagFilterOptions' /></a>
+
+
+
+<CollapsibleInherited title='Show Inherited Members (7)'>
+[object.Equals\(object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\)), 
+[object.Equals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\-system\-object\)), 
+[object.GetHashCode\(\)](https://learn.microsoft.com/dotnet/api/system.object.gethashcode), 
+[object.GetType\(\)](https://learn.microsoft.com/dotnet/api/system.object.gettype), 
+[object.MemberwiseClone\(\)](https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone), 
+[object.ReferenceEquals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.referenceequals), 
+[object.ToString\(\)](https://learn.microsoft.com/dotnet/api/system.object.tostring)
+</CollapsibleInherited>
+
+---
+## Properties
+
+---
+###  ApprovedFromDate
+
+```csharp
+public DateTime? ApprovedFromDate { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.datetime' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DateTime' /></a>?
+
+---
+###  ApprovedToDate
+
+```csharp
+public DateTime? ApprovedToDate { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.datetime' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DateTime' /></a>?
+
+---
+###  CreatedBy
+
+```csharp
+public Guid? CreatedBy { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.guid' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Guid' /></a>?
+
+---
+###  CreatedFromDate
+
+```csharp
+public DateTime? CreatedFromDate { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.datetime' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DateTime' /></a>?
+
+---
+###  CreatedToDate
+
+```csharp
+public DateTime? CreatedToDate { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.datetime' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DateTime' /></a>?
+
+---
+###  IncludeCanEditAndDelete
+
+```csharp
+public bool IncludeCanEditAndDelete { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.boolean' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='bool' /></a>
+
+---
+###  IncludeUsageCount
+
+```csharp
+public bool IncludeUsageCount { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.boolean' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='bool' /></a>
+
+---
+###  IsApproved
+
+```csharp
+public bool? IsApproved { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.boolean' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='bool' /></a>?
+
+---
+###  IsStandardized
+
+```csharp
+public bool? IsStandardized { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.boolean' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='bool' /></a>?
+
+---
+###  OnlyOwnedByCurrentUser
+
+```csharp
+public bool OnlyOwnedByCurrentUser { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.boolean' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='bool' /></a>
+
+---
+###  PageIndex
+
+```csharp
+public int PageIndex { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.int32' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='int' /></a>
+
+---
+###  PageSize
+
+```csharp
+public int PageSize { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.int32' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='int' /></a>
+
+---
+###  SearchQuery
+
+```csharp
+public string? SearchQuery { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>?
+
+---
+###  SortBy
+
+```csharp
+public string? SortBy { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>?
+
+---
+###  SortDescending
+
+```csharp
+public bool SortDescending { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.boolean' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='bool' /></a>
+
+---
+###  UsePaging
+
+```csharp
+public bool UsePaging { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.boolean' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='bool' /></a>
+
+---
+###  WeightedSort
+
+Comma-separated list of property weight expressions in format "PropertyName:Weight"
+Example: "IsStandardized:2,IsApproved:1,UsageCount:0.5"
+
+```csharp
+public string? WeightedSort { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>?
+

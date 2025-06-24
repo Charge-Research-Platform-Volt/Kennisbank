@@ -1,0 +1,51 @@
+---
+title: WaitUntilUtils
+---
+import { CollapsibleInherited } from "@/components/collapsible"
+import { TypeTable } from "@/components/type_table"
+import { CSharpType } from "@/components/csharp_type"
+
+
+Namespace: <a href='../Utils'>KnowledgeBank.Utils</a>  
+Assembly: backend.dll  
+
+Utility class for waiting until a specific time of day.
+
+```csharp
+public static class WaitUntilUtils
+```
+
+#### Inheritance
+
+<a href='https://learn.microsoft.com/dotnet/api/system.object' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='object' /></a> ← <a href='' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='WaitUntilUtils' /></a>
+
+
+
+<CollapsibleInherited title='Show Inherited Members (7)'>
+[object.Equals\(object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\)), 
+[object.Equals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\-system\-object\)), 
+[object.GetHashCode\(\)](https://learn.microsoft.com/dotnet/api/system.object.gethashcode), 
+[object.GetType\(\)](https://learn.microsoft.com/dotnet/api/system.object.gettype), 
+[object.MemberwiseClone\(\)](https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone), 
+[object.ReferenceEquals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.referenceequals), 
+[object.ToString\(\)](https://learn.microsoft.com/dotnet/api/system.object.tostring)
+</CollapsibleInherited>
+
+---
+## Methods
+
+---
+###  WaitUntilTime\(TimeSpan, CancellationToken\)
+
+Asynchronously waits until the next occurrence of the specified daily time.
+For example, if runTime is 03:00, it waits until 3 AM today or tomorrow if that time already passed.
+
+```csharp
+public static Task WaitUntilTime(TimeSpan runTime, CancellationToken stoppingToken)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"runTime","type":"TimeSpan","links":["https://learn.microsoft.com/dotnet/api/system.timespan"],"description":"The daily time of day to wait until (e.g., 3 AM is TimeSpan.FromHours(3))."},{"name":"stoppingToken","type":"CancellationToken","links":["https://learn.microsoft.com/dotnet/api/system.threading.cancellationtoken"],"description":"A cancellation token to stop waiting early if requested."}]} />
+
+<h4 className='mb-0 ml-1'>Returns</h4>
+<TypeTable types={[{"name":"","type":"Task","links":["https://learn.microsoft.com/dotnet/api/system.threading.tasks.task"],"description":"A task that completes when the specified time is reached or the operation is cancelled."}]} />

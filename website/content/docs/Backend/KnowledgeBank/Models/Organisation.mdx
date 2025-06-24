@@ -35,6 +35,19 @@ public class Organisation
 ## Properties
 
 ---
+###  CreationDate
+
+```csharp
+[Column("creation-date")]
+public required DateTime CreationDate { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.datetime' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DateTime' /></a>
+
+---
 ###  Description
 
 ```csharp
@@ -88,24 +101,11 @@ public required string Name { get; set; }
  <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>
 
 ---
-###  OwnedResources
+###  PersonOrganisationRelations
 
 ```csharp
 [JsonIgnore]
-public ICollection<ResourceOrganisationRelation>? OwnedResources { get; set; }
-```
-
----
-#### Property Value
-
- <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='ResourceOrganisationRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceOrganisationRelation' /></a>\>?
-
----
-###  RelatedPersons
-
-```csharp
-[JsonIgnore]
-public ICollection<PersonOrganisationRelation>? RelatedPersons { get; set; }
+public ICollection<PersonOrganisationRelation>? PersonOrganisationRelations { get; set; }
 ```
 
 ---
@@ -114,11 +114,24 @@ public ICollection<PersonOrganisationRelation>? RelatedPersons { get; set; }
  <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='PersonOrganisationRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='PersonOrganisationRelation' /></a>\>?
 
 ---
-###  RelatedResources
+###  ResourceOrganisationRelations
 
 ```csharp
 [JsonIgnore]
-public ICollection<ResourceRelatedOrganisationRelation>? RelatedResources { get; set; }
+public ICollection<ResourceOrganisationRelation>? ResourceOrganisationRelations { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='ResourceOrganisationRelation' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceOrganisationRelation' /></a>\>?
+
+---
+###  ResourceRelatedOrganisationRelations
+
+```csharp
+[JsonIgnore]
+public ICollection<ResourceRelatedOrganisationRelation>? ResourceRelatedOrganisationRelations { get; set; }
 ```
 
 ---
@@ -153,6 +166,32 @@ public ICollection<OrganisationRelationship>? TargetRelationships { get; set; }
 #### Property Value
 
  <a href='https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection\-1' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ICollection' /></a>\<<a href='OrganisationRelationship' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='OrganisationRelationship' /></a>\>?
+
+---
+###  TrashDate
+
+```csharp
+[Column("trash-date")]
+public DateTime? TrashDate { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.datetime' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='DateTime' /></a>?
+
+---
+###  Trashed
+
+```csharp
+[Column("trashed")]
+public bool Trashed { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.boolean' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='bool' /></a>
 
 ---
 ###  Website

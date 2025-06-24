@@ -1,0 +1,79 @@
+---
+title: ResourceWithAddedBy
+---
+import { CollapsibleInherited } from "@/components/collapsible"
+import { TypeTable } from "@/components/type_table"
+import { CSharpType } from "@/components/csharp_type"
+
+
+Namespace: <a href='../Models'>KnowledgeBank.Models</a>  
+Assembly: backend.dll  
+
+Wrapper for resources containing an Added By property
+
+Author: Justin Liem
+
+```csharp
+public class ResourceWithAddedBy
+```
+
+#### Inheritance
+
+<a href='https://learn.microsoft.com/dotnet/api/system.object' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='object' /></a> ← <a href='' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='ResourceWithAddedBy' /></a>
+
+
+
+<CollapsibleInherited title='Show Inherited Members (7)'>
+[object.Equals\(object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\)), 
+[object.Equals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.equals\#system\-object\-equals\(system\-object\-system\-object\)), 
+[object.GetHashCode\(\)](https://learn.microsoft.com/dotnet/api/system.object.gethashcode), 
+[object.GetType\(\)](https://learn.microsoft.com/dotnet/api/system.object.gettype), 
+[object.MemberwiseClone\(\)](https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone), 
+[object.ReferenceEquals\(object?, object?\)](https://learn.microsoft.com/dotnet/api/system.object.referenceequals), 
+[object.ToString\(\)](https://learn.microsoft.com/dotnet/api/system.object.tostring)
+</CollapsibleInherited>
+
+---
+## Constructors
+
+---
+###  ResourceWithAddedBy\(Resource, string\)
+
+Wrapper for resources containing an Added By property
+
+Author: Justin Liem
+
+```csharp
+public ResourceWithAddedBy(Resource resource, string addedBy)
+```
+
+<h4 className='mb-0 ml-1'>Parameters</h4>
+<TypeTable types={[{"name":"resource","type":"Resource","links":["Resource"],"description":"Resource in the wrapper."},{"name":"addedBy","type":"string","links":["https://learn.microsoft.com/dotnet/api/system.string"],"description":"Guid of the user that added the resource to a folder/project."}]} />
+
+---
+## Properties
+
+---
+###  AddedBy
+
+```csharp
+public string? AddedBy { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='https://learn.microsoft.com/dotnet/api/system.string' target='_blank' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='string' /></a>?
+
+---
+###  Resource
+
+```csharp
+public Resource? Resource { get; set; }
+```
+
+---
+#### Property Value
+
+ <a href='Resource' target='_self' className="no-underline text-inherit hover:text-inherit inline"><CSharpType type='Resource' /></a>?
+
