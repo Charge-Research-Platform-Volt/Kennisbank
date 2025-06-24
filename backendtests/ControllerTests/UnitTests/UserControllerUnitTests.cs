@@ -159,37 +159,12 @@ public class UserControllerUnitTests
     // I am not going to test unauthorized because it should be handled by ASP NET
 
     // Ideally an impossible scenario
-    [Test]
-    public async Task GetCurrentAvatar_Returns500_WhenAuthorizedButNoUser()
-    {
-        // Arrange
-        SetUserContext(true);
-
-        // Act
-        var result = (ObjectResult)await _controller.GetCurrentAvatar();
-
-        // Assert
-        Assert.That(result.StatusCode, Is.EqualTo(500));
-    }
-
-    // Ideally an impossible scenario
-    [Test]
-    public async Task GetCurrentAvatar_Returns500_WhenAuthorizedButUserNotFound()
-    {
-        // Arrange
-        SetUserContext(true, "John Dough");
-
-        // Act
-        var result = (ObjectResult)await _controller.GetCurrentAvatar();
-
-        // Assert
-        Assert.That(result.StatusCode, Is.EqualTo(500));
-    }
 
     [Test]
     public async Task GetCurrentAVatar_Returns404_WhenAvatarDoesNotExist()
     {
         // Arrange
+        var userId = "user123";
         var user = new User("John", "Doe", "john@example.com") { EmailConfirmed = true };
         SetUserContext(true, "user123");
         _mockUserManager.Setup(m => m.FindByIdAsync("user123")).ReturnsAsync(user);
@@ -197,7 +172,7 @@ public class UserControllerUnitTests
 
 
         // Act
-        var result = (ObjectResult)await _controller.GetCurrentAvatar();
+        var result = (NotFoundObjectResult)await _controller.GetCurrentAvatar(userId);
 
         // Assert
         Assert.That(result.StatusCode, Is.EqualTo(404));
@@ -205,9 +180,25 @@ public class UserControllerUnitTests
     }
 
     [Test]
+    public async Task GetUserAvatar_Returns500_WhenBlobServiceThrowsException()
+    {
+        // Arrange
+        var userId = "user123";
+        _blobMock.Setup(m => m.RetreiveUserAvatarStream(userId)).ThrowsAsync(new InvalidOperationException("Simulated blob service error"));
+
+        // Act
+        var result = (ObjectResult)await _controller.GetCurrentAvatar(userId);
+
+        // Assert
+        Assert.That(result.StatusCode, Is.EqualTo(500));
+        Assert.That(ObjectComparer.AreObjectsEqual(result.Value, new { message = "Internal server error." }));
+    }
+
+    [Test]
     public async Task GetCurrentAVatar_ReturnsAvatar_WhenUserExists()
     {
         // Arrange
+        var userId = "user123";
         var user = new User("John", "Doe", "john@example.com") { EmailConfirmed = true };
         SetUserContext(true, "user123");
         _mockUserManager.Setup(m => m.FindByIdAsync("user123")).ReturnsAsync(user);
@@ -216,7 +207,7 @@ public class UserControllerUnitTests
 
 
         // Act
-        var result = (FileStreamResult)await _controller.GetCurrentAvatar();
+        var result = (FileStreamResult)await _controller.GetCurrentAvatar(userId);
 
         // Assert
         Assert.That(result.FileStream, Is.EqualTo(_mockStream.Object));
