@@ -186,10 +186,10 @@ namespace KnowledgeBank.Data
 
         // Remove single
 
-        public async Task<bool> RemoveAuthorFromResourceAsync(Guid resourceId, Guid personId)
+        public async Task<bool> RemoveAuthorFromResourceAsync(Guid resourceId, Guid authorId)
         { 
             bool startedTransaction = await BeginTransaction();
-            bool deleted = await DeleteAsync(database.ResourceAuthorRelations, relation => relation.ResourceId == resourceId && relation.PersonId == personId) > 0; 
+            bool deleted = await DeleteAsync(database.ResourceAuthorRelations, relation => relation.ResourceId == resourceId && relation.AuthorId == authorId) > 0; 
             if (startedTransaction) await Commit();
             return deleted;
         }
@@ -205,16 +205,16 @@ namespace KnowledgeBank.Data
 
         // Prune
 
-        public async Task<bool> RemoveAuthorFromAllResourcesAsync(Guid personId)
+        public async Task<bool> RemoveAuthorFromAllResourcesAsync(Guid authorId)
         { 
             bool startedTransaction = await BeginTransaction();
-            bool deleted = await DeleteAllWhereAsync(database.ResourceAuthorRelations, i => i.PersonId == personId) > 0; 
+            bool deleted = await DeleteAllWhereAsync(database.ResourceAuthorRelations, i => i.AuthorId == authorId) > 0; 
             if (startedTransaction) await Commit();
             return deleted;
         }
 
-        public async Task<bool> RemoveAuthorFromAllResourcesAsync(string personId)
-        { return await RemoveAuthorFromAllResourcesAsync(Guid.Parse(personId)); }
+        public async Task<bool> RemoveAuthorFromAllResourcesAsync(string authorId)
+        { return await RemoveAuthorFromAllResourcesAsync(Guid.Parse(authorId)); }
 
 
 

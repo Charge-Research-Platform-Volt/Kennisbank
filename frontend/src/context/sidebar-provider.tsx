@@ -36,6 +36,10 @@ export type SidebarContextType =
     setRightSidebarOpen: (open: boolean) => void;
     toggleRightSidebar: () => void;
 
+    // Is editing enabled
+    editMode: boolean;
+    setEditMode: (toggle: boolean) => void;
+
     // Creation date and Publication date (so they can be accessed in the Right Sidebar footer)
     creationDate: Date | null;
     setCreationDate: (date: Date | null) => void;
@@ -56,7 +60,7 @@ export const useSidebar = () =>
     return context;
 };
 
-const FetchMetadataType = async (id: string): Promise<MetadataTypeEnum> => 
+export const FetchMetadataType = async (id: string): Promise<MetadataTypeEnum> => 
 {
     if (id === '') return MetadataTypeEnum.RESOURCE;
     
@@ -109,6 +113,9 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
     // Sidebar states
     const [leftSidebarOpen, setLeftSidebarOpen] = React.useState<boolean>(leftSidebarDefaultState);
     const [rightSidebarOpen, setRightSidebarOpen] = React.useState<boolean>(false);
+
+    // Sidebar edit mode
+    const [editMode, setEditMode] = React.useState<boolean>(false);
     
     const leftSidebarState = leftSidebarOpen ? "expanded" : "collapsed";
     const rightSidebarState = rightSidebarOpen ? "expanded" : "collapsed";
@@ -142,6 +149,7 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
         // Close right sidebar when opening left
         if (newState)
             setRightSidebarOpen(false);
+            setEditMode(false);
 
         // set cookie for left sidebar state
         document.cookie = `leftSidebar:state=${newState}; path=/; max-age=31536000; SameSite=None; Secure`;
@@ -155,6 +163,10 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
         // Close left sidebar on right sidebar open
         if (newState)
             setLeftSidebarOpen(false);
+
+        else if (!newState)
+            setEditMode(false);
+
     }, [rightSidebarOpen]);
 
     const openRightSidebar = React.useCallback((id: string, type: MetadataTypeEnum) => 
@@ -179,6 +191,7 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
     {
         setRightSidebarOpen(false);
         setCurrentId('');
+        setEditMode(false);
         
         // Clear navigation history
         prevs.clear()
@@ -303,6 +316,10 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
                 rightSidebarOpen,
                 setRightSidebarOpen,
                 toggleRightSidebar,
+
+                // Edit mode
+                editMode,
+                setEditMode,
 
                 //Creation & Publication Date
                 creationDate,

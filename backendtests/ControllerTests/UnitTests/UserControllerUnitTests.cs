@@ -8,6 +8,7 @@ using KnowledgeBank.Controllers;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 
 namespace backend.Tests.Unit;
 
@@ -17,6 +18,8 @@ public class UserControllerUnitTests
 {
     private Mock<DatabaseContext> _mockDbContext;
     private Mock<UserManager<User>> _mockUserManager;
+    private Mock<IOptions<OwnerUserConfig>> ownerConfigOptionsMock;
+
     private UserController _controller;
 
     [SetUp]
@@ -27,9 +30,21 @@ public class UserControllerUnitTests
         _mockUserManager = new Mock<UserManager<User>>(
             userStoreMock.Object, null, null, null, null, null, null, null, null
         );
+        
+        // Mock the OwnerUserConfig options
+        var ownerConfig = new OwnerUserConfig
+        {
+            Email = "owner@test.com",
+            Password = "TestPassword123!",
+            FirstName = "Test",
+            LastName = "Owner"
+        };
+
+        ownerConfigOptionsMock = new Mock<IOptions<OwnerUserConfig>>();
+        ownerConfigOptionsMock.Setup(x => x.Value).Returns(ownerConfig);
 
         _mockDbContext = new Mock<DatabaseContext>(new DbContextOptions<DatabaseContext>());
-        _controller = new UserController(_mockDbContext.Object, _mockUserManager.Object);
+        _controller = new UserController(_mockDbContext.Object, _mockUserManager.Object, ownerConfigOptionsMock.Object);
     }
 
     private void SetUserContext(bool isAuthenticated, string? userId = null)
