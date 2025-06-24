@@ -32,6 +32,8 @@ import NewOrganisation from "@/components/new/NewOrganisation"
 import { useDrawerRerender } from "@/utils/useDrawerRerenderer"
 import { useTabsContext } from "@/context/tabs-context"
 import { useFormHasValues } from "@/hooks/useFormNonDefaultValues"
+import { Dialog, DialogContent, DialogFooter, DialogHeader } from "../ui/dialog"
+import { DialogDescription, DialogTitle } from "@radix-ui/react-dialog"
 
 // Define upload types
 export const UploadTypeEnum = z.enum(["document", "website", "audio", "video"])
@@ -40,7 +42,6 @@ export const UploadTypeEnum = z.enum(["document", "website", "audio", "video"])
 const urlDefault = "http://no.url/"
 const fileDefault = new File([""], "placeholder.txt", { type: "text/plain" });
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
-const MAX_CHUNK_SIZE = 0.9 * MAX_FILE_SIZE; // 90% of the max file size
 
 export const resourceCreateFormSchema = z.object(
 {
@@ -110,8 +111,10 @@ export default function NewResource({ personOptions, organisationOptions, resour
     const [createResourceTypeOpen, setCreateResourceTypeOpen] = React.useState<boolean>(false);
     const [createPersonOpen, setCreatePersonOpen] = React.useState<boolean>(false);
     const [createOrganisationOpen, setCreateOrganisationOpen] = React.useState<boolean>(false);
+    const [createAuthorOpen, setCreateAuthorOpen] = React.useState<boolean>(false);
     
     const [isRelated, setIsRelated] = React.useState<boolean>(false);
+    const [isAuthor, setIsAuthor] = React.useState<boolean>(false);
     const [extensions, setExtensions] = React.useState<string[]>(documentExtensions);
     
     const personDrawerRef = React.useRef<HTMLDivElement>(null);
@@ -171,7 +174,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
         // Use an effect to call the tabsContext function
         React.useEffect(() => {
             setFormChanged(formHasValues);
-        }, [formHasValues]);
+        }, [formHasValues, setFormChanged]);
     }
     
     // Effect for uploadType
@@ -241,15 +244,20 @@ export default function NewResource({ personOptions, organisationOptions, resour
         
         setIsChecking(true);
         
-        const fileHasher = getFileHasher();
-        const result = await fileHasher.checkDuplicate(file);
+        const MAX_HASH_FILE_SIZE = 2 * 1024 * 1024 * 1024;
+        if (file.size < MAX_HASH_FILE_SIZE) {
+            const fileHasher = getFileHasher();
+            const result = await fileHasher.checkDuplicate(file);
         
-        setDuplicateId(result.isDuplicate ? result.id : "");
-        form.setValue("hash", result.hash);
+            setDuplicateId(result.isDuplicate ? result.id : "");
+            form.setValue("hash", result.hash);
         
-        // Display a toast
-        if (result.isDuplicate)
-            toast.warning("This file already exists!");
+            // Display a toast
+            if (result.isDuplicate)
+                toast.warning("This file already exists!");
+        } else {
+            form.setValue("hash", '')
+        }
         
         form.trigger("file");
         
@@ -397,10 +405,19 @@ export default function NewResource({ personOptions, organisationOptions, resour
         const newOrganisations = [...organisations, { value: id, label: name } as SelectOption];
         setOrganisations(newOrganisations);
         
-        const newSelected = [...form.getValues(isRelated ? "relatedOrganisations" : "organisations"), { Id: id, Relation: "" } as RelatedEntry]
-        form.setValue(isRelated ? "relatedOrganisations" : "organisations", newSelected);
-        
-        form.trigger(isRelated ? "relatedOrganisations" : "organisations")
+        if (isAuthor) 
+        {
+            const newSelected = [...form.getValues("authors"), id];
+            form.setValue("authors", newSelected);
+            form.trigger("authors");
+        }
+        else 
+        {
+            const newSelected = [...form.getValues(isRelated ? "relatedOrganisations" : "organisations"), { Id: id, Relation: "" } as RelatedEntry]
+            form.setValue(isRelated ? "relatedOrganisations" : "organisations", newSelected);
+            
+            form.trigger(isRelated ? "relatedOrganisations" : "organisations")
+        }
         
         setCreateOrganisationOpen(false);
     }
@@ -434,6 +451,30 @@ export default function NewResource({ personOptions, organisationOptions, resour
                     </div>
                 </DrawerContent>
             </Drawer>
+            
+            <Dialog open={createAuthorOpen} onOpenChange={setCreateAuthorOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            Create a person or organisation?
+                        </DialogTitle>
+                        <DialogDescription>
+                            An author can be either a person or an organisation. Which one would you like to create?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => { setCreateAuthorOpen(false);}}>
+                            Cancel
+                        </Button>
+                        <Button variant="default" onClick={() => { setCreateAuthorOpen(false); setCreatePersonOpen(true); }}>
+                            Person
+                        </Button>
+                        <Button variant="default" onClick={() => { setCreateAuthorOpen(false); setCreateOrganisationOpen(true); }}>
+                            Organisation
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
             
             <h1 className="text-2xl tracking-tight text-gray-900 dark:text-gray-100 md:text-3xl lg:text-4xl mb-2">
                 Create a new resource
@@ -579,7 +620,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                         <FormItem>
                             <FormLabel>Authors <RequiredAstrix /></FormLabel>
                             <FormControl>
-                                <Selection placeholder="Select authors..." options={persons} multiSelect={true} hasCreateButton={true} onCreateButton={() => { setIsRelated(false); setCreatePersonOpen(true); }} { ... field} />
+                                <Selection placeholder="Select authors..." options={persons.concat(organisations)} multiSelect={true} hasCreateButton={true} onCreateButton={() => { setIsRelated(false); setIsAuthor(true); setCreateAuthorOpen(true); }} { ... field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -590,7 +631,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                         <FormItem>
                             <FormLabel>Organisations of Origin <code>(Optional)</code></FormLabel>
                             <FormControl>
-                                <AddRelationsDialog title="Add Roles" placeholder="Select organisations..." inputPlaceholder="Enter role..." buttonText="Define Roles" toastText="Roles saved" options={organisations} emptyText="No organisations selected yet." hasCreateButton={true} onCreateButton={() => { setIsRelated(false); setCreateOrganisationOpen(true); }} { ... field} />
+                                <AddRelationsDialog title="Add Roles" placeholder="Select organisations..." inputPlaceholder="Enter role..." buttonText="Define Roles" toastText="Roles saved" options={organisations} emptyText="No organisations selected yet." hasCreateButton={true} onCreateButton={() => { setIsRelated(false); setIsAuthor(false); setCreateOrganisationOpen(true); }} { ... field} />
                             </FormControl>
                         </FormItem>
                     )} />
@@ -651,7 +692,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
                         <FormItem>
                             <FormLabel>Related Organisations</FormLabel>
                             <FormControl>
-                                <AddRelationsDialog title="Add Roles" placeholder="Add related organisations..." inputPlaceholder="Enter role..." buttonText="Define Roles" toastText="Roles saved" options={organisations} emptyText="No organisations selected yet." hasCreateButton={true} onCreateButton={() => { setIsRelated(true); setCreateOrganisationOpen(true); }} { ... field } />
+                                <AddRelationsDialog title="Add Roles" placeholder="Add related organisations..." inputPlaceholder="Enter role..." buttonText="Define Roles" toastText="Roles saved" options={organisations} emptyText="No organisations selected yet." hasCreateButton={true} onCreateButton={() => { setIsRelated(true); setIsAuthor(false); setCreateOrganisationOpen(true); }} { ... field } />
                             </FormControl>
                         </FormItem>
                     )} />
@@ -673,3 +714,10 @@ export default function NewResource({ personOptions, organisationOptions, resour
         </div>
     );
 }
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

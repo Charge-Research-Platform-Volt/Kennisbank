@@ -7,15 +7,20 @@ using KnowledgeBank.Controllers;
 using KnowledgeBank.Responses;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
+using KnowledgeBank.Data;
+using Microsoft.Extensions.Options;
+using System.Reflection.Metadata;
+using KnowledgeBank.Utils;
 
 namespace backend.Tests.Integration;
 
 [TestFixture]
 [Category("IntegrationTest")]
-public class UserControllerTests : TestBase
+public class UserControllerTests : TestBaseBlob
 {
     private UserController _controller;
     private Mock<UserManager<User>> _userManagerMock;
+    private Mock<IOptions<OwnerUserConfig>> ownerConfigOptionsMock;
 
     [SetUp]
     public void SetupController()
@@ -24,10 +29,22 @@ public class UserControllerTests : TestBase
         // mock the UserManager<User> dependency
         _userManagerMock = new Mock<UserManager<User>>(
            Mock.Of<IUserStore<User>>(),
-           null, null, null, null, null, null, null, null
+           null!, null!, null!, null!, null!, null!, null!, null!
        );
+       
+       // Mock the OwnerUserConfig options
+        var ownerConfig = new OwnerUserConfig
+        {
+            Email = "owner@test.com",
+            Password = "TestPassword123!",
+            FirstName = "Test",
+            LastName = "Owner"
+        };
 
-        _controller = new UserController(Context, _userManagerMock.Object);
+        ownerConfigOptionsMock = new Mock<IOptions<OwnerUserConfig>>();
+        ownerConfigOptionsMock.Setup(x => x.Value).Returns(ownerConfig);
+
+        _controller = new UserController(Context, BlobService, _userManagerMock.Object, ownerConfigOptionsMock.Object);
     }
 
     private void SetUserIdentity(UserController controller, string userId)
@@ -46,8 +63,8 @@ public class UserControllerTests : TestBase
     public async Task GetAllUsers_ReturnsResults_WhenDataExists()
     {
         // Arrange
-        User testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
-        Context.AppUsers.Add(testUser);
+        User testUser = new User("testuser", "testuser", "test@example.com") { Id = Guid.NewGuid().ToString() };
+        Context.Users.Add(testUser);
         await Context.SaveChangesAsync();
         _userManagerMock.Setup(m => m.GetRolesAsync(It.IsAny<User>())).ReturnsAsync((User user) =>
         {
@@ -63,15 +80,15 @@ public class UserControllerTests : TestBase
         Assert.That(okResult.StatusCode, Is.EqualTo(200));
 
         UserResponse[]? response = okResult.Value as UserResponse[];
-        Assert.That(response.Length, Is.GreaterThan(0));
+        Assert.That(response!.Length, Is.GreaterThan(0));
     }
 
     [Test]
     public async Task GetUsersPaged_ReturnsResults_WhenDataExists()
     {
         // Arrange
-        User testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
-        Context.AppUsers.Add(testUser);
+        User testUser = new User("testuser", "testuser", "test@example.com") { Id = Guid.NewGuid().ToString() };
+        Context.Users.Add(testUser);
         await Context.SaveChangesAsync();
         _userManagerMock.Setup(m => m.GetRolesAsync(It.IsAny<User>())).ReturnsAsync((User user) =>
         {
@@ -100,10 +117,10 @@ public class UserControllerTests : TestBase
     public async Task GetUsersPagedWithSearch_ReturnsResults_WhenDataExists()
     {
         // Arrange
-        User testUser = new User { Id = Guid.NewGuid().ToString(), UserName = "testuser", Email = "test@example.com" };
-        User otherUser = new User { Id = Guid.NewGuid().ToString(), UserName = "otheruser", Email = "otheruser@example.com" };
-        Context.AppUsers.Add(testUser);
-        Context.AppUsers.Add(otherUser);
+        User testUser = new User("testuser", "testuser", "test@example.com") { Id = Guid.NewGuid().ToString() };
+        User otherUser = new User("otheruser", "otheruser", "otheruser@example.com") { Id = Guid.NewGuid().ToString() };
+        Context.Users.Add(testUser);
+        Context.Users.Add(otherUser);
         await Context.SaveChangesAsync();
         _userManagerMock.Setup(m => m.GetRolesAsync(It.IsAny<User>())).ReturnsAsync((User user) =>
         {
@@ -135,11 +152,11 @@ public class UserControllerTests : TestBase
         var currentUserId = Guid.NewGuid().ToString();
         var testUserId = Guid.NewGuid().ToString();
 
-        var currentUser = new User { Id = currentUserId, UserName = "adminuser", Email = "admin@admin.nl" };
-        var testUser = new User { Id = testUserId, UserName = "testuser", Email = "test@example.com" };
+        var currentUser = new User("adminuser", "adminuser", "admin@example.com") { Id = currentUserId };
+        var testUser = new User("testuser", "testuser", "test@example.com") { Id = testUserId };
 
-        Context.AppUsers.Add(currentUser);
-        Context.AppUsers.Add(testUser);
+        Context.Users.Add(currentUser);
+        Context.Users.Add(testUser);
         await Context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync(currentUserId)).ReturnsAsync(currentUser);
@@ -164,9 +181,9 @@ public class UserControllerTests : TestBase
         // Arrange
         var testUserId = Guid.NewGuid().ToString();
 
-        var testUser = new User { Id = testUserId, UserName = "testuser", Email = "test@example.com" };
+        var testUser = new User("testuser", "testuser", "test@example.com") { Id = testUserId };
 
-        Context.AppUsers.Add(testUser);
+        Context.Users.Add(testUser);
         await Context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync(testUserId)).ReturnsAsync(testUser);
@@ -192,11 +209,11 @@ public class UserControllerTests : TestBase
         var testuser1id = Guid.NewGuid().ToString();
         var testuser2id = Guid.NewGuid().ToString();
 
-        var testuser1 = new User { Id = testuser1id, UserName = "testuser1", Email = "test1@example.nl" };
-        var testuser2 = new User { Id = testuser2id, UserName = "testuser", Email = "test@example.com" };
+        var testuser1 = new User("testuser1", "testuser1", "test1@example.nl") { Id = testuser1id };
+        var testuser2 = new User("testuser", "testuser", "test@example.com") { Id = testuser2id };
 
-        Context.AppUsers.Add(testuser1);
-        Context.AppUsers.Add(testuser2);
+        Context.Users.Add(testuser1);
+        Context.Users.Add(testuser2);
         await Context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync(testuser1id)).ReturnsAsync(testuser1);
@@ -217,12 +234,135 @@ public class UserControllerTests : TestBase
     }
 
     [Test]
-    public async Task Update_ReturnsSuccess_WhenUpdateIsValid()
+    public async Task UpdateAvatar_ReturnsSuccess_WhenSuccesfullAvatarUpdate()
+    {
+        var userId = Guid.NewGuid().ToString();
+        var user = new User("Old", "Name", "old@example.com") { Id = userId };
+        Context.Users.Add(user);
+        await Context.SaveChangesAsync();
+        _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(user);
+        _userManagerMock.Setup(m => m.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object, ownerConfigOptionsMock.Object);
+        SetUserIdentity(controller, userId);
+
+        // Arrange
+        byte[] bytes = { 137, 80, 78, 71, 13, 10, 26, 10 };
+
+        var stream = new MemoryStream(bytes);
+
+        IFormFile file = new FormFile(stream, 0, stream.Length, "avatar", "avatar.png")
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = "image/png"
+        };
+
+        // Act
+        IActionResult result = await controller.UpdateAvatar(file);
+
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.That(okResult, Is.Not.Null);
+        Assert.That(okResult?.Value, Is.EqualTo("Avatar updated successfully."));
+
+        Assert.That(await BlobService.RetreiveUserAvatarStream(userId) != null);
+    }
+
+    [Test]
+    public async Task UpdateAvatar_DeletesAvatar_WhenSuccesfulAvatarDelete()
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var user = new User { Id = userId, FirstName = "Old", LastName = "Name", Email = "old@example.com", UserName = "old@example.com" };
-        Context.AppUsers.Add(user);
+        var user = new User("Old", "Name", "old@example.com") { Id = userId };
+        Context.Users.Add(user);
+        await Context.SaveChangesAsync();
+
+        _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(user);
+        _userManagerMock.Setup(m => m.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object, ownerConfigOptionsMock.Object);
+        SetUserIdentity(controller, userId);
+
+        byte[] bytes = { 137, 80, 78, 71, 13, 10, 26, 10 };
+
+        var stream = new MemoryStream(bytes);
+
+        await BlobService.UploadBlobAsync("avatar", userId, new Dictionary<string, string> { }, stream);
+        user.CustomAvatarVersion++;
+        user.HasCustom = true;
+
+        // Act
+        IActionResult result = await controller.UpdateAvatar(null);
+
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.That(okResult, Is.Not.Null);
+        Assert.That(okResult?.Value, Is.EqualTo("Avatar updated successfully."));
+
+        Assert.That(await BlobService.RetreiveUserAvatarStream(user.Id) == null);
+    }
+
+    [Test]
+    public async Task UpdateDetails_ReturnsBadRequest_WhenInvalidAvatarContentType()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var user = new User("", "", "old@example.com") { Id = userId };
+        Context.Users.Add(user);
+        await Context.SaveChangesAsync();
+
+        _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(user);
+
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object, ownerConfigOptionsMock.Object);
+        SetUserIdentity(controller, userId);
+
+        var mockFile = new Mock<IFormFile>();
+        mockFile.Setup(m => m.ContentType).Returns("the great wall of china");
+
+        // Act
+        var result = await controller.UpdateAvatar(mockFile.Object);
+
+        // Assert
+        var objectResult = result as BadRequestObjectResult;
+        Assert.That(objectResult?.StatusCode, Is.EqualTo(400));
+        Assert.That(objectResult?.Value, Is.EqualTo("Invalid image type. Png expected"));
+    }
+
+    [Test]
+    public async Task UpdateDetails_ReturnsBadRequest_WhenAvatarTooLarge()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var user = new User("", "", "old@example.com") { Id = userId };
+        Context.Users.Add(user);
+        await Context.SaveChangesAsync();
+
+        _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(user);
+
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object, ownerConfigOptionsMock.Object);
+        SetUserIdentity(controller, userId);
+
+        var mockFile = new Mock<IFormFile>();
+        mockFile.Setup(m => m.ContentType).Returns("image/png");
+        mockFile.Setup(m => m.Length).Returns(1000000000);
+
+        // Act
+        var result = await controller.UpdateAvatar(mockFile.Object);
+
+        // Assert
+        var objectResult = result as BadRequestObjectResult;
+        Assert.That(objectResult?.StatusCode, Is.EqualTo(400));
+        Assert.That(objectResult?.Value, Is.EqualTo($"Avatar file is too large (max {Constants.MaxAvatarSizeInMb}MB)"));
+    }
+
+
+    [Test]
+    public async Task UpdateDetails_ReturnsSuccess_WhenUpdateIsValid()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var user = new User("Old", "Name", "old@example.com") { Id = userId };
+        Context.Users.Add(user);
         await Context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(user);
@@ -231,13 +371,13 @@ public class UserControllerTests : TestBase
         _userManagerMock.Setup(m => m.ChangeEmailAsync(user, "new@example.com", "token")).ReturnsAsync(IdentityResult.Success);
         _userManagerMock.Setup(m => m.SetUserNameAsync(user, "new@example.com")).ReturnsAsync(IdentityResult.Success);
 
-        var controller = new UserController(Context, _userManagerMock.Object);
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object, ownerConfigOptionsMock.Object);
         SetUserIdentity(controller, userId);
 
-        var dto = new UpdateUserDto { FirstName = "New", LastName = "Name", Email = "new@example.com" };
+        var dto = new UpdateUserDto { NewFirstName = "New", NewLastName = "Name", NewEmail = "new@example.com" };
 
         // Act
-        IActionResult result = await controller.Update(dto);
+        IActionResult result = await controller.UpdateDetails(dto);
 
         // Assert
         var okResult = result as OkObjectResult;
@@ -248,24 +388,27 @@ public class UserControllerTests : TestBase
     }
 
     [Test]
-    public async Task Update_ReturnsFailure_WhenUpdateAsyncFails()
+    public async Task UpdateDetails_ReturnsFailure_WhenUpdateAsyncFails()
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var user = new User { Id = userId, Email = "old@example.com" };
-        Context.AppUsers.Add(user);
+        var user = new User("", "", "old@example.com") { Id = userId };
+        Context.Users.Add(user);
         await Context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(user);
         _userManagerMock.Setup(m => m.UpdateAsync(user)).ReturnsAsync(IdentityResult.Failed());
+        _userManagerMock.Setup(m => m.GenerateChangeEmailTokenAsync(user, "new@example.com")).ReturnsAsync("token");
+        _userManagerMock.Setup(m => m.ChangeEmailAsync(user, "new@example.com", "token")).ReturnsAsync(IdentityResult.Success);
+        _userManagerMock.Setup(m => m.SetUserNameAsync(user, "new@example.com")).ReturnsAsync(IdentityResult.Success);
 
-        var controller = new UserController(Context, _userManagerMock.Object);
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object, ownerConfigOptionsMock.Object);
         SetUserIdentity(controller, userId);
 
-        var dto = new UpdateUserDto { FirstName = "New", LastName = "Name", Email = "new@example.com" };
+        var dto = new UpdateUserDto { NewFirstName = "New", NewLastName = "Name", NewEmail = "new@example.com" };
 
         // Act
-        var result = await controller.Update(dto);
+        var result = await controller.UpdateDetails(dto);
 
         // Assert
         var okResult = result as OkObjectResult;
@@ -275,12 +418,12 @@ public class UserControllerTests : TestBase
     }
 
     [Test]
-    public async Task Update_ReturnsFailure_WhenChangeEmailFails()
+    public async Task UpdateDetails_ReturnsFailure_WhenChangeEmailFails()
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var user = new User { Id = userId, Email = "old@example.com" };
-        Context.AppUsers.Add(user);
+        var user = new User("", "", "old@example.com") { Id = userId };
+        Context.Users.Add(user);
         await Context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(user);
@@ -288,13 +431,13 @@ public class UserControllerTests : TestBase
         _userManagerMock.Setup(m => m.GenerateChangeEmailTokenAsync(user, "new@example.com")).ReturnsAsync("token");
         _userManagerMock.Setup(m => m.ChangeEmailAsync(user, "new@example.com", "token")).ReturnsAsync(IdentityResult.Failed());
 
-        var controller = new UserController(Context, _userManagerMock.Object);
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object, ownerConfigOptionsMock.Object);
         SetUserIdentity(controller, userId);
 
-        var dto = new UpdateUserDto { FirstName = "New", LastName = "Name", Email = "new@example.com" };
+        var dto = new UpdateUserDto { NewFirstName = "New", NewLastName = "Name", NewEmail = "new@example.com" };
 
         // Act
-        var result = await controller.Update(dto);
+        var result = await controller.UpdateDetails(dto);
 
         // Assert
         var okResult = result as OkObjectResult;
@@ -304,12 +447,12 @@ public class UserControllerTests : TestBase
     }
 
     [Test]
-    public async Task Update_ReturnsFailure_WhenSetUserNameFails()
+    public async Task UpdateDetails_ReturnsFailure_WhenSetUserNameFails()
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
-        var user = new User { Id = userId, Email = "old@example.com" };
-        Context.AppUsers.Add(user);
+        var user = new User("", "", "old@example.com") { Id = userId };
+        Context.Users.Add(user);
         await Context.SaveChangesAsync();
 
         _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync(user);
@@ -318,36 +461,36 @@ public class UserControllerTests : TestBase
         _userManagerMock.Setup(m => m.ChangeEmailAsync(user, "new@example.com", "token")).ReturnsAsync(IdentityResult.Success);
         _userManagerMock.Setup(m => m.SetUserNameAsync(user, "new@example.com")).ReturnsAsync(IdentityResult.Failed());
 
-        var controller = new UserController(Context, _userManagerMock.Object);
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object, ownerConfigOptionsMock.Object);
         SetUserIdentity(controller, userId);
 
-        var dto = new UpdateUserDto { FirstName = "New", LastName = "Name", Email = "new@example.com" };
+        var dto = new UpdateUserDto { NewFirstName = "New", NewLastName = "Name", NewEmail = "new@example.com" };
 
         // Act
-        var result = await controller.Update(dto);
+        var result = await controller.UpdateDetails(dto);
 
         // Assert
-        var okResult = result as OkObjectResult;
+        var okResult = result as ObjectResult;
         var response = okResult?.Value as ApiResponse;
         Assert.That(response?.Success, Is.False);
-        Assert.That(response?.Message, Does.Contain("email already exists"));
+        Assert.That(response?.Message, Is.EqualTo("Email format is not supported in our database."));
     }
 
     [Test]
-    public async Task Update_ReturnsNotFound_WhenUserNotFound()
+    public async Task UpdateDetails_ReturnsNotFound_WhenUserNotFound()
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
 
         _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ReturnsAsync((User)null!);
 
-        var controller = new UserController(Context, _userManagerMock.Object);
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object, ownerConfigOptionsMock.Object);
         SetUserIdentity(controller, userId);
 
-        var dto = new UpdateUserDto { FirstName = "New", LastName = "Name", Email = "new@example.com" };
+        var dto = new UpdateUserDto { NewFirstName = "New", NewLastName = "Name", NewEmail = "new@example.com" };
 
         // Act
-        var result = await controller.Update(dto);
+        var result = await controller.UpdateDetails(dto);
 
         // Assert
         var objectResult = result as NotFoundObjectResult;
@@ -356,27 +499,26 @@ public class UserControllerTests : TestBase
     }
 
     [Test]
-    public async Task Update_Returns500_WhenUnexpectedErrorOccurs()
+    public async Task UpdateDetails_Returns500_WhenUnexpectedErrorOccurs()
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
 
         _userManagerMock.Setup(m => m.FindByIdAsync(userId)).ThrowsAsync(new Exception("Database failure"));
 
-        var controller = new UserController(Context, _userManagerMock.Object);
+        var controller = new UserController(Context, BlobService, _userManagerMock.Object, ownerConfigOptionsMock.Object);
         SetUserIdentity(controller, userId);
 
-        var dto = new UpdateUserDto { FirstName = "New", LastName = "Name", Email = "new@example.com" };
+        var dto = new UpdateUserDto { NewFirstName = "New", NewLastName = "Name", NewEmail = "new@example.com" };
 
         // Act
-        var result = await controller.Update(dto);
+        var result = await controller.UpdateDetails(dto);
 
         // Assert
         var objectResult = result as ObjectResult;
         Assert.That(objectResult?.StatusCode, Is.EqualTo(500));
         Assert.That(objectResult?.Value, Is.EqualTo("Internal server error."));
     }
-
 }
 
 

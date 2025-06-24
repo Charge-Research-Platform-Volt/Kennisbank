@@ -195,7 +195,7 @@ namespace KnowledgeBank.Controllers
         /// <param name="id">The ID of the person</param>
         /// <param name="updates">The dictionary of propertynames to update and their new values</param>
         [HttpPatch("update/{id}")]
-        [Authorize(Policy = "RequireAdminRole")]
+        [Authorize]
         [SwaggerOperation(Summary = "Updates a person")]
         [SwaggerResponse(200, "Person updated", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
@@ -442,8 +442,8 @@ namespace KnowledgeBank.Controllers
                 {
                     // Authored resources
                     "authored-resources" => string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetAllResourceAuthorRelationsAsync(r => r.PersonId == Guid.Parse(id)) :
-                        await resourceManager.GetAllResourceAuthorRelationsAsync(predicate: r => r.PersonId == Guid.Parse(id), projection: $"new({properties})"),
+                        await resourceManager.GetAllResourceAuthorRelationsAsync(r => r.AuthorId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceAuthorRelationsAsync(predicate: r => r.AuthorId == Guid.Parse(id), projection: $"new({properties})"),
 
                     // Related resources
                     "related-resources" => string.IsNullOrEmpty(properties) ?

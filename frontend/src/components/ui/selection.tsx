@@ -218,32 +218,38 @@ export function Selection({
                                 })
                             }
                         </CommandGroup>
-                        
-                         {/* Create button section with fixed HR and text alignment */}
-                         {hasCreateButton && (
-                            <>
-                                <div className="px-2 py-1">
-                                    <hr className="my-2 border-t border-gray-200" />
-                                    <div className="w-full flex justify-center">
-                                        <Button 
-                                            type="button" 
-                                            variant="ghost" 
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                setOpen(false);
-                                                if (onCreateButton) onCreateButton();
-                                            }}
-                                            className="w-full"
-                                        >
-                                            Create new
-                                        </Button>
-                                    </div>
-                                </div>
-                            </>
-                        )}
                     </CommandList>
+                    
+                    {/* Create button section with fixed HR and text alignment */}
+                        {hasCreateButton && (
+                        <>
+                            <div className="px-2 py-1">
+                                <hr className="my-2 border-t border-gray-200" />
+                                <div className="w-full flex justify-center">
+                                    <Button 
+                                        type="button" 
+                                        variant="ghost" 
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setOpen(false);
+                                            if (onCreateButton) onCreateButton();
+                                        }}
+                                        className="w-full"
+                                    >
+                                        Create new
+                                    </Button>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </Command>
             </PopoverContent>
         </Popover>
     );
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

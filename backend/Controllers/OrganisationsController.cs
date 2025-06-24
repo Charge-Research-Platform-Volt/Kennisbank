@@ -195,7 +195,7 @@ namespace KnowledgeBank.Controllers
         /// <param name="id">The ID of the organisation</param>
         /// <param name="updates">The dictionary of propertynames to update and their new values</param>
         [HttpPatch("update/{id}")]
-        [Authorize(Policy = "RequireAdminRole")]
+        [Authorize]
         [SwaggerOperation(Summary = "Updates an organisation")]
         [SwaggerResponse(200, "Organisation updated", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]

@@ -48,8 +48,8 @@ public class ProjectControllerTests : TestBase
             null
         );
 
-        User admin = new User { Email = "admin@test.nl", UserName = "admin@test.nl" };
-        User user = new User { Email = "user@test.nl", UserName = "user@test.nl" };
+        User admin = new User("admin", "admin", "admin@test.nl");
+        User user = new User("user", "user", "user@test.nl");
 
         await _userManager.CreateAsync(admin, "Test123!");
         await _userManager.CreateAsync(user, "Test123!");
@@ -663,7 +663,7 @@ public class ProjectControllerTests : TestBase
     public async Task GetProjects_filtersCorrectly_UsingCreators()
     {
         // We need the custom user again since it is neccesary for a user being in the database
-        User creatorUser = new User { Email = "test@test.nl", UserName = "test@test.nl" };
+        User creatorUser = new User("test", "test", "test@test.nl");
         await _userManager.CreateAsync(creatorUser, "Test123!");
         string userId = Context.Users.First().Id;
 
@@ -770,7 +770,7 @@ public class ProjectControllerTests : TestBase
     public async Task GetProjects_filtersCorrectly_UsingMultiple_AndPaging()
     {
         // We need the custom user again since it is neccesary for a user being in the database
-        User creatorUser = new User { Email = "test@test.nl", UserName = "test@test.nl" };
+        User creatorUser = new User("test", "test", "test@test.nl");
         await _userManager.CreateAsync(creatorUser, "Test123!");
         string userId = Context.Users.First().Id;
 
@@ -1088,7 +1088,7 @@ public class ProjectControllerTests : TestBase
     public async Task AddFolderOk()
     {
         // We need the custom user again since it'll auto add the current user when creating a folder
-        User creatorUser = new User { Email = "test@test.nl", UserName = "test@test.nl" };
+        User creatorUser = new User("test", "test", "test@test.nl");
         await _userManager.CreateAsync(creatorUser, "Test123!");
         string userId = Context.Users.First().Id;
 
@@ -1132,3 +1132,9 @@ public class ProjectControllerTests : TestBase
 
     #endregion
 }
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

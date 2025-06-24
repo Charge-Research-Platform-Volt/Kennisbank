@@ -30,7 +30,7 @@ export const UserRoleProvider = ({ children }: { children: React.ReactNode }) =>
   useEffect(() => {
     const fetchRole = async () => {
       try {
-        const res = await fetch(`api/roles/current`);
+        const res = await fetch(`/api/roles/current`);
         const data = await res.json();
         setUserRole(data.role);
       } catch (error) {
@@ -50,3 +50,10 @@ export const UserRoleProvider = ({ children }: { children: React.ReactNode }) =>
     </UserRoleContext.Provider>
   );
 };
+
+
+// This program has been developed by students from the bachelor Computer Science at Utrecht
+// University within the Software Project course.
+// © Copyright Utrecht University (Department of Information and Computing Sciences)
+
+

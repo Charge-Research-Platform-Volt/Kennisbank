@@ -935,7 +935,7 @@ export default function ListProjects({initialResources, initialProjects, fetchPr
       <GeneratePopup
         title="Creators"
         description="These are the creators of this project / folder"
-        content={creators.map(creator => creator.username)}
+        content={creators.map(creator => creator.email)}
         open={isProjectCreatorsModalOpen}
         onClose={handleCloseProjectCreatorsModal}/>
 

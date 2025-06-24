@@ -31,22 +31,20 @@ public class ResourceManagerCreateTests : TestBase
         UserStore<User> userStore = new UserStore<User>(Context);
         _userManager = new UserManager<User>(
            userStore,
-            null,
+            null!,
             new PasswordHasher<User>(),
             new[] { new UserValidator<User>() },
             new[] { new PasswordValidator<User>() }, 
             new UpperInvariantLookupNormalizer(),
             new IdentityErrorDescriber(),
-            null, 
-            null 
+            null!, 
+            null!
         );
 
-        User user = new() {
-            UserName = "admin",
-        };
+        User user = new("admin", "admin", "admin");
 
         await _userManager.CreateAsync(user, "Admin123!");
-        testUserId = Context.Users.FirstOrDefault(u => u.UserName == "admin").Id;
+        testUserId = Context.Users.First(u => u.UserName == "admin").Id;
 
         _mockBlobService = new Mock<IAzureBlobService>();
         resourceManager = new ResourceManager(Context);
@@ -171,14 +169,12 @@ public class ResourceManagerCreateTests : TestBase
         {
             Name = "Test Name",
             Occupation = "Test Occupation",
-            CreationDate = DateTime.UtcNow,
         };
         Guid testPersonId = await resourceManager.CreatePersonAsync(testPersonDto);
 
         OrganisationCreateDto testOrganisationDto = new OrganisationCreateDto
         {
             Name = "Utrecht University",
-            CreationDate = DateTime.UtcNow,
         };
         Guid testOrganisationId = await resourceManager.CreateOrganisationAsync(testOrganisationDto);
 
@@ -208,7 +204,7 @@ public class ResourceManagerCreateTests : TestBase
         Guid resourceId = await resourceManager.CreateResourceAsync(dto);
 
         // Assert
-        Resource? resource = await Context.Resources
+        Resource resource = await Context.Resources
             .Include(r => r.ResourceTagRelations)
             .Include(r => r.ResourceAuthorRelations)
             .Include(r => r.ResourceOrganisationRelations)
@@ -216,10 +212,10 @@ public class ResourceManagerCreateTests : TestBase
             .FirstAsync(r => r.Id == resourceId);
 
 
-        Assert.That(resource.ResourceTagRelations.Any(t => t.TagId == testTagId));
-        Assert.That(resource.ResourceAuthorRelations.Any(a => a.PersonId == testPersonId));
-        Assert.That(resource.ResourceOrganisationRelations.Any(o => o.OrganisationId == testOrganisationId));
-        Assert.That(resource.ResourceRegionRelations.Any(r => r.RegionId == testRegionId));
+        Assert.That(resource.ResourceTagRelations!.Any(t => t.TagId == testTagId));
+        Assert.That(resource.ResourceAuthorRelations!.Any(a => a.AuthorId == testPersonId));
+        Assert.That(resource.ResourceOrganisationRelations!.Any(o => o.OrganisationId == testOrganisationId));
+        Assert.That(resource.ResourceRegionRelations!.Any(r => r.RegionId == testRegionId));
     }
 }
 

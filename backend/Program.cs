@@ -15,13 +15,38 @@ using KnowledgeBank.Utils;
 namespace KnowledgeBank
 {
     public class Program
-    {    
+    {
         public static async Task Main(string[] args)
         {
             // # Builder
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
             ConfigureLogging();
 
+            // # Configuration
+            builder.Services.Configure<OwnerUserConfig>(builder.Configuration.GetSection(OwnerUserConfig.SectionName));
+            
+            // Validate owner config
+            OwnerUserConfig? ownerConfig = builder.Configuration.GetSection(OwnerUserConfig.SectionName).Get<OwnerUserConfig>();
+            if (ownerConfig == null)
+            {
+                Log.Fatal("OwnerUser configuration section is missing from configuration.");
+                throw new InvalidOperationException("OwnerUser configuration section is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(ownerConfig.Email))
+            {
+                Log.Fatal("OwnerUser: Email is required but not configured.");
+                throw new InvalidOperationException("OwnerUser: Email configuration is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(ownerConfig.Password))
+            {
+                Log.Fatal("OwnerUser: Password is required but not configured.");
+                throw new InvalidOperationException("OwnerUser: Password configuration is required.");
+            }
+
+            Log.Information("OwnerUser configuration validated successfully for: {Email}", ownerConfig.Email);
+            
             // # Services
             builder.Services.AddControllers();
             builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
@@ -30,7 +55,7 @@ namespace KnowledgeBank
             {
                 foreach (string roleName in RoleInitializer.roleNames)
                 {
-                    options.AddPolicy($"Require{ char.ToUpper(roleName[0]) + roleName.Substring(1) }Role", policy => policy.RequireRole(roleName));
+                    options.AddPolicy($"Require{char.ToUpper(roleName[0]) + roleName.Substring(1)}Role", policy => policy.RequireRole(roleName));
                 }
 
                 // This line terminates the handler on first failure, when more information is required, set this to true.
@@ -41,15 +66,27 @@ namespace KnowledgeBank
             //
             // Add this line after the code below to enable authentication with JWT tokens: .AddBearerToken(IdentityConstants.BearerScheme);
             builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
-            
+
             builder.Services.AddIdentityCore<User>()
                             .AddRoles<IdentityRole>()
                             .AddEntityFrameworkStores<DatabaseContext>()
                             .AddApiEndpoints();
 
+            builder.Services.Configure<IdentityOptions>(options =>
+            {
+                // Currently the only addition is +, we could use this string to add even more email compatibility:
+                // "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+!#$%'&*=/^`{|}~"
+                // Another option: use guid as user name in asp net databse
+                options.User.AllowedUserNameCharacters =
+                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+
+                options.User.RequireUniqueEmail = true;
+            });
+
 
             builder.Services.AddOpenApi();
             builder.Services.AddSwaggerGen(ConfigureSwagger);
+            builder.Services.AddScoped<RoleInitializer>();
 
 
             // # Database context
@@ -61,7 +98,7 @@ namespace KnowledgeBank
             builder.Services.AddScoped<ResourceManager>();
             builder.Services.AddScoped<ProjectManager>();
 
-            // # Mailer;
+            // # Mailer
             builder.Services.AddSingleton(new MailUtils(
                 builder.Configuration.GetValue<string>("EMAIL_SMTP_HOST") ?? throw new ArgumentNullException("EMAIL_SMTP_HOST needs to be set"),
                 builder.Configuration.GetValue<int?>("EMAIL_TLS_PORT") ?? throw new ArgumentNullException("EMAIL_TLS_PORT needs to be set"),
@@ -81,7 +118,7 @@ namespace KnowledgeBank
                           .AllowCredentials();
                 });
             });
-            
+
             builder.Services.Configure<FormOptions>(options =>
             {
                 // Set the limit to 100 MB
@@ -92,7 +129,7 @@ namespace KnowledgeBank
 
             builder.Services.AddHostedService<TrashbinCleanupService>(); // Add the background service for cleaning up the trashbin
             builder.Services.AddHostedService<InvitationsCleanupService>(); // Add the background service for cleaning up invitations
-            
+
             builder.WebHost.ConfigureKestrel(serverOptions =>
             {
                 serverOptions.Limits.MaxRequestBodySize = 110100480; // 105 MB in bytes
@@ -117,10 +154,12 @@ namespace KnowledgeBank
             // Seeding the database with initial data
             using (IServiceScope scope = app.Services.CreateScope())
             {
-                await RoleInitializer.InitializeAsync(app.Services);
+                RoleInitializer roleInitializer = scope.ServiceProvider.GetRequiredService<RoleInitializer>();
+                await roleInitializer.InitializeAsync();
+                
                 await DatabaseSeeder.Seed(app.Services);
                 await scope.ServiceProvider.GetRequiredService<DatabaseContext>().EnsureViewsCreatedAsync();
-                
+
                 if (app.Environment.IsDevelopment())
                 {
                     // Seed test data only in development environment:
@@ -137,7 +176,7 @@ namespace KnowledgeBank
 
             app.MapGroup("Auth").MapIdentityApi<User>().WithTags("Auth").WithOpenApi(ConfigureIdentityApiOptions).AddEndpointFilter(async (efiContext, next) =>
             {
-                if(HideEndpointFilter.PathsToHide.Any(p => p == efiContext.HttpContext.Request.Path))
+                if (HideEndpointFilter.PathsToHide.Any(p => p == efiContext.HttpContext.Request.Path))
                     return Results.Forbid();
                 return await next(efiContext);
             });
