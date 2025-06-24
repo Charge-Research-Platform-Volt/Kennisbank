@@ -74,7 +74,7 @@ public class RAGManger
                     modelId: "prebuilt-layout",
                     bytesSource: BinaryData.FromStream(fileStream))
                 {
-                    OutputContentFormat = DocumentContentFormat.Markdown
+                    OutputContentFormat = DocumentContentFormat.Text
                 };
 
                 // Analyze the document and wait for completion
@@ -91,7 +91,7 @@ public class RAGManger
 
                 // * STEP 2: Text Chunking
                 // Split the extracted text into smaller chunks suitable for embedding generation
-                chunks.AddRange(_ragSystem.Toolbox.SplitTextIntoChunks(extractedText, false, markdownSplit: true));
+                chunks.AddRange(_ragSystem.Toolbox.SplitTextIntoChunks(extractedText, false, markdownSplit: false));
 
                 _logger.Information("Successfully extracted and chunked text into {ChunkCount} segments for resource ID: {Id}", chunks.Count, id);
             }
@@ -208,7 +208,7 @@ public class RAGManger
             if (results.Count == 0) break;
 
             TagsExtraction? extractedTags = await ExtractTagsFromChunksAsync(results, uniqueTags, options);
-            AddTagsToCollection(extractedTags, uniqueTags);
+            if (extractedTags != null) AddTagsToCollection(extractedTags, uniqueTags);
 
             offset += batchSize;
         }
@@ -228,29 +228,37 @@ public class RAGManger
     /// </returns>
     private async Task<TagsExtraction?> ExtractTagsFromChunksAsync(IReadOnlyList<Qdrant.Client.Grpc.ScoredPoint> results, HashSet<string> existingTags, ChatCompletionOptions options)
     {
-        var templateData = new
+        try
         {
-            tags = existingTags.Count == 0 ? "No tags generated yet." : string.Join(", ", existingTags),
-            content = results.Select(item =>
+            var templateData = new
             {
-                var payload = CustomPayload.FromPayload(item.Payload);
-                return new { text = payload.ChunkText };
-            }).ToList()
-        };
-        string prompt = Prompts.TagsTemplate(templateData);
+                tags = existingTags.Count == 0 ? "No tags generated yet." : string.Join(", ", existingTags),
+                content = results.Select(item =>
+                {
+                    var payload = CustomPayload.FromPayload(item.Payload);
+                    return new { text = payload.ChunkText };
+                }).ToList()
+            };
+            string prompt = Prompts.TagsTemplate(templateData);
 
-        // Prepare chat messages with the system prompt and user query
-        List<ChatMessage> messages = new List<ChatMessage>
+            // Prepare chat messages with the system prompt and user query
+            List<ChatMessage> messages = new List<ChatMessage>
+                {
+                    new SystemChatMessage(Prompts.SystemPromptGenerateTags),
+                    new UserChatMessage(prompt)
+                };
+
+            // Get a completion with structured output
+            ClientResult<ChatCompletion> response = await _ragSystem.ChatClient.CompleteChatAsync(messages, options);
+            string jsonOutput = response.Value.Content[0].Text;
+
+            return JsonSerializer.Deserialize<TagsExtraction>(jsonOutput);
+        }
+        catch (Exception ex)
         {
-            new SystemChatMessage(Prompts.SystemPromptGenerateTags),
-            new UserChatMessage(prompt)
-        };
-
-        // Get a completion with structured output
-        ClientResult<ChatCompletion> response = await _ragSystem.ChatClient.CompleteChatAsync(messages, options);
-        string jsonOutput = response.Value.Content[0].Text;
-
-        return JsonSerializer.Deserialize<TagsExtraction>(jsonOutput);
+            _logger.Error(ex, "Failed to extract tags from chunks");
+            return null;
+        }
     }
 
 
