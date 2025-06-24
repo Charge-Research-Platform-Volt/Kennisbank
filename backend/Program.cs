@@ -91,7 +91,7 @@ namespace KnowledgeBank
 
             // # Database context
             builder.Services.AddDbContext<DatabaseContext>(
-                options => options.UseNpgsql(environmentConfig.GetVariableValue(EnvironmentVariable.CONNECTION_STRING))
+                options => options.UseNpgsql(environmentConfig.GetVariableValue(EnvironmentVariable.DATABASE_CONNECTION_STRING))
             );
 
 

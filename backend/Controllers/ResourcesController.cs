@@ -41,17 +41,14 @@ namespace KnowledgeBank.Controllers
     /// <param name="blobService">The Azure Blob Service for file storage</param>
     /// <param name="taskQueue">The background task queue for processing tasks asynchronously</param>
     /// <param name="ragSystem">The RAG system for handling document processing</param>
-    /// <param name="dbContext">The database context for database interactions</param>
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem, DatabaseContext dbContext) : ControllerBase
+    public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<ResourcesController>();
         private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
-        private readonly RAGSystem _ragSystem = ragSystem;
-        private readonly DatabaseContext database = dbContext;
 
 
         #region New
@@ -445,7 +442,7 @@ namespace KnowledgeBank.Controllers
                 await resourceManager.DeleteResourceAsync(id);
 
                 // Delete the chunks from the vector database
-                bool chunkDeleted = await _ragSystem.DeleteAllPointsWithIdAsync(id);
+                bool chunkDeleted = await ragSystem.DeleteAllPointsWithIdAsync(id);
                 if (!chunkDeleted)
                 {
                     logger.Warning("Something went wrong while deleting chunks for resource with ID '{ID}'", id);
@@ -1511,8 +1508,8 @@ namespace KnowledgeBank.Controllers
                     return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
 
                 // Get vector points for the current resource
-                IReadOnlyList<ScoredPoint> pointsIds = await _ragSystem.QdrantClient.QueryAsync(
-                    _ragSystem.CollectionName,
+                IReadOnlyList<ScoredPoint> pointsIds = await ragSystem.QdrantClient.QueryAsync(
+                    ragSystem.CollectionName,
                     filter: MatchKeyword("resourceId", id)
                 );
 
@@ -1520,8 +1517,8 @@ namespace KnowledgeBank.Controllers
                     return Ok(new ApiResponse(true, "No vector points found for resource", Array.Empty<Resource>()));
 
                 // Find related resources using vector similarity
-                IReadOnlyList<PointGroup> results = await _ragSystem.QdrantClient.RecommendGroupsAsync(
-                    _ragSystem.CollectionName,
+                IReadOnlyList<PointGroup> results = await ragSystem.QdrantClient.RecommendGroupsAsync(
+                    ragSystem.CollectionName,
                     groupBy: "resourceId",
                     positive: pointsIds.Select(p => p.Id).ToArray(),
                     filter: !MatchKeyword("resourceId", id), // Exclude the current resource

@@ -35,9 +35,8 @@ namespace KnowledgeBank.Controllers
     [Authorize]
     public class PersonsController(ResourceManager resourceManager, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem) : ControllerBase
     {
-        private readonly Serilog.ILogger _logger = Log.ForContext<PersonsController>();
+        private readonly Serilog.ILogger logger = Log.ForContext<PersonsController>();
         private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
-        private readonly RAGSystem _ragSystem = ragSystem;
 
 
         #region New
@@ -60,7 +59,7 @@ namespace KnowledgeBank.Controllers
             if (string.IsNullOrEmpty(dto.Occupation))
                 return BadRequest(new ApiResponse(false, "No occupation was given"));
 
-            _logger.Information("Creating person '{Name}'...", dto.Name);
+            logger.Information("Creating person '{Name}'...", dto.Name);
 
             try
             {
@@ -75,12 +74,12 @@ namespace KnowledgeBank.Controllers
                     await ragManager.MainPipline(id: id, chunk: $"{dto.Name}\n{dto.Description}", fileType: null);
                 });
 
-                _logger.Information("Person '{Name}' created successfully.", dto.Name);
+                logger.Information("Person '{Name}' created successfully.", dto.Name);
                 return Ok(new ApiResponse(true, "Person created successfully", id));
             }
             catch (Exception e)
             {
-                _logger.Error(e, "Error creating person '{Name}'.", dto.Name);
+                logger.Error(e, "Error creating person '{Name}'.", dto.Name);
                 return StatusCode(500, new ApiResponse(false, "Error creating person", e.Message));
             }
         }
@@ -187,29 +186,29 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Delete person
-                _logger.Information("Deleting person with ID: {ID}", id);
+                logger.Information("Deleting person with ID: {ID}", id);
                 bool found = await resourceManager.DeletePersonAsync(id);
 
                 if (!found)
                 {
-                    _logger.Information("Person with ID '{ID}' not found.", id);
+                    logger.Information("Person with ID '{ID}' not found.", id);
                     return NotFound(new ApiResponse(false, "Person does not exist"));
                 }
 
                 // Delete the person chunks from the vector database
-                bool chunkDeleted = await _ragSystem.DeleteAllPointsWithIdAsync(id);
+                bool chunkDeleted = await ragSystem.DeleteAllPointsWithIdAsync(id);
                 if (!chunkDeleted)
                 {
-                    _logger.Warning("Failed to delete person chunks from vector database for ID: {ID}", id);
+                    logger.Warning("Failed to delete person chunks from vector database for ID: {ID}", id);
                     return StatusCode(500, new ApiResponse(false, "Failed to delete person chunks from vector database"));
                 }
 
-                _logger.Information("Person with ID '{ID}' deleted successfully", id);
+                logger.Information("Person with ID '{ID}' deleted successfully", id);
                 return Ok(new ApiResponse(true, "Person deleted successfully"));
             }
             catch (Exception e)
             {
-                _logger.Error(e, "Error deleting person with ID {ID}", id);
+                logger.Error(e, "Error deleting person with ID {ID}", id);
                 return StatusCode(500, new ApiResponse(false, "Error deleting person"));
             }
         }
@@ -239,7 +238,7 @@ namespace KnowledgeBank.Controllers
             if (updates == null || updates.Count == 0)
                 return BadRequest(new ApiResponse(false, "No updates were provided."));
 
-            _logger.Information("Updating person with ID '{ID}'...", id);
+            logger.Information("Updating person with ID '{ID}'...", id);
 
             try
             {
@@ -269,20 +268,20 @@ namespace KnowledgeBank.Controllers
                 // If all properties were updated
                 if (updatedProperties.Count == updates.Count)
                 {
-                    _logger.Information("Successfully updated person with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
+                    logger.Information("Successfully updated person with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
                     return Ok(new ApiResponse(true, $"Person updated successfully.", updatedProperties));
                 }
 
                 // If not all properties were updated
                 else
                 {
-                    _logger.Information("Partially updated person with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
+                    logger.Information("Partially updated person with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
                     return Ok(new ApiResponse(true, $"Person updated partially.", updatedProperties));
                 }
             }
             catch (Exception e)
             {
-                _logger.Error(e, "Error updating person with ID '{ID}'", id);
+                logger.Error(e, "Error updating person with ID '{ID}'", id);
                 return StatusCode(500, new ApiResponse(false, "Error updating person", e.Message));
             }
         }
@@ -325,7 +324,7 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                _logger.Error(e, "Error while checking if person exists");
+                logger.Error(e, "Error while checking if person exists");
                 return StatusCode(500, new ApiResponse(false, "Error while checking if person exists", e.Message));
             }
         }
@@ -365,7 +364,7 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                _logger.Error(e, "Error retrieving person info.");
+                logger.Error(e, "Error retrieving person info.");
                 return StatusCode(500, new ApiResponse(false, "Error retrieving person info.", e.Message));
             }
         }
@@ -433,7 +432,7 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                _logger.Error(e, "Error listing persons.");
+                logger.Error(e, "Error listing persons.");
                 return StatusCode(500, new ApiResponse(false, "Error listing persons.", e.Message));
             }
         }
@@ -498,7 +497,7 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                _logger.Error(e, "Error retrieving relation '{Relation}' for person with ID '{Id}'", relation, id);
+                logger.Error(e, "Error retrieving relation '{Relation}' for person with ID '{Id}'", relation, id);
                 return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
             }
         }
@@ -562,7 +561,7 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                _logger.Error(e, "Error creating relation '{Relation}' for person with ID '{Id}'", relation, id);
+                logger.Error(e, "Error creating relation '{Relation}' for person with ID '{Id}'", relation, id);
                 return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
             }
         }
@@ -624,7 +623,7 @@ namespace KnowledgeBank.Controllers
             }
             catch (Exception e)
             {
-                _logger.Error(e, "Error removing relation '{Relation}' for person with ID '{Id}'", relation, id);
+                logger.Error(e, "Error removing relation '{Relation}' for person with ID '{Id}'", relation, id);
                 return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
             }
         }

@@ -10,10 +10,10 @@ public enum EnvironmentVariable
     ASPNETCORE_ENVIRONMENT,
 
     // PostgreSQL
-    CONNECTION_STRING,
+    DATABASE_CONNECTION_STRING,
 
     // Azure Storage
-    AZURE_STORAGE_CONNECTION_STRING,
+    STORAGE_CONNECTION_STRING,
 
     // Client URL
     HOST_URL,
@@ -64,10 +64,10 @@ public class EnvironmentConfig
         _variableNames.Add(EnvironmentVariable.ASPNETCORE_ENVIRONMENT, "ASPNETCORE_ENVIRONMENT");
 
         // PostgreSQL
-        _variableNames.Add(EnvironmentVariable.CONNECTION_STRING, "CONNECTION_STRING");
+        _variableNames.Add(EnvironmentVariable.DATABASE_CONNECTION_STRING, "DATABASE_CONNECTION_STRING");
 
         // Azure Storage
-        _variableNames.Add(EnvironmentVariable.AZURE_STORAGE_CONNECTION_STRING, "AZURE_STORAGE_CONNECTION_STRING");
+        _variableNames.Add(EnvironmentVariable.STORAGE_CONNECTION_STRING, "STORAGE_CONNECTION_STRING");
 
         // Client URL
         _variableNames.Add(EnvironmentVariable.HOST_URL, "HOST_URL");

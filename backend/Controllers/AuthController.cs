@@ -21,7 +21,6 @@ namespace KnowledgeBank.Controllers
         private readonly DatabaseContext _context;
         private readonly EnvironmentConfig _environmentConfig;
         private readonly MailUtils _mailUtils;
-        private readonly string _frontendDomain;
         public AuthController(SignInManager<User> signInManager, DatabaseContext context, EnvironmentConfig environmentConfig, MailUtils mailUtils)
         {
             _signInManager = signInManager;
@@ -61,7 +60,7 @@ namespace KnowledgeBank.Controllers
         )]
         [SwaggerResponse(200, "User id fetched successfully")]
         [SwaggerResponse(500, "Server error")]
-        public async Task<IActionResult> GetUserId()
+        public IActionResult GetUserId()
         {
             string userID = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid.ToString() : null ?? "";
             return Ok(new ApiResponse(true, "Fetched user id", userID ));
@@ -184,12 +183,12 @@ namespace KnowledgeBank.Controllers
         {
             try
             {
-                string userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
                 if (userId == null)
                     return BadRequest(new ApiResponse(false, "User not found"));
 
-                User user = (await _signInManager.UserManager.FindByIdAsync(userId));
+                User? user = (await _signInManager.UserManager.FindByIdAsync(userId));
 
                 if (user == null)
                     return NotFound("User not found.");

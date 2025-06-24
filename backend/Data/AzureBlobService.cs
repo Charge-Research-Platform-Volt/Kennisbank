@@ -174,7 +174,7 @@ namespace KnowledgeBank.Data
         /// <param name="environmentConfig">Environment configuration for accessing environment variables</param>
         public AzureBlobService(IConfiguration configuration, EnvironmentConfig environmentConfig)
         {
-            blobService = new BlobServiceClient(environmentConfig.GetVariableValue(EnvironmentVariable.AZURE_STORAGE_CONNECTION_STRING));
+            blobService = new BlobServiceClient(environmentConfig.GetVariableValue(EnvironmentVariable.STORAGE_CONNECTION_STRING));
             logger = Log.ForContext<AzureBlobService>();
         }
 
