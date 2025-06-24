@@ -46,7 +46,7 @@ export default function ProfileDropdown({
         className={`font-face text-md data-[state=closed]:ring-0, flex w-full cursor-pointer items-center gap-2 rounded-md p-2 text-black outline-none hover:bg-gray-200 ${minimize && "w-9"} overflow-hidden transition-all duration-200`}
       >
         {/* Profile photo */}
-        <Image src={userData.customAvatarVersion ? `/api/user/current/avatar?v=${userData.customAvatarVersion}` : "/img/default-profile-picture.svg"} className="rounded-full" alt="Profile Picture" width={35} height={35} />
+        <Image src={userData.customAvatarVersion ? `/api/user/current/avatar/${userData.id}?v=${userData.customAvatarVersion}` : "/img/default-profile-picture.svg"} className="rounded-full" alt="Profile Picture" width={35} height={35} />
 
         {/* Username + email */}
         <div className="flex flex-col items-start justify-center">
