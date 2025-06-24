@@ -1,6 +1,5 @@
 import LeftSidebarServer from "@/components/sidebar/left-sidebar/left-sidebar-server";
 import RightSidebar from "@/components/sidebar/right-sidebar/right-sidebar";
-import { UserRoleProvider } from "@/context/user-role-context";
 import { ArchiveProvider } from "@/context/archive-provider";
 import { QuickSearchProvider } from "@/context/quick-search-provider";
 import { SidebarProvider } from "@/context/sidebar-provider";
@@ -22,7 +21,7 @@ export default async function KnowledgeBankLayout({ children }: Readonly<{ child
           <ArchiveProvider>
             <div className="flex h-screen w-full">
               <LeftSidebarServer />
-              <main className="w-full overflow-y-auto p-2">{children}</main>
+              <main className="w-full overflow-y-auto">{children}</main>
               <RightSidebar />
             </div>
           </ArchiveProvider>

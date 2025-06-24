@@ -14,6 +14,7 @@ export default function RightSidebar() {
   const { sidebarMode } = useSidebar();
 
   const isChatHistoryMode = sidebarMode === "chat-history";
+  
   return (
     <Sidebar side="right" width={isChatHistoryMode ? "300px" : "600px"} collapsible="offcanvas">
       {isChatHistoryMode ? <RightSidebarHistory /> : <RightSidebarInfo />}

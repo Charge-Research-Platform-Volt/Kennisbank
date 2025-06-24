@@ -129,7 +129,8 @@ export function ResourceContent(
             setRelatedResources(list);
         }).catch(error =>
         {
-            console.error("Error loading related resources: ", error);
+            console.log("Error loading related resources: ", error);
+            setRelatedResources([]);
         });
     }, [currentId]);
     
@@ -140,6 +141,13 @@ export function ResourceContent(
     
         aiTagsPromise.then(response =>
         {
+            // Check if we got an array back, if not dont continue
+            if (!Array.isArray(response.body.tags)) 
+            {
+                console.log("This document is not processed. No AI tags available.");
+                return;
+            }
+            
             //Add translation logic from ai tags to ListItem[] here
             const list: ListItem[] = response.body.tags.map((item: string) => ({
                 id: item,
@@ -157,6 +165,7 @@ export function ResourceContent(
             console.error("Error loading tags: ", error);
         });
     }, [currentId]);
+
 
     // Reload content on sidebar open
     React.useEffect(() =>

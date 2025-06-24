@@ -3,6 +3,21 @@
 import React from 'react';
 import { usePathname, useSearchParams, useRouter, ReadonlyURLSearchParams } from 'next/navigation';
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import { MetadataTypeEnum } from './sidebar-provider';
+import { ApiResponse } from '@/types/apiResponse.type';
+import { GridRequest, GridRequestSchema } from '@/types/gridRequest.type';
+
+export type ResourceGridItem =
+{
+    id: string;
+    name: string;
+    publicationDate: string;
+    type: MetadataTypeEnum;
+    fileType: string;
+    creationDate: string;
+    chunks?: string[];
+        description: string;
+}
 
 export type ArchiveContextType = {
 
@@ -45,6 +60,18 @@ export type ArchiveContextType = {
     router: AppRouterInstance;
     searchParams: ReadonlyURLSearchParams;
     pathname: string;
+    
+    // Data
+    rowData: ResourceGridItem[];
+    setRowData: (data: ResourceGridItem[]) => void;
+    loading: boolean;
+    setLoading: (isLoading: boolean) => void;
+    sortBy: string;
+    setSortBy: (sortBy: string) => void;
+    sortDirection: 'asc' | 'desc';
+    setSortDirection: (sortDir: 'asc' | 'desc') => void;
+    mode: "search-results" | "general-results";
+    setMode: (mode: "search-results" | "general-results") => void;
 };
 
 const ArchiveContext = React.createContext<ArchiveContextType | undefined>(undefined);
@@ -91,6 +118,16 @@ export const ArchiveProvider = ({ children }: { children: React.ReactNode }) => 
     
     // Track if initial load to prevent resets
     const [isInitialLoad, setIsInitialLoad] = React.useState(true);
+    
+    // Data for grid
+    const [rowData, setRowData] = React.useState<ResourceGridItem[]>([]);
+    const [loading, setLoading] = React.useState(false);
+    
+    // Sort states -- Controlled by AgGrid
+    const [sortBy, setSortBy] = React.useState<string>('');
+    const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
+    
+    const [mode, setMode] = React.useState<"search-results" | "general-results">("general-results");
     
     // URL Management
     const syncToUrl = React.useCallback((updates: Record<string, string | string[] | undefined>) => 
@@ -239,6 +276,100 @@ export const ArchiveProvider = ({ children }: { children: React.ReactNode }) => 
         }
     }, [pathname]);
     
+    // Fetch data function
+    const fetchData = React.useCallback(async () => 
+    {
+        if (pathname !== '/archive') return;
+    
+        setLoading(true);
+        
+        try 
+        {   
+            // Create the request
+            const request: GridRequest = GridRequestSchema.parse(
+            {
+                pageIndex: currentPage,
+                pageSize: pageSize,
+                searchQuery: searchQuery || undefined,
+                sortBy: sortBy || undefined,
+                sortDirection: sortDirection || undefined,
+                filterOptions:
+                {
+                    typeFilter: typeFilter || undefined,
+                    pubdateMin: publicationDateRangeMin || undefined,
+                    pubdateMax: publicationDateRangeMax || undefined,
+                    tagFilter: tagFilter || undefined,
+                    regionFilter: regionFilter || undefined,
+                },
+            });
+            
+            // Fetch the data from the backend
+            const response = trashOpen ?
+                await fetch(`/api/resources/trash-grid`, 
+                {
+                    credentials: 'include',
+                })
+                :
+                await fetch(`/api/resources/grid`,
+                {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: 
+                    {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(request),
+                });
+            
+            if (!response.ok)
+                throw new Error(`HTTP error! Status: ${response.status}`);
+                
+            const data: ApiResponse = await response.json();
+            
+            if (data.success) 
+            {
+                setRowData(trashOpen ? data.body : data.body.items);
+                setTotalItems(trashOpen ? data.body.length : data.body.totalCount);
+            }
+            else 
+            {
+                console.error('API returned error:', data.message);
+                setRowData([]);
+                setTotalItems(0);
+            }
+        }
+        catch (error) 
+        {
+            console.error('Failed to fetch data:', error);
+            setRowData([]);
+            setTotalItems(0);
+        }
+        finally 
+        {
+            setLoading(false);
+        }
+    }, [
+        currentPage,
+        pageSize,
+        searchQuery,
+        typeFilter,
+        publicationDateRangeMax,
+        publicationDateRangeMin,
+        sortBy,
+        sortDirection,
+        tagFilter,
+        regionFilter,
+        setTotalItems,
+        trashOpen,
+        pathname
+    ]);
+    
+    // Fetch data when dependencies change or when trigger is activated
+    React.useEffect(() => 
+    {
+        fetchData();
+    }, [fetchData, gridReloadTrigger]);
+    
     return (
         <ArchiveContext.Provider 
             value={{
@@ -281,6 +412,18 @@ export const ArchiveProvider = ({ children }: { children: React.ReactNode }) => 
                 router,
                 searchParams,
                 pathname,
+                
+                // Data
+                rowData,
+                setRowData,
+                loading,
+                setLoading,
+                sortBy,
+                setSortBy,
+                sortDirection,
+                setSortDirection,
+                mode,
+                setMode
             }}>
         {children}
         </ArchiveContext.Provider>

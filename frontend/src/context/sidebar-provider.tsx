@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { ReadonlyURLSearchParams, usePathname, useSearchParams, useRouter } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import Stack from "@/lib/stack";
 import { ApiResponse } from "@/types/apiResponse.type";
 
@@ -290,7 +290,7 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
     // Handle page navigation (pathname changes)
     React.useEffect(() => 
     {   
-      setSidebarMode(pathname === 'archive' ? 'archive-info' : "chat-history");
+      setSidebarMode(pathname === '/archive' ? 'archive-info' : "chat-history");
       
       if (pathname !== '/archive' && !pathname.startsWith("/chat"))
         closeRightSidebar();
@@ -337,10 +337,6 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
         setRightSidebarOpen,
         toggleRightSidebar,
 
-        // The sidebar mode
-        sidebarMode,
-        setSidebarMode,
-
         // Edit mode
         editMode,
         setEditMode,
@@ -350,6 +346,10 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
         publicationDate,
         setCreationDate,
         setPublicationDate,
+        
+        // The sidebar mode
+        sidebarMode,
+        setSidebarMode,
       }}
     >
       {children}

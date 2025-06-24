@@ -16,7 +16,7 @@ import { TagFilterOptions } from "@/types/tag.type";
 import { SelectOption } from "@/components/ui/selection";
 import { useUserRole } from "@/context/user-role-context";
 import TrashIcon from "@/icons/trash-icon";
-import { ReadonlyURLSearchParams, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import ResourcesList from "@/components/archive/resources-list";
 import LayoutSwitch from "@/components/archive/layout-switch";
 
@@ -210,7 +210,7 @@ export default function Page() {
             {/* Scrollable content area */}
             <div className="flex-1 overflow-y-auto min-h-0">
                 <div className="w-full">
-                    <ResourcesGrid />
+                    {isListLayout ? <ResourcesList /> : <ResourcesGrid />}
                     
                     {/* Navigation buttons */}
                     <div className="w-full p-4 flex justify-center gap-5">

@@ -179,8 +179,6 @@ public partial class ResourceManager
                 limit: 1000,
                 groupSize: 4
             );
-
-            Console.WriteLine($"Qdrant search results: {searchresults}");
         }
         catch (Exception)
         {
@@ -195,7 +193,7 @@ public partial class ResourceManager
                 groupSize: 4
             );
         }
-
+        Console.WriteLine($"Qdrant search results: {searchresults}");
         try
         {
             _logger.Information("Processing Qdrant search results");
