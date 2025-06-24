@@ -2064,7 +2064,7 @@ public class ResourcesControllerTests : TestBaseBlob
     //     // Arrange
     //     string resourceId = _existingResourceId.ToString();
     //     string relation = "authors";
-    //     string properties = "PersonId,Person.Name";
+    //     string properties = "AuthorId,Author.Name";
 
     //     // Act
     //     OkObjectResult? result = await _controller.Relations(relation, resourceId, properties) as OkObjectResult;

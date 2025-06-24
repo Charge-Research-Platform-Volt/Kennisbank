@@ -42,6 +42,7 @@ export default function BadgeList({
 {
     const { navigate, currentId, currentType } = useSidebar();
     const { setTagFilter, setTypeFilter, setRegionFilter } = useArchive();
+    const triggerRef = React.useRef<HTMLDivElement>(null);
     const pathname: string = usePathname();
     
     async function navigateTo(id: string)
@@ -112,11 +113,24 @@ export default function BadgeList({
         try {
             const tagid = await tryAddNewTag(item.name);
             await addRelation("tags", currentType, currentId, tagid)
-            onNew([item]);
+            onNew([{id: tagid, name: item.name, type: "tag"}]);
         }
         catch (error) {
             console.error("Error adding recommended tag:", error)
         }
+    }
+
+    const handleLeftClick = (e: any) => {
+        e.preventDefault()
+        
+        const contextMenuEvent = new MouseEvent('contextmenu', {
+            bubbles: true,
+            cancelable: true,
+            clientX: e.clientX,
+            clientY: e.clientY,
+        })
+        
+        e.currentTarget.dispatchEvent(contextMenuEvent)
     }
 
     return (
@@ -131,8 +145,23 @@ export default function BadgeList({
                 <>
                     {itemList.map((item, index) =>(
                         <ContextMenu key={index}>
-                            <ContextMenuTrigger>
-                                <Badge onClick={() => { navigateTo(item.id); }} variant={variant} className={`max-w-96 truncate inline-block justify-start ${className}`} title={item.name}>{item.name}</Badge>
+                            <ContextMenuTrigger 
+                                onClick={(e) => {
+                                    if (listType === "ai-tags") {
+                                        handleLeftClick(e);
+                                    } else {
+                                        navigateTo(item.id);
+                                    }
+                                }}
+                                asChild
+                            >
+                                <Badge 
+                                    variant={variant} 
+                                    className={`max-w-96 truncate inline-block justify-start cursor-pointer ${className}`} 
+                                    title={item.name}
+                                >
+                                    {item.name}
+                                </Badge>
                             </ContextMenuTrigger>
                             <ContextMenuContent className="select-none">
                                 {listType != "ai-tags" ? (
@@ -144,7 +173,6 @@ export default function BadgeList({
                                         <div className="select-none cursor-pointer">Add tag</div>
                                     </ContextMenuItem>
                                 )}
-                                
                             </ContextMenuContent>
                         </ContextMenu>
                     ))}

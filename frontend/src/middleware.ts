@@ -1,11 +1,10 @@
-import { NextResponse } from "next/server";
-import { NextRequest } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
     const pathname = request.nextUrl.pathname;
     
     // Handle API proxying before auth checks
-    if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/')) 
+    if (pathname.startsWith('/api/')) 
     {
         const apiUrl = process.env.API_URL || 'http://localhost:8080';
         const targetUrl = new URL(pathname.replace('/api', ''), apiUrl);
@@ -31,7 +30,7 @@ export async function middleware(request: NextRequest) {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
-                Cookie: request.headers.get("cookie") || "", // Cookies meesturen!
+                Cookie: request.headers.get("cookie") || "",
             },
         });
 
@@ -50,9 +49,6 @@ export async function middleware(request: NextRequest) {
                     
             return NextResponse.redirect(new URL("/", request.url));
         }
-
-        // One exception, so the client can call the api to create cookies
-        if (pathname.startsWith("/api/Auth/")) { return NextResponse.next() }
 
         // If not logged in, redirect to login page
         if (!response.ok) {
