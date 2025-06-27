@@ -292,7 +292,7 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
     {   
       setSidebarMode(pathname.startsWith("/chat") ? "chat-history" : 'archive-info');
       
-      if (pathname.startsWith("/chat") || pathname == "/archive" || pathname.startsWith("/projects"))
+      if (!pathname.startsWith("/chat") && pathname != "/archive" && !pathname.startsWith("/projects"))
         closeRightSidebar();
     }, [pathname, closeRightSidebar]);
     

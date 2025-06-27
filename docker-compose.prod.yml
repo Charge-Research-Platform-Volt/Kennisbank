@@ -68,10 +68,10 @@ services:
     ports:
       - ${FRONTEND_PORT:-9000}:3000
 
-  website:
-    <<: *imagebase
-    ports:
-      - ${WEBSITE_PORT:-9001}:3001
+  # website:
+  #   <<: *imagebase
+  #   ports:
+  #     - ${WEBSITE_PORT:-9001}:3001
 
   qdrant:
     image: qdrant/qdrant:latest

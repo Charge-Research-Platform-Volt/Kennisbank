@@ -124,10 +124,10 @@ export function OrganisationContent()
             <div className="flex justify-start gap-2 items-center pb-2">
                 <OrganisationIcon className="w-5 h-5" />
                 
-            {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
-                                                <Edit setNewText={setName} currentText={name} property="name" />
-                                            </div>)}
-            <h1 className="font-bold select-none text-2xl">{name || <Skeleton />}</h1>
+                {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
+                    <Edit setNewText={setName} currentText={name} property="name" />
+                </div>)}
+                <h1 className="font-bold select-none text-2xl">{name || <Skeleton />}</h1>
             </div>
                         
             {name ? (

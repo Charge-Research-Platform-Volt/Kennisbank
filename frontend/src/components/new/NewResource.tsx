@@ -423,7 +423,7 @@ export default function NewResource({ personOptions, organisationOptions, resour
     }
 
     return (
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl mt-5">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl my-5">
             {/* Create dialogs */}
             <CreateDialog open={createTagOpen} title="Create New Tag" placeholder="Tag name..." onOpenChange={setCreateTagOpen} onCreate={onTagCreation} />
             <CreateDialog open={createResourceTypeOpen} title="Create New Resource Type" placeholder="Resource type name..." onOpenChange={setCreateResourceTypeOpen} onCreate={onResourceTypeCreation} />

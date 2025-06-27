@@ -185,7 +185,7 @@ export default function NewPerson({ personOptions, organisationOptions, onCreate
     }
 
     return (
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl mt-5">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl my-5">
             {/* Create drawers */}
             <Drawer open={createPersonOpen} onOpenChange={setCreatePersonOpen}>
                 <DrawerContent className="flex flex-col max-h-[90vh]" ref={personDrawerRef} forceMount>

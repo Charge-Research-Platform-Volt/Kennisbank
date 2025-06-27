@@ -92,19 +92,19 @@ services:
     restart: unless-stopped
 
   # Start website after backend
-  website:
-    build:
-      context: ./website
-      dockerfile: Dockerfile
-      <<: *target
-    ports:
-      - ${WEBSITE_PORT:-3001}:3001
-    environment:
-      - API_URL=${API_URL:-http://backend:8080} # Do NOT use the global port here
-    depends_on:
-      backend:
-        condition: service_healthy
-    restart: unless-stopped
+  # website:
+  #   build:
+  #     context: ./website
+  #     dockerfile: Dockerfile
+  #     <<: *target
+  #   ports:
+  #     - ${WEBSITE_PORT:-3001}:3001
+  #   environment:
+  #     - API_URL=${API_URL:-http://backend:8080} # Do NOT use the global port here
+  #   depends_on:
+  #     backend:
+  #       condition: service_healthy
+  #   restart: unless-stopped
 
 # This program has been developed by students from the bachelor Computer Science at Utrecht
 # University within the Software Project course.
