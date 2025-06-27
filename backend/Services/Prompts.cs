@@ -29,7 +29,7 @@ Instructions:
 - If the information does not answer the question, state that explicitly and do not include any citations.
 - For each fact or claim, include a citation in the format: [Source Number](Source Link). Source Number corresponds to the link, two sources with the same link should have the same number.
 - Links will be provided in the format like this: /archive/?id=19e8c737-1f10-45a5-b476-8e0fbd9e7647
-- For links do not add http:// or https://, just use the path like this: /archive/?id=19e8c737-1f10-45a5-b476-8e0fbd9e7647
+- For links do not add http:// or https://, just use the path like this: /archive/?id=19e8c737-1f10-45a5-b476-8e0fbd9e7647 it has to start with a slash.
 - For math use LaTeX syntax. Use double dollar signs for display math, e.g. $$E=mc^2$$, and single dollar signs for inline math, e.g. $x^2 + y^2 = z^2$.";
 
     public const string SystemPromptStandardAi = @"You are an AI assistant that helps people find information.
