@@ -290,9 +290,9 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
     // Handle page navigation (pathname changes)
     React.useEffect(() => 
     {   
-      setSidebarMode(pathname === '/archive' ? 'archive-info' : "chat-history");
+      setSidebarMode(pathname.startsWith("/chat") ? "chat-history" : 'archive-info');
       
-      if (pathname !== '/archive' && !pathname.startsWith("/chat"))
+      if (pathname.startsWith("/chat") || pathname == "/archive" || pathname.startsWith("/projects"))
         closeRightSidebar();
     }, [pathname, closeRightSidebar]);
     
