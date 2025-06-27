@@ -187,19 +187,71 @@ namespace KnowledgeBank
                     using var scope = app.Services.CreateScope();
                     var context = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
                     
-                    Console.WriteLine("Starting full database reset...");
+                    Console.WriteLine("Starting database reset with raw SQL...");
                     
-                    await context.Database.EnsureDeletedAsync();
+                    // Raw SQL to drop all tables, sequences, and constraints
+                    var resetSql = @"
+                        DO $$ 
+                        DECLARE 
+                            r RECORD;
+                        BEGIN
+                            -- Drop all foreign key constraints first
+                            FOR r IN (
+                                SELECT constraint_name, table_name 
+                                FROM information_schema.table_constraints 
+                                WHERE constraint_type = 'FOREIGN KEY' 
+                                AND table_schema = 'public'
+                            ) 
+                            LOOP
+                                EXECUTE 'ALTER TABLE ' || quote_ident(r.table_name) || ' DROP CONSTRAINT ' || quote_ident(r.constraint_name);
+                            END LOOP;
+                            
+                            -- Drop all tables
+                            FOR r IN (
+                                SELECT table_name 
+                                FROM information_schema.tables 
+                                WHERE table_schema = 'public' 
+                                AND table_type = 'BASE TABLE'
+                            ) 
+                            LOOP
+                                EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.table_name) || ' CASCADE';
+                            END LOOP;
+                            
+                            -- Drop all sequences
+                            FOR r IN (
+                                SELECT sequence_name 
+                                FROM information_schema.sequences 
+                                WHERE sequence_schema = 'public'
+                            )
+                            LOOP
+                                EXECUTE 'DROP SEQUENCE IF EXISTS ' || quote_ident(r.sequence_name) || ' CASCADE';
+                            END LOOP;
+                            
+                            -- Drop all functions (if any)
+                            FOR r IN (
+                                SELECT routine_name 
+                                FROM information_schema.routines 
+                                WHERE routine_schema = 'public' 
+                                AND routine_type = 'FUNCTION'
+                            )
+                            LOOP
+                                EXECUTE 'DROP FUNCTION IF EXISTS ' || quote_ident(r.routine_name) || ' CASCADE';
+                            END LOOP;
+                        END $$;
+                    ";
+                    
+                    await context.Database.ExecuteSqlRawAsync(resetSql);
+                    
+                    // Now recreate schema using EF
                     await context.Database.EnsureCreatedAsync();
                     
-                    Console.WriteLine("Database recreated from EF models");
-                    
+                    Console.WriteLine("Database schema reset completed successfully");
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine($"Failed to reset database: {e.Message}");
                     Console.WriteLine($"Stack trace: {e.StackTrace}");
-                    throw; // Fail fast if database reset fails
+                    throw;
                 }
             }
 

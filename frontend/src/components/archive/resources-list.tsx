@@ -4,6 +4,9 @@ import { useArchive } from "@/context/archive-provider";
 import { useSidebar } from "@/context/sidebar-provider";
 import React from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import GetFileIcon from "../getFileIcon";
+import PersonIcon from "@/icons/person-icon";
+import OrganisationIcon from "@/icons/organisation-icon";
 
 export default function ResourcesList() {
   // Get archive data and mode from context
@@ -22,7 +25,12 @@ export default function ResourcesList() {
           {/* Main resource container - clickable to open sidebar */}
           <div className="cursor-pointer space-y-1" onClick={() => openRightSidebar(resource.id, resource.type)}>
             {/* Resource title */}
-            <h3 className="text-lg font-semibold">{resource.name}</h3>
+            <div className="flex justify-start gap-2 items-center">
+              {resource.type === 'resource' && <GetFileIcon fileType={resource.fileType} className="w-5 h-5" />}
+              {resource.type === 'person' && <PersonIcon className="w-5 h-5" />}
+              {resource.type === 'organisation' && <OrganisationIcon className="w-5 h-5" />}
+              <h3 className="text-lg font-semibold">{resource.name}</h3>
+            </div>
 
             {/* Publication date */}
             <p className="text-sm text-gray-500"> {new Date(resource.publicationDate).toLocaleDateString()}</p>

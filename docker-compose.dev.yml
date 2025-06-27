@@ -64,12 +64,12 @@ services:
         condition: service_healthy
 
   # Start website after backend
-  website:
-    <<: *jsbase
-    volumes:
-      - ./website:/app
-      - /app/node_modules
-      - /app/.next
+  # website:
+  #   <<: *jsbase
+  #   volumes:
+  #     - ./website:/app
+  #     - /app/node_modules
+  #     - /app/.next
 
   qdrant:
     image: qdrant/qdrant:latest
