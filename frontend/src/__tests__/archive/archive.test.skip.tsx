@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test, it, vi, beforeAll } from "vitest";
 import { render, fireEvent, waitFor, act } from "@testing-library/react";
 import ArchivePage from "@/app/(knowledgebank)/archive/page";
-import { SidebarProvider } from "@/context/sidebar-provider";
+import { LeftSidebarProvider } from "@/context/left-sidebar-provider";
 import { ArchiveProvider, useArchive } from "@/context/archive-provider";
 
 const filterButtonApplyMock = vi.fn();

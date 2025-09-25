@@ -1,6 +1,6 @@
 "use client";
 
-import { MetadataTypeEnum } from "@/context/sidebar-provider";
+import { MetadataTypeEnum } from "@/context/left-sidebar-provider";
 import { toast } from "sonner";
 
 export const TrashResource = async (id: string, type: MetadataTypeEnum) =>

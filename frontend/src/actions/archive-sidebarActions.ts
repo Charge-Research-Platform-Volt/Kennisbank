@@ -1,6 +1,6 @@
 "use server";
 
-import { MetadataTypeEnum } from "@/context/sidebar-provider";
+import { MetadataTypeEnum } from "@/context/archive-sidebar-provider";
 import { ApiResponse, ApiResponseSchema } from "@/types/apiResponse.type";
 import { TagCreateDto, TagFilterOptions } from "@/types/tag.type";
 import { RegionCreateDto } from "@/types/uploadTypes";
@@ -212,6 +212,8 @@ export const addRelation = async (relation: resourceRelation | personRelation | 
   let endPoint;
   const cookieHeader: ReadonlyRequestCookies = await cookies();
 
+  console.log(type);
+  
   if (type === "resource") {
     endPoint = `Resources/${encodeURIComponent(id)}/relations/add/${encodeURIComponent(relation)}/${encodeURIComponent(targetId)}`;
   } else if (type === "person") {

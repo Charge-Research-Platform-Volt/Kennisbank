@@ -3,8 +3,8 @@
 import React from "react";
 import { Dialog, DialogTrigger, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { setProperty } from "@/actions/right-sidebarActions";
-import { useSidebar } from "@/context/sidebar-provider"
+import { setProperty } from "@/actions/archive-sidebarActions";
+import { useArchiveSidebar } from "@/context/archive-sidebar-provider"
 
 export default function Edit({
     property,
@@ -16,7 +16,7 @@ export default function Edit({
     setNewText: (val: string) => void;
 })
 {
-    const { currentId, currentType } = useSidebar();
+    const { currentId, currentType } = useArchiveSidebar();
     const [text, setText] = React.useState(currentText || "");
     const [isOpen, setIsOpen] = React.useState(false);
     const [ isLoading, setIsLoading ] = React.useState(false);

@@ -5,10 +5,10 @@ import "@testing-library/jest-dom";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import RightSidebar  from "@/components/sidebars/right-sidebar/right-sidebar";
-import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider";
+import { useLeftSidebar, MetadataTypeEnum } from "@/context/left-sidebar-provider";
 import { useArchive } from "@/context/archive-provider";
 import { fireEvent } from "@testing-library/react";
-import { getProperties, getRelation, addRelation, newRelationSearchResults } from "@/actions/right-sidebarActions";
+import { getProperties, getRelation, addRelation, newRelationSearchResults } from "@/actions/archive-sidebarActions";
 
 
 // Use partial mocking to keep the real enum while mocking the hook
@@ -114,7 +114,7 @@ describe("RightSidebar", () => {
 
   it("renders website correctly with data", async () => {
     // Mock the useSidebar hook
-    (useSidebar as ReturnType<typeof vi.fn>).mockReturnValue({
+    (useLeftSidebar as ReturnType<typeof vi.fn>).mockReturnValue({
       currentId: mockCurrentId,
       currentType: mockCurrentTypeResource,
       isEmptyPrevs: mockIsEmptyPrevs,
@@ -170,7 +170,7 @@ describe("RightSidebar", () => {
   })
 
   it("renders person correctly", () => {
-    (useSidebar as ReturnType<typeof vi.fn>).mockReturnValue({
+    (useLeftSidebar as ReturnType<typeof vi.fn>).mockReturnValue({
       currentId: mockCurrentId,
       currentType: mockCurrentTypePerson,
       toggleRightSidebar: mockToggleRightSidebar,

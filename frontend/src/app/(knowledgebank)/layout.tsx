@@ -1,6 +1,6 @@
 import LeftSidebarServer from "@/components/sidebars/left-sidebar/left-sidebar-server";
 import { QuickSearchProvider } from "@/context/quick-search-provider";
-import { SidebarProvider } from "@/context/sidebar-provider";
+import { LeftSidebarProvider } from "@/context/left-sidebar-provider";
 import { TanStackQueryProvider } from "@/context/tanStack-query-provider";
 import { UserRoleProvider } from "@/context/user-role-context";
 import { cookies } from "next/headers";
@@ -16,14 +16,14 @@ export default async function KnowledgeBankLayout({ children }: Readonly<{ child
   return (
     <TanStackQueryProvider>
       <UserRoleProvider>
-      <SidebarProvider leftSidebarDefaultState={leftSidebarDefault}>
+      <LeftSidebarProvider leftSidebarDefaultState={leftSidebarDefault}>
         <QuickSearchProvider>
             <div className="flex h-screen w-full">
               <LeftSidebarServer />
               <main className="w-full overflow-y-auto">{children}</main>
             </div>
         </QuickSearchProvider>
-      </SidebarProvider>
+      </LeftSidebarProvider>
       </UserRoleProvider>
     </TanStackQueryProvider>
   );

@@ -3,7 +3,7 @@ import { render, screen, waitFor, act } from '@testing-library/react'
 import React from 'react';
 import { createNewProject, deleteProject, getProjectContentById, updateProject } from '@/actions/projectActions';
 import ListProjects from '@/components/projects/list-projects';
-import { SidebarProvider } from '@/context/sidebar-provider';
+import { LeftSidebarProvider } from '@/context/left-sidebar-provider';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('next/navigation', () => ({
@@ -54,12 +54,12 @@ describe('Projects page', () =>{
     });
 
     test('Test if adding projects calls the correct function', async() => {
-        render(<SidebarProvider leftSidebarDefaultState={true}><ListProjects 
+        render(<LeftSidebarProvider leftSidebarDefaultState={true}><ListProjects 
             initialProjects={[]} 
             initialResources={[]} 
             fetchProjectAction={getProjectContentById}
             currentUserId=''
-            userRole="admin"/></SidebarProvider>)
+            userRole="admin"/></LeftSidebarProvider>)
         const user = userEvent;
 
         // CLICK "CREATE NEW PROJECT"
@@ -84,7 +84,7 @@ describe('Projects page', () =>{
     test('Test if deleting projects calls the correct function', async() => {
         const user = userEvent;
 
-        render(<SidebarProvider leftSidebarDefaultState={true}><ListProjects 
+        render(<LeftSidebarProvider leftSidebarDefaultState={true}><ListProjects 
             initialProjects={
                 [{  addedBy: "some dude",
                     folder: {
@@ -99,7 +99,7 @@ describe('Projects page', () =>{
             fetchProjectAction={getProjectContentById}
             currentUserId=''
             userRole="admin"/>
-            </SidebarProvider>)
+            </LeftSidebarProvider>)
 
         // DELETE PROJECT
         const delButton = await screen.findByTestId("delete-project-or-resource");
@@ -110,7 +110,7 @@ describe('Projects page', () =>{
     test('Test if updating projects calls the correct function', async() => {
         const user = userEvent;
 
-        render(<SidebarProvider leftSidebarDefaultState={true}><ListProjects 
+        render(<LeftSidebarProvider leftSidebarDefaultState={true}><ListProjects 
             initialProjects={
                 [{  addedBy: "some dude",
                     folder: {
@@ -125,7 +125,7 @@ describe('Projects page', () =>{
             fetchProjectAction={getProjectContentById}
             currentUserId=''
             userRole="admin"/>
-            </SidebarProvider>)
+            </LeftSidebarProvider>)
 
         // CLICK BUTTON TO OPEN PROJECT UPDATER
         const editButton = await screen.findByTestId("edit-project-or-folder");

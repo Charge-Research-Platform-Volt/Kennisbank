@@ -5,7 +5,7 @@ import type { SidebarItem } from "@/types/sidebar";
 import { Logout } from "@/actions/authActions";
 import { Sidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { useSidebar } from "@/context/sidebar-provider";
+import { useLeftSidebar } from "@/context/left-sidebar-provider";
 import Link from "next/link";
 import HideMenu from "@/icons/menu/hide-menu";
 import New from "@/icons/new";
@@ -37,7 +37,7 @@ export default function LeftSidebarClient({
   projects: SidebarItem[];
   bottomMenuItems: SidebarItem[];
 }) {
-  const { toggleLeftSidebar, leftSidebarOpen: open } = useSidebar();
+  const { toggleLeftSidebar, leftSidebarOpen: open } = useLeftSidebar();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const sidebarPartsRef = useRef<HTMLDivElement>(null);

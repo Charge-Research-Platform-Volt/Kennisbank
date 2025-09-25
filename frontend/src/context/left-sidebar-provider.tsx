@@ -1,16 +1,12 @@
 "use client";
 
 import React from "react";
-import { useHotkeys } from "react-hotkeys-hook";
-import { usePathname, useSearchParams, useRouter } from "next/navigation";
-import Stack from "@/lib/stack";
-import { ApiResponse } from "@/types/apiResponse.type";
 
 // --------------------------------------------------------
 // TYPES AND ENUMS
 // -----------------------------------------------------
 
-export type SidebarContextType =
+export type LeftSidebarContextType =
 {
     // State and functions for the left sidebar
     leftSidebarOpen: boolean;
@@ -23,20 +19,20 @@ export type SidebarContextType =
 // --------------------------------------------------------
 
 // This context is used to manage the state of the sidebar
-const SidebarContent = React.createContext<SidebarContextType | undefined>(undefined);
+const LeftSidebarContent = React.createContext<LeftSidebarContextType | undefined>(undefined);
 
 // This hook is used to access the sidebar context
-export const useSidebar = () =>
+export const useLeftSidebar = () =>
 {
-    const context: SidebarContextType | undefined = React.useContext(SidebarContent);
+    const context: LeftSidebarContextType | undefined = React.useContext(LeftSidebarContent);
 
-    if (!context) throw new Error("useSidebar must be used within a SidebarProvider");
+    if (!context) throw new Error("useSidebar must be used within a LeftSidebarProvider");
 
     return context;
 };
 
 // This component provides the sidebar context to its children
-export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSidebarDefaultState: boolean; children: React.ReactNode }) =>
+export const LeftSidebarProvider = ({ leftSidebarDefaultState, children }: { leftSidebarDefaultState: boolean; children: React.ReactNode }) =>
 {
     // Sidebar states
     const [leftSidebarOpen, setLeftSidebarOpen] = React.useState<boolean>(leftSidebarDefaultState);
@@ -52,7 +48,7 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
     }, [leftSidebarOpen]);
 
     return (
-        <SidebarContent.Provider
+        <LeftSidebarContent.Provider
             value={{
                 leftSidebarOpen,
                 setLeftSidebarOpen,
@@ -60,7 +56,7 @@ export const SidebarProvider = ({ leftSidebarDefaultState, children }: { leftSid
             }}
         >
             {children}
-        </SidebarContent.Provider>
+        </LeftSidebarContent.Provider>
     );
 };
 

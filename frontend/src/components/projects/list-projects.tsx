@@ -10,7 +10,7 @@ import { tableTheme } from "@/lib/tableConfig";
 import GetFileIcon from "../getFileIcon";
 import { format, parseISO } from "date-fns";
 import OpenFileButton from "../open-file-button";
-import { MetadataTypeEnum, useSidebar } from "@/context/sidebar-provider";
+import { MetadataTypeEnum, useLeftSidebar } from "@/context/left-sidebar-provider";
 import { ArrowLeftIcon, FolderIcon, HomeIcon, SparklesIcon, CircleXIcon, TagsIcon, Users, EditIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { addResourceToProject, fetchAllResources, ListProjectsPaged, removeResourceFromProject, deleteProject } from "@/actions/projectActions";
@@ -233,7 +233,7 @@ export default function ListProjects({ initialResources, initialProjects, fetchP
   const gridApiRef = useRef<GridApi | null>(null);
 
   // Use sidebar context
-  const { rightSidebarOpen, openRightSidebar } = useSidebar();
+  const { rightSidebarOpen, openRightSidebar } = useLeftSidebar();
 
   // When grid is ready, set the gridApi
   const onGridReady = (params: GridReadyEvent) => {

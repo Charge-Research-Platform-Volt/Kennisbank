@@ -3,9 +3,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import New from "@/icons/new"
-import { useSidebar } from "@/context/sidebar-provider"
+import { useArchiveSidebar } from "@/context/archive-sidebar-provider"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { newRelationSearchResults, organisationRelation, personRelation, resourceRelation, addRelation, addNewRegion } from "@/actions/right-sidebarActions";
+import { newRelationSearchResults, organisationRelation, personRelation, resourceRelation, addRelation, addNewRegion } from "@/actions/archive-sidebarActions";
 import { Button } from "@/components/ui/button";
 import { ListItem } from "./BadgeList";
 import { toast } from "sonner";
@@ -30,7 +30,7 @@ export default function NewBadge({
     alreadyRelated,
 } : NewBadgeProps)
 {
-    const { currentId, currentType } = useSidebar();
+    const { currentId, currentType } = useArchiveSidebar();
     const [searchInput, setSearchInput] = useState<string>("");
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);

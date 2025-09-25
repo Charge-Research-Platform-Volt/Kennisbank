@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { useSidebar } from "./sidebar-provider";
+import { useLeftSidebar } from "./left-sidebar-provider";
 
 // --------------------------------------------------------
 // TYPES AND ENUMS
@@ -38,7 +38,7 @@ export const useChatbotSidebar = () =>
 // The provider provides the sidebar context to its children
 export const ChatbotSidebarProvider = ({ chatbotSidebarDefaultState = false, children }: { chatbotSidebarDefaultState?: boolean; children: React.ReactNode }) => 
 {
-    const { leftSidebarOpen, setLeftSidebarOpen } = useSidebar();
+    const { leftSidebarOpen, setLeftSidebarOpen } = useLeftSidebar();
     
     // Sidebar states
     const [chatbotSidebarOpen, setChatbotSidebarOpen] = React.useState<boolean>(chatbotSidebarDefaultState);

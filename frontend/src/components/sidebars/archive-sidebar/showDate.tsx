@@ -1,7 +1,7 @@
 "use client"
 
 import React, { JSX, useEffect } from 'react';
-import { useSidebar } from "@/context/sidebar-provider";
+import { useArchiveSidebar } from "@/context/archive-sidebar-provider";
 
 export default function ShowDate({
     date,
@@ -15,7 +15,7 @@ export default function ShowDate({
     cName: string;
 })
 {
-    const { currentId } = useSidebar();
+    const { currentId } = useArchiveSidebar();
 
     useEffect(() => {
         

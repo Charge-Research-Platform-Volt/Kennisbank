@@ -5,7 +5,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import Stack from "@/lib/stack";
 import { ApiResponse } from "@/types/apiResponse.type";
-import { useSidebar } from "./sidebar-provider";
+import { useLeftSidebar } from "./left-sidebar-provider";
 
 // --------------------------------------------------------
 // TYPES AND ENUMS
@@ -102,7 +102,7 @@ export const ArchiveSidebarProvider = ({ archiveSidebarDefaultState = false, chi
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const router = useRouter();
-    const { leftSidebarOpen, setLeftSidebarOpen } = useSidebar();
+    const { leftSidebarOpen, setLeftSidebarOpen } = useLeftSidebar();
     
     // State for the selected item
     const [currentId, setCurrentId] = React.useState<string>('');

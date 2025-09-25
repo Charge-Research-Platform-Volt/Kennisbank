@@ -2,13 +2,13 @@ import { Table, TableCaption, TableRow, TableBody, TableCell } from "@/component
 import { ListItem } from "./BadgeList";
 import Skeleton from "react-loading-skeleton";
 import { useEffect, useState } from "react";
-import { MetadataTypeEnum, useSidebar } from "@/context/sidebar-provider";
+import { MetadataTypeEnum, useArchiveSidebar } from "@/context/archive-sidebar-provider";
 import OpenWebsiteIcon from "@/icons/file-type-icons/open-website";
 
 export default function ResourceList({resources, header} : {resources: ListItem[] | null; header: string}) {
     const [length, setLength] = useState<number>(5);
     const [maxLength, setMaxLength] = useState<boolean>(false);
-    const { navigate } = useSidebar();
+    const { navigate } = useArchiveSidebar();
 
     useEffect(() =>{
         if (resources) {

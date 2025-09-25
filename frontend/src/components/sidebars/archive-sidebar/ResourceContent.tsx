@@ -4,7 +4,7 @@ import Expandable from "./expandable";
 import BadgeList from "./BadgeList";
 import { ListItem } from "./BadgeList";
 import { useArchiveSidebar, MetadataTypeEnum } from "@/context/archive-sidebar-provider";
-import { getRelation } from "@/actions/right-sidebarActions";
+import { getRelation } from "@/actions/archive-sidebarActions";
 import React from "react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
