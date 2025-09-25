@@ -1,104 +1,108 @@
-networks:
-  prod_network:
-    name: prod_network
-    driver: bridge
-
-# Define base aditions to all services
-# Root access
-# Automatic restarts
-# Logging
-# Network
-x-base: &base
-  user: root
-  privileged: true
-  networks:
-    - prod_network
-  restart: unless-stopped
-  logging:
-    driver: "local"
-    options:
-      max-size: "10m"
-      max-file: "5"
-
-# Default for our images
-x-imagebase: &imagebase
-  build:
-    target: production
-  <<: *base
+# Production deployment - all services in Docker
+# Use this for Azure Container Instances or production environments
 
 services:
+  # PostgreSQL Database
   database:
-    volumes:
-      - postgres_data:/var/lib/postgresql/data # Persistent volume
-    <<: *base
-    ports:
-      - 9004:5432
-
-  storage:
-    volumes:
-      - storage_data:/data # Persistent volume
-    <<: *base
-    ports:
-      - 9003:10000
-
-  backend:
-    <<: *imagebase
+    image: postgres:latest
     environment:
-      HOST_URL: ${FROTEND_DOMAIN:-http://localhost:${FRONTEND_PORT:-9000}} # Overwrite with frontend port default as 9000
-    env_file:
-      - path: .env.development
-        required: true
-    healthcheck: # Slightly modify health check
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 30s
-    ports:
-      - 9002:8080
+      retries: 5
+    restart: unless-stopped
 
-  frontend:
-    user: root
-    privileged: true
-    build:
-      target: production
-      args:
-        API_URL: ${API_URL:-http://backend:8080} # Prod pre-builds the website, so it needs the backend URL as a build arg
-    <<: *base
-    environment:
-      - HELP_URL=${HELP_URL:-http://localhost:${WEBSITE_PORT:-9001}} # Overwrite with website port default as 9001
-    ports:
-      - ${FRONTEND_PORT:-9000}:3000
+  # Azure Storage Emulator (replace with real Azure Storage in production)
+  storage:
+    image: mcr.microsoft.com/azure-storage/azurite
+    volumes:
+      - azurite_data:/data
+    restart: unless-stopped
 
-  # website:
-  #   <<: *imagebase
-  #   ports:
-  #     - ${WEBSITE_PORT:-9001}:3001
-
+  # Qdrant Vector Database
   qdrant:
     image: qdrant/qdrant:latest
-    container_name: qdrant
-    ports:
-      - 6333:6333
-      - 6334:6334
-    expose:
-      - 6333
-      - 6334
-      - 6335
-    configs:
-      - source: qdrant_config
-        target: /qdrant/config/production.yaml
     volumes:
-      - ./qdrant_data:/qdrant/storage
-    networks:
-      - prod_network
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
 
-configs:
-  qdrant_config:
-    content: |
-      log_level: INFO
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - HOST_URL=${HOST_URL:-http://localhost:3000}
+      - DATABASE_CONNECTION_STRING=Host=database;Port=5432;Username=postgres;Password=postgres;Database=postgres;Include Error Detail=false
+      - STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://storage:10000/devstoreaccount1;
+      - EMAIL_SMTP_HOST=${EMAIL_SMTP_HOST}
+      - EMAIL_TLS_PORT=${EMAIL_TLS_PORT:-587}
+      - EMAIL_ADDRESS=${EMAIL_ADDRESS}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - EMAIL_FROM_NAME=${EMAIL_FROM_NAME:-KnowledgeBank}
+      - OwnerUser__Email=${OwnerUser__Email}
+      - OwnerUser__Password=${OwnerUser__Password}
+      - OwnerUser__FirstName=${OwnerUser__FirstName:-Owner}
+      - OwnerUser__LastName=${OwnerUser__LastName:-User}
+      - DOCUMENT_INTELLIGENCE_CLIENT_ENDPOINT=${DOCUMENT_INTELLIGENCE_CLIENT_ENDPOINT}
+      - DOCUMENT_INTELLIGENCE_CLIENT_API_KEY=${DOCUMENT_INTELLIGENCE_CLIENT_API_KEY}
+      - CHAT_DEPLOYMENT_NAME=${CHAT_DEPLOYMENT_NAME:-gpt-4o-mini}
+      - AZURE_OPENAI_CLIENT_ENDPOINT=${AZURE_OPENAI_CLIENT_ENDPOINT}
+      - AZURE_OPENAI_CLIENT_API_KEY=${AZURE_OPENAI_CLIENT_API_KEY}
+      - EMBEDDINGS_MODEL_NAME=${EMBEDDINGS_MODEL_NAME:-embed-v-4-0}
+      - EMBEDDINGS_CLIENT_ENDPOINT=${EMBEDDINGS_CLIENT_ENDPOINT}
+      - EMBEDDINGS_CLIENT_API_KEY=${EMBEDDINGS_CLIENT_API_KEY}
+      - QDRANT_EMBEDDINGS_DIMENSIONS=${QDRANT_EMBEDDINGS_DIMENSIONS:-1536}
+      - QDRANT_COLLECTION_NAME=${QDRANT_COLLECTION_NAME:-knowledgebank}
+      - QDRANT_HOST=qdrant
+      - QDRANT_API_KEY=${QDRANT_API_KEY:-null}
+      - QDRANT_HTTPS=${QDRANT_HTTPS:-false}
+    depends_on:
+      database:
+        condition: service_healthy
+      storage:
+        condition: service_started
+      qdrant:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      - API_URL=http://backend:8080
+      - HELP_URL=${HELP_URL}
+      - NEXT_PUBLIC_TIMEZONE=${NEXT_PUBLIC_TIMEZONE:-Europe/Berlin}
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
-  postgres_data: # Persistent volume for database
-  storage_data: # Persistent volume for storage
+  postgres_data:
+  azurite_data:
+  qdrant_data:
 
 # This program has been developed by students from the bachelor Computer Science at Utrecht
 # University within the Software Project course.

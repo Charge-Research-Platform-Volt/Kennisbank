@@ -15,6 +15,7 @@ using Hubs;
 
 using Microsoft.AspNetCore.Http.Features;
 using KnowledgeBank.Utils;
+using DotNetEnv;
 
 namespace KnowledgeBank
 {
@@ -22,12 +23,19 @@ namespace KnowledgeBank
     {
         public static async Task Main(string[] args)
         {
+            // Load .env file for local development (only when not in container)
+            string envFile = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env.local");
+            if (File.Exists(envFile))
+            {
+                Env.Load(envFile);
+            }
+
             // Ensure the current directory is set to the directory of the executable
             // # Builder
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
             ConfigureLogging();
 
-            // The environment variables are loaded from the .env file configured in the docker-compose file.
+            // The environment variables are loaded from the .env file or environment
             EnvironmentConfig environmentConfig = new EnvironmentConfig(builder.Configuration);
             environmentConfig.CheckEnvironmentVariables();
             builder.Services.AddSingleton(environmentConfig);

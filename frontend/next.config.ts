@@ -1,4 +1,13 @@
 import type { NextConfig } from "next";
+import { config } from "dotenv";
+import path from "path";
+import fs from "fs";
+
+// Load environment variables from parent directory's .env.local file (local development only)
+const envPath = path.join(__dirname, "..", ".env.local");
+if (fs.existsSync(envPath)) {
+  config({ path: envPath });
+}
 
 const nextConfig: NextConfig = {
   // Excludes pino and pino-pretty from the server bundle
@@ -15,13 +24,20 @@ const nextConfig: NextConfig = {
   // Increases the maximum body size limit for server actions
   experimental: {
     serverActions: {
-      bodySizeLimit: "105mb", 
+      bodySizeLimit: "105mb",
     },
   },
 
   // Disable ESLint during production builds
   eslint: {
     ignoreDuringBuilds: process.env.NODE_ENV === "production", // Disable ESLint in production
+  },
+
+  // Pass environment variables to the client and server
+  env: {
+    API_URL: process.env.API_URL,
+    HELP_URL: process.env.HELP_URL,
+    NEXT_PUBLIC_TIMEZONE: process.env.NEXT_PUBLIC_TIMEZONE,
   },
 };
 

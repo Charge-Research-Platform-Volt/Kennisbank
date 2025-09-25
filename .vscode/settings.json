@@ -1,0 +1,27 @@
+{
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/bin": true,
+    "**/obj": true,
+    "**/.next": true,
+    "**/coverage": true,
+    "qdrant_data": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/bin": true,
+    "**/obj": true,
+    "**/.next": true,
+    "**/coverage": true,
+    "qdrant_data": true
+  },
+  "dotnet.defaultSolution": "backend/backend.sln",
+  "eslint.workingDirectories": ["frontend"],
+  "prettier.configPath": "frontend/.prettierrc",
+  "tailwindCSS.includeLanguages": {
+    "typescript": "typescript",
+    "typescriptreact": "typescriptreact"
+  },
+  "tailwindCSS.experimental.configFile": "frontend/tailwind.config.ts",
+  "typescript.preferences.includePackageJsonAutoImports": "on"
+}

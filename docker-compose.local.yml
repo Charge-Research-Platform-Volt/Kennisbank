@@ -1,0 +1,54 @@
+# Local development - infrastructure services only
+# Run backend and frontend natively for faster development
+
+services:
+  # PostgreSQL Database
+  database:
+    image: postgres:latest
+    container_name: knowledgebank-db-local
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - postgres_data_local:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Azure Storage Emulator
+  storage:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: knowledgebank-storage-local
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+      - "10002:10002"
+    volumes:
+      - azurite_data_local:/data
+    restart: unless-stopped
+
+  # Qdrant Vector Database
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: knowledgebank-qdrant-local
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data_local:/qdrant/storage
+    restart: unless-stopped
+
+volumes:
+  postgres_data_local:
+  azurite_data_local:
+  qdrant_data_local:
+
+# This program has been developed by students from the bachelor Computer Science at Utrecht
+# University within the Software Project course.
+# © Copyright Utrecht University (Department of Information and Computing Sciences)

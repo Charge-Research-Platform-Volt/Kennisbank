@@ -2,10 +2,7 @@
 .env
 
 # Ignore environment variables file for development
-.env.development
-
-# Ignore environment variables file for production
-.env.production
+.env.local
 
 /database
 /storage

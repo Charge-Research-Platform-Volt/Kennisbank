@@ -1,7 +1,23 @@
 {
     "scripts": {
-        "dev": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
-        "prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build",
-        "down": "docker compose down --rmi local"
+        "services": "wsl docker compose -f docker-compose.local.yml up -d",
+        "services:down": "wsl docker compose -f docker-compose.local.yml down",
+        "services:logs": "wsl docker compose -f docker-compose.local.yml logs -f",
+        "backend": "cd backend && dotnet watch run --urls http://localhost:8080",
+        "backend:build": "cd backend && dotnet build",
+        "backend:test": "cd backend && dotnet test",
+        "frontend": "cd frontend && npm run dev",
+        "frontend:build": "cd frontend && npm run build",
+        "frontend:test": "cd frontend && npm test",
+        "frontend:lint": "cd frontend && npm run lint",
+        "dev": "npm run services && echo 'Infrastructure started! Now run: npm run backend (in one terminal) and npm run frontend (in another terminal)'",
+        "dev:setup": "npm run services && echo 'Waiting for services...' && powershell -Command \"Start-Sleep 5\" && echo 'Services ready! Use Ctrl+Shift+P -> Tasks: Run Task -> Development Setup'",
+        "test": "npm run backend:test && npm run frontend:test",
+        "lint": "npm run frontend:lint",
+        "build": "npm run backend:build && npm run frontend:build",
+        "prod": "wsl docker compose -f docker-compose.prod.yml --env-file .env.local up --build",
+        "prod:down": "wsl docker compose -f docker-compose.prod.yml down --rmi local",
+        "clean": "wsl docker compose -f docker-compose.local.yml down -v && wsl docker compose -f docker-compose.prod.yml down -v",
+        "reset": "npm run clean && npm run services"
     }
 }
