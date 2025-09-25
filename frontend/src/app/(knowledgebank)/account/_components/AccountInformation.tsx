@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { UploadWithDto } from "@/actions/uploadActions";
 import { toast } from "sonner";
 import { RevalidatePathFromClient } from "@/utils/revalidatePathFromClient";
-import Divider from "@/components/sidebar/divider";
+import Divider from "@/components/sidebars/divider";
 import DeleteAccountConfirmationDialog from "./DeleteAccountConfirmationDialog";
 import EditableAvatar from "@/components/ui/editable-avatar";
 import { usePathname, useRouter } from "next/navigation";

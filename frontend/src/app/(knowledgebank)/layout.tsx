@@ -1,6 +1,4 @@
-import LeftSidebarServer from "@/components/sidebar/left-sidebar/left-sidebar-server";
-import RightSidebar from "@/components/sidebar/right-sidebar/right-sidebar";
-import { ArchiveProvider } from "@/context/archive-provider";
+import LeftSidebarServer from "@/components/sidebars/left-sidebar/left-sidebar-server";
 import { QuickSearchProvider } from "@/context/quick-search-provider";
 import { SidebarProvider } from "@/context/sidebar-provider";
 import { TanStackQueryProvider } from "@/context/tanStack-query-provider";
@@ -20,13 +18,10 @@ export default async function KnowledgeBankLayout({ children }: Readonly<{ child
       <UserRoleProvider>
       <SidebarProvider leftSidebarDefaultState={leftSidebarDefault}>
         <QuickSearchProvider>
-          <ArchiveProvider>
             <div className="flex h-screen w-full">
               <LeftSidebarServer />
               <main className="w-full overflow-y-auto">{children}</main>
-              <RightSidebar />
             </div>
-          </ArchiveProvider>
         </QuickSearchProvider>
       </SidebarProvider>
       </UserRoleProvider>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useArchive } from "@/context/archive-provider";
-import { useSidebar } from "@/context/sidebar-provider";
+import { useArchiveSidebar } from "@/context/archive-sidebar-provider";
 import React from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import GetFileIcon from "../getFileIcon";
@@ -13,7 +13,7 @@ export default function ResourcesList() {
   const { rowData, mode } = useArchive();
 
   // Get sidebar controls from context
-  const { openRightSidebar } = useSidebar();
+  const { openArchiveSidebar } = useArchiveSidebar();
 
   // Limit the number of chunks displayed initially
   const LIMIT_CHUNKS = 2;
@@ -23,7 +23,7 @@ export default function ResourcesList() {
       {rowData.map((resource) => (
         <AccordionItem value={resource.id} className="p-4" key={resource.id}>
           {/* Main resource container - clickable to open sidebar */}
-          <div className="cursor-pointer space-y-1" onClick={() => openRightSidebar(resource.id, resource.type)}>
+          <div className="cursor-pointer space-y-1" onClick={() => openArchiveSidebar(resource.id, resource.type)}>
             {/* Resource title */}
             <div className="flex justify-start gap-2 items-center">
               {resource.type === 'resource' && <GetFileIcon fileType={resource.fileType} className="w-5 h-5" />}

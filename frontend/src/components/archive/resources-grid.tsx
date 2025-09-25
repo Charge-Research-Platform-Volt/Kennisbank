@@ -6,7 +6,7 @@ import { AgGridReact } from "ag-grid-react";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 import type { ColDef, GridReadyEvent, RowClickedEvent, SortChangedEvent } from "ag-grid-community";
 import { tableTheme } from "@/lib/tableConfig";
-import { useSidebar } from "@/context/sidebar-provider";
+import { useArchiveSidebar } from "@/context/archive-sidebar-provider";
 import GetFileIcon from "../getFileIcon";
 import { ResourceGridItem, useArchive } from "@/context/archive-provider";
 import OpenFileButton from "../open-file-button";
@@ -19,7 +19,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 export default function ResourcesGrid() 
 {
     // Contexts
-    const { openRightSidebar } = useSidebar();
+    const { openArchiveSidebar } = useArchiveSidebar();
     const {
         rowData,
         loading,
@@ -82,8 +82,8 @@ export default function ResourcesGrid()
         if (target?.closest('.no-row-click')) return;
     
         const rowItem: ResourceGridItem = event.data;
-        openRightSidebar(rowItem.id, rowItem.type);
-    }, [openRightSidebar]);
+        openArchiveSidebar(rowItem.id, rowItem.type);
+    }, [openArchiveSidebar]);
     
     return (
         <AgGridReact

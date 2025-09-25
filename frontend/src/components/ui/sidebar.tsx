@@ -1,4 +1,4 @@
-import { useSidebar } from "@/context/sidebar-provider";
+
 import { cn } from "@/lib/utils";
 
 export function Sidebar({
@@ -6,6 +6,7 @@ export function Sidebar({
   width = "300px",
   collapsedWidth = "48px",
   collapsible = "offcanvas",
+  open = false,
   className,
   children,
   menuRef,
@@ -13,12 +14,12 @@ export function Sidebar({
 }: React.ComponentProps<"div"> & {
   side: "left" | "right";
   collapsible: "offcanvas" | "icon";
+  open?: boolean;
   width?: string;
   collapsedWidth?: string;
   menuRef?: React.RefObject<HTMLDivElement|null>;
 }) {
-  const { leftSidebarState, rightSidebarState } = useSidebar();
-  const state = side === "left" ? leftSidebarState : rightSidebarState;
+  const state = open ? "expanded" : "collapsed";
 
   return (
     <div
@@ -68,4 +69,5 @@ export function Sidebar({
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
+
 // © Copyright Utrecht University (Department of Information and Computing Sciences)

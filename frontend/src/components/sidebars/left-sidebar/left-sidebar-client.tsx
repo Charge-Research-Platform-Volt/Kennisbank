@@ -123,6 +123,7 @@ export default function LeftSidebarClient({
       side="left"
       width="300px"
       collapsible="icon"
+      open={open}
       className={`overflow-x-hidden ${open ? "p-2" : "px-1.5 pt-2"}`}
     >
       {/* Header */}

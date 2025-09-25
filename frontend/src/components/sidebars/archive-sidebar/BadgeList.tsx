@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Badge } from "@/components/ui/badge"
-import { useSidebar, MetadataTypeEnum, FetchMetadataType } from "@/context/sidebar-provider"
+import { useArchiveSidebar, MetadataTypeEnum, FetchMetadataType } from "@/context/archive-sidebar-provider"
 import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 import NewBadge from "./NewBadge"
@@ -40,7 +40,7 @@ export default function BadgeList({
     onRemove
 } : BadgeListProps)
 {
-    const { navigate, currentId, currentType } = useSidebar();
+    const { navigate, currentId, currentType } = useArchiveSidebar();
     const { setTagFilter, setTypeFilter, setRegionFilter } = useArchive();
     const triggerRef = React.useRef<HTMLDivElement>(null);
     const pathname: string = usePathname();

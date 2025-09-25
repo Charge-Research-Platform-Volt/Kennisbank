@@ -3,7 +3,7 @@
 import Expandable from "./expandable";
 import BadgeList from "./BadgeList";
 import { ListItem } from "./BadgeList";
-import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider";
+import { useArchiveSidebar, MetadataTypeEnum } from "@/context/archive-sidebar-provider";
 import { getRelation } from "@/actions/right-sidebarActions";
 import React from "react";
 import Skeleton from "react-loading-skeleton";
@@ -25,7 +25,7 @@ interface ResourceContentProps {
 }
 
 export function ResourceContent({ fileType, setFileType }: ResourceContentProps) {
-  const { currentId, rightSidebarOpen, setRightSidebarOpen, setCreationDate, setPublicationDate, setEditMode, editMode } = useSidebar();
+  const { currentId, archiveSidebarOpen, setArchiveSidebarOpen, setCreationDate, setPublicationDate, setEditMode, editMode } = useArchiveSidebar();
   const { userRole } = useUserRole();
   const { triggerGridReload, trashOpen } = useArchive();
   const [confirmDialogOpen, setConfirmDialogOpen] = React.useState<boolean>(false);
@@ -160,7 +160,7 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
 
   // Reload content on sidebar open
   React.useEffect(() => {
-    if (rightSidebarOpen) {
+    if (archiveSidebarOpen) {
       // Clear everything
       setFileType(null);
       setUrl(undefined);
@@ -187,12 +187,12 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
       loadRelatedResources();
       loadAiTags();
     }
-  }, [currentId, loadContent, loadRelatedResources, loadAiTags, rightSidebarOpen, setPublicationDate, setCreationDate, setFileType]);
+  }, [currentId, loadContent, loadRelatedResources, loadAiTags, archiveSidebarOpen, setPublicationDate, setCreationDate, setFileType]);
 
   // Deletes resource
   const confirmDelete = async () => {
     if (await TrashResource(currentId, MetadataTypeEnum.RESOURCE)) {
-      setRightSidebarOpen(false);
+      setArchiveSidebarOpen(false);
       triggerGridReload();
     }
   };

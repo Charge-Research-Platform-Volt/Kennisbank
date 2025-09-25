@@ -1,6 +1,6 @@
 "use client"
 
-import { MetadataTypeEnum, useSidebar } from "@/context/sidebar-provider";
+import { MetadataTypeEnum, useArchiveSidebar } from "@/context/archive-sidebar-provider";
 import React from "react";
 import Skeleton from 'react-loading-skeleton';
 import Expandable from "./expandable";
@@ -17,7 +17,7 @@ import OrganisationIcon from "@/icons/organisation-icon";
 
 export function OrganisationContent() 
 {
-    const { currentId, rightSidebarOpen, setRightSidebarOpen, setCreationDate, setPublicationDate, setEditMode, editMode  } = useSidebar();
+    const { currentId, archiveSidebarOpen, setArchiveSidebarOpen, setCreationDate, setPublicationDate, setEditMode, editMode  } = useArchiveSidebar();
     const { userRole } = useUserRole();
     const { triggerGridReload, trashOpen } = useArchive();
     const [confirmDialogOpen, setConfirmDialogOpen] = React.useState<boolean>(false);
@@ -80,7 +80,7 @@ export function OrganisationContent()
     
     // Load new content if sidebar is opened
     React.useEffect(() => {
-        if (rightSidebarOpen) 
+        if (archiveSidebarOpen) 
         {
             // Clear content
             setName(null);
@@ -97,14 +97,14 @@ export function OrganisationContent()
             // Load content
             loadContent();
         }
-    }, [currentId, loadContent, rightSidebarOpen, setCreationDate, setPublicationDate])
+    }, [currentId, loadContent, archiveSidebarOpen, setCreationDate, setPublicationDate])
     
     // Delete the organisation
     const confirmDelete = async () => 
     {
         if (await TrashResource(currentId, MetadataTypeEnum.ORGANISATION)) 
         {
-            setRightSidebarOpen(false);
+            setArchiveSidebarOpen(false);
             triggerGridReload();
         }
     }

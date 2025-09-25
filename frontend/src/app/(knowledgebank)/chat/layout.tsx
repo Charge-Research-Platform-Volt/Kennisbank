@@ -1,7 +1,20 @@
+import ChatbotSidebar from "@/components/sidebars/chatbot-sidebar/chatbot-sidebar";
 import { ChatBotProvider } from "@/context/chatbot-provider";
+import { ChatbotSidebarProvider } from "@/context/chatbot-sidebar-provider";
 
 export default function ChatPageLayout({ children }: { children: React.ReactNode }) {
-  return <ChatBotProvider>{children}</ChatBotProvider>;
+    return (
+        <ChatbotSidebarProvider>
+            <ChatBotProvider>
+                <div className="flex min-h-screen">
+                    <div className="flex-1">
+                        {children}
+                    </div>
+                    <ChatbotSidebar />
+                </div>
+            </ChatBotProvider>
+        </ChatbotSidebarProvider>
+    );
 }
 
 

@@ -4,7 +4,7 @@ import type React from "react";
 import "@testing-library/jest-dom";
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import RightSidebar  from "@/components/sidebar/right-sidebar/right-sidebar";
+import RightSidebar  from "@/components/sidebars/right-sidebar/right-sidebar";
 import { useSidebar, MetadataTypeEnum } from "@/context/sidebar-provider";
 import { useArchive } from "@/context/archive-provider";
 import { fireEvent } from "@testing-library/react";

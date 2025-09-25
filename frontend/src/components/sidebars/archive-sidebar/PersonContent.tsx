@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react";
-import { MetadataTypeEnum, useSidebar } from "@/context/sidebar-provider";
+import { MetadataTypeEnum, useArchiveSidebar } from "@/context/archive-sidebar-provider";
 import Skeleton from 'react-loading-skeleton'
 import Expandable from "./expandable"
 import BadgeList, { ListItem } from "./BadgeList";
@@ -17,7 +17,7 @@ import PersonIcon from "@/icons/person-icon";
 
 export function PersonContent() 
 {
-    const { currentId, rightSidebarOpen, setRightSidebarOpen, setCreationDate, setPublicationDate, setEditMode, editMode  } = useSidebar();
+    const { currentId, archiveSidebarOpen, setArchiveSidebarOpen, setCreationDate, setPublicationDate, setEditMode, editMode  } = useArchiveSidebar();
     const { userRole } = useUserRole();
     const { triggerGridReload, trashOpen } = useArchive();
     const [confirmDialogOpen, setConfirmDialogOpen] = React.useState<boolean>(false);
@@ -83,7 +83,7 @@ export function PersonContent()
     // Reload content on sidebar open
     React.useEffect(() =>
     {
-        if (rightSidebarOpen)
+        if (archiveSidebarOpen)
         {
             // Clear content
             setName(null);
@@ -101,14 +101,14 @@ export function PersonContent()
             // Load content
             loadContent();
         }
-    }, [loadContent, rightSidebarOpen, setCreationDate, setPublicationDate]);
+    }, [loadContent, archiveSidebarOpen, setCreationDate, setPublicationDate]);
     
     // Delete the person
     const confirmDelete = async () => 
     {
         if (await TrashResource(currentId, MetadataTypeEnum.PERSON)) 
         {
-            setRightSidebarOpen(false);
+            setArchiveSidebarOpen(false);
             triggerGridReload();
         }
     }
