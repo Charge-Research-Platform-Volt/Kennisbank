@@ -1596,7 +1596,7 @@ namespace KnowledgeBank.Controllers
 
                 // Check if any resources were found
                 if (query.Count() == 0)
-                    return NotFound(new ApiResponse(true, "No related resources found", Array.Empty<Resource>()));
+                    return Ok(new ApiResponse(true, "No related resources found", Array.Empty<Resource>()));
 
                 return Ok(new ApiResponse(true, "Related resources found", query.ToArray()));
             }
