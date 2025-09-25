@@ -401,7 +401,7 @@ namespace KnowledgeBank.Controllers
                 }
 
                 Response.ContentType = contentType;
-                Response.Headers.Add("Content-Disposition", BlobHeader); // add the header
+                Response.Headers.Append("Content-Disposition", BlobHeader); // add the header
 
                 // Copy the blob stream directly to the HTTP response body to not buffer all of it in backend memory and get error 137 again
                 await response.FileStream.CopyToAsync(Response.Body);
