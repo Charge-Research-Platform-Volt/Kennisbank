@@ -172,6 +172,9 @@ export const ArchiveSidebarProvider = ({ archiveSidebarDefaultState = false, chi
         
         // Update the URL
         updateUrlWithId(id);
+        
+        // Disable edit mode
+        setEditMode(false);
     }, [prevs, nexts, updateUrlWithId]);
     
     const closeArchiveSidebar = React.useCallback(() => 
@@ -196,6 +199,7 @@ export const ArchiveSidebarProvider = ({ archiveSidebarDefaultState = false, chi
         
         setCurrentId(id);
         setCurrentType(type);
+        setEditMode(false);
         
         // Update URL
         updateUrlWithId(id);
@@ -204,6 +208,7 @@ export const ArchiveSidebarProvider = ({ archiveSidebarDefaultState = false, chi
     const navigateForward = React.useCallback(() => 
     {
         const next = nexts.pop();
+        setEditMode(false);
         
         if (next) 
         {
@@ -217,6 +222,7 @@ export const ArchiveSidebarProvider = ({ archiveSidebarDefaultState = false, chi
     const navigateBack = React.useCallback(() => 
     {
         const prev = prevs.pop();
+        setEditMode(false);
         
         if (prev) 
         {

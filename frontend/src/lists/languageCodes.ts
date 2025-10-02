@@ -186,6 +186,17 @@ export const LanguageCodes = [
     { value: "zu", label: "Zulu" }
 ];
 
+/**
+ * Gets the language label from a language code
+ * @param code - The ISO 639-1 language code (e.g., "en", "fr", "de")
+ * @returns The full language name, or the code itself if not found
+ */
+export function getLanguageLabel(code: string | null): string {
+    if (!code) return "";
+    const language = LanguageCodes.find(lang => lang.value === code);
+    return language?.label || code;
+}
+
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)

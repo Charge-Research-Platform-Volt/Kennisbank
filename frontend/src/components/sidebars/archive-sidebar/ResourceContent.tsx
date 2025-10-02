@@ -7,22 +7,59 @@ import { useArchiveSidebar, MetadataTypeEnum } from "@/context/archive-sidebar-p
 import { getRelation } from "@/actions/archive-sidebarActions";
 import React from "react";
 import Skeleton from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
 import ResourceList from "./ResourceList";
 import { Button } from "@/components/ui/button";
 import { useUserRole } from "@/context/user-role-context";
 import ConfirmDeleteDialog from "@/components/ui/confirm-delete-dialog";
 import { ApiResponse } from "@/types/apiResponse.type";
 import { useArchive } from "@/context/archive-provider";
-import Edit from "./Edit";
 import { TrashResource } from "@/actions/trashResourceActions";
 import { Badge } from "@/components/ui/badge";
 import GetFileIcon from "@/components/getFileIcon";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { createDebouncedUpdate } from "@/lib/debouncedUpdate";
+import { Fingerprint, Languages, Scale, Tag, Trash } from "lucide-react";
+import { getLanguageLabel, LanguageCodes } from "@/lists/languageCodes";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { addResourceRelation, removeResourceRelation } from "@/lib/relationManager";
+import AddRelationBadge from "./AddRelationBadge";
 
 interface ResourceContentProps
 {
     fileType: string | null;
     setFileType: (type: string | null) => void;
+}
+
+class ResourceContentItems 
+{
+    title: string | null = null;
+    url: string | null = null;
+    description: string | null = null;
+    note: string | null = null;
+    authors: ListItem[] = [];
+    tags: ListItem[] = [];
+    aiTags: ListItem[] = [];
+    organisations: ListItem[] = [];
+    relatedOrganisations: ListItem[] = [];
+    relatedPersons: ListItem[] = [];
+    relatedResources: ListItem[] = [];
+    sourceList: ListItem[] = [];
+    regions: ListItem[] = [];
+    langCode: string | null = null;
+    pubCode: string | null = null;
+    license: string | null = null;
+    abstract: string | null = null;
+    resourceTypeId: string | null = null;
+    resourceTypeName: string | null = null;
+    trashed: boolean = false;
+}
+
+interface ResourceType
+{
+    id: string;
+    name: string;
 }
 
 export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
@@ -32,24 +69,10 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
     const { triggerGridReload, trashOpen } = useArchive();
     const [confirmDialogOpen, setConfirmDialogOpen] = React.useState<boolean>(false);
 
-    const [title, setTitle] = React.useState<string | null>(null);
-    const [url, setUrl] = React.useState<string | undefined>(undefined);
-    const [description, setDescription] = React.useState<string | null>(null);
-    const [note, setNote] = React.useState<string | null>(null);
-    const [authors, setAuthors] = React.useState<ListItem[] | null>(null);
-    const [tags, setTags] = React.useState<ListItem[] | null>(null);
-    const [aiTags, setAiTags] = React.useState<ListItem[] | null>(null);
-    const [organisations, setOrganisations] = React.useState<ListItem[] | null>(null);
-    const [relatedOrganisations, setRelatedOrganisations] = React.useState<ListItem[] | null>(null);
-    const [relatedPersons, setRelatedPersons] = React.useState<ListItem[] | null>(null);
-    const [relatedResources, setRelatedResources] = React.useState<ListItem[] | null>(null);
-    const [sourceList, setSourceList] = React.useState<ListItem[] | null>(null);
-    const [regions, setRegions] = React.useState<ListItem[] | null>(null);
-    const [langCode, setLangCode] = React.useState<string | null>(null);
-    const [pubCode, setPubCode] = React.useState<string | null>(null);
-    const [license, setLicense] = React.useState<string | null>(null);
-    const [trashed, setTrashed] = React.useState<boolean>(false);
-    const [abstract, setAbstract] = React.useState<string | null>(null);
+    const [content, setContent] = React.useState<ResourceContentItems>(new ResourceContentItems());
+    const [resourceTypes, setResourceTypes] = React.useState<ResourceType[]>([]);
+    const updateTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+    const updateField = React.useMemo(() => createDebouncedUpdate(updateTimerRef, `/api/resources/update/${currentId}`), [currentId]);
 
     // Loads all content at once
     const loadContent = React.useCallback(async () =>
@@ -78,7 +101,9 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             ResourceRelatedPersonRelations.Select(new(Person.Id, Person.Name)) as RelatedPersons,
             ResourceRelatedOrganisationRelations.Select(new(Organisation.Id, Organisation.Name)) as RelatedOrganisations,
             ResourceSourceRelations.Select(new(Url as Id, Url as Name)) as Sources,
-            ResourceTagRelations.Select(new(Tag.Id, Tag.Name)) as Tags
+            ResourceTagRelations.Select(new(Tag.Id, Tag.Name)) as Tags,
+            ResourceType.Id as ResourceTypeId,
+            ResourceType.Name as ResourceTypeName
         `,
         );
 
@@ -94,25 +119,50 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
         {
             const data: ApiResponse = await response.json();
 
-            setTitle(data.body.title || "Title missing.");
-            setDescription(data.body.description || "No description.");
-            setLangCode(data.body.languageCode || " Language unknown.");
-            setPubCode(data.body.publicationCode || "Unknown.");
             setPublicationDate(data.body.publicationDate || "Unknown");
             setCreationDate(data.body.creationDate || "Unknown.");
-            setNote(data.body.note || "No notes.");
             setFileType(data.body.fileType || "Unknown.");
-            setTrashed(data.body.trashed);
-            setUrl(data.body.url || "No URL found.");
-            setAbstract(data.body.abstract || null);
-            setAuthors(data.body.authors || []);
-            setOrganisations(data.body.organisations || []);
-            setRegions(data.body.regions || []);
-            setRelatedPersons(data.body.relatedPersons || []);
-            setRelatedOrganisations(data.body.relatedOrganisations || []);
-            setSourceList(data.body.sources || []);
-            setTags(data.body.tags || []);
-            setLicense(data.body.license || "Unknown.");
+            
+            const newContent: ResourceContentItems = 
+            {
+                title: data.body.title || null,
+                url: data.body.url || null,
+                description: data.body.description || null,
+                note: data.body.note || null,
+                authors: data.body.authors || [],
+                tags: data.body.tags || [],
+                aiTags: data.body.aiTags || [],
+                organisations: data.body.organisations || [],
+                relatedOrganisations: data.body.relatedOrganisations || [],
+                relatedPersons: data.body.relatedPersons || [],
+                relatedResources: data.body.relatedResources || [],
+                sourceList: data.body.sources || [],
+                regions: data.body.regions || [],
+                langCode: data.body.languageCode || null,
+                pubCode: data.body.publicationCode || null,
+                license: data.body.license || null,
+                abstract: data.body.abstract || null,
+                resourceTypeId: data.body.resourceTypeId || null,
+                resourceTypeName: data.body.resourceTypeName || null,
+                trashed: data.body.trashed || false
+            }
+            
+            setContent(newContent);
+        }
+        
+        // Retrieve the resource types
+        const response2 = await fetch(`/api/resources/types/list`, 
+        {
+            method: 'GET',
+            credentials: 'include',
+        });
+        
+        // Store list on success
+        if (response2.ok) 
+        {
+            const data: ApiResponse = await response2.json();
+            
+            setResourceTypes(data.body);
         }
     }, [currentId, setCreationDate, setFileType, setPublicationDate]);
 
@@ -129,12 +179,20 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                     name: item.title,
                     type: item.fileType,
                 }));
-                setRelatedResources(list);
+
+                setContent(prevContent => ({
+                    ...prevContent,
+                    relatedResources: list
+                }));
             })
             .catch((error) =>
             {
                 console.log("Error loading related resources: ", error);
-                setRelatedResources([]);
+
+                setContent(prevContent => ({
+                    ...prevContent,
+                    relatedResources: []
+                }));
             });
     }, [currentId]);
 
@@ -162,7 +220,10 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
 
                 const finalList = list.length > 10 ? list.sort(() => 0.5 - Math.random()).slice(0, 10) : list;
 
-                setAiTags(finalList);
+                setContent(prevContent => ({
+                    ...prevContent,
+                    aiTags: finalList
+                }));
             })
             .catch((error) =>
             {
@@ -177,24 +238,9 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
         {
             // Clear everything
             setFileType(null);
-            setUrl(undefined);
-            setTitle(null);
-            setDescription(null);
-            setNote(null);
-            setAuthors(null);
-            setTags(null);
-            setAiTags(null);
-            setOrganisations(null);
-            setRelatedOrganisations(null);
-            setRelatedPersons(null);
-            setRelatedResources(null);
-            setSourceList(null);
-            setRegions(null);
-            setLangCode(null);
-            setPubCode(null);
             setPublicationDate(null);
             setCreationDate(null);
-            setLicense(null);
+            setContent(new ResourceContentItems());
 
             // Load content
             loadContent();
@@ -218,147 +264,342 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             <ConfirmDeleteDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen} onConfirmation={confirmDelete} />
 
             {/* Banner for when resource is in trash */}
-            {trashed && (
+            {content.trashed && (
                 <Badge variant="outline" className="mb-5 flex w-full flex-col border-red-500 text-red-500">
                     <h1 className="text-xl">This item is in the trash.</h1>
                     <span className="mb-1 flex-1">Contact an admin if you think this is a mistake.</span>
                 </Badge>
             )}
 
+            {/* Title */}
             <div className="flex items-center justify-start gap-2 pb-2">
                 <GetFileIcon fileType={fileType ?? ""} className="h-5 w-5" />
-                {editMode && (
-                    <div className="mt-1 flex justify-center text-sm select-none">
-                        <Edit setNewText={setTitle} currentText={title} property="title" />
-                    </div>
+                
+                {!editMode && (
+                    <h1 className="text-2xl font-bold select-none">{content.title || <Skeleton />}</h1>
                 )}
-                <h1 className="text-2xl font-bold select-none">{title || <Skeleton />}</h1>
+                
+                {editMode && (
+                    <Input
+                        type="text"
+                        className="flex-1"
+                        value={content.title || ""}
+                        onChange={(e) => {
+                            const newValue = e.target.value;
+                            setContent(prevContent => ({ ...prevContent, title: newValue }));
+                            updateField("title", newValue);
+                        }}
+                    />
+                )}
             </div>
-
+            
+            {/* URL */}
             {fileType === "website" && (
-                <a href={url} className="select-none" target="_blank" rel="noreferror">
-                    <h1 className="mb-8 text-blue-500 underline select-none">{url}</h1>
+                <a href={content.url || ""} className="select-none" target="_blank" rel="noreferror">
+                    <h1 className="mb-8 text-blue-500 underline select-none">{content.url}</h1>
                 </a>
             )}
 
-            {langCode}
-
-            <Expandable title="Description" collapsedHeight={100}>
+            {/* Language */}
+            <div className="w-full flex justify-start">
+                <Tooltip>
+                    <TooltipTrigger>
+                        <Languages width={15} />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Language of the resource</p>
+                    </TooltipContent>
+                </Tooltip>
+                
+                {!editMode && (<span className="ml-2 pt-0.25 text-sm flex-1 h-full whitespace-nowrap overflow-hidden text-ellipsis">{getLanguageLabel(content.langCode)}</span>)}
                 {editMode && (
-                    <div className="mt-1 flex justify-center text-sm select-none">
-                        <Edit setNewText={setDescription} currentText={description} property="description" />
-                    </div>
+                    <Select value={content.langCode || ""} onValueChange={(value) => {
+                        setContent(prevContent => ({ ...prevContent, langCode: value }));
+                        updateField("languageCode", value);
+                    }}>
+                        <SelectTrigger className="ml-3 flex-1">
+                            <SelectValue placeholder="Select Language..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {LanguageCodes.map((lang) => (
+                                <SelectItem key={lang.value} value={lang.value}>
+                                    {lang.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 )}
-                {description || <Skeleton />}
-            </Expandable>
+            </div>
+            
+            {/* Resource Type */}
+            <div className="w-full flex justify-start">
+                <Tooltip>
+                    <TooltipTrigger>
+                        <Tag width={15} />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Type of the resource</p>
+                    </TooltipContent>
+                </Tooltip>
+                
+                {!editMode && (<span className="ml-2 pt-0.25 text-sm flex-1 h-full whitespace-nowrap overflow-hidden text-ellipsis">{content.resourceTypeName}</span>)}
+                {editMode && (
+                    <Select value={content.resourceTypeId || ""} onValueChange={(value) => {
+                        const selectedType = resourceTypes.find(t => t.id === value);
+                        setContent(prevContent => ({
+                            ...prevContent,
+                            resourceTypeId: value,
+                            resourceTypeName: selectedType?.name || null
+                        }));
+                        updateField("typeId", value);
+                    }}>
+                        <SelectTrigger className="ml-3 flex-1">
+                            <SelectValue placeholder="Select Resource Type..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {resourceTypes.map((type) => (
+                                <SelectItem key={type.id} value={type.id}>
+                                    {type.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
+            </div>
+            
+            {/* Publication Code */}
+            <div className="w-full flex justify-start">
+                <Tooltip>
+                    <TooltipTrigger>
+                        <Fingerprint width={15} />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Publication code</p>
+                    </TooltipContent>
+                </Tooltip>
+                
+                {!editMode && (<span className="ml-2 pt-0.25 text-sm flex-1 h-full whitespace-nowrap overflow-hidden text-ellipsis">{content.pubCode || "-"}</span>)}
+                {editMode && (
+                    <Input type="text" className="ml-3 flex-1" value={content.pubCode || ""} onChange={(e) => 
+                    {
+                        const newValue = e.target.value;
+                        setContent(prevContent => ({ ...prevContent, pubCode: newValue }));
+                        updateField("PublicationCode", newValue);
+                    }} />
+                )}
+            </div>
+            
+            {/* License */}
+            <div className="w-full flex justify-start mb-4">
+                <Tooltip>
+                    <TooltipTrigger>
+                        <Scale width={15} />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>License</p>
+                    </TooltipContent>
+                </Tooltip>
+                
+                {!editMode && (<span className="ml-2 pt-0.25 text-sm flex-1 h-full whitespace-nowrap overflow-hidden text-ellipsis">{content.license || "-"}</span>)}
+                {editMode && (
+                    <Input type="text" className="ml-3 flex-1" value={content.license || ""} onChange={(e) => 
+                    {
+                        const newValue = e.target.value;
+                        setContent(prevContent => ({ ...prevContent, license: newValue }));
+                        updateField("License", newValue);
+                    }} />
+                )}
+            </div>
 
+            {/* Description */}
+            <Expandable title="Description" collapsedHeight={editMode ? 1000 : 100}>
+                {!editMode && (<span className="text-xs">{content.description || <Skeleton />}</span>)}
+            
+                {editMode && (
+                    <Textarea rows={10} className="w-full text-xs" value={content.description || ""} onChange={(e) => 
+                    {
+                        const newValue = e.target.value;
+                        setContent(prevContent => ({ ...prevContent, description: newValue }));
+                        updateField("description", newValue);
+                    }} />
+                )}
+                
+            </Expandable>
+            
+            {/* Tags */}
             <Expandable variant="horizontal" title="Tags">
-                <BadgeList
-                    listType="tags"
-                    itemList={tags}
-                    onNew={(newItems) => setTags(tags ? tags.concat(newItems) : newItems)}
-                    onRemove={(removedItem) => setTags(tags ? tags.filter((item) => item != removedItem) : [])}
-                />
-            </Expandable>
+                { content.tags.map((tag) => (
+                    <Badge key={tag.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () =>
+                    {
+                        if (!editMode) return;
 
+                        const success = await removeResourceRelation(currentId, "tags", tag.id);
+                        if (success)
+                        {
+                            setContent(prevContent =>
+                            ({
+                                ...prevContent,
+                                tags: prevContent.tags.filter(t => t.id !== tag.id)
+                            }));
+                        }
+                    }}>
+                        <span className="truncate">{tag.name}</span>
+                        {editMode && (<Trash className="text-red-500 ml-1" />)}
+                    </Badge>
+                )) }
+                {editMode && (
+                    <AddRelationBadge
+                        resourceId={currentId}
+                        relationType="tags"
+                        searchEndpoint="/api/tags/tags"
+                        alreadyRelated={content.tags}
+                        onAdd={(newTags) => {
+                            const newTagsWithType = newTags.map(tag => ({ ...tag, type: "tag" }));
+                            setContent(prevContent => ({
+                                ...prevContent,
+                                tags: [...prevContent.tags, ...newTagsWithType]
+                            }));
+                        }}
+                        placeholder="Search tags..."
+                        allowMultiple={true}
+                    />
+                )}
+            </Expandable>
+            
+            {/* Recommended Tags */}
             <Expandable variant="horizontal" title="Recommended Tags">
-                <BadgeList listType="ai-tags" itemList={aiTags} onNew={(newItems) => setTags(tags ? tags.concat(newItems) : newItems)} onRemove={() => {}} />
+                <BadgeList listType="ai-tags" itemList={content.aiTags} onNew={() => {}} onRemove={() => {}} />
             </Expandable>
 
+            {/* Authors */}
             <Expandable variant="horizontal" title="Authors">
-                <BadgeList
-                    listType="authors"
-                    itemList={authors}
-                    onNew={(newItems) => setAuthors(authors ? authors.concat(newItems) : newItems)}
-                    onRemove={(removedItem) => setAuthors(authors ? authors.filter((item) => item != removedItem) : [])}
-                />
+                { content.authors.map((author) => (
+                    <Badge key={author.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
+                    {
+                        if (!editMode) return;
+                        
+                        const success = await removeResourceRelation(currentId, "authors", author.id);
+                        if (success) 
+                        {
+                            setContent(prevContent => (
+                            {
+                                ...prevContent,
+                                authors: prevContent.authors.filter(a => a.id !== author.id)
+                            }));
+                        }
+                    }}>
+                        <span className="truncate">{author.name}</span>
+                        {editMode && (<Trash className="text-red-500 ml-1" />)}
+                    </Badge>
+                )) }
+                
+                { editMode && (
+                    <AddRelationBadge
+                        resourceId={currentId}
+                        relationType="authors"
+                        searchEndpoint="/api/persons/list"
+                        searchMethod="GET"
+                        alreadyRelated={content.authors}
+                        onAdd={(newAuthors) =>
+                        {
+                            const newAuthorsWithType = newAuthors.map(author => ({ ...author, type: "author" }));
+                            setContent(prevContent => (
+                            {
+                                ...prevContent,
+                                authors: [...prevContent.authors, ...newAuthorsWithType]
+                            }));
+                        }}
+                        placeholder="Search people..."
+                        allowMultiple={true}
+                    />
+                )}
             </Expandable>
-
+            
+            {/* Organisations */}
             <Expandable variant="horizontal" title="Organisations">
                 <BadgeList
                     listType="organisations"
-                    itemList={organisations}
-                    onNew={(newItems) => setOrganisations(organisations ? organisations.concat(newItems) : newItems)}
-                    onRemove={(removedItem) => setOrganisations(organisations ? organisations.filter((item) => item != removedItem) : [])}
+                    itemList={content.organisations}
+                    onNew={() => {}}
+                    onRemove={() => {}}
                 />
             </Expandable>
 
+            {/* Related People */}
             <Expandable variant="horizontal" title="Related People">
                 <BadgeList
                     listType="related-persons"
-                    itemList={relatedPersons}
-                    onNew={(newItems) => setRelatedPersons(relatedPersons ? relatedPersons.concat(newItems) : newItems)}
-                    onRemove={(removedItem) => setRelatedPersons(relatedPersons ? relatedPersons.filter((item) => item != removedItem) : [])}
+                    itemList={content.relatedPersons}
+                    onNew={(newItems) => {}}
+                    onRemove={(removedItem) => {}}
                 />
             </Expandable>
-
+            
+            {/* Related Organisations */}
             <Expandable variant="horizontal" title="Related Organisations">
                 <BadgeList
                     listType="related-organisations"
-                    itemList={relatedOrganisations}
-                    onNew={(newItems) => setRelatedOrganisations(relatedOrganisations ? relatedOrganisations.concat(newItems) : newItems)}
-                    onRemove={(removedItem) => setRelatedOrganisations(relatedOrganisations ? relatedOrganisations.filter((item) => item != removedItem) : [])}
+                    itemList={content.relatedOrganisations}
+                    onNew={(newItems) => {}}
+                    onRemove={(removedItem) => {}}
                 />
             </Expandable>
 
-            <ResourceList header="Related Resources" resources={relatedResources} />
-
+            {/* Related Resources */}
+            <ResourceList header="Related Resources" resources={content.relatedResources} />
+            
+            {/* Sources */}
             <Expandable variant="horizontal" title="Sources">
                 <BadgeList
                     listType="sources"
-                    itemList={sourceList}
-                    onNew={(newItems) => setSourceList(sourceList ? sourceList.concat(newItems) : newItems)}
-                    onRemove={(removedItem) => setSourceList(sourceList ? sourceList.filter((item) => item != removedItem) : [])}
+                    itemList={content.sourceList}
+                    onNew={(newItems) => {}}
+                    onRemove={(removedItem) => {}}
                 />
             </Expandable>
-
+            
+            {/* Regions */}
             <Expandable variant="horizontal" title="Regions">
                 <BadgeList
                     listType="regions"
-                    itemList={regions}
-                    onNew={(newItems) => setRegions(regions ? regions.concat(newItems) : newItems)}
-                    onRemove={(removedItem) => setRegions(regions ? regions.filter((item) => item != removedItem) : [])}
+                    itemList={content.regions}
+                    onNew={(newItems) => {}}
+                    onRemove={(removedItem) => {}}
                 />
             </Expandable>
 
-            {abstract && (
-                <Expandable title="Abstract" collapsedHeight={100}>
+            {/* Abstract */}
+            {content.abstract && (
+                <Expandable title="Abstract" collapsedHeight={editMode ? 1000 : 100}>
+                    {!editMode && (<span className="text-xs">{content.abstract}</span>)}
+                
                     {editMode && (
-                        <div className="mt-1 flex justify-center text-sm select-none">
-                            <Edit setNewText={setAbstract} currentText={abstract} property="abstract" />
-                        </div>
+                        <Textarea rows={10} className="w-full text-xs" value={content.abstract || ""} onChange={(e) => 
+                        {
+                            const newValue = e.target.value;
+                            setContent(prevContent => ({ ...prevContent, abstract: newValue }));
+                            updateField("abstract", newValue);
+                        }} />
                     )}
-                    {abstract || <Skeleton />}
                 </Expandable>
             )}
 
-            <Expandable title="Notes" collapsedHeight={100}>
+            {/* Notes */}
+            <Expandable title="Notes" collapsedHeight={editMode ? 1000 : 100}>
+                {!editMode && (<span className="text-xs">{ content.note || <Skeleton /> }</span>)}
+            
                 {editMode && (
-                    <div className="mt-1 flex justify-center text-sm select-none">
-                        <Edit setNewText={setNote} currentText={note} property="note" />
-                    </div>
+                    <Textarea rows={10} className="w-full text-xs" value={content.note || ""} onChange={(e) => 
+                    {
+                        const newValue = e.target.value;
+                        setContent(prevContent => ({ ...prevContent, note: newValue }));
+                        updateField("note", newValue);
+                    }} />
                 )}
-                {note || <Skeleton />}
+                
             </Expandable>
-
-            <Expandable title="Publication Code" collapsedHeight={100}>
-                {editMode && (
-                    <div className="mt-1 flex justify-center text-sm select-none">
-                        <Edit setNewText={setPubCode} currentText={pubCode} property="publicationCode" />
-                    </div>
-                )}
-                {pubCode || <Skeleton />}
-            </Expandable>
-
-            <Expandable title="License Code" collapsedHeight={100}>
-                {editMode && (
-                    <div className="mt-1 flex justify-center text-sm select-none">
-                        <Edit setNewText={setLicense} currentText={license} property="license" />
-                    </div>
-                )}
-                {license || <Skeleton />}
-            </Expandable>
-
+            
+            {/* Edit and Delete Buttons */}
             <div className="mt-10 flex w-full justify-center">
                 <div className="flex gap-4">
                     <Button
