@@ -48,9 +48,6 @@ namespace KnowledgeBank.Data
             // Remove all resource-related_persons relations containing this resource
             await RemoveAllResourceRelatedPersonRelationsWithResourceIdAsync(id);
 
-            // Remove all resource-related_sources relations containing this resource
-            await RemoveAllResourceRelatedSourceRelationsWithResourceIdAsync(id);
-
             // Remove all resource-tag relations containing this resource
             await RemoveAllResourceTagRelationsWithResourceIdAsync(id);
 

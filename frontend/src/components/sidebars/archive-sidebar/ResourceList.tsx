@@ -43,7 +43,7 @@ export default function ResourceList({resources, header} : {resources: ListItem[
             <div className="flex-1 h-px bg-gray-300" />
         </div>
         {resources && resources.length === 0 ? (
-            <div className=" text-gray-500 text-center select-none">No resources available</div>
+            <></>
         ) : (
         <Table className="table-fixed select-none">
             {!resources || (maxLength && length < 6) ? (<TableCaption></TableCaption>) : (<>{maxLength ? (

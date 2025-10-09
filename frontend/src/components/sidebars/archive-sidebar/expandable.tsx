@@ -12,6 +12,7 @@ interface ExpandableProps
     fadeColor?: string;
     variant?: "vertical" | "horizontal";
     minHeight?: number;
+    hidden?: boolean;
 }
 
 export default function Expandable({
@@ -21,6 +22,7 @@ export default function Expandable({
     fadeColor = "bg-gray-50",
     variant = "vertical",
     minHeight = 30,
+    hidden = false,
 }: ExpandableProps) 
 {
     const [open, setOpen] = React.useState<boolean>(false);
@@ -60,7 +62,7 @@ export default function Expandable({
         : fadeColor;
     
     return (
-        <div className="w-full relative mb-3">
+        <div className="w-full relative mb-3" hidden={hidden}>
             <Collapsible open={open} onOpenChange={setOpen} className="w-full">
                 <CollapsibleTrigger className="w-full cursor-pointer">
                     <div className="w-full flex items-center gap-2">

@@ -455,34 +455,6 @@ namespace KnowledgeBank.Data
 
         #endregion
 
-        #region Resource-Related_source
-
-        public async Task<bool> RemoveRelatedSourceFromResourceAsync(Guid resourceId, string url)
-        { 
-            bool startedTransaction = await BeginTransaction();
-            bool deleted = await DeleteAsync(database.ResourceRelatedSourceRelations, relation => relation.ResourceId == resourceId && relation.Url == url) > 0; 
-            if (startedTransaction) await Commit();
-            return deleted;
-        }
-
-        public async Task<bool> RemoveRelatedSourceFromResourceAsync(string resourceId, string url)
-        { return await RemoveRelatedSourceFromResourceAsync(Guid.Parse(resourceId), url); }
-
-
-
-        public async Task<bool> RemoveAllResourceRelatedSourceRelationsWithResourceIdAsync(Guid resourceId)
-        { 
-            bool startedTransaction = await BeginTransaction();
-            bool deleted = await DeleteAllWhereAsync(database.ResourceRelatedSourceRelations, i => i.ResourceId == resourceId) > 0; 
-            if (startedTransaction) await Commit();
-            return deleted;
-        }
-
-        public async Task<bool> RemoveAllResourceRelatedSourceRelationsWithResourceIdAsync(string resourceId)
-        { return await RemoveAllResourceRelatedSourceRelationsWithResourceIdAsync(Guid.Parse(resourceId)); }
-
-        #endregion
-
         #region Resource-Tag
 
         // Remove single

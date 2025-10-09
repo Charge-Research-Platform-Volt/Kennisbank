@@ -332,20 +332,6 @@ namespace KnowledgeBank.Data
 
         #endregion
 
-        #region ResourceRelatedSourceRelation
-
-        // ResourceRelatedSourceRelation exists
-
-        public async Task<bool> ResourceRelatedSourceRelationExistsAsync(Expression<Func<ResourceRelatedSourceRelation, bool>> predicate)
-        { return await ExistsAsync(database.ResourceRelatedSourceRelations, predicate); }
-
-        // Count
-
-        public async Task<int> ResourceRelatedSourceRelationCountAsync(Expression<Func<ResourceRelatedSourceRelation, bool>>? predicate = null)
-        { return await GetCount(database.ResourceRelatedSourceRelations, predicate); }
-
-        #endregion
-
         #region ResourceSourceRelation
 
         // ResourceSourceRelation exists

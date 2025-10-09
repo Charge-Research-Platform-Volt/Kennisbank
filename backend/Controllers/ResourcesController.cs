@@ -876,11 +876,6 @@ namespace KnowledgeBank.Controllers
                         await resourceManager.GetAllResourceSourceRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
                         await resourceManager.GetAllResourceSourceRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
 
-                    // Sources
-                    "related-sources" => string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetAllResourceRelatedSourceRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
-                        await resourceManager.GetAllResourceRelatedSourceRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
-
                     // Tags
                     "tags" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllResourceTagRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
@@ -964,11 +959,6 @@ namespace KnowledgeBank.Controllers
                         await resourceManager.AddSourceToResourceAsync(id, System.Net.WebUtility.UrlDecode(targetId));
                         break;
 
-                    // Related Sources
-                    case "related-sources":
-                        await resourceManager.AddRelatedSourceToResourceAsync(id, System.Net.WebUtility.UrlDecode(targetId));
-                        break;
-
                     // Tags
                     case "tags":
                         await resourceManager.AddTagToResourceAsync(id, targetId);
@@ -1045,11 +1035,6 @@ namespace KnowledgeBank.Controllers
                     // Sources
                     case "sources":
                         await resourceManager.RemoveSourceFromResourceAsync(id, System.Net.WebUtility.UrlDecode(targetId));
-                        break;
-
-                    // Related Sources
-                    case "related-sources":
-                        await resourceManager.RemoveRelatedSourceFromResourceAsync(id, System.Net.WebUtility.UrlDecode(targetId));
                         break;
 
                     // Tags

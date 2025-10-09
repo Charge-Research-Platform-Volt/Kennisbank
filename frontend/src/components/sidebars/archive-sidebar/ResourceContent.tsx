@@ -19,11 +19,11 @@ import GetFileIcon from "@/components/getFileIcon";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createDebouncedUpdate } from "@/lib/debouncedUpdate";
-import { Fingerprint, Languages, Scale, Tag, Trash } from "lucide-react";
+import { Fingerprint, Languages, Link, Scale, Tag, Trash } from "lucide-react";
 import { getLanguageLabel, LanguageCodes } from "@/lists/languageCodes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { addResourceRelation, removeResourceRelation } from "@/lib/relationManager";
+import { removeResourceRelation } from "@/lib/relationManager";
 import AddRelationBadge from "./AddRelationBadge";
 
 interface ResourceContentProps
@@ -45,7 +45,7 @@ class ResourceContentItems
     relatedOrganisations: ListItem[] = [];
     relatedPersons: ListItem[] = [];
     relatedResources: ListItem[] = [];
-    sourceList: ListItem[] = [];
+    source: string | null = null;
     regions: ListItem[] = [];
     langCode: string | null = null;
     pubCode: string | null = null;
@@ -54,6 +54,7 @@ class ResourceContentItems
     resourceTypeId: string | null = null;
     resourceTypeName: string | null = null;
     trashed: boolean = false;
+    fileExt: string = "";
 }
 
 interface ResourceType
@@ -64,7 +65,7 @@ interface ResourceType
 
 export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
 {
-    const { currentId, archiveSidebarOpen, setArchiveSidebarOpen, setCreationDate, setPublicationDate, setEditMode, editMode } = useArchiveSidebar();
+    const { currentId, archiveSidebarOpen, setArchiveSidebarOpen, setCreationDate, setPublicationDate, setEditMode, editMode, navigate } = useArchiveSidebar();
     const { userRole } = useUserRole();
     const { triggerGridReload, trashOpen } = useArchive();
     const [confirmDialogOpen, setConfirmDialogOpen] = React.useState<boolean>(false);
@@ -92,7 +93,9 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             CreationDate,
             Note,
             FileType,
+            FileExt,
             Trashed,
+            SourceUrl,
             WebsiteMetadata.Url as Url,
             DocumentMetadata.Abstract as Abstract,
             ResourceAuthorRelations.Select(new(Author.Id, Author.Name)) as Authors,
@@ -100,7 +103,6 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             ResourceRegionRelations.Select(new(Region.Id, Region.Name)) as Regions,
             ResourceRelatedPersonRelations.Select(new(Person.Id, Person.Name)) as RelatedPersons,
             ResourceRelatedOrganisationRelations.Select(new(Organisation.Id, Organisation.Name)) as RelatedOrganisations,
-            ResourceSourceRelations.Select(new(Url as Id, Url as Name)) as Sources,
             ResourceTagRelations.Select(new(Tag.Id, Tag.Name)) as Tags,
             ResourceType.Id as ResourceTypeId,
             ResourceType.Name as ResourceTypeName
@@ -123,7 +125,7 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             setCreationDate(data.body.creationDate || "Unknown.");
             setFileType(data.body.fileType || "Unknown.");
             
-            const newContent: ResourceContentItems = 
+            const newContent: ResourceContentItems =
             {
                 title: data.body.title || null,
                 url: data.body.url || null,
@@ -136,7 +138,7 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                 relatedOrganisations: data.body.relatedOrganisations || [],
                 relatedPersons: data.body.relatedPersons || [],
                 relatedResources: data.body.relatedResources || [],
-                sourceList: data.body.sources || [],
+                source: data.body.sourceUrl || null,
                 regions: data.body.regions || [],
                 langCode: data.body.languageCode || null,
                 pubCode: data.body.publicationCode || null,
@@ -144,7 +146,8 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                 abstract: data.body.abstract || null,
                 resourceTypeId: data.body.resourceTypeId || null,
                 resourceTypeName: data.body.resourceTypeName || null,
-                trashed: data.body.trashed || false
+                trashed: data.body.trashed || false,
+                fileExt: data.body.fileExt || ""
             }
             
             setContent(newContent);
@@ -258,7 +261,7 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             triggerGridReload();
         }
     };
-
+    
     return (
         <>
             <ConfirmDeleteDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen} onConfirmation={confirmDelete} />
@@ -273,7 +276,7 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
 
             {/* Title */}
             <div className="flex items-center justify-start gap-2 pb-2">
-                <GetFileIcon fileType={fileType ?? ""} className="h-5 w-5" />
+                <GetFileIcon fileType={content.fileExt || fileType || ""} className="h-5 w-5" />
                 
                 {!editMode && (
                     <h1 className="text-2xl font-bold select-none">{content.title || <Skeleton />}</h1>
@@ -293,126 +296,156 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                 )}
             </div>
             
-            {/* URL */}
-            {fileType === "website" && (
-                <a href={content.url || ""} className="select-none" target="_blank" rel="noreferror">
-                    <h1 className="mb-8 text-blue-500 underline select-none">{content.url}</h1>
-                </a>
-            )}
-
-            {/* Language */}
-            <div className="w-full flex justify-start">
-                <Tooltip>
-                    <TooltipTrigger>
-                        <Languages width={15} />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Language of the resource</p>
-                    </TooltipContent>
-                </Tooltip>
+            {/* Characteristics */}
+            <div className="mb-4">
+                {/* Language */}
+                <div className="w-full flex justify-start" hidden={!(editMode || content.langCode)}>
+                    <Tooltip delayDuration={500}>
+                        <TooltipTrigger>
+                            <Languages width={15} />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Language of the resource</p>
+                        </TooltipContent>
+                    </Tooltip>
+                    
+                    {!editMode && (<span className="ml-2 pt-0.25 text-sm flex-1 h-full whitespace-nowrap overflow-hidden text-ellipsis">{getLanguageLabel(content.langCode)}</span>)}
+                    {editMode && (
+                        <Select value={content.langCode || ""} onValueChange={(value) => {
+                            setContent(prevContent => ({ ...prevContent, langCode: value }));
+                            updateField("languageCode", value);
+                        }}>
+                            <SelectTrigger className="ml-3 flex-1">
+                                <SelectValue placeholder="Select Language..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {LanguageCodes.map((lang) => (
+                                    <SelectItem key={lang.value} value={lang.value}>
+                                        {lang.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                </div>
                 
-                {!editMode && (<span className="ml-2 pt-0.25 text-sm flex-1 h-full whitespace-nowrap overflow-hidden text-ellipsis">{getLanguageLabel(content.langCode)}</span>)}
-                {editMode && (
-                    <Select value={content.langCode || ""} onValueChange={(value) => {
-                        setContent(prevContent => ({ ...prevContent, langCode: value }));
-                        updateField("languageCode", value);
-                    }}>
-                        <SelectTrigger className="ml-3 flex-1">
-                            <SelectValue placeholder="Select Language..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {LanguageCodes.map((lang) => (
-                                <SelectItem key={lang.value} value={lang.value}>
-                                    {lang.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                )}
-            </div>
-            
-            {/* Resource Type */}
-            <div className="w-full flex justify-start">
-                <Tooltip>
-                    <TooltipTrigger>
-                        <Tag width={15} />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Type of the resource</p>
-                    </TooltipContent>
-                </Tooltip>
+                {/* Resource Type */}
+                <div className="w-full flex justify-start" hidden={!(editMode || content.resourceTypeName)}>
+                    <Tooltip delayDuration={500}>
+                        <TooltipTrigger>
+                            <Tag width={15} />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Type of the resource</p>
+                        </TooltipContent>
+                    </Tooltip>
+                    
+                    {!editMode && (<span className="ml-2 pt-0.25 text-sm flex-1 h-full whitespace-nowrap overflow-hidden text-ellipsis">{content.resourceTypeName}</span>)}
+                    {editMode && (
+                        <Select value={content.resourceTypeId || ""} onValueChange={(value) => {
+                            const selectedType = resourceTypes.find(t => t.id === value);
+                            setContent(prevContent => ({
+                                ...prevContent,
+                                resourceTypeId: value,
+                                resourceTypeName: selectedType?.name || null
+                            }));
+                            updateField("typeId", value);
+                        }}>
+                            <SelectTrigger className="ml-3 flex-1">
+                                <SelectValue placeholder="Select Resource Type..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {resourceTypes.map((type) => (
+                                    <SelectItem key={type.id} value={type.id}>
+                                        {type.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                </div>
                 
-                {!editMode && (<span className="ml-2 pt-0.25 text-sm flex-1 h-full whitespace-nowrap overflow-hidden text-ellipsis">{content.resourceTypeName}</span>)}
-                {editMode && (
-                    <Select value={content.resourceTypeId || ""} onValueChange={(value) => {
-                        const selectedType = resourceTypes.find(t => t.id === value);
-                        setContent(prevContent => ({
-                            ...prevContent,
-                            resourceTypeId: value,
-                            resourceTypeName: selectedType?.name || null
-                        }));
-                        updateField("typeId", value);
-                    }}>
-                        <SelectTrigger className="ml-3 flex-1">
-                            <SelectValue placeholder="Select Resource Type..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {resourceTypes.map((type) => (
-                                <SelectItem key={type.id} value={type.id}>
-                                    {type.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                )}
-            </div>
-            
-            {/* Publication Code */}
-            <div className="w-full flex justify-start">
-                <Tooltip>
-                    <TooltipTrigger>
-                        <Fingerprint width={15} />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Publication code</p>
-                    </TooltipContent>
-                </Tooltip>
+                {/* Source URL */}
+                <div className="w-full flex justify-start" hidden={!(editMode || content.url || content.source)}>
+                    <Tooltip delayDuration={500}>
+                        <TooltipTrigger>
+                            <Link width={15} />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            { content.url && (<p>URL of the website</p>)}
+                            { !content.url && (<p>Source of the resource</p>)}
+                        </TooltipContent>
+                    </Tooltip>
+                    {!editMode && (
+                    <a href={content.url || content.source || ""} className="select-none" target="_blank" rel="noreferror">
+                        <span className="ml-2 pt-0.25 text-sm text-blue-500 underline flex-1 h-full whitespace-nowrap overflow-hidden text-ellipsis">{content.url || content.source || "-"}</span>
+                    </a>
+                    )}
+                    {editMode && (
+                        <Input type="text" className="ml-3 flex-1" value={content.url || content.source || ""} onChange={(e) =>
+                        {
+                            const newValue = e.target.value;
+                            if (content.url) 
+                            {
+                                setContent(prevContent => ({ ...prevContent, url: newValue }))
+                                updateField("Url", newValue);
+                            }
+                            else 
+                            {
+                                setContent(prevContent => ({ ...prevContent, source: newValue }));
+                                updateField("SourceUrl", newValue);
+                            }
+                        }} />
+                    )}
+                </div>
                 
-                {!editMode && (<span className="ml-2 pt-0.25 text-sm flex-1 h-full whitespace-nowrap overflow-hidden text-ellipsis">{content.pubCode || "-"}</span>)}
-                {editMode && (
-                    <Input type="text" className="ml-3 flex-1" value={content.pubCode || ""} onChange={(e) => 
-                    {
-                        const newValue = e.target.value;
-                        setContent(prevContent => ({ ...prevContent, pubCode: newValue }));
-                        updateField("PublicationCode", newValue);
-                    }} />
-                )}
-            </div>
-            
-            {/* License */}
-            <div className="w-full flex justify-start mb-4">
-                <Tooltip>
-                    <TooltipTrigger>
-                        <Scale width={15} />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>License</p>
-                    </TooltipContent>
-                </Tooltip>
+                {/* Publication Code */}
+                <div className="w-full flex justify-start" hidden={!(editMode || content.pubCode)}>
+                    <Tooltip delayDuration={500}>
+                        <TooltipTrigger>
+                            <Fingerprint width={15} />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Publication code</p>
+                        </TooltipContent>
+                    </Tooltip>
+                    
+                    {!editMode && (<span className="ml-2 pt-0.25 text-sm flex-1 h-full whitespace-nowrap overflow-hidden text-ellipsis">{content.pubCode || "-"}</span>)}
+                    {editMode && (
+                        <Input type="text" className="ml-3 flex-1" value={content.pubCode || ""} onChange={(e) => 
+                        {
+                            const newValue = e.target.value;
+                            setContent(prevContent => ({ ...prevContent, pubCode: newValue }));
+                            updateField("PublicationCode", newValue);
+                        }} />
+                    )}
+                </div>
                 
-                {!editMode && (<span className="ml-2 pt-0.25 text-sm flex-1 h-full whitespace-nowrap overflow-hidden text-ellipsis">{content.license || "-"}</span>)}
-                {editMode && (
-                    <Input type="text" className="ml-3 flex-1" value={content.license || ""} onChange={(e) => 
-                    {
-                        const newValue = e.target.value;
-                        setContent(prevContent => ({ ...prevContent, license: newValue }));
-                        updateField("License", newValue);
-                    }} />
-                )}
+                {/* License */}
+                <div className="w-full flex justify-start" hidden={!(editMode || content.license)}>
+                    <Tooltip delayDuration={500}>
+                        <TooltipTrigger>
+                            <Scale width={15} />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>License</p>
+                        </TooltipContent>
+                    </Tooltip>
+                    
+                    {!editMode && (<span className="ml-2 pt-0.25 text-sm flex-1 h-full whitespace-nowrap overflow-hidden text-ellipsis">{content.license || "-"}</span>)}
+                    {editMode && (
+                        <Input type="text" className="ml-3 flex-1" value={content.license || ""} onChange={(e) => 
+                        {
+                            const newValue = e.target.value;
+                            setContent(prevContent => ({ ...prevContent, license: newValue }));
+                            updateField("License", newValue);
+                        }} />
+                    )}
+                </div>
             </div>
 
             {/* Description */}
-            <Expandable title="Description" collapsedHeight={editMode ? 1000 : 100}>
+            <Expandable title="Description" collapsedHeight={editMode ? 1000 : 100} hidden={!(editMode || content.description)}>
                 {!editMode && (<span className="text-xs">{content.description || <Skeleton />}</span>)}
             
                 {editMode && (
@@ -427,20 +460,25 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             </Expandable>
             
             {/* Tags */}
-            <Expandable variant="horizontal" title="Tags">
+            <Expandable variant="horizontal" title="Tags" hidden={!(editMode || content.tags.length > 0)}>
                 { content.tags.map((tag) => (
                     <Badge key={tag.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () =>
                     {
-                        if (!editMode) return;
-
-                        const success = await removeResourceRelation(currentId, "tags", tag.id);
-                        if (success)
+                        if (editMode) 
                         {
-                            setContent(prevContent =>
-                            ({
-                                ...prevContent,
-                                tags: prevContent.tags.filter(t => t.id !== tag.id)
-                            }));
+                            const success = await removeResourceRelation(currentId, "tags", tag.id);
+                            if (success)
+                            {
+                                setContent(prevContent =>
+                                ({
+                                    ...prevContent,
+                                    tags: prevContent.tags.filter(t => t.id !== tag.id)
+                                }));
+                            }
+                        }
+                        else 
+                        {
+                            // TODO: ADD TAG FILTER
                         }
                     }}>
                         <span className="truncate">{tag.name}</span>
@@ -467,25 +505,30 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             </Expandable>
             
             {/* Recommended Tags */}
-            <Expandable variant="horizontal" title="Recommended Tags">
+            <Expandable variant="horizontal" title="Recommended Tags" hidden={!(editMode || content.aiTags.length > 0)}>
                 <BadgeList listType="ai-tags" itemList={content.aiTags} onNew={() => {}} onRemove={() => {}} />
             </Expandable>
 
             {/* Authors */}
-            <Expandable variant="horizontal" title="Authors">
+            <Expandable variant="horizontal" title="Authors" hidden={!(editMode || content.authors.length > 0)}>
                 { content.authors.map((author) => (
                     <Badge key={author.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
                     {
-                        if (!editMode) return;
-                        
-                        const success = await removeResourceRelation(currentId, "authors", author.id);
-                        if (success) 
+                        if (editMode)
                         {
-                            setContent(prevContent => (
+                            const success = await removeResourceRelation(currentId, "authors", author.id);
+                            if (success) 
                             {
-                                ...prevContent,
-                                authors: prevContent.authors.filter(a => a.id !== author.id)
-                            }));
+                                setContent(prevContent => (
+                                {
+                                    ...prevContent,
+                                    authors: prevContent.authors.filter(a => a.id !== author.id)
+                                }));
+                            }
+                        }
+                        else 
+                        {
+                            navigate(author.id, MetadataTypeEnum.PERSON);
                         }
                     }}>
                         <span className="truncate">{author.name}</span>
@@ -516,76 +559,199 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             </Expandable>
             
             {/* Organisations */}
-            <Expandable variant="horizontal" title="Organisations">
-                <BadgeList
-                    listType="organisations"
-                    itemList={content.organisations}
-                    onNew={() => {}}
-                    onRemove={() => {}}
-                />
+            <Expandable variant="horizontal" title="Organisations" hidden={!(editMode || content.organisations.length > 0)}>
+                { content.organisations.map((organisation) => (
+                    <Badge key={organisation.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
+                    {
+                        if (editMode) 
+                        {
+                            const success = await removeResourceRelation(currentId, "organisations", organisation.id);
+                            if (success) 
+                            {
+                                setContent(prevContent => (
+                                {
+                                    ...prevContent,
+                                    organisations: prevContent.organisations.filter(o => o.id !== organisation.id)
+                                }));
+                            }
+                        }
+                        else 
+                        {
+                            navigate(organisation.id, MetadataTypeEnum.ORGANISATION);
+                        }
+                    }}>
+                        <span className="truncate">{organisation.name}</span>
+                        {editMode && (<Trash className="text-red-500 ml-1" />)}
+                    </Badge>
+                ))}
+                
+                {editMode && (
+                    <AddRelationBadge
+                        resourceId={currentId}
+                        relationType="organisations"
+                        searchEndpoint="/api/organisations/list"
+                        searchMethod="GET"
+                        alreadyRelated={content.organisations}
+                        onAdd={(newOrganisations) => 
+                        {
+                            const newOrganisationsWithType = newOrganisations.map(organisation => ({ ...organisation, type: "organisation" }));
+                            setContent(prevContent => (
+                            {
+                                ...prevContent,
+                                organisations: [...prevContent.organisations, ...newOrganisationsWithType]
+                            }));
+                        }}
+                        placeholder="Search organisations..."
+                        allowMultiple={true}
+                    />
+                )}
             </Expandable>
 
             {/* Related People */}
-            <Expandable variant="horizontal" title="Related People">
-                <BadgeList
-                    listType="related-persons"
-                    itemList={content.relatedPersons}
-                    onNew={(newItems) => {}}
-                    onRemove={(removedItem) => {}}
-                />
+            <Expandable variant="horizontal" title="Related People" hidden={!(editMode || content.relatedPersons.length > 0)}>
+                { content.relatedPersons.map((person) => (
+                    <Badge key={person.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
+                    {
+                        if (editMode) 
+                        {
+                            const success = await removeResourceRelation(currentId, "related-persons", person.id);
+                            if (success) 
+                            {
+                                setContent(prevContent => (
+                                {
+                                    ...prevContent,
+                                    relatedPersons: prevContent.relatedPersons.filter(p => p.id !== person.id)
+                                }));
+                            }
+                        }
+                        else 
+                        {
+                            navigate(person.id, MetadataTypeEnum.PERSON);
+                        }
+                    }}>
+                        <span className="truncate">{person.name}</span>
+                        {editMode && (<Trash className="text-red-500 ml-1" />)}
+                    </Badge>
+                ))}
+                
+                {editMode && (
+                    <AddRelationBadge
+                        resourceId={currentId}
+                        relationType="related-persons"
+                        searchEndpoint="/api/persons/list"
+                        searchMethod="GET"
+                        alreadyRelated={content.relatedPersons}
+                        onAdd={(newRelatedPersons) => 
+                        {
+                            const newRelatedPersonsWithType = newRelatedPersons.map(person => ({ ...person, type: "related-persons" }));
+                            setContent(prevContent => (
+                            {
+                                ...prevContent,
+                                relatedPersons: [...prevContent.relatedPersons, ...newRelatedPersonsWithType]
+                            }));
+                        }}
+                        placeholder="Search people..."
+                        allowMultiple={true}
+                    />
+                )}
             </Expandable>
             
             {/* Related Organisations */}
-            <Expandable variant="horizontal" title="Related Organisations">
-                <BadgeList
-                    listType="related-organisations"
-                    itemList={content.relatedOrganisations}
-                    onNew={(newItems) => {}}
-                    onRemove={(removedItem) => {}}
-                />
+            <Expandable variant="horizontal" title="Related Organisations" hidden={!(editMode || content.relatedOrganisations.length > 0)}>
+                { content.relatedOrganisations.map((organisation) => (
+                    <Badge key={organisation.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
+                    {
+                        if (editMode) 
+                        {
+                            const success = await removeResourceRelation(currentId, "related-organisations", organisation.id);
+                            if (success) 
+                            {
+                                setContent(prevContent => (
+                                {
+                                    ...prevContent,
+                                    relatedOrganisations: prevContent.relatedOrganisations.filter(o => o.id !== organisation.id)
+                                }));
+                            }
+                        }
+                        else 
+                        {
+                            navigate(organisation.id, MetadataTypeEnum.ORGANISATION);
+                        }
+                    }}>
+                        <span className="truncate">{organisation.name}</span>
+                        {editMode && (<Trash className="text-red-500 ml-1" />)}
+                    </Badge>
+                ))}
+                
+                {editMode && (
+                    <AddRelationBadge
+                        resourceId={currentId}
+                        relationType="related-organisations"
+                        searchEndpoint="/api/organisations/list"
+                        searchMethod="GET"
+                        alreadyRelated={content.relatedOrganisations}
+                        onAdd={(newRelatedOrganisations) => 
+                        {
+                            const newRelatedOrganisationsWithType = newRelatedOrganisations.map(organisation => ({ ...organisation, type: "related-organisations" }));
+                            setContent(prevContent => (
+                            {
+                                ...prevContent,
+                                relatedOrganisations: [...prevContent.relatedOrganisations, ...newRelatedOrganisationsWithType]
+                            }));
+                        }}
+                        placeholder="Search organisations..."
+                        allowMultiple={true}
+                    />
+                )}
             </Expandable>
 
             {/* Related Resources */}
             <ResourceList header="Related Resources" resources={content.relatedResources} />
             
-            {/* Sources */}
-            <Expandable variant="horizontal" title="Sources">
-                <BadgeList
-                    listType="sources"
-                    itemList={content.sourceList}
-                    onNew={(newItems) => {}}
-                    onRemove={(removedItem) => {}}
-                />
-            </Expandable>
-            
             {/* Regions */}
-            <Expandable variant="horizontal" title="Regions">
-                <BadgeList
-                    listType="regions"
-                    itemList={content.regions}
-                    onNew={(newItems) => {}}
-                    onRemove={(removedItem) => {}}
-                />
+            <Expandable variant="horizontal" title="Regions" hidden={!(editMode || content.regions.length > 0)}>
+                { content.regions.map((region) => (
+                    <Badge key={region.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
+                    {
+                        if (editMode) 
+                        {
+                            const success = await removeResourceRelation(currentId, "regions", region.id);
+                            if (success) 
+                            {
+                                setContent(prevContent => (
+                                {
+                                    ...prevContent,
+                                    regions: prevContent.regions.filter(r => r.id != region.id)
+                                }));
+                            }
+                        }
+                        else 
+                        {
+                            // TODO: REGION FILTER ON
+                        }
+                    }}>
+                        <span className="truncate">{region.name}</span>
+                        {editMode && (<Trash className="text-red-500 ml-1" />)}
+                    </Badge>
+                ))}
             </Expandable>
 
             {/* Abstract */}
-            {content.abstract && (
-                <Expandable title="Abstract" collapsedHeight={editMode ? 1000 : 100}>
-                    {!editMode && (<span className="text-xs">{content.abstract}</span>)}
-                
-                    {editMode && (
-                        <Textarea rows={10} className="w-full text-xs" value={content.abstract || ""} onChange={(e) => 
-                        {
-                            const newValue = e.target.value;
-                            setContent(prevContent => ({ ...prevContent, abstract: newValue }));
-                            updateField("abstract", newValue);
-                        }} />
-                    )}
-                </Expandable>
-            )}
+            <Expandable title="Abstract" collapsedHeight={editMode ? 1000 : 100} hidden={!(editMode || content.abstract)}>
+                {!editMode && (<span className="text-xs">{content.abstract}</span>)}
+            
+                {editMode && (
+                    <Textarea rows={10} className="w-full text-xs" value={content.abstract || ""} onChange={(e) => 
+                    {
+                        const newValue = e.target.value;
+                        setContent(prevContent => ({ ...prevContent, abstract: newValue }));
+                        updateField("abstract", newValue);
+                    }} />
+                )}
+            </Expandable>
 
             {/* Notes */}
-            <Expandable title="Notes" collapsedHeight={editMode ? 1000 : 100}>
+            <Expandable title="Notes" collapsedHeight={editMode ? 1000 : 100} hidden={!(editMode || content.note)}>
                 {!editMode && (<span className="text-xs">{ content.note || <Skeleton /> }</span>)}
             
                 {editMode && (
@@ -599,24 +765,15 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                 
             </Expandable>
             
-            {/* Edit and Delete Buttons */}
-            <div className="mt-10 flex w-full justify-center">
-                <div className="flex gap-4">
-                    <Button
-                        onClick={() => setEditMode(!editMode)}
-                        variant={editMode ? "default" : "outline"}
-                        className={editMode ? "bg-green-600 text-white hover:bg-green-700" : "border-gray-300 text-gray-700 hover:bg-gray-100"}
-                    >
-                        {editMode ? "Disable Edit Mode" : "Enable Edit Mode"}
+            {/* Delete Button */}
+            {userRole === "admin" && !trashOpen && editMode &&
+            (
+                <div className="mt-10 flex w-full justify-center">
+                    <Button onClick={() => setConfirmDialogOpen(true)} variant="outline" className="border-red-500 text-red-500 hover:border-red-600 hover:bg-red-50 hover:text-red-600">
+                        Delete Resource
                     </Button>
-
-                    {userRole === "admin" && !trashOpen && (
-                        <Button onClick={() => setConfirmDialogOpen(true)} variant="outline" className="border-red-500 text-red-500 hover:border-red-600 hover:bg-red-50 hover:text-red-600">
-                            Delete Resource
-                        </Button>
-                    )}
                 </div>
-            </div>
+            )}
         </>
     );
 }

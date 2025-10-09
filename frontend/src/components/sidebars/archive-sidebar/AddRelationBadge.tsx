@@ -173,7 +173,7 @@ export default function AddRelationBadge({
                 <div className="flex flex-col">
                     {/* Header */}
                     <div className="px-4 py-3 border-b bg-muted/50">
-                        <h3 className="font-semibold text-sm">Add {relationType}</h3>
+                        <h3 className="font-semibold text-sm">Add {relationType.replace('-', ' ').replace('persons', 'people')}</h3>
                     </div>
 
                     {/* Search Input */}

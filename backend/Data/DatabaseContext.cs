@@ -35,7 +35,6 @@ namespace KnowledgeBank.Data
         public DbSet<OrganisationRelationship> OrganisationRelationships { get; set; }
         public DbSet<ResourceRegionRelation> ResourceRegionRelations { get; set; }
         public DbSet<ResourceSourceRelation> ResourceSourceRelations { get; set; }
-        public DbSet<ResourceRelatedSourceRelation> ResourceRelatedSourceRelations { get; set; }
         public DbSet<ProjectFolderRelation> ProjectFolderRelations { get; set; }
         public DbSet<ProjectTagRelation> ProjectTagRelations { get; set; }
         public DbSet<ProjectResourceRelation> ProjectResourceRelations { get; set; }
@@ -78,9 +77,6 @@ namespace KnowledgeBank.Data
                 .HasKey(ft => new { ft.ResourceId, ft.RegionId });
 
             modelBuilder.Entity<ResourceSourceRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.Url });
-
-            modelBuilder.Entity<ResourceRelatedSourceRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.Url });
 
             modelBuilder.Entity<OrganisationRelationship>()

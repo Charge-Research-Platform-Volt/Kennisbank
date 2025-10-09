@@ -609,13 +609,13 @@ namespace KnowledgeBank.Data
         { await AddRelatedPersonToResourceRangeAsync(resourceId, [personId], [role]); }
 
         public async Task AddRelatedPersonToResourceAsync(Guid resourceId, string personId, string? role)
-        { await AddRelatedPersonToResourceAsync(resourceId, personId, role); }
+        { await AddRelatedPersonToResourceAsync(resourceId, Guid.Parse(personId), role); }
 
         public async Task AddRelatedPersonToResourceAsync(string resourceId, Guid personId, string? role)
-        { await AddRelatedPersonToResourceAsync(resourceId, personId, role); }
+        { await AddRelatedPersonToResourceAsync(Guid.Parse(resourceId), personId, role); }
 
         public async Task AddRelatedPersonToResourceAsync(string resourceId, string personId, string? role)
-        { await AddRelatedPersonToResourceAsync(resourceId, personId, role); }
+        { await AddRelatedPersonToResourceAsync(Guid.Parse(resourceId), Guid.Parse(personId), role); }
 
         public async Task AddRelatedPersonToResourceAsync(Guid resourceId, Guid personId)
         { await AddRelatedPersonToResourceRangeAsync(resourceId, [personId]); }
@@ -628,45 +628,6 @@ namespace KnowledgeBank.Data
 
         public async Task AddRelatedPersonToResourceAsync(string resourceId, string personId)
         { await AddRelatedPersonToResourceRangeAsync(resourceId, [personId]); }
-
-        #endregion
-
-        #region Resource-Related Source (not actual source)
-
-        // Range
-        public async Task AddRelatedSourceToResourceRangeAsync(Guid resourceId, string[] urls)
-        {
-            if (urls.Length == 0) return;
-
-            bool startedTransaction = await BeginTransaction();
-
-            // Create entries
-            ResourceRelatedSourceRelation[] relations = new ResourceRelatedSourceRelation[urls.Length];
-
-            for (int i = 0; i < urls.Length; i++)
-            {
-                relations[i] = new()
-                {
-                    ResourceId = resourceId,
-                    Url = urls[i],
-                };
-            }
-
-            // Add to database
-            await database.ResourceRelatedSourceRelations.AddRangeAsync(relations);
-
-            if (startedTransaction) await Commit();
-        }
-
-        public async Task AddRelatedSourceToResourceRangeAsync(string resourceId, string[] urls)
-        { await AddRelatedSourceToResourceRangeAsync(Guid.Parse(resourceId), urls); }
-
-        // Single
-        public async Task AddRelatedSourceToResourceAsync(Guid resourceId, string url)
-        { await AddRelatedSourceToResourceRangeAsync(resourceId, [url]); }
-
-        public async Task AddRelatedSourceToResourceAsync(string resourceId, string url)
-        { await AddRelatedSourceToResourceAsync(Guid.Parse(resourceId), url); }
 
         #endregion
 
