@@ -89,7 +89,6 @@ public class Resource
     [JsonIgnore] public ICollection<ResourceOrganisationRelation>? ResourceOrganisationRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceRegionRelation>? ResourceRegionRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceRelatedPersonRelation>? ResourceRelatedPersonRelations { get; set; }
-    [JsonIgnore] public ICollection<ResourceRelatedOrganisationRelation>? ResourceRelatedOrganisationRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceTagRelation>? ResourceTagRelations { get; set; }
 
     #endregion
@@ -118,8 +117,6 @@ public class ResourceCreateDto // Data Transfer Object (DTO)
     // Tuple: (OrganisationId, role?)
     public RelatedEntry[] Organisations { get; set; } = [];
     public string[] Regions { get; set; } = [];
-    // Tuple: (OrganisationId, role?)
-    public RelatedEntry[] RelatedOrganisations { get; set; } = [];
     // Tuple: (PersonId, role?)
     public RelatedEntry[] RelatedPersons { get; set; } = [];
 }

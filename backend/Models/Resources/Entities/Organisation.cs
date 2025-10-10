@@ -35,8 +35,8 @@ public class Organisation
     public DateTime? TrashDate { get; set; } = null;
 
     // Navigation properties
+    [JsonIgnore] public ICollection<ResourceAuthorRelation>? ResourceAuthorRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceOrganisationRelation>? ResourceOrganisationRelations { get; set; }
-    [JsonIgnore] public ICollection<ResourceRelatedOrganisationRelation>? ResourceRelatedOrganisationRelations { get; set; }
     [JsonIgnore] public ICollection<PersonOrganisationRelation>? PersonOrganisationRelations { get; set; }
 
     [JsonIgnore][InverseProperty("SourceOrganisation")] public ICollection<OrganisationRelationship>? TargetRelationships { get; set; }
@@ -50,7 +50,7 @@ public class OrganisationCreateDto
     public string? Website { get; set; }
     public string? EmailAddress { get; set; }
     // Tuple: (OrganisationId, Relation?)
-    public RelatedEntry[] OrganisationRelations { get; set; } = Array.Empty<RelatedEntry>();
+    public RelatedEntry[] OrganisationRelations { get; set; } = [];
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

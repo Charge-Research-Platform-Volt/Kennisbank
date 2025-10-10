@@ -29,7 +29,6 @@ namespace KnowledgeBank.Data
         public DbSet<ResourceAuthorRelation> ResourceAuthorRelations { get; set; }
         public DbSet<ResourceRelatedPersonRelation> ResourceRelatedPersonRelations { get; set; }
         public DbSet<ResourceOrganisationRelation> ResourceOrganisationRelations { get; set; }
-        public DbSet<ResourceRelatedOrganisationRelation> ResourceRelatedOrganisationRelations { get; set; }
         public DbSet<PersonOrganisationRelation> PersonOrganisationRelations { get; set; }
         public DbSet<PersonRelationship> PersonRelationships { get; set; }
         public DbSet<OrganisationRelationship> OrganisationRelationships { get; set; }
@@ -54,14 +53,19 @@ namespace KnowledgeBank.Data
 
             modelBuilder.Entity<ResourceAuthorRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.AuthorId});
+
+            // Configure ResourceAuthorRelation to use ResourceGridItem view for Author navigation
+            modelBuilder.Entity<ResourceAuthorRelation>()
+                .HasOne(ra => ra.Author)
+                .WithMany()
+                .HasForeignKey(ra => ra.AuthorId)
+                .HasPrincipalKey(rgi => rgi.Id)
+                .OnDelete(DeleteBehavior.NoAction);
                 
             modelBuilder.Entity<ResourceRelatedPersonRelation>()
                .HasKey(ft => new { ft.ResourceId, ft.PersonId });
 
             modelBuilder.Entity<ResourceOrganisationRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.OrganisationId });
-
-            modelBuilder.Entity<ResourceRelatedOrganisationRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.OrganisationId });
 
             modelBuilder.Entity<PersonOrganisationRelation>()

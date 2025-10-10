@@ -3,6 +3,7 @@ using System;
 using KnowledgeBank.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KnowledgeBank.Data.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20251010115552_AddOrganisationNavigationToResourceAuthor")]
+    partial class AddOrganisationNavigationToResourceAuthor
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -525,16 +528,11 @@ namespace KnowledgeBank.Data.Migrations
                     b.Property<Guid?>("OrganisationId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("PersonId")
-                        .HasColumnType("uuid");
-
                     b.HasKey("ResourceId", "AuthorId");
 
                     b.HasIndex("AuthorId");
 
                     b.HasIndex("OrganisationId");
-
-                    b.HasIndex("PersonId");
 
                     b.ToTable("resource-author");
                 });
@@ -645,6 +643,27 @@ namespace KnowledgeBank.Data.Migrations
                         .HasDatabaseName("idx_resource_region_region_id");
 
                     b.ToTable("resource-region");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceRelatedOrganisationRelation", b =>
+                {
+                    b.Property<Guid>("ResourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resource-id");
+
+                    b.Property<Guid>("OrganisationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organisation-id");
+
+                    b.Property<string>("Role")
+                        .HasColumnType("text")
+                        .HasColumnName("role");
+
+                    b.HasKey("ResourceId", "OrganisationId");
+
+                    b.HasIndex("OrganisationId");
+
+                    b.ToTable("resource-related_organisation");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.ResourceRelatedPersonRelation", b =>
@@ -1222,19 +1241,15 @@ namespace KnowledgeBank.Data.Migrations
 
             modelBuilder.Entity("KnowledgeBank.Models.ResourceAuthorRelation", b =>
                 {
-                    b.HasOne("KnowledgeBank.Models.ResourceGridItem", "Author")
-                        .WithMany()
+                    b.HasOne("KnowledgeBank.Models.Person", "Author")
+                        .WithMany("ResourceAuthorRelations")
                         .HasForeignKey("AuthorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("KnowledgeBank.Models.Organisation", null)
+                    b.HasOne("KnowledgeBank.Models.Organisation", "Organisation")
                         .WithMany("ResourceAuthorRelations")
                         .HasForeignKey("OrganisationId");
-
-                    b.HasOne("KnowledgeBank.Models.Person", null)
-                        .WithMany("ResourceAuthorRelations")
-                        .HasForeignKey("PersonId");
 
                     b.HasOne("KnowledgeBank.Models.Resource", "Resource")
                         .WithMany("ResourceAuthorRelations")
@@ -1243,6 +1258,8 @@ namespace KnowledgeBank.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Author");
+
+                    b.Navigation("Organisation");
 
                     b.Navigation("Resource");
                 });
@@ -1281,6 +1298,25 @@ namespace KnowledgeBank.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Region");
+
+                    b.Navigation("Resource");
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceRelatedOrganisationRelation", b =>
+                {
+                    b.HasOne("KnowledgeBank.Models.Organisation", "Organisation")
+                        .WithMany("ResourceRelatedOrganisationRelations")
+                        .HasForeignKey("OrganisationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KnowledgeBank.Models.Resource", "Resource")
+                        .WithMany("ResourceRelatedOrganisationRelations")
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Organisation");
 
                     b.Navigation("Resource");
                 });
@@ -1420,6 +1456,8 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.Navigation("ResourceOrganisationRelations");
 
+                    b.Navigation("ResourceRelatedOrganisationRelations");
+
                     b.Navigation("SourceRelationships");
 
                     b.Navigation("TargetRelationships");
@@ -1467,6 +1505,8 @@ namespace KnowledgeBank.Data.Migrations
                     b.Navigation("ResourceOrganisationRelations");
 
                     b.Navigation("ResourceRegionRelations");
+
+                    b.Navigation("ResourceRelatedOrganisationRelations");
 
                     b.Navigation("ResourceRelatedPersonRelations");
 

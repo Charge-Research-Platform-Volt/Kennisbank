@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
@@ -16,13 +15,11 @@ public class ResourceOrganisationRelation
     public required Guid OrganisationId { get; set; }
 
     [Column("role")]
-    // the direct role of the organisation on the resource (like publisher)
+    // The role of the organisation on the resource (like publisher, referenced, etc.)
     public string? Role { get; set; }
 
-    // Navigation property to Resource (1:1)
+    // Navigation properties
     [JsonIgnore] public Resource? Resource { get; set; }
-
-    // Navigation property to Organisation (1:1)
     [JsonIgnore] public Organisation? Organisation { get; set; }
 }
 

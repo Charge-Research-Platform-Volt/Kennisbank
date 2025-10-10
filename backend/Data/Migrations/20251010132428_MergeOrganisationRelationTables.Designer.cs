@@ -3,6 +3,7 @@ using System;
 using KnowledgeBank.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KnowledgeBank.Data.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20251010132428_MergeOrganisationRelationTables")]
+    partial class MergeOrganisationRelationTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -522,19 +525,14 @@ namespace KnowledgeBank.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("author-id");
 
-                    b.Property<Guid?>("OrganisationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("PersonId")
+                    b.Property<Guid?>("OrganisationAuthorId")
                         .HasColumnType("uuid");
 
                     b.HasKey("ResourceId", "AuthorId");
 
                     b.HasIndex("AuthorId");
 
-                    b.HasIndex("OrganisationId");
-
-                    b.HasIndex("PersonId");
+                    b.HasIndex("OrganisationAuthorId");
 
                     b.ToTable("resource-author");
                 });
@@ -1222,19 +1220,15 @@ namespace KnowledgeBank.Data.Migrations
 
             modelBuilder.Entity("KnowledgeBank.Models.ResourceAuthorRelation", b =>
                 {
-                    b.HasOne("KnowledgeBank.Models.ResourceGridItem", "Author")
-                        .WithMany()
+                    b.HasOne("KnowledgeBank.Models.Person", "Author")
+                        .WithMany("ResourceAuthorRelations")
                         .HasForeignKey("AuthorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("KnowledgeBank.Models.Organisation", null)
+                    b.HasOne("KnowledgeBank.Models.Organisation", "OrganisationAuthor")
                         .WithMany("ResourceAuthorRelations")
-                        .HasForeignKey("OrganisationId");
-
-                    b.HasOne("KnowledgeBank.Models.Person", null)
-                        .WithMany("ResourceAuthorRelations")
-                        .HasForeignKey("PersonId");
+                        .HasForeignKey("OrganisationAuthorId");
 
                     b.HasOne("KnowledgeBank.Models.Resource", "Resource")
                         .WithMany("ResourceAuthorRelations")
@@ -1243,6 +1237,8 @@ namespace KnowledgeBank.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Author");
+
+                    b.Navigation("OrganisationAuthor");
 
                     b.Navigation("Resource");
                 });

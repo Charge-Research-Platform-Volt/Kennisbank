@@ -240,24 +240,6 @@ namespace KnowledgeBank.Data
 
         #endregion
 
-        #region Resource Related Organisation
-
-        // Role
-
-        public async Task<bool> UpdateRoleInResourceRelatedOrganisationRelationAsync(Guid resourceId, Guid organisationId, string newRole)
-        { return await UpdatePropertyAsync(database.ResourceRelatedOrganisationRelations, relation => relation.ResourceId == resourceId && relation.OrganisationId == organisationId, relation => relation.Role, newRole) > 0; }
-
-        public async Task<bool> UpdateRoleInResourceRelatedOrganisationRelationAsync(Guid resourceId, string organisationId, string newRole)
-        { return await UpdateRoleInResourceRelatedOrganisationRelationAsync(resourceId, Guid.Parse(organisationId), newRole); }
-
-        public async Task<bool> UpdateRoleInResourceRelatedOrganisationRelationAsync(string resourceId, Guid organisationId, string newRole)
-        { return await UpdateRoleInResourceRelatedOrganisationRelationAsync(Guid.Parse(resourceId), organisationId, newRole); }
-
-        public async Task<bool> UpdateRoleInResourceRelatedOrganisationRelationAsync(string resourceId, string organisationId, string newRole)
-        { return await UpdateRoleInResourceRelatedOrganisationRelationAsync(Guid.Parse(resourceId), Guid.Parse(organisationId), newRole); }
-
-        #endregion
-
         #region Resource Related Person
 
         // Role

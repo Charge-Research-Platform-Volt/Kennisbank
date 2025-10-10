@@ -487,7 +487,7 @@ namespace KnowledgeBank.Data
             bool startedTransaction = await BeginTransaction();
 
             // Create entry
-            ResourceRelatedOrganisationRelation[] relations = new ResourceRelatedOrganisationRelation[organisationIds.Length];
+            ResourceOrganisationRelation[] relations = new ResourceOrganisationRelation[organisationIds.Length];
 
             for (int i = 0; i < organisationIds.Length; i++)
             {
@@ -500,7 +500,7 @@ namespace KnowledgeBank.Data
             }
 
             // Add to database
-            await database.ResourceRelatedOrganisationRelations.AddRangeAsync(relations);
+            await database.ResourceOrganisationRelations.AddRangeAsync(relations);
 
             if (startedTransaction) await Commit();
         }

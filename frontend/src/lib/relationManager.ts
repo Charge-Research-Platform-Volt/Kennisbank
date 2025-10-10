@@ -9,12 +9,12 @@ export type RelationType =
     | "authors"
     | "organisations"
     | "related-persons"
-    | "related-organisations"
     | "sources"
     | "regions"
     | "authored-resources"
     | "related-resources"
-    | "person-related-persons";
+    | "related-organisations"
+    | "related-persons";
 
 /**
  * Adds a relation to an entity (resource, person, or organisation)

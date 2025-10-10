@@ -62,14 +62,11 @@ namespace KnowledgeBank.Data
             // Add author relations to database
             await AddAuthorToResourceRangeAsync(resourceId, dto.Authors);
 
-            // Add direct organisation relations to database
+            // Add organisation relations to database
             await AddOrganisationToResourceRangeAsync(resourceId, dto.Organisations.Select((entry) => entry.Id).ToArray(), dto.Organisations.Select((entry) => entry.Relation).ToArray());
 
             // Add region relations to database
             await AddRegionToResourceRangeAsync(resourceId, dto.Regions);
-
-            // Add indirect related organisation relations to database
-            await AddRelatedOrganisationToResourceRangeAsync(resourceId, dto.RelatedOrganisations.Select((entry) => entry.Id).ToArray(), dto.RelatedOrganisations.Select((entry) => entry.Relation).ToArray());
 
             // Add non-author related person relations to database
             await AddRelatedPersonToResourceRangeAsync(resourceId, dto.RelatedPersons.Select((entry) => entry.Id).ToArray(), dto.RelatedPersons.Select((entry) => entry.Relation).ToArray());

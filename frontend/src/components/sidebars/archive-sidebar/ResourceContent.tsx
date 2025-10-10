@@ -25,6 +25,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { removeRelation } from "@/lib/relationManager";
 import AddRelationBadge from "./AddRelationBadge";
+import AddAuthorBadge from "./AddAuthorBadge";
 import { RelationTrash } from "./relation-trash";
 
 interface ResourceContentProps
@@ -43,7 +44,6 @@ class ResourceContentItems
     tags: ListItem[] = [];
     aiTags: ListItem[] = [];
     organisations: ListItem[] = [];
-    relatedOrganisations: ListItem[] = [];
     relatedPersons: ListItem[] = [];
     relatedResources: ListItem[] = [];
     source: string | null = null;
@@ -103,7 +103,6 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             ResourceOrganisationRelations.Select(new(Organisation.Id, Organisation.Name)) as Organisations,
             ResourceRegionRelations.Select(new(Region.Id, Region.Name)) as Regions,
             ResourceRelatedPersonRelations.Select(new(Person.Id, Person.Name)) as RelatedPersons,
-            ResourceRelatedOrganisationRelations.Select(new(Organisation.Id, Organisation.Name)) as RelatedOrganisations,
             ResourceTagRelations.Select(new(Tag.Id, Tag.Name)) as Tags,
             ResourceType.Id as ResourceTypeId,
             ResourceType.Name as ResourceTypeName
@@ -136,7 +135,6 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                 tags: data.body.tags || [],
                 aiTags: data.body.aiTags || [],
                 organisations: data.body.organisations || [],
-                relatedOrganisations: data.body.relatedOrganisations || [],
                 relatedPersons: data.body.relatedPersons || [],
                 relatedResources: data.body.relatedResources || [],
                 source: data.body.sourceUrl || null,
@@ -445,7 +443,7 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             </div>
 
             {/* Description */}
-            <Expandable title="Description" collapsedHeight={editMode ? 1000 : 100} hidden={!(editMode || content.description)}>
+            <Expandable title="Description" collapsedHeight={100} hidden={!(editMode || content.description)} defaultOpen={editMode}>
                 {!editMode && (<span className="text-xs">{content.description || <Skeleton />}</span>)}
             
                 {editMode && (
@@ -460,7 +458,7 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             </Expandable>
             
             {/* Tags */}
-            <Expandable variant="horizontal" title="Tags" hidden={!(editMode || content.tags.length > 0)}>
+            <Expandable variant="horizontal" title="Tags" hidden={!(editMode || content.tags.length > 0)} defaultOpen={editMode}>
                 { content.tags.map((tag) => (
                     <Badge key={tag.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () =>
                     {
@@ -501,12 +499,12 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             </Expandable>
             
             {/* Recommended Tags */}
-            <Expandable variant="horizontal" title="Recommended Tags" hidden={!(editMode || content.aiTags.length > 0)}>
+            <Expandable variant="horizontal" title="Recommended Tags" hidden={!(editMode || content.aiTags.length > 0)} defaultOpen={editMode}>
                 <BadgeList listType="ai-tags" itemList={content.aiTags} onNew={() => {}} onRemove={() => {}} />
             </Expandable>
 
             {/* Authors */}
-            <Expandable variant="horizontal" title="Authors" hidden={!(editMode || content.authors.length > 0)}>
+            <Expandable variant="horizontal" title="Authors" hidden={!(editMode || content.authors.length > 0)} defaultOpen={editMode}>
                 { content.authors.map((author) => (
                     <Badge key={author.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
                     {
@@ -528,12 +526,8 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                 )) }
                 
                 { editMode && (
-                    <AddRelationBadge
-                        entityType="resources"
-                        entityId={currentId}
-                        relationType="authors"
-                        searchEndpoint="/api/persons/list"
-                        searchMethod="GET"
+                    <AddAuthorBadge
+                        resourceId={currentId}
                         alreadyRelated={content.authors}
                         onAdd={(newAuthors) =>
                         {
@@ -542,15 +536,12 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                                 authors: [...prevContent.authors, ...newAuthors]
                             }));
                         }}
-                        placeholder="Search people..."
-                        allowMultiple={true}
-                        title="Add Authors"
                     />
                 )}
             </Expandable>
             
             {/* Organisations */}
-            <Expandable variant="horizontal" title="Organisations" hidden={!(editMode || content.organisations.length > 0)}>
+            <Expandable variant="horizontal" title="Related Organisations" hidden={!(editMode || content.organisations.length > 0)} defaultOpen={editMode}>
                 { content.organisations.map((organisation) => (
                     <Badge key={organisation.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
                     {
@@ -594,7 +585,7 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             </Expandable>
 
             {/* Related People */}
-            <Expandable variant="horizontal" title="Related People" hidden={!(editMode || content.relatedPersons.length > 0)}>
+            <Expandable variant="horizontal" title="Related People" hidden={!(editMode || content.relatedPersons.length > 0)} defaultOpen={editMode}>
                 { content.relatedPersons.map((person) => (
                     <Badge key={person.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
                     {
@@ -636,56 +627,12 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                     />
                 )}
             </Expandable>
-            
-            {/* Related Organisations */}
-            <Expandable variant="horizontal" title="Related Organisations" hidden={!(editMode || content.relatedOrganisations.length > 0)}>
-                { content.relatedOrganisations.map((organisation) => (
-                    <Badge key={organisation.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
-                    {
-                        if (editMode) return;
-                        
-                        navigate(organisation.id, MetadataTypeEnum.ORGANISATION);
-                    }}>
-                        <span className="truncate">{organisation.name}</span>
-                        {editMode && (
-                            <RelationTrash
-                                removeAction={() => removeRelation("resources", currentId, "related-organisations", organisation.id)}
-                                successAction={() => setContent(prevContent => ({
-                                    ...prevContent,
-                                    relatedOrganisations: prevContent.relatedOrganisations.filter(o => o.id !== organisation.id)
-                                }))}
-                            />
-                        )}
-                    </Badge>
-                ))}
-                
-                { editMode && (
-                    <AddRelationBadge
-                        entityType="resources"
-                        entityId={currentId}
-                        relationType="related-organisations"
-                        searchEndpoint="/api/organisations/list"
-                        searchMethod="GET"
-                        alreadyRelated={content.relatedOrganisations}
-                        onAdd={(newRelatedOrganisations) =>
-                        {
-                            setContent(prevContent => ({
-                                ...prevContent,
-                                relatedOrganisations: [...prevContent.relatedOrganisations, ...newRelatedOrganisations]
-                            }));
-                        }}
-                        placeholder="Search organisations..."
-                        allowMultiple={true}
-                        title="Add Related Organisations"
-                    />
-                )}
-            </Expandable>
 
             {/* Related Resources */}
             <ResourceList header="Related Resources" resources={content.relatedResources} />
             
             {/* Regions */}
-            <Expandable variant="horizontal" title="Regions" hidden={!(editMode || content.regions.length > 0)}>
+            <Expandable variant="horizontal" title="Regions" hidden={!(editMode || content.regions.length > 0)} defaultOpen={editMode}>
                 { content.regions.map((region) => (
                     <Badge key={region.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
                     {
@@ -729,7 +676,7 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             </Expandable>
 
             {/* Abstract */}
-            <Expandable title="Abstract" collapsedHeight={editMode ? 1000 : 100} hidden={!(editMode || content.abstract)}>
+            <Expandable title="Abstract" collapsedHeight={editMode ? 1000 : 100} hidden={!(editMode || content.abstract)} defaultOpen={editMode}>
                 {!editMode && (<span className="text-xs">{content.abstract}</span>)}
             
                 {editMode && (
@@ -743,7 +690,7 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             </Expandable>
 
             {/* Notes */}
-            <Expandable title="Notes" collapsedHeight={editMode ? 1000 : 100} hidden={!(editMode || content.note)}>
+            <Expandable title="Notes" collapsedHeight={editMode ? 1000 : 100} hidden={!(editMode || content.note)} defaultOpen={editMode}>
                 {!editMode && (<span className="text-xs">{ content.note || <Skeleton /> }</span>)}
             
                 {editMode && (

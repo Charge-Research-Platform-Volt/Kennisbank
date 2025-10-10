@@ -100,7 +100,7 @@ export function PersonContent()
         }
     }, [currentId])
 
-    // Reload content on sidebar open
+    // Reload content on sidebar open or when currentId changes
     React.useEffect(() =>
     {
         if (archiveSidebarOpen)
@@ -113,7 +113,7 @@ export function PersonContent()
             // Load content
             loadContent();
         }
-    }, [archiveSidebarOpen]);
+    }, [archiveSidebarOpen, currentId, loadContent]);
     
     // Delete the person
     const confirmDelete = async () => 
@@ -239,7 +239,7 @@ export function PersonContent()
             </div>
             
             {/* Description */}
-            <Expandable title="Description" collapsedHeight={editMode ? 1000 : 100} hidden={!(editMode || content.description)}>
+            <Expandable title="Description" collapsedHeight={100} hidden={!(editMode || content.description)} defaultOpen={editMode}>
                 {!editMode && (<span className="text-xs">{content.description || <Skeleton />}</span>)}
             
                 {editMode && (
@@ -250,11 +250,10 @@ export function PersonContent()
                         updateField("description", newValue);
                     }} />
                 )}
-                
             </Expandable>
             
             {/* Authored Resources */}
-            <Expandable variant="horizontal" title="Authored Resources" hidden={!(editMode || content.authored.length > 0)}>
+            <Expandable variant="horizontal" title="Authored Resources" hidden={!(editMode || content.authored.length > 0)} defaultOpen={editMode}>
                 { content.authored.map((item) => (
                     <Badge key={item.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
                     {
@@ -296,7 +295,7 @@ export function PersonContent()
             </Expandable>
             
             {/* Related Resources */}
-            <Expandable variant="horizontal" title="Related Resources" hidden={!(editMode || content.relatedResources.length > 0)}>
+            <Expandable variant="horizontal" title="Related Resources" hidden={!(editMode || content.relatedResources.length > 0)} defaultOpen={editMode}>
                 { content.relatedResources.map((item) => (
                     <Badge key={item.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () =>
                     {
@@ -338,7 +337,7 @@ export function PersonContent()
             </Expandable>
             
             {/* Related People */}
-            <Expandable variant="horizontal" title="Related People" hidden={!(editMode || content.relatedPersons.length > 0)}>
+            <Expandable variant="horizontal" title="Related People" hidden={!(editMode || content.relatedPersons.length > 0)} defaultOpen={editMode}>
                 { content.relatedPersons.map((person) => (
                     <Badge key={person.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={() => 
                     {
@@ -350,7 +349,7 @@ export function PersonContent()
                         
                         { editMode && (
                             <RelationTrash
-                                removeAction={() => removeRelation("persons", currentId, "person-related-persons", person.id)}
+                                removeAction={() => removeRelation("persons", currentId, "related-persons", person.id)}
                                 successAction={() => setContent(prevContent => ({ ...prevContent, relatedPersons: prevContent.relatedPersons.filter(p => p.id !== person.id) }))}
                             />
                         )}
@@ -361,7 +360,7 @@ export function PersonContent()
                     <AddRelationBadge
                         entityType="persons"
                         entityId={currentId}
-                        relationType="person-related-persons"
+                        relationType="related-persons"
                         searchEndpoint="/api/persons/list"
                         searchMethod="GET"
                         alreadyRelated={content.relatedPersons}
@@ -380,7 +379,7 @@ export function PersonContent()
                 )}
             </Expandable>
             
-            <Expandable variant="horizontal" title="Related Organisations" hidden={!(editMode || content.relatedOrganisations.length > 0)}>
+            <Expandable variant="horizontal" title="Related Organisations" hidden={!(editMode || content.relatedOrganisations.length > 0)} defaultOpen={editMode}>
                 { content.relatedOrganisations.map((organisation) => (
                     <Badge key={organisation.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={() => 
                     {

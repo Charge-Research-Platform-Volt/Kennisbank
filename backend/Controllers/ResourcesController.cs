@@ -861,11 +861,6 @@ namespace KnowledgeBank.Controllers
                         await resourceManager.GetAllResourceRegionRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
                         await resourceManager.GetAllResourceRegionRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
 
-                    // Related Organisations
-                    "related-organisations" => string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
-                        await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
-
                     // Related Persons
                     "related-persons" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllResourceRelatedPersonRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
@@ -944,11 +939,6 @@ namespace KnowledgeBank.Controllers
                         await resourceManager.AddRegionToResourceAsync(id, targetId);
                         break;
 
-                    // Related organisations
-                    case "related-organisations":
-                        await resourceManager.AddRelatedOrganisationToResourceAsync(id, targetId, relationInfo ?? "");
-                        break;
-
                     // Related persons
                     case "related-persons":
                         await resourceManager.AddRelatedPersonToResourceAsync(id, targetId, relationInfo);
@@ -1020,11 +1010,6 @@ namespace KnowledgeBank.Controllers
                     // Regions
                     case "regions":
                         await resourceManager.RemoveRegionFromResourceAsync(id, targetId);
-                        break;
-
-                    // Related organisations
-                    case "related-organisations":
-                        await resourceManager.RemoveRelatedOrganisationFromResourceAsync(id, targetId);
                         break;
 
                     // Related persons

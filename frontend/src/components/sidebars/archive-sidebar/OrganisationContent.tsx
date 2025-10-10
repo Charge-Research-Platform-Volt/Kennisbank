@@ -4,33 +4,47 @@ import { MetadataTypeEnum, useArchiveSidebar } from "@/context/archive-sidebar-p
 import React from "react";
 import Skeleton from 'react-loading-skeleton';
 import Expandable from "./expandable";
-import BadgeList, { ListItem } from "./BadgeList";
+import { ListItem } from "./BadgeList";
 import { useUserRole } from "@/context/user-role-context";
 import { Button } from "@/components/ui/button";
-import Edit from "./Edit";
 import { useArchive } from "@/context/archive-provider";
 import { TrashResource } from "@/actions/trashResourceActions";
 import ConfirmDeleteDialog from "@/components/ui/confirm-delete-dialog";
 import { ApiResponse } from "@/types/apiResponse.type";
 import { Badge } from "@/components/ui/badge";
 import OrganisationIcon from "@/icons/organisation-icon";
+import { createDebouncedUpdate } from "@/lib/debouncedUpdate";
+import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { AtSign, Link } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import AddRelationBadge from "./AddRelationBadge";
+import { RelationTrash } from "./relation-trash";
+import { removeRelation } from "@/lib/relationManager";
+
+class OrganisationContentItems 
+{
+    name: string | null = null;
+    website: string | null = null;
+    description: string | null = null;
+    email: string | null = null;
+    authored: ListItem[] = [];
+    resources: ListItem[] = [];
+    organisations: ListItem[] = [];
+    persons: ListItem[] = [];
+    trashed: boolean = false;
+}
 
 export function OrganisationContent() 
 {
-    const { currentId, archiveSidebarOpen, setArchiveSidebarOpen, setCreationDate, setPublicationDate, setEditMode, editMode  } = useArchiveSidebar();
+    const { currentId, archiveSidebarOpen, setArchiveSidebarOpen, setCreationDate, setPublicationDate, navigate, editMode  } = useArchiveSidebar();
     const { userRole } = useUserRole();
     const { triggerGridReload, trashOpen } = useArchive();
     const [confirmDialogOpen, setConfirmDialogOpen] = React.useState<boolean>(false);
     
-    const [ name, setName ] = React.useState<string | null>(null);
-    const [ website, setWebsite ] = React.useState<string | undefined>(undefined);
-    const [ description, setDescription ] = React.useState<string | null>(null);
-    const [ resources, setResources ] = React.useState<ListItem[] | null>(null);
-    const [ relatedResources, setRelatedResources ] = React.useState<ListItem[] | null>(null);
-    const [ organisations, setOrganisations ] = React.useState<ListItem[] | null>(null);
-    const [ persons, setPersons ] = React.useState<ListItem[] | null>(null);
-    const [ email, setEmail ] = React.useState<string | null>(null);
-    const [trashed, setTrashed] = React.useState<boolean>(false);
+    const [content, setContent] = React.useState<OrganisationContentItems>(new OrganisationContentItems());
+    const updateTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+    const updateField = React.useMemo(() => createDebouncedUpdate(updateTimerRef, `/api/organisations/update/${currentId}`), [currentId]);
     
     // Loads all the content at once
     const loadContent = React.useCallback(async () => 
@@ -45,8 +59,8 @@ export function OrganisationContent()
             CreationDate,
             EmailAddress as Email,
             Trashed,
+            
             ResourceOrganisationRelations.Select(new(Resource.Id, Resource.Title as Name)) as Resources,
-            ResourceRelatedOrganisationRelations.Select(new(Resource.Id, Resource.Title as Name)) as RelatedResources,
             TargetRelationships.Select(new(TargetOrganisation.Id, TargetOrganisation.Name)) as TargetOrganisations,
             SourceRelationships.Select(new(SourceOrganisation.Id, SourceOrganisation.Name)) as SourceOrganisations,
             PersonOrganisationRelations.Select(new(Person.Id, Person.Name)) as Persons
@@ -64,16 +78,22 @@ export function OrganisationContent()
         {
             const data: ApiResponse = await response.json();
             
-            setName(data.body.name || "Name missing.");
-            setWebsite(data.body.website || "Website unknown.");
-            setDescription(data.body.description || "No description.");
             setCreationDate(data.body.creationDate || "Unknown.");
-            setEmail(data.body.email || "Unknown.");
-            setTrashed(data.body.trashed || false);
-            setResources(data.body.resources || []);
-            setRelatedResources(data.body.relatedResources || []);
-            setOrganisations(data.body.targetOrganisations.concat(data.body.sourceOrganisations) || []);
-            setPersons(data.body.persons || []);
+            
+            const newContent: OrganisationContentItems =
+            {
+                name: data.body.name || null,
+                website: data.body.website || null,
+                description: data.body.description || null,
+                email: data.body.email || null,
+                authored: data.body.authored || [],
+                resources: data.body.resources || [],
+                organisations: (data.body.targetOrganisations || []).concat(data.body.sourceOrganisations || []),
+                persons: data.body.persons || [],
+                trashed: data.body.trashed || false
+            }
+            
+            setContent(newContent);
         }
         
     }, [currentId]);
@@ -83,14 +103,7 @@ export function OrganisationContent()
         if (archiveSidebarOpen) 
         {
             // Clear content
-            setName(null);
-            setWebsite(undefined);
-            setDescription(null);
-            setResources(null);
-            setRelatedResources(null);
-            setOrganisations(null);
-            setPersons(null);
-            setEmail(null);
+            setContent(new OrganisationContentItems());
             setCreationDate(null);
             setPublicationDate(null);
 
@@ -114,62 +127,270 @@ export function OrganisationContent()
             <ConfirmDeleteDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen} onConfirmation={confirmDelete} />
 
             {/* Banner for when organisation is in trash */}
-            { trashed &&
+            { content.trashed &&
                 <Badge variant="outline" className="w-full mb-5 flex flex-col border-red-500 text-red-500">
                     <h1 className="text-xl">This item is in the trash.</h1>
                     <span className="flex-1 mb-1">Contact an admin if you think this is a mistake.</span>
                 </Badge>
             }
-
-            <div className="flex justify-start gap-2 items-center pb-2">
+            
+            {/* Title */}
+            <div className="flex items-center justify-start gap-2 pb-2">
                 <OrganisationIcon className="w-5 h-5" />
                 
-                {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
-                    <Edit setNewText={setName} currentText={name} property="name" />
-                </div>)}
-                <h1 className="font-bold select-none text-2xl">{name || <Skeleton />}</h1>
+                {!editMode && (
+                    <h1 className="text-2xl font-bold select-none">{content.name || <Skeleton />}</h1>
+                )}
+                
+                {editMode && (
+                    <Input
+                        type="text"
+                        className="flex-1"
+                        value={content.name || ""}
+                        onChange={(e) => {
+                            const newValue = e.target.value;
+                            setContent(prevContent => ({ ...prevContent, name: newValue }));
+                            updateField("name", newValue);
+                        }}
+                    />
+                )}
             </div>
-                        
-            {name ? (
-                <div className="flex justify-between flex-1">
-                    {website && website.startsWith('http') ? (
-                        <a href={website} className="select-none" target="_blank" rel="noreferror">
-                            <h1 className="mb-2 select-none text-blue-500 underline">{website}</h1>
+            
+            {/* Characteristics */}
+            <div className="mb-4">
+                {/* Website */}
+                <div className="w-full flex justify-start" hidden={!(editMode || content.website)}>
+                    <Tooltip delayDuration={500}>
+                        <TooltipTrigger>
+                            <Link width={15} />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Website</p>
+                        </TooltipContent>
+                    </Tooltip>
+                    
+                    {!editMode && (
+                        <a href={content.website || ""} className="select-none pb-1" target="_blank" rel="norefferor">
+                            <span className="ml-2 pt-0.25 text-sm text-blue-500 underline flex-1 h-full whitespace-nowrap overflow-hidden text-ellipsis">{content.website}</span>
                         </a>
-                    ) : website ? <h1 className="mb-2 select-none">{website}</h1> : (
-                        <h1 className="mb-2 select-none">No Website</h1>
                     )}
-                    <div className="flex justify-end">{editMode && (<Edit setNewText={setWebsite} currentText={website ? (website) : ""} property="website" />)}</div>
-                </div>) : (<Skeleton />) }
-
-            <Expandable title="Description" collapsedHeight={100}>
-                {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
-                                    <Edit setNewText={setDescription} currentText={description} property="description" />
-                                </div>)}
-                {description || <Skeleton />}
+                    
+                    { editMode && (
+                        <Input type="url" className="ml-3 flex-1" value={content.website || ""} onChange={(e) => 
+                        {
+                            const newValue = e.target.value;
+                            setContent(prevContent => ({ ...prevContent, website: newValue }));
+                            updateField("Website", newValue);
+                        }} />
+                    )}
+                </div>
+            
+                {/* Email */}
+                <div className="w-full flex justify-start" hidden={!(editMode || content.email)}>
+                    <Tooltip delayDuration={500}>
+                        <TooltipTrigger>
+                            <AtSign width={15} />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Email Address</p>
+                        </TooltipContent>
+                    </Tooltip>
+                    
+                    {!editMode && (
+                        <a href={"mailto:" + content.email} className="select-none pb-1" target="_blank" rel="noreferror">
+                            <span className="ml-2 pt-0.25 text-sm text-blue-500 underline flex-1 h-full whitespace-nowrap overflow-hidden text-ellipsis">{content.email}</span>
+                        </a>
+                    )}
+                    
+                    {editMode && (
+                        <Input type="email" className="ml-3 flex-1" value={content.email || ""} onChange={(e) => 
+                        {
+                            const newValue = e.target.value;
+                            setContent(prevContent => ({ ...prevContent, email: newValue }));
+                            updateField("EmailAddress", newValue);
+                        }} />
+                    )}
+                </div>
+            </div>
+            
+            {/* Description */}
+            <Expandable title="Description" collapsedHeight={100} hidden={!(editMode || content.description)} defaultOpen={editMode}>
+                {!editMode && (<span className="text-xs">{content.description || <Skeleton />}</span>)}
+            
+                {editMode && (
+                    <Textarea rows={10} className="w-full text-xs" value={content.description || ""} onChange={(e) => 
+                    {
+                        const newValue = e.target.value;
+                        setContent(prevContent => ({ ...prevContent, description: newValue }));
+                        updateField("description", newValue);
+                    }} />
+                )}
             </Expandable>
             
-            <Expandable variant="horizontal" title="Published">
-                <BadgeList listType="direct-resources" itemList={resources} onNew={(newItems) => setResources(resources ? resources.concat(newItems) : newItems)} onRemove={(removedItem) => setResources(resources ? resources.filter((item) => item != removedItem) : [])} />
+            {/* Authored Resources */}
+            <Expandable variant="horizontal" title="Authored Resources" hidden={!(editMode || content.authored.length > 0)} defaultOpen={editMode}>
+                { content.authored.map((item) => (
+                    <Badge key={item.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
+                    {
+                        if (editMode) return;
+                        
+                        navigate(item.id, MetadataTypeEnum.RESOURCE);
+                    }}>
+                        <span className="truncate">{item.name}</span>
+                        
+                        {editMode && (
+                            <RelationTrash
+                                removeAction={() => removeRelation("organisations", currentId, "authored-resources", item.id)}
+                                successAction={() => setContent(prevContent => ({ ...prevContent, authored: prevContent.authored.filter(i => i.id !== item.id) }))}
+                            />
+                        )}
+                    </Badge>
+                ))}
+                
+                { editMode && (
+                    <AddRelationBadge
+                        entityType="organisations"
+                        entityId={currentId}
+                        relationType="authored-resources"
+                        searchEndpoint="/api/resources/list"
+                        searchMethod="GET"
+                        alreadyRelated={content.authored}
+                        onAdd={(newAuthored) =>
+                        {
+                            setContent(prevContent => ({
+                                ...prevContent,
+                                authored: [...prevContent.authored, ...newAuthored]
+                            }));
+                        }}
+                        placeholder="Search resources..."
+                        allowMultiple={true}
+                        title="Add Authored Resources"
+                    />
+                )}
             </Expandable>
-
-            <Expandable variant="horizontal" title="Related">
-                <BadgeList listType="related-resources" itemList={relatedResources} onNew={(newItems) => setRelatedResources(relatedResources ? relatedResources.concat(newItems) : newItems)} onRemove={(removedItem) => setRelatedResources(relatedResources ? relatedResources.filter((item) => item != removedItem) : [])} />
+            
+            <Expandable variant="horizontal" title="Related Resources" hidden={!(editMode || content.resources.length > 0)} defaultOpen={editMode}>
+                { content.resources.map((item) => (
+                    <Badge key={item.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
+                    {
+                        if (editMode) return;
+                        
+                        navigate(item.id, MetadataTypeEnum.RESOURCE);
+                    }}>
+                        <span className="truncate">{item.name}</span>
+                        
+                        { editMode && (
+                            <RelationTrash 
+                                removeAction={() => removeRelation("organisations", currentId, "related-resources", item.id)}
+                                successAction={() => setContent(prevContent => ({ ...prevContent, resources: prevContent.resources.filter(i => i.id !== item.id)}))}
+                            />
+                        )}
+                    </Badge>
+                ))}
+                
+                { editMode && (
+                    <AddRelationBadge
+                        entityType="organisations"
+                        entityId={currentId}
+                        relationType="related-resources"
+                        searchEndpoint="/api/resources/list"
+                        searchMethod="GET"
+                        alreadyRelated={content.resources}
+                        onAdd={(newResources) => 
+                        {
+                            setContent(prevContent => ({ ...prevContent, resources: [...prevContent.resources, ...newResources]}))
+                        }}
+                        placeholder="Search resources..."
+                        allowMultiple={true}
+                        title="Add Related Resources"
+                    />
+                )}
             </Expandable>
-
-            <Expandable variant="horizontal" title="Related Organisations">
-                <BadgeList listType="organisation-related-organisations" itemList={organisations} onNew={(newItems) => setOrganisations(organisations ? organisations.concat(newItems) : newItems)} onRemove={(removedItem) => setOrganisations(organisations ? organisations.filter((item) => item != removedItem) : [])} />
+            
+            <Expandable variant="horizontal" title="Related Organisations" hidden={!(editMode || content.organisations.length > 0)} defaultOpen={editMode}>
+                { content.organisations.map((organisation) => (
+                    <Badge key={organisation.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
+                    {
+                        if (editMode) return;
+                        
+                        navigate(organisation.id, MetadataTypeEnum.ORGANISATION);
+                    }}>
+                        <span className="truncate">{organisation.name}</span>
+                        
+                        { editMode && (
+                            <RelationTrash 
+                                removeAction={() => removeRelation("organisations", currentId, "related-organisations", organisation.id)}
+                                successAction={() => setContent(prevContent => ({ ...prevContent, organisations: prevContent.organisations.filter(o => o.id !== organisation.id) }))}
+                            />
+                        )}
+                    </Badge>
+                ))}
+                
+                { editMode && (
+                    <AddRelationBadge
+                        entityId={currentId}
+                        entityType="organisations"
+                        relationType="related-organisations"
+                        searchEndpoint="/api/organisations/list"
+                        searchMethod="GET"
+                        alreadyRelated={content.organisations}
+                        onAdd={(newRelated) => 
+                        {
+                            setContent(prevContent => ({ ...prevContent, organisations: [...prevContent.organisations, ...newRelated]}))
+                        }}
+                        placeholder="Search organisations..."
+                        allowMultiple={true}
+                        title="Add Related Organisations"
+                    />
+                )}
             </Expandable>
+            
+            <Expandable variant="horizontal" title="Related People" hidden={!(editMode || content.persons.length > 0)} defaultOpen={editMode}>
+                { content.persons.map((person) => (
+                    <Badge key={person.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
+                    {
+                        if (editMode) return;
+                        
+                        navigate(person.id, MetadataTypeEnum.PERSON);
+                    }}>
+                        <span className="truncate">{person.name}</span>
+                        
+                        { editMode && (
+                            <RelationTrash
+                                removeAction={() => removeRelation("organisations", currentId, "related-persons", person.id)}
+                                successAction={() => setContent(prevContent => ({ ...prevContent, persons: prevContent.persons.filter(p => p.id !== person.id) }))}
+                            />
+                        )}
+                    </Badge>
+                ))}
+                
+                { editMode && (
+                    <AddRelationBadge
+                        entityId={currentId}
+                        entityType="organisations"
+                        relationType="related-persons"
+                        searchEndpoint="/api/persons/list"
+                        searchMethod="GET"
+                        alreadyRelated={content.persons}
+                        onAdd={(newRelated) => 
+                        {
+                            setContent(prevContent => (
+                            {
+                                ...prevContent,
+                                persons: [...prevContent.persons, ...newRelated]
+                            }));
+                        }}
+                        placeholder="Search people..."
+                        allowMultiple={true}
+                        title="Add Related People"
+                    />
+                )}
+            </Expandable>
+            
+            {/* 
 
             <Expandable variant="horizontal" title="Related People">
                 <BadgeList listType="persons" itemList={persons} onNew={(newItems) => setPersons(persons ? persons.concat(newItems) : newItems)} onRemove={(removedItem) => setPersons(persons ? persons.filter((item) => item != removedItem) : [])} />
-            </Expandable>
-            
-            <Expandable title="Email Address" collapsedHeight={100}>
-                {editMode && (  <div className="mt-1 text-sm flex justify-center select-none">
-                                    <Edit setNewText={setEmail} currentText={email} property="emailAddress" />
-                                </div>)}
-                {email || <Skeleton />}
             </Expandable>
 
             <div className="w-full flex justify-center mt-10">
@@ -192,7 +413,7 @@ export function OrganisationContent()
                         </Button>
                     )}
                 </div>
-            </div>
+            </div> */}
         </>
     )
 }
