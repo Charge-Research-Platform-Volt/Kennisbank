@@ -2,10 +2,25 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Ensure WSL Running",
+      "type": "shell",
+      "command": "wsl",
+      "args": ["echo", "WSL is ready"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Start Infrastructure",
       "type": "shell",
       "command": "npm",
       "args": ["run", "services"],
+      "dependsOn": ["Ensure WSL Running"],
       "group": "build",
       "presentation": {
         "echo": true,

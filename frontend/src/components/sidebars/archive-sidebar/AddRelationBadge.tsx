@@ -6,15 +6,18 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Plus } from "lucide-react";
-import { addResourceRelation, RelationType } from "@/lib/relationManager";
+import { addRelation, RelationType, EntityType } from "@/lib/relationManager";
 
-interface SearchResult {
+interface SearchResult
+{
     id: string;
     name: string;
 }
 
-interface AddRelationBadgeProps {
-    resourceId: string;
+interface AddRelationBadgeProps
+{
+    entityType: EntityType;
+    entityId: string;
     relationType: RelationType;
     searchEndpoint: string; // e.g., "/api/tags/search"
     searchMethod?: "GET" | "POST"; // Default: POST
@@ -22,10 +25,13 @@ interface AddRelationBadgeProps {
     onAdd: (items: { id: string; name: string }[]) => void;
     placeholder?: string;
     allowMultiple?: boolean;
+    title?: string; // Custom title for the popover header
 }
 
-export default function AddRelationBadge({
-    resourceId,
+export default function AddRelationBadge(
+{
+    entityType,
+    entityId,
     relationType,
     searchEndpoint,
     searchMethod = "POST",
@@ -33,7 +39,9 @@ export default function AddRelationBadge({
     onAdd,
     placeholder = "Search...",
     allowMultiple = true,
-}: AddRelationBadgeProps) {
+    title,
+}: AddRelationBadgeProps)
+{
     const [searchInput, setSearchInput] = useState<string>("");
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -74,6 +82,15 @@ export default function AddRelationBadge({
                 } else {
                     const url = new URL(searchEndpoint, window.location.origin);
                     url.searchParams.append("searchQuery", searchQuery);
+                    // Only request Id and Name/Title for efficiency
+                    // Resources use "Title", persons/organisations use "Name"
+                    if (searchEndpoint.includes("/resources/")) {
+                        url.searchParams.append("properties", "Id, Title");
+                    } else if (searchEndpoint.includes("/persons/") || searchEndpoint.includes("/organisations/")) {
+                        url.searchParams.append("properties", "Id, Name");
+                    } else if (searchEndpoint.includes("/regions/")) {
+                        url.searchParams.append("properties", "Id, Name");
+                    }
                     response = await fetch(url.toString(), {
                         method: "GET",
                         credentials: "include",
@@ -92,9 +109,17 @@ export default function AddRelationBadge({
                         results = data.body;
                     }
 
-                    // Filter out already related items
-                    const filtered = results.filter(
-                        (item: SearchResult) => !alreadyRelated.some((r) => r.id === item.id)
+                    // Normalize results to always have { id, name } format
+                    const normalized = results.map((item: any) => ({
+                        id: item.id,
+                        name: item.name || item.title || item.Name || item.Title || "Unknown"
+                    }));
+
+                    // Filter out already related items and the entity itself
+                    const filtered = normalized.filter(
+                        (item: SearchResult) =>
+                            item.id !== entityId &&
+                            !alreadyRelated.some((r) => r.id === item.id)
                     );
                     setSearchResults(filtered);
                 } else {
@@ -137,7 +162,7 @@ export default function AddRelationBadge({
     async function handleAdd() {
         try {
             const relations = selected.map((item) =>
-                addResourceRelation(resourceId, relationType, item.id)
+                addRelation(entityType, entityId, relationType, item.id)
             );
 
             const results = await Promise.all(relations);
@@ -173,7 +198,7 @@ export default function AddRelationBadge({
                 <div className="flex flex-col">
                     {/* Header */}
                     <div className="px-4 py-3 border-b bg-muted/50">
-                        <h3 className="font-semibold text-sm">Add {relationType.replace('-', ' ').replace('persons', 'people')}</h3>
+                        <h3 className="font-semibold text-sm">{title || `Add ${relationType.replace('-', ' ').replace('persons', 'people')}`}</h3>
                     </div>
 
                     {/* Search Input */}

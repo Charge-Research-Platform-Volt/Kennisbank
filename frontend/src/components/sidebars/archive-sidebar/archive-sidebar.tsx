@@ -50,10 +50,10 @@ export default function ArchiveSidebar()
                     </TooltipContent>
                 </Tooltip>
 
-                <div className="flex-1 space-x-5 flex justify-center">
+                <div className="flex-1 space-x-2 flex justify-center">
                     <Tooltip delayDuration={700}>
                         <TooltipTrigger asChild>
-                            <Button className="w-30" variant="outline" onClick={navigateBack} disabled={isEmptyPrevs()}>
+                            <Button className="w-50" variant="outline" onClick={navigateBack} disabled={isEmptyPrevs()}>
                                 <ArrowLeft />
                             </Button>
                         </TooltipTrigger>
@@ -64,7 +64,7 @@ export default function ArchiveSidebar()
                     
                     <Tooltip delayDuration={700}>
                         <TooltipTrigger asChild>
-                            <Button className="w-30" variant="outline" onClick={navigateForward} disabled={isEmptyNexts()}>
+                            <Button className="w-50" variant="outline" onClick={navigateForward} disabled={isEmptyNexts()}>
                                 <ArrowRight />
                             </Button>
                         </TooltipTrigger>
@@ -97,13 +97,6 @@ export default function ArchiveSidebar()
                         {editMode && <p>Stop editting</p>}
                     </TooltipContent>
                 </Tooltip>
-                
-                {/* <Button variant="outline" onClick={handleOpenClick} disabled={(!isLoading) && (fileType) && currentType === MetadataTypeEnum.RESOURCE ? false : true} className="flex-1">Download</Button>
-                
-                <div className="flex justify-center space-x-2">
-                    <Button variant="outline" onClick={navigateBack} className="w-[8rem]" disabled={isEmptyPrevs()}>Previous</Button>
-                    <Button variant="outline" onClick={navigateForward} className="w-[8rem]" disabled={isEmptyNexts()}>Next</Button>
-                </div> */}
             </div>
             
             {/* Content area */}

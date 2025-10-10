@@ -3,7 +3,7 @@
 import React from 'react';
 import { usePathname, useSearchParams, useRouter, ReadonlyURLSearchParams } from 'next/navigation';
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
-import { MetadataTypeEnum } from './left-sidebar-provider';
+import { MetadataTypeEnum } from './archive-sidebar-provider';
 import { ApiResponse } from '@/types/apiResponse.type';
 import { GridRequest, GridRequestSchema } from '@/types/gridRequest.type';
 

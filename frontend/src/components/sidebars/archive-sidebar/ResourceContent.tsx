@@ -19,12 +19,13 @@ import GetFileIcon from "@/components/getFileIcon";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createDebouncedUpdate } from "@/lib/debouncedUpdate";
-import { Fingerprint, Languages, Link, Scale, Tag, Trash } from "lucide-react";
+import { Fingerprint, Languages, Link, Scale, Tag } from "lucide-react";
 import { getLanguageLabel, LanguageCodes } from "@/lists/languageCodes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { removeResourceRelation } from "@/lib/relationManager";
+import { removeRelation } from "@/lib/relationManager";
 import AddRelationBadge from "./AddRelationBadge";
+import { RelationTrash } from "./relation-trash";
 
 interface ResourceContentProps
 {
@@ -65,7 +66,7 @@ interface ResourceType
 
 export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
 {
-    const { currentId, archiveSidebarOpen, setArchiveSidebarOpen, setCreationDate, setPublicationDate, setEditMode, editMode, navigate } = useArchiveSidebar();
+    const { currentId, archiveSidebarOpen, setArchiveSidebarOpen, setCreationDate, setPublicationDate, editMode, navigate } = useArchiveSidebar();
     const { userRole } = useUserRole();
     const { triggerGridReload, trashOpen } = useArchive();
     const [confirmDialogOpen, setConfirmDialogOpen] = React.useState<boolean>(false);
@@ -167,7 +168,7 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             
             setResourceTypes(data.body);
         }
-    }, [currentId, setCreationDate, setFileType, setPublicationDate]);
+    }, [currentId]);
 
     // Loads the related resources
     const loadRelatedResources = React.useCallback(async () =>
@@ -177,10 +178,9 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
         relatedResourcesPromise
             .then((response) =>
             {
-                const list: ListItem[] = response.body.map((item: { id: string; title: string; fileType: string }) => ({
+                const list: ListItem[] = response.body.map((item: { id: string; title: string }) => ({
                     id: item.id,
                     name: item.title,
-                    type: item.fileType,
                 }));
 
                 setContent(prevContent => ({
@@ -218,7 +218,6 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                 const list: ListItem[] = response.body.tags.map((item: string) => ({
                     id: item,
                     name: item,
-                    type: "ai-tag",
                 }));
 
                 const finalList = list.length > 10 ? list.sort(() => 0.5 - Math.random()).slice(0, 10) : list;
@@ -377,17 +376,18 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                         </TooltipContent>
                     </Tooltip>
                     {!editMode && (
-                    <a href={content.url || content.source || ""} className="select-none" target="_blank" rel="noreferror">
-                        <span className="ml-2 pt-0.25 text-sm text-blue-500 underline flex-1 h-full whitespace-nowrap overflow-hidden text-ellipsis">{content.url || content.source || "-"}</span>
-                    </a>
+                        <a href={content.url || content.source || ""} className="select-none pb-1" target="_blank" rel="noreferror">
+                            <span className="ml-2 pt-0.25 text-sm text-blue-500 underline flex-1 h-full whitespace-nowrap overflow-hidden text-ellipsis">{content.url || content.source || "-"}</span>
+                        </a>
                     )}
+                    
                     {editMode && (
-                        <Input type="text" className="ml-3 flex-1" value={content.url || content.source || ""} onChange={(e) =>
+                        <Input type="url" className="ml-3 flex-1" value={content.url || content.source || ""} onChange={(e) =>
                         {
                             const newValue = e.target.value;
                             if (content.url) 
                             {
-                                setContent(prevContent => ({ ...prevContent, url: newValue }))
+                                setContent(prevContent => ({ ...prevContent, url: newValue }));
                                 updateField("Url", newValue);
                             }
                             else 
@@ -464,42 +464,38 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                 { content.tags.map((tag) => (
                     <Badge key={tag.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () =>
                     {
-                        if (editMode) 
-                        {
-                            const success = await removeResourceRelation(currentId, "tags", tag.id);
-                            if (success)
-                            {
-                                setContent(prevContent =>
-                                ({
-                                    ...prevContent,
-                                    tags: prevContent.tags.filter(t => t.id !== tag.id)
-                                }));
-                            }
-                        }
-                        else 
-                        {
-                            // TODO: ADD TAG FILTER
-                        }
+                        if (editMode) return;
+                        
+                        // TODO: APPLY EDIT FILTER
                     }}>
                         <span className="truncate">{tag.name}</span>
-                        {editMode && (<Trash className="text-red-500 ml-1" />)}
+                        {editMode && (
+                            <RelationTrash
+                                removeAction={() => removeRelation("resources", currentId, "tags", tag.id)}
+                                successAction={() => setContent(prevContent => ({
+                                    ...prevContent,
+                                    tags: prevContent.tags.filter(t => t.id !== tag.id)
+                                }))}
+                            />
+                        )}
                     </Badge>
                 )) }
                 {editMode && (
                     <AddRelationBadge
-                        resourceId={currentId}
+                        entityType="resources"
+                        entityId={currentId}
                         relationType="tags"
                         searchEndpoint="/api/tags/tags"
                         alreadyRelated={content.tags}
                         onAdd={(newTags) => {
-                            const newTagsWithType = newTags.map(tag => ({ ...tag, type: "tag" }));
                             setContent(prevContent => ({
                                 ...prevContent,
-                                tags: [...prevContent.tags, ...newTagsWithType]
+                                tags: [...prevContent.tags, ...newTags]
                             }));
                         }}
                         placeholder="Search tags..."
                         allowMultiple={true}
+                        title="Add Tags"
                     />
                 )}
             </Expandable>
@@ -514,46 +510,41 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                 { content.authors.map((author) => (
                     <Badge key={author.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
                     {
-                        if (editMode)
-                        {
-                            const success = await removeResourceRelation(currentId, "authors", author.id);
-                            if (success) 
-                            {
-                                setContent(prevContent => (
-                                {
-                                    ...prevContent,
-                                    authors: prevContent.authors.filter(a => a.id !== author.id)
-                                }));
-                            }
-                        }
-                        else 
-                        {
-                            navigate(author.id, MetadataTypeEnum.PERSON);
-                        }
+                        if (editMode) return
+                        
+                        navigate(author.id, MetadataTypeEnum.PERSON);
                     }}>
                         <span className="truncate">{author.name}</span>
-                        {editMode && (<Trash className="text-red-500 ml-1" />)}
+                        {editMode && (
+                            <RelationTrash
+                                removeAction={() => removeRelation("resources", currentId, "authors", author.id)}
+                                successAction={() => setContent(prevContent => ({
+                                    ...prevContent,
+                                    authors: prevContent.authors.filter(a => a.id !== author.id)
+                                }))}
+                            />
+                        )}
                     </Badge>
                 )) }
                 
                 { editMode && (
                     <AddRelationBadge
-                        resourceId={currentId}
+                        entityType="resources"
+                        entityId={currentId}
                         relationType="authors"
                         searchEndpoint="/api/persons/list"
                         searchMethod="GET"
                         alreadyRelated={content.authors}
                         onAdd={(newAuthors) =>
                         {
-                            const newAuthorsWithType = newAuthors.map(author => ({ ...author, type: "author" }));
-                            setContent(prevContent => (
-                            {
+                            setContent(prevContent => ({
                                 ...prevContent,
-                                authors: [...prevContent.authors, ...newAuthorsWithType]
+                                authors: [...prevContent.authors, ...newAuthors]
                             }));
                         }}
                         placeholder="Search people..."
                         allowMultiple={true}
+                        title="Add Authors"
                     />
                 )}
             </Expandable>
@@ -563,46 +554,41 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                 { content.organisations.map((organisation) => (
                     <Badge key={organisation.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
                     {
-                        if (editMode) 
-                        {
-                            const success = await removeResourceRelation(currentId, "organisations", organisation.id);
-                            if (success) 
-                            {
-                                setContent(prevContent => (
-                                {
-                                    ...prevContent,
-                                    organisations: prevContent.organisations.filter(o => o.id !== organisation.id)
-                                }));
-                            }
-                        }
-                        else 
-                        {
-                            navigate(organisation.id, MetadataTypeEnum.ORGANISATION);
-                        }
+                        if (editMode) return;
+                        
+                        navigate(organisation.id, MetadataTypeEnum.ORGANISATION);
                     }}>
                         <span className="truncate">{organisation.name}</span>
-                        {editMode && (<Trash className="text-red-500 ml-1" />)}
+                        {editMode && (
+                            <RelationTrash
+                                removeAction={() => removeRelation("resources", currentId, "organisations", organisation.id)}
+                                successAction={() => setContent(prevContent => ({
+                                    ...prevContent,
+                                    organisations: prevContent.organisations.filter(o => o.id !== organisation.id)
+                                }))}
+                            />
+                        )}
                     </Badge>
                 ))}
                 
                 {editMode && (
                     <AddRelationBadge
-                        resourceId={currentId}
+                        entityType="resources"
+                        entityId={currentId}
                         relationType="organisations"
                         searchEndpoint="/api/organisations/list"
                         searchMethod="GET"
                         alreadyRelated={content.organisations}
-                        onAdd={(newOrganisations) => 
+                        onAdd={(newOrganisations) =>
                         {
-                            const newOrganisationsWithType = newOrganisations.map(organisation => ({ ...organisation, type: "organisation" }));
-                            setContent(prevContent => (
-                            {
+                            setContent(prevContent => ({
                                 ...prevContent,
-                                organisations: [...prevContent.organisations, ...newOrganisationsWithType]
+                                organisations: [...prevContent.organisations, ...newOrganisations]
                             }));
                         }}
                         placeholder="Search organisations..."
                         allowMultiple={true}
+                        title="Add Organisations"
                     />
                 )}
             </Expandable>
@@ -612,46 +598,41 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                 { content.relatedPersons.map((person) => (
                     <Badge key={person.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
                     {
-                        if (editMode) 
-                        {
-                            const success = await removeResourceRelation(currentId, "related-persons", person.id);
-                            if (success) 
-                            {
-                                setContent(prevContent => (
-                                {
-                                    ...prevContent,
-                                    relatedPersons: prevContent.relatedPersons.filter(p => p.id !== person.id)
-                                }));
-                            }
-                        }
-                        else 
-                        {
-                            navigate(person.id, MetadataTypeEnum.PERSON);
-                        }
+                        if (editMode) return;
+                        
+                        navigate(person.id, MetadataTypeEnum.PERSON);
                     }}>
                         <span className="truncate">{person.name}</span>
-                        {editMode && (<Trash className="text-red-500 ml-1" />)}
+                        {editMode && (
+                            <RelationTrash
+                                removeAction={() => removeRelation("resources", currentId, "related-persons", person.id)}
+                                successAction={() => setContent(prevContent => ({
+                                    ...prevContent,
+                                    relatedPersons: prevContent.relatedPersons.filter(p => p.id !== person.id)
+                                }))}
+                            />
+                        )}
                     </Badge>
                 ))}
                 
                 {editMode && (
                     <AddRelationBadge
-                        resourceId={currentId}
+                        entityType="resources"
+                        entityId={currentId}
                         relationType="related-persons"
                         searchEndpoint="/api/persons/list"
                         searchMethod="GET"
                         alreadyRelated={content.relatedPersons}
-                        onAdd={(newRelatedPersons) => 
+                        onAdd={(newRelatedPersons) =>
                         {
-                            const newRelatedPersonsWithType = newRelatedPersons.map(person => ({ ...person, type: "related-persons" }));
-                            setContent(prevContent => (
-                            {
+                            setContent(prevContent => ({
                                 ...prevContent,
-                                relatedPersons: [...prevContent.relatedPersons, ...newRelatedPersonsWithType]
+                                relatedPersons: [...prevContent.relatedPersons, ...newRelatedPersons]
                             }));
                         }}
                         placeholder="Search people..."
                         allowMultiple={true}
+                        title="Add Related People"
                     />
                 )}
             </Expandable>
@@ -661,46 +642,41 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                 { content.relatedOrganisations.map((organisation) => (
                     <Badge key={organisation.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
                     {
-                        if (editMode) 
-                        {
-                            const success = await removeResourceRelation(currentId, "related-organisations", organisation.id);
-                            if (success) 
-                            {
-                                setContent(prevContent => (
-                                {
-                                    ...prevContent,
-                                    relatedOrganisations: prevContent.relatedOrganisations.filter(o => o.id !== organisation.id)
-                                }));
-                            }
-                        }
-                        else 
-                        {
-                            navigate(organisation.id, MetadataTypeEnum.ORGANISATION);
-                        }
+                        if (editMode) return;
+                        
+                        navigate(organisation.id, MetadataTypeEnum.ORGANISATION);
                     }}>
                         <span className="truncate">{organisation.name}</span>
-                        {editMode && (<Trash className="text-red-500 ml-1" />)}
+                        {editMode && (
+                            <RelationTrash
+                                removeAction={() => removeRelation("resources", currentId, "related-organisations", organisation.id)}
+                                successAction={() => setContent(prevContent => ({
+                                    ...prevContent,
+                                    relatedOrganisations: prevContent.relatedOrganisations.filter(o => o.id !== organisation.id)
+                                }))}
+                            />
+                        )}
                     </Badge>
                 ))}
                 
-                {editMode && (
+                { editMode && (
                     <AddRelationBadge
-                        resourceId={currentId}
+                        entityType="resources"
+                        entityId={currentId}
                         relationType="related-organisations"
                         searchEndpoint="/api/organisations/list"
                         searchMethod="GET"
                         alreadyRelated={content.relatedOrganisations}
-                        onAdd={(newRelatedOrganisations) => 
+                        onAdd={(newRelatedOrganisations) =>
                         {
-                            const newRelatedOrganisationsWithType = newRelatedOrganisations.map(organisation => ({ ...organisation, type: "related-organisations" }));
-                            setContent(prevContent => (
-                            {
+                            setContent(prevContent => ({
                                 ...prevContent,
-                                relatedOrganisations: [...prevContent.relatedOrganisations, ...newRelatedOrganisationsWithType]
+                                relatedOrganisations: [...prevContent.relatedOrganisations, ...newRelatedOrganisations]
                             }));
                         }}
                         placeholder="Search organisations..."
                         allowMultiple={true}
+                        title="Add Related Organisations"
                     />
                 )}
             </Expandable>
@@ -713,27 +689,43 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                 { content.regions.map((region) => (
                     <Badge key={region.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
                     {
-                        if (editMode) 
-                        {
-                            const success = await removeResourceRelation(currentId, "regions", region.id);
-                            if (success) 
-                            {
-                                setContent(prevContent => (
-                                {
-                                    ...prevContent,
-                                    regions: prevContent.regions.filter(r => r.id != region.id)
-                                }));
-                            }
-                        }
-                        else 
-                        {
-                            // TODO: REGION FILTER ON
-                        }
+                        if (editMode) return;
+                        
+                        // TODO: REGION FILTER ON
                     }}>
                         <span className="truncate">{region.name}</span>
-                        {editMode && (<Trash className="text-red-500 ml-1" />)}
+                        {editMode && (
+                            <RelationTrash
+                                removeAction={() => removeRelation("resources", currentId, "regions", region.id)}
+                                successAction={() => setContent(prevContent => ({
+                                    ...prevContent,
+                                    regions: prevContent.regions.filter(o => o.id !== region.id)
+                                }))}
+                            />
+                        )}
                     </Badge>
                 ))}
+                
+                { editMode && (
+                    <AddRelationBadge
+                        entityType="resources"
+                        entityId={currentId}
+                        relationType="regions"
+                        searchEndpoint="/api/regions/list"
+                        searchMethod="GET"
+                        alreadyRelated={content.regions}
+                        onAdd={(newRegions) =>
+                        {
+                            setContent(prevContent => ({
+                                ...prevContent,
+                                regions: [...prevContent.regions, ...newRegions]
+                            }));
+                        }}
+                        placeholder="Search regions..."
+                        allowMultiple={true}
+                        title="Add Regions"
+                    />
+                )}
             </Expandable>
 
             {/* Abstract */}

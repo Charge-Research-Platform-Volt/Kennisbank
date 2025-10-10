@@ -6,6 +6,7 @@ import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import Stack from "@/lib/stack";
 import { ApiResponse } from "@/types/apiResponse.type";
 import { useLeftSidebar } from "./left-sidebar-provider";
+import { toast } from "sonner"
 
 // --------------------------------------------------------
 // TYPES AND ENUMS
@@ -282,6 +283,13 @@ export const ArchiveSidebarProvider = ({ archiveSidebarDefaultState = false, chi
             clearUrlId();
         }
     }, [archiveSidebarOpen, currentId, prevs, nexts, clearUrlId]);
+    
+    // On edit mode close
+    React.useEffect(() => 
+    {
+        if (!editMode)
+            toast.success("Changes saved.");
+    }, [editMode])
     
     // Hotkeys
     useHotkeys('esc', closeArchiveSidebar);

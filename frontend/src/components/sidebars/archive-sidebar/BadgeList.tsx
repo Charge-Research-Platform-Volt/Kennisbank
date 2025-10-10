@@ -14,7 +14,6 @@ export interface ListItem
 {
     id: string,
     name: string,
-    type: string, //if "tag" it applies the tag as filter, if "source" it opens the url in a new tab, else it navigates to selected source,organisation,person
 }
 
 interface BadgeListProps
@@ -111,7 +110,7 @@ export default function BadgeList({
         try {
             const tagid = await tryAddNewTag(item.name);
             await addRelation("tags", currentType, currentId, tagid)
-            onNew([{id: tagid, name: item.name, type: "tag"}]);
+            onNew([{id: tagid, name: item.name}]);
         }
         catch (error) {
             console.error("Error adding recommended tag:", error)
