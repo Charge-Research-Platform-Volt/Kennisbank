@@ -284,13 +284,6 @@ export const ArchiveSidebarProvider = ({ archiveSidebarDefaultState = false, chi
         }
     }, [archiveSidebarOpen, currentId, prevs, nexts, clearUrlId]);
     
-    // On edit mode close
-    React.useEffect(() => 
-    {
-        if (!editMode)
-            toast.success("Changes saved.");
-    }, [editMode])
-    
     // Hotkeys
     useHotkeys('esc', closeArchiveSidebar);
     
