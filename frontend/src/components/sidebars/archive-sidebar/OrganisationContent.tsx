@@ -387,33 +387,15 @@ export function OrganisationContent()
                 )}
             </Expandable>
             
-            {/* 
-
-            <Expandable variant="horizontal" title="Related People">
-                <BadgeList listType="persons" itemList={persons} onNew={(newItems) => setPersons(persons ? persons.concat(newItems) : newItems)} onRemove={(removedItem) => setPersons(persons ? persons.filter((item) => item != removedItem) : [])} />
-            </Expandable>
-
-            <div className="w-full flex justify-center mt-10">
-                <div className="flex gap-4">
-                    <Button
-                        onClick={() => setEditMode(!editMode)}
-                        variant={editMode ? "default" : "outline"}
-                        className={editMode ? "bg-green-600 hover:bg-green-700 text-white" : "text-gray-700 border-gray-300 hover:bg-gray-100"}
-                    >
-                        {editMode ? "Disable Edit Mode" : "Enable Edit Mode"}
+            {/* Delete Button */}
+            {userRole === "admin" && !trashOpen && editMode &&
+            (
+                <div className="mt-10 flex w-full justify-center">
+                    <Button onClick={() => setConfirmDialogOpen(true)} variant="outline" className="border-red-500 text-red-500 hover:border-red-600 hover:bg-red-50 hover:text-red-600">
+                        Delete Organisation
                     </Button>
-
-                    {userRole === 'admin' && !trashOpen && (
-                        <Button
-                            onClick={() => setConfirmDialogOpen(true)}
-                            variant="outline"
-                            className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600"
-                        >
-                            Delete Resource
-                        </Button>
-                    )}
                 </div>
-            </div> */}
+            )}
         </>
     )
 }

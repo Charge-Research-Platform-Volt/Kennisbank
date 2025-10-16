@@ -26,16 +26,19 @@ public static class DatabaseContextExtensions
             // Step 1: Drop existing objects
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP TRIGGER IF EXISTS refresh_grid_on_resource_change ON ""resources"";");
-            
+
+            await context.Database.ExecuteSqlRawAsync(@"
+                DROP TRIGGER IF EXISTS refresh_grid_on_entity_change ON ""entities"";");
+
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP TRIGGER IF EXISTS refresh_grid_on_person_change ON ""persons"";");
-            
+
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP TRIGGER IF EXISTS refresh_grid_on_organisation_change ON ""organisations"";");
-            
+
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP FUNCTION IF EXISTS refresh_resource_grid_view();");
-            
+
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP MATERIALIZED VIEW IF EXISTS ResourceGridView;");
 
@@ -145,6 +148,12 @@ public static class DatabaseContextExtensions
                     EXECUTE FUNCTION refresh_resource_grid_view();");
 
             await context.Database.ExecuteSqlRawAsync(@"
+                CREATE TRIGGER refresh_grid_on_entity_change
+                    AFTER INSERT OR UPDATE OR DELETE ON ""entities""
+                    FOR EACH STATEMENT
+                    EXECUTE FUNCTION refresh_resource_grid_view();");
+
+            await context.Database.ExecuteSqlRawAsync(@"
                 CREATE TRIGGER refresh_grid_on_person_change
                     AFTER INSERT OR UPDATE OR DELETE ON ""persons""
                     FOR EACH STATEMENT
@@ -175,16 +184,19 @@ public static class DatabaseContextExtensions
             // Step 1: Drop existing objects
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP TRIGGER IF EXISTS refresh_trash_on_resource_change ON ""resources"";");
-            
+
+            await context.Database.ExecuteSqlRawAsync(@"
+                DROP TRIGGER IF EXISTS refresh_trash_on_entity_change ON ""entities"";");
+
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP TRIGGER IF EXISTS refresh_trash_on_person_change ON ""persons"";");
-            
+
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP TRIGGER IF EXISTS refresh_trash_on_organisation_change ON ""organisations"";");
-            
+
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP FUNCTION IF EXISTS refresh_resource_trash_view();");
-            
+
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP MATERIALIZED VIEW IF EXISTS ResourceTrashView;");
 
@@ -250,6 +262,12 @@ public static class DatabaseContextExtensions
             await context.Database.ExecuteSqlRawAsync(@"
                 CREATE TRIGGER refresh_trash_on_resource_change
                     AFTER INSERT OR UPDATE OR DELETE ON ""resources""
+                    FOR EACH STATEMENT
+                    EXECUTE FUNCTION refresh_resource_trash_view();");
+
+            await context.Database.ExecuteSqlRawAsync(@"
+                CREATE TRIGGER refresh_trash_on_entity_change
+                    AFTER INSERT OR UPDATE OR DELETE ON ""entities""
                     FOR EACH STATEMENT
                     EXECUTE FUNCTION refresh_resource_trash_view();");
 
