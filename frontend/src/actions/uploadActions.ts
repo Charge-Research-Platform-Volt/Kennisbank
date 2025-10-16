@@ -2,19 +2,7 @@ import { z } from "zod"
 import { ResourceCreateDto, WebsiteCreateDto, DocumentCreateDto, VideoCreateDto, AudioCreateDto, FileResourceCreateDto, PersonCreateDto, OrganisationCreateDto, LargeFileFinalizeDto } from "@/types/uploadTypes"
 import { resourceCreateFormSchema } from "@/components/new/NewResource"
 import { ApiResponse } from "@/types/apiResponse.type";
-
-
-/**
- * Helper function to convert dates to UTC ISO strings
- */
-const convertToUTCDate = (dateValue: string): string => {
-  if (/^\d{4}-\d{2}-\d{2}/.test(dateValue)) {
-    // Create a date object and convert to UTC ISO string
-    const date = new Date(dateValue);
-    return date.toISOString();
-  }
-  return dateValue;
-};
+import { convertToUTCDate } from "@/lib/dateUtils";
 
 /**
  * Creates a base resource DTO from form data

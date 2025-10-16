@@ -9,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import HideMenu from "@/icons/menu/hide-menu";
 import { ArrowLeft, ArrowRight, Calendar, Clock, Download, Pencil, PencilOff } from "lucide-react";
 import ShowDate from './showDate';
+import EditableDate from './EditableDate';
 import { handleOpenFile } from "@/actions/openFileActionsClient";
 import { useArchiveSidebar, MetadataTypeEnum } from "@/context/archive-sidebar-provider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { convertToUTCDate } from "@/lib/dateUtils";
 
 /**
  *
@@ -19,17 +21,41 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
  */
 export default function ArchiveSidebar()
 {
-    const { currentType, creationDate, publicationDate, currentId, archiveSidebarOpen, navigateBack, navigateForward, setArchiveSidebarOpen, isEmptyPrevs, isEmptyNexts, setEditMode, editMode } = useArchiveSidebar();
+    const { currentType, creationDate, publicationDate, setPublicationDate, currentId, archiveSidebarOpen, navigateBack, navigateForward, setArchiveSidebarOpen, isEmptyPrevs, isEmptyNexts, setEditMode, editMode } = useArchiveSidebar();
 
     const [isLoading, setLoading] = React.useState<boolean>(false);
     const [fileType, setFileType] = React.useState<string | null>(null);
 
-
-    const handleOpenClick = async () => 
+    const handleOpenClick = async () =>
     {
         setLoading(true);
         await handleOpenFile(currentId, fileType as string)
         setLoading(false);
+    }
+
+    const handlePublicationDateChange = async (newDate: Date | null) =>
+    {
+        setPublicationDate(newDate);
+
+        // Update the publication date in the backend
+        try {
+            const response = await fetch(`/api/resources/update/${currentId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    publicationDate: newDate ? convertToUTCDate(newDate) : null
+                })
+            });
+
+            if (!response.ok) {
+                console.error('Failed to update publication date');
+            }
+        } catch (error) {
+            console.error('Error updating publication date:', error);
+        }
     }
 
     
@@ -126,16 +152,19 @@ export default function ArchiveSidebar()
                         cName="flex items-center gap-2 min-w-0"
                     />
                 )}
-                
+
                 {creationDate && publicationDate && (
                     <div className="w-px h-full bg-gray-300" />
                 )}
-                
-                {publicationDate && (
-                    <ShowDate date={publicationDate}
+
+                {(publicationDate || (editMode && currentType === MetadataTypeEnum.RESOURCE)) && (
+                    <EditableDate
+                        date={publicationDate}
                         text="Published"
                         icon={<Calendar className="w-4 h-4 flex-shrink-0"/>}
                         cName="flex items-center gap-2 min-w-0"
+                        editMode={editMode && currentType === MetadataTypeEnum.RESOURCE}
+                        onDateChange={handlePublicationDateChange}
                     />
                 )}
             </div>
