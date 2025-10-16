@@ -1,10 +1,10 @@
 "use client"
 
-import React, { JSX } from "react";
+import React from "react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { ChevronsUpDown } from "lucide-react";
 
-interface ExpandableProps 
+interface ExpandableProps
 {
     title: string;
     children?: React.ReactNode;
@@ -12,23 +12,32 @@ interface ExpandableProps
     fadeColor?: string;
     variant?: "vertical" | "horizontal";
     minHeight?: number;
+    hidden?: boolean;
+    defaultOpen?: boolean;
 }
 
 export default function Expandable({
-    title, 
-    children, 
+    title,
+    children,
     collapsedHeight = 50,
     fadeColor = "bg-gray-50",
     variant = "vertical",
     minHeight = 30,
-}: ExpandableProps) 
+    hidden = false,
+    defaultOpen = false,
+}: ExpandableProps)
 {
-    const [open, setOpen] = React.useState<boolean>(false);
+    const [open, setOpen] = React.useState<boolean>(defaultOpen);
     const [contentHeight, setContentHeight] = React.useState<number>(0);
     const contentRef = React.useRef<HTMLDivElement>(null);
-    
+
     const isHorizontal = variant === "horizontal";
-    
+
+    // Update open state when defaultOpen changes
+    React.useEffect(() => {
+        setOpen(defaultOpen);
+    }, [defaultOpen]);
+
     // Measure content height when component mounts or children change
     React.useEffect(() => {
         if (contentRef.current) {
@@ -60,7 +69,7 @@ export default function Expandable({
         : fadeColor;
     
     return (
-        <div className="w-full relative mb-3">
+        <div className="w-full relative mb-3" hidden={hidden}>
             <Collapsible open={open} onOpenChange={setOpen} className="w-full">
                 <CollapsibleTrigger className="w-full cursor-pointer">
                     <div className="w-full flex items-center gap-2">

@@ -21,7 +21,7 @@ namespace KnowledgeBank.Data
 
             Guid resourceId = Guid.NewGuid();
 
-            // Construct resource 
+            // Construct resource
             Resource resource = new()
             {
                 Id = resourceId,
@@ -33,6 +33,7 @@ namespace KnowledgeBank.Data
                 PublicationDate = dto.PublicationDate,
                 License = dto.License,
                 Note = dto.Note,
+                SourceUrl = dto.SourceUrl,
                 FileType = "unknown",
                 CreationDate = DateTime.UtcNow,
                 Trashed = false,
@@ -61,23 +62,14 @@ namespace KnowledgeBank.Data
             // Add author relations to database
             await AddAuthorToResourceRangeAsync(resourceId, dto.Authors);
 
-            // Add direct organisation relations to database
+            // Add organisation relations to database
             await AddOrganisationToResourceRangeAsync(resourceId, dto.Organisations.Select((entry) => entry.Id).ToArray(), dto.Organisations.Select((entry) => entry.Relation).ToArray());
 
             // Add region relations to database
             await AddRegionToResourceRangeAsync(resourceId, dto.Regions);
 
-            // Add indirect related organisation relations to database
-            await AddRelatedOrganisationToResourceRangeAsync(resourceId, dto.RelatedOrganisations.Select((entry) => entry.Id).ToArray(), dto.RelatedOrganisations.Select((entry) => entry.Relation).ToArray());
-
             // Add non-author related person relations to database
             await AddRelatedPersonToResourceRangeAsync(resourceId, dto.RelatedPersons.Select((entry) => entry.Id).ToArray(), dto.RelatedPersons.Select((entry) => entry.Relation).ToArray());
-
-            // Add all sources to database
-            await AddSourceToResourceRangeAsync(resourceId, dto.Sources);
-
-            // Add related source relations to database
-            await AddRelatedSourceToResourceRangeAsync(resourceId, dto.RelatedSources);
 
             if (startedTransaction) await Commit();
 

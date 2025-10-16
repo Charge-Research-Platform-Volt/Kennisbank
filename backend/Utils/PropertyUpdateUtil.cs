@@ -58,7 +58,9 @@ namespace KnowledgeBank.Utils
             // Handle DateTime conversion
             if (targetType == typeof(DateTime) && value is string dateString)
             {
-                return DateTime.Parse(dateString);
+                DateTime parsedDate = DateTime.Parse(dateString);
+                // Ensure UTC kind for all DateTime values coming from the frontend
+                return DateTime.SpecifyKind(parsedDate, DateTimeKind.Utc);
             }
 
             // Handle boolean conversion
@@ -97,7 +99,11 @@ namespace KnowledgeBank.Utils
                             else if (targetType == typeof(Guid))
                                 return Guid.Parse(stringValue);
                             else if (targetType == typeof(DateTime))
-                                return DateTime.Parse(stringValue);
+                            {
+                                DateTime parsedDate = DateTime.Parse(stringValue);
+                                // Ensure UTC kind for all DateTime values coming from the frontend
+                                return DateTime.SpecifyKind(parsedDate, DateTimeKind.Utc);
+                            }
                             else if (targetType.IsEnum)
                                 return Enum.Parse(targetType, stringValue, true);
                             else

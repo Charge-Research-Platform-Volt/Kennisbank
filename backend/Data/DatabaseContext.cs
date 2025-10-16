@@ -18,6 +18,7 @@ namespace KnowledgeBank.Data
         public DbSet<WebsiteMetadata> WebsiteMetadata { get; set; }
         public DbSet<AudioMetadata> AudioMetadata { get; set; }
         public DbSet<VideoMetadata> VideoMetadata { get; set; }
+        public DbSet<Entity> Entities { get; set; }
         public DbSet<Person> Persons { get; set; }
         public DbSet<Organisation> Organisations { get; set; }
         public DbSet<Region> Regions { get; set; }
@@ -29,13 +30,11 @@ namespace KnowledgeBank.Data
         public DbSet<ResourceAuthorRelation> ResourceAuthorRelations { get; set; }
         public DbSet<ResourceRelatedPersonRelation> ResourceRelatedPersonRelations { get; set; }
         public DbSet<ResourceOrganisationRelation> ResourceOrganisationRelations { get; set; }
-        public DbSet<ResourceRelatedOrganisationRelation> ResourceRelatedOrganisationRelations { get; set; }
         public DbSet<PersonOrganisationRelation> PersonOrganisationRelations { get; set; }
         public DbSet<PersonRelationship> PersonRelationships { get; set; }
         public DbSet<OrganisationRelationship> OrganisationRelationships { get; set; }
         public DbSet<ResourceRegionRelation> ResourceRegionRelations { get; set; }
         public DbSet<ResourceSourceRelation> ResourceSourceRelations { get; set; }
-        public DbSet<ResourceRelatedSourceRelation> ResourceRelatedSourceRelations { get; set; }
         public DbSet<ProjectFolderRelation> ProjectFolderRelations { get; set; }
         public DbSet<ProjectTagRelation> ProjectTagRelations { get; set; }
         public DbSet<ProjectResourceRelation> ProjectResourceRelations { get; set; }
@@ -50,19 +49,33 @@ namespace KnowledgeBank.Data
         {
             // modelBuilder.HasPostgresExtension("pg_trgm");
 
+            // Configure TPT inheritance for Entity hierarchy
+            modelBuilder.Entity<Entity>()
+                .UseTptMappingStrategy();
+
+            modelBuilder.Entity<Person>()
+                .ToTable("persons");
+
+            modelBuilder.Entity<Organisation>()
+                .ToTable("organisations");
+
             modelBuilder.Entity<ResourceTagRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.TagId }); // Define composite primary key
 
             modelBuilder.Entity<ResourceAuthorRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.AuthorId});
+
+            // Configure ResourceAuthorRelation to reference Entity base class
+            modelBuilder.Entity<ResourceAuthorRelation>()
+                .HasOne(ra => ra.Author)
+                .WithMany(e => e.ResourceAuthorRelations)
+                .HasForeignKey(ra => ra.AuthorId)
+                .OnDelete(DeleteBehavior.NoAction);
                 
             modelBuilder.Entity<ResourceRelatedPersonRelation>()
                .HasKey(ft => new { ft.ResourceId, ft.PersonId });
 
             modelBuilder.Entity<ResourceOrganisationRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.OrganisationId });
-
-            modelBuilder.Entity<ResourceRelatedOrganisationRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.OrganisationId });
 
             modelBuilder.Entity<PersonOrganisationRelation>()
@@ -78,9 +91,6 @@ namespace KnowledgeBank.Data
                 .HasKey(ft => new { ft.ResourceId, ft.RegionId });
 
             modelBuilder.Entity<ResourceSourceRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.Url });
-
-            modelBuilder.Entity<ResourceRelatedSourceRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.Url });
 
             modelBuilder.Entity<OrganisationRelationship>()

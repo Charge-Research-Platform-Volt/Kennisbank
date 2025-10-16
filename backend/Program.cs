@@ -184,8 +184,13 @@ namespace KnowledgeBank
             // # Application
             WebApplication app = builder.Build();
 
-            // # Create database if it does not exist
-            app.EnsureCreatedDatabase();
+            // # Apply pending migrations automatically
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+                await db.Database.MigrateAsync();
+                Log.Information("Database migrations applied successfully");
+            }
 
             // # Reset database if env var is set
             if (app.Configuration.GetValue<bool>("RESET_DATABASE")) 

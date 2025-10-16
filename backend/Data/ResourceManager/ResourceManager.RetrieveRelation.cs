@@ -464,118 +464,6 @@ namespace KnowledgeBank.Data
 
         #endregion
 
-        #region ResourceOrganisationRelation
-
-        // ResourceOrganisationRelation itself
-
-        private readonly Expression<Func<ResourceOrganisationRelation, object>> resourceOrganisationRelationDefaultOrderBy = resourceOrganisationRelation => resourceOrganisationRelation.ResourceId;
-        private const bool resourceOrganisationRelationDefaultOrderDescending = true;
-
-
-        // Single
-
-        public async Task<ResourceOrganisationRelation?> GetResourceOrganisationRelationAsync(Expression<Func<ResourceOrganisationRelation, bool>> predicate, Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceOrganisationRelationDefaultOrderDescending, params string[] includeProperties)
-        {
-            orderBy ??= resourceOrganisationRelationDefaultOrderBy;
-
-            return await GetAsync(database.ResourceOrganisationRelations, predicate, orderBy, orderDescending, includeProperties);
-        }
-
-
-        public async Task<ResourceOrganisationRelation?> GetResourceOrganisationRelationAsync(Expression<Func<ResourceOrganisationRelation, bool>> predicate, params string[] includeProperties)
-        { return await GetAsync(database.ResourceOrganisationRelations, predicate, resourceOrganisationRelationDefaultOrderBy, resourceOrganisationRelationDefaultOrderDescending, includeProperties); }
-
-        // Multiple
-        public async Task<ResourceOrganisationRelation[]> GetAllResourceOrganisationRelationsAsync(Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceOrganisationRelationDefaultOrderDescending, Expression<Func<ResourceOrganisationRelation, bool>>? predicate = null)
-        {
-            orderBy ??= resourceOrganisationRelationDefaultOrderBy;
-
-            return await GetAllAsync(database.ResourceOrganisationRelations, orderBy, orderDescending, predicate);
-        }
-
-        public async Task<ResourceOrganisationRelation[]> GetAllResourceOrganisationRelationsAsync(Expression<Func<ResourceOrganisationRelation, bool>>? predicate = null, params string[] includeProperties)
-        { return await GetAllAsync(database.ResourceOrganisationRelations, resourceOrganisationRelationDefaultOrderBy, resourceOrganisationRelationDefaultOrderDescending, predicate, includeProperties); }
-
-        public async Task<ResourceOrganisationRelation[]> GetAllResourceOrganisationRelationsAsync(Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceOrganisationRelationDefaultOrderDescending, params string[] includeProperties)
-        { return await GetAllAsync(database.ResourceOrganisationRelations, orderBy, orderDescending, null, includeProperties); }
-
-        public async Task<ResourceOrganisationRelation[]> GetAllResourceOrganisationRelationsAsync(params string[] includeProperties)
-        { return await GetAllAsync(database.ResourceOrganisationRelations, resourceOrganisationRelationDefaultOrderBy, resourceOrganisationRelationDefaultOrderDescending, null, includeProperties); }
-
-        public async Task<ResourceOrganisationRelation[]> GetResourceOrganisationRelationPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceOrganisationRelationDefaultOrderDescending, Expression<Func<ResourceOrganisationRelation, bool>>? predicate = null)
-        {
-            orderBy ??= resourceOrganisationRelationDefaultOrderBy;
-
-            return await GetPageAsync(database.ResourceOrganisationRelations, pageIndex, pageSize, orderBy, orderDescending, predicate);
-        }
-
-        public async Task<ResourceOrganisationRelation[]> GetResourceOrganisationRelationPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceOrganisationRelation, bool>>? predicate = null, params string[] includeProperties)
-        { return await GetPageAsync(database.ResourceOrganisationRelations, pageIndex, pageSize, resourceOrganisationRelationDefaultOrderBy, resourceOrganisationRelationDefaultOrderDescending, predicate, includeProperties); }
-
-        public async Task<ResourceOrganisationRelation[]> GetResourceOrganisationRelationPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceOrganisationRelationDefaultOrderDescending, params string[] includeProperties)
-        {
-            orderBy ??= resourceOrganisationRelationDefaultOrderBy;
-
-            return await GetPageAsync(database.ResourceOrganisationRelations, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
-        }
-
-        public async Task<ResourceOrganisationRelation[]> GetResourceOrganisationRelationPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
-        { return await GetPageAsync(database.ResourceOrganisationRelations, pageIndex, pageSize, resourceOrganisationRelationDefaultOrderBy, resourceOrganisationRelationDefaultOrderDescending, null, includeProperties); }
-
-        // Multiple with projection
-        public async Task<dynamic> GetAllResourceOrganisationRelationsAsync(string projection, Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceOrganisationRelationDefaultOrderDescending, Expression<Func<ResourceOrganisationRelation, bool>>? predicate = null)
-        {
-            orderBy ??= resourceOrganisationRelationDefaultOrderBy;
-            return await GetAllAsync(database.ResourceOrganisationRelations, projection, orderBy, orderDescending, predicate);
-        }
-
-        public async Task<dynamic> GetAllResourceOrganisationRelationsAsync(string projection, Expression<Func<ResourceOrganisationRelation, bool>>? predicate = null, params string[] includeProperties)
-        { return await GetAllAsync(database.ResourceOrganisationRelations, projection, resourceOrganisationRelationDefaultOrderBy, resourceOrganisationRelationDefaultOrderDescending, predicate, includeProperties); }
-
-        public async Task<dynamic> GetAllResourceOrganisationRelationsAsync(string projection, Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceOrganisationRelationDefaultOrderDescending, params string[] includeProperties)
-        {
-            orderBy ??= resourceOrganisationRelationDefaultOrderBy;
-            return await GetAllAsync(database.ResourceOrganisationRelations, projection, orderBy, orderDescending, null, includeProperties);
-        }
-
-        public async Task<dynamic> GetAllResourceOrganisationRelationsAsync(string projection, params string[] includeProperties)
-        { return await GetAllAsync(database.ResourceOrganisationRelations, projection, resourceOrganisationRelationDefaultOrderBy, resourceOrganisationRelationDefaultOrderDescending, null, includeProperties); }
-
-        public async Task<dynamic> GetResourceOrganisationRelationPageAsync(string projection, int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceOrganisationRelationDefaultOrderDescending, Expression<Func<ResourceOrganisationRelation, bool>>? predicate = null)
-        {
-            orderBy ??= resourceOrganisationRelationDefaultOrderBy;
-            return await GetPageAsync(database.ResourceOrganisationRelations, projection, pageIndex, pageSize, orderBy, orderDescending, predicate);
-        }
-
-        public async Task<dynamic> GetResourceOrganisationRelationPageAsync(string projection, int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceOrganisationRelation, bool>>? predicate = null, params string[] includeProperties)
-        { return await GetPageAsync(database.ResourceOrganisationRelations, projection, pageIndex, pageSize, resourceOrganisationRelationDefaultOrderBy, resourceOrganisationRelationDefaultOrderDescending, predicate, includeProperties); }
-
-        public async Task<dynamic> GetResourceOrganisationRelationPageAsync(string projection, int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceOrganisationRelationDefaultOrderDescending, params string[] includeProperties)
-        {
-            orderBy ??= resourceOrganisationRelationDefaultOrderBy;
-            return await GetPageAsync(database.ResourceOrganisationRelations, projection, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
-        }
-
-        public async Task<dynamic> GetResourceOrganisationRelationPageAsync(string projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
-        { return await GetPageAsync(database.ResourceOrganisationRelations, projection, pageIndex, pageSize, resourceOrganisationRelationDefaultOrderBy, resourceOrganisationRelationDefaultOrderDescending, null, includeProperties); }
-
-
-        // Properties
-
-        public async Task<dynamic?> GetResourceOrganisationRelationPropertyAsync(Expression<Func<ResourceOrganisationRelation, bool>> predicate, string selector, Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceOrganisationRelationDefaultOrderDescending)
-        {
-            orderBy ??= resourceOrganisationRelationDefaultOrderBy;
-            return await GetPropertyAsync(database.ResourceOrganisationRelations, predicate, selector, orderBy, orderDescending);
-        }
-
-        public async Task<dynamic?> GetResourceOrganisationRelationPropertyOrDefaultAsync(Expression<Func<ResourceOrganisationRelation, bool>> predicate, string selector, Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceOrganisationRelationDefaultOrderDescending)
-        {
-            orderBy ??= resourceOrganisationRelationDefaultOrderBy;
-            return await GetPropertyOrDefaultAsync(database.ResourceOrganisationRelations, predicate, selector, orderBy, orderDescending);
-        }
-
-        #endregion
-
         #region ResourceRegionRelation
 
         // ResourceRegionRelation itself
@@ -688,114 +576,114 @@ namespace KnowledgeBank.Data
 
         #endregion
 
-        #region ResourceRelatedOrganisationRelation
+        #region ResourceOrganisationRelation
 
-        // ResourceRelatedOrganisationRelation itself
+        // ResourceOrganisationRelation itself
 
-        private readonly Expression<Func<ResourceRelatedOrganisationRelation, object>> resourceRelatedOrganisationRelationDefaultOrderBy = resourceRelatedOrganisationRelation => resourceRelatedOrganisationRelation.ResourceId;
+        private readonly Expression<Func<ResourceOrganisationRelation, object>> resourceRelatedOrganisationRelationDefaultOrderBy = resourceRelatedOrganisationRelation => resourceRelatedOrganisationRelation.ResourceId;
         private const bool resourceRelatedOrganisationRelationDefaultOrderDescending = true;
 
 
         // Single
 
-        public async Task<ResourceRelatedOrganisationRelation?> GetResourceRelatedOrganisationRelationAsync(Expression<Func<ResourceRelatedOrganisationRelation, bool>> predicate, Expression<Func<ResourceRelatedOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending, params string[] includeProperties)
+        public async Task<ResourceOrganisationRelation?> GetResourceOrganisationRelationAsync(Expression<Func<ResourceOrganisationRelation, bool>> predicate, Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending, params string[] includeProperties)
         {
             orderBy ??= resourceRelatedOrganisationRelationDefaultOrderBy;
 
-            return await GetAsync(database.ResourceRelatedOrganisationRelations, predicate, orderBy, orderDescending, includeProperties);
+            return await GetAsync(database.ResourceOrganisationRelations, predicate, orderBy, orderDescending, includeProperties);
         }
 
 
-        public async Task<ResourceRelatedOrganisationRelation?> GetResourceRelatedOrganisationRelationAsync(Expression<Func<ResourceRelatedOrganisationRelation, bool>> predicate, params string[] includeProperties)
-        { return await GetAsync(database.ResourceRelatedOrganisationRelations, predicate, resourceRelatedOrganisationRelationDefaultOrderBy, resourceRelatedOrganisationRelationDefaultOrderDescending, includeProperties); }
+        public async Task<ResourceOrganisationRelation?> GetResourceOrganisationRelationAsync(Expression<Func<ResourceOrganisationRelation, bool>> predicate, params string[] includeProperties)
+        { return await GetAsync(database.ResourceOrganisationRelations, predicate, resourceRelatedOrganisationRelationDefaultOrderBy, resourceRelatedOrganisationRelationDefaultOrderDescending, includeProperties); }
 
         // Multiple
-        public async Task<ResourceRelatedOrganisationRelation[]> GetAllResourceRelatedOrganisationRelationsAsync(Expression<Func<ResourceRelatedOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending, Expression<Func<ResourceRelatedOrganisationRelation, bool>>? predicate = null)
+        public async Task<ResourceOrganisationRelation[]> GetAllResourceOrganisationRelationsAsync(Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending, Expression<Func<ResourceOrganisationRelation, bool>>? predicate = null)
         {
             orderBy ??= resourceRelatedOrganisationRelationDefaultOrderBy;
 
-            return await GetAllAsync(database.ResourceRelatedOrganisationRelations, orderBy, orderDescending, predicate);
+            return await GetAllAsync(database.ResourceOrganisationRelations, orderBy, orderDescending, predicate);
         }
 
-        public async Task<ResourceRelatedOrganisationRelation[]> GetAllResourceRelatedOrganisationRelationsAsync(Expression<Func<ResourceRelatedOrganisationRelation, bool>>? predicate = null, params string[] includeProperties)
-        { return await GetAllAsync(database.ResourceRelatedOrganisationRelations, resourceRelatedOrganisationRelationDefaultOrderBy, resourceRelatedOrganisationRelationDefaultOrderDescending, predicate, includeProperties); }
+        public async Task<ResourceOrganisationRelation[]> GetAllResourceOrganisationRelationsAsync(Expression<Func<ResourceOrganisationRelation, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetAllAsync(database.ResourceOrganisationRelations, resourceRelatedOrganisationRelationDefaultOrderBy, resourceRelatedOrganisationRelationDefaultOrderDescending, predicate, includeProperties); }
 
-        public async Task<ResourceRelatedOrganisationRelation[]> GetAllResourceRelatedOrganisationRelationsAsync(Expression<Func<ResourceRelatedOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending, params string[] includeProperties)
-        { return await GetAllAsync(database.ResourceRelatedOrganisationRelations, orderBy, orderDescending, null, includeProperties); }
+        public async Task<ResourceOrganisationRelation[]> GetAllResourceOrganisationRelationsAsync(Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending, params string[] includeProperties)
+        { return await GetAllAsync(database.ResourceOrganisationRelations, orderBy, orderDescending, null, includeProperties); }
 
-        public async Task<ResourceRelatedOrganisationRelation[]> GetAllResourceRelatedOrganisationRelationsAsync(params string[] includeProperties)
-        { return await GetAllAsync(database.ResourceRelatedOrganisationRelations, resourceRelatedOrganisationRelationDefaultOrderBy, resourceRelatedOrganisationRelationDefaultOrderDescending, null, includeProperties); }
+        public async Task<ResourceOrganisationRelation[]> GetAllResourceOrganisationRelationsAsync(params string[] includeProperties)
+        { return await GetAllAsync(database.ResourceOrganisationRelations, resourceRelatedOrganisationRelationDefaultOrderBy, resourceRelatedOrganisationRelationDefaultOrderDescending, null, includeProperties); }
 
-        public async Task<ResourceRelatedOrganisationRelation[]> GetResourceRelatedOrganisationRelationPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceRelatedOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending, Expression<Func<ResourceRelatedOrganisationRelation, bool>>? predicate = null)
+        public async Task<ResourceOrganisationRelation[]> GetResourceOrganisationRelationPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending, Expression<Func<ResourceOrganisationRelation, bool>>? predicate = null)
         {
             orderBy ??= resourceRelatedOrganisationRelationDefaultOrderBy;
 
-            return await GetPageAsync(database.ResourceRelatedOrganisationRelations, pageIndex, pageSize, orderBy, orderDescending, predicate);
+            return await GetPageAsync(database.ResourceOrganisationRelations, pageIndex, pageSize, orderBy, orderDescending, predicate);
         }
 
-        public async Task<ResourceRelatedOrganisationRelation[]> GetResourceRelatedOrganisationRelationPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceRelatedOrganisationRelation, bool>>? predicate = null, params string[] includeProperties)
-        { return await GetPageAsync(database.ResourceRelatedOrganisationRelations, pageIndex, pageSize, resourceRelatedOrganisationRelationDefaultOrderBy, resourceRelatedOrganisationRelationDefaultOrderDescending, predicate, includeProperties); }
+        public async Task<ResourceOrganisationRelation[]> GetResourceOrganisationRelationPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceOrganisationRelation, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetPageAsync(database.ResourceOrganisationRelations, pageIndex, pageSize, resourceRelatedOrganisationRelationDefaultOrderBy, resourceRelatedOrganisationRelationDefaultOrderDescending, predicate, includeProperties); }
 
-        public async Task<ResourceRelatedOrganisationRelation[]> GetResourceRelatedOrganisationRelationPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceRelatedOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending, params string[] includeProperties)
+        public async Task<ResourceOrganisationRelation[]> GetResourceOrganisationRelationPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending, params string[] includeProperties)
         {
             orderBy ??= resourceRelatedOrganisationRelationDefaultOrderBy;
 
-            return await GetPageAsync(database.ResourceRelatedOrganisationRelations, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
+            return await GetPageAsync(database.ResourceOrganisationRelations, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
         }
 
-        public async Task<ResourceRelatedOrganisationRelation[]> GetResourceRelatedOrganisationRelationPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
-        { return await GetPageAsync(database.ResourceRelatedOrganisationRelations, pageIndex, pageSize, resourceRelatedOrganisationRelationDefaultOrderBy, resourceRelatedOrganisationRelationDefaultOrderDescending, null, includeProperties); }
+        public async Task<ResourceOrganisationRelation[]> GetResourceOrganisationRelationPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
+        { return await GetPageAsync(database.ResourceOrganisationRelations, pageIndex, pageSize, resourceRelatedOrganisationRelationDefaultOrderBy, resourceRelatedOrganisationRelationDefaultOrderDescending, null, includeProperties); }
 
         // Multiple with projection
-        public async Task<dynamic> GetAllResourceRelatedOrganisationRelationsAsync(string projection, Expression<Func<ResourceRelatedOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending, Expression<Func<ResourceRelatedOrganisationRelation, bool>>? predicate = null)
+        public async Task<dynamic> GetAllResourceOrganisationRelationsAsync(string projection, Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending, Expression<Func<ResourceOrganisationRelation, bool>>? predicate = null)
         {
             orderBy ??= resourceRelatedOrganisationRelationDefaultOrderBy;
-            return await GetAllAsync(database.ResourceRelatedOrganisationRelations, projection, orderBy, orderDescending, predicate);
+            return await GetAllAsync(database.ResourceOrganisationRelations, projection, orderBy, orderDescending, predicate);
         }
 
-        public async Task<dynamic> GetAllResourceRelatedOrganisationRelationsAsync(string projection, Expression<Func<ResourceRelatedOrganisationRelation, bool>>? predicate = null, params string[] includeProperties)
-        { return await GetAllAsync(database.ResourceRelatedOrganisationRelations, projection, resourceRelatedOrganisationRelationDefaultOrderBy, resourceRelatedOrganisationRelationDefaultOrderDescending, predicate, includeProperties); }
+        public async Task<dynamic> GetAllResourceOrganisationRelationsAsync(string projection, Expression<Func<ResourceOrganisationRelation, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetAllAsync(database.ResourceOrganisationRelations, projection, resourceRelatedOrganisationRelationDefaultOrderBy, resourceRelatedOrganisationRelationDefaultOrderDescending, predicate, includeProperties); }
 
-        public async Task<dynamic> GetAllResourceRelatedOrganisationRelationsAsync(string projection, Expression<Func<ResourceRelatedOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending, params string[] includeProperties)
+        public async Task<dynamic> GetAllResourceOrganisationRelationsAsync(string projection, Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending, params string[] includeProperties)
         {
             orderBy ??= resourceRelatedOrganisationRelationDefaultOrderBy;
-            return await GetAllAsync(database.ResourceRelatedOrganisationRelations, projection, orderBy, orderDescending, null, includeProperties);
+            return await GetAllAsync(database.ResourceOrganisationRelations, projection, orderBy, orderDescending, null, includeProperties);
         }
 
-        public async Task<dynamic> GetAllResourceRelatedOrganisationRelationsAsync(string projection, params string[] includeProperties)
-        { return await GetAllAsync(database.ResourceRelatedOrganisationRelations, projection, resourceRelatedOrganisationRelationDefaultOrderBy, resourceRelatedOrganisationRelationDefaultOrderDescending, null, includeProperties); }
+        public async Task<dynamic> GetAllResourceOrganisationRelationsAsync(string projection, params string[] includeProperties)
+        { return await GetAllAsync(database.ResourceOrganisationRelations, projection, resourceRelatedOrganisationRelationDefaultOrderBy, resourceRelatedOrganisationRelationDefaultOrderDescending, null, includeProperties); }
 
-        public async Task<dynamic> GetResourceRelatedOrganisationRelationPageAsync(string projection, int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceRelatedOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending, Expression<Func<ResourceRelatedOrganisationRelation, bool>>? predicate = null)
+        public async Task<dynamic> GetResourceOrganisationRelationPageAsync(string projection, int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending, Expression<Func<ResourceOrganisationRelation, bool>>? predicate = null)
         {
             orderBy ??= resourceRelatedOrganisationRelationDefaultOrderBy;
-            return await GetPageAsync(database.ResourceRelatedOrganisationRelations, projection, pageIndex, pageSize, orderBy, orderDescending, predicate);
+            return await GetPageAsync(database.ResourceOrganisationRelations, projection, pageIndex, pageSize, orderBy, orderDescending, predicate);
         }
 
-        public async Task<dynamic> GetResourceRelatedOrganisationRelationPageAsync(string projection, int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceRelatedOrganisationRelation, bool>>? predicate = null, params string[] includeProperties)
-        { return await GetPageAsync(database.ResourceRelatedOrganisationRelations, projection, pageIndex, pageSize, resourceRelatedOrganisationRelationDefaultOrderBy, resourceRelatedOrganisationRelationDefaultOrderDescending, predicate, includeProperties); }
+        public async Task<dynamic> GetResourceOrganisationRelationPageAsync(string projection, int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceOrganisationRelation, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetPageAsync(database.ResourceOrganisationRelations, projection, pageIndex, pageSize, resourceRelatedOrganisationRelationDefaultOrderBy, resourceRelatedOrganisationRelationDefaultOrderDescending, predicate, includeProperties); }
 
-        public async Task<dynamic> GetResourceRelatedOrganisationRelationPageAsync(string projection, int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceRelatedOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending, params string[] includeProperties)
+        public async Task<dynamic> GetResourceOrganisationRelationPageAsync(string projection, int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending, params string[] includeProperties)
         {
             orderBy ??= resourceRelatedOrganisationRelationDefaultOrderBy;
-            return await GetPageAsync(database.ResourceRelatedOrganisationRelations, projection, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
+            return await GetPageAsync(database.ResourceOrganisationRelations, projection, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
         }
 
-        public async Task<dynamic> GetResourceRelatedOrganisationRelationPageAsync(string projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
-        { return await GetPageAsync(database.ResourceRelatedOrganisationRelations, projection, pageIndex, pageSize, resourceRelatedOrganisationRelationDefaultOrderBy, resourceRelatedOrganisationRelationDefaultOrderDescending, null, includeProperties); }
+        public async Task<dynamic> GetResourceOrganisationRelationPageAsync(string projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
+        { return await GetPageAsync(database.ResourceOrganisationRelations, projection, pageIndex, pageSize, resourceRelatedOrganisationRelationDefaultOrderBy, resourceRelatedOrganisationRelationDefaultOrderDescending, null, includeProperties); }
 
 
         // Properties
 
-        public async Task<dynamic?> GetResourceRelatedOrganisationRelationPropertyAsync(Expression<Func<ResourceRelatedOrganisationRelation, bool>> predicate, string selector, Expression<Func<ResourceRelatedOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending)
+        public async Task<dynamic?> GetResourceOrganisationRelationPropertyAsync(Expression<Func<ResourceOrganisationRelation, bool>> predicate, string selector, Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending)
         {
             orderBy ??= resourceRelatedOrganisationRelationDefaultOrderBy;
-            return await GetPropertyAsync(database.ResourceRelatedOrganisationRelations, predicate, selector, orderBy, orderDescending);
+            return await GetPropertyAsync(database.ResourceOrganisationRelations, predicate, selector, orderBy, orderDescending);
         }
 
-        public async Task<dynamic?> GetResourceRelatedOrganisationRelationPropertyOrDefaultAsync(Expression<Func<ResourceRelatedOrganisationRelation, bool>> predicate, string selector, Expression<Func<ResourceRelatedOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending)
+        public async Task<dynamic?> GetResourceOrganisationRelationPropertyOrDefaultAsync(Expression<Func<ResourceOrganisationRelation, bool>> predicate, string selector, Expression<Func<ResourceOrganisationRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedOrganisationRelationDefaultOrderDescending)
         {
             orderBy ??= resourceRelatedOrganisationRelationDefaultOrderBy;
-            return await GetPropertyOrDefaultAsync(database.ResourceRelatedOrganisationRelations, predicate, selector, orderBy, orderDescending);
+            return await GetPropertyOrDefaultAsync(database.ResourceOrganisationRelations, predicate, selector, orderBy, orderDescending);
         }
 
         #endregion
@@ -908,118 +796,6 @@ namespace KnowledgeBank.Data
         {
             orderBy ??= resourceRelatedPersonRelationDefaultOrderBy;
             return await GetPropertyOrDefaultAsync(database.ResourceRelatedPersonRelations, predicate, selector, orderBy, orderDescending);
-        }
-
-        #endregion
-
-        #region ResourceRelatedSourceRelation
-
-        // ResourceRelatedSourceRelation itself
-
-        private readonly Expression<Func<ResourceRelatedSourceRelation, object>> resourceRelatedSourceRelationDefaultOrderBy = resourceRelatedSourceRelation => resourceRelatedSourceRelation.ResourceId;
-        private const bool resourceRelatedSourceRelationDefaultOrderDescending = true;
-
-
-        // Single
-
-        public async Task<ResourceRelatedSourceRelation?> GetResourceRelatedSourceRelationAsync(Expression<Func<ResourceRelatedSourceRelation, bool>> predicate, Expression<Func<ResourceRelatedSourceRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedSourceRelationDefaultOrderDescending, params string[] includeProperties)
-        {
-            orderBy ??= resourceRelatedSourceRelationDefaultOrderBy;
-
-            return await GetAsync(database.ResourceRelatedSourceRelations, predicate, orderBy, orderDescending, includeProperties);
-        }
-
-
-        public async Task<ResourceRelatedSourceRelation?> GetResourceRelatedSourceRelationAsync(Expression<Func<ResourceRelatedSourceRelation, bool>> predicate, params string[] includeProperties)
-        { return await GetAsync(database.ResourceRelatedSourceRelations, predicate, resourceRelatedSourceRelationDefaultOrderBy, resourceRelatedSourceRelationDefaultOrderDescending, includeProperties); }
-
-        // Multiple
-        public async Task<ResourceRelatedSourceRelation[]> GetAllResourceRelatedSourceRelationsAsync(Expression<Func<ResourceRelatedSourceRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedSourceRelationDefaultOrderDescending, Expression<Func<ResourceRelatedSourceRelation, bool>>? predicate = null)
-        {
-            orderBy ??= resourceRelatedSourceRelationDefaultOrderBy;
-
-            return await GetAllAsync(database.ResourceRelatedSourceRelations, orderBy, orderDescending, predicate);
-        }
-
-        public async Task<ResourceRelatedSourceRelation[]> GetAllResourceRelatedSourceRelationsAsync(Expression<Func<ResourceRelatedSourceRelation, bool>>? predicate = null, params string[] includeProperties)
-        { return await GetAllAsync(database.ResourceRelatedSourceRelations, resourceRelatedSourceRelationDefaultOrderBy, resourceRelatedSourceRelationDefaultOrderDescending, predicate, includeProperties); }
-
-        public async Task<ResourceRelatedSourceRelation[]> GetAllResourceRelatedSourceRelationsAsync(Expression<Func<ResourceRelatedSourceRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedSourceRelationDefaultOrderDescending, params string[] includeProperties)
-        { return await GetAllAsync(database.ResourceRelatedSourceRelations, orderBy, orderDescending, null, includeProperties); }
-
-        public async Task<ResourceRelatedSourceRelation[]> GetAllResourceRelatedSourceRelationsAsync(params string[] includeProperties)
-        { return await GetAllAsync(database.ResourceRelatedSourceRelations, resourceRelatedSourceRelationDefaultOrderBy, resourceRelatedSourceRelationDefaultOrderDescending, null, includeProperties); }
-
-        public async Task<ResourceRelatedSourceRelation[]> GetResourceRelatedSourceRelationPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceRelatedSourceRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedSourceRelationDefaultOrderDescending, Expression<Func<ResourceRelatedSourceRelation, bool>>? predicate = null)
-        {
-            orderBy ??= resourceRelatedSourceRelationDefaultOrderBy;
-
-            return await GetPageAsync(database.ResourceRelatedSourceRelations, pageIndex, pageSize, orderBy, orderDescending, predicate);
-        }
-
-        public async Task<ResourceRelatedSourceRelation[]> GetResourceRelatedSourceRelationPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceRelatedSourceRelation, bool>>? predicate = null, params string[] includeProperties)
-        { return await GetPageAsync(database.ResourceRelatedSourceRelations, pageIndex, pageSize, resourceRelatedSourceRelationDefaultOrderBy, resourceRelatedSourceRelationDefaultOrderDescending, predicate, includeProperties); }
-
-        public async Task<ResourceRelatedSourceRelation[]> GetResourceRelatedSourceRelationPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceRelatedSourceRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedSourceRelationDefaultOrderDescending, params string[] includeProperties)
-        {
-            orderBy ??= resourceRelatedSourceRelationDefaultOrderBy;
-
-            return await GetPageAsync(database.ResourceRelatedSourceRelations, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
-        }
-
-        public async Task<ResourceRelatedSourceRelation[]> GetResourceRelatedSourceRelationPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
-        { return await GetPageAsync(database.ResourceRelatedSourceRelations, pageIndex, pageSize, resourceRelatedSourceRelationDefaultOrderBy, resourceRelatedSourceRelationDefaultOrderDescending, null, includeProperties); }
-
-        // Multiple with projection
-        public async Task<dynamic> GetAllResourceRelatedSourceRelationsAsync(string projection, Expression<Func<ResourceRelatedSourceRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedSourceRelationDefaultOrderDescending, Expression<Func<ResourceRelatedSourceRelation, bool>>? predicate = null)
-        {
-            orderBy ??= resourceRelatedSourceRelationDefaultOrderBy;
-            return await GetAllAsync(database.ResourceRelatedSourceRelations, projection, orderBy, orderDescending, predicate);
-        }
-
-        public async Task<dynamic> GetAllResourceRelatedSourceRelationsAsync(string projection, Expression<Func<ResourceRelatedSourceRelation, bool>>? predicate = null, params string[] includeProperties)
-        { return await GetAllAsync(database.ResourceRelatedSourceRelations, projection, resourceRelatedSourceRelationDefaultOrderBy, resourceRelatedSourceRelationDefaultOrderDescending, predicate, includeProperties); }
-
-        public async Task<dynamic> GetAllResourceRelatedSourceRelationsAsync(string projection, Expression<Func<ResourceRelatedSourceRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedSourceRelationDefaultOrderDescending, params string[] includeProperties)
-        {
-            orderBy ??= resourceRelatedSourceRelationDefaultOrderBy;
-            return await GetAllAsync(database.ResourceRelatedSourceRelations, projection, orderBy, orderDescending, null, includeProperties);
-        }
-
-        public async Task<dynamic> GetAllResourceRelatedSourceRelationsAsync(string projection, params string[] includeProperties)
-        { return await GetAllAsync(database.ResourceRelatedSourceRelations, projection, resourceRelatedSourceRelationDefaultOrderBy, resourceRelatedSourceRelationDefaultOrderDescending, null, includeProperties); }
-
-        public async Task<dynamic> GetResourceRelatedSourceRelationPageAsync(string projection, int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceRelatedSourceRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedSourceRelationDefaultOrderDescending, Expression<Func<ResourceRelatedSourceRelation, bool>>? predicate = null)
-        {
-            orderBy ??= resourceRelatedSourceRelationDefaultOrderBy;
-            return await GetPageAsync(database.ResourceRelatedSourceRelations, projection, pageIndex, pageSize, orderBy, orderDescending, predicate);
-        }
-
-        public async Task<dynamic> GetResourceRelatedSourceRelationPageAsync(string projection, int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceRelatedSourceRelation, bool>>? predicate = null, params string[] includeProperties)
-        { return await GetPageAsync(database.ResourceRelatedSourceRelations, projection, pageIndex, pageSize, resourceRelatedSourceRelationDefaultOrderBy, resourceRelatedSourceRelationDefaultOrderDescending, predicate, includeProperties); }
-
-        public async Task<dynamic> GetResourceRelatedSourceRelationPageAsync(string projection, int pageIndex = 1, int pageSize = 100, Expression<Func<ResourceRelatedSourceRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedSourceRelationDefaultOrderDescending, params string[] includeProperties)
-        {
-            orderBy ??= resourceRelatedSourceRelationDefaultOrderBy;
-            return await GetPageAsync(database.ResourceRelatedSourceRelations, projection, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
-        }
-
-        public async Task<dynamic> GetResourceRelatedSourceRelationPageAsync(string projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
-        { return await GetPageAsync(database.ResourceRelatedSourceRelations, projection, pageIndex, pageSize, resourceRelatedSourceRelationDefaultOrderBy, resourceRelatedSourceRelationDefaultOrderDescending, null, includeProperties); }
-
-
-        // Properties
-
-        public async Task<dynamic?> GetResourceRelatedSourceRelationPropertyAsync(Expression<Func<ResourceRelatedSourceRelation, bool>> predicate, string selector, Expression<Func<ResourceRelatedSourceRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedSourceRelationDefaultOrderDescending)
-        {
-            orderBy ??= resourceRelatedSourceRelationDefaultOrderBy;
-            return await GetPropertyAsync(database.ResourceRelatedSourceRelations, predicate, selector, orderBy, orderDescending);
-        }
-
-        public async Task<dynamic?> GetResourceRelatedSourceRelationPropertyOrDefaultAsync(Expression<Func<ResourceRelatedSourceRelation, bool>> predicate, string selector, Expression<Func<ResourceRelatedSourceRelation, object>>? orderBy = null, bool orderDescending = resourceRelatedSourceRelationDefaultOrderDescending)
-        {
-            orderBy ??= resourceRelatedSourceRelationDefaultOrderBy;
-            return await GetPropertyOrDefaultAsync(database.ResourceRelatedSourceRelations, predicate, selector, orderBy, orderDescending);
         }
 
         #endregion

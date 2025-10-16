@@ -26,16 +26,19 @@ public static class DatabaseContextExtensions
             // Step 1: Drop existing objects
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP TRIGGER IF EXISTS refresh_grid_on_resource_change ON ""resources"";");
-            
+
+            await context.Database.ExecuteSqlRawAsync(@"
+                DROP TRIGGER IF EXISTS refresh_grid_on_entity_change ON ""entities"";");
+
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP TRIGGER IF EXISTS refresh_grid_on_person_change ON ""persons"";");
-            
+
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP TRIGGER IF EXISTS refresh_grid_on_organisation_change ON ""organisations"";");
-            
+
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP FUNCTION IF EXISTS refresh_resource_grid_view();");
-            
+
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP MATERIALIZED VIEW IF EXISTS ResourceGridView;");
 
@@ -54,7 +57,7 @@ public static class DatabaseContextExtensions
                         ELSE ""file-ext""
                     END as ""FileType"",
                     ""creation-date"" as ""CreationDate"",
-                    
+
                     -- Create search vector from multiple fields
                     to_tsvector(
                         coalesce(""title"", '') || ' ' ||
@@ -62,48 +65,50 @@ public static class DatabaseContextExtensions
                     ) as ""SearchVector""
                 FROM ""resources""
                 WHERE ""trashed"" = false
-                
+
                 UNION ALL
-                
+
                 SELECT
-                    ""id"" as ""Id"",
-                    ""name"" as ""Name"",
-                    ""description"" as ""Description"",
+                    p.""id"" as ""Id"",
+                    e.""name"" as ""Name"",
+                    e.""description"" as ""Description"",
                     NULL as ""PublicationDate"",
                     'person' as ""Type"",
                     'person' as ""FileType"",
-                    ""creation-date"" as ""CreationDate"",
-                    
+                    e.""creation-date"" as ""CreationDate"",
+
                     -- Create search vector from multiple fields
                     to_tsvector(
-                        coalesce(""name"", '') || ' ' ||
-                        coalesce(""description"", '') || ' ' ||
-                        coalesce(""email-address"", '') || ' ' ||
-                        coalesce(""occupation"", '') || ' '
+                        coalesce(e.""name"", '') || ' ' ||
+                        coalesce(e.""description"", '') || ' ' ||
+                        coalesce(e.""email-address"", '') || ' ' ||
+                        coalesce(p.""occupation"", '') || ' '
                     ) as ""SearchVector""
-                FROM ""persons""
-                WHERE ""trashed"" = false
-                
+                FROM ""persons"" p
+                INNER JOIN ""entities"" e ON p.""id"" = e.""id""
+                WHERE e.""trashed"" = false
+
                 UNION ALL
-                
+
                 SELECT
-                    ""id"" as ""Id"",
-                    ""name"" as ""Name"",
-                    ""description"" as ""Description"",
+                    o.""id"" as ""Id"",
+                    e.""name"" as ""Name"",
+                    e.""description"" as ""Description"",
                     NULL as ""PublicationDate"",
                     'organisation' as ""Type"",
                     'organisation' as ""FileType"",
-                    ""creation-date"" as ""CreationDate"",
-                    
+                    e.""creation-date"" as ""CreationDate"",
+
                     -- Create search vector from multiple fields
                     to_tsvector(
-                        coalesce(""name"", '') || ' ' ||
-                        coalesce(""description"", '') || ' ' ||
-                        coalesce(""email-address"", '') || ' ' ||
-                        coalesce(""website"", '') || ' '
+                        coalesce(e.""name"", '') || ' ' ||
+                        coalesce(e.""description"", '') || ' ' ||
+                        coalesce(e.""email-address"", '') || ' ' ||
+                        coalesce(o.""website"", '') || ' '
                     ) as ""SearchVector""
-                FROM ""organisations""
-                WHERE ""trashed"" = false
+                FROM ""organisations"" o
+                INNER JOIN ""entities"" e ON o.""id"" = e.""id""
+                WHERE e.""trashed"" = false
             ;");
 
             // Step 3: Create indexes
@@ -143,6 +148,12 @@ public static class DatabaseContextExtensions
                     EXECUTE FUNCTION refresh_resource_grid_view();");
 
             await context.Database.ExecuteSqlRawAsync(@"
+                CREATE TRIGGER refresh_grid_on_entity_change
+                    AFTER INSERT OR UPDATE OR DELETE ON ""entities""
+                    FOR EACH STATEMENT
+                    EXECUTE FUNCTION refresh_resource_grid_view();");
+
+            await context.Database.ExecuteSqlRawAsync(@"
                 CREATE TRIGGER refresh_grid_on_person_change
                     AFTER INSERT OR UPDATE OR DELETE ON ""persons""
                     FOR EACH STATEMENT
@@ -173,16 +184,19 @@ public static class DatabaseContextExtensions
             // Step 1: Drop existing objects
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP TRIGGER IF EXISTS refresh_trash_on_resource_change ON ""resources"";");
-            
+
+            await context.Database.ExecuteSqlRawAsync(@"
+                DROP TRIGGER IF EXISTS refresh_trash_on_entity_change ON ""entities"";");
+
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP TRIGGER IF EXISTS refresh_trash_on_person_change ON ""persons"";");
-            
+
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP TRIGGER IF EXISTS refresh_trash_on_organisation_change ON ""organisations"";");
-            
+
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP FUNCTION IF EXISTS refresh_resource_trash_view();");
-            
+
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP MATERIALIZED VIEW IF EXISTS ResourceTrashView;");
 
@@ -202,30 +216,32 @@ public static class DatabaseContextExtensions
                     END as ""FileType""
                 FROM ""resources""
                 WHERE ""trashed"" = true
-                
+
                 UNION ALL
-                
+
                 SELECT
-                    ""id"" as ""Id"",
-                    ""name"" as ""Name"",
+                    p.""id"" as ""Id"",
+                    e.""name"" as ""Name"",
                     NULL as ""PublicationDate"",
-                    ""trash-date"" as ""TrashDate"",
+                    e.""trash-date"" as ""TrashDate"",
                     'person' as ""Type"",
                     'person' as ""FileType""
-                FROM ""persons""
-                WHERE ""trashed"" = true
-                
+                FROM ""persons"" p
+                INNER JOIN ""entities"" e ON p.""id"" = e.""id""
+                WHERE e.""trashed"" = true
+
                 UNION ALL
-                
+
                 SELECT
-                    ""id"" as ""Id"",
-                    ""name"" as ""Name"",
+                    o.""id"" as ""Id"",
+                    e.""name"" as ""Name"",
                     NULL as ""PublicationDate"",
-                    ""trash-date"" as ""TrashDate"",
+                    e.""trash-date"" as ""TrashDate"",
                     'organisation' as ""Type"",
                     'organisation' as ""FileType""
-                FROM ""organisations""
-                WHERE ""trashed"" = true
+                FROM ""organisations"" o
+                INNER JOIN ""entities"" e ON o.""id"" = e.""id""
+                WHERE e.""trashed"" = true
             ;");
 
             // Step 3: Create indexes
@@ -246,6 +262,12 @@ public static class DatabaseContextExtensions
             await context.Database.ExecuteSqlRawAsync(@"
                 CREATE TRIGGER refresh_trash_on_resource_change
                     AFTER INSERT OR UPDATE OR DELETE ON ""resources""
+                    FOR EACH STATEMENT
+                    EXECUTE FUNCTION refresh_resource_trash_view();");
+
+            await context.Database.ExecuteSqlRawAsync(@"
+                CREATE TRIGGER refresh_trash_on_entity_change
+                    AFTER INSERT OR UPDATE OR DELETE ON ""entities""
                     FOR EACH STATEMENT
                     EXECUTE FUNCTION refresh_resource_trash_view();");
 

@@ -861,11 +861,6 @@ namespace KnowledgeBank.Controllers
                         await resourceManager.GetAllResourceRegionRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
                         await resourceManager.GetAllResourceRegionRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
 
-                    // Related Organisations
-                    "related-organisations" => string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
-                        await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
-
                     // Related Persons
                     "related-persons" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllResourceRelatedPersonRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
@@ -875,11 +870,6 @@ namespace KnowledgeBank.Controllers
                     "sources" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllResourceSourceRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
                         await resourceManager.GetAllResourceSourceRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
-
-                    // Sources
-                    "related-sources" => string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetAllResourceRelatedSourceRelationsAsync(r => r.ResourceId == Guid.Parse(id)) :
-                        await resourceManager.GetAllResourceRelatedSourceRelationsAsync(predicate: r => r.ResourceId == Guid.Parse(id), projection: $"new({properties})"),
 
                     // Tags
                     "tags" => string.IsNullOrEmpty(properties) ?
@@ -949,11 +939,6 @@ namespace KnowledgeBank.Controllers
                         await resourceManager.AddRegionToResourceAsync(id, targetId);
                         break;
 
-                    // Related organisations
-                    case "related-organisations":
-                        await resourceManager.AddRelatedOrganisationToResourceAsync(id, targetId, relationInfo ?? "");
-                        break;
-
                     // Related persons
                     case "related-persons":
                         await resourceManager.AddRelatedPersonToResourceAsync(id, targetId, relationInfo);
@@ -962,11 +947,6 @@ namespace KnowledgeBank.Controllers
                     // Sources
                     case "sources":
                         await resourceManager.AddSourceToResourceAsync(id, System.Net.WebUtility.UrlDecode(targetId));
-                        break;
-
-                    // Related Sources
-                    case "related-sources":
-                        await resourceManager.AddRelatedSourceToResourceAsync(id, System.Net.WebUtility.UrlDecode(targetId));
                         break;
 
                     // Tags
@@ -1032,11 +1012,6 @@ namespace KnowledgeBank.Controllers
                         await resourceManager.RemoveRegionFromResourceAsync(id, targetId);
                         break;
 
-                    // Related organisations
-                    case "related-organisations":
-                        await resourceManager.RemoveRelatedOrganisationFromResourceAsync(id, targetId);
-                        break;
-
                     // Related persons
                     case "related-persons":
                         await resourceManager.RemoveRelatedPersonFromResourceAsync(id, targetId);
@@ -1045,11 +1020,6 @@ namespace KnowledgeBank.Controllers
                     // Sources
                     case "sources":
                         await resourceManager.RemoveSourceFromResourceAsync(id, System.Net.WebUtility.UrlDecode(targetId));
-                        break;
-
-                    // Related Sources
-                    case "related-sources":
-                        await resourceManager.RemoveRelatedSourceFromResourceAsync(id, System.Net.WebUtility.UrlDecode(targetId));
                         break;
 
                     // Tags

@@ -477,7 +477,7 @@ namespace KnowledgeBank.Controllers
                         await resourceManager.GetAllResourceRelatedPersonRelationsAsync(predicate: r => r.PersonId == Guid.Parse(id), projection: $"new({properties})"),
 
                     // Related persons
-                    "person-related-persons" => string.IsNullOrEmpty(properties) ?
+                    "related-persons" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllPersonRelationshipsAsync(predicate: p => p.SourcePersonId == Guid.Parse(id) || p.TargetPersonId == Guid.Parse(id)) :
                         await resourceManager.GetAllPersonRelationshipsAsync(predicate: p => p.SourcePersonId == Guid.Parse(id) || p.TargetPersonId == Guid.Parse(id), projection: $"new({properties})"),
 
@@ -543,7 +543,7 @@ namespace KnowledgeBank.Controllers
                         break;
 
                     // Persons
-                    case "person-related-persons":
+                    case "related-persons":
                         await resourceManager.AddPersonRelationshipAsync(id, relationInfo, targetId);
                         break;
 
@@ -605,7 +605,7 @@ namespace KnowledgeBank.Controllers
                         break;
 
                     // Persons
-                    case "person-related-persons":
+                    case "related-persons":
                         await resourceManager.RemovePersonRelationshipAsync(id, targetId);
                         break;
 

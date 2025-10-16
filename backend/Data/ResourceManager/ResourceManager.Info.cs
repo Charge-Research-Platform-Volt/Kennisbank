@@ -276,20 +276,6 @@ namespace KnowledgeBank.Data
 
         #endregion
 
-        #region ResourceOrganisationRelation
-
-        // ResourceOrganisationRelation exists
-
-        public async Task<bool> ResourceOrganisationRelationExistsAsync(Expression<Func<ResourceOrganisationRelation, bool>> predicate)
-        { return await ExistsAsync(database.ResourceOrganisationRelations, predicate); }
-
-        // Count
-
-        public async Task<int> ResourceOrganisationRelationCountAsync(Expression<Func<ResourceOrganisationRelation, bool>>? predicate = null)
-        { return await GetCount(database.ResourceOrganisationRelations, predicate); }
-
-        #endregion
-
         #region ResourceRegionRelation
 
         // ResourceRegionRelation exists
@@ -304,17 +290,17 @@ namespace KnowledgeBank.Data
 
         #endregion
 
-        #region ResourceRelatedOrganisationRelation
+        #region ResourceOrganisationRelation
 
-        // ResourceRelatedOrganisationRelation exists
+        // ResourceOrganisationRelation exists
 
-        public async Task<bool> ResourceRelatedOrganisationRelationExistsAsync(Expression<Func<ResourceRelatedOrganisationRelation, bool>> predicate)
-        { return await ExistsAsync(database.ResourceRelatedOrganisationRelations, predicate); }
+        public async Task<bool> ResourceOrganisationRelationExistsAsync(Expression<Func<ResourceOrganisationRelation, bool>> predicate)
+        { return await ExistsAsync(database.ResourceOrganisationRelations, predicate); }
 
         // Count
 
-        public async Task<int> ResourceRelatedOrganisationRelationCountAsync(Expression<Func<ResourceRelatedOrganisationRelation, bool>>? predicate = null)
-        { return await GetCount(database.ResourceRelatedOrganisationRelations, predicate); }
+        public async Task<int> ResourceOrganisationRelationCountAsync(Expression<Func<ResourceOrganisationRelation, bool>>? predicate = null)
+        { return await GetCount(database.ResourceOrganisationRelations, predicate); }
 
         #endregion
 
@@ -329,20 +315,6 @@ namespace KnowledgeBank.Data
 
         public async Task<int> ResourceRelatedPersonRelationsCountAsync(Expression<Func<ResourceRelatedPersonRelation, bool>>? predicate = null)
         { return await GetCount(database.ResourceRelatedPersonRelations, predicate); }
-
-        #endregion
-
-        #region ResourceRelatedSourceRelation
-
-        // ResourceRelatedSourceRelation exists
-
-        public async Task<bool> ResourceRelatedSourceRelationExistsAsync(Expression<Func<ResourceRelatedSourceRelation, bool>> predicate)
-        { return await ExistsAsync(database.ResourceRelatedSourceRelations, predicate); }
-
-        // Count
-
-        public async Task<int> ResourceRelatedSourceRelationCountAsync(Expression<Func<ResourceRelatedSourceRelation, bool>>? predicate = null)
-        { return await GetCount(database.ResourceRelatedSourceRelations, predicate); }
 
         #endregion
 

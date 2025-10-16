@@ -42,14 +42,8 @@ namespace KnowledgeBank.Data
             // Remove all resource-source relations containing this resource
             await RemoveAllResourceSourceRelationsWithResourceIdAsync(id);
 
-            // Remove all resource-related_organisation relations containing this resource
-            await RemoveAllResourceRelatedOrganisationRelationsWithResourceIdAsync(id);
-
             // Remove all resource-related_persons relations containing this resource
             await RemoveAllResourceRelatedPersonRelationsWithResourceIdAsync(id);
-
-            // Remove all resource-related_sources relations containing this resource
-            await RemoveAllResourceRelatedSourceRelationsWithResourceIdAsync(id);
 
             // Remove all resource-tag relations containing this resource
             await RemoveAllResourceTagRelationsWithResourceIdAsync(id);
@@ -112,14 +106,11 @@ namespace KnowledgeBank.Data
             // Delete all organisation relationships with this organisation
             await RemoveAllOrganisationRelationshipsContainingIdAsync(id);
 
-            // Delete organisation from all direct resource relations
+            // Delete organisation from all resource relations
             await RemoveOrganisationFromAllResourcesAsync(id);
 
             // Delete all person-organisation relations containing this organisation
             await RemoveAllPersonOrganisationRelationsWithOrganisationIdAsync(id);
-
-            // Delete all resource-organisation relations containing this organisation
-            await RemoveRelatedOrganisationFromAllResourcesAsync(id);
 
             if (startedTransaction) await Commit();
 

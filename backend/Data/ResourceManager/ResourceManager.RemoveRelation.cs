@@ -16,7 +16,9 @@ namespace KnowledgeBank.Data
         public async Task<bool> RemoveOrganisationRelationshipAsync(Guid sourceOrganisationId, Guid targetOrganisationId)
         {
             bool startedTransaction = await BeginTransaction();
-            bool deleted = await DeleteAsync(database.OrganisationRelationships, relationship => relationship.SourceOrganisationId == sourceOrganisationId && relationship.TargetOrganisationId == targetOrganisationId) > 0; 
+            bool deleted = await DeleteAsync(database.OrganisationRelationships,
+            relationship => relationship.SourceOrganisationId == sourceOrganisationId && relationship.TargetOrganisationId == targetOrganisationId
+            || relationship.SourceOrganisationId == targetOrganisationId && relationship.TargetOrganisationId == sourceOrganisationId) > 0; 
             if (startedTransaction) await Commit();
             return deleted;
         }
@@ -127,7 +129,8 @@ namespace KnowledgeBank.Data
         public async Task<bool> RemovePersonRelationshipAsync(Guid sourcePersonId, Guid targetPersonId)
         { 
             bool startedTransaction = await BeginTransaction();
-            bool deleted = await DeleteAsync(database.PersonRelationships, relation => relation.SourcePersonId == sourcePersonId && relation.TargetPersonId == targetPersonId) > 0; 
+            bool deleted = await DeleteAsync(database.PersonRelationships, relation => relation.SourcePersonId == sourcePersonId && relation.TargetPersonId == targetPersonId
+            || relation.SourcePersonId == targetPersonId && relation.TargetPersonId == sourcePersonId) > 0; 
             if (startedTransaction) await Commit();
             return deleted;
         }
@@ -357,55 +360,6 @@ namespace KnowledgeBank.Data
 
         #endregion
 
-        #region Resource-Related Organisation (Indirect)
-
-        // Remove single
-
-        public async Task<bool> RemoveRelatedOrganisationFromResourceAsync(Guid resourceId, Guid organisationId)
-        { 
-            bool startedTransaction = await BeginTransaction();
-            bool deleted = await DeleteAsync(database.ResourceRelatedOrganisationRelations, relation => relation.ResourceId == resourceId && relation.OrganisationId == organisationId) > 0; 
-            if (startedTransaction) await Commit();
-            return deleted;
-        }
-
-        public async Task<bool> RemoveRelatedOrganisationFromResourceAsync(string resourceId, Guid organisationId)
-        { return await RemoveRelatedOrganisationFromResourceAsync(Guid.Parse(resourceId), organisationId); }
-
-        public async Task<bool> RemoveRelatedOrganisationFromResourceAsync(Guid resourceId, string organisationId)
-        { return await RemoveRelatedOrganisationFromResourceAsync(resourceId, Guid.Parse(organisationId)); }
-
-        public async Task<bool> RemoveRelatedOrganisationFromResourceAsync(string resourceId, string organisationId)
-        { return await RemoveRelatedOrganisationFromResourceAsync(Guid.Parse(resourceId), Guid.Parse(organisationId)); }
-
-        // Prune
-
-        public async Task<bool> RemoveRelatedOrganisationFromAllResourcesAsync(Guid organisationId)
-        { 
-            bool startedTransaction = await BeginTransaction();
-            bool deleted = await DeleteAllWhereAsync(database.ResourceRelatedOrganisationRelations, i => i.OrganisationId == organisationId) > 0; 
-            if (startedTransaction) await Commit();
-            return deleted;
-        }
-
-        public async Task<bool> RemoveRelatedOrganisationFromAllResourcesAsync(string organisationId)
-        { return await RemoveRelatedOrganisationFromAllResourcesAsync(Guid.Parse(organisationId)); }
-
-
-
-        public async Task<bool> RemoveAllResourceRelatedOrganisationRelationsWithResourceIdAsync(Guid resourceId)
-        { 
-            bool startedTransaction = await BeginTransaction();
-            bool deleted = await DeleteAllWhereAsync(database.ResourceRelatedOrganisationRelations, i => i.ResourceId == resourceId) > 0; 
-            if (startedTransaction) await Commit();
-            return deleted;
-        }
-
-        public async Task<bool> RemoveAllResourceRelatedOrganisationRelationsWithResourceIdAsync(string resourceId)
-        { return await RemoveAllResourceRelatedOrganisationRelationsWithResourceIdAsync(Guid.Parse(resourceId)); }
-
-        #endregion
-
         #region Resource-Related Person (non-author)
 
         // Remove single
@@ -452,34 +406,6 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> RemoveAllResourceRelatedPersonRelationsWithResourceIdAsync(string resourceId)
         { return await RemoveAllResourceRelatedPersonRelationsWithResourceIdAsync(Guid.Parse(resourceId)); }
-
-        #endregion
-
-        #region Resource-Related_source
-
-        public async Task<bool> RemoveRelatedSourceFromResourceAsync(Guid resourceId, string url)
-        { 
-            bool startedTransaction = await BeginTransaction();
-            bool deleted = await DeleteAsync(database.ResourceRelatedSourceRelations, relation => relation.ResourceId == resourceId && relation.Url == url) > 0; 
-            if (startedTransaction) await Commit();
-            return deleted;
-        }
-
-        public async Task<bool> RemoveRelatedSourceFromResourceAsync(string resourceId, string url)
-        { return await RemoveRelatedSourceFromResourceAsync(Guid.Parse(resourceId), url); }
-
-
-
-        public async Task<bool> RemoveAllResourceRelatedSourceRelationsWithResourceIdAsync(Guid resourceId)
-        { 
-            bool startedTransaction = await BeginTransaction();
-            bool deleted = await DeleteAllWhereAsync(database.ResourceRelatedSourceRelations, i => i.ResourceId == resourceId) > 0; 
-            if (startedTransaction) await Commit();
-            return deleted;
-        }
-
-        public async Task<bool> RemoveAllResourceRelatedSourceRelationsWithResourceIdAsync(string resourceId)
-        { return await RemoveAllResourceRelatedSourceRelationsWithResourceIdAsync(Guid.Parse(resourceId)); }
 
         #endregion
 

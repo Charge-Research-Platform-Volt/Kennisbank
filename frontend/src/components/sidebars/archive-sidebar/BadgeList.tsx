@@ -4,7 +4,6 @@ import React from "react";
 import { Badge } from "@/components/ui/badge"
 import { useArchiveSidebar, MetadataTypeEnum, FetchMetadataType } from "@/context/archive-sidebar-provider"
 import Skeleton from 'react-loading-skeleton'
-import 'react-loading-skeleton/dist/skeleton.css'
 import NewBadge from "./NewBadge"
 import { useArchive } from "@/context/archive-provider"
 import { organisationRelation, personRelation, resourceRelation, removeRelation, tryAddNewTag, addRelation } from "@/actions/archive-sidebarActions";
@@ -15,7 +14,6 @@ export interface ListItem
 {
     id: string,
     name: string,
-    type: string, //if "tag" it applies the tag as filter, if "source" it opens the url in a new tab, else it navigates to selected source,organisation,person
 }
 
 interface BadgeListProps
@@ -42,7 +40,6 @@ export default function BadgeList({
 {
     const { navigate, currentId, currentType } = useArchiveSidebar();
     const { setTagFilter, setTypeFilter, setRegionFilter } = useArchive();
-    const triggerRef = React.useRef<HTMLDivElement>(null);
     const pathname: string = usePathname();
     
     async function navigateTo(id: string)
@@ -113,7 +110,7 @@ export default function BadgeList({
         try {
             const tagid = await tryAddNewTag(item.name);
             await addRelation("tags", currentType, currentId, tagid)
-            onNew([{id: tagid, name: item.name, type: "tag"}]);
+            onNew([{id: tagid, name: item.name}]);
         }
         catch (error) {
             console.error("Error adding recommended tag:", error)

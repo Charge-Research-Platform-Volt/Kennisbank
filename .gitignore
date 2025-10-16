@@ -484,6 +484,7 @@ ServiceFabricBackup/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
+.claude
 
 # OpenCover UI analysis results
 OpenCover/

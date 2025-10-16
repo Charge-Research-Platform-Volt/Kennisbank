@@ -55,6 +55,9 @@ public class Resource
     [MaxLength(64)]
     public string? Hash { get; set; }
 
+    [Column("source-url")]
+    public string? SourceUrl { get; set; }
+
     [Column("trashed")]
     public bool Trashed { get; set; } = false;
 
@@ -86,9 +89,6 @@ public class Resource
     [JsonIgnore] public ICollection<ResourceOrganisationRelation>? ResourceOrganisationRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceRegionRelation>? ResourceRegionRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceRelatedPersonRelation>? ResourceRelatedPersonRelations { get; set; }
-    [JsonIgnore] public ICollection<ResourceRelatedOrganisationRelation>? ResourceRelatedOrganisationRelations { get; set; }
-    [JsonIgnore] public ICollection<ResourceRelatedSourceRelation>? ResourceRelatedSourceRelations { get; set; }
-    [JsonIgnore] public ICollection<ResourceSourceRelation>? ResourceSourceRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceTagRelation>? ResourceTagRelations { get; set; }
 
     #endregion
@@ -110,18 +110,15 @@ public class ResourceCreateDto // Data Transfer Object (DTO)
     public required DateTime PublicationDate { get; set; }
     public DateTime? CreationDate { get; set; }
     public string? License { get; set; }
-    public string[] Sources { get; set; } = [];
+    public string? SourceUrl { get; set; }
     public string? Note { get; set; }
     public string[] Tags { get; set; } = [];
     public string[] Authors { get; set; } = [];
     // Tuple: (OrganisationId, role?)
     public RelatedEntry[] Organisations { get; set; } = [];
     public string[] Regions { get; set; } = [];
-    // Tuple: (OrganisationId, role?)
-    public RelatedEntry[] RelatedOrganisations { get; set; } = [];
     // Tuple: (PersonId, role?)
     public RelatedEntry[] RelatedPersons { get; set; } = [];
-    public string[] RelatedSources { get; set; } = [];
 }
 
 public class FileResourceCreateDto : ResourceCreateDto

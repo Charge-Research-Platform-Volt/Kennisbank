@@ -458,23 +458,23 @@ namespace KnowledgeBank.Controllers
             {
                 object? result = relation switch
                 {
-                    // Directly related resources resources
-                    "direct-resources" => string.IsNullOrEmpty(properties) ?
+                    // Authored resources
+                    "authored-resources" => string.IsNullOrEmpty(properties) ?
+                        await resourceManager.GetAllResourceAuthorRelationsAsync(r => r.AuthorId == Guid.Parse(id)) :
+                        await resourceManager.GetAllResourceAuthorRelationsAsync(predicate: r => r.AuthorId == Guid.Parse(id), projection: $"new({properties})"),
+                
+                    // Related resources
+                    "related-resources" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllResourceOrganisationRelationsAsync(r => r.OrganisationId == Guid.Parse(id)) :
                         await resourceManager.GetAllResourceOrganisationRelationsAsync(predicate: r => r.OrganisationId == Guid.Parse(id), projection: $"new({properties})"),
 
-                    // Related resources
-                    "related-resources" => string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(r => r.OrganisationId == Guid.Parse(id)) :
-                        await resourceManager.GetAllResourceRelatedOrganisationRelationsAsync(predicate: r => r.OrganisationId == Guid.Parse(id), projection: $"new({properties})"),
-
                     // Related organisations
-                    "organisation-related-organisations" => string.IsNullOrEmpty(properties) ?
+                    "related-organisations" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllOrganisationRelationshipsAsync(predicate: p => p.SourceOrganisationId == Guid.Parse(id) || p.TargetOrganisationId == Guid.Parse(id)) :
                         await resourceManager.GetAllOrganisationRelationshipsAsync(predicate: p => p.SourceOrganisationId == Guid.Parse(id) || p.TargetOrganisationId == Guid.Parse(id), projection: $"new({properties})"),
 
                     // Related persons
-                    "persons" => string.IsNullOrEmpty(properties) ?
+                    "related-persons" => string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllPersonOrganisationRelationsAsync(predicate: p => p.OrganisationId == Guid.Parse(id)) :
                         await resourceManager.GetAllPersonOrganisationRelationsAsync(predicate: p => p.OrganisationId == Guid.Parse(id), projection: $"new({properties})"),
 
@@ -523,23 +523,23 @@ namespace KnowledgeBank.Controllers
             {
                 switch (relation)
                 {
-                    // Direct resources
-                    case "direct-resources":
+                    // Authored resources
+                    case "authored-resources":
+                        await resourceManager.AddAuthorToResourceAsync(targetId, id);
+                        break;
+
+                    // Resources
+                    case "related-resources":
                         await resourceManager.AddOrganisationToResourceAsync(targetId, id, relationInfo ?? "");
                         break;
 
-                    // Related resources
-                    case "related-resources":
-                        await resourceManager.AddRelatedOrganisationToResourceAsync(targetId, id, relationInfo ?? "");
-                        break;
-
                     // Organisations
-                    case "organisation-related-organisations":
+                    case "related-organisations":
                         await resourceManager.AddOrganisationRelationshipAsync(id, relationInfo, targetId);
                         break;
 
                     // Persons
-                    case "persons":
+                    case "related-persons":
                         await resourceManager.AddPersonToOrganisationAsync(targetId, relationInfo, id);
                         break;
 
@@ -585,23 +585,23 @@ namespace KnowledgeBank.Controllers
             {
                 switch (relation)
                 {
-                    // Direct resources
-                    case "direct-resources":
+                    // Authored resources
+                    case "authored-resources":
+                        await resourceManager.RemoveAuthorFromResourceAsync(targetId, id);
+                        break;
+
+                    // Resources
+                    case "related-resources":
                         await resourceManager.RemoveOrganisationFromResourceAsync(targetId, id);
                         break;
 
-                    // Related resources
-                    case "related-resources":
-                        await resourceManager.RemoveRelatedOrganisationFromResourceAsync(targetId, id);
-                        break;
-
                     // Organisations
-                    case "organisation-related-organisations":
+                    case "related-organisations":
                         await resourceManager.RemoveOrganisationRelationshipAsync(id, targetId);
                         break;
 
                     // Persons
-                    case "persons":
+                    case "related-persons":
                         await resourceManager.RemovePersonFromOrganisationAsync(targetId, id);
                         break;
 
