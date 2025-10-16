@@ -54,7 +54,7 @@ public static class DatabaseContextExtensions
                         ELSE ""file-ext""
                     END as ""FileType"",
                     ""creation-date"" as ""CreationDate"",
-                    
+
                     -- Create search vector from multiple fields
                     to_tsvector(
                         coalesce(""title"", '') || ' ' ||
@@ -62,48 +62,50 @@ public static class DatabaseContextExtensions
                     ) as ""SearchVector""
                 FROM ""resources""
                 WHERE ""trashed"" = false
-                
+
                 UNION ALL
-                
+
                 SELECT
-                    ""id"" as ""Id"",
-                    ""name"" as ""Name"",
-                    ""description"" as ""Description"",
+                    p.""id"" as ""Id"",
+                    e.""name"" as ""Name"",
+                    e.""description"" as ""Description"",
                     NULL as ""PublicationDate"",
                     'person' as ""Type"",
                     'person' as ""FileType"",
-                    ""creation-date"" as ""CreationDate"",
-                    
+                    e.""creation-date"" as ""CreationDate"",
+
                     -- Create search vector from multiple fields
                     to_tsvector(
-                        coalesce(""name"", '') || ' ' ||
-                        coalesce(""description"", '') || ' ' ||
-                        coalesce(""email-address"", '') || ' ' ||
-                        coalesce(""occupation"", '') || ' '
+                        coalesce(e.""name"", '') || ' ' ||
+                        coalesce(e.""description"", '') || ' ' ||
+                        coalesce(e.""email-address"", '') || ' ' ||
+                        coalesce(p.""occupation"", '') || ' '
                     ) as ""SearchVector""
-                FROM ""persons""
-                WHERE ""trashed"" = false
-                
+                FROM ""persons"" p
+                INNER JOIN ""entities"" e ON p.""id"" = e.""id""
+                WHERE e.""trashed"" = false
+
                 UNION ALL
-                
+
                 SELECT
-                    ""id"" as ""Id"",
-                    ""name"" as ""Name"",
-                    ""description"" as ""Description"",
+                    o.""id"" as ""Id"",
+                    e.""name"" as ""Name"",
+                    e.""description"" as ""Description"",
                     NULL as ""PublicationDate"",
                     'organisation' as ""Type"",
                     'organisation' as ""FileType"",
-                    ""creation-date"" as ""CreationDate"",
-                    
+                    e.""creation-date"" as ""CreationDate"",
+
                     -- Create search vector from multiple fields
                     to_tsvector(
-                        coalesce(""name"", '') || ' ' ||
-                        coalesce(""description"", '') || ' ' ||
-                        coalesce(""email-address"", '') || ' ' ||
-                        coalesce(""website"", '') || ' '
+                        coalesce(e.""name"", '') || ' ' ||
+                        coalesce(e.""description"", '') || ' ' ||
+                        coalesce(e.""email-address"", '') || ' ' ||
+                        coalesce(o.""website"", '') || ' '
                     ) as ""SearchVector""
-                FROM ""organisations""
-                WHERE ""trashed"" = false
+                FROM ""organisations"" o
+                INNER JOIN ""entities"" e ON o.""id"" = e.""id""
+                WHERE e.""trashed"" = false
             ;");
 
             // Step 3: Create indexes
@@ -202,30 +204,32 @@ public static class DatabaseContextExtensions
                     END as ""FileType""
                 FROM ""resources""
                 WHERE ""trashed"" = true
-                
+
                 UNION ALL
-                
+
                 SELECT
-                    ""id"" as ""Id"",
-                    ""name"" as ""Name"",
+                    p.""id"" as ""Id"",
+                    e.""name"" as ""Name"",
                     NULL as ""PublicationDate"",
-                    ""trash-date"" as ""TrashDate"",
+                    e.""trash-date"" as ""TrashDate"",
                     'person' as ""Type"",
                     'person' as ""FileType""
-                FROM ""persons""
-                WHERE ""trashed"" = true
-                
+                FROM ""persons"" p
+                INNER JOIN ""entities"" e ON p.""id"" = e.""id""
+                WHERE e.""trashed"" = true
+
                 UNION ALL
-                
+
                 SELECT
-                    ""id"" as ""Id"",
-                    ""name"" as ""Name"",
+                    o.""id"" as ""Id"",
+                    e.""name"" as ""Name"",
                     NULL as ""PublicationDate"",
-                    ""trash-date"" as ""TrashDate"",
+                    e.""trash-date"" as ""TrashDate"",
                     'organisation' as ""Type"",
                     'organisation' as ""FileType""
-                FROM ""organisations""
-                WHERE ""trashed"" = true
+                FROM ""organisations"" o
+                INNER JOIN ""entities"" e ON o.""id"" = e.""id""
+                WHERE e.""trashed"" = true
             ;");
 
             // Step 3: Create indexes

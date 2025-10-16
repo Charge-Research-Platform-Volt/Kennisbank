@@ -6,39 +6,15 @@ using System.Text.Json.Serialization;
 namespace KnowledgeBank.Models;
 
 [Table("persons")]
-[Index(nameof(Name), IsUnique = true)]
-public class Person
+public class Person : Entity
 {
-    [Column("id")]
-    [Key]
-    public required Guid Id { get; set; }
-
-    [Column("name")]
-    public required string Name { get; set; }
-
     [Column("occupation")]
     public required string Occupation { get; set; }
-    
-    [Column("description")]
-    public string? Description { get; set; }
-    
-    [Column("email-address")]
-    public string? EmailAddress { get; set; }
-    
+
     [Column("linkedin")]
     public string? Linkedin { get; set; }
-    
-    [Column("creation-date")]
-    public required DateTime CreationDate { get; set; }
 
-    [Column("trashed")]
-    public bool Trashed { get; set; } = false;
-
-    [Column("trash-date")]
-    public DateTime? TrashDate { get; set; } = null;
-
-    // Navigation property for the Author Resource Relation (1:m)
-    [JsonIgnore] public ICollection<ResourceAuthorRelation>? ResourceAuthorRelations { get; set; }
+    // Person-specific navigation properties
     [JsonIgnore] public ICollection<PersonOrganisationRelation>? PersonOrganisationRelations { get; set; }
     [JsonIgnore] public ICollection<ResourceRelatedPersonRelation>? ResourceRelatedPersonRelations { get; set; }
 

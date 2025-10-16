@@ -18,6 +18,7 @@ namespace KnowledgeBank.Data
         public DbSet<WebsiteMetadata> WebsiteMetadata { get; set; }
         public DbSet<AudioMetadata> AudioMetadata { get; set; }
         public DbSet<VideoMetadata> VideoMetadata { get; set; }
+        public DbSet<Entity> Entities { get; set; }
         public DbSet<Person> Persons { get; set; }
         public DbSet<Organisation> Organisations { get; set; }
         public DbSet<Region> Regions { get; set; }
@@ -48,18 +49,27 @@ namespace KnowledgeBank.Data
         {
             // modelBuilder.HasPostgresExtension("pg_trgm");
 
+            // Configure TPT inheritance for Entity hierarchy
+            modelBuilder.Entity<Entity>()
+                .UseTptMappingStrategy();
+
+            modelBuilder.Entity<Person>()
+                .ToTable("persons");
+
+            modelBuilder.Entity<Organisation>()
+                .ToTable("organisations");
+
             modelBuilder.Entity<ResourceTagRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.TagId }); // Define composite primary key
 
             modelBuilder.Entity<ResourceAuthorRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.AuthorId});
 
-            // Configure ResourceAuthorRelation to use ResourceGridItem view for Author navigation
+            // Configure ResourceAuthorRelation to reference Entity base class
             modelBuilder.Entity<ResourceAuthorRelation>()
                 .HasOne(ra => ra.Author)
-                .WithMany()
+                .WithMany(e => e.ResourceAuthorRelations)
                 .HasForeignKey(ra => ra.AuthorId)
-                .HasPrincipalKey(rgi => rgi.Id)
                 .OnDelete(DeleteBehavior.NoAction);
                 
             modelBuilder.Entity<ResourceRelatedPersonRelation>()

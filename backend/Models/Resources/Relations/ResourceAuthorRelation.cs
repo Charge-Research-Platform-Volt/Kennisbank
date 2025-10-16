@@ -13,13 +13,14 @@ public class ResourceAuthorRelation
     public required Guid ResourceId { get; set; }
 
     [Column("author-id")]
+    [ForeignKey("Author")]
     public required Guid AuthorId { get; set; }
 
     // Navigation property to Resource (1:1)
     [JsonIgnore] public Resource? Resource { get; set; }
 
-    // Navigation property to Author (Person or Organisation via materialized view)
-    [JsonIgnore] public ResourceGridItem? Author { get; set; }
+    // Navigation property to Author (Person or Organisation via Entity base class)
+    [JsonIgnore] public Entity? Author { get; set; }
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
