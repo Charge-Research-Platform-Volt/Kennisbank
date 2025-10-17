@@ -1,14 +1,14 @@
 "use client";
 
 import React from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogOverlay, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogOverlay, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import Search from "@/icons/search-icon";
 import { VisuallyHidden } from "radix-ui";
 import { Input } from "./ui/input";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useDebouncedCallback } from "use-debounce";
 import { toast } from "sonner";
-import { OctagonAlert } from "lucide-react";
+import { OctagonAlert, X } from "lucide-react";
 import GetFileIcon from "./getFileIcon";
 import { useQuickSearch } from "../context/quick-search-provider";
 import Kbd from "./kbd";
@@ -30,6 +30,8 @@ export default function QuickSearch({ minimize = false }: { minimize?: boolean }
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
     const [totalItems, setTotalItems] = React.useState<number | null>(null);
     const [searchDuration, setSearchDuration] = React.useState<number | null>(null);
+    const [searchQuery, setSearchQuery] = React.useState<string>("");
+    const inputRef = React.useRef<HTMLInputElement>(null);
 
     // Keyboard shortcut
     useHotkeys("mod+k", () => setIsOpen(true), { preventDefault: true });
@@ -106,7 +108,11 @@ export default function QuickSearch({ minimize = false }: { minimize?: boolean }
     // Fetch search results on load
     React.useEffect(() =>
     {
-        if (isOpen) fetchSearchResults();
+        if (isOpen)
+        {
+            setSearchQuery("");
+            fetchSearchResults();
+        }
     }, [isOpen]);
 
     const handleSearch = useDebouncedCallback(async (query: string) =>
@@ -128,7 +134,11 @@ export default function QuickSearch({ minimize = false }: { minimize?: boolean }
                 </DialogTrigger>
 
                 <DialogOverlay />
-                <DialogContent className="h-full max-h-[450px] w-full content-start gap-2 p-1 sm:max-w-[650px]">
+                <DialogContent className="h-full max-h-[450px] w-full content-start gap-2 p-1 sm:max-w-[650px] [&>button:not(.external-close)]:hidden">
+                    <DialogClose className="external-close cursor-pointer absolute -top-8 -right-8 opacity-70 transition-opacity hover:opacity-100 focus:outline-none disabled:pointer-events-none">
+                        <X className="h-6 w-6 text-white" />
+                        <span className="sr-only">Close</span>
+                    </DialogClose>
                     <VisuallyHidden.Root>
                         <DialogTitle>Search for anything</DialogTitle>
                         <DialogDescription>Search for anything in the knowledgeBank by typing in the search box below.</DialogDescription>
@@ -139,17 +149,34 @@ export default function QuickSearch({ minimize = false }: { minimize?: boolean }
                         <div className="*:not-first:mt-2">
                             <div className="relative">
                                 <Input
-                                    className="peer h-10 ps-9"
+                                    ref={inputRef}
+                                    className="peer h-10 ps-9 pe-9"
                                     placeholder="Search"
                                     type="text"
+                                    value={searchQuery}
                                     onChange={(e) =>
                                     {
+                                        setSearchQuery(e.target.value);
                                         handleSearch(e.target.value);
                                     }}
                                 />
                                 <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
                                     <Search className="h-4 w-4" aria-hidden="true" fill="currentColor" />
                                 </div>
+                                {searchQuery && (
+                                    <button
+                                        onClick={() =>
+                                        {
+                                            setSearchQuery("");
+                                            handleSearch("");
+                                            inputRef.current?.focus();
+                                        }}
+                                        className="text-muted-foreground/80 hover:text-muted-foreground absolute inset-y-0 end-0 flex items-center justify-center pe-3 transition-colors"
+                                        aria-label="Clear search"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                )}
                             </div>
                         </div>
                         {/* Search count and duration */}
@@ -197,7 +224,7 @@ export default function QuickSearch({ minimize = false }: { minimize?: boolean }
                                         <h3>{file.name}</h3>
                                     </div>
 
-                                    {file.description !== "" && <p className="text-muted-foreground/80 text-sm">{file.description}</p>}
+                                    {file.description !== "" && <p className="text-muted-foreground/80 text-sm line-clamp-3">{file.description}</p>}
                                 </Link>
                             ))}
                     </div>
