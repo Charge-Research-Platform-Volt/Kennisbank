@@ -166,7 +166,7 @@ namespace KnowledgeBank.Data
         ///
         /// Author: Justin Liem
         /// </summary>
-        /// <param name="projectId">Project id of the project to add the creators to.</>
+        /// <param name="projectId">Project id of the project to add the creators to.</param>
         /// <param name="userIds">Ids of the creators to add to the project.</param>
         /// <returns>Nothing, just updates the database.</returns>
         public async Task AddCreatorToProjectRangeAsync(Guid projectId, string[] userIds)

@@ -39,6 +39,7 @@ export type ArchiveContextType = {
     searchQuery: string;
     searchInput: string;
     setSearchInput: (searchInput: string) => void;
+    searchDuration: number | null;
     
     // Pagination
     currentPage: number;
@@ -104,6 +105,7 @@ export const ArchiveProvider = ({ children }: { children: React.ReactNode }) => 
     // Search
     const [searchInput, setSearchInput] = React.useState<string>(() => searchParams.get('query') || '');
     const [searchQuery, setSearchQuery] = React.useState<string>(() => searchParams.get('query') || '');
+    const [searchDuration, setSearchDuration] = React.useState<number | null>(null);
     
     // Pagination
     const [currentPage, setCurrentPage] = React.useState<number>(() => Number(searchParams.get('page')) || 1);
@@ -329,6 +331,7 @@ export const ArchiveProvider = ({ children }: { children: React.ReactNode }) => 
             
             if (data.success) 
             {
+                setSearchDuration(data.body.durationInMs || null);
                 setRowData(trashOpen ? data.body : data.body.items);
                 setTotalItems(trashOpen ? data.body.length : data.body.totalCount);
             }
@@ -391,6 +394,7 @@ export const ArchiveProvider = ({ children }: { children: React.ReactNode }) => 
                 searchQuery,
                 searchInput,
                 setSearchInput,
+                searchDuration,
                 
                 // Pagination
                 currentPage,

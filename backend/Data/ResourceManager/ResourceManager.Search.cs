@@ -1,5 +1,6 @@
 using KnowledgeBank.Models;
 using KnowledgeBank.Services;
+using KnowledgeBank.Services.Search.Models;
 using Microsoft.EntityFrameworkCore;
 using Qdrant.Client.Grpc;
 using static Qdrant.Client.Grpc.Conditions;
@@ -37,6 +38,7 @@ public class GridFilterOptions
 public class GridSearchTemplate
 {
     public int TotalCount { get; set; }
+    public int DurationInMs { get; set; }
     public int PageIndex { get; set; }
     public int PageSize { get; set; }
     public string? SearchTerm { get; set; }
@@ -105,176 +107,50 @@ public partial class ResourceManager
 
 
     /// <summary>
-    /// This function executes a search query.
+    /// This function executes a search query using the hybrid search system.
     /// </summary>
     /// <param name="pageIndex">The index of the current page</param>
     /// <param name="pageSize">The size of the page</param>
     /// <param name="search">The search query</param>
-    /// <param name="sortBy">The attribute to sort by</param>
-    /// <param name="sortDirection">The direction to sort in (asc or desc)</param>
+    /// <param name="sortBy">The attribute to sort by (currently not used in hybrid search, sorting by relevance)</param>
+    /// <param name="sortDirection">The direction to sort in (currently not used in hybrid search)</param>
     /// <param name="filters">A dictionary of filters to apply</param>
     /// <returns>The search result</returns>
     private async Task<GridSearchTemplate> ExecuteSearchQuery(int pageIndex, int pageSize, string search, string? sortBy, string? sortDirection, Dictionary<string, object?> filters)
     {
-        try
+        _logger.Information("Executing hybrid search for query: '{Query}'", search);
+
+        // Execute hybrid search
+        var hybridResult = await _hybridSearchService.SearchAsync(search, pageIndex, pageSize, filters);
+
+        // Convert HybridSearchResult to GridSearchResultWithChunks for backwards compatibility
+        var result = new GridSearchResultWithChunks
         {
-            _logger.Information("Executing search using Qdrant");
-            return await ExecuteSearchQdrant(pageIndex, pageSize, search, filters);
-        }
-        catch (Exception)
-        {
-            _logger.Warning("Qdrant search failed, falling back to SQL search");
+            Items = hybridResult.Items.Select(item => new ResourceGridItemWithChunks
+            {
+                Id = item.Id,
+                Name = item.Name,
+                Description = item.Description,
+                PublicationDate = item.PublicationDate,
+                Type = item.Type,
+                FileType = item.FileType,
+                CreationDate = item.CreationDate,
+                Chunks = item.MatchedChunks
+            }).ToArray(),
+            TotalCount = hybridResult.TotalCount,
+            DurationInMs = (int)hybridResult.DurationInMs,
+            PageIndex = hybridResult.PageIndex,
+            PageSize = hybridResult.PageSize,
+            SearchTerm = hybridResult.SearchTerm,
+            IsSearchResult = hybridResult.IsSearchResult
+        };
 
-            // Build the query
-            SearchQueryBuilder queryBuilder = new SearchQueryBuilder().AddSearchCondition(search).AddFilters(filters);
+        _logger.Information("Hybrid search complete. Results: {Count}/{Total}, Avg Score: {AvgScore:F3}",
+            result.Items.Length, result.TotalCount, hybridResult.Metadata.AverageScore);
 
-            // Get sql and parameters
-            var (sql, parameters) = queryBuilder.BuildSearchQuery(sortBy, sortDirection, (pageIndex - 1) * pageSize, pageSize);
-            var (countSql, countParameters) = queryBuilder.BuildCountQuery();
-
-            // Execute the sql
-            ResourceGridSearchResult[] searchResults = await database.ResourceGridSearchResults.FromSqlRaw(sql, parameters).ToArrayAsync();
-
-            // Retrieve the total count
-            int totalCount = await database.Database.SqlQueryRaw<int>(countSql, countParameters).SingleAsync();
-
-            // Return result
-            return CreateGridResult(searchResults.Select(x => x.ToResourceGridItem()).ToArray(), totalCount, pageIndex, pageSize, search, true);
-        }
+        return result;
     }
 
-
-
-
-    /// Executes a semantic search using Qdrant vector database with fallback to text matching.
-    /// <param name="pageIndex">The current page index for pagination (1-based).</param>
-    /// <param name="pageSize">The number of items to return per page.</param>
-    /// <param name="search">The search query string to find relevant resources.</param>
-    /// <param name="filters">Additional filters to apply to the search results as key-value pairs.</param>
-    /// <returns>
-    /// A <see cref="GridSearchResult"/> containing the paginated search results with resource items,
-    /// total count, and pagination metadata. Returns empty result if no matches are found.
-    /// </returns>
-    /// <remarks>
-    /// The method first attempts to perform semantic search by generating embeddings from the search query.
-    /// If embedding generation fails, it falls back to text-based matching using the search term.
-    /// Results are grouped by resourceId.
-    /// </remarks>
-    private async Task<GridSearchResultWithChunks> ExecuteSearchQdrant(int pageIndex, int pageSize, string search, Dictionary<string, object?> filters)
-    {
-        IReadOnlyList<PointGroup> searchresults;
-
-        try
-        {
-            _logger.Information("Executing semantic search using Qdrant");
-
-            // Generate embedding for the search query
-            float[] embeddingData = await _ragSystem.GenerateEmbedding(search);
-
-            // Perform vector search in Qdrant
-            searchresults = await _ragSystem.QdrantClient.QueryGroupsAsync(
-                _ragSystem.CollectionName,
-                groupBy: "resourceId",
-                query: embeddingData,
-                limit: 1000,
-                groupSize: 4
-            );
-        }
-        catch (Exception)
-        {
-            _logger.Error("Qdrant embedding generation failed, falling back to Qdrant text-based search");
-
-            // If embedding generation fails, fallback to text-based search
-            searchresults = await _ragSystem.QdrantClient.QueryGroupsAsync(
-                _ragSystem.CollectionName,
-                groupBy: "resourceId",
-                filter: MatchText("chunkText", search),
-                limit: 1000,
-                groupSize: 4
-            );
-        }
-        Console.WriteLine($"Qdrant search results: {searchresults}");
-        try
-        {
-            _logger.Information("Processing Qdrant search results");
-
-            // Extract resource IDs and chunks from search results in a single pass
-            var resourceData = new Dictionary<Guid, List<string>>(searchresults.Count);
-            foreach (var result in searchresults)
-            {
-                var resourceId = Guid.Parse(result.Id.StringValue);
-                var chunks = new List<string>(result.Hits.Count);
-                foreach (var hit in result.Hits)
-                {
-                    chunks.Add(CustomPayload.FromPayload(hit.Payload).ChunkText);
-                }
-                resourceData[resourceId] = chunks;
-            }
-
-            // Early return for empty results
-            if (resourceData.Count == 0)
-                return new GridSearchResultWithChunks
-                {
-                    Items = [],
-                    TotalCount = 0,
-                    PageIndex = pageIndex,
-                    PageSize = pageSize,
-                    SearchTerm = search,
-                    IsSearchResult = true
-                };
-
-            // Get resource IDs as array
-            var resourceIds = resourceData.Keys.ToArray();
-
-            // Query database for resources matching the IDs from vector search results.
-            var query = database.ResourceGridItems.Where(x => resourceIds.Contains(x.Id));
-
-            // Apply filters to the query
-            query = ApplyFilters(query, filters);
-
-            // Execute the query to get all filtered results, Set total count to the number of filtered results
-            ResourceGridItem[] allItems = await query.ToArrayAsync();
-            int totalCount = allItems.Length;
-
-            // Create a lookup for resource positions based on the original search results
-            var positionLookup = new Dictionary<Guid, int>(resourceData.Count);
-            int position = 0;
-            foreach (var kvp in resourceData)
-                positionLookup[kvp.Key] = position++;
-
-            // Sort by semantic relevance, then apply pagination and add chunks
-            var pagedItems = allItems
-                .OrderBy(x => positionLookup[x.Id])
-                .Skip((pageIndex - 1) * pageSize)
-                .Take(pageSize)
-                .Select(item => new ResourceGridItemWithChunks
-                {
-                    Id = item.Id,
-                    Name = item.Name,
-                    Description = item.Description,
-                    PublicationDate = item.PublicationDate,
-                    Type = item.Type,
-                    FileType = item.FileType,
-                    CreationDate = item.CreationDate,
-                    Chunks = resourceData[item.Id]
-                }).ToArray();
-
-            return new GridSearchResultWithChunks
-            {
-                Items = pagedItems,
-                TotalCount = totalCount,
-                PageIndex = pageIndex,
-                PageSize = pageSize,
-                SearchTerm = search,
-                IsSearchResult = true
-            };
-        }
-        catch (Exception error)
-        {
-            _logger.Error("Error while processing Qdrant search results: {ErrorMessage}. StackTrace: {StackTrace}", error.Message, error.StackTrace);
-            throw new InvalidOperationException($"An error occurred while processing the search results: {error.Message}", error);
-        }
-    }
 
 
     /// <summary>

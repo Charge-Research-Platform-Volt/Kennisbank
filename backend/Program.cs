@@ -125,17 +125,14 @@ namespace KnowledgeBank
             builder.Services.AddSingleton<RAGSystem, RAGSystem>();
             builder.Services.AddScoped<RAGManger>();
 
-
-            // Background services
-            builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
-            builder.Services.AddHostedService<QueuedHostedService>();
-
-
-
-            // Retrieval Augmented Generation system
-            builder.Services.AddSingleton<RAGSystem, RAGSystem>();
-            builder.Services.AddScoped<RAGManger>();
-
+            // Hybrid Search System
+            builder.Services.AddSingleton<KnowledgeBank.Services.Search.Models.HybridSearchConfig>(sp =>
+            {
+                var config = new KnowledgeBank.Services.Search.Models.HybridSearchConfig();
+                config.Validate();
+                return config;
+            });
+            builder.Services.AddScoped<KnowledgeBank.Services.Search.HybridSearchService>();
 
             // Background services
             builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();

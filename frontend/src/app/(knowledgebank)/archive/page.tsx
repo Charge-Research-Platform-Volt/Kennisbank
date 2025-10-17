@@ -45,6 +45,8 @@ export default function Page() {
         trashOpen,
         setTrashOpen,
         router,
+        searchDuration,
+        totalItems
     } = useArchive();
     
     const { userRole } = useUserRole();
@@ -204,6 +206,13 @@ export default function Page() {
                         <Button variant="outline" className="border-red-500 text-red-500 hover:bg-red-50 hover:border-red-600 hover:text-red-600" onClick={resetFilters}>Reset All Filters</Button>
                         <Button variant="outline" onClick={() => setFiltersOpen(false)}>Close</Button>
                     </div>
+                </div>
+            }
+            
+            {/* Search count and duration */}
+            { searchDuration &&
+                <div className="w-full pl-3">
+                    <span className="text-xs italic text-gray-500">Found {totalItems} results in {searchDuration}ms</span>
                 </div>
             }
             
