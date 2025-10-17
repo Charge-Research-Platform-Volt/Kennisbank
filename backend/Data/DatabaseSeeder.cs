@@ -1,5 +1,7 @@
 ﻿using KnowledgeBank.Models;
 using KnowledgeBank.Services;
+using KnowledgeBank.Services.Search;
+using KnowledgeBank.Services.Search.Models;
 using Npgsql.Replication;
 
 namespace KnowledgeBank.Data
@@ -10,6 +12,7 @@ namespace KnowledgeBank.Data
         public const string UnknownResourceTypeId = "0cc285a8-0f07-11f0-a0a6-5600051f1387";
         private static DatabaseContext database;
         private static RAGSystem ragSystem;
+        private static HybridSearchService hybridSearchService;
 
         private static ResourceManager resourceManager;
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
@@ -59,7 +62,10 @@ namespace KnowledgeBank.Data
         public static async Task SeedTemplate(DatabaseContext database)
         {
             DatabaseSeeder.database = database;
-            resourceManager = new ResourceManager(database, ragSystem);
+            // Create a default hybrid search config for testing
+            var config = new HybridSearchConfig();
+            hybridSearchService = new HybridSearchService(ragSystem, database, config);
+            resourceManager = new ResourceManager(database, ragSystem, hybridSearchService);
 
             // Call the common seed logic for the template database
             await SeedData();

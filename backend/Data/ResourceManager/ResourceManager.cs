@@ -5,22 +5,26 @@
 // Authors: Abel Dieterich, Elia Jabbour (AI parts and RAG system)
 
 using KnowledgeBank.Services;
+using KnowledgeBank.Services.Search;
+using KnowledgeBank.Services.Search.Models;
 using Serilog;
 
 namespace KnowledgeBank.Data
 {
     /// <summary>
     /// This class is responsible for all database interactions regarding resources and their metadata.
-    /// 
+    ///
     /// Author: Abel Dieterich
     /// </summary>
     /// <param name="dbContext">The database context variable</param>
     /// <param name="ragSystem">The RAG system variable</param>
-    public partial class ResourceManager(DatabaseContext dbContext, RAGSystem ragSystem)
+    /// <param name="hybridSearchService">The hybrid search service variable</param>
+    public partial class ResourceManager(DatabaseContext dbContext, RAGSystem ragSystem, HybridSearchService hybridSearchService)
     {
         private readonly DatabaseContext database = dbContext;
         private readonly Serilog.ILogger _logger = Log.ForContext<ResourceManager>();
         private readonly RAGSystem _ragSystem = ragSystem;
+        private readonly HybridSearchService _hybridSearchService = hybridSearchService;
 
 
         #region Transaction functions
