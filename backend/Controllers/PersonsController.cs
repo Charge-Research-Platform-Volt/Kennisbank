@@ -629,6 +629,58 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
 
+        #region Update Relation Role
+        /// <summary>
+        /// Updates the role/relation in a relation between this person and another entity
+        /// </summary>
+        /// <param name="id">The ID of the person</param>
+        /// <param name="relation">The relation type (organisations, related-persons, related-resources)</param>
+        /// <param name="targetId">The ID of the related entity</param>
+        /// <param name="newRole">The new role/relation value</param>
+        [HttpPatch("{id}/relations/update-role/{relation}/{targetId}")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Updates the role/relation in a relationship")]
+        [SwaggerResponse(200, "Role updated successfully", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Person or relation not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> UpdateRelationRole(string id, string relation, string targetId, [FromQuery] string newRole)
+        {
+            // Validation
+            if (string.IsNullOrEmpty(relation))
+                return BadRequest(new ApiResponse(false, "Invalid relation"));
+
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID"));
+
+            if (!ValidityUtil.IsValidId(targetId))
+                return BadRequest(new ApiResponse(false, "Invalid target ID"));
+
+            try
+            {
+                // Use the utility to update the role
+                bool success = await RelationUpdateUtil.UpdateRelationRole(
+                    resourceManager,
+                    "persons",
+                    id,
+                    relation,
+                    targetId,
+                    newRole ?? ""
+                );
+
+                if (!success)
+                    return NotFound(new ApiResponse(false, "Relation not found or invalid relation type"));
+
+                return Ok(new ApiResponse(true, "Role updated successfully"));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error updating role in relation '{Relation}' for person with ID '{Id}'", relation, id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        #endregion
+
         #region Helper Functions
         // ---------------------------
         // Helper functions

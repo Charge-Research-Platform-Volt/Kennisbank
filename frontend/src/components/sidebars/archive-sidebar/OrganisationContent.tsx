@@ -4,7 +4,7 @@ import { MetadataTypeEnum, useArchiveSidebar } from "@/context/archive-sidebar-p
 import React from "react";
 import Skeleton from 'react-loading-skeleton';
 import Expandable from "./expandable";
-import { ListItem } from "./BadgeList";
+import { Item } from "./archive-sidebar";
 import { useUserRole } from "@/context/user-role-context";
 import { Button } from "@/components/ui/button";
 import { useArchive } from "@/context/archive-provider";
@@ -21,17 +21,18 @@ import { Textarea } from "@/components/ui/textarea";
 import AddRelationBadge from "./AddRelationBadge";
 import { RelationTrash } from "./relation-trash";
 import { removeRelation } from "@/lib/relationManager";
+import { RelationTooltip } from "./RelationTooltip";
 
-class OrganisationContentItems 
+class OrganisationContentItems
 {
     name: string | null = null;
     website: string | null = null;
     description: string | null = null;
     email: string | null = null;
-    authored: ListItem[] = [];
-    resources: ListItem[] = [];
-    organisations: ListItem[] = [];
-    persons: ListItem[] = [];
+    authored: Item[] = [];
+    resources: Item[] = [];
+    organisations: Item[] = [];
+    persons: Item[] = [];
     trashed: boolean = false;
 }
 
@@ -59,11 +60,11 @@ export function OrganisationContent()
             CreationDate,
             EmailAddress as Email,
             Trashed,
-            
-            ResourceOrganisationRelations.Select(new(Resource.Id, Resource.Title as Name)) as Resources,
-            TargetRelationships.Select(new(TargetOrganisation.Id, TargetOrganisation.Name)) as TargetOrganisations,
-            SourceRelationships.Select(new(SourceOrganisation.Id, SourceOrganisation.Name)) as SourceOrganisations,
-            PersonOrganisationRelations.Select(new(Person.Id, Person.Name)) as Persons
+
+            ResourceOrganisationRelations.Select(new(Resource.Id, Resource.Title as Name, Role)) as Resources,
+            TargetRelationships.Select(new(TargetOrganisation.Id, TargetOrganisation.Name, Relation)) as TargetOrganisations,
+            SourceRelationships.Select(new(SourceOrganisation.Id, SourceOrganisation.Name, Relation)) as SourceOrganisations,
+            PersonOrganisationRelations.Select(new(Person.Id, Person.Name, Role)) as Persons
         `);
         
         // Fetch
@@ -86,10 +87,26 @@ export function OrganisationContent()
                 website: data.body.website || null,
                 description: data.body.description || null,
                 email: data.body.email || null,
-                authored: data.body.authored || [],
-                resources: data.body.resources || [],
-                organisations: (data.body.targetOrganisations || []).concat(data.body.sourceOrganisations || []),
-                persons: data.body.persons || [],
+                authored: (data.body.authored || []).map((item: any) => ({
+                    id: item.id,
+                    name: item.name,
+                    relation: undefined
+                })),
+                resources: (data.body.resources || []).map((item: any) => ({
+                    id: item.id,
+                    name: item.name,
+                    relation: item.role
+                })),
+                organisations: (data.body.targetOrganisations || []).concat(data.body.sourceOrganisations || []).map((item: any) => ({
+                    id: item.id,
+                    name: item.name,
+                    relation: item.relation
+                })),
+                persons: (data.body.persons || []).map((item: any) => ({
+                    id: item.id,
+                    name: item.name,
+                    relation: item.role
+                })),
                 trashed: data.body.trashed || false
             }
             
@@ -271,21 +288,33 @@ export function OrganisationContent()
             
             <Expandable variant="horizontal" title="Related Resources" hidden={!(editMode || content.resources.length > 0)} defaultOpen={editMode}>
                 { content.resources.map((item) => (
-                    <Badge key={item.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
-                    {
-                        if (editMode) return;
-                        
-                        navigate(item.id, MetadataTypeEnum.RESOURCE);
-                    }}>
-                        <span className="truncate">{item.name}</span>
-                        
-                        { editMode && (
-                            <RelationTrash 
+                    <RelationTooltip
+                        key={item.id}
+                        item={item}
+                        entityType="organisations"
+                        currentId={currentId}
+                        relationType="related-resources"
+                        editMode={editMode}
+                        onClick={() => {
+                            if (!editMode) {
+                                navigate(item.id, MetadataTypeEnum.RESOURCE);
+                            }
+                        }}
+                        onRelationUpdate={(itemId, newRelation) => {
+                            setContent(prevContent => ({
+                                ...prevContent,
+                                resources: prevContent.resources.map(i =>
+                                    i.id === itemId ? { ...i, relation: newRelation } : i
+                                )
+                            }));
+                        }}
+                        trashComponent={
+                            <RelationTrash
                                 removeAction={() => removeRelation("organisations", currentId, "related-resources", item.id)}
                                 successAction={() => setContent(prevContent => ({ ...prevContent, resources: prevContent.resources.filter(i => i.id !== item.id)}))}
                             />
-                        )}
-                    </Badge>
+                        }
+                    />
                 ))}
                 
                 { editMode && (
@@ -309,21 +338,33 @@ export function OrganisationContent()
             
             <Expandable variant="horizontal" title="Related Organisations" hidden={!(editMode || content.organisations.length > 0)} defaultOpen={editMode}>
                 { content.organisations.map((organisation) => (
-                    <Badge key={organisation.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
-                    {
-                        if (editMode) return;
-                        
-                        navigate(organisation.id, MetadataTypeEnum.ORGANISATION);
-                    }}>
-                        <span className="truncate">{organisation.name}</span>
-                        
-                        { editMode && (
-                            <RelationTrash 
+                    <RelationTooltip
+                        key={organisation.id}
+                        item={organisation}
+                        entityType="organisations"
+                        currentId={currentId}
+                        relationType="related-organisations"
+                        editMode={editMode}
+                        onClick={() => {
+                            if (!editMode) {
+                                navigate(organisation.id, MetadataTypeEnum.ORGANISATION);
+                            }
+                        }}
+                        onRelationUpdate={(itemId, newRelation) => {
+                            setContent(prevContent => ({
+                                ...prevContent,
+                                organisations: prevContent.organisations.map(o =>
+                                    o.id === itemId ? { ...o, relation: newRelation } : o
+                                )
+                            }));
+                        }}
+                        trashComponent={
+                            <RelationTrash
                                 removeAction={() => removeRelation("organisations", currentId, "related-organisations", organisation.id)}
                                 successAction={() => setContent(prevContent => ({ ...prevContent, organisations: prevContent.organisations.filter(o => o.id !== organisation.id) }))}
                             />
-                        )}
-                    </Badge>
+                        }
+                    />
                 ))}
                 
                 { editMode && (
@@ -347,21 +388,33 @@ export function OrganisationContent()
             
             <Expandable variant="horizontal" title="Related People" hidden={!(editMode || content.persons.length > 0)} defaultOpen={editMode}>
                 { content.persons.map((person) => (
-                    <Badge key={person.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
-                    {
-                        if (editMode) return;
-                        
-                        navigate(person.id, MetadataTypeEnum.PERSON);
-                    }}>
-                        <span className="truncate">{person.name}</span>
-                        
-                        { editMode && (
+                    <RelationTooltip
+                        key={person.id}
+                        item={person}
+                        entityType="organisations"
+                        currentId={currentId}
+                        relationType="related-persons"
+                        editMode={editMode}
+                        onClick={() => {
+                            if (!editMode) {
+                                navigate(person.id, MetadataTypeEnum.PERSON);
+                            }
+                        }}
+                        onRelationUpdate={(itemId, newRelation) => {
+                            setContent(prevContent => ({
+                                ...prevContent,
+                                persons: prevContent.persons.map(p =>
+                                    p.id === itemId ? { ...p, relation: newRelation } : p
+                                )
+                            }));
+                        }}
+                        trashComponent={
                             <RelationTrash
                                 removeAction={() => removeRelation("organisations", currentId, "related-persons", person.id)}
                                 successAction={() => setContent(prevContent => ({ ...prevContent, persons: prevContent.persons.filter(p => p.id !== person.id) }))}
                             />
-                        )}
-                    </Badge>
+                        }
+                    />
                 ))}
                 
                 { editMode && (
