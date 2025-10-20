@@ -1611,11 +1611,20 @@ namespace KnowledgeBank.Data
         #endregion
         
         #region MetadataType
-        public async Task<string?> GetMetadataType(Guid id) 
+        public async Task<string?> GetMetadataType(Guid id)
         {
-            return await GetPropertyOrDefaultAsync(database.ResourceGridItems, i => i.Id == id, "Type");
+            // First try to get from regular grid items (non-trashed)
+            var type = await GetPropertyOrDefaultAsync(database.ResourceGridItems, i => i.Id == id, "Type");
+
+            // If not found, check trash items
+            if (type == null)
+            {
+                type = await GetPropertyOrDefaultAsync(database.ResourceTrashItems, i => i.Id == id, "Type");
+            }
+
+            return type;
         }
-        
+
         public async Task<string?> GetMetadataType(string id)
         { return await GetMetadataType(Guid.Parse(id)); }
         #endregion

@@ -18,10 +18,10 @@ namespace KnowledgeBank.Controllers;
 public class AIController : ControllerBase
 {
     private readonly Serilog.ILogger _logger;
-    private readonly RAGManger _ragManger;
+    private readonly RAGManager _ragManger;
     private readonly ResourceManager _resourceManager;
 
-    public AIController(RAGManger ragManger, ResourceManager resourceManager)
+    public AIController(RAGManager ragManger, ResourceManager resourceManager)
     {
         _logger = Log.ForContext<AIController>();
         _resourceManager = resourceManager;

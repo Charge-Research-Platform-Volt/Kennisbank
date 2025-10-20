@@ -42,11 +42,12 @@ namespace KnowledgeBank.Controllers
     /// <param name="blobService">The Azure Blob Service for file storage</param>
     /// <param name="taskQueue">The background task queue for processing tasks asynchronously</param>
     /// <param name="ragSystem">The RAG system for handling document processing</param>
+    /// <param name="ragManager">The RAG manager for metadata updates and query processing</param>
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem) : ControllerBase
+    public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem, RAGManager ragManager) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<ResourcesController>();
         private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
@@ -135,8 +136,8 @@ namespace KnowledgeBank.Controllers
                         _taskQueue.QueueBackgroundWorkItem(async token =>
                         {
                             using var scope = HttpContext.RequestServices.CreateScope();
-                            var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
-                            await ragManager.MainPipline(id: id, chunk: $"{dto.Title}\n{dto.Description}\n{((WebsiteCreateDto)dto).Url}");
+                            var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                            await ragManager.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}\n{((WebsiteCreateDto)dto).Url}");
                         });
                         break;
                     case "document":
@@ -147,8 +148,8 @@ namespace KnowledgeBank.Controllers
                         _taskQueue.QueueBackgroundWorkItem(async token =>
                         {
                             using var scope = HttpContext.RequestServices.CreateScope();
-                            var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
-                            await ragManager.MainPipline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
+                            var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                            await ragManager.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
                         });
 
                         break;
@@ -157,8 +158,8 @@ namespace KnowledgeBank.Controllers
                         _taskQueue.QueueBackgroundWorkItem(async token =>
                         {
                             using var scope = HttpContext.RequestServices.CreateScope();
-                            var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
-                            await ragManager.MainPipline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
+                            var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                            await ragManager.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
                         });
                         break;
                     default:
@@ -195,8 +196,8 @@ namespace KnowledgeBank.Controllers
                             _taskQueue.QueueBackgroundWorkItem(async token =>
                             {
                                 using var scope = HttpContext.RequestServices.CreateScope();
-                                var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
-                                await ragManager.MainPipline(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: fileType, fileStream: fDto.File.OpenReadStream());
+                                var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                                await ragManager.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: fileType, fileStream: fDto.File.OpenReadStream());
                             });
 
                             break;
@@ -527,12 +528,12 @@ namespace KnowledgeBank.Controllers
 
                 List<string> updatedProperties = [];
 
-                // Update the properties
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Resource), id, updates, ragSystem));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(WebsiteMetadata), id, updates, ragSystem));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(DocumentMetadata), id, updates, ragSystem));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(AudioMetadata), id, updates, ragSystem));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(VideoMetadata), id, updates, ragSystem));
+                // Update the properties (pass ragManager for rich metadata updates)
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Resource), id, updates, ragSystem, ragManager));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(WebsiteMetadata), id, updates, ragSystem, ragManager));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(DocumentMetadata), id, updates, ragSystem, ragManager));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(AudioMetadata), id, updates, ragSystem, ragManager));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(VideoMetadata), id, updates, ragSystem, ragManager));
 
                 // No props were found
                 if (updatedProperties.Count == 0)
@@ -839,9 +840,9 @@ namespace KnowledgeBank.Controllers
 
             try
             {
-                if (relation == "resource-related-resources")
+                if (relation == "resource-similar-resources")
                 {
-                    return await GetRelatedResources(id);
+                    return await GetSimilarResources(id);
                 }
 
                 object? result = relation switch
@@ -1578,10 +1579,14 @@ namespace KnowledgeBank.Controllers
             return result + extension;
         }
 
-        private async Task<IActionResult> GetRelatedResources(string id)
+        private async Task<IActionResult> GetSimilarResources(string id)
         {
             try
             {
+                // Similarity threshold - only return resources with score above this value
+                // Score ranges from 0 to 1, where higher means more similar
+                const float similarityThreshold = 0.6f;
+
                 // Check if the resource exists
                 if (!await resourceManager.ResourceExistsAsync(id))
                     return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
@@ -1595,38 +1600,42 @@ namespace KnowledgeBank.Controllers
                 if (pointsIds.Count == 0)
                     return Ok(new ApiResponse(true, "No vector points found for resource", Array.Empty<Resource>()));
 
-                // Find related resources using vector similarity
+                // Find similar resources using vector similarity
+                // scoreThreshold ensures only resources with similarity >= 0.6 are returned
                 IReadOnlyList<PointGroup> results = await ragSystem.QdrantClient.RecommendGroupsAsync(
                     ragSystem.CollectionName,
                     groupBy: "resourceId",
                     positive: pointsIds.Select(p => p.Id).ToArray(),
                     filter: !MatchKeyword("resourceId", id), // Exclude the current resource
-                    limit: 5
+                    limit: 5, // Limit to top 5 similar resources
+                    scoreThreshold: similarityThreshold
                 );
 
                 // Retrieve the actual resource objects
                 if (results.Count == 0)
-                    return Ok(new ApiResponse(true, "No related resources found", Array.Empty<Resource>()));
+                    return Ok(new ApiResponse(true, "No similar resources found", Array.Empty<Resource>()));
 
-                //ResourceIds ids
+                // Extract resource IDs
                 var resourceIds = results.Select(result => Guid.Parse(result.Id.StringValue)).ToList();
 
                 // Retrieve resources based on the found IDs
-                var query = await resourceManager.GetAllResourcesAsync(
+                var resources = await resourceManager.GetAllResourcesAsync(
                     predicate: r => resourceIds.Contains(r.Id)
                 );
 
-                // Check if any resources were found
-                if (query.Count() == 0)
-                    return Ok(new ApiResponse(true, "No related resources found", Array.Empty<Resource>()));
+                var resourceArray = resources.ToArray();
 
-                return Ok(new ApiResponse(true, "Related resources found", query.ToArray()));
+                // Check if any resources were found
+                if (resourceArray.Length == 0)
+                    return Ok(new ApiResponse(true, "No similar resources found", Array.Empty<Resource>()));
+
+                return Ok(new ApiResponse(true, "Similar resources found", resourceArray));
             }
 
             catch (Exception ex)
             {
-                logger.Error(ex, "Error retrieving relation 'resource-related-resources' for resource with ID '{Id}'", id);
-                return StatusCode(500, new ApiResponse(false, "Internal Server Error: Related Resources", ex.Message));
+                logger.Error(ex, "Error retrieving relation 'resource-similar-resources' for resource with ID '{Id}'", id);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error: Similar Resources", ex.Message));
             }
         }
 

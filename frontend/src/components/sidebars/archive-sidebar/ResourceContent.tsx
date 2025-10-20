@@ -46,7 +46,7 @@ class ResourceContentItems
     aiTags: Item[] = [];
     organisations: Item[] = [];
     relatedPersons: Item[] = [];
-    relatedResources: Item[] = [];
+    similarResources: Item[] = [];
     source: string | null = null;
     regions: Item[] = [];
     langCode: string | null = null;
@@ -132,29 +132,34 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                 url: data.body.url || null,
                 description: data.body.description || null,
                 note: data.body.note || null,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 authors: (data.body.authors || []).map((item: any) => ({
                     id: item.id,
                     name: item.name,
                     relation: undefined
                 })),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 tags: (data.body.tags || []).map((item: any) => ({
                     id: item.id,
                     name: item.name,
                     relation: undefined
                 })),
                 aiTags: data.body.aiTags || [],
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 organisations: (data.body.organisations || []).map((item: any) => ({
                     id: item.id,
                     name: item.name,
                     relation: item.role
                 })),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 relatedPersons: (data.body.relatedPersons || []).map((item: any) => ({
                     id: item.id,
                     name: item.name,
                     relation: item.role
                 })),
-                relatedResources: data.body.relatedResources || [],
+                similarResources: data.body.similarResources || [],
                 source: data.body.sourceUrl || null,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 regions: (data.body.regions || []).map((item: any) => ({
                     id: item.id,
                     name: item.name,
@@ -187,14 +192,14 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             
             setResourceTypes(data.body);
         }
-    }, [currentId]);
+    }, [currentId, setCreationDate, setFileType, setPublicationDate]);
     
-    // Loads the related resources
-    const loadRelatedResources = React.useCallback(async () =>
+    // Loads the similar resources
+    const loadSimilarResources = React.useCallback(async () =>
     {
-        const relatedResourcesPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "resource-related-resources");
+        const similarResourcesPromise = getRelation(currentId, MetadataTypeEnum.RESOURCE, "resource-similar-resources");
 
-        relatedResourcesPromise
+        similarResourcesPromise
             .then((response) =>
             {
                 const list: Item[] = response.body.map((item: { id: string; title: string }) => ({
@@ -204,16 +209,16 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
 
                 setContent(prevContent => ({
                     ...prevContent,
-                    relatedResources: list
+                    similarResources: list
                 }));
             })
             .catch((error) =>
             {
-                console.log("Error loading related resources: ", error);
+                console.log("Error loading similar resources: ", error);
 
                 setContent(prevContent => ({
                     ...prevContent,
-                    relatedResources: []
+                    similarResources: []
                 }));
             });
     }, [currentId]);
@@ -265,10 +270,10 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
 
             // Load content
             loadContent();
-            loadRelatedResources();
+            loadSimilarResources();
             loadAiTags();
         }
-    }, [currentId, loadContent, loadRelatedResources, loadAiTags, archiveSidebarOpen, setPublicationDate, setCreationDate, setFileType]);
+    }, [currentId, loadContent, loadSimilarResources, loadAiTags, archiveSidebarOpen, setPublicationDate, setCreationDate, setFileType]);
 
     // Deletes resource
     const confirmDelete = async () =>
@@ -676,7 +681,7 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             </Expandable>
 
             {/* Similar Resources */}
-            <ResourceList header="Similar Resources" resources={content.relatedResources} />
+            <ResourceList header="Similar Resources" resources={content.similarResources} />
             
             {/* Regions */}
             <Expandable variant="horizontal" title="Regions" hidden={!(editMode || content.regions.length > 0)} defaultOpen={editMode}>

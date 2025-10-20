@@ -20,13 +20,13 @@ export type resourceRelation =
   | "tags"
   | "related-persons"
   | "website"
-  | "resource-related-resources";
+  | "resource-similar-resources";
 
 // declare relation types for persons
-export type personRelation = "authored-resources" | "related-resources" | "person-related-persons" | "organisations";
+export type personRelation = "authored-resources" | "similar-resources" | "person-related-persons" | "organisations";
 
 // declare relation types for organisations
-export type organisationRelation = "direct-resources" | "related-resources" | "organisation-related-organisations" | "persons";
+export type organisationRelation = "direct-resources" | "similar-resources" | "organisation-related-organisations" | "persons";
 
 export const getProperties = async (
     id: string,
@@ -75,8 +75,8 @@ export const getRelation = async (id: string, type: string, relation: resourceRe
     regions: "RegionId as id,Region.Name as name",
     "related-organisations": "OrganisationId as id,Organisation.Name as name",
     "related-persons": "PersonId as id,Person.Name as name",
-    "related-resources": "ResourceId as id,Resource.Title as name",
-    "resource-related-resources": "Id as id,Title,FileType as fileType",
+    "similar-resources": "ResourceId as id,Resource.Title as name",
+    "resource-similar-resources": "Id as id,Title,FileType as fileType",
     "related-sources": "Url as id,Url as name",
     sources: "Url as id,Url as name",
     tags: "TagId as id,Tag.Name as name",
@@ -179,7 +179,7 @@ export const newRelationSearchResults = async (searchQuery: string, type: resour
             headers: { "Content-Type": "application/json", Cookie: cookieHeader.toString() || "" },
         };
     }
-    else if (type === "authored-resources" || type === "related-resources" || type === "direct-resources") {
+    else if (type === "authored-resources" || type === "similar-resources" || type === "direct-resources") {
         endPoint = `Resources/list?searchQuery=${encodeURIComponent(searchQuery)}&pageIndex=${1}&pageSize=${K}&properties=${encodeURIComponent("Id,Title as name")}`;
         path = '/list';
         fetchContents = {

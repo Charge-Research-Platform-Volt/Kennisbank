@@ -12,7 +12,7 @@ export type RelationType =
     | "sources"
     | "regions"
     | "authored-resources"
-    | "related-resources"
+    | "similar-resources"
     | "related-organisations"
     | "related-persons";
 

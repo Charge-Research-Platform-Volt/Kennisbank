@@ -1,5 +1,6 @@
 
 
+using System.Text;
 using System.Text.Json;
 using HandlebarsDotNet;
 using KnowledgeBank.Data;
@@ -14,7 +15,7 @@ using System.ClientModel;
 
 namespace KnowledgeBank.Services;
 
-public class RAGManger
+public class RAGManager
 {
     private readonly Serilog.ILogger _logger;
     private readonly RAGSystem _ragSystem;
@@ -22,9 +23,9 @@ public class RAGManger
     private readonly IAzureBlobService _blobService;
 
 
-    public RAGManger(ResourceManager resourceManager, RAGSystem ragSystem, IAzureBlobService blobService)
+    public RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, IAzureBlobService blobService)
     {
-        _logger = Log.ForContext<RAGManger>();
+        _logger = Log.ForContext<RAGManager>();
         _ragSystem = ragSystem;
         _resourceManager = resourceManager;
         _blobService = blobService;
@@ -54,14 +55,79 @@ public class RAGManger
     /// to prevent unnecessary processing. The method uses Azure Document Intelligence's prebuilt-layout model
     /// with markdown output format for optimal text structure preservation.
     /// </remarks>
-    public async Task MainPipline(Guid id, string chunk, string? fileType = null, Stream? fileStream = null)
+    /// <summary>
+    /// Builds a rich metadata chunk that combines structured metadata fields for better retrieval.
+    /// </summary>
+    /// <param name="id">The resource ID</param>
+    /// <param name="basicMetadata">Basic metadata string (title, description, etc.)</param>
+    /// <returns>An enhanced metadata string optimized for semantic search</returns>
+    private async Task<string> BuildRichMetadataChunk(Guid id, string basicMetadata)
+    {
+        try
+        {
+            // Fetch additional metadata from database
+            var resource = await _resourceManager.GetResourceAsync(r => r.Id == id, includeProperties: "Authors,Tags,Organisations,Regions");
+
+            if (resource == null)
+            {
+                _logger.Warning("Resource {Id} not found for metadata enrichment. Using basic metadata.", id);
+                return basicMetadata;
+            }
+
+            var metadataBuilder = new StringBuilder();
+            metadataBuilder.AppendLine("=== DOCUMENT METADATA ===");
+            metadataBuilder.AppendLine(basicMetadata);
+            metadataBuilder.AppendLine();
+
+            // Add structured fields that help with retrieval
+            if (!string.IsNullOrEmpty(resource.Title))
+                metadataBuilder.AppendLine($"Title: {resource.Title}");
+
+            if (!string.IsNullOrEmpty(resource.Description))
+                metadataBuilder.AppendLine($"Description: {resource.Description}");
+
+            if (resource.PublicationDate != default(DateTime))
+                metadataBuilder.AppendLine($"Publication Date: {resource.PublicationDate:yyyy-MM-dd}");
+
+            if (!string.IsNullOrEmpty(resource.LanguageCode))
+                metadataBuilder.AppendLine($"Language: {resource.LanguageCode}");
+
+            if (!string.IsNullOrEmpty(resource.License))
+                metadataBuilder.AppendLine($"License: {resource.License}");
+
+            // Add semantic context
+            metadataBuilder.AppendLine();
+            metadataBuilder.AppendLine("=== SEMANTIC CONTEXT ===");
+            metadataBuilder.AppendLine($"Resource Type: {resource.TypeId}");
+            metadataBuilder.AppendLine($"This document is about: {resource.Title}");
+
+            if (!string.IsNullOrEmpty(resource.Description))
+                metadataBuilder.AppendLine($"Summary: {resource.Description}");
+
+            if (!string.IsNullOrEmpty(resource.Note))
+                metadataBuilder.AppendLine($"Note: {resource.Note}");
+
+            _logger.Information("Built rich metadata chunk for resource {Id}", id);
+            return metadataBuilder.ToString();
+        }
+        catch (Exception ex)
+        {
+            _logger.Warning(ex, "Failed to build rich metadata for resource {Id}. Using basic metadata.", id);
+            return basicMetadata;
+        }
+    }
+
+    public async Task MainPipeline(Guid id, string chunk, string? fileType = null, Stream? fileStream = null)
     {
         _logger.Information("Main RAG pipeline started for resource ID: {Id}", id);
 
         try
         {
-            // Initialize chunks collection with the provided metadata chunk
-            List<string> chunks = [$"{chunk}",];
+            // Build a rich metadata chunk for better retrieval
+            string richMetadata = await BuildRichMetadataChunk(id, chunk);
+
+            // Initialize chunks collection with the enhanced metadata chunk
+            List<string> chunks = [richMetadata];
 
             // * STEP 1: Document Text Extraction
             // Extract text from the document using Azure Document Intelligence service
@@ -309,6 +375,119 @@ public class RAGManger
             await _resourceManager.Rollback();
             _logger.Error(ex, "An error occurred while saving AI-generated tags to resource {ResourceId}", id);
             throw;
+        }
+    }
+
+    #endregion
+
+
+    #region Metadata Updates
+
+    /// <summary>
+    /// Updates the metadata point in Qdrant when resource metadata changes.
+    /// This rebuilds the rich metadata chunk and updates the vector embedding.
+    /// </summary>
+    /// <param name="id">The resource ID to update metadata for</param>
+    /// <returns>True if successful, false otherwise</returns>
+    public async Task<bool> UpdateResourceMetadataAsync(Guid id)
+    {
+        try
+        {
+            _logger.Information("Updating metadata for resource {ResourceId}", id);
+
+            // Build fresh rich metadata from current database state
+            string richMetadata = await BuildRichMetadataChunk(id, string.Empty);
+
+            // Update the vector database
+            bool success = await _ragSystem.UpdateMetadataPointAsync(id.ToString(), richMetadata);
+
+            if (success)
+            {
+                _logger.Information("Successfully updated metadata for resource {ResourceId}", id);
+            }
+            else
+            {
+                _logger.Warning("Failed to update metadata for resource {ResourceId}", id);
+            }
+
+            return success;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error updating metadata for resource {ResourceId}", id);
+            return false;
+        }
+    }
+
+    #endregion
+
+
+    #region Query Enhancement
+
+    /// <summary>
+    /// Enhances a user query by expanding it with synonyms and related terms for better retrieval.
+    /// </summary>
+    /// <param name="originalQuery">The original user query</param>
+    /// <returns>An enhanced query string that may retrieve more relevant results</returns>
+    /// <remarks>
+    /// This method uses the LLM to:
+    /// - Identify key concepts in the query
+    /// - Add relevant synonyms and related terms
+    /// - Maintain the original intent while broadening the search scope
+    /// - Keep the query concise and focused
+    /// </remarks>
+    public async Task<string> EnhanceQueryAsync(string originalQuery)
+    {
+        if (string.IsNullOrWhiteSpace(originalQuery))
+            return originalQuery;
+
+        // Don't enhance very short queries (they're usually specific enough)
+        if (originalQuery.Length < 10)
+            return originalQuery;
+
+        try
+        {
+            _logger.Information("Enhancing query: {Query}", originalQuery);
+
+            string promptTemplate = @"You are a search query enhancement assistant. Your task is to improve the given search query to retrieve more relevant results from a knowledge base.
+
+Original Query: {{query}}
+
+Instructions:
+1. Keep the core intent of the original query
+2. Add 2-3 relevant synonyms or related terms
+3. Make it concise (max 2 sentences)
+4. Focus on semantic meaning, not just keywords
+
+Enhanced Query:";
+
+            var templateData = new { query = originalQuery };
+            var template = Handlebars.Compile(promptTemplate);
+            string prompt = template(templateData);
+
+            List<ChatMessage> messages = new List<ChatMessage>
+            {
+                new SystemChatMessage("You are a helpful search query enhancement assistant. Provide only the enhanced query, nothing else."),
+                new UserChatMessage(prompt)
+            };
+
+            ClientResult<ChatCompletion> response = await _ragSystem.ChatClient.CompleteChatAsync(messages);
+            string enhancedQuery = response.Value.Content[0].Text.Trim();
+
+            // Validate enhanced query isn't too different or too long
+            if (enhancedQuery.Length > originalQuery.Length * 3 || enhancedQuery.Length > 500)
+            {
+                _logger.Warning("Enhanced query too long, using original");
+                return originalQuery;
+            }
+
+            _logger.Information("Enhanced query: {EnhancedQuery}", enhancedQuery);
+            return enhancedQuery;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to enhance query, using original");
+            return originalQuery;
         }
     }
 

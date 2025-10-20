@@ -24,6 +24,11 @@ public class RAGSystem
     private readonly Serilog.ILogger _logger;
     private readonly EnvironmentConfig _environmentConfig;
 
+    // Query embedding cache for improved performance
+    private readonly Dictionary<string, (float[] Embedding, DateTime CachedAt)> _embeddingCache;
+    private readonly TimeSpan _cacheExpiration = TimeSpan.FromHours(1);
+    private readonly object _cacheLock = new object();
+    private const int MaxCacheSize = 1000;
 
     // RAG System components:
     public Tools Toolbox { get; private set; }
@@ -63,9 +68,10 @@ public class RAGSystem
         _logger = Log.ForContext<RAGSystem>();
         Toolbox = new Tools();
         _environmentConfig = environmentConfig;
+        _embeddingCache = new Dictionary<string, (float[], DateTime)>();
 
-        // * RAF System Initialization
-        _logger.Information("Initializing RAG system");
+        // * RAG System Initialization
+        _logger.Information("Initializing RAG system with embedding cache enabled");
 
 
         // * Qdrant (Vector Database) Initialization
@@ -228,12 +234,34 @@ public class RAGSystem
             throw new ArgumentException("Query cannot be null or empty.", nameof(query));
         }
 
+        // Normalize query for cache key (lowercase, trim)
+        string cacheKey = query.Trim().ToLowerInvariant();
 
+        // Check cache first
+        lock (_cacheLock)
+        {
+            if (_embeddingCache.TryGetValue(cacheKey, out var cached))
+            {
+                // Check if cache entry is still valid
+                if (DateTime.UtcNow - cached.CachedAt < _cacheExpiration)
+                {
+                    _logger.Debug("Cache hit for query embedding");
+                    return cached.Embedding;
+                }
+                else
+                {
+                    // Remove expired entry
+                    _embeddingCache.Remove(cacheKey);
+                    _logger.Debug("Cache entry expired, removing");
+                }
+            }
+        }
+
+        // Generate new embedding
         EmbeddingsOptions requestOptions = new EmbeddingsOptions([query])
         {
             Model = _environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_MODEL_NAME),
         };
-
 
         Response<EmbeddingsResult> response = await EmbeddingsClient.EmbedAsync(requestOptions);
 
@@ -243,8 +271,26 @@ public class RAGSystem
             _logger.Warning("Generated embedding is null or empty.");
             throw new InvalidOperationException("Generated embedding is null or empty.");
         }
-        _logger.Information("Successfully generated embedding");
 
+        // Store in cache
+        lock (_cacheLock)
+        {
+            // Implement simple LRU: remove oldest entries if cache is full
+            if (_embeddingCache.Count >= MaxCacheSize)
+            {
+                var oldestKey = _embeddingCache
+                    .OrderBy(kvp => kvp.Value.CachedAt)
+                    .First()
+                    .Key;
+                _embeddingCache.Remove(oldestKey);
+                _logger.Debug("Cache full, removed oldest entry");
+            }
+
+            _embeddingCache[cacheKey] = (embeddingData, DateTime.UtcNow);
+            _logger.Debug("Cached embedding for query. Cache size: {CacheSize}", _embeddingCache.Count);
+        }
+
+        _logger.Information("Successfully generated embedding");
         return embeddingData;
     }
 
@@ -303,74 +349,121 @@ public class RAGSystem
         _logger.Debug("Chunks count: {ChunksCount}", chunks.Count);
 
         List<PointStruct> pointsList = [];
+        const int batchSize = 96; // Maximum allowed by the API
+        const int maxRetries = 3;
+        int totalProcessed = 0;
+        var failedChunks = new List<(int Index, string Text)>();
 
-        try
+        for (int i = 0; i < chunks.Count; i += batchSize)
         {
-            const int batchSize = 96; // Maximum allowed by the API
-            int totalProcessed = 0;
+            var batch = chunks.Skip(i).Take(batchSize).ToList();
+            int retryCount = 0;
+            bool success = false;
 
-            for (int i = 0; i < chunks.Count; i += batchSize)
+            // Retry logic with exponential backoff
+            while (retryCount < maxRetries && !success)
             {
-                var batch = chunks.Skip(i).Take(batchSize).ToList();
-                Response<EmbeddingsResult> response = await GenerateEmbeddings(batch);
-
-                foreach (EmbeddingItem item in response.Value.Data)
+                try
                 {
-                    float[]? embeddingData = item.Embedding.ToObjectFromJson<float[]>();
-                    if (embeddingData == null || embeddingData.Length == 0) continue;
+                    _logger.Debug("Processing batch starting at chunk {StartIndex}, retry {RetryCount}",
+                        i, retryCount);
 
-                    int actualIndex = totalProcessed + item.Index;
-                    string ChunkTypeString = actualIndex == 0 ? ChunkType.MetaData.ToString() : ChunkType.ContentText.ToString();
+                    Response<EmbeddingsResult> response = await GenerateEmbeddings(batch);
 
-                    CustomPayload customPayload = new()
+                    foreach (EmbeddingItem item in response.Value.Data)
                     {
-                        ResourceId = id.ToString(),
-                        ChunkType = ChunkTypeString,
-                        ChunkText = chunks[actualIndex],
-                        ChunkPart = actualIndex
-                    };
+                        float[]? embeddingData = item.Embedding.ToObjectFromJson<float[]>();
 
-                    PointStruct point = new()
-                    {
-                        Id = Guid.NewGuid(),
-                        Vectors = embeddingData
-                    };
-                    point.Payload.Add(customPayload.ToPayload());
+                        if (embeddingData == null || embeddingData.Length == 0)
+                        {
+                            _logger.Warning("Empty embedding received for chunk at index {Index}",
+                                totalProcessed + item.Index);
+                            failedChunks.Add((totalProcessed + item.Index, batch[item.Index]));
+                            continue;
+                        }
 
-                    pointsList.Add(point);
+                        int actualIndex = totalProcessed + item.Index;
+                        string ChunkTypeString = actualIndex == 0 ? ChunkType.MetaData.ToString() : ChunkType.ContentText.ToString();
+
+                        CustomPayload customPayload = new()
+                        {
+                            ResourceId = id.ToString(),
+                            ChunkType = ChunkTypeString,
+                            ChunkText = chunks[actualIndex],
+                            ChunkPart = actualIndex
+                        };
+
+                        PointStruct point = new()
+                        {
+                            Id = Guid.NewGuid(),
+                            Vectors = embeddingData
+                        };
+                        point.Payload.Add(customPayload.ToPayload());
+
+                        pointsList.Add(point);
+                    }
+
+                    success = true;
+                    _logger.Debug("Successfully processed batch at index {StartIndex}", i);
                 }
-
-                totalProcessed += batch.Count;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.Error(ex, "Failed to generate embeddings for the chunks.");
-            _logger.Information("Indexing only the text without embeddings");
-
-            int index = 0;
-            foreach (string item in chunks)
-            {
-                string ChunkTypeString = index == 0 ? ChunkType.MetaData.ToString() : ChunkType.ContentText.ToString();
-
-                CustomPayload customPayload = new CustomPayload
+                catch (Exception ex)
                 {
-                    ResourceId = id.ToString(),
-                    ChunkType = ChunkTypeString,
-                    ChunkText = item,
-                    ChunkPart = index++
-                };
+                    retryCount++;
+                    _logger.Warning(ex, "Failed to generate embeddings for batch at index {StartIndex}, attempt {Attempt}/{MaxAttempts}",
+                        i, retryCount, maxRetries);
 
-                PointStruct point = new PointStruct();
-                point.Id = Guid.NewGuid();
-                point.Vectors = new float[EmbeddingsDimensions]; // Placeholder for empty vector
-                point.Payload.Add(customPayload.ToPayload());
+                    if (retryCount < maxRetries)
+                    {
+                        // Exponential backoff: wait 2^retryCount seconds
+                        int delaySeconds = (int)Math.Pow(2, retryCount);
+                        _logger.Information("Waiting {Delay} seconds before retry...", delaySeconds);
+                        await Task.Delay(TimeSpan.FromSeconds(delaySeconds));
+                    }
+                    else
+                    {
+                        _logger.Error("Max retries exceeded for batch at index {StartIndex}. Recording failed chunks.", i);
 
-                pointsList.Add(point);
+                        // Record all chunks in this failed batch
+                        for (int j = 0; j < batch.Count; j++)
+                        {
+                            failedChunks.Add((totalProcessed + j, batch[j]));
+                        }
+                    }
+                }
+            }
+
+            totalProcessed += batch.Count;
+        }
+
+        // Check if we have enough successful points
+        if (pointsList.Count == 0)
+        {
+            _logger.Error("No embeddings were successfully generated for resource {ResourceId}. Aborting.", id);
+            throw new InvalidOperationException(
+                $"Failed to generate any embeddings for resource {id}. " +
+                "Please check API connectivity and try again.");
+        }
+
+        if (failedChunks.Count > 0)
+        {
+            double failureRate = (double)failedChunks.Count / chunks.Count;
+            _logger.Warning("Failed to generate embeddings for {FailedCount}/{TotalCount} chunks ({FailureRate:P1}) for resource {ResourceId}",
+                failedChunks.Count, chunks.Count, failureRate, id);
+
+            // If more than 50% failed, this is a serious problem
+            if (failureRate > 0.5)
+            {
+                _logger.Error("More than 50% of chunks failed embedding generation. This may indicate a serious issue.");
             }
         }
 
+        // Upsert the successfully embedded points
+        _logger.Information("Upserting {PointCount} points to Qdrant for resource {ResourceId}",
+            pointsList.Count, id);
         await QdrantClient.UpsertAsync(CollectionName, pointsList);
+
+        _logger.Information("Successfully created {SuccessCount}/{TotalCount} points for resource {ResourceId}",
+            pointsList.Count, chunks.Count, id);
     }
 
 
@@ -379,7 +472,7 @@ public class RAGSystem
     /// Updates the metadata point in the vector database with new chunk text and corresponding embedding.
     /// </summary>
     /// <param name="id">The resource ID used to identify the metadata point to update.</param>
-    /// <param name="newChankText">The new chunk text to replace the existing metadata content.</param>
+    /// <param name="newChunkText">The new chunk text to replace the existing metadata content.</param>
     /// <returns>
     /// A task that represents the asynchronous operation. The task result contains a boolean value:
     /// true if the metadata point was successfully updated; otherwise, false.
@@ -393,7 +486,7 @@ public class RAGSystem
     /// 5. Overwrites the payload with the new chunk text
     /// The method returns false if any validation fails or if an exception occurs during the update process.
     /// </remarks>
-    public async Task<bool> UpdateMetadataPointAsync(string id, string newChankText)
+    public async Task<bool> UpdateMetadataPointAsync(string id, string newChunkText)
     {
         try
         {
@@ -403,25 +496,35 @@ public class RAGSystem
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(newChankText))
+            if (string.IsNullOrWhiteSpace(newChunkText))
             {
                 _logger.Warning("New chunk text is null or empty. Cannot update metadata.");
                 return false;
             }
 
+            _logger.Information("Updating metadata point for resource {ResourceId}", id);
+
             // Get the existing point ID
-            IReadOnlyList<ScoredPoint> restult = await QdrantClient.QueryAsync(
+            IReadOnlyList<ScoredPoint> result = await QdrantClient.QueryAsync(
                  collectionName: CollectionName,
                  filter: MatchKeyword("resourceId", id) & MatchKeyword("chunkType", ChunkType.MetaData.ToString()),
                  limit: 1
             );
 
-            float[] newEmbeding = await GenerateEmbedding(newChankText);
+            if (result.Count == 0)
+            {
+                _logger.Warning("No metadata point found for resource {ResourceId}. Cannot update.", id);
+                return false;
+            }
 
+            // Generate new embedding for the updated metadata
+            float[] newEmbedding = await GenerateEmbedding(newChunkText);
+
+            // Update the vector
             PointVectors pointVectors = new PointVectors
             {
-                Id = restult[0].Id,
-                Vectors = newEmbeding,
+                Id = result[0].Id,
+                Vectors = newEmbedding,
             };
 
             await QdrantClient.UpdateVectorsAsync(
@@ -429,15 +532,21 @@ public class RAGSystem
                 points: new List<PointVectors> { pointVectors }
             );
 
+            // Update the payload with new chunk text
             await QdrantClient.OverwritePayloadAsync(
                 collectionName: CollectionName,
-                payload: new Dictionary<string, Value> { { "chunkText", newChankText } },
+                payload: new Dictionary<string, Value> { { "chunkText", newChunkText } },
                 filter: MatchKeyword("resourceId", id) & MatchKeyword("chunkType", ChunkType.MetaData.ToString())
             );
 
+            _logger.Information("Successfully updated metadata point for resource {ResourceId}", id);
             return true;
         }
-        catch { return false; }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to update metadata point for resource {ResourceId}", id);
+            return false;
+        }
     }
 
 
@@ -476,6 +585,89 @@ public class RAGSystem
         {
             _logger.Error(ex, "Failed to delete points for ResourceId: {ResourceId}", id);
             return false;
+        }
+    }
+
+
+
+    /// <summary>
+    /// Retrieves a chunk with its surrounding context (previous and next chunks) for better understanding.
+    /// </summary>
+    /// <param name="resourceId">The resource ID containing the chunk</param>
+    /// <param name="chunkPart">The chunk part/index to retrieve with context</param>
+    /// <param name="contextWindow">Number of chunks before and after to include (default: 1)</param>
+    /// <returns>A tuple containing (previousChunks, mainChunk, nextChunks)</returns>
+    /// <remarks>
+    /// This method helps preserve context by retrieving neighboring chunks around the target chunk.
+    /// This is especially useful when the main chunk alone doesn't provide enough context for understanding.
+    /// </remarks>
+    public async Task<(List<string> PreviousChunks, string MainChunk, List<string> NextChunks)> GetChunkWithContextAsync(
+        string resourceId,
+        int chunkPart,
+        int contextWindow = 1)
+    {
+        try
+        {
+            var previousChunks = new List<string>();
+            var nextChunks = new List<string>();
+            string mainChunk = string.Empty;
+
+            // Get all chunks for this resource and filter by chunk part in memory
+            // This is more efficient than multiple individual queries
+            var allChunks = await QdrantClient.QueryAsync(
+                CollectionName,
+                filter: MatchKeyword("resourceId", resourceId),
+                limit: (uint)(chunkPart + contextWindow + 10) // Get enough chunks
+            );
+
+            if (allChunks.Count == 0)
+            {
+                _logger.Warning("No chunks found for resource {ResourceId}", resourceId);
+                return (new List<string>(), string.Empty, new List<string>());
+            }
+
+            // Parse all chunks and organize by chunk part
+            var chunkMap = new Dictionary<int, string>();
+            foreach (var point in allChunks)
+            {
+                var payload = CustomPayload.FromPayload(point.Payload);
+                chunkMap[payload.ChunkPart] = payload.ChunkText;
+            }
+
+            // Get main chunk
+            if (chunkMap.ContainsKey(chunkPart))
+            {
+                mainChunk = chunkMap[chunkPart];
+            }
+
+            // Get previous chunks
+            for (int i = chunkPart - contextWindow; i < chunkPart; i++)
+            {
+                if (i >= 0 && chunkMap.ContainsKey(i))
+                {
+                    previousChunks.Add(chunkMap[i]);
+                }
+            }
+
+            // Get next chunks
+            for (int i = chunkPart + 1; i <= chunkPart + contextWindow; i++)
+            {
+                if (chunkMap.ContainsKey(i))
+                {
+                    nextChunks.Add(chunkMap[i]);
+                }
+            }
+
+            _logger.Debug("Retrieved chunk {ChunkPart} with context: {PrevCount} previous, {NextCount} next",
+                chunkPart, previousChunks.Count, nextChunks.Count);
+
+            return (previousChunks, mainChunk, nextChunks);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to retrieve chunk with context for ResourceId: {ResourceId}, ChunkPart: {ChunkPart}",
+                resourceId, chunkPart);
+            return (new List<string>(), string.Empty, new List<string>());
         }
     }
 }

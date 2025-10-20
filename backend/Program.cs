@@ -123,7 +123,7 @@ namespace KnowledgeBank
 
             // Retrieval Augmented Generation system
             builder.Services.AddSingleton<RAGSystem, RAGSystem>();
-            builder.Services.AddScoped<RAGManger>();
+            builder.Services.AddScoped<RAGManager>();
 
             // Hybrid Search System
             builder.Services.AddSingleton<KnowledgeBank.Services.Search.Models.HybridSearchConfig>(sp =>

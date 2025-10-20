@@ -70,8 +70,8 @@ namespace KnowledgeBank.Controllers
                 _taskQueue.QueueBackgroundWorkItem(async token =>
                 {
                     using var scope = HttpContext.RequestServices.CreateScope();
-                    var ragManager = scope.ServiceProvider.GetRequiredService<RAGManger>();
-                    await ragManager.MainPipline(id: id, chunk: $"{dto.Name}\n{dto.Description}", fileType: null);
+                    var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                    await ragManager.MainPipeline(id: id, chunk: $"{dto.Name}\n{dto.Description}", fileType: null);
                 });
 
                 logger.Information("Person '{Name}' created successfully.", dto.Name);

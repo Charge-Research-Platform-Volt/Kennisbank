@@ -20,11 +20,11 @@ public class Chat : Hub
 {
     private readonly Serilog.ILogger _logger;
     private readonly RAGSystem _ragSystem;
-    private readonly RAGManger _ragManager;
+    private readonly RAGManager _ragManager;
     private readonly ResourceManager _resourceManager;
     private readonly HybridSearchService _hybridSearchService;
 
-    public Chat(RAGSystem ragSystem, RAGManger ragManager, ResourceManager resourceManager, HybridSearchService hybridSearchService)
+    public Chat(RAGSystem ragSystem, RAGManager ragManager, ResourceManager resourceManager, HybridSearchService hybridSearchService)
     {
         _logger = Serilog.Log.ForContext<Chat>();
         _ragSystem = ragSystem;
