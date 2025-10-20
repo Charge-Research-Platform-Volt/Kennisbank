@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Plus } from "lucide-react";
 import { addRelation, EntityType } from "@/lib/relationManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Item } from "./archive-sidebar";
 
 interface SearchResult
 {
@@ -19,8 +20,8 @@ interface SearchResult
 interface AddAuthorBadgeProps
 {
     resourceId: string;
-    alreadyRelated: { id: string; name: string }[];
-    onAdd: (items: { id: string; name: string }[]) => void;
+    alreadyRelated: Item[];
+    onAdd: (items: Item[]) => void;
 }
 
 export default function AddAuthorBadge({
@@ -119,11 +120,14 @@ export default function AddAuthorBadge({
 
             const results = await Promise.all(relations);
 
-            // Only add items that were successfully added
-            const successfulItems = selected.filter((_, index) => results[index]).map(item => ({
-                id: item.id,
-                name: item.name
-            }));
+            // Only add items that were successfully added, convert to Item type
+            const successfulItems: Item[] = selected
+                .filter((_, index) => results[index])
+                .map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    relation: undefined
+                }));
 
             if (successfulItems.length > 0) {
                 onAdd(successfulItems);

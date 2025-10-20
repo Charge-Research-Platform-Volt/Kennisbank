@@ -2,7 +2,7 @@
 
 import Expandable from "./expandable";
 import BadgeList from "./BadgeList";
-import { ListItem } from "./BadgeList";
+import { Item } from "./archive-sidebar"
 import { useArchiveSidebar, MetadataTypeEnum } from "@/context/archive-sidebar-provider";
 import { getRelation } from "@/actions/archive-sidebarActions";
 import React from "react";
@@ -27,6 +27,7 @@ import { removeRelation } from "@/lib/relationManager";
 import AddRelationBadge from "./AddRelationBadge";
 import AddAuthorBadge from "./AddAuthorBadge";
 import { RelationTrash } from "./relation-trash";
+import { RelationTooltip } from "./RelationTooltip";
 
 interface ResourceContentProps
 {
@@ -40,14 +41,14 @@ class ResourceContentItems
     url: string | null = null;
     description: string | null = null;
     note: string | null = null;
-    authors: ListItem[] = [];
-    tags: ListItem[] = [];
-    aiTags: ListItem[] = [];
-    organisations: ListItem[] = [];
-    relatedPersons: ListItem[] = [];
-    relatedResources: ListItem[] = [];
+    authors: Item[] = [];
+    tags: Item[] = [];
+    aiTags: Item[] = [];
+    organisations: Item[] = [];
+    relatedPersons: Item[] = [];
+    relatedResources: Item[] = [];
     source: string | null = null;
-    regions: ListItem[] = [];
+    regions: Item[] = [];
     langCode: string | null = null;
     pubCode: string | null = null;
     license: string | null = null;
@@ -100,9 +101,9 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             WebsiteMetadata.Url as Url,
             DocumentMetadata.Abstract as Abstract,
             ResourceAuthorRelations.Select(new(Author.Id, Author.Name)) as Authors,
-            ResourceOrganisationRelations.Select(new(Organisation.Id, Organisation.Name)) as Organisations,
+            ResourceOrganisationRelations.Select(new(Organisation.Id, Organisation.Name, Role)) as Organisations,
             ResourceRegionRelations.Select(new(Region.Id, Region.Name)) as Regions,
-            ResourceRelatedPersonRelations.Select(new(Person.Id, Person.Name)) as RelatedPersons,
+            ResourceRelatedPersonRelations.Select(new(Person.Id, Person.Name, Role)) as RelatedPersons,
             ResourceTagRelations.Select(new(Tag.Id, Tag.Name)) as Tags,
             ResourceType.Id as ResourceTypeId,
             ResourceType.Name as ResourceTypeName
@@ -131,14 +132,34 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                 url: data.body.url || null,
                 description: data.body.description || null,
                 note: data.body.note || null,
-                authors: data.body.authors || [],
-                tags: data.body.tags || [],
+                authors: (data.body.authors || []).map((item: any) => ({
+                    id: item.id,
+                    name: item.name,
+                    relation: undefined
+                })),
+                tags: (data.body.tags || []).map((item: any) => ({
+                    id: item.id,
+                    name: item.name,
+                    relation: undefined
+                })),
                 aiTags: data.body.aiTags || [],
-                organisations: data.body.organisations || [],
-                relatedPersons: data.body.relatedPersons || [],
+                organisations: (data.body.organisations || []).map((item: any) => ({
+                    id: item.id,
+                    name: item.name,
+                    relation: item.role
+                })),
+                relatedPersons: (data.body.relatedPersons || []).map((item: any) => ({
+                    id: item.id,
+                    name: item.name,
+                    relation: item.role
+                })),
                 relatedResources: data.body.relatedResources || [],
                 source: data.body.sourceUrl || null,
-                regions: data.body.regions || [],
+                regions: (data.body.regions || []).map((item: any) => ({
+                    id: item.id,
+                    name: item.name,
+                    relation: undefined
+                })),
                 langCode: data.body.languageCode || null,
                 pubCode: data.body.publicationCode || null,
                 license: data.body.license || null,
@@ -167,7 +188,7 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             setResourceTypes(data.body);
         }
     }, [currentId]);
-
+    
     // Loads the related resources
     const loadRelatedResources = React.useCallback(async () =>
     {
@@ -176,7 +197,7 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
         relatedResourcesPromise
             .then((response) =>
             {
-                const list: ListItem[] = response.body.map((item: { id: string; title: string }) => ({
+                const list: Item[] = response.body.map((item: { id: string; title: string }) => ({
                     id: item.id,
                     name: item.title,
                 }));
@@ -212,8 +233,8 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                     return;
                 }
 
-                //Add translation logic from ai tags to ListItem[] here
-                const list: ListItem[] = response.body.tags.map((item: string) => ({
+                //Add translation logic from ai tags to Item[] here
+                const list: Item[] = response.body.tags.map((item: string) => ({
                     id: item,
                     name: item,
                 }));
@@ -543,14 +564,27 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             {/* Organisations */}
             <Expandable variant="horizontal" title="Related Organisations" hidden={!(editMode || content.organisations.length > 0)} defaultOpen={editMode}>
                 { content.organisations.map((organisation) => (
-                    <Badge key={organisation.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
-                    {
-                        if (editMode) return;
-                        
-                        navigate(organisation.id, MetadataTypeEnum.ORGANISATION);
-                    }}>
-                        <span className="truncate">{organisation.name}</span>
-                        {editMode && (
+                    <RelationTooltip
+                        key={organisation.id}
+                        item={organisation}
+                        entityType="resources"
+                        currentId={currentId}
+                        relationType="organisations"
+                        editMode={editMode}
+                        onClick={() => {
+                            if (!editMode) {
+                                navigate(organisation.id, MetadataTypeEnum.ORGANISATION);
+                            }
+                        }}
+                        onRelationUpdate={(itemId, newRelation) => {
+                            setContent(prevContent => ({
+                                ...prevContent,
+                                organisations: prevContent.organisations.map(o =>
+                                    o.id === itemId ? { ...o, relation: newRelation } : o
+                                )
+                            }));
+                        }}
+                        trashComponent={
                             <RelationTrash
                                 removeAction={() => removeRelation("resources", currentId, "organisations", organisation.id)}
                                 successAction={() => setContent(prevContent => ({
@@ -558,8 +592,8 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                                     organisations: prevContent.organisations.filter(o => o.id !== organisation.id)
                                 }))}
                             />
-                        )}
-                    </Badge>
+                        }
+                    />
                 ))}
                 
                 {editMode && (
@@ -587,14 +621,27 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             {/* Related People */}
             <Expandable variant="horizontal" title="Related People" hidden={!(editMode || content.relatedPersons.length > 0)} defaultOpen={editMode}>
                 { content.relatedPersons.map((person) => (
-                    <Badge key={person.id} variant="outline" className="h-8 max-w-50 flex items-center overflow-hidden cursor-pointer" onClick={async () => 
-                    {
-                        if (editMode) return;
-                        
-                        navigate(person.id, MetadataTypeEnum.PERSON);
-                    }}>
-                        <span className="truncate">{person.name}</span>
-                        {editMode && (
+                    <RelationTooltip
+                        key={person.id}
+                        item={person}
+                        entityType="resources"
+                        currentId={currentId}
+                        relationType="related-persons"
+                        editMode={editMode}
+                        onClick={() => {
+                            if (!editMode) {
+                                navigate(person.id, MetadataTypeEnum.PERSON);
+                            }
+                        }}
+                        onRelationUpdate={(itemId, newRelation) => {
+                            setContent(prevContent => ({
+                                ...prevContent,
+                                relatedPersons: prevContent.relatedPersons.map(p =>
+                                    p.id === itemId ? { ...p, relation: newRelation } : p
+                                )
+                            }));
+                        }}
+                        trashComponent={
                             <RelationTrash
                                 removeAction={() => removeRelation("resources", currentId, "related-persons", person.id)}
                                 successAction={() => setContent(prevContent => ({
@@ -602,8 +649,8 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                                     relatedPersons: prevContent.relatedPersons.filter(p => p.id !== person.id)
                                 }))}
                             />
-                        )}
-                    </Badge>
+                        }
+                    />
                 ))}
                 
                 {editMode && (
@@ -628,8 +675,8 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
                 )}
             </Expandable>
 
-            {/* Related Resources */}
-            <ResourceList header="Related Resources" resources={content.relatedResources} />
+            {/* Similar Resources */}
+            <ResourceList header="Similar Resources" resources={content.relatedResources} />
             
             {/* Regions */}
             <Expandable variant="horizontal" title="Regions" hidden={!(editMode || content.regions.length > 0)} defaultOpen={editMode}>

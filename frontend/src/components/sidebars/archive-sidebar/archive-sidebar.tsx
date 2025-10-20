@@ -15,6 +15,13 @@ import { useArchiveSidebar, MetadataTypeEnum } from "@/context/archive-sidebar-p
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { convertToUTCDate } from "@/lib/dateUtils";
 
+export interface Item
+{
+    id: string,
+    name: string,
+    relation: string | undefined,
+}
+
 /**
  *
  * @returns The right sidebar visible when clicked on an item in the archive. Displays useful information such as metadata and related files.

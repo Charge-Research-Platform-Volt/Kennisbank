@@ -25,7 +25,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <Toaster />
 
         {/* Mobile device warning */}
-        <div className="fixed inset-0 z-[9999] flex h-screen w-screen flex-col items-start justify-center gap-1.5 bg-white p-2 text-base font-medium lg:hidden">
+        <div className="fixed inset-0 z-[9999] flex h-screen w-screen flex-col items-start justify-center gap-1.5 bg-white p-2 text-base font-medium md:hidden">
           <TabletSmartphone />
           This website does not support mobile devices. Please use a desktop or laptop computer. If you are using a computer, please make the window larger.
         </div>
