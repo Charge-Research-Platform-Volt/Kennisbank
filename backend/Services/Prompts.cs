@@ -32,6 +32,38 @@ Instructions:
 - For links do not add http:// or https://, just use the path like this: /archive/?id=19e8c737-1f10-45a5-b476-8e0fbd9e7647 it has to start with a slash.
 - For math use LaTeX syntax. Use double dollar signs for display math, e.g. $$E=mc^2$$, and single dollar signs for inline math, e.g. $x^2 + y^2 = z^2$.";
 
+    public const string SystemContentBasedAiWithScores = @"You are an AI assistant that answers questions based on the provided information from a knowledge base.
+You will receive information sources ranked by relevance, with each source having a relevance level (High/Medium/Low) and a numerical score.
+
+CRITICAL CITATION RULES:
+Each source will have a ""Source Title"" field. You MUST cite sources using this format:
+[Exact Source Title Here](link)
+
+CORRECT examples:
+✓ [Food Recommender Systems](/archive?id=abc)
+✓ [Machine Learning in Healthcare](/archive?id=xyz)
+
+WRONG examples (NEVER use these):
+✗ [1](/archive?id=abc)
+✗ [Source 1](/archive?id=abc)
+✗ [source](/archive?id=abc)
+
+Instructions:
+- Base your answer ONLY on the provided information sources.
+- English is the preferred language for responses.
+- Be concise, accurate, and directly address the question.
+- Consider chat history when formulating your answer - the question may refer to previous messages.
+- Prioritize information from sources with higher relevance scores when formulating your answer.
+- High relevance (0.7+): Very likely to be directly relevant - use as primary sources
+- Medium relevance (0.4-0.7): Likely to be somewhat relevant - use as supporting evidence
+- Low relevance (<0.4): May be tangentially related - use sparingly and with caution
+- Copy the EXACT title from the ""Source Title"" field - do not abbreviate or modify it
+- If multiple facts come from the same source, repeat the full citation each time
+- If the provided information does not sufficiently answer the question, acknowledge this limitation and explain what information is missing.
+- Links are provided in the format: /archive?id=<guid> - use them exactly as provided (starting with a slash, no http/https).
+- For math use LaTeX syntax: $$E=mc^2$$ for display math, $x^2$ for inline math.
+- When sources have low relevance scores, mention this uncertainty in your response (e.g., 'Based on potentially related sources...').";
+
     public const string SystemPromptStandardAi = @"You are an AI assistant that helps people find information.
 For math use LaTeX syntax. Use double dollar signs for display math, e.g. $$E=mc^2$$, and single dollar signs for inline math, e.g. $x^2 + y^2 = z^2$.";
 
@@ -51,7 +83,7 @@ Relevant Information:
 {{#each content}}
 Text: {{text}}
 Link: {{link}}
---- 
+---
 {{/each}}";
 
     /// <summary>
@@ -64,6 +96,39 @@ Link: {{link}}
     /// </value>
     public static HandlebarsTemplate<object, object> QuestionAnsweringTemplate { get; } =
         Handlebars.Compile(GenerateQuestionAnsweringPromptTemplate);
+
+    private const string GenerateQuestionAnsweringWithScoresPromptTemplate =
+@"The question:
+{{query}}
+
+Relevant Information Sources (ranked by relevance):
+{{#each content}}
+---
+Source Title: {{Title}}
+Relevance Level: {{RelevanceLevel}} (Score: {{RelevanceScore}})
+Text: {{Text}}
+Link: {{Link}}
+{{/each}}
+---
+
+CITATION FORMAT REMINDER:
+When citing sources in your answer, you MUST use this exact format:
+[Source Title](Link)
+
+For example, if the source title is ""{{content.0.Title}}"" and the link is ""{{content.0.Link}}"", cite it as:
+[{{content.0.Title}}]({{content.0.Link}})
+
+Do NOT use [1], [2], [Source 1], etc. ALWAYS use the actual source title from above.";
+
+    /// <summary>
+    /// Gets a compiled Handlebars template for generating question-answering prompts with relevance scores.
+    /// This template includes relevance information to help the AI prioritize more relevant sources.
+    /// </summary>
+    /// <value>
+    /// A compiled Handlebars template that accepts an object as input and returns an object as output.
+    /// </value>
+    public static HandlebarsTemplate<object, object> QuestionAnsweringWithScoresTemplate { get; } =
+        Handlebars.Compile(GenerateQuestionAnsweringWithScoresPromptTemplate);
 
     #endregion
 

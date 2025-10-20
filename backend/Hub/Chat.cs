@@ -4,6 +4,8 @@ using System.Text;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services;
+using KnowledgeBank.Services.Search;
+using KnowledgeBank.Services.Search.Models;
 using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -20,13 +22,15 @@ public class Chat : Hub
     private readonly RAGSystem _ragSystem;
     private readonly RAGManger _ragManager;
     private readonly ResourceManager _resourceManager;
+    private readonly HybridSearchService _hybridSearchService;
 
-    public Chat(RAGSystem ragSystem, RAGManger ragManager, ResourceManager resourceManager)
+    public Chat(RAGSystem ragSystem, RAGManger ragManager, ResourceManager resourceManager, HybridSearchService hybridSearchService)
     {
         _logger = Serilog.Log.ForContext<Chat>();
         _ragSystem = ragSystem;
         _ragManager = ragManager;
         _resourceManager = resourceManager;
+        _hybridSearchService = hybridSearchService;
     }
 
 
@@ -333,7 +337,7 @@ public class Chat : Hub
 
 
     /// <summary>
-    /// Streams a response based on content search results for a given query.
+    /// Streams a response based on hybrid search results for a given query.
     /// </summary>
     /// <param name="query">The search query to process.</param>
     /// <param name="cancellationToken">A cancellation token to cancel the streaming operation.</param>
@@ -341,44 +345,105 @@ public class Chat : Hub
     /// <returns>An asynchronous enumerable of string chunks representing the streaming response.</returns>
     /// <remarks>
     /// This method performs the following operations:
-    /// 1. Creates a Handlebars prompt template that incorporates vector search results
-    /// 2. Invokes the RAG system kernel with the template and query
-    /// 3. Yields each content update as it's generated
+    /// 1. Uses HybridSearchService to get high-quality, ranked results from multiple search sources
+    /// 2. Creates a relevance-aware prompt template that incorporates search results with scores
+    /// 3. Invokes the RAG system with the enriched context
+    /// 4. Yields each content update as it's generated
+    ///
+    /// The hybrid search combines:
+    /// - Semantic (vector) search for meaning-based matching
+    /// - Text-based search for exact keyword matches
+    /// - Postgres full-text search for comprehensive coverage
+    /// - RRF (Reciprocal Rank Fusion) for intelligent result ranking
+    /// - Score thresholds to filter out low-relevance results
     /// </remarks>
     private async IAsyncEnumerable<string> StreamContentBasedAiResponse(
         string query,
         List<ChatMessage> chatHistory,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        _logger.Information("Content-based Ai initiated with query: {Query}", query);
+        _logger.Information("Content-based AI initiated with query: {Query}", query);
 
-        float[] embeddingData = await _ragSystem.GenerateEmbedding(query);
+        // Use HybridSearchService for better search quality
+        // We request more results (50) but only use the top ones to ensure quality
+        HybridSearchResult? searchResult = null;
+        string? errorMessage = null;
 
-        var search = await _ragSystem.QdrantClient.QueryAsync(
-            _ragSystem.CollectionName,
-            query: embeddingData,
-            limit: 100
-        );
+        try
+        {
+            searchResult = await _hybridSearchService.SearchAsync(
+                searchQuery: query,
+                pageIndex: 1,
+                pageSize: 50,
+                filters: []
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Error in hybrid search for query: {Query}", query);
+            errorMessage = "I encountered an error while searching for information. Please try again.";
+        }
 
+        if (errorMessage != null)
+        {
+            yield return errorMessage;
+            yield break;
+        }
+
+        if (searchResult == null)
+        {
+            yield return "An unexpected error occurred. Please try again.";
+            yield break;
+        }
+
+        if (searchResult.Items.Length == 0)
+        {
+            _logger.Warning("No search results found for query: {Query}", query);
+            yield return "I couldn't find any relevant information in the knowledge base to answer your question. Please try rephrasing your question or ask about a different topic.";
+            yield break;
+        }
+
+        _logger.Information("Hybrid search returned {Count} results with average score {AvgScore:F3}",
+            searchResult.Items.Length, searchResult.Metadata?.AverageScore ?? 0);
+
+        // Prepare content with relevance scores and chunks
+        var contentWithScores = searchResult.Items
+            .Select(item => new
+            {
+                Text = string.Join("\n", item.MatchedChunks ?? []),
+                Link = "/archive?id=" + item.Id,
+                item.RelevanceScore,
+                Title = item.Name,
+                // Categorize relevance for AI understanding
+                RelevanceLevel = item.RelevanceScore switch
+                {
+                    >= 0.7f => "High",
+                    >= 0.4f => "Medium",
+                    _ => "Low"
+                }
+            })
+            .Where(item => !string.IsNullOrWhiteSpace(item.Text)) // Only include items with actual content
+            .ToList();
+
+        if (contentWithScores.Count == 0)
+        {
+            _logger.Warning("No content chunks found in search results for query: {Query}", query);
+            yield return "I found some results but they don't contain detailed content to answer your question. Please try a more specific question.";
+            yield break;
+        }
+
+        // Prepare data for the prompt template
         var data = new
         {
             query,
-            content = search.Select(item =>
-            {
-                var payload = CustomPayload.FromPayload(item.Payload);
-                return new
-                {
-                    Text = payload.ChunkText,
-                    link = "/archive?id=" + payload.ResourceId,
-                };
-            }).ToList()
+            content = contentWithScores
         };
 
-        var result = Prompts.QuestionAnsweringTemplate(data);
+        var result = Prompts.QuestionAnsweringWithScoresTemplate(data);
 
         List<ChatMessage> messages =
         [
-            new SystemChatMessage(Prompts.SystemContentBasedAi),
+            new SystemChatMessage(Prompts.SystemContentBasedAiWithScores),
             .. chatHistory,
             new UserChatMessage(result),
         ];
