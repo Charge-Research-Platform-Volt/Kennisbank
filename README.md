@@ -12,7 +12,7 @@ Compose Production:\
 npm run prod
 
 Delete images and containers:\
-npm run down
+npm run clean
 
 Which will work regardless of future changes, but the command prompt behaves somewhat strange after calling Ctrl+C.
 
@@ -20,13 +20,13 @@ Which will work regardless of future changes, but the command prompt behaves som
 Alternatively, call docker compose directly
 
 Compose Development:\
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+docker compose -f docker-compose.local.yml up -d
 
 Compose Production:\
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
+docker compose -f docker-compose.prod.yml --env-file .env.local up --build
 
 Delete images and containers:\
-docker compose down --rmi local
+docker compose -f docker-compose.local.yml down -v
 
 If these are outdated, you can copy them from package.json (which is where the scripts are stored)
 
