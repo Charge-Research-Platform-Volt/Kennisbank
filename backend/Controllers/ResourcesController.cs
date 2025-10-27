@@ -19,14 +19,11 @@ using Microsoft.AspNetCore.Cors;
 using System.Text.Json;
 using KnowledgeBank.BackgroundServices;
 using KnowledgeBank.Services;
-using System.Buffers.Text;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
-using Azure.Storage.Blobs.Models;
 using System.Linq.Expressions;
 using static Qdrant.Client.Grpc.Conditions;
 using Qdrant.Client.Grpc;
-using Org.BouncyCastle.Bcpg.OpenPgp;
 
 
 
@@ -1517,6 +1514,69 @@ namespace KnowledgeBank.Controllers
             }
         }
         
+        #endregion
+        
+        #region Extract Metadata
+        [HttpPost("extract-metadata")]
+        [SwaggerOperation(Summary = "Extract metadata from document")]
+        [SwaggerResponse(200, "The extracted metadata", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> ExtractMetadata([FromForm]TextExtractionDto dto) 
+        {
+            try 
+            {
+                logger.Information("Metadata extraction request received for file: {FileName}", dto?.File?.FileName);
+
+                // Validate file
+                if (dto?.File == null || dto.File.Length == 0)
+                    return BadRequest(new ApiResponse(false, "No file uploaded"));
+
+                string fileExtension = Path.GetExtension(dto.File.FileName).ToLowerInvariant();
+
+
+                // Supported file types
+                if (!Filetype.Supported(fileExtension))
+                    return BadRequest(new ApiResponse(false, "File type not supported."));
+
+                // Check file size
+                const long maxFileSize = 100 * 1024 * 1024; // 100 MB
+                if (dto.File.Length > maxFileSize)
+                    return BadRequest(new ApiResponse(false, "File too large. Maximum size is 100MB"));
+
+                logger.Information("Extracting text from {FileType} document", fileExtension);
+
+                // Extract text using service
+                string extractedText;
+                using (Stream stream = dto.File.OpenReadStream())
+                {
+                    extractedText = await textExtractionService.ExtractTextAsync(stream, fileExtension);
+                }
+
+                // Validate extracted text
+                if (string.IsNullOrWhiteSpace(extractedText))
+                    return BadRequest(new ApiResponse(false, "No text could be extracted from the document."));
+
+                logger.Information("Text extracted successfully. Length: {TextLength} characters", extractedText.Length);
+
+                // Extract metadata using LLM
+                logger.Information("Analyzing document with LLM to extract metadata");
+
+                var metadata = await ragManager.ExtractMetadataAsync(extractedText, dto.File.FileName);
+
+                if (metadata == null)
+                    return StatusCode(500, new ApiResponse(false, "Failed to extract metadata from document"));
+
+                logger.Information("Metadata extraction completed successfully for {FileName}", dto.File.FileName);
+
+                return Ok(new ApiResponse(true, "Metadata extracted successfully", metadata));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Error extracting metadata from file: {FileName}", dto?.File?.FileName);
+                return StatusCode(500, new ApiResponse(false, $"Internal error during metadata extractino: {e.Message}"));
+            }
+        }
         #endregion
         
 

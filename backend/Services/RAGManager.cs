@@ -11,6 +11,7 @@ using static Qdrant.Client.Grpc.Conditions;
 using Azure.AI.DocumentIntelligence;
 using Azure;
 using System.ClientModel;
+using Docker.DotNet.Models;
 
 
 namespace KnowledgeBank.Services;
@@ -38,10 +39,6 @@ public class RAGManager
     /// This method orchestrates the complete document processing workflow from text extraction
     /// to vector storage and AI tag generation.
     /// </summary>
-    /// <param name="id">The unique identifier for the resource being processed.</param>
-    /// <param name="fileType">The type of file being processed. Currently unused but reserved for future implementations.</param>
-    /// <param name="chunk">An initial chunk of text (typically metadata) to include as the first chunk in processing.</param>
-    /// <param name="fileStream">A stream representing the file to be processed. If null, only the initial chunk will be processed.</param>
     /// <returns>A task representing the asynchronous operation of processing the document.</returns>
     /// <remarks>
     /// The RAG pipeline consists of the following sequential steps:
@@ -553,6 +550,120 @@ Enhanced Query:";
     }
 
     #endregion
+    
+    #region Metadata Extraction
+    
+    /// <summary>
+    /// Extracts metadata from document text using LLM analysis
+    /// </summary>
+    /// <param name="text">The full text extracted from the document</param>
+    /// <param name="fileName">The original filename for context</param>
+    /// <returns>Extracted metadata or null if extraction fails</returns>
+    public async Task<ExtractedMetadata?> ExtractMetadataAsync(string text, string fileName) 
+    {
+        try 
+        {
+            _logger.Information("Starting metadata extraction for file: {FileName}", fileName);
+
+            // Step 1: Truncate text if too long (since LLMs have context limits)
+            // Take the first 8000 characters, which is usually enough for the title, authors, abstract
+            string textToAnalyze = text.Length > 8000 ? text.Substring(0, 8000) : text;
+
+            _logger.Information("Analyzing {Length} characters of text", textToAnalyze.Length);
+
+            // Step 2: Create prompt for LLM
+            string prompt = $@"
+                You are a metadata extraction assistant. Analyze the following document text and extract sturctured metadata.
+                
+                Filename: {fileName}
+                
+                Document text:
+                {textToAnalyze}
+                
+                Extract the following information in JSON format:
+                {{
+                    ""title"": ""The document title"",
+                    ""abstract"": ""The abstract of the paper when it is a scientific paper, else leave empty"",
+                    ""description"": ""A complete and consise description of the document (50-300 words)"",
+                    ""publicationDate"": ""YYYY-MM-DD format or null"",
+                    ""languageCode"": ""ISO 639-1 two-letter code (e.g., 'en', 'nl', 'fr', etc.)"",
+                    ""authors"": [""Array of author names""],
+                    ""publicationCode"": ""DOI, ISBN, arXiv ID, etc. or null"",
+                    ""tags"": [""Array of categorization tags like 'research paper', 'technical report', 'computer science', etc.""]
+                }}
+                
+                Rules:
+                - If a field cannot be determined, use null or empty array
+                - Language code must be 2 letters lowercase (From the ISO 639-1 list)
+                - Publication date must be in YYYY-MM-DD format
+                - Return ONLY valid JSON, no additional text or explanation
+            ";
+
+            // Step 3: Call the LLM with JSON mode
+            var messages = new List<ChatMessage>
+            {
+                new SystemChatMessage("You are a helpful assistant that extracts metadata from documents. Always respond with valid JSON only."),
+                new UserChatMessage(prompt)
+            };
+
+            var chatOptions = new ChatCompletionOptions
+            {
+                ResponseFormat = ChatResponseFormat.CreateJsonObjectFormat()
+            };
+
+            _logger.Information("Calling LLM for metadata extraction");
+            var response = await _ragSystem.ChatClient.CompleteChatAsync(messages, chatOptions);
+
+            var jsonContent = response.Value.Content[0].Text;
+            _logger.Information("Received LLM response: {Length} characters", jsonContent.Length);
+
+            // Step 4: Parse JSON response
+            var metadata = JsonSerializer.Deserialize<ExtractedMetadata>(jsonContent, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+            
+            if (metadata == null) 
+            {
+                _logger.Warning("Failed to deserialize metadata from LLM response");
+                return null;
+            }
+            
+            // Step 5: Validate and clean the data
+            // Ensure language code is valid (2 letters, lowercase)
+            if (!string.IsNullOrEmpty(metadata.LanguageCode)) 
+            {
+                metadata.LanguageCode = metadata.LanguageCode.ToLowerInvariant();
+                if (metadata.LanguageCode.Length != 2) 
+                {
+                    _logger.Warning("Invalid language code: {Code}, setting to null", metadata.LanguageCode);
+                    metadata.LanguageCode = null;
+                }
+            }
+
+            // Trim whitespace from strings
+            metadata.Title = metadata.Title?.Trim();
+            metadata.Abstract = metadata.Abstract?.Trim();
+            metadata.Description = metadata.Description?.Trim();
+            metadata.PublicationCode = metadata.PublicationCode?.Trim();
+
+            // Remove empty strings from arrays
+            metadata.Authors = metadata.Authors?.Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => a.Trim()).ToList() ?? new List<string>();
+            metadata.Tags = metadata.Tags?.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim()).ToList() ?? new List<string>();
+
+            _logger.Information("Metadata extraction completed successfully. Title: {Title}, Authors: {AuthorCount}, Tags: {TagCount}", metadata.Title, metadata.Authors.Count, metadata.Tags.Count);
+
+            return metadata;
+        }
+        catch (Exception e) 
+        {
+            _logger.Error(e, "Error extracting metadata from document");
+            return null;
+        }
+    }
+    
+    #endregion
+    
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
