@@ -26,6 +26,7 @@ using Azure.Storage.Blobs.Models;
 using System.Linq.Expressions;
 using static Qdrant.Client.Grpc.Conditions;
 using Qdrant.Client.Grpc;
+using Org.BouncyCastle.Bcpg.OpenPgp;
 
 
 
@@ -43,11 +44,12 @@ namespace KnowledgeBank.Controllers
     /// <param name="taskQueue">The background task queue for processing tasks asynchronously</param>
     /// <param name="ragSystem">The RAG system for handling document processing</param>
     /// <param name="ragManager">The RAG manager for metadata updates and query processing</param>
+    /// <param name="textExtractionService">The text extraction service</param>
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem, RAGManager ragManager) : ControllerBase
+    public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem, RAGManager ragManager, TextExtractionService textExtractionService) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<ResourcesController>();
         private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
@@ -1462,6 +1464,61 @@ namespace KnowledgeBank.Controllers
             }
         }
         #endregion
+        
+        #region Extract Text
+        [HttpPost("extract-text")]
+        [SwaggerOperation(Summary = "Extract text from document")]
+        [SwaggerResponse(200, "The extracted text", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> ExtractText([FromForm] TextExtractionDto dto)
+        {
+            try
+            {
+                logger.Information("Text extraction request received for file: {FileName}", dto?.File?.FileName);
+
+                // Validate file
+                if (dto?.File == null || dto.File.Length == 0)
+                    return BadRequest(new ApiResponse(false, "No file uploaded"));
+
+                string fileExtension = Path.GetExtension(dto.File.FileName).ToLowerInvariant();
+
+
+                // Supported file types
+                if (!Filetype.Supported(fileExtension))
+                    return BadRequest(new ApiResponse(false, "File type not supported."));
+
+                // Check file size
+                const long maxFileSize = 100 * 1024 * 1024; // 100 MB
+                if (dto.File.Length > maxFileSize)
+                    return BadRequest(new ApiResponse(false, "File too large. Maximum size is 100MB"));
+
+                logger.Information("Extracting text from {FileType} document", fileExtension);
+
+                // Extract text using service
+                string extractedText;
+                using (Stream stream = dto.File.OpenReadStream())
+                {
+                    extractedText = await textExtractionService.ExtractTextAsync(stream, fileExtension);
+                }
+
+                // Validate extracted text
+                if (string.IsNullOrWhiteSpace(extractedText))
+                    return BadRequest(new ApiResponse(false, "No text could be extracted from the document."));
+
+                logger.Information("Text extracted successfully. Length: {TextLength} characters", extractedText.Length);
+
+                return Ok(new ApiResponse(true, "Text extracted successfully", extractedText));
+            }
+            catch (Exception e) 
+            {
+                logger.Error(e, "Failed to extract text");
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        
+        #endregion
+        
 
         
         #region Helper Functions

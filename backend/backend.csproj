@@ -68,4 +68,9 @@
     <NoWarn>$(NoWarn);1591</NoWarn> <!-- Optional: hides missing doc comment warnings -->
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Exclude logs directory from dotnet watch to prevent hot reload on log file changes -->
+    <Watch Remove="logs\**\*" />
+  </ItemGroup>
+
 </Project>

@@ -69,6 +69,18 @@ namespace KnowledgeBank
             builder.Services.AddControllers();
             builder.Services.AddSignalR();
             builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
+
+            // Register DocumentIntelligenceClient for dependency injection
+            builder.Services.AddSingleton(sp =>
+            {
+                var envConfig = sp.GetRequiredService<EnvironmentConfig>();
+                var credential = new Azure.AzureKeyCredential(envConfig.GetVariableValue(EnvironmentVariable.DOCUMENT_INTELLIGENCE_CLIENT_API_KEY));
+                return new Azure.AI.DocumentIntelligence.DocumentIntelligenceClient(
+                    new Uri(envConfig.GetVariableValue(EnvironmentVariable.DOCUMENT_INTELLIGENCE_CLIENT_ENDPOINT)),
+                    credential);
+            });
+
+            builder.Services.AddSingleton<TextExtractionService>();
             builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, CustomAuthorizationMiddlewareResultHandler>();
             builder.Services.AddAuthorization(options =>
             {

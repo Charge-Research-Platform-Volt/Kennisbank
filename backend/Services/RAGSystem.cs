@@ -48,6 +48,7 @@ public class RAGSystem
     /// </summary>
     /// <param name="blobService">The Azure Blob service instance for file storage operations</param>
     /// <param name="environmentConfig">The environment configuration containing all necessary API keys, endpoints, and settings</param>
+    /// <param name="documentIntelligenceClient">The Azure Document Intelligence client for document processing</param>
     /// <remarks>
     /// This constructor performs the following initialization steps:
     /// <list type="bullet">
@@ -63,7 +64,7 @@ public class RAGSystem
     /// </remarks>
     /// <exception cref="ArgumentException">Thrown when environment configuration values are invalid or missing</exception>
     /// <exception cref="HttpRequestException">Thrown when API endpoints are unreachable during initialization</exception>
-    public RAGSystem(IAzureBlobService blobService, EnvironmentConfig environmentConfig)
+    public RAGSystem(IAzureBlobService blobService, EnvironmentConfig environmentConfig, DocumentIntelligenceClient documentIntelligenceClient)
     {
         _logger = Log.ForContext<RAGSystem>();
         Toolbox = new Tools();
@@ -95,9 +96,9 @@ public class RAGSystem
         IndexPayloadFieldsAsync().GetAwaiter().GetResult();
 
 
-        // * Document Intelligence 
-        AzureKeyCredential credential = new AzureKeyCredential(_environmentConfig.GetVariableValue(EnvironmentVariable.DOCUMENT_INTELLIGENCE_CLIENT_API_KEY));
-        DocumentIntelligenceClient = new DocumentIntelligenceClient(new Uri(_environmentConfig.GetVariableValue(EnvironmentVariable.DOCUMENT_INTELLIGENCE_CLIENT_ENDPOINT)), credential);
+        // * Document Intelligence
+        DocumentIntelligenceClient = documentIntelligenceClient;
+        _logger.Information("Azure Document Intelligence client initialized");
 
 
         // * Chat Completions - Azure OpenAI

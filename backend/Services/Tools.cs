@@ -30,7 +30,7 @@ public class Tools
     /// This method preserves the original stream position by restoring it after reading.
     /// </remarks>
     /// <exception cref="Exception">Thrown when text extraction fails. The error is logged before being rethrown.</exception>
-    private Task<string> ExtractTextFromPdfAsync(Stream pdfStream)
+    public Task<string> ExtractTextFromPdfAsync(Stream pdfStream)
     {
         StringBuilder textBuilder = new();
 

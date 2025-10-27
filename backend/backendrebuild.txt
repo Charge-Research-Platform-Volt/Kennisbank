@@ -1,0 +1,502 @@
+Yes! Azure Document Intelligence "prebuilt-read" model supports many formats:
+
+  Azure Document Intelligence "Read" Model Support
+
+  Supported formats:
+  - ✅ PDF (.pdf)
+  - ✅ Word (.docx, .doc)
+  - ✅ PowerPoint (.pptx, .ppt)
+  - ✅ Excel (.xlsx, .xls)
+  - ✅ HTML (.html)
+  - ✅ Images (.jpg, .jpeg, .png, .bmp, .tiff) - with OCR
+  - ✅ Text (.txt)
+  - ✅ Rich Text (.rtf)
+
+  So your strategy should be:
+
+  PDF → Try PdfPig first (free) → Fallback to Azure DI Read if fails
+  DOCX/DOC → Azure DI Read directly ($1.50 per 1000 pages)
+  Other formats → Azure DI Read directly
+
+  ---
+  Complete Implementation Plan
+
+  Here's the full code for both Phase 1 (metadata extraction) and Phase 2 (RAG pipeline) with the hybrid approach:
+
+  ---
+  1. Update Tools.cs - Make PdfPig Public
+
+  File: backend/Services/Tools.cs
+
+  // Line 32, change visibility:
+  public Task<string> ExtractTextFromPdfAsync(Stream pdfStream)  // Changed from private
+  {
+      StringBuilder textBuilder = new();
+
+      // Save original position to restore it later
+      long originalPosition = pdfStream.Position;
+      pdfStream.Position = 0;
+
+      try
+      {
+          using (PdfDocument document = PdfDocument.Open(pdfStream))
+          {
+              foreach (Page page in document.GetPages())
+              {
+                  string pageText = page.Text;
+                  textBuilder.AppendLine(pageText);
+              }
+          }
+
+          return Task.FromResult(textBuilder.ToString());
+      }
+      catch (Exception ex)
+      {
+          _logger.Error(ex, "Error extracting text from PDF");
+          throw;
+      }
+      finally
+      {
+          // Restore stream position for potential reuse
+          pdfStream.Position = originalPosition;
+      }
+  }
+
+  ---
+  2. Create Unified Text Extraction Service
+
+  File: Create new backend/Services/TextExtractionService.cs
+
+  using Azure.AI.DocumentIntelligence;
+  using Azure;
+  using UglyToad.PdfPig;
+  using System.Text;
+
+  namespace KnowledgeBank.Services;
+
+  /// <summary>
+  /// Service for extracting text from various document formats
+  /// Uses free methods (PdfPig) when possible, falls back to Azure Document Intelligence
+  /// </summary>
+  public class TextExtractionService
+  {
+      private readonly ILogger<TextExtractionService> _logger;
+      private readonly DocumentIntelligenceClient _docIntelligenceClient;
+
+      public TextExtractionService(
+          ILogger<TextExtractionService> logger,
+          DocumentIntelligenceClient docIntelligenceClient)
+      {
+          _logger = logger;
+          _docIntelligenceClient = docIntelligenceClient;
+      }
+
+      /// <summary>
+      /// Extracts text from a document stream, choosing the best extraction method based on file type
+      /// </summary>
+      /// <param name="stream">Document file stream</param>
+      /// <param name="fileExtension">File extension (e.g., ".pdf", ".docx")</param>
+      /// <returns>Extracted text content</returns>
+      public async Task<string> ExtractTextAsync(Stream stream, string fileExtension)
+      {
+          fileExtension = fileExtension.ToLowerInvariant();
+
+          _logger.Information("Extracting text from {FileType} document", fileExtension);
+
+          try
+          {
+              if (fileExtension == ".pdf")
+              {
+                  // Try free PdfPig extraction first
+                  return await ExtractFromPdfWithFallback(stream);
+              }
+              else if (fileExtension == ".txt")
+              {
+                  // Plain text - direct read
+                  return await ExtractFromPlainText(stream);
+              }
+              else
+              {
+                  // For DOCX, XLSX, PPTX, etc. - use Azure DI Read
+                  return await ExtractWithAzureDocumentIntelligence(stream, fileExtension);
+              }
+          }
+          catch (Exception ex)
+          {
+              _logger.Error(ex, "Failed to extract text from {FileType}", fileExtension);
+              throw;
+          }
+      }
+
+      /// <summary>
+      /// Extracts text from PDF using free PdfPig, falls back to Azure DI Read if needed
+      /// </summary>
+      private async Task<string> ExtractFromPdfWithFallback(Stream stream)
+      {
+          long originalPosition = stream.Position;
+
+          try
+          {
+              // Attempt free extraction with PdfPig
+              _logger.Information("Attempting free PDF text extraction with PdfPig");
+
+              stream.Position = 0;
+              var text = ExtractWithPdfPig(stream);
+
+              // Validate extraction quality
+              if (!string.IsNullOrWhiteSpace(text) && text.Length > 50)
+              {
+                  _logger.Information("PdfPig extraction successful: {Length} characters", text.Length);
+                  return text;
+              }
+
+              // If extraction resulted in very little text, might be scanned/image PDF
+              _logger.Warning("PdfPig extracted minimal text ({Length} chars), falling back to Azure DI Read (OCR)",
+                  text?.Length ?? 0);
+
+              stream.Position = 0;
+              return await ExtractWithAzureDocumentIntelligence(stream, ".pdf");
+          }
+          catch (Exception ex)
+          {
+              // PdfPig failed (corrupted PDF, encrypted, etc.) - fallback to Azure DI
+              _logger.Warning(ex, "PdfPig extraction failed, falling back to Azure Document Intelligence Read");
+
+              stream.Position = 0;
+              return await ExtractWithAzureDocumentIntelligence(stream, ".pdf");
+          }
+          finally
+          {
+              stream.Position = originalPosition;
+          }
+      }
+
+      /// <summary>
+      /// Extracts text from PDF using free PdfPig library
+      /// </summary>
+      private string ExtractWithPdfPig(Stream stream)
+      {
+          var textBuilder = new StringBuilder();
+
+          using (var document = PdfDocument.Open(stream))
+          {
+              foreach (var page in document.GetPages())
+              {
+                  var pageText = page.Text;
+                  if (!string.IsNullOrWhiteSpace(pageText))
+                  {
+                      textBuilder.AppendLine(pageText);
+                      textBuilder.AppendLine(); // Page separator
+                  }
+              }
+          }
+
+          return textBuilder.ToString();
+      }
+
+      /// <summary>
+      /// Extracts text using Azure Document Intelligence "prebuilt-read" model
+      /// Supports PDF, DOCX, XLSX, PPTX, images (with OCR), and more
+      /// </summary>
+      private async Task<string> ExtractWithAzureDocumentIntelligence(Stream stream, string fileExtension)
+      {
+          _logger.Information("Using Azure Document Intelligence Read model for {FileType}", fileExtension);
+
+          var operation = await _docIntelligenceClient.AnalyzeDocumentAsync(
+              WaitUntil.Completed,
+              "prebuilt-read",  // Cheaper "read" model instead of "layout"
+              stream,
+              outputContentFormat: Azure.AI.DocumentIntelligence.ContentFormat.Text
+          );
+
+          var extractedText = operation.Value.Content ?? string.Empty;
+
+          _logger.Information("Azure DI extracted {Length} characters from {FileType}",
+              extractedText.Length, fileExtension);
+
+          return extractedText;
+      }
+
+      /// <summary>
+      /// Extracts text from plain text file
+      /// </summary>
+      private async Task<string> ExtractFromPlainText(Stream stream)
+      {
+          stream.Position = 0;
+          using var reader = new StreamReader(stream, leaveOpen: true);
+          return await reader.ReadToEndAsync();
+      }
+  }
+
+  ---
+  3. Register Service in Program.cs
+
+  File: backend/Program.cs
+
+  // Add with your other service registrations
+  builder.Services.AddSingleton<TextExtractionService>();
+
+  ---
+  4. Update Phase 1: Metadata Extraction Endpoint
+
+  File: backend/Controllers/ResourcesController.cs
+
+  Update constructor to inject TextExtractionService:
+
+  public class ResourcesController(
+      ResourceManager resourceManager, 
+      IAzureBlobService blobService, 
+      IBackgroundTaskQueue taskQueue, 
+      RAGSystem ragSystem, 
+      RAGManager ragManager,
+      TextExtractionService textExtractionService) : ControllerBase
+  {
+      private readonly TextExtractionService _textExtractionService = textExtractionService;
+      // ... other fields
+  }
+
+  Update the ExtractMetadata endpoint:
+
+  [HttpPost("extract-metadata")]
+  [SwaggerOperation(Summary = "Extract metadata and tags from document without saving")]
+  [SwaggerResponse(200, "Metadata extracted successfully", typeof(MetadataExtractionResponseDto))]
+  [SwaggerResponse(400, "Bad Request", typeof(MetadataExtractionResponseDto))]
+  [SwaggerResponse(500, "Internal Server Error", typeof(MetadataExtractionResponseDto))]
+  public async Task<IActionResult> ExtractMetadata([FromForm] IFormFile file)
+  {
+      try
+      {
+          logger.Information("Metadata extraction request received for file: {FileName}", file?.FileName);
+
+          // Validate file
+          if (file == null || file.Length == 0)
+          {
+              return BadRequest(new MetadataExtractionResponseDto
+              {
+                  Success = false,
+                  Message = "No file uploaded"
+              });
+          }
+
+          var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+          // Supported file types
+          var allowedExtensions = new[] { ".pdf", ".docx", ".doc", ".txt", ".rtf", ".pptx", ".xlsx" };
+          if (!allowedExtensions.Contains(fileExtension))
+          {
+              return BadRequest(new MetadataExtractionResponseDto
+              {
+                  Success = false,
+                  Message = $"Unsupported file type '{fileExtension}'. Supported: {string.Join(", ", allowedExtensions)}"
+              });
+          }
+
+          // Check file size
+          const long maxFileSize = 100 * 1024 * 1024; // 100 MB
+          if (file.Length > maxFileSize)
+          {
+              return BadRequest(new MetadataExtractionResponseDto
+              {
+                  Success = false,
+                  Message = $"File too large. Maximum size: {maxFileSize / (1024 * 1024)} MB"
+              });
+          }
+
+          logger.Information("Extracting text from {FileType} document", fileExtension);
+
+          // Extract text using unified service (PdfPig for PDF, Azure DI for others)
+          string extractedText;
+          using (var stream = file.OpenReadStream())
+          {
+              extractedText = await _textExtractionService.ExtractTextAsync(stream, fileExtension);
+          }
+
+          // Validate extracted text
+          if (string.IsNullOrWhiteSpace(extractedText))
+          {
+              return BadRequest(new MetadataExtractionResponseDto
+              {
+                  Success = false,
+                  Message = "No text could be extracted from the document. The file may be empty, corrupted, or image-only."
+              });
+          }
+
+          logger.Information("Text extracted successfully. Length: {TextLength} characters", extractedText.Length);
+
+          // Extract metadata and tags using LLM
+          logger.Information("Analyzing document with LLM to extract metadata and tags");
+
+          var metadata = await ragManager.ExtractMetadataAndTagsAsync(extractedText, file.FileName);
+
+          if (metadata == null)
+          {
+              return StatusCode(500, new MetadataExtractionResponseDto
+              {
+                  Success = false,
+                  Message = "Failed to extract metadata and tags from document."
+              });
+          }
+
+          logger.Information("Metadata extraction completed successfully for {FileName}", file.FileName);
+
+          return Ok(new MetadataExtractionResponseDto
+          {
+              Success = true,
+              Message = "Metadata and tags extracted successfully",
+              Data = new MetadataExtractionData
+              {
+                  Title = metadata.Title,
+                  Abstract = metadata.Abstract,
+                  Description = metadata.Description,
+                  PublicationDate = metadata.PublicationDate,
+                  LanguageCode = metadata.LanguageCode,
+                  Authors = metadata.Authors,
+                  PublicationCode = metadata.PublicationCode,
+                  Keywords = metadata.Keywords,
+                  Tags = metadata.Tags
+              }
+          });
+      }
+      catch (Exception ex)
+      {
+          logger.Error(ex, "Error extracting metadata from file: {FileName}", file?.FileName);
+          return StatusCode(500, new MetadataExtractionResponseDto
+          {
+              Success = false,
+              Message = $"Internal error during metadata extraction: {ex.Message}"
+          });
+      }
+  }
+
+  ---
+  5. Update Phase 2: RAG Pipeline
+
+  File: backend/Services/RAGManager.cs
+
+  Update constructor to inject TextExtractionService:
+
+  public class RAGManager(
+      DatabaseContext context, 
+      RAGSystem ragSystem, 
+      ResourceManager resourceManager,
+      TextExtractionService textExtractionService)  // ← ADD THIS
+  {
+      private readonly TextExtractionService _textExtractionService = textExtractionService;
+      // ... other fields
+  }
+
+  Update the MainPipeline method (around line 138):
+
+  // REPLACE this entire block (lines 138-160):
+  if (fileStream != null && fileType == FileType.Document)
+  {
+      // Configure Azure Document Intelligence options
+      AnalyzeDocumentOptions options = new AnalyzeDocumentOptions(
+          modelId: "prebuilt-layout",  // OLD: Expensive
+          bytesSource: BinaryData.FromStream(fileStream))
+      {
+          OutputContentFormat = DocumentContentFormat.Text
+      };
+
+      Operation<AnalyzeResult> operation = await _ragSystem.DocumentIntelligenceClient
+          .AnalyzeDocumentAsync(WaitUntil.Completed, options);
+      string extractedText = operation.Value.Content;
+
+      if (string.IsNullOrEmpty(extractedText))
+      {
+          _logger.Warning("No text extracted from the document");
+          return;
+      }
+
+      chunks.AddRange(_ragSystem.Toolbox.SplitTextIntoChunks(extractedText, logChunks: false, markdownSplit: false));
+  }
+
+  // WITH: Free PdfPig + Azure DI fallback
+  if (fileStream != null && fileType == FileType.Document)
+  {
+      string extractedText;
+
+      try
+      {
+          _logger.Information("Extracting text from document for resource {ResourceId}", id);
+
+          // Use unified extraction service (free for PDFs, Azure DI Read for others)
+          extractedText = await _textExtractionService.ExtractTextAsync(fileStream, ".pdf");
+
+          _logger.Information("Successfully extracted {Length} characters for resource {ResourceId}",
+              extractedText?.Length ?? 0, id);
+      }
+      catch (Exception ex)
+      {
+          _logger.Error(ex, "Text extraction failed for resource {ResourceId}", id);
+          return false;
+      }
+
+      if (string.IsNullOrEmpty(extractedText))
+      {
+          _logger.Warning("No text extracted from document for resource {ResourceId}", id);
+          return false;
+      }
+
+      chunks.AddRange(_ragSystem.Toolbox.SplitTextIntoChunks(extractedText, logChunks: false, markdownSplit: false));
+  }
+
+  ---
+  Cost Comparison: Complete System
+
+  For 100 documents (average 50 pages each):
+
+  | Approach               | Phase 1 Cost | Phase 2 Cost | Total    |
+  |------------------------|--------------|--------------|----------|
+  | Old (Layout × 2)       | $50          | $50          | $100     |
+  | Hybrid (PdfPig + Read) | $0-7.50*     | $7.50        | $7.50-15 |
+
+  *Phase 1: Free for text PDFs, $7.50 if all are scanned/DOCX
+
+  Savings: 85-92.5% ✅
+
+  ---
+  What Happens for Each File Type:
+
+  | File Type        | Phase 1 (Metadata)  | Phase 2 (RAG)      | Cost per 1000 pages |
+  |------------------|---------------------|--------------------|---------------------|
+  | PDF (text-based) | PdfPig (free)       | PdfPig (free)      | $0                  |
+  | PDF (scanned)    | Azure Read ($1.50)  | Azure Read ($1.50) | $3                  |
+  | DOCX             | Azure Read ($1.50)  | Azure Read ($1.50) | $3                  |
+  | TXT              | Free (StreamReader) | Free               | $0                  |
+  | PPTX/XLSX        | Azure Read ($1.50)  | Azure Read ($1.50) | $3                  |
+
+  ---
+  Testing Checklist
+
+  - Test PDF with text (should use PdfPig, cost: $0)
+  - Test scanned PDF (should fallback to Azure DI Read)
+  - Test DOCX file (should use Azure DI Read)
+  - Test TXT file (should use free StreamReader)
+  - Test corrupted PDF (should fallback gracefully)
+  - Test encrypted PDF (should handle error)
+  - Monitor Azure costs in portal
+  - Check logs to verify which method was used
+
+  ---
+  Summary
+
+  Your new architecture:
+
+  Phase 1 (Metadata Extraction):
+    PDF → PdfPig (free) → fallback to Azure Read ($1.50)
+    DOCX/others → Azure Read ($1.50)
+
+  Phase 2 (RAG Pipeline):
+    Same as Phase 1
+
+  Result: 85-92% cost reduction!
+
+  Implementation steps:
+  1. Make ExtractTextFromPdfAsync public in Tools.cs
+  2. Create TextExtractionService.cs
+  3. Register service in Program.cs
+  4. Update ResourcesController to inject and use it
+  5. Update RAGManager to inject and use it
+
+  Want me to create the complete files ready to copy-paste, or do you have questions about any part?
