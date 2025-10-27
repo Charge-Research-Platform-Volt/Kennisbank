@@ -596,6 +596,7 @@ Enhanced Query:";
                 - If a field cannot be determined, use null or empty array
                 - Language code must be 2 letters lowercase (From the ISO 639-1 list)
                 - Publication date must be in YYYY-MM-DD format
+                - Note which type of publication code it is before the actual publication code
                 - Return ONLY valid JSON, no additional text or explanation
             ";
 
