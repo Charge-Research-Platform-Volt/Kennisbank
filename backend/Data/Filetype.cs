@@ -12,24 +12,46 @@
             public const string Video = "video";
         }
 
-        private static readonly Dictionary<string, string> extToType = new()
+        private static readonly Dictionary<string, string> supportedText = new()
         {
             // Document
-            { "pptx", UploadType.Document },
+            { "pdf", UploadType.Document }, 
             { "docx", UploadType.Document },
-            { "pdf", UploadType.Document },
+            { "pptx", UploadType.Document },
+            { "xlsx", UploadType.Document },
+            { "html", UploadType.Document },
+            { "txt", UploadType.Document }, 
             
-            // Audio
+            // Images (OCR supported)
+            { "jpg", UploadType.Document }, 
+            { "jpeg", UploadType.Document },
+            { "png", UploadType.Document }, 
+            { "bmp", UploadType.Document }, 
+            { "tiff", UploadType.Document },
+            { "heif", UploadType.Document },
+        };
+
+        private static readonly Dictionary<string, string> supportedAudio = new()
+        {
             { "mp3", UploadType.Audio },
             { "wav", UploadType.Audio },
             { "ogg", UploadType.Audio },
-            
-            // Video
+        };
+
+        private static readonly Dictionary<string, string> supportedVideo = new()
+        {
             { "mp4", UploadType.Video },
             { "avi", UploadType.Video },
             { "mkv", UploadType.Video },
             { "mov", UploadType.Video },
         };
+
+        // Combine all supported extensions into one dictionary
+        private static readonly Dictionary<string, string> extToType =
+            supportedText
+                .Concat(supportedAudio)
+                .Concat(supportedVideo)
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
         /// <summary>
         /// Trims the extension
@@ -62,7 +84,70 @@
         }
 
         /// <summary>
-        /// Retrieve the supported extensions
+        /// Check if a text/document extension is supported
+        /// </summary>
+        /// <param name="extension">The full extension (.pdf for example)</param>
+        /// <returns></returns>
+        public static bool SupportedText(string extension)
+        {
+            return supportedText.ContainsKey(trimExtension(extension));
+        }
+
+        /// <summary>
+        /// Check if an audio extension is supported
+        /// </summary>
+        /// <param name="extension">The full extension (.mp3 for example)</param>
+        /// <returns></returns>
+        public static bool SupportedAudio(string extension)
+        {
+            return supportedAudio.ContainsKey(trimExtension(extension));
+        }
+
+        /// <summary>
+        /// Check if a video extension is supported
+        /// </summary>
+        /// <param name="extension">The full extension (.mp4 for example)</param>
+        /// <returns></returns>
+        public static bool SupportedVideo(string extension)
+        {
+            return supportedVideo.ContainsKey(trimExtension(extension));
+        }
+
+        /// <summary>
+        /// Retrieve supported text/document extensions grouped by type
+        /// </summary>
+        public static Dictionary<string, string[]> SupportedTextExtensions
+        {
+            get
+            {
+                return supportedText.GroupBy(pair => pair.Value).ToDictionary(group => group.Key, group => group.Select(pair => pair.Key).ToArray());
+            }
+        }
+
+        /// <summary>
+        /// Retrieve supported audio extensions grouped by type
+        /// </summary>
+        public static Dictionary<string, string[]> SupportedAudioExtensions
+        {
+            get
+            {
+                return supportedAudio.GroupBy(pair => pair.Value).ToDictionary(group => group.Key, group => group.Select(pair => pair.Key).ToArray());
+            }
+        }
+
+        /// <summary>
+        /// Retrieve supported video extensions grouped by type
+        /// </summary>
+        public static Dictionary<string, string[]> SupportedVideoExtensions
+        {
+            get
+            {
+                return supportedVideo.GroupBy(pair => pair.Value).ToDictionary(group => group.Key, group => group.Select(pair => pair.Key).ToArray());
+            }
+        }
+
+        /// <summary>
+        /// Retrieve all supported extensions grouped by type
         /// </summary>
         public static Dictionary<string, string[]> SupportedExtensions
         {

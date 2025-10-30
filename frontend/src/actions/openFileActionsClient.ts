@@ -19,7 +19,7 @@ export const handleOpenFile = async (id: string, fileType: string) =>
 
     // Anything but a website at the moment we'll just open from the storage
     if(fileType != "website"){
-        url = `/api/resources/download/${id}`; // download url
+        url = `/api/files/download/${id}`; // download url
         try {
             const link = document.createElement('a'); // create download tag
             link.href = url;

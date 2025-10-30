@@ -65,8 +65,6 @@ public class TrashbinCleanupService : BackgroundService
                     await resourceManager.Rollback();
                 }
             }
-
-            await WaitUntilUtils.WaitUntilTime(new TimeSpan(0, 0, 0), stoppingToken); 
         }
     }
 }

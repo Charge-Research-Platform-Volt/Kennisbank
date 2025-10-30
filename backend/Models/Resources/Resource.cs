@@ -127,14 +127,6 @@ public class FileResourceCreateDto : ResourceCreateDto
     public IFormFile? File { get; set; }
 }
 
-public class LargeFileFinalizeDto
-{
-    public required string ResourceId { get; set; }
-    public required string FileType { get; set; }
-    public required string FileName { get; set; }
-    public List<string> BlockIds { get; set; } = new();
-}
-
 public class ResourceUploadDto
 {
     public required string Dto { get; set; }
@@ -142,9 +134,17 @@ public class ResourceUploadDto
     public IFormFile? File { get; set; }
 }
 
-public class TextExtractionDto
+public class FileUploadInitDto
 {
-    public required IFormFile File { get; set; }
+    public required string FileName { get; set; }
+    public required long FileSize { get; set; }
+}
+
+public class FileUploadFinalizeDto
+{
+    public required string Guid { get; set; }
+    public required string FileName { get; set; }
+    public List<string> BlockIds { get; set; } = new();
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht
