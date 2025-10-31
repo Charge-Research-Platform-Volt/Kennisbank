@@ -114,39 +114,6 @@
         }
 
         /// <summary>
-        /// Retrieve supported text/document extensions grouped by type
-        /// </summary>
-        public static Dictionary<string, string[]> SupportedTextExtensions
-        {
-            get
-            {
-                return supportedText.GroupBy(pair => pair.Value).ToDictionary(group => group.Key, group => group.Select(pair => pair.Key).ToArray());
-            }
-        }
-
-        /// <summary>
-        /// Retrieve supported audio extensions grouped by type
-        /// </summary>
-        public static Dictionary<string, string[]> SupportedAudioExtensions
-        {
-            get
-            {
-                return supportedAudio.GroupBy(pair => pair.Value).ToDictionary(group => group.Key, group => group.Select(pair => pair.Key).ToArray());
-            }
-        }
-
-        /// <summary>
-        /// Retrieve supported video extensions grouped by type
-        /// </summary>
-        public static Dictionary<string, string[]> SupportedVideoExtensions
-        {
-            get
-            {
-                return supportedVideo.GroupBy(pair => pair.Value).ToDictionary(group => group.Key, group => group.Select(pair => pair.Key).ToArray());
-            }
-        }
-
-        /// <summary>
         /// Retrieve all supported extensions grouped by type
         /// </summary>
         public static Dictionary<string, string[]> SupportedExtensions

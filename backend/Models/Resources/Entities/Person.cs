@@ -9,7 +9,7 @@ namespace KnowledgeBank.Models;
 public class Person : Entity
 {
     [Column("occupation")]
-    public required string Occupation { get; set; }
+    public string? Occupation { get; set; }
 
     [Column("linkedin")]
     public string? Linkedin { get; set; }
@@ -26,7 +26,7 @@ public class Person : Entity
 public class PersonCreateDto
 {
     public required string Name { get; set; }
-    public required string Occupation { get; set; }
+    public string? Occupation { get; set; }
     public string? Description { get; set; }
     public string? EmailAddress { get; set; }
     public string? Linkedin { get; set; }

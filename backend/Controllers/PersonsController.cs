@@ -56,9 +56,6 @@ namespace KnowledgeBank.Controllers
             if (string.IsNullOrEmpty(dto.Name))
                 return BadRequest(new ApiResponse(false, "No name was given"));
 
-            if (string.IsNullOrEmpty(dto.Occupation))
-                return BadRequest(new ApiResponse(false, "No occupation was given"));
-
             logger.Information("Creating person '{Name}'...", dto.Name);
 
             try

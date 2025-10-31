@@ -1,6 +1,6 @@
 import { z } from "zod"
-import { ResourceCreateDto, WebsiteCreateDto, DocumentCreateDto, VideoCreateDto, AudioCreateDto, FileResourceCreateDto, PersonCreateDto, OrganisationCreateDto, LargeFileFinalizeDto } from "@/types/uploadTypes"
-import { resourceCreateFormSchema } from "@/components/new/NewResource"
+import { ResourceCreateDto, WebsiteCreateDto, DocumentCreateDto, VideoCreateDto, AudioCreateDto, FileResourceCreateDto, LargeFileFinalizeDto } from "@/types/uploadTypes"
+import { resourceCreateFormSchema } from "@/components/new_old/NewResource"
 import { ApiResponse } from "@/types/apiResponse.type";
 import { convertToUTCDate } from "@/lib/dateUtils";
 
