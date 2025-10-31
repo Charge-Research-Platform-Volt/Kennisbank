@@ -24,6 +24,9 @@ using Azure.Storage.Blobs.Specialized;
 using System.Linq.Expressions;
 using static Qdrant.Client.Grpc.Conditions;
 using Qdrant.Client.Grpc;
+using Microsoft.Extensions.AI;
+using System.Reflection.Metadata.Ecma335;
+using Docker.DotNet.Models;
 
 
 
@@ -48,32 +51,29 @@ namespace KnowledgeBank.Controllers
     public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem, RAGManager ragManager) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<ResourcesController>();
-        private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
-
 
         #region New
-        /// <summary>
-        /// Creates a new resource
-        /// </summary>
-        /// <param name="uploadDto">The Data Transfer Object</param>
         [HttpPut("new")]
-        [SwaggerOperation(Summary = "Create a new resource in the archive.")]
+        [Consumes("application/json")]
+        [SwaggerOperation(Summary = "Create a new resource in the archive")]
         [SwaggerResponse(200, "Resource was created successfully", typeof(ApiResponse))]
         [SwaggerResponse(409, "Resource already exists", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> New([FromForm] ResourceUploadDto uploadDto)
+        public async Task<IActionResult> New([FromBody] ResourceCreateDto dto) 
         {
-            ResourceCreateDto? dto = null;
+            string uploadType = dto switch
+            {
+                WebsiteCreateDto => "website",
+                DocumentCreateDto => "document",
+                AudioCreateDto => "audio",
+                VideoCreateDto => "video",
+                _ => "unknown"
+            };
 
-            if (uploadDto.UploadType == "website")
-                dto = JsonSerializer.Deserialize<WebsiteCreateDto>(uploadDto.Dto);
-            else if (uploadDto.File != null)
-                dto = DeserializeWithFile(uploadDto.UploadType, uploadDto.Dto, uploadDto.File);
-
-            if (dto == null)
+            if (uploadType == "unknown")
                 return BadRequest(new ApiResponse(false, "Invalid DTO sent"));
-
+                
             // Check if there is a title
             if (string.IsNullOrEmpty(dto.Title))
                 return BadRequest(new ApiResponse(false, "No name was provided."));
@@ -89,23 +89,7 @@ namespace KnowledgeBank.Controllers
             // Check if there is a publication date
             if (dto.PublicationDate == DateTime.MinValue)
                 return BadRequest(new ApiResponse(false, "No publication date was provided"));
-
-            // Checks for file
-            if (dto is FileResourceCreateDto _fDto)
-            {
-                // Check if file was empty
-                if (_fDto.File == null)
-                    return BadRequest(new ApiResponse(false, "No file was uploaded."));
-
-                // Check if the file is empty
-                if (_fDto.File.Length == 0)
-                    return BadRequest(new ApiResponse(false, "The uploaded file was empty."));
-
-                // Check if the filetype is supported
-                if (!Filetype.Supported(Path.GetExtension(_fDto.File.FileName)))
-                    return BadRequest(new ApiResponse(false, "Filetype is not supported."));
-            }
-
+                
             // Checks for website
             if (dto is WebsiteCreateDto _wDto)
             {
@@ -117,122 +101,103 @@ namespace KnowledgeBank.Controllers
                 if (!ValidityUtil.IsValidUrl(_wDto.Url))
                     return BadRequest(new ApiResponse(false, "The URL was invalid."));
             }
-
-            logger.Information("Creating resource '{Title}'...", dto.Title);
-
-            try
+            
+            try 
             {
-                // Start a transaction on the database, since we are going to perform multiple actions
-                await resourceManager.BeginTransaction();
-
-                // Create the resource in the database and retrieve the ID
-                Guid id = Guid.Empty;
-                switch (uploadDto.UploadType)
+                // Checks for file
+                if (dto is FileResourceCreateDto _fDto) 
                 {
-                    case "website":
-                        id = await resourceManager.CreateWebsiteAsync((WebsiteCreateDto)dto);
-                        _taskQueue.QueueBackgroundWorkItem(async token =>
-                        {
-                            using var scope = HttpContext.RequestServices.CreateScope();
-                            var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                            await ragManager.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}\n{((WebsiteCreateDto)dto).Url}");
-                        });
-                        break;
-                    case "document":
-                        id = await resourceManager.CreateDocumentAsync((DocumentCreateDto)dto);
-                        break;
-                    case "audio":
-                        id = await resourceManager.CreateAudioAsync((AudioCreateDto)dto);
-                        _taskQueue.QueueBackgroundWorkItem(async token =>
-                        {
-                            using var scope = HttpContext.RequestServices.CreateScope();
-                            var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                            await ragManager.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
-                        });
+                    // Check if the given ID is valid
+                    if (!ValidityUtil.IsValidId(_fDto.Id))
+                        return BadRequest(new ApiResponse(false, "Invalid ID given."));
 
-                        break;
-                    case "video":
-                        id = await resourceManager.CreateVideoAsync((VideoCreateDto)dto);
-                        _taskQueue.QueueBackgroundWorkItem(async token =>
-                        {
-                            using var scope = HttpContext.RequestServices.CreateScope();
-                            var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                            await ragManager.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
-                        });
-                        break;
-                    default:
-                        id = await resourceManager.CreateResourceAsync(dto);
-                        break;
+                    IDictionary<string, string>? metadata = await blobService.GetBlobMetadataAsync("files", _fDto.Id);
+
+                    if (metadata == null)
+                        return BadRequest(new ApiResponse(false, $"There is no file for the given ID '{_fDto.Id}'"));
+
+                    if (!metadata.TryGetValue("extension", out string? extension) || string.IsNullOrEmpty(extension))
+                        return BadRequest(new ApiResponse(false, "File metadata is missing extension."));
+                        
+                    _fDto.FileExtension = extension;
                 }
 
+                logger.Information("Creating resource '{Title}'...", dto.Title);
+                
+                // Start transaction on the database
+                await resourceManager.BeginTransaction();
 
-                // If the resource is a file, upload it to storage
-                if (dto is FileResourceCreateDto fDto)
+                // Create resource in the database and retrieve the ID
+                Guid id = Guid.Empty;
+                switch (dto) 
                 {
-                    // Check if file was empty
-                    if (fDto.File == null)
-                        return BadRequest(new ApiResponse(false, "No file was uploaded."));
+                    // Website creation
+                    case WebsiteCreateDto wDto:
+                        id = await resourceManager.CreateWebsiteAsync(wDto);
+                        taskQueue.QueueBackgroundWorkItem(async token =>
+                        {
+                            using var scope = HttpContext.RequestServices.CreateScope();
+                            RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                            
+                            await rag.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}\n{wDto.Url}");
+                        });
+                        break;
+                    
+                    // Document creation
+                    case DocumentCreateDto dDto:
+                        id = await resourceManager.CreateDocumentAsync(dDto);
+                        taskQueue.QueueBackgroundWorkItem(async token =>
+                        {
+                            using var scope = HttpContext.RequestServices.CreateScope();
+                            RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                            IAzureBlobService blob = scope.ServiceProvider.GetRequiredService<IAzureBlobService>();
 
-                    // Get the extension and filetype
-                    string extension = Path.GetExtension(fDto.File.FileName);
-                    string fileType = Filetype.ConvertExtensionToFiletype(extension); // Resource type
+                            BlobDownloadResponse? downloadResponse = await blob.DownloadBlobAsync("files", id.ToString());
 
-                    logger.Information("Uploading file '{FileName}' to storage...", fDto.File.FileName);
-
-                    // Create metadata to add to blob, this is used to reconstruct file when downloading
-                    Dictionary<string, string> metadata = new() { { "extension", extension } };
-
-                    // Upload the file to storage
-                    BLOB_STATUSCODE result = await blobService.UploadBlobAsync(fileType, id.ToString(), metadata, fDto.File.OpenReadStream());
-
-                    switch (result)
-                    {
-                        // Upload was successfull
-                        case BLOB_STATUSCODE.OK:
-                            logger.Information("File '{FileName}' uploaded successfully.", fDto.File.FileName);
-
-                            _taskQueue.QueueBackgroundWorkItem(async token =>
+                            if (downloadResponse?.FileStream == null) 
                             {
-                                using var scope = HttpContext.RequestServices.CreateScope();
-                                var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                                await ragManager.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: fileType, fileStream: fDto.File.OpenReadStream());
-                            });
+                                var logger = scope.ServiceProvider.GetRequiredService<ILogger<ResourcesController>>();
+                                logger.LogError("Failed to download file for document {Id} from blob storage", id);
+                                return;
+                            }
+                                
+                            await rag.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: "document", fileStream: downloadResponse?.FileStream);
+                        });
+                        break;
+                    
+                    // Audio creation
+                    case AudioCreateDto aDto:
+                        id = await resourceManager.CreateAudioAsync(aDto);
+                        taskQueue.QueueBackgroundWorkItem(async token =>
+                        {
+                            using var scope = HttpContext.RequestServices.CreateScope();
+                            RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
 
-                            break;
+                            await rag.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
+                        });
+                        break;
+                    
+                    // Video creation
+                    case VideoCreateDto vDto:
+                        id = await resourceManager.CreateVideoAsync(vDto);
+                        taskQueue.QueueBackgroundWorkItem(async token =>
+                        {
+                            using var scope = HttpContext.RequestServices.CreateScope();
+                            RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
 
-                        // Container is missing
-                        case BLOB_STATUSCODE.NOTFOUND:
-                            // Roll back database changes
-                            await resourceManager.Rollback();
-                            return NotFound(new ApiResponse(false, "Container could not be found."));
-
-                        // File already exists
-                        case BLOB_STATUSCODE.ALREADYEXISTS:
-                            // Roll back database changes
-                            await resourceManager.Rollback();
-                            return Conflict(new ApiResponse(false, "File already exists in storage."));
-
-                        // Unknown state, but was not OK, so count it as a fail
-                        default:
-                            // Roll back database changes
-                            await resourceManager.Rollback();
-                            return StatusCode(500, new ApiResponse(false, "Unknown Error."));
-                    }
+                            await rag.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
+                        });
+                        break;
                 }
 
                 // Commit changes to the database and return success response
                 await resourceManager.Commit();
-                if (dto is FileResourceCreateDto fileDto && fileDto.File != null)
-                {
-                    string extension = Path.GetExtension(fileDto.File.FileName).Replace(".", "");
-                    await resourceManager.UpdateResourceAsync(id, r => r.FileExt, extension);
-                }
                 logger.Information("Resource '{Title}' created successfully.", dto.Title);
-                return Ok(new ApiResponse(true, "Resource created successfully.", id));
+                return Ok(new ApiResponse(true, "Resource created successfully", id));
             }
-            catch (Exception e)
+            catch (Exception e) 
             {
-                logger.Error(e, "Error creating resource {Title}.", dto.Title);
+                logger.Error(e, "Error creating resource '{Title}'", dto.Title);
                 await resourceManager.Rollback();
                 return StatusCode(500, new ApiResponse(false, "Error creating resource", e.Message));
             }
@@ -1094,29 +1059,7 @@ namespace KnowledgeBank.Controllers
         // ---------------------------
         // Helper functions
         // ---------------------------
-
-        // Helper function to add file to dto
-        private FileResourceCreateDto? DeserializeWithFile(string uploadType, string jsonDto, IFormFile file)
-        {
-            return uploadType switch
-            {
-                "document" => DeserializeAndAssignFile<DocumentCreateDto>(jsonDto, file),
-                "audio" => DeserializeAndAssignFile<AudioCreateDto>(jsonDto, file),
-                "video" => DeserializeAndAssignFile<VideoCreateDto>(jsonDto, file),
-                _ => DeserializeAndAssignFile<FileResourceCreateDto>(jsonDto, file)
-            };
-        }
-
-        private T? DeserializeAndAssignFile<T>(string jsonDto, IFormFile file) where T : FileResourceCreateDto
-        {
-            T? dto = JsonSerializer.Deserialize<T>(jsonDto);
-
-            if (dto != null)
-                dto.File = file;
-
-            return dto;
-        }
-
+        
         // Helper method to update a property
         private async Task UpdateProperty<TSet, TProperty>(string id, string propertyName, TProperty newValue) where TSet : class
         {

@@ -19,7 +19,7 @@ namespace KnowledgeBank.Data
         {
             bool startedTransaction = await BeginTransaction();
 
-            Guid resourceId = Guid.NewGuid();
+            Guid resourceId = dto is FileResourceCreateDto fDto1 ? Guid.Parse(fDto1.Id) : Guid.NewGuid();
 
             // Construct resource
             Resource resource = new()
@@ -42,10 +42,9 @@ namespace KnowledgeBank.Data
             // Derive filetype when it is a file resource
             if (dto is FileResourceCreateDto fDto)
             {
-                if (fDto.File == null) throw new Exception("File cannot be null!");
-
-                resource.FileType = Filetype.ConvertExtensionToFiletype(Path.GetExtension(fDto.File.FileName));
+                resource.FileType = Filetype.ConvertExtensionToFiletype(fDto.FileExtension);
                 Log.Debug("Creating file resource with filetype {FileType}", resource.FileType);
+                resource.FileExt = Filetype.TrimExtension(fDto.FileExtension);
                 resource.Hash = fDto.Hash;
             }
 

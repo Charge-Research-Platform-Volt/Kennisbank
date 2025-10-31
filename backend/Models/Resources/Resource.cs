@@ -100,6 +100,11 @@ public class RelatedEntry
     public string? Relation { get; set; }
 }
 
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "uploadType")]
+[JsonDerivedType(typeof(WebsiteCreateDto), "website")]
+[JsonDerivedType(typeof(DocumentCreateDto), "document")]
+[JsonDerivedType(typeof(AudioCreateDto), "audio")]
+[JsonDerivedType(typeof(VideoCreateDto), "video")]
 public class ResourceCreateDto // Data Transfer Object (DTO)
 {
     public required string Title { get; set; }
@@ -124,7 +129,8 @@ public class ResourceCreateDto // Data Transfer Object (DTO)
 public class FileResourceCreateDto : ResourceCreateDto
 {
     public string? Hash { get; set; } = null;
-    public IFormFile? File { get; set; }
+    public string FileExtension { get; set; } = "";
+    public required string Id { get; set; }
 }
 
 public class ResourceUploadDto

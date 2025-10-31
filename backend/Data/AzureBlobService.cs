@@ -133,6 +133,15 @@ namespace KnowledgeBank.Data
         Task<BLOB_STATUSCODE> RenameBlobAsync(string containerName, string oldFileName, string newFileName);
 
         /// <summary>
+        /// Retrieves the metadata of a blob without downloading its content
+        /// </summary>
+        /// <param name="containerName">The name of the container</param>
+        /// <param name="blobName">The name of the blob</param>
+        /// <param name="surpressLogging">Whether or not logging should be surpressed for when you use this function inside another.</param>
+        /// <returns>The blob metadata, or null if the blob doesn't exist</returns>
+        Task<IDictionary<string, string>?> GetBlobMetadataAsync(string containerName, string blobName, bool surpressLogging = false);
+        
+        /// <summary>
         /// Lists all blobs in a given container <br></br><br></br><br></br>
         /// Note:<br></br>
         /// With large containers this can give a lot of strain on the server.
@@ -364,6 +373,26 @@ namespace KnowledgeBank.Data
         public async Task<BLOB_STATUSCODE> RenameBlobAsync(string containerName, string oldFileName, string newFileName)
         {
             return await MoveBlobAsync(containerName, oldFileName, containerName, newFileName, surpressLogging: true);
+        }
+        
+        /// <inheritdoc/>
+        public async Task<IDictionary<string, string>?> GetBlobMetadataAsync(string containerName, string blobName, bool surpressLogging = false) 
+        {
+            BlobContainerClient container = blobService.GetBlobContainerClient(containerName);
+            BlobClient blob = container.GetBlobClient(blobName);
+            
+            if (!await blob.ExistsAsync()) 
+            {
+                logger.Information("Blob '{BlobName}' not found in container '{ContainerName}'.", blobName, containerName);
+                return null;
+            }
+            
+            BlobProperties properties = await blob.GetPropertiesAsync();
+
+            if (!surpressLogging)
+                logger.Information("Retrieved metadata for blob '{BlobName}' in container '{ContainerName}'.", blobName, containerName);
+
+            return (IDictionary<string, string>?)properties.Metadata;
         }
 
         /// <inheritdoc/>

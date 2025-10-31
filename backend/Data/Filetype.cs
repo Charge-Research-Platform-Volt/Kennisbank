@@ -58,7 +58,7 @@
         /// </summary>
         /// <param name="extension">The full extension (.pdf for example)</param>
         /// <returns></returns>
-        public static string trimExtension(string extension)
+        public static string TrimExtension(string extension)
         {
             return extension.Replace(".", "").Trim();
         }
@@ -70,7 +70,7 @@
         /// <returns></returns>
         public static string ConvertExtensionToFiletype(string extension)
         {
-            return extToType[trimExtension(extension)];
+            return extToType[TrimExtension(extension)];
         }
 
         /// <summary>
@@ -80,7 +80,7 @@
         /// <returns></returns>
         public static bool Supported(string extension)
         {
-            return extToType.ContainsKey(trimExtension(extension));
+            return extToType.ContainsKey(TrimExtension(extension));
         }
 
         /// <summary>
@@ -90,7 +90,7 @@
         /// <returns></returns>
         public static bool SupportedText(string extension)
         {
-            return supportedText.ContainsKey(trimExtension(extension));
+            return supportedText.ContainsKey(TrimExtension(extension));
         }
 
         /// <summary>
@@ -100,7 +100,7 @@
         /// <returns></returns>
         public static bool SupportedAudio(string extension)
         {
-            return supportedAudio.ContainsKey(trimExtension(extension));
+            return supportedAudio.ContainsKey(TrimExtension(extension));
         }
 
         /// <summary>
@@ -110,7 +110,7 @@
         /// <returns></returns>
         public static bool SupportedVideo(string extension)
         {
-            return supportedVideo.ContainsKey(trimExtension(extension));
+            return supportedVideo.ContainsKey(TrimExtension(extension));
         }
 
         /// <summary>
