@@ -51,7 +51,7 @@ export default function FileUploadArea({
     const validateFile = (file: File): boolean =>
     {
         // Validate file extension
-        const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+        const fileExtension = "" + file.name.split('.').pop()?.toLowerCase();
         
         if (!acceptedExtensions.includes(fileExtension))
         {
