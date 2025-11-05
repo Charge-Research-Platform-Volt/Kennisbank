@@ -11,26 +11,15 @@ using static Qdrant.Client.Grpc.Conditions;
 using Azure.AI.DocumentIntelligence;
 using Azure;
 using System.ClientModel;
-using Docker.DotNet.Models;
+using KnowledgeBank.Services.Search.Models;
+using KnowledgeBank.Services.Search;
 
 
 namespace KnowledgeBank.Services;
 
-public class RAGManager
+public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, HybridSearchService searchService)
 {
-    private readonly Serilog.ILogger _logger;
-    private readonly RAGSystem _ragSystem;
-    private readonly ResourceManager _resourceManager;
-    private readonly IAzureBlobService _blobService;
-
-
-    public RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, IAzureBlobService blobService)
-    {
-        _logger = Log.ForContext<RAGManager>();
-        _ragSystem = ragSystem;
-        _resourceManager = resourceManager;
-        _blobService = blobService;
-    }
+    private readonly Serilog.ILogger logger = Log.ForContext<RAGManager>();
 
 
 
@@ -63,11 +52,11 @@ public class RAGManager
         try
         {
             // Fetch additional metadata from database
-            var resource = await _resourceManager.GetResourceAsync(r => r.Id == id, includeProperties: "Authors,Tags,Organisations,Regions");
+            var resource = await resourceManager.GetResourceAsync(r => r.Id == id, includeProperties: "Authors,Tags,Organisations,Regions");
 
             if (resource == null)
             {
-                _logger.Warning("Resource {Id} not found for metadata enrichment. Using basic metadata.", id);
+                logger.Warning("Resource {Id} not found for metadata enrichment. Using basic metadata.", id);
                 return basicMetadata;
             }
 
@@ -104,19 +93,19 @@ public class RAGManager
             if (!string.IsNullOrEmpty(resource.Note))
                 metadataBuilder.AppendLine($"Note: {resource.Note}");
 
-            _logger.Information("Built rich metadata chunk for resource {Id}", id);
+            logger.Information("Built rich metadata chunk for resource {Id}", id);
             return metadataBuilder.ToString();
         }
         catch (Exception ex)
         {
-            _logger.Warning(ex, "Failed to build rich metadata for resource {Id}. Using basic metadata.", id);
+            logger.Warning(ex, "Failed to build rich metadata for resource {Id}. Using basic metadata.", id);
             return basicMetadata;
         }
     }
 
     public async Task MainPipeline(Guid id, string chunk, string? fileType = null, Stream? fileStream = null)
     {
-        _logger.Information("Main RAG pipeline started for resource ID: {Id}", id);
+        logger.Information("Main RAG pipeline started for resource ID: {Id}", id);
 
         try
         {
@@ -128,7 +117,7 @@ public class RAGManager
 
             // * STEP 1: Document Text Extraction
             // Extract text from the document using Azure Document Intelligence service
-            _logger.Information("Extracting text from the document for resource ID: {Id}", id);
+            logger.Information("Extracting text from the document for resource ID: {Id}", id);
 
             if (fileStream != null)
             {
@@ -141,43 +130,43 @@ public class RAGManager
                 };
 
                 // Analyze the document and wait for completion
-                Operation<AnalyzeResult> operation = await _ragSystem.DocumentIntelligenceClient.AnalyzeDocumentAsync(WaitUntil.Completed, options);
+                Operation<AnalyzeResult> operation = await ragSystem.DocumentIntelligenceClient.AnalyzeDocumentAsync(WaitUntil.Completed, options);
 
                 string extractedText = operation.Value.Content;
 
                 // Validate that text extraction was successful
                 if (string.IsNullOrEmpty(extractedText))
                 {
-                    _logger.Warning("No text extracted from the document");
+                    logger.Warning("No text extracted from the document");
                     return;
                 }
 
                 // * STEP 2: Text Chunking
                 // Split the extracted text into smaller chunks suitable for embedding generation
-                chunks.AddRange(_ragSystem.Toolbox.SplitTextIntoChunks(extractedText, logChunks: false, markdownSplit: false));
+                chunks.AddRange(ragSystem.Toolbox.SplitTextIntoChunks(extractedText, logChunks: false, markdownSplit: false));
 
-                _logger.Information("Successfully extracted and chunked text into {ChunkCount} segments for resource ID: {Id}", chunks.Count, id);
+                logger.Information("Successfully extracted and chunked text into {ChunkCount} segments for resource ID: {Id}", chunks.Count, id);
             }
 
 
             // * STEP 3 & 4: Vector Embedding Generation and Storage
             // Generate embeddings for each chunk and store them in the vector database
-            _logger.Information("Generating vector embeddings and storing {ChunkCount} chunks for resource ID: {Id}", chunks.Count, id);
-            await _ragSystem.CreatePoints(id, chunks);
+            logger.Information("Generating vector embeddings and storing {ChunkCount} chunks for resource ID: {Id}", chunks.Count, id);
+            await ragSystem.CreatePoints(id, chunks);
 
 
             // * STEP 5: AI Tag Generation
             // Generate contextual tags based on the processed document content
-            _logger.Information("Initiating AI tag generation for resource ID: {Id}", id);
+            logger.Information("Initiating AI tag generation for resource ID: {Id}", id);
             await GenerateTagsAsync(id.ToString());
 
-            _logger.Information("RAG pipeline completed successfully for resource ID: {Id}", id);
+            logger.Information("RAG pipeline completed successfully for resource ID: {Id}", id);
         }
         catch (Exception ex)
         {
             // Todo: Add a way to notify the user that the pipeline failed, with some options to retry.
 
-            _logger.Error(ex, "An error occurred while processing the document for resource ID: {Id}. Pipeline execution failed.", id);
+            logger.Error(ex, "An error occurred while processing the document for resource ID: {Id}. Pipeline execution failed.", id);
             throw;
         }
 
@@ -227,7 +216,7 @@ public class RAGManager
     /// <exception cref="Exception">Thrown when an error occurs during database operations while saving the generated tags.</exception>
     public async Task<List<string>> GenerateTagsAsync(string id)
     {
-        _logger.Information("Generating new AI tags for resource {ResourceId}", id);
+        logger.Information("Generating new AI tags for resource {ResourceId}", id);
 
         HashSet<string> uniqueTags = new HashSet<string>();
         ChatCompletionOptions options = new ChatCompletionOptions()
@@ -240,7 +229,7 @@ public class RAGManager
 
         if (generatedTags.Count > 0) await SaveTagsToResourceAsync(id, generatedTags);
 
-        _logger.Information("Tags generated successfully for resource {ResourceId}. Total tags: {TagCount}", id, generatedTags.Count);
+        logger.Information("Tags generated successfully for resource {ResourceId}. Total tags: {TagCount}", id, generatedTags.Count);
         return generatedTags;
     }
 
@@ -260,8 +249,8 @@ public class RAGManager
 
         while (true)
         {
-            var results = await _ragSystem.QdrantClient.QueryAsync(
-                _ragSystem.CollectionName,
+            var results = await ragSystem.QdrantClient.QueryAsync(
+                ragSystem.CollectionName,
                 filter: MatchKeyword("resourceId", id),
                 limit: batchSize,
                 offset: offset
@@ -312,14 +301,14 @@ public class RAGManager
                 };
 
             // Get a completion with structured output
-            ClientResult<ChatCompletion> response = await _ragSystem.ChatClient.CompleteChatAsync(messages, options);
+            ClientResult<ChatCompletion> response = await ragSystem.ChatClient.CompleteChatAsync(messages, options);
             string jsonOutput = response.Value.Content[0].Text;
 
             return JsonSerializer.Deserialize<TagsExtraction>(jsonOutput);
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Failed to extract tags from chunks");
+            logger.Error(ex, "Failed to extract tags from chunks");
             return null;
         }
     }
@@ -359,18 +348,18 @@ public class RAGManager
     {
         try
         {
-            await _resourceManager.BeginTransaction();
+            await resourceManager.BeginTransaction();
 
             string tagsJson = JsonSerializer.Serialize(tags);
-            await _resourceManager.UpdateResourceAsync(Guid.Parse(id), r => r.AiGeneratedTags, tagsJson);
-            await _resourceManager.Commit();
+            await resourceManager.UpdateResourceAsync(Guid.Parse(id), r => r.AiGeneratedTags, tagsJson);
+            await resourceManager.Commit();
 
-            _logger.Information("AI-generated tags saved to resource {ResourceId}", id);
+            logger.Information("AI-generated tags saved to resource {ResourceId}", id);
         }
         catch (Exception ex)
         {
-            await _resourceManager.Rollback();
-            _logger.Error(ex, "An error occurred while saving AI-generated tags to resource {ResourceId}", id);
+            await resourceManager.Rollback();
+            logger.Error(ex, "An error occurred while saving AI-generated tags to resource {ResourceId}", id);
             throw;
         }
     }
@@ -390,28 +379,28 @@ public class RAGManager
     {
         try
         {
-            _logger.Information("Updating metadata for resource {ResourceId}", id);
+            logger.Information("Updating metadata for resource {ResourceId}", id);
 
             // Build fresh rich metadata from current database state
             string richMetadata = await BuildRichMetadataChunk(id, string.Empty);
 
             // Update the vector database
-            bool success = await _ragSystem.UpdateMetadataPointAsync(id.ToString(), richMetadata);
+            bool success = await ragSystem.UpdateMetadataPointAsync(id.ToString(), richMetadata);
 
             if (success)
             {
-                _logger.Information("Successfully updated metadata for resource {ResourceId}", id);
+                logger.Information("Successfully updated metadata for resource {ResourceId}", id);
             }
             else
             {
-                _logger.Warning("Failed to update metadata for resource {ResourceId}", id);
+                logger.Warning("Failed to update metadata for resource {ResourceId}", id);
             }
 
             return success;
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error updating metadata for resource {ResourceId}", id);
+            logger.Error(ex, "Error updating metadata for resource {ResourceId}", id);
             return false;
         }
     }
@@ -444,7 +433,7 @@ public class RAGManager
 
         try
         {
-            _logger.Information("Enhancing query: {Query}", originalQuery);
+            logger.Information("Enhancing query: {Query}", originalQuery);
 
             string promptTemplate = @"You are a search query enhancement assistant. Your task is to improve the given search query to retrieve more relevant results from a knowledge base.
 
@@ -468,22 +457,22 @@ Enhanced Query:";
                 new UserChatMessage(prompt)
             };
 
-            ClientResult<ChatCompletion> response = await _ragSystem.ChatClient.CompleteChatAsync(messages);
+            ClientResult<ChatCompletion> response = await ragSystem.ChatClient.CompleteChatAsync(messages);
             string enhancedQuery = response.Value.Content[0].Text.Trim();
 
             // Validate enhanced query isn't too different or too long
             if (enhancedQuery.Length > originalQuery.Length * 3 || enhancedQuery.Length > 500)
             {
-                _logger.Warning("Enhanced query too long, using original");
+                logger.Warning("Enhanced query too long, using original");
                 return originalQuery;
             }
 
-            _logger.Information("Enhanced query: {EnhancedQuery}", enhancedQuery);
+            logger.Information("Enhanced query: {EnhancedQuery}", enhancedQuery);
             return enhancedQuery;
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Failed to enhance query, using original");
+            logger.Error(ex, "Failed to enhance query, using original");
             return originalQuery;
         }
     }
@@ -511,7 +500,7 @@ Enhanced Query:";
     /// </exception>
     public async Task<string> GenerateChatTitleAsync(string query)
     {
-        _logger.Information("Generating chat title");
+        logger.Information("Generating chat title");
 
         try
         {
@@ -529,22 +518,22 @@ Enhanced Query:";
                 new UserChatMessage(promptContent)
             };
 
-            ClientResult<ChatCompletion> response = await _ragSystem.ChatClient.CompleteChatAsync(messages, options);
+            ClientResult<ChatCompletion> response = await ragSystem.ChatClient.CompleteChatAsync(messages, options);
             string jsonResponse = response.Value.Content[0].Text;
             TitleGeneration? titleGeneration = JsonSerializer.Deserialize<TitleGeneration>(jsonResponse);
 
             if (titleGeneration?.Title == null)
             {
-                _logger.Warning("Failed to generate chat title from response: {Response}", jsonResponse);
+                logger.Warning("Failed to generate chat title from response: {Response}", jsonResponse);
                 return "Untitled Chat";
             }
 
-            _logger.Information("Successfully generated chat title");
+            logger.Information("Successfully generated chat title");
             return titleGeneration.Title;
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Error occurred while generating chat title");
+            logger.Error(ex, "Error occurred while generating chat title");
             return "Untitled Chat";
         }
     }
@@ -563,13 +552,13 @@ Enhanced Query:";
     {
         try 
         {
-            _logger.Information("Starting metadata extraction for file: {FileName}", fileName);
+            logger.Information("Starting metadata extraction for file: {FileName}", fileName);
 
             // Step 1: Truncate text if too long (since LLMs have context limits)
             // Take the first 8000 characters, which is usually enough for the title, authors, abstract
             string textToAnalyze = text.Length > 8000 ? text.Substring(0, 8000) : text;
 
-            _logger.Information("Analyzing {Length} characters of text", textToAnalyze.Length);
+            logger.Information("Analyzing {Length} characters of text", textToAnalyze.Length);
 
             // Step 2: Create prompt for LLM
             string prompt = $@"
@@ -589,14 +578,15 @@ Enhanced Query:";
                     ""languageCode"": ""ISO 639-1 two-letter code (e.g., 'en', 'nl', 'fr', etc.)"",
                     ""authors"": [""Array of author names""],
                     ""publicationCode"": ""DOI, ISBN, arXiv ID, etc. or null"",
-                    ""tags"": [""Array of categorization tags like 'research paper', 'technical report', 'computer science', etc.""]
+                    ""tags"": [""Array of categorization tags like 'Research Paper', 'Technical Report', 'Computer Science', etc.""]
                 }}
                 
                 Rules:
                 - If a field cannot be determined, use null or empty array
                 - Language code must be 2 letters lowercase (From the ISO 639-1 list)
-                - Publication date must be in YYYY-MM-DD format
+                - Publication date must be in YYYY-MM-DD format.
                 - Note which type of publication code it is before the actual publication code
+                - Make sure tags are capitalized, so they look good
                 - Return ONLY valid JSON, no additional text or explanation
             ";
 
@@ -612,11 +602,11 @@ Enhanced Query:";
                 ResponseFormat = ChatResponseFormat.CreateJsonObjectFormat()
             };
 
-            _logger.Information("Calling LLM for metadata extraction");
-            var response = await _ragSystem.ChatClient.CompleteChatAsync(messages, chatOptions);
+            logger.Information("Calling LLM for metadata extraction");
+            var response = await ragSystem.ChatClient.CompleteChatAsync(messages, chatOptions);
 
             var jsonContent = response.Value.Content[0].Text;
-            _logger.Information("Received LLM response: {Length} characters", jsonContent.Length);
+            logger.Information("Received LLM response: {Length} characters", jsonContent.Length);
 
             // Step 4: Parse JSON response
             var metadata = JsonSerializer.Deserialize<ExtractedMetadata>(jsonContent, new JsonSerializerOptions
@@ -626,7 +616,7 @@ Enhanced Query:";
             
             if (metadata == null) 
             {
-                _logger.Warning("Failed to deserialize metadata from LLM response");
+                logger.Warning("Failed to deserialize metadata from LLM response");
                 return null;
             }
             
@@ -637,7 +627,7 @@ Enhanced Query:";
                 metadata.LanguageCode = metadata.LanguageCode.ToLowerInvariant();
                 if (metadata.LanguageCode.Length != 2) 
                 {
-                    _logger.Warning("Invalid language code: {Code}, setting to null", metadata.LanguageCode);
+                    logger.Warning("Invalid language code: {Code}, setting to null", metadata.LanguageCode);
                     metadata.LanguageCode = null;
                 }
             }
@@ -652,13 +642,29 @@ Enhanced Query:";
             metadata.Authors = metadata.Authors?.Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => a.Trim()).ToList() ?? new List<string>();
             metadata.Tags = metadata.Tags?.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim()).ToList() ?? new List<string>();
 
-            _logger.Information("Metadata extraction completed successfully. Title: {Title}, Authors: {AuthorCount}, Tags: {TagCount}", metadata.Title, metadata.Authors.Count, metadata.Tags.Count);
+            // Check if authors already exist in database
+            foreach (string author in metadata.Authors)
+            {
+                logger.Information("Finding similars for author '{Author}'", author);
+                HybridSearchResult result = await searchService.SearchAsync(author.Replace(".", ""), 1, 3, new Dictionary<string, object?> { { "type", new string[] { "person", "organisation" } } });
+                string[] similars = [.. result.Items.Select(i => i.Name)];
+                float[] scores = [.. result.Items.Select(i => i.RelevanceScore)];
+
+                var similarsWithScores = similars.Zip(scores);
+
+                foreach (var similarWithScore in similarsWithScores)
+                {
+                    logger.Information("Found similar: {Name} ({Score})", similarWithScore.First, similarWithScore.Second);
+                }
+            }
+
+            logger.Information("Metadata extraction completed successfully. Title: {Title}, Authors: {AuthorCount}, Tags: {TagCount}", metadata.Title, metadata.Authors.Count, metadata.Tags.Count);
 
             return metadata;
         }
         catch (Exception e) 
         {
-            _logger.Error(e, "Error extracting metadata from document");
+            logger.Error(e, "Error extracting metadata from document");
             return null;
         }
     }

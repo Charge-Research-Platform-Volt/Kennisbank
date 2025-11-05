@@ -9,42 +9,29 @@ const BACKEND_API_EXIST_ROUTE = "resources/exists?hash=";
  */
 export function createFileHasher() {
   let worker: Worker | null = null;
-  let workerObjectUrl: string | null = null;
 
   function getWorker(): Worker {
     if (!worker) {
-      // Script to be executed on the webworker
-      const workerScript = `self.onmessage = async function(e) {
-                const { id, file } = e.data;
-
-                try {
-                    const arrayBuffer = await file.arrayBuffer();
-
-                    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
-
-                    const hashArray = Array.from(new Uint8Array(hashBuffer));
-                    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-                    self.postMessage({id, hash: hashHex});
-                }catch (error) {
-                    const errorMessage = error instanceof Error ? error.message : String(error);
-                    self.postMessage({ id, error: errorMessage });
-                }
-            };` as string;
-
-      // Create the webworker and get its url
-      const blob = new Blob([workerScript], { type: "application/javascript" });
-      const workerUrl = URL.createObjectURL(blob);
-      worker = new Worker(workerUrl);
-      workerObjectUrl = workerUrl;
+      // Use external worker file for proper library imports and streaming hash
+      worker = new Worker("/fileHashWorker.js");
 
       // Define what to do when the worker sends a message
       worker.onmessage = (event) => {
-        const { id, hash, error } = event.data;
+        const { id, hash, error, progress } = event.data;
 
         // Check if the message sent is for something we are waiting on
         if (pendingRequests.has(id)) {
-          const { resolve, reject } = pendingRequests.get(id);
+          const { resolve, reject, onProgress } = pendingRequests.get(id);
+
+          // Handle progress updates
+          if (progress !== undefined && hash === undefined && !error) {
+            if (onProgress) {
+              onProgress(progress);
+            }
+            return; // Don't delete the request yet, more updates coming
+          }
+
+          // Handle completion or error
           pendingRequests.delete(id);
 
           if (error) {
@@ -65,15 +52,17 @@ export function createFileHasher() {
 
   /**
    * Calculate file hash in a worker thread
+   * @param file - The file to hash
+   * @param onProgress - Optional callback to receive progress updates (0-100)
    */
-  function hashFile(file: File): Promise<string> {
+  function hashFile(file: File, onProgress?: (progress: number) => void): Promise<string> {
     const worker = getWorker();
 
     // Send file to worker to hash
     return new Promise((resolve, reject) => {
       const id: number = nextId++;
 
-      pendingRequests.set(id, { resolve, reject });
+      pendingRequests.set(id, { resolve, reject, onProgress });
 
       worker.postMessage({ id, file });
     });
@@ -81,9 +70,14 @@ export function createFileHasher() {
 
   /**
    * Check if a file is a duplicate by hashing it and checking with the server
+   * @param file - The file to check
+   * @param onProgress - Optional callback to receive progress updates (0-100)
    */
-  async function checkDuplicate(file: File): Promise<{ hash: string; isDuplicate: boolean; id: string }> {
-    const hash = await hashFile(file);
+  async function checkDuplicate(
+    file: File,
+    onProgress?: (progress: number) => void
+  ): Promise<{ hash: string; isDuplicate: boolean; id: string }> {
+    const hash = await hashFile(file, onProgress);
 
     // Ask backend if the file already exists
     const urlSafeHash = encodeURIComponent(hash);
@@ -121,11 +115,6 @@ export function createFileHasher() {
       worker = null;
     }
 
-    if (workerObjectUrl) {
-      URL.revokeObjectURL(workerObjectUrl);
-      workerObjectUrl = null;
-    }
-
     pendingRequests.clear();
   }
 
@@ -158,6 +147,11 @@ export function getFileHasher() {
 
   return fileHasher;
 }
+
+/**
+ * Type for the file hasher instance
+ */
+export type FileHasher = ReturnType<typeof createFileHasher>;
 
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

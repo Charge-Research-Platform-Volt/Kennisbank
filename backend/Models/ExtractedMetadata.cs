@@ -10,7 +10,7 @@ public class ExtractedMetadata
     public string? Description { get; set; }
     public DateTime? PublicationDate { get; set; }
     public string? LanguageCode { get; set; }
-    public List<string> Authors { get; set; } = new();
+    public List<string> Authors { get; set; } = [];
     public string? PublicationCode { get; set; }
-    public List<string> Tags { get; set; } = new();
+    public List<string> Tags { get; set; } = [];
 }
