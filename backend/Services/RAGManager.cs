@@ -608,24 +608,27 @@ Enhanced Query:";
             var jsonContent = response.Value.Content[0].Text;
             logger.Information("Received LLM response: {Length} characters", jsonContent.Length);
 
-            // Step 4: Parse JSON response
-            var metadata = JsonSerializer.Deserialize<ExtractedMetadata>(jsonContent, new JsonSerializerOptions
+            // Step 4: Parse JSON response (temporary structure for LLM output)
+            var tempMetadata = JsonSerializer.Deserialize<TempExtractedMetadata>(jsonContent, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
-            
-            if (metadata == null) 
+
+            if (tempMetadata == null)
             {
                 logger.Warning("Failed to deserialize metadata from LLM response");
                 return null;
             }
-            
+
             // Step 5: Validate and clean the data
+            // Create the final metadata object
+            var metadata = new ExtractedMetadata();
+
             // Ensure language code is valid (2 letters, lowercase)
-            if (!string.IsNullOrEmpty(metadata.LanguageCode)) 
+            if (!string.IsNullOrEmpty(tempMetadata.LanguageCode))
             {
-                metadata.LanguageCode = metadata.LanguageCode.ToLowerInvariant();
-                if (metadata.LanguageCode.Length != 2) 
+                metadata.LanguageCode = tempMetadata.LanguageCode.ToLowerInvariant();
+                if (metadata.LanguageCode.Length != 2)
                 {
                     logger.Warning("Invalid language code: {Code}, setting to null", metadata.LanguageCode);
                     metadata.LanguageCode = null;
@@ -633,30 +636,54 @@ Enhanced Query:";
             }
 
             // Trim whitespace from strings
-            metadata.Title = metadata.Title?.Trim();
-            metadata.Abstract = metadata.Abstract?.Trim();
-            metadata.Description = metadata.Description?.Trim();
-            metadata.PublicationCode = metadata.PublicationCode?.Trim();
+            metadata.Title = tempMetadata.Title?.Trim();
+            metadata.Abstract = tempMetadata.Abstract?.Trim();
+            metadata.Description = tempMetadata.Description?.Trim();
+            metadata.PublicationCode = tempMetadata.PublicationCode?.Trim();
+            metadata.PublicationDate = tempMetadata.PublicationDate;
 
-            // Remove empty strings from arrays
-            metadata.Authors = metadata.Authors?.Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => a.Trim()).ToList() ?? new List<string>();
-            metadata.Tags = metadata.Tags?.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim()).ToList() ?? new List<string>();
+            // Remove empty strings from tags
+            metadata.Tags = tempMetadata.Tags?.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim()).ToList() ?? [];
 
-            // Check if authors already exist in database
-            foreach (string author in metadata.Authors)
+            // Step 6: Process authors and find similars
+            var tempAuthors = tempMetadata.Authors?.Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => a.Trim()).ToList() ?? [];
+            var authorsWithSimilars = new List<AuthorWithSimilars>();
+
+            foreach (string author in tempAuthors)
             {
                 logger.Information("Finding similars for author '{Author}'", author);
-                HybridSearchResult result = await searchService.SearchAsync(author.Replace(".", ""), 1, 3, new Dictionary<string, object?> { { "type", new string[] { "person", "organisation" } } });
-                string[] similars = [.. result.Items.Select(i => i.Name)];
-                float[] scores = [.. result.Items.Select(i => i.RelevanceScore)];
 
-                var similarsWithScores = similars.Zip(scores);
+                HybridSearchResult result = await searchService.SearchAsync(
+                    author.Replace(".", ""),
+                    1,
+                    3,
+                    new Dictionary<string, object?> { { "type", new string[] { "person", "organisation" } } }
+                );
 
-                foreach (var similarWithScore in similarsWithScores)
+                // Filter out low-confidence matches (below 50%) and map to SimilarEntity
+                var similars = result.Items
+                    .Where(i => i.RelevanceScore >= 0.5f) // Only show matches with 50%+ confidence
+                    .Select(i => new SimilarEntity
+                    {
+                        Id = i.Id,
+                        Name = i.Name,
+                        Score = i.RelevanceScore,
+                        Type = i.Type
+                    }).ToList();
+
+                foreach (var similar in similars)
                 {
-                    logger.Information("Found similar: {Name} ({Score})", similarWithScore.First, similarWithScore.Second);
+                    logger.Information("Found similar: {Name} ({Score})", similar.Name, similar.Score);
                 }
+
+                authorsWithSimilars.Add(new AuthorWithSimilars
+                {
+                    Name = author,
+                    Similars = similars
+                });
             }
+
+            metadata.Authors = authorsWithSimilars;
 
             logger.Information("Metadata extraction completed successfully. Title: {Title}, Authors: {AuthorCount}, Tags: {TagCount}", metadata.Title, metadata.Authors.Count, metadata.Tags.Count);
 
@@ -670,7 +697,22 @@ Enhanced Query:";
     }
     
     #endregion
-    
+
+}
+
+/// <summary>
+/// Temporary class for deserializing LLM JSON response (before enrichment with similars)
+/// </summary>
+internal class TempExtractedMetadata
+{
+    public string? Title { get; set; }
+    public string? Abstract { get; set; }
+    public string? Description { get; set; }
+    public DateTime? PublicationDate { get; set; }
+    public string? LanguageCode { get; set; }
+    public List<string> Authors { get; set; } = [];
+    public string? PublicationCode { get; set; }
+    public List<string> Tags { get; set; } = [];
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

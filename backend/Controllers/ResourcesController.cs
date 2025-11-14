@@ -126,6 +126,27 @@ namespace KnowledgeBank.Controllers
                 
                 // Start transaction on the database
                 await resourceManager.BeginTransaction();
+                
+                // First check if we need to create any persons that don't exist yet
+                for (int i = 0; i < dto.Authors.Length; i++) 
+                {
+                    // If valid ID nothing needs to be done.
+                    if (ValidityUtil.IsValidId(dto.Authors[i]))
+                        continue;
+
+                    // Not a valid ID, so create a person and replace the value with new ID
+                    string name = dto.Authors[i];
+                    Guid personId = await resourceManager.CreatePersonAsync(new PersonCreateDto { Name = name });
+                    dto.Authors[i] = personId.ToString();
+
+                    // Also start embedding task for this new person
+                    taskQueue.QueueBackgroundWorkItem(async token =>
+                    {
+                        using var scope = HttpContext.RequestServices.CreateScope();
+                        RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                        await rag.MainPipeline(id: personId, chunk: $"{name}");
+                    });
+                }
 
                 // Create resource in the database and retrieve the ID
                 Guid id = Guid.Empty;

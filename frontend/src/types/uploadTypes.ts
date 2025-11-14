@@ -21,20 +21,20 @@ export const ResourceCreateDtoSchema = z.object(
 {
    Title: z.string().min(1, "Title is required"),
    Description: z.string().optional(),
-   TypeId: z.string().min(1, "Resource Type ID is required").uuid("ResourceType ID should be a valid UUID"),
+   TypeId: z.string().uuid("ResourceType ID should be a valid UUID").optional(),
    LanguageCode: z.string().length(2, "Language code should be exactly two characters long"),
    PublicationCode: z.string().optional(),
-   PublicationDate: z.string().min(1, "Publication date is required").date("Invalid date format"),
+   PublicationDate: z.string().min(1, "Publication date is required").datetime("Invalid date format"),
+   CreationDate: z.string().datetime("Invalid date format").optional(),
    License: z.string().optional(),
-   Sources: z.string().array().optional(),
+   SourceUrl: z.string().optional(),
    Note: z.string().optional(),
-   Tags: z.string().uuid("Please provide valid tag IDs").array(),
-   Authors: z.string().uuid("Please provide valid person IDs").array(),
-   Organisations: z.array(RelatedEntrySchema).optional(),
-   Regions: z.string().uuid("Please provide valid region IDs").array().optional(),
-   RelatedPersons: z.array(RelatedEntrySchema).optional(),
-   RelatedOrganisations: z.array(RelatedEntrySchema).optional(),
-   RelatedSources: z.string().array().optional(),
+   Tags: z.string().array().default([]),
+   // Authors can be either GUIDs (existing) or names (new to be created)
+   Authors: z.string().array().default([]),
+   Organisations: z.array(RelatedEntrySchema).default([]),
+   Regions: z.string().array().default([]),
+   RelatedPersons: z.array(RelatedEntrySchema).default([]),
 });
 
 /**
@@ -47,7 +47,9 @@ export type ResourceCreateDto = z.infer<typeof ResourceCreateDtoSchema>;
  */
 export const FileResourceCreateDtoSchema = ResourceCreateDtoSchema.extend(
 {
-    Hash: z.string().min(1, { message: "Please provide a hash" }),
+    Hash: z.string().length(64, "Hash must be 64 characters (SHA-256)").optional(),
+    FileExtension: z.string().default(""),
+    Id: z.string().uuid("Invalid file ID").min(1, "File ID is required"),
 });
 
 /**
@@ -61,7 +63,6 @@ export type FileResourceCreateDto = z.infer<typeof FileResourceCreateDtoSchema>;
 export const WebsiteCreateDtoSchema = ResourceCreateDtoSchema.extend(
 {
     Url: z.string().min(1, "URL is required").url("Invalid URL"),
-    AccessedOn: z.string().date("Invalid date format").optional(),
 });
 
 /**
@@ -200,5 +201,3 @@ export type LargeFileFinalizeDto = z.infer<typeof LargeFileFinalizeDtoSchema>;
 // This program has been developed by students from the bachelor Computer Science at Utrecht
 // University within the Software Project course.
 // © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

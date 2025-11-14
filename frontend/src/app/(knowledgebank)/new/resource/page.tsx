@@ -8,8 +8,11 @@ import { ProgressBox } from '@/components/progress-box';
 import { Spinner } from '@/components/ui/spinner';
 import { EditableField, EditableLanguageField, EditableDateField } from '@/components/new/MetadataFields';
 import { TagsSection } from '@/components/new/TagsSection';
+import { AuthorsSection } from '@/components/new/AuthorsSection';
 import { getFileHasher } from '@/utils/fileHashWorker';
 import { uploadFileChunked } from '@/actions/fileUploadActions';
+import { ExtractedMetadata, AuthorSelection } from '@/types/extractedMetadata.type';
+import { DocumentCreateDtoSchema, type DocumentCreateDto } from '@/types/uploadTypes';
 
 class ResourceUploadDto
 {
@@ -29,9 +32,11 @@ export default function NewResourcePage()
     
     const [progressSteps, setProgressSteps] = React.useState(5);
     const [currentStep, setCurrentStep] = React.useState(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [editableMetadata, setEditableMetadata] = React.useState<any>(null);
+    const [editableMetadata, setEditableMetadata] = React.useState<ExtractedMetadata | null>(null);
     const [editingField, setEditingField] = React.useState<string | null>(null);
+    const [authorSelections, setAuthorSelections] = React.useState<Map<string, AuthorSelection>>(new Map());
+    const [uploadedFileId, setUploadedFileId] = React.useState<string | null>(null);
+    const [fileHash, setFileHash] = React.useState<string | null>(null);
 
     const handleFileSelect = (selectedFile: File) => 
     {
@@ -79,6 +84,7 @@ export default function NewResourcePage()
 
         // Store hash
         uploadDto.hash = result.hash;
+        setFileHash(result.hash);
         setProcessingStatus('File hash complete');
 
 
@@ -89,6 +95,7 @@ export default function NewResourcePage()
         setCurrentStep(2);
 
         const fileGuid = await uploadFileChunked(file, undefined, setProgress);
+        setUploadedFileId(fileGuid);
         setProcessingStatus("File upload complete");
 
 
@@ -122,6 +129,27 @@ export default function NewResourcePage()
 
             // Store metadata and transition to review phase
             setEditableMetadata(metadata.body);
+
+            // Initialize default author selections
+            const defaultSelections = new Map<string, AuthorSelection>();
+            metadata.body.authors?.forEach((author: { name: string; similars: Array<{ id: string; score: number }> }) => {
+                // If there's a high-confidence match (>90%), auto-select it
+                const bestMatch = author.similars?.[0]; // Similars are already sorted by score
+                if (bestMatch && bestMatch.score >= 0.9) {
+                    defaultSelections.set(author.name, {
+                        extractedName: author.name,
+                        action: 'use_existing',
+                        existingId: bestMatch.id
+                    });
+                } else {
+                    defaultSelections.set(author.name, {
+                        extractedName: author.name,
+                        action: 'create'
+                    });
+                }
+            });
+            setAuthorSelections(defaultSelections);
+
             setTimeout(() => setPhase('review'), 500); // Small delay to show completion
         } catch (error)
         {
@@ -165,20 +193,136 @@ export default function NewResourcePage()
     };
 
     const handleRemoveTag = (tagToRemove: string) => {
+        if (!editableMetadata) return;
         setEditableMetadata({
             ...editableMetadata,
-            tags: editableMetadata.tags.filter((tag: string) => tag !== tagToRemove)
+            tags: (editableMetadata.tags || []).filter((tag: string) => tag !== tagToRemove)
         });
     };
 
     const handleAddTag = (newTag: string) => {
         if (!newTag.trim()) return;
-        const tags = editableMetadata.tags || [];
+        const tags = editableMetadata?.tags || [];
         if (!tags.includes(newTag.trim())) {
             setEditableMetadata({
-                ...editableMetadata,
+                ...editableMetadata!,
                 tags: [...tags, newTag.trim()]
             });
+        }
+    };
+
+    const handleAuthorSelectionChange = (authorName: string, selection: AuthorSelection) => {
+        setAuthorSelections((prev) => {
+            const newSelections = new Map(prev);
+            newSelections.set(authorName, selection);
+            return newSelections;
+        });
+    };
+
+    const handleSave = async () => {
+        if (!editableMetadata || !uploadedFileId || !fileHash || !file) {
+            alert("Missing required data. Please try uploading again.");
+            return;
+        }
+
+        // Convert author selections to Authors array (GUIDs or names)
+        const authors: string[] = [];
+        for (const [authorName, selection] of authorSelections.entries()) {
+            if (selection.action === 'use_existing' && selection.existingId) {
+                authors.push(selection.existingId); // Use existing GUID
+            } else {
+                authors.push(authorName); // Use name (backend will create new person)
+            }
+        }
+
+        // Get file extension
+        const fileExtension = file.name.split('.').pop() || '';
+
+        // Default to "Unknown" resource type (matches backend DatabaseSeeder.UnknownResourceTypeId)
+        const UNKNOWN_TYPE_ID = '0cc285a8-0f07-11f0-a0a6-5600051f1387';
+
+        // Convert publication date to ISO datetime format
+        let publicationDate = new Date().toISOString();
+        if (editableMetadata.publicationDate) {
+            // If it's just a date string, convert to datetime
+            const dateObj = new Date(editableMetadata.publicationDate);
+            if (!isNaN(dateObj.getTime())) {
+                publicationDate = dateObj.toISOString();
+            }
+        }
+
+        // Build the DTO
+        const dto: DocumentCreateDto = {
+            // Required fields
+            Title: editableMetadata.title || '',
+            TypeId: UNKNOWN_TYPE_ID, // Default to "Unknown" type
+            LanguageCode: editableMetadata.languageCode || '',
+            PublicationDate: publicationDate,
+
+            // File-specific fields
+            Id: uploadedFileId,
+            Hash: fileHash,
+            FileExtension: fileExtension,
+
+            // Authors (GUIDs or names)
+            Authors: authors,
+
+            // Optional metadata fields
+            Description: editableMetadata.description,
+            PublicationCode: editableMetadata.publicationCode,
+            License: editableMetadata.license,
+            SourceUrl: editableMetadata.sourceUrl,
+            Tags: editableMetadata.tags || [],
+            Abstract: editableMetadata.abstract,
+
+            // Optional relations
+            Organisations: [],
+            Regions: [],
+            RelatedPersons: [],
+        };
+
+        // Validate with Zod
+        const result = DocumentCreateDtoSchema.safeParse(dto);
+
+        if (!result.success) {
+            // Show first validation error
+            const firstError = result.error.issues[0];
+            alert(`Validation error: ${firstError.message} (${firstError.path.join('.')})`);
+            console.error('Validation errors:', result.error.issues);
+            return;
+        }
+
+        // Send to backend
+        try {
+            setPhase('processing');
+            setProcessingStatus('Saving resource...');
+
+            const response = await fetch('/api/resources/new', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ ...result.data, uploadType: 'document' }),
+            });
+
+            const responseData = await response.json();
+
+            if (!response.ok) {
+                throw new Error(responseData.message || 'Failed to save resource');
+            }
+
+            // Success!
+            alert('Resource saved successfully!');
+            console.log('Resource ID:', responseData.data);
+
+            // TODO: Navigate to the resource page or archive
+            // router.push(`/archive/${responseData.data}`);
+
+        } catch (error) {
+            console.error('Error saving resource:', error);
+            alert(`Error saving resource: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            setPhase('review');
         }
     };
 
@@ -295,124 +439,129 @@ export default function NewResourcePage()
                         </p>
                     </div>
 
-                    {/* Masonry-style layout for cards */}
-                    <div className="columns-1 md:columns-2 gap-6">
-                        {/* Basic Information Section */}
-                        <div className="bg-white border border-gray-300 rounded-lg p-6 break-inside-avoid mb-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
-                                Basic Information
-                            </h2>
-                            <div className="space-y-4">
-                                <EditableField
-                                    fieldName="title"
-                                    label="Title *"
-                                    value={editableMetadata.title}
-                                    editingField={editingField}
-                                    onEdit={handleEditField}
-                                    onSave={handleSaveField}
-                                    onCancel={handleCancelEdit}
-                                />
-                                <EditableField
-                                    fieldName="description"
-                                    label="Description"
-                                    value={editableMetadata.description}
-                                    multiline
-                                    editingField={editingField}
-                                    onEdit={handleEditField}
-                                    onSave={handleSaveField}
-                                    onCancel={handleCancelEdit}
-                                />
-                                <EditableLanguageField
-                                    fieldName="languageCode"
-                                    label="Language"
-                                    value={editableMetadata.languageCode}
-                                    editingField={editingField}
-                                    onEdit={handleEditField}
-                                    onSave={handleSaveField}
-                                    onCancel={handleCancelEdit}
+                    {/* Two-column layout: Metadata (left) | Entities (right) */}
+                    <div className="flex flex-col md:flex-row gap-6 items-start">
+                        {/* Left Column: All Metadata */}
+                        <div className="flex-1 w-full space-y-6">
+                            {/* Basic Information */}
+                            <div className="bg-white border border-gray-300 rounded-lg p-6">
+                                <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
+                                    Basic Information
+                                </h2>
+                                <div className="space-y-4">
+                                    <EditableField
+                                        fieldName="title"
+                                        label="Title *"
+                                        value={editableMetadata.title || ''}
+                                        editingField={editingField}
+                                        onEdit={handleEditField}
+                                        onSave={handleSaveField}
+                                        onCancel={handleCancelEdit}
+                                    />
+                                    <EditableField
+                                        fieldName="description"
+                                        label="Description"
+                                        value={editableMetadata.description || ''}
+                                        multiline
+                                        editingField={editingField}
+                                        onEdit={handleEditField}
+                                        onSave={handleSaveField}
+                                        onCancel={handleCancelEdit}
+                                    />
+                                    <EditableLanguageField
+                                        fieldName="languageCode"
+                                        label="Language"
+                                        value={editableMetadata.languageCode || ''}
+                                        editingField={editingField}
+                                        onEdit={handleEditField}
+                                        onSave={handleSaveField}
+                                        onCancel={handleCancelEdit}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Publication Details */}
+                            <div className="bg-white border border-gray-300 rounded-lg p-6">
+                                <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
+                                    Publication Details
+                                </h2>
+                                <div className="space-y-4">
+                                    <EditableDateField
+                                        fieldName="publicationDate"
+                                        label="Publication Date"
+                                        value={editableMetadata.publicationDate || ''}
+                                        editingField={editingField}
+                                        onEdit={handleEditField}
+                                        onSave={handleSaveField}
+                                        onCancel={handleCancelEdit}
+                                    />
+                                    <EditableField
+                                        fieldName="publicationCode"
+                                        label="Publication Code"
+                                        value={editableMetadata.publicationCode || ''}
+                                        editingField={editingField}
+                                        onEdit={handleEditField}
+                                        onSave={handleSaveField}
+                                        onCancel={handleCancelEdit}
+                                    />
+                                    <EditableField
+                                        fieldName="license"
+                                        label="License"
+                                        value={editableMetadata.license || ''}
+                                        editingField={editingField}
+                                        onEdit={handleEditField}
+                                        onSave={handleSaveField}
+                                        onCancel={handleCancelEdit}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Document Metadata */}
+                            <div className="bg-white border border-gray-300 rounded-lg p-6">
+                                <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
+                                    Document Metadata
+                                </h2>
+                                <div className="space-y-4">
+                                    <EditableField
+                                        fieldName="sourceUrl"
+                                        label="Source URL"
+                                        value={editableMetadata.sourceUrl || ''}
+                                        editingField={editingField}
+                                        onEdit={handleEditField}
+                                        onSave={handleSaveField}
+                                        onCancel={handleCancelEdit}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Tags */}
+                            <div className="bg-white border border-gray-300 rounded-lg p-6">
+                                <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
+                                    Tags
+                                </h2>
+                                <TagsSection
+                                    tags={editableMetadata?.tags || []}
+                                    onAddTag={handleAddTag}
+                                    onRemoveTag={handleRemoveTag}
                                 />
                             </div>
                         </div>
 
-                        {/* Publication Details Section */}
-                        <div className="bg-white border border-gray-300 rounded-lg p-6 break-inside-avoid mb-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
-                                Publication Details
-                            </h2>
-                            <div className="space-y-4">
-                                <EditableDateField
-                                    fieldName="publicationDate"
-                                    label="Publication Date"
-                                    value={editableMetadata.publicationDate}
-                                    editingField={editingField}
-                                    onEdit={handleEditField}
-                                    onSave={handleSaveField}
-                                    onCancel={handleCancelEdit}
-                                />
-                                <EditableField
-                                    fieldName="publicationCode"
-                                    label="Publication Code"
-                                    value={editableMetadata.publicationCode}
-                                    editingField={editingField}
-                                    onEdit={handleEditField}
-                                    onSave={handleSaveField}
-                                    onCancel={handleCancelEdit}
-                                />
-                                <EditableField
-                                    fieldName="license"
-                                    label="License"
-                                    value={editableMetadata.license}
-                                    editingField={editingField}
-                                    onEdit={handleEditField}
-                                    onSave={handleSaveField}
-                                    onCancel={handleCancelEdit}
+                        {/* Right Column: All Entities */}
+                        <div className="flex-1 w-full space-y-6">
+                            {/* Authors */}
+                            <div className="bg-white border border-gray-300 rounded-lg p-6">
+                                <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
+                                    Authors
+                                </h2>
+                                <AuthorsSection
+                                    authors={editableMetadata.authors || []}
+                                    selections={authorSelections}
+                                    onSelectionChange={handleAuthorSelectionChange}
                                 />
                             </div>
-                        </div>
 
-                        {/* Authors */}
-                        <div className="bg-white border border-gray-300 rounded-lg p-6 break-inside-avoid mb-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
-                                Authors
-                            </h2>
-                            <div className="space-y-2">
-                                {/* TODO: Map through authors */}
-                                <p className="text-sm text-gray-500">No authors added</p>
-                                <button className="text-purple-600 hover:text-purple-700 text-sm font-medium">
-                                    + Add Author
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Tags */}
-                        <div className="bg-white border border-gray-300 rounded-lg p-6 break-inside-avoid mb-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
-                                Tags
-                            </h2>
-                            <TagsSection
-                                tags={editableMetadata?.tags || []}
-                                onAddTag={handleAddTag}
-                                onRemoveTag={handleRemoveTag}
-                            />
-                        </div>
-
-                        {/* Type-Specific Metadata */}
-                        <div className="bg-white border border-gray-300 rounded-lg p-6 break-inside-avoid mb-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
-                                Document Metadata
-                            </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {/* TODO: Add type-specific fields based on resource type */}
-                                <EditableField
-                                    fieldName="sourceUrl"
-                                    label="Source URL"
-                                    value={editableMetadata.sourceUrl}
-                                    editingField={editingField}
-                                    onEdit={handleEditField}
-                                    onSave={handleSaveField}
-                                    onCancel={handleCancelEdit}
-                                />
-                            </div>
+                            {/* Future: Organizations, Regions, etc. will go here */}
                         </div>
                     </div>
 
@@ -426,10 +575,7 @@ export default function NewResourcePage()
                             Cancel
                         </button>
                         <button
-                            onClick={() => {
-                                // TODO: Handle save
-                                console.log('Saving resource with metadata:', editableMetadata);
-                            }}
+                            onClick={handleSave}
                             className="px-8 py-3 bg-purple-600 text-white rounded-lg font-semibold
                             hover:bg-purple-700 transition-all hover:shadow-lg hover:-translate-y-0.5"
                         >
