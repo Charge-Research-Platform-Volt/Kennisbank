@@ -118,7 +118,7 @@ export default function NewResourcePage()
 
         try
         {
-            const metaResult = await fetch(`/api/ai/extract-metadata/${fileGuid}`, { credentials: 'include' });
+            const metaResult = await fetch(`/api/ai/extract-metadata?type=file&value=${encodeURIComponent(fileGuid)}`, { credentials: 'include' });
             const metadata = await metaResult.json();
             console.log(metadata.body);
 
@@ -158,6 +158,94 @@ export default function NewResourcePage()
         }
     }
     
+    const handleWebUpload = async () => 
+    {
+        if (url == "") return;
+        
+        setProgressSteps(1);
+        
+        // STEP 1: CHECK DUPLICATE (is nearly instant, so no progress bar)
+        const response = await fetch(`/api/resources/exists?url=${encodeURIComponent(url)}`, { credentials: 'include' });
+        
+        if (!response.ok) 
+        {
+            // TODO: HANDLE ERROR
+            return;
+        }
+        
+        const data = await response.json();
+        
+        if (data.body.exists) 
+        {
+            console.log("This webpage already exists with ID: " + data.body.id);
+            
+            // TODO: DUPLICATE WEBPAGE HANDLING
+            setProcessingStatus("Webpage already exists!");
+            
+            return;
+        }
+        
+        // STEP 2: RETRIEVE METADATA
+        setProcessingStatus("Extracting metadata...");
+        setProgress(0);
+        setCurrentStep(1);
+        
+        // Fake progress bar: gradually increase to 90% while waiting for API
+        const progressInterval = setInterval(() => 
+        {
+            setProgress((prev) => 
+            {
+                if (prev >= 90) 
+                {
+                    clearInterval(progressInterval);
+                    return 90;
+                }
+                return prev + 1;
+            });
+        }, 100); // Interval time in ms
+        
+        try 
+        {
+            const metaResult = await fetch(`/api/ai/extract-metadata?type=web&value=${encodeURIComponent(url)}`, { credentials: 'include' });
+            const metadata = await metaResult.json();
+            console.log(metadata.body);
+            
+            // Clear interval and jump to 100%
+            clearInterval(progressInterval);
+            setProgress(100);
+            setProcessingStatus("Metadata extraction complete");
+            
+            // Store metadata and transition to review phase
+            setEditableMetadata(metadata.body);
+            
+            // Initialize default author selections
+            const defaultSelections = new Map<string, AuthorSelection>();
+            metadata.body.authors?.forEach((author: { name: string; similars: Array<{ id: string; score: number }> }) => {
+                // If there's a high-confidence match (>90%), auto-select it
+                const bestMatch = author.similars?.[0]; // Similars are already sorted by score
+                if (bestMatch && bestMatch.score >= 0.9) {
+                    defaultSelections.set(author.name, {
+                        extractedName: author.name,
+                        action: 'use_existing',
+                        existingId: bestMatch.id
+                    });
+                } else {
+                    defaultSelections.set(author.name, {
+                        extractedName: author.name,
+                        action: 'create'
+                    });
+                }
+            });
+            setAuthorSelections(defaultSelections);
+
+            setTimeout(() => setPhase('review'), 500); // Small delay to show completion
+        }catch (error) 
+        {
+            clearInterval(progressInterval);
+            throw error;
+        }
+    }
+    
     const handleContinue = async () =>
     {
         if (!file && !url)
@@ -173,7 +261,7 @@ export default function NewResourcePage()
         else if (url)
         {
             console.log("Processing URL: ", url);
-            // TODO: URL PROCESSING LOGIC
+            handleWebUpload();
         }
     };
 

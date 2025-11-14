@@ -546,13 +546,13 @@ Enhanced Query:";
     /// Extracts metadata from document text using LLM analysis
     /// </summary>
     /// <param name="text">The full text extracted from the document</param>
-    /// <param name="fileName">The original filename for context</param>
+    /// <param name="fileNameOrUrl">The original filename or url for context</param>
     /// <returns>Extracted metadata or null if extraction fails</returns>
-    public async Task<ExtractedMetadata?> ExtractMetadataAsync(string text, string fileName) 
+    public async Task<ExtractedMetadata?> ExtractMetadataAsync(string text, string fileNameOrUrl) 
     {
         try 
         {
-            logger.Information("Starting metadata extraction for file: {FileName}", fileName);
+            logger.Information("Starting metadata extraction for: {FileNameOrUrl}", fileNameOrUrl);
 
             // Step 1: Truncate text if too long (since LLMs have context limits)
             // Take the first 8000 characters, which is usually enough for the title, authors, abstract
@@ -564,7 +564,7 @@ Enhanced Query:";
             string prompt = $@"
                 You are a metadata extraction assistant. Analyze the following document text and extract sturctured metadata.
                 
-                Filename: {fileName}
+                Filename/URL: {fileNameOrUrl}
                 
                 Document text:
                 {textToAnalyze}

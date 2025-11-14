@@ -9,6 +9,7 @@ using KnowledgeBank.Utils;
 using KnowledgeBank.Data;
 using System.Security.Claims;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Net.Http;
 
 namespace KnowledgeBank.Controllers;
 
@@ -186,47 +187,69 @@ public class AIController(RAGManager ragManager, ResourceManager resourceManager
     #endregion
     
     #region Extract Metadata
-    [HttpGet("extract-metadata/{id}")]
+    [HttpGet("extract-metadata")]
     [SwaggerOperation(Summary = "Extract metadata from document by ID")]
     [SwaggerResponse(200, "The extracted metadata", typeof(ApiResponse))]
     [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
     [SwaggerResponse(404, "File Not Found", typeof(ApiResponse))]
     [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-    public async Task<IActionResult> ExtractMetadata(string id) 
+    public async Task<IActionResult> ExtractMetadata(string type, string value) 
     {
+        // Verify type
+        if (type != "file" && type != "web")
+            return BadRequest(new ApiResponse(false, "Invalid extraction type"));
+    
         // Verify string
-        if (!ValidityUtil.IsValidId(id))
-            return BadRequest(new ApiResponse(false, "Invalid ID"));
+        if ((type == "file" && !ValidityUtil.IsValidId(value)) || (type == "web" && !ValidityUtil.IsValidUrl(value)))
+            return BadRequest(new ApiResponse(false, "Invalid " + type == "file" ? "ID" : "URL"));
             
         try 
         {
-            logger.Information("Metadata extractoion requested for file with ID '{id}'", id);
-            
-            // Retrieve blob from Azure Storage
-            BlobDownloadResponse? response = await blobService.DownloadBlobAsync("files", id);
-
-            // Check if response is not empty, if so no file exists with this ID
-            if (response == null)
-                return NotFound(new ApiResponse(false, $"There is no file with ID '{id}'"));
-
-            // Extract extension from metadata
-            string extension = ((BlobDownloadResponse)response).Metadata["extension"];
-            string fileName = ((BlobDownloadResponse)response).Metadata["originalFileName"];
-
-            // Verify that extension is supported
-            if (!Filetype.SupportedText(extension))
-                return BadRequest(new ApiResponse(false, "This filetype is not supported for metadata extraction."));
-
-            logger.Information("Extracting text from {FileType} document", extension);
-
-            // Copy blob stream to MemoryStream (Azure stream is not seekable)
-            string extractedText;
-            using (Stream blobStream = ((BlobDownloadResponse)response).FileStream)
-            using (MemoryStream memoryStream = new MemoryStream())
+            string extractedText = "";
+            string fileNameOrUrl = "";
+        
+            if (type == "file") 
             {
-                await blobStream.CopyToAsync(memoryStream);
-                memoryStream.Position = 0;
-                extractedText = await textExtractionService.ExtractTextAsync(memoryStream, extension);
+                logger.Information("Metadata extraction requested for file with ID '{id}'", value);
+            
+                // Retrieve blob from Azure Storage
+                BlobDownloadResponse? response = await blobService.DownloadBlobAsync("files", value);
+
+                // Check if response is not empty, if so no file exists with this ID
+                if (response == null)
+                    return NotFound(new ApiResponse(false, $"There is no file with ID '{value}'"));
+
+                // Extract extension from metadata
+                string extension = ((BlobDownloadResponse)response).Metadata["extension"];
+                fileNameOrUrl = ((BlobDownloadResponse)response).Metadata["originalFileName"];
+
+                // Verify that extension is supported
+                if (!Filetype.SupportedText(extension))
+                    return BadRequest(new ApiResponse(false, "This filetype is not supported for metadata extraction."));
+
+                logger.Information("Extracting text from {FileType} document", extension);
+
+                // Copy blob stream to MemoryStream (Azure stream is not seekable)
+                using (Stream blobStream = ((BlobDownloadResponse)response).FileStream)
+                using (MemoryStream memoryStream = new MemoryStream())
+                {
+                    await blobStream.CopyToAsync(memoryStream);
+                    memoryStream.Position = 0;
+                    extractedText = await textExtractionService.ExtractTextAsync(memoryStream, extension);
+                }
+            }
+            else 
+            {
+                logger.Information("Metadata extraction requested for web with URL '{url}'", value);
+
+                HttpClient http = new();
+
+                HttpResponseMessage response = await http.GetAsync(value);
+
+                if (!response.IsSuccessStatusCode)
+                    return BadRequest(new ApiResponse(false, "Cannot read content of this website."));
+
+                extractedText = await response.Content.ReadAsStringAsync();
             }
 
             // Validate extracted text
@@ -238,18 +261,18 @@ public class AIController(RAGManager ragManager, ResourceManager resourceManager
             // Extract metadata using LLM
             logger.Information("Analyzing document with LLM to extract metadata");
 
-            var metadata = await ragManager.ExtractMetadataAsync(extractedText, fileName);
+            var metadata = await ragManager.ExtractMetadataAsync(extractedText, fileNameOrUrl);
 
             if (metadata == null)
                 return StatusCode(500, new ApiResponse(false, "Failed to extract metadata"));
 
-            logger.Information("Metadata extraction completed successfully for {FileName}", fileName);
+            logger.Information("Metadata extraction completed successfully for {FileName}", fileNameOrUrl);
 
             return Ok(new ApiResponse(true, "Metadata extracted successfully", metadata));
         }
         catch (Exception e) 
         {
-            logger.Error(e, "Error extracting metadata from file with ID '{id}'.", id);
+            logger.Error(e, "Error extracting metadata from {type} '{id}'.", type, value);
             return StatusCode(500, new ApiResponse(false, $"Internal error during metadata extraction: {e.Message}"));
         }
     }
