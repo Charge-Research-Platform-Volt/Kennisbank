@@ -49,6 +49,8 @@ export type ArchiveSidebarContextType =
     setCreationDate: (date: Date | null) => void;
     publicationDate: Date | null;
     setPublicationDate: (date: Date | null) => void;
+    publicationDatePrecision: 'Year' | 'Month' | 'Day' | number | null;
+    setPublicationDatePrecision: (precision: 'Year' | 'Month' | 'Day' | number | null) => void;
 }
 
 // --------------------------------------------------------
@@ -112,7 +114,8 @@ export const ArchiveSidebarProvider = ({ archiveSidebarDefaultState = false, chi
     // Creation Date and Publication Date
     const [creationDate, setCreationDate] = React.useState<Date | null>(null);
     const [publicationDate, setPublicationDate] = React.useState<Date | null>(null);
-    
+    const [publicationDatePrecision, setPublicationDatePrecision] = React.useState<'Year' | 'Month' | 'Day' | number | null>(null);
+
     // States for prevs and nexts stacks
     const [prevs] = React.useState(() => new Stack<[string, MetadataTypeEnum]>());
     const [nexts] = React.useState(() => new Stack<[string, MetadataTypeEnum]>());
@@ -307,7 +310,9 @@ export const ArchiveSidebarProvider = ({ archiveSidebarDefaultState = false, chi
                 creationDate,
                 setCreationDate,
                 publicationDate,
-                setPublicationDate
+                setPublicationDate,
+                publicationDatePrecision,
+                setPublicationDatePrecision
             }}
         >
             {children}

@@ -276,6 +276,10 @@ export default function NewResourcePage()
         setEditingField(null);
     };
 
+    const handlePrecisionChange = (precision: 'Year' | 'Month' | 'Day') => {
+        setEditableMetadata({ ...editableMetadata, publicationDatePrecision: precision });
+    };
+
     const handleCancelEdit = () => {
         setEditingField(null);
     };
@@ -339,6 +343,14 @@ export default function NewResourcePage()
             }
         }
 
+        // Convert numeric precision to string enum
+        const normalizePrecision = (p: string | number | undefined): 'Year' | 'Month' | 'Day' => {
+            if (p === 0 || p === 'Year') return 'Year';
+            if (p === 1 || p === 'Month') return 'Month';
+            if (p === 2 || p === 'Day') return 'Day';
+            return 'Day';
+        };
+
         // Build the DTO
         const dto: DocumentCreateDto = {
             // Required fields
@@ -346,6 +358,7 @@ export default function NewResourcePage()
             TypeId: UNKNOWN_TYPE_ID, // Default to "Unknown" type
             LanguageCode: editableMetadata.languageCode || '',
             PublicationDate: publicationDate,
+            PublicationDatePrecision: normalizePrecision(editableMetadata.publicationDatePrecision),
 
             // File-specific fields
             Id: uploadedFileId,
@@ -391,7 +404,7 @@ export default function NewResourcePage()
                     'Content-Type': 'application/json',
                 },
                 credentials: 'include',
-                body: JSON.stringify({ ...result.data, uploadType: 'document' }),
+                body: JSON.stringify({ uploadType: 'document', ...result.data }),
             });
 
             const responseData = await response.json();
@@ -578,10 +591,12 @@ export default function NewResourcePage()
                                         fieldName="publicationDate"
                                         label="Publication Date"
                                         value={editableMetadata.publicationDate || ''}
+                                        precision={editableMetadata.publicationDatePrecision}
                                         editingField={editingField}
                                         onEdit={handleEditField}
                                         onSave={handleSaveField}
                                         onCancel={handleCancelEdit}
+                                        onPrecisionChange={handlePrecisionChange}
                                     />
                                     <EditableField
                                         fieldName="publicationCode"

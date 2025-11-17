@@ -67,7 +67,7 @@ interface ResourceType
 
 export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
 {
-    const { currentId, archiveSidebarOpen, setArchiveSidebarOpen, setCreationDate, setPublicationDate, editMode, navigate } = useArchiveSidebar();
+    const { currentId, archiveSidebarOpen, setArchiveSidebarOpen, setCreationDate, setPublicationDate, setPublicationDatePrecision, editMode, navigate } = useArchiveSidebar();
     const { userRole } = useUserRole();
     const { triggerGridReload, trashOpen } = useArchive();
     const [confirmDialogOpen, setConfirmDialogOpen] = React.useState<boolean>(false);
@@ -91,6 +91,7 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             LanguageCode,
             PublicationCode,
             PublicationDate,
+            PublicationDatePrecision,
             License,
             CreationDate,
             Note,
@@ -123,6 +124,7 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             const data: ApiResponse = await response.json();
 
             setPublicationDate(data.body.publicationDate || "Unknown");
+            setPublicationDatePrecision(data.body.publicationDatePrecision ?? 2); // Default to Day (2) if not provided
             setCreationDate(data.body.creationDate || "Unknown.");
             setFileType(data.body.fileType || "Unknown.");
             
@@ -192,7 +194,7 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
             
             setResourceTypes(data.body);
         }
-    }, [currentId, setCreationDate, setFileType, setPublicationDate]);
+    }, [currentId, setCreationDate, setFileType, setPublicationDate, setPublicationDatePrecision]);
     
     // Loads the similar resources
     const loadSimilarResources = React.useCallback(async () =>

@@ -31,6 +31,7 @@ namespace KnowledgeBank.Data
                 LanguageCode = dto.LanguageCode,
                 PublicationCode = dto.PublicationCode,
                 PublicationDate = dto.PublicationDate,
+                PublicationDatePrecision = dto.PublicationDatePrecision,
                 License = dto.License,
                 Note = dto.Note,
                 SourceUrl = dto.SourceUrl,

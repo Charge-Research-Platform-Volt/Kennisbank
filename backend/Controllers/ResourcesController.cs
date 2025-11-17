@@ -27,6 +27,7 @@ using Qdrant.Client.Grpc;
 using Microsoft.Extensions.AI;
 using System.Reflection.Metadata.Ecma335;
 using Docker.DotNet.Models;
+using System.Security.Claims;
 
 
 
@@ -128,7 +129,7 @@ namespace KnowledgeBank.Controllers
                 await resourceManager.BeginTransaction();
                 
                 // First check if we need to create any persons that don't exist yet
-                for (int i = 0; i < dto.Authors.Length; i++) 
+                for (int i = 0; i < dto.Authors.Length; i++)
                 {
                     // If valid ID nothing needs to be done.
                     if (ValidityUtil.IsValidId(dto.Authors[i]))
@@ -146,6 +147,37 @@ namespace KnowledgeBank.Controllers
                         RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
                         await rag.MainPipeline(id: personId, chunk: $"{name}");
                     });
+                }
+
+                // Check if we need to create any tags that don't exist yet
+                for (int i = 0; i < dto.Tags.Length; i++)
+                {
+                    // If valid ID nothing needs to be done.
+                    if (ValidityUtil.IsValidId(dto.Tags[i]))
+                        continue;
+
+                    // Not a valid ID, so it's a tag name - find or create the tag
+                    string tagName = dto.Tags[i];
+
+                    // Try to find existing tag by name (query database directly)
+                    Tag? existingTag = await resourceManager.GetTagAsync(t => t.Name == tagName);
+
+                    if (existingTag != null)
+                    {
+                        // Tag exists, use its ID
+                        dto.Tags[i] = existingTag.Id.ToString();
+                    }
+                    else
+                    {
+                        // Tag doesn't exist, create it
+                        string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                        Guid tagId = await resourceManager.CreateTagAsync(new TagCreateDto
+                        {
+                            Name = tagName,
+                            CreatedBy = userId ?? string.Empty
+                        });
+                        dto.Tags[i] = tagId.ToString();
+                    }
                 }
 
                 // Create resource in the database and retrieve the ID

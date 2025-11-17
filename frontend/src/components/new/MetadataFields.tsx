@@ -1,5 +1,14 @@
 import React from 'react';
 import { LanguageCodes } from '@/lists/languageCodes';
+import type { PublicationDatePrecision } from '@/types/extractedMetadata.type';
+
+// Helper to normalize precision (handle both string and numeric enum values)
+const normalizePrecision = (precision?: PublicationDatePrecision): 'Year' | 'Month' | 'Day' => {
+    if (precision === 0 || precision === 'Year') return 'Year';
+    if (precision === 1 || precision === 'Month') return 'Month';
+    if (precision === 2 || precision === 'Day') return 'Day';
+    return 'Day'; // default
+};
 
 interface EditableFieldProps {
     fieldName: string;
@@ -189,21 +198,31 @@ interface EditableDateFieldProps {
     fieldName: string;
     label: string;
     value: string;
+    precision?: PublicationDatePrecision;
     editingField: string | null;
     onEdit: (fieldName: string) => void;
     onSave: (fieldName: string, value: string) => void;
     onCancel: () => void;
+    onPrecisionChange?: (precision: 'Year' | 'Month' | 'Day') => void;
 }
 
 export function EditableDateField({
     fieldName,
     label,
     value,
+    precision,
     editingField,
     onEdit,
     onSave,
-    onCancel
+    onCancel,
+    onPrecisionChange
 }: EditableDateFieldProps) {
+    const normalizedPrecision = normalizePrecision(precision);
+    const [localPrecision, setLocalPrecision] = React.useState(normalizedPrecision);
+
+    React.useEffect(() => {
+        setLocalPrecision(normalizedPrecision);
+    }, [normalizedPrecision]);
     // Convert ISO datetime to date-only format for input
     const getDateOnly = (dateString: string) => {
         if (!dateString) return '';
@@ -211,6 +230,14 @@ export function EditableDateField({
             // If already in YYYY-MM-DD format, return as-is
             if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
                 return dateString;
+            }
+            // If only year (YYYY format)
+            if (/^\d{4}$/.test(dateString)) {
+                return `${dateString}-01-01`;
+            }
+            // If year-month (YYYY-MM format)
+            if (/^\d{4}-\d{2}$/.test(dateString)) {
+                return `${dateString}-01`;
             }
             // Extract just the date part from ISO string (before 'T')
             // This avoids timezone conversion issues
@@ -236,8 +263,8 @@ export function EditableDateField({
         setTempValue(getDateOnly(value));
     }, [value]);
 
-    // Format date for display
-    const formatDate = (dateString: string) => {
+    // Format date for display based on precision
+    const formatDate = (dateString: string, datePrecision: 'Year' | 'Month' | 'Day') => {
         if (!dateString) return 'N/A';
         try {
             // Extract just the date part to avoid timezone issues
@@ -249,37 +276,158 @@ export function EditableDateField({
             // Parse the YYYY-MM-DD format directly
             const [year, month, day] = datePart.split('-').map(Number);
 
-            // Create a date in UTC to avoid any timezone shifts
-            const date = new Date(Date.UTC(year, month - 1, day));
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                timeZone: 'UTC'
-            });
+            // Format based on precision
+            if (datePrecision === 'Year') {
+                return String(year);
+            } else if (datePrecision === 'Month') {
+                const date = new Date(Date.UTC(year, month - 1, 1));
+                return date.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    timeZone: 'UTC'
+                });
+            } else {
+                // Full date
+                const date = new Date(Date.UTC(year, month - 1, day));
+                return date.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    timeZone: 'UTC'
+                });
+            }
         } catch {
             return dateString;
         }
     };
 
+    const handlePrecisionChange = (newPrecision: 'Year' | 'Month' | 'Day') => {
+        setLocalPrecision(newPrecision);
+        if (onPrecisionChange) {
+            onPrecisionChange(newPrecision);
+        }
+    };
+
     return (
         <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                {label}
-            </label>
+            <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    {label}
+                </label>
+                {isEditing && (
+                    <div className="flex gap-1 text-xs">
+                        <button
+                            type="button"
+                            onClick={() => handlePrecisionChange('Year')}
+                            className={`px-2 py-1 rounded ${
+                                localPrecision === 'Year'
+                                    ? 'bg-purple-600 text-white'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                        >
+                            Year
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handlePrecisionChange('Month')}
+                            className={`px-2 py-1 rounded ${
+                                localPrecision === 'Month'
+                                    ? 'bg-purple-600 text-white'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                        >
+                            Month
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handlePrecisionChange('Day')}
+                            className={`px-2 py-1 rounded ${
+                                localPrecision === 'Day'
+                                    ? 'bg-purple-600 text-white'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                        >
+                            Day
+                        </button>
+                    </div>
+                )}
+            </div>
             {isEditing ? (
                 <div className="flex items-start gap-2">
-                    <input
-                        type="date"
-                        value={tempValue}
-                        onChange={(e) => setTempValue(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-purple-500 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        autoFocus
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') onSave(fieldName, tempValue);
-                            if (e.key === 'Escape') onCancel();
-                        }}
-                    />
+                    {localPrecision === 'Year' ? (
+                        <input
+                            type="number"
+                            value={tempValue.split('-')[0] || ''}
+                            onChange={(e) => {
+                                const year = e.target.value;
+                                setTempValue(`${year}-01-01`);
+                            }}
+                            min="1900"
+                            max="2100"
+                            placeholder="YYYY"
+                            className="flex-1 px-3 py-2 border border-purple-500 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            autoFocus
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') onSave(fieldName, tempValue);
+                                if (e.key === 'Escape') onCancel();
+                            }}
+                        />
+                    ) : localPrecision === 'Month' ? (
+                        <div className="flex-1 flex gap-2">
+                            <select
+                                value={tempValue.split('-')[1] || '01'}
+                                onChange={(e) => {
+                                    const parts = tempValue.split('-');
+                                    const year = parts[0] || new Date().getFullYear();
+                                    setTempValue(`${year}-${e.target.value}-01`);
+                                }}
+                                className="px-3 py-2 border border-purple-500 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            >
+                                <option value="01">January</option>
+                                <option value="02">February</option>
+                                <option value="03">March</option>
+                                <option value="04">April</option>
+                                <option value="05">May</option>
+                                <option value="06">June</option>
+                                <option value="07">July</option>
+                                <option value="08">August</option>
+                                <option value="09">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                            <input
+                                type="number"
+                                value={tempValue.split('-')[0] || ''}
+                                onChange={(e) => {
+                                    const parts = tempValue.split('-');
+                                    const month = parts[1] || '01';
+                                    setTempValue(`${e.target.value}-${month}-01`);
+                                }}
+                                min="1900"
+                                max="2100"
+                                placeholder="YYYY"
+                                className="w-24 px-3 py-2 border border-purple-500 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') onSave(fieldName, tempValue);
+                                    if (e.key === 'Escape') onCancel();
+                                }}
+                            />
+                        </div>
+                    ) : (
+                        <input
+                            type="date"
+                            value={tempValue}
+                            onChange={(e) => setTempValue(e.target.value)}
+                            className="flex-1 px-3 py-2 border border-purple-500 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            autoFocus
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') onSave(fieldName, tempValue);
+                                if (e.key === 'Escape') onCancel();
+                            }}
+                        />
+                    )}
                     <button
                         onClick={() => onSave(fieldName, tempValue)}
                         className="p-2 text-green-600 hover:text-green-700"
@@ -301,7 +449,7 @@ export function EditableDateField({
                 </div>
             ) : (
                 <div className="flex items-start gap-2">
-                    <span className="flex-1 text-base text-gray-900">{formatDate(value)}</span>
+                    <span className="flex-1 text-base text-gray-900">{formatDate(value, normalizedPrecision)}</span>
                     <button
                         onClick={() => onEdit(fieldName)}
                         className="text-purple-600 hover:text-purple-700 p-1"

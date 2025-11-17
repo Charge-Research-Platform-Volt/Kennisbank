@@ -574,17 +574,17 @@ Enhanced Query:";
                     ""title"": ""The document title"",
                     ""abstract"": ""The abstract of the paper when it is a scientific paper, else leave empty"",
                     ""description"": ""A complete and consise description of the document (50-300 words)"",
-                    ""publicationDate"": ""YYYY-MM-DD format or null"",
+                    ""publicationDate"": ""YYYY, YYYY-MM, or YYYY-MM-DD format (use most specific format available, or null)"",
                     ""languageCode"": ""ISO 639-1 two-letter code (e.g., 'en', 'nl', 'fr', etc.)"",
                     ""authors"": [""Array of author names""],
                     ""publicationCode"": ""DOI, ISBN, arXiv ID, etc. or null"",
                     ""tags"": [""Array of categorization tags like 'Research Paper', 'Technical Report', 'Computer Science', etc.""]
                 }}
-                
+
                 Rules:
                 - If a field cannot be determined, use null or empty array
                 - Language code must be 2 letters lowercase (From the ISO 639-1 list)
-                - Publication date must be in YYYY-MM-DD format.
+                - Publication date can be partial: YYYY (year only), YYYY-MM (year and month), or YYYY-MM-DD (full date). Use the most specific format you can determine from the document.
                 - Note which type of publication code it is before the actual publication code
                 - Make sure tags are capitalized, so they look good
                 - Return ONLY valid JSON, no additional text or explanation
@@ -640,7 +640,56 @@ Enhanced Query:";
             metadata.Abstract = tempMetadata.Abstract?.Trim();
             metadata.Description = tempMetadata.Description?.Trim();
             metadata.PublicationCode = tempMetadata.PublicationCode?.Trim();
-            metadata.PublicationDate = tempMetadata.PublicationDate;
+
+            // Parse publication date and determine precision
+            if (!string.IsNullOrWhiteSpace(tempMetadata.PublicationDate))
+            {
+                var dateStr = tempMetadata.PublicationDate.Trim();
+                var parts = dateStr.Split('-');
+
+                try
+                {
+                    if (parts.Length == 1 && parts[0].Length == 4)
+                    {
+                        // Year only (e.g., "2020")
+                        int year = int.Parse(parts[0]);
+                        metadata.PublicationDate = new DateTime(year, 1, 1);
+                        metadata.PublicationDatePrecision = PublicationDatePrecision.Year;
+                        logger.Information("Parsed publication date with year precision: {Year}", year);
+                    }
+                    else if (parts.Length == 2 && parts[0].Length == 4 && parts[1].Length <= 2)
+                    {
+                        // Year and month (e.g., "2020-05")
+                        int year = int.Parse(parts[0]);
+                        int month = int.Parse(parts[1]);
+                        metadata.PublicationDate = new DateTime(year, month, 1);
+                        metadata.PublicationDatePrecision = PublicationDatePrecision.Month;
+                        logger.Information("Parsed publication date with month precision: {Year}-{Month}", year, month);
+                    }
+                    else if (parts.Length == 3 && parts[0].Length == 4 && parts[1].Length <= 2 && parts[2].Length <= 2)
+                    {
+                        // Full date (e.g., "2020-05-15")
+                        int year = int.Parse(parts[0]);
+                        int month = int.Parse(parts[1]);
+                        int day = int.Parse(parts[2]);
+                        metadata.PublicationDate = new DateTime(year, month, day);
+                        metadata.PublicationDatePrecision = PublicationDatePrecision.Day;
+                        logger.Information("Parsed publication date with day precision: {Year}-{Month}-{Day}", year, month, day);
+                    }
+                    else
+                    {
+                        logger.Warning("Invalid publication date format: {DateStr}, setting to null", dateStr);
+                        metadata.PublicationDate = null;
+                        metadata.PublicationDatePrecision = null;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Warning(ex, "Failed to parse publication date: {DateStr}, setting to null", dateStr);
+                    metadata.PublicationDate = null;
+                    metadata.PublicationDatePrecision = null;
+                }
+            }
 
             // Remove empty strings from tags
             metadata.Tags = tempMetadata.Tags?.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim()).ToList() ?? [];
@@ -708,7 +757,7 @@ internal class TempExtractedMetadata
     public string? Title { get; set; }
     public string? Abstract { get; set; }
     public string? Description { get; set; }
-    public DateTime? PublicationDate { get; set; }
+    public string? PublicationDate { get; set; }  // String to support partial dates (YYYY, YYYY-MM, YYYY-MM-DD)
     public string? LanguageCode { get; set; }
     public List<string> Authors { get; set; } = [];
     public string? PublicationCode { get; set; }

@@ -28,7 +28,7 @@ export interface Item
  */
 export default function ArchiveSidebar()
 {
-    const { currentType, creationDate, publicationDate, setPublicationDate, currentId, archiveSidebarOpen, navigateBack, navigateForward, setArchiveSidebarOpen, isEmptyPrevs, isEmptyNexts, setEditMode, editMode } = useArchiveSidebar();
+    const { currentType, creationDate, publicationDate, setPublicationDate, publicationDatePrecision, setPublicationDatePrecision, currentId, archiveSidebarOpen, navigateBack, navigateForward, setArchiveSidebarOpen, isEmptyPrevs, isEmptyNexts, setEditMode, editMode } = useArchiveSidebar();
 
     const [isLoading, setLoading] = React.useState<boolean>(false);
     const [fileType, setFileType] = React.useState<string | null>(null);
@@ -53,7 +53,9 @@ export default function ArchiveSidebar()
                 },
                 credentials: 'include',
                 body: JSON.stringify({
-                    publicationDate: newDate ? convertToUTCDate(newDate) : null
+                    publicationDate: newDate ? convertToUTCDate(newDate) : null,
+                    publicationDatePrecision: publicationDatePrecision === 0 || publicationDatePrecision === 'Year' ? 'Year' :
+                                             publicationDatePrecision === 1 || publicationDatePrecision === 'Month' ? 'Month' : 'Day'
                 })
             });
 
@@ -62,6 +64,31 @@ export default function ArchiveSidebar()
             }
         } catch (error) {
             console.error('Error updating publication date:', error);
+        }
+    }
+
+    const handlePrecisionChange = async (newPrecision: 'Year' | 'Month' | 'Day') =>
+    {
+        setPublicationDatePrecision(newPrecision);
+
+        // Update the precision in the backend
+        try {
+            const response = await fetch(`/api/resources/update/${currentId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    publicationDatePrecision: newPrecision
+                })
+            });
+
+            if (!response.ok) {
+                console.error('Failed to update publication date precision');
+            }
+        } catch (error) {
+            console.error('Error updating publication date precision:', error);
         }
     }
 
@@ -171,7 +198,9 @@ export default function ArchiveSidebar()
                         icon={<Calendar className="w-4 h-4 flex-shrink-0"/>}
                         cName="flex items-center gap-2 min-w-0"
                         editMode={editMode && currentType === MetadataTypeEnum.RESOURCE}
+                        precision={publicationDatePrecision}
                         onDateChange={handlePublicationDateChange}
+                        onPrecisionChange={handlePrecisionChange}
                     />
                 )}
             </div>

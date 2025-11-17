@@ -9,6 +9,7 @@ public class ExtractedMetadata
     public string? Abstract { get; set; }
     public string? Description { get; set; }
     public DateTime? PublicationDate { get; set; }
+    public PublicationDatePrecision? PublicationDatePrecision { get; set; }
     public string? LanguageCode { get; set; }
     public List<AuthorWithSimilars> Authors { get; set; } = [];
     public string? PublicationCode { get; set; }

@@ -10,11 +10,14 @@ export interface AuthorWithSimilars {
     similars: SimilarEntity[];
 }
 
+export type PublicationDatePrecision = 'Year' | 'Month' | 'Day' | 0 | 1 | 2;
+
 export interface ExtractedMetadata {
     title?: string;
     abstract?: string;
     description?: string;
     publicationDate?: string;
+    publicationDatePrecision?: PublicationDatePrecision;
     languageCode?: string;
     authors?: AuthorWithSimilars[];
     publicationCode?: string;

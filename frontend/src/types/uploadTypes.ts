@@ -20,15 +20,16 @@ export type RelatedEntry = z.infer<typeof RelatedEntrySchema>;
 export const ResourceCreateDtoSchema = z.object(
 {
    Title: z.string().min(1, "Title is required"),
-   Description: z.string().optional(),
+   Description: z.string().nullish(),
    TypeId: z.string().uuid("ResourceType ID should be a valid UUID").optional(),
    LanguageCode: z.string().length(2, "Language code should be exactly two characters long"),
-   PublicationCode: z.string().optional(),
+   PublicationCode: z.string().nullish(),
    PublicationDate: z.string().min(1, "Publication date is required").datetime("Invalid date format"),
-   CreationDate: z.string().datetime("Invalid date format").optional(),
-   License: z.string().optional(),
-   SourceUrl: z.string().optional(),
-   Note: z.string().optional(),
+   PublicationDatePrecision: z.enum(['Year', 'Month', 'Day']).default('Day'),
+   CreationDate: z.string().datetime("Invalid date format").nullish(),
+   License: z.string().nullish(),
+   SourceUrl: z.string().nullish(),
+   Note: z.string().nullish(),
    Tags: z.string().array().default([]),
    // Authors can be either GUIDs (existing) or names (new to be created)
    Authors: z.string().array().default([]),
