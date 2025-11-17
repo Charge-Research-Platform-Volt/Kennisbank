@@ -12,6 +12,7 @@ export type ResourceGridItem =
     id: string;
     name: string;
     publicationDate: string;
+    publicationDatePrecision: 'Year' | 'Month' | 'Day' | 0 | 1 | 2;
     type: MetadataTypeEnum;
     fileType: string;
     creationDate: string;

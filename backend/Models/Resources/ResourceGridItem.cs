@@ -8,6 +8,7 @@ public class ResourceGridItem
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public DateTime? PublicationDate { get; set; }
+    public PublicationDatePrecision PublicationDatePrecision { get; set; } = PublicationDatePrecision.Day;
     public string Type { get; set; } = string.Empty;
     public string FileType { get; set; } = string.Empty;
     public DateTime CreationDate { get; set; }
@@ -24,6 +25,7 @@ public class ResourceGridSearchResult
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public DateTime? PublicationDate { get; set; }
+    public PublicationDatePrecision PublicationDatePrecision { get; set; } = PublicationDatePrecision.Day;
     public string Type { get; set; } = string.Empty;
     public string FileType { get; set; } = string.Empty;
     public DateTime CreationDate { get; set; }
@@ -38,6 +40,7 @@ public class ResourceGridSearchResult
             Name = Name,
             Description = Description,
             PublicationDate = PublicationDate,
+            PublicationDatePrecision = PublicationDatePrecision,
             Type = Type,
             FileType = FileType,
             CreationDate = CreationDate,

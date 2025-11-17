@@ -50,6 +50,7 @@ public static class DatabaseContextExtensions
                     ""title"" as ""Name"",
                     ""description"" as ""Description"",
                     ""publication-date"" as ""PublicationDate"",
+                    ""publication-date-precision"" as ""PublicationDatePrecision"",
                     'resource' as ""Type"",
                     CASE
                         WHEN ""filetype"" = 'website' THEN 'website'
@@ -73,6 +74,7 @@ public static class DatabaseContextExtensions
                     e.""name"" as ""Name"",
                     e.""description"" as ""Description"",
                     NULL as ""PublicationDate"",
+                    2 as ""PublicationDatePrecision"",
                     'person' as ""Type"",
                     'person' as ""FileType"",
                     e.""creation-date"" as ""CreationDate"",
@@ -95,6 +97,7 @@ public static class DatabaseContextExtensions
                     e.""name"" as ""Name"",
                     e.""description"" as ""Description"",
                     NULL as ""PublicationDate"",
+                    2 as ""PublicationDatePrecision"",
                     'organisation' as ""Type"",
                     'organisation' as ""FileType"",
                     e.""creation-date"" as ""CreationDate"",

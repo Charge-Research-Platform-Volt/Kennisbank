@@ -35,11 +35,29 @@ export default function ResourcesGrid()
     const dateFormatter = (params: any) =>
     {
         if (!params.value) return '';
-        
-        // Extract data part before T and reverse
-        const datePart = params.value.split('T')[0];
-        const [year, month, day] = datePart.split('-');
-        return `${day}-${month}-${year}`;
+
+        const precision = params.data?.publicationDatePrecision;
+        const date = new Date(params.value);
+        const year = date.getFullYear();
+        const month = date.getMonth();
+
+        // Handle precision (normalize both string and numeric values)
+        const normalizedPrecision = precision === 0 || precision === 'Year' ? 'Year'
+            : precision === 1 || precision === 'Month' ? 'Month'
+            : 'Day';
+
+        if (normalizedPrecision === 'Year') {
+            return year.toString();
+        } else if (normalizedPrecision === 'Month') {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                              'July', 'August', 'September', 'October', 'November', 'December'];
+            return `${monthNames[month]} ${year}`;
+        } else {
+            // Day precision - format as DD-MM-YYYY
+            const datePart = params.value.split('T')[0];
+            const [y, m, d] = datePart.split('-');
+            return `${d}-${m}-${y}`;
+        }
     } 
     
     // Column definitions

@@ -132,6 +132,7 @@ public partial class ResourceManager
                 Name = item.Name,
                 Description = item.Description,
                 PublicationDate = item.PublicationDate,
+                PublicationDatePrecision = item.PublicationDatePrecision,
                 Type = item.Type,
                 FileType = item.FileType,
                 CreationDate = item.CreationDate,

@@ -18,6 +18,30 @@ export default function ResourcesList() {
   // Limit the number of chunks displayed initially
   const LIMIT_CHUNKS = 2;
 
+  // Helper function to format date based on precision
+  const formatDate = (dateString: string, precision: 'Year' | 'Month' | 'Day' | 0 | 1 | 2) => {
+    if (!dateString) return '';
+
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = date.getMonth();
+
+    // Normalize precision
+    const normalizedPrecision = precision === 0 || precision === 'Year' ? 'Year'
+      : precision === 1 || precision === 'Month' ? 'Month'
+      : 'Day';
+
+    if (normalizedPrecision === 'Year') {
+      return year.toString();
+    } else if (normalizedPrecision === 'Month') {
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+      return `${monthNames[month]} ${year}`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
   return (
     <Accordion type="multiple">
       {rowData.map((resource) => (
@@ -33,7 +57,7 @@ export default function ResourcesList() {
             </div>
 
             {/* Publication date */}
-            <p className="text-sm text-gray-500"> {new Date(resource.publicationDate).toLocaleDateString()}</p>
+            <p className="text-sm text-gray-500">{formatDate(resource.publicationDate, resource.publicationDatePrecision)}</p>
 
             {/* Show description only in general results mode */}
             {mode === "general-results" && <p className="text-xs text-gray-500">{resource.description}</p>}
