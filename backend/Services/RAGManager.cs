@@ -51,8 +51,14 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
     {
         try
         {
-            // Fetch additional metadata from database
-            var resource = await resourceManager.GetResourceAsync(r => r.Id == id, includeProperties: "Authors,Tags,Organisations,Regions");
+            // Fetch additional metadata from database with nested entities
+            var resource = await resourceManager.GetResourceAsync(r => r.Id == id, includeProperties: new[]
+            {
+                "ResourceAuthorRelations.Author",
+                "ResourceTagRelations.Tag",
+                "ResourceOrganisationRelations.Organisation",
+                "ResourceRegionRelations.Region"
+            });
 
             if (resource == null)
             {
@@ -80,6 +86,50 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
 
             if (!string.IsNullOrEmpty(resource.License))
                 metadataBuilder.AppendLine($"License: {resource.License}");
+
+            // Add authors
+            if (resource.ResourceAuthorRelations?.Any() == true)
+            {
+                var authorNames = resource.ResourceAuthorRelations
+                    .Where(r => r.Author != null)
+                    .Select(r => r.Author!.Name)
+                    .ToList();
+                if (authorNames.Any())
+                    metadataBuilder.AppendLine($"Authors: {string.Join(", ", authorNames)}");
+            }
+
+            // Add tags
+            if (resource.ResourceTagRelations?.Any() == true)
+            {
+                var tagNames = resource.ResourceTagRelations
+                    .Where(r => r.Tag != null)
+                    .Select(r => r.Tag!.Name)
+                    .ToList();
+                if (tagNames.Any())
+                    metadataBuilder.AppendLine($"Tags: {string.Join(", ", tagNames)}");
+            }
+
+            // Add organizations
+            if (resource.ResourceOrganisationRelations?.Any() == true)
+            {
+                var orgNames = resource.ResourceOrganisationRelations
+                    .Where(r => r.Organisation != null)
+                    .Select(r => r.Organisation!.Name)
+                    .ToList();
+                if (orgNames.Any())
+                    metadataBuilder.AppendLine($"Organizations: {string.Join(", ", orgNames)}");
+            }
+
+            // Add regions
+            if (resource.ResourceRegionRelations?.Any() == true)
+            {
+                var regionNames = resource.ResourceRegionRelations
+                    .Where(r => r.Region != null)
+                    .Select(r => r.Region!.Name)
+                    .ToList();
+                if (regionNames.Any())
+                    metadataBuilder.AppendLine($"Regions: {string.Join(", ", regionNames)}");
+            }
 
             // Add semantic context
             metadataBuilder.AppendLine();

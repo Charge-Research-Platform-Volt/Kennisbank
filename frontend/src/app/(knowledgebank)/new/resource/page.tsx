@@ -13,6 +13,8 @@ import { getFileHasher } from '@/utils/fileHashWorker';
 import { uploadFileChunked } from '@/actions/fileUploadActions';
 import { ExtractedMetadata, AuthorSelection } from '@/types/extractedMetadata.type';
 import { DocumentCreateDtoSchema, type DocumentCreateDto } from '@/types/uploadTypes';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 class ResourceUploadDto
 {
@@ -21,6 +23,8 @@ class ResourceUploadDto
 
 export default function NewResourcePage()
 {
+    const router = useRouter();
+
     const [file, setFile] = React.useState<File | null>(null);
     const [url, setUrl] = React.useState('');
     const [isDragging, setIsDragging] = React.useState(false);
@@ -313,7 +317,7 @@ export default function NewResourcePage()
 
     const handleSave = async () => {
         if (!editableMetadata || !uploadedFileId || !fileHash || !file) {
-            alert("Missing required data. Please try uploading again.");
+            toast.error("Missing required data. Please try uploading again.");
             return;
         }
 
@@ -388,7 +392,7 @@ export default function NewResourcePage()
         if (!result.success) {
             // Show first validation error
             const firstError = result.error.issues[0];
-            alert(`Validation error: ${firstError.message} (${firstError.path.join('.')})`);
+            toast.error(`Validation error: ${firstError.message} (${firstError.path.join('.')})`);
             console.error('Validation errors:', result.error.issues);
             return;
         }
@@ -412,17 +416,18 @@ export default function NewResourcePage()
             if (!response.ok) {
                 throw new Error(responseData.message || 'Failed to save resource');
             }
-
+            
+            console.log(responseData.body);
+            
             // Success!
-            alert('Resource saved successfully!');
-            console.log('Resource ID:', responseData.data);
+            toast.success('Resource saved successfully!');
+            console.log('Resource ID:', responseData.body);
 
-            // TODO: Navigate to the resource page or archive
-            // router.push(`/archive/${responseData.data}`);
+            router.push(`/archive?id=${responseData.body}`);
 
         } catch (error) {
             console.error('Error saving resource:', error);
-            alert(`Error saving resource: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            toast.error(`Error saving resource: ${error instanceof Error ? error.message : 'Unknown error'}`);
             setPhase('review');
         }
     };

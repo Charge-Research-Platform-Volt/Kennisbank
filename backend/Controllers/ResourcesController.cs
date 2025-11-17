@@ -37,7 +37,7 @@ namespace KnowledgeBank.Controllers
 
     /// <summary>
     /// This controller is responsible for handling API calls to manage resources and their metadata.
-    /// 
+    ///
     /// Author: Abel Dieterich
     /// </summary>
     /// <param name="resourceManager">The resource manager service for database interactions</param>
@@ -45,11 +45,12 @@ namespace KnowledgeBank.Controllers
     /// <param name="taskQueue">The background task queue for processing tasks asynchronously</param>
     /// <param name="ragSystem">The RAG system for handling document processing</param>
     /// <param name="ragManager">The RAG manager for metadata updates and query processing</param>
+    /// <param name="serviceScopeFactory">The service scope factory for creating service scopes in background tasks</param>
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem, RAGManager ragManager) : ControllerBase
+    public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem, RAGManager ragManager, IServiceScopeFactory serviceScopeFactory) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<ResourcesController>();
 
@@ -143,7 +144,7 @@ namespace KnowledgeBank.Controllers
                     // Also start embedding task for this new person
                     taskQueue.QueueBackgroundWorkItem(async token =>
                     {
-                        using var scope = HttpContext.RequestServices.CreateScope();
+                        using var scope = serviceScopeFactory.CreateScope();
                         RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
                         await rag.MainPipeline(id: personId, chunk: $"{name}");
                     });
@@ -189,7 +190,7 @@ namespace KnowledgeBank.Controllers
                         id = await resourceManager.CreateWebsiteAsync(wDto);
                         taskQueue.QueueBackgroundWorkItem(async token =>
                         {
-                            using var scope = HttpContext.RequestServices.CreateScope();
+                            using var scope = serviceScopeFactory.CreateScope();
                             RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
                             
                             await rag.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}\n{wDto.Url}");
@@ -201,7 +202,7 @@ namespace KnowledgeBank.Controllers
                         id = await resourceManager.CreateDocumentAsync(dDto);
                         taskQueue.QueueBackgroundWorkItem(async token =>
                         {
-                            using var scope = HttpContext.RequestServices.CreateScope();
+                            using var scope = serviceScopeFactory.CreateScope();
                             RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
                             IAzureBlobService blob = scope.ServiceProvider.GetRequiredService<IAzureBlobService>();
 
@@ -223,7 +224,7 @@ namespace KnowledgeBank.Controllers
                         id = await resourceManager.CreateAudioAsync(aDto);
                         taskQueue.QueueBackgroundWorkItem(async token =>
                         {
-                            using var scope = HttpContext.RequestServices.CreateScope();
+                            using var scope = serviceScopeFactory.CreateScope();
                             RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
 
                             await rag.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
@@ -235,7 +236,7 @@ namespace KnowledgeBank.Controllers
                         id = await resourceManager.CreateVideoAsync(vDto);
                         taskQueue.QueueBackgroundWorkItem(async token =>
                         {
-                            using var scope = HttpContext.RequestServices.CreateScope();
+                            using var scope = serviceScopeFactory.CreateScope();
                             RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
 
                             await rag.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}");

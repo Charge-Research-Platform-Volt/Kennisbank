@@ -370,7 +370,7 @@ public class HybridSearchService
     private string BuildPostgresSearchQuery(string searchQuery, int limit)
     {
         return $@"
-            SELECT ""Id"", ""Name"", ""Description"", ""PublicationDate"", ""Type"", ""FileType"", ""CreationDate"",
+            SELECT ""Id"", ""Name"", ""Description"", ""PublicationDate"", ""PublicationDatePrecision"", ""Type"", ""FileType"", ""CreationDate"",
                 (
                     CASE WHEN ""SearchVector"" @@ phraseto_tsquery('english', {{0}}) THEN 10.0 ELSE 0.0 END +
                     CASE WHEN ""SearchVector"" @@ websearch_to_tsquery('english', {{0}})
