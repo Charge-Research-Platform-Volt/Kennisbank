@@ -187,11 +187,11 @@ export default function ArchiveSidebar()
                     />
                 )}
 
-                {creationDate && publicationDate && (
+                {creationDate && currentType === MetadataTypeEnum.RESOURCE && (
                     <div className="w-px h-full bg-gray-300" />
                 )}
 
-                {(publicationDate || (editMode && currentType === MetadataTypeEnum.RESOURCE)) && (
+                {currentType === MetadataTypeEnum.RESOURCE && (
                     <EditableDate
                         date={publicationDate}
                         text="Published"

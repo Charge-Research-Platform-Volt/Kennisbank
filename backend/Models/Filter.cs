@@ -27,12 +27,14 @@ public class FilterDto
 
         if(this.StartDate != null)
         {
-            queryBuilder = queryBuilder.Where(f => f.PublicationDate >= this.StartDate);
+            // Include resources with unknown publication dates
+            queryBuilder = queryBuilder.Where(f => f.PublicationDate == null || f.PublicationDate >= this.StartDate);
         }
 
         if(this.EndDate != null)
         {
-            queryBuilder = queryBuilder.Where(f => f.PublicationDate <= this.EndDate);
+            // Include resources with unknown publication dates
+            queryBuilder = queryBuilder.Where(f => f.PublicationDate == null || f.PublicationDate <= this.EndDate);
         }
 
         if(this.Archived != null)

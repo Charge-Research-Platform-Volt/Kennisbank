@@ -123,8 +123,8 @@ export function ResourceContent({ fileType, setFileType }: ResourceContentProps)
         {
             const data: ApiResponse = await response.json();
 
-            setPublicationDate(data.body.publicationDate || "Unknown");
-            setPublicationDatePrecision(data.body.publicationDatePrecision ?? 2); // Default to Day (2) if not provided
+            setPublicationDate(data.body.publicationDate || null);
+            setPublicationDatePrecision(data.body.publicationDatePrecision ?? null);
             setCreationDate(data.body.creationDate || "Unknown.");
             setFileType(data.body.fileType || "Unknown.");
             

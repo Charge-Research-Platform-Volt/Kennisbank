@@ -188,13 +188,13 @@ public partial class ResourceManager
         if (filters.TryGetValue("type", out var typeFilter) && typeFilter != null && ((string[])typeFilter).Length > 0)
             query = query.Where(x => ((string[])typeFilter).Contains(x.Type));
 
-        // Apply minimum publication date filter
+        // Apply minimum publication date filter (include resources with unknown dates)
         if (filters.TryGetValue("pubdate_min", out var minDateFilter) && minDateFilter is DateTime minDate)
-            query = query.Where(x => x.PublicationDate >= minDate);
+            query = query.Where(x => x.PublicationDate == null || x.PublicationDate >= minDate);
 
-        // Apply maximum publication date filter
+        // Apply maximum publication date filter (include resources with unknown dates)
         if (filters.TryGetValue("pubdate_max", out var maxDateFilter) && maxDateFilter is DateTime maxDate)
-            query = query.Where(x => x.PublicationDate <= maxDate);
+            query = query.Where(x => x.PublicationDate == null || x.PublicationDate <= maxDate);
 
         // Apply tag filter
         query = ApplyRelationFilter(query, filters, "tag_ids", "tag_filter_mode", "tag");

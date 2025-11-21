@@ -29,10 +29,10 @@ public class Resource
     public string? PublicationCode { get; set; }
 
     [Column("publication-date")]
-    public required DateTime PublicationDate { get; set; }
+    public DateTime? PublicationDate { get; set; }
 
     [Column("publication-date-precision")]
-    public PublicationDatePrecision PublicationDatePrecision { get; set; } = PublicationDatePrecision.Day;
+    public PublicationDatePrecision? PublicationDatePrecision { get; set; }
 
     [Column("creation-date")]
     public required DateTime CreationDate { get; set; }
@@ -121,8 +121,8 @@ public class ResourceCreateDto // Data Transfer Object (DTO)
     public required string TypeId { get; set; }
     public required string LanguageCode { get; set; }
     public string? PublicationCode { get; set; }
-    public required DateTime PublicationDate { get; set; }
-    public PublicationDatePrecision PublicationDatePrecision { get; set; } = PublicationDatePrecision.Day;
+    public DateTime? PublicationDate { get; set; }
+    public PublicationDatePrecision? PublicationDatePrecision { get; set; }
     public DateTime? CreationDate { get; set; }
     public string? License { get; set; }
     public string? SourceUrl { get; set; }

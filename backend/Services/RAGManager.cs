@@ -78,8 +78,8 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
             if (!string.IsNullOrEmpty(resource.Description))
                 metadataBuilder.AppendLine($"Description: {resource.Description}");
 
-            if (resource.PublicationDate != default(DateTime))
-                metadataBuilder.AppendLine($"Publication Date: {resource.PublicationDate:yyyy-MM-dd}");
+            if (resource.PublicationDate.HasValue)
+                metadataBuilder.AppendLine($"Publication Date: {resource.PublicationDate.Value:yyyy-MM-dd}");
 
             if (!string.IsNullOrEmpty(resource.LanguageCode))
                 metadataBuilder.AppendLine($"Language: {resource.LanguageCode}");

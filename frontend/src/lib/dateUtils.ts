@@ -3,9 +3,18 @@
  * For date-only values (YYYY-MM-DD), this creates a UTC date at midnight
  * to avoid timezone shifts that would change the date
  */
-export const convertToUTCDate = (dateValue: Date | string): string => {
+export const convertToUTCDate = (dateValue: Date | string | null): string | null => {
+  // Handle null/undefined
+  if (!dateValue) {
+    return null;
+  }
+
   // If it's already a Date object
   if (dateValue instanceof Date) {
+    // Check if the date is valid
+    if (isNaN(dateValue.getTime())) {
+      return null;
+    }
     const utcDate = new Date(Date.UTC(
       dateValue.getFullYear(),
       dateValue.getMonth(),
@@ -18,6 +27,10 @@ export const convertToUTCDate = (dateValue: Date | string): string => {
   // If it's a string in YYYY-MM-DD format
   if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateValue)) {
     const date = new Date(dateValue);
+    // Check if the parsed date is valid
+    if (isNaN(date.getTime())) {
+      return null;
+    }
     const utcDate = new Date(Date.UTC(
       date.getFullYear(),
       date.getMonth(),

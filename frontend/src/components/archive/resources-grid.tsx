@@ -34,7 +34,7 @@ export default function ResourcesGrid()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const dateFormatter = (params: any) =>
     {
-        if (!params.value) return '';
+        if (!params.value) return '-';
 
         const precision = params.data?.publicationDatePrecision;
         const date = new Date(params.value);

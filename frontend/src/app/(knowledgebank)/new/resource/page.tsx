@@ -457,23 +457,23 @@ export default function NewResourcePage()
         // Default to "Unknown" resource type (matches backend DatabaseSeeder.UnknownResourceTypeId)
         const UNKNOWN_TYPE_ID = '0cc285a8-0f07-11f0-a0a6-5600051f1387';
 
-        // Convert publication date to ISO datetime format
-        let publicationDate = new Date().toISOString();
+        // Convert publication date to ISO datetime format (if provided)
+        let publicationDate: string | undefined = undefined;
+        let publicationDatePrecision: 'Year' | 'Month' | 'Day' | undefined = undefined;
+
         if (editableMetadata.publicationDate) {
-            // If it's just a date string, convert to datetime
             const dateObj = new Date(editableMetadata.publicationDate);
             if (!isNaN(dateObj.getTime())) {
                 publicationDate = dateObj.toISOString();
+
+                // Convert numeric precision to string enum
+                const p = editableMetadata.publicationDatePrecision;
+                if (p === 0 || p === 'Year') publicationDatePrecision = 'Year';
+                else if (p === 1 || p === 'Month') publicationDatePrecision = 'Month';
+                else if (p === 2 || p === 'Day') publicationDatePrecision = 'Day';
+                else publicationDatePrecision = 'Day';
             }
         }
-
-        // Convert numeric precision to string enum
-        const normalizePrecision = (p: string | number | undefined): 'Year' | 'Month' | 'Day' => {
-            if (p === 0 || p === 'Year') return 'Year';
-            if (p === 1 || p === 'Month') return 'Month';
-            if (p === 2 || p === 'Day') return 'Day';
-            return 'Day';
-        };
 
         // Build the DTO
         const dto: DocumentCreateDto = {
@@ -482,7 +482,7 @@ export default function NewResourcePage()
             TypeId: UNKNOWN_TYPE_ID, // Default to "Unknown" type
             LanguageCode: editableMetadata.languageCode || '',
             PublicationDate: publicationDate,
-            PublicationDatePrecision: normalizePrecision(editableMetadata.publicationDatePrecision),
+            PublicationDatePrecision: publicationDatePrecision,
 
             // File-specific fields
             Id: uploadedFileId,

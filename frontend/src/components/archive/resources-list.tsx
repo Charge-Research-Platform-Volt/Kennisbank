@@ -20,7 +20,7 @@ export default function ResourcesList() {
 
   // Helper function to format date based on precision
   const formatDate = (dateString: string, precision: 'Year' | 'Month' | 'Day' | 0 | 1 | 2) => {
-    if (!dateString) return '';
+    if (!dateString) return 'Unknown';
 
     const date = new Date(dateString);
     const year = date.getFullYear();

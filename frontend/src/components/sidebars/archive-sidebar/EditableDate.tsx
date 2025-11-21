@@ -48,7 +48,7 @@ export default function EditableDate({
     };
 
     const formatDate = (date: Date | null, datePrecision: 'Year' | 'Month' | 'Day') => {
-        if (!date) return '';
+        if (!date) return 'Unknown';
         const d = new Date(date);
 
         if (datePrecision === 'Year') {
@@ -78,13 +78,33 @@ export default function EditableDate({
 
     const handleYearChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const year = e.target.value;
-        if (year && onDateChange) {
+        if (!onDateChange) return;
+
+        if (!year) {
+            // If year is cleared, set date to null
+            onDateChange(null);
+            return;
+        }
+
+        // Only update if we have a valid 4-digit year
+        const yearNum = parseInt(year, 10);
+        if (year.length === 4 && !isNaN(yearNum) && yearNum >= 1900 && yearNum <= 2100) {
             handleDateChange({ target: { value: `${year}-01-01` } });
         }
     };
 
     const handleMonthChange = (month: string, year: string) => {
-        if (month && year && onDateChange) {
+        if (!onDateChange) return;
+
+        if (!month || !year) {
+            // If incomplete, set to null
+            onDateChange(null);
+            return;
+        }
+
+        // Validate year
+        const yearNum = parseInt(year, 10);
+        if (year.length === 4 && !isNaN(yearNum) && yearNum >= 1900 && yearNum <= 2100) {
             handleDateChange({ target: { value: `${year}-${month}-01` } });
         }
     };
@@ -108,6 +128,16 @@ export default function EditableDate({
                         <span className="text-gray-700 text-sm">{text}</span>
                     </div>
                     <div className="flex gap-1 text-xs">
+                        {date && (
+                            <button
+                                type="button"
+                                onClick={() => onDateChange && onDateChange(null)}
+                                className="px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200"
+                                title="Clear publication date"
+                            >
+                                Clear
+                            </button>
+                        )}
                         <button
                             type="button"
                             onClick={() => handlePrecisionChange('Year')}
