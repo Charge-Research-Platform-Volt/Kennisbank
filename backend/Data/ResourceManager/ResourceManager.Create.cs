@@ -60,16 +60,16 @@ namespace KnowledgeBank.Data
             await AddTagToResourceRangeAsync(resourceId, dto.Tags);
 
             // Add author relations to database
-            await AddAuthorToResourceRangeAsync(resourceId, dto.Authors);
+            await AddAuthorToResourceRangeAsync(resourceId, dto.Authors.Select(a => a.Value).ToArray());
 
             // Add organisation relations to database
-            await AddOrganisationToResourceRangeAsync(resourceId, dto.Organisations.Select((entry) => entry.Id).ToArray(), dto.Organisations.Select((entry) => entry.Relation).ToArray());
+            await AddOrganisationToResourceRangeAsync(resourceId, dto.Organisations);
 
             // Add region relations to database
             await AddRegionToResourceRangeAsync(resourceId, dto.Regions);
 
             // Add non-author related person relations to database
-            await AddRelatedPersonToResourceRangeAsync(resourceId, dto.RelatedPersons.Select((entry) => entry.Id).ToArray(), dto.RelatedPersons.Select((entry) => entry.Relation).ToArray());
+            await AddRelatedPersonToResourceRangeAsync(resourceId, dto.RelatedPersons);
 
             if (startedTransaction) await Commit();
 

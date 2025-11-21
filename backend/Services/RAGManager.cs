@@ -604,29 +604,50 @@ Enhanced Query:";
         {
             logger.Information("Starting metadata extraction for: {FileNameOrUrl}", fileNameOrUrl);
 
-            // Step 1: Truncate text if too long (since LLMs have context limits)
-            // Take the first 8000 characters, which is usually enough for the title, authors, abstract
-            string textToAnalyze = text.Length > 8000 ? text.Substring(0, 8000) : text;
+            // Step 1: Smart sampling for long documents
+            // For academic papers, we need both the beginning (metadata, abstract, authors)
+            // and the end (references, acknowledgments) to extract all related persons / organisations
+            string textToAnalyze;
+            const int firstChars = 50000;  // Beginning: metadata, abstract, intro
+            const int lastChars = 30000;   // End: references, acknowledgments
+            const int maxTotal = firstChars + lastChars;
+
+            if (text.Length > maxTotal)
+            {
+                // Take beginning + end to capture both metadata and references
+                string beginning = text.Substring(0, firstChars);
+                string ending = text.Substring(text.Length - lastChars);
+                textToAnalyze = beginning + "\n\n[...middle section omitted...]\n\n" + ending;
+                logger.Information("Document too long ({TotalLength} chars), sampling first {First} + last {Last} characters",
+                    text.Length, firstChars, lastChars);
+            }
+            else
+            {
+                textToAnalyze = text;
+                logger.Information("Using full document text ({Length} characters)", text.Length);
+            }
 
             logger.Information("Analyzing {Length} characters of text", textToAnalyze.Length);
 
             // Step 2: Create prompt for LLM
             string prompt = $@"
-                You are a metadata extraction assistant. Analyze the following document text and extract sturctured metadata.
-                
+                You are a metadata extraction assistant. Analyze the following document text and extract structured metadata.
+
                 Filename/URL: {fileNameOrUrl}
-                
+
                 Document text:
                 {textToAnalyze}
-                
+
                 Extract the following information in JSON format:
                 {{
                     ""title"": ""The document title"",
                     ""abstract"": ""The abstract of the paper when it is a scientific paper, else leave empty"",
-                    ""description"": ""A complete and consise description of the document (50-300 words)"",
+                    ""description"": ""A complete and concise description of the document (50-300 words)"",
                     ""publicationDate"": ""YYYY, YYYY-MM, or YYYY-MM-DD format (use most specific format available, or null)"",
                     ""languageCode"": ""ISO 639-1 two-letter code (e.g., 'en', 'nl', 'fr', etc.)"",
-                    ""authors"": [""Array of author names""],
+                    ""authors"": [{{""name"": ""Author name"", ""type"": ""person or organisation""}}],
+                    ""organisations"": [""Array of organization names mentioned in the document, EXCLUDING any organizations that are authors""],
+                    ""relatedPersons"": [""Array of person names related to this document who are NOT authors (e.g., people mentioned, cited, or acknowledged)""],
                     ""publicationCode"": ""DOI, ISBN, arXiv ID, etc. or null"",
                     ""tags"": [""Array of categorization tags like 'Research Paper', 'Technical Report', 'Computer Science', etc.""]
                 }}
@@ -637,6 +658,26 @@ Enhanced Query:";
                 - Publication date can be partial: YYYY (year only), YYYY-MM (year and month), or YYYY-MM-DD (full date). Use the most specific format you can determine from the document.
                 - Note which type of publication code it is before the actual publication code
                 - Make sure tags are capitalized, so they look good
+                - **DEDUPLICATION RULE**: Each entity (person/organization) must appear ONLY ONCE per list
+                  * EXAMPLES (do NOT include these fictional names): If document has ""F. Lastname"" and ""Full Lastname"", include ONLY ""Full Lastname""
+                  * If the same name appears multiple times in document, include it ONLY ONCE in output
+                  * EXAMPLES (fictional): If document has ""Company"" and ""Company Inc."", include ONLY ""Company Inc.""
+                  * Always prefer the most complete version when you encounter variations of the same entity
+                  * Check each name before adding - if it's already in the list (even with slight variation), don't add it again
+                - **CRITICAL NAME FORMATTING RULE**: All person names MUST follow the format: Given name(s) FIRST, Family name LAST
+                  * FORMATTING EXAMPLES (do NOT include these fictional names in your output):
+                    - If document shows ""Lastname, A.B."" → reformat to ""A.B. Lastname""
+                    - If document shows ""Doe, Jane"" → reformat to ""Jane Doe""
+                  * NEVER preserve comma-separated ""Last, First"" format from citations or references
+                  * Always reorder names from the actual document to: [Given name] [Family name]
+                  * IMPORTANT: Only extract names that actually appear in the document text, not from these examples
+                - When the full name is available use that instead of just the first letters (e.g., if document has both ""F. Lastname"" and ""Full Lastname"", prefer ""Full Lastname"")
+
+                Important distinctions:
+                - AUTHORS: Can be individual persons OR organizations. Include whoever created/wrote this document.
+                - ORGANISATIONS: Organizations mentioned or discussed in the document (companies, universities, research institutions, government agencies). Do NOT include organizations that are listed as authors.
+                - RELATEDPERSONS: Individual people who are related to the document but are NOT authors. This includes people cited in references, mentioned in acknowledgments, or discussed in the document content.
+
                 - Return ONLY valid JSON, no additional text or explanation
             ";
 
@@ -745,15 +786,15 @@ Enhanced Query:";
             metadata.Tags = tempMetadata.Tags?.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim()).ToList() ?? [];
 
             // Step 6: Process authors and find similars
-            var tempAuthors = tempMetadata.Authors?.Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => a.Trim()).ToList() ?? [];
+            var tempAuthors = tempMetadata.Authors?.Where(a => !string.IsNullOrWhiteSpace(a.Name)).ToList() ?? [];
             var authorsWithSimilars = new List<AuthorWithSimilars>();
 
-            foreach (string author in tempAuthors)
+            foreach (var author in tempAuthors)
             {
-                logger.Information("Finding similars for author '{Author}'", author);
+                logger.Information("Finding similars for author '{Author}' (type: {Type})", author.Name, author.Type);
 
                 HybridSearchResult result = await searchService.SearchAsync(
-                    author.Replace(".", ""),
+                    author.Name.Replace(".", ""),
                     1,
                     3,
                     new Dictionary<string, object?> { { "type", new string[] { "person", "organisation" } } }
@@ -777,14 +818,98 @@ Enhanced Query:";
 
                 authorsWithSimilars.Add(new AuthorWithSimilars
                 {
-                    Name = author,
+                    Name = author.Name.Trim(),
+                    Type = author.Type.ToLowerInvariant().Trim(), // Normalize to "person" or "organisation"
                     Similars = similars
                 });
             }
 
             metadata.Authors = authorsWithSimilars;
 
-            logger.Information("Metadata extraction completed successfully. Title: {Title}, Authors: {AuthorCount}, Tags: {TagCount}", metadata.Title, metadata.Authors.Count, metadata.Tags.Count);
+            // Step 7: Process organisations and find similars
+            var tempOrganisations = tempMetadata.Organisations?.Where(o => !string.IsNullOrWhiteSpace(o)).Select(o => o.Trim()).ToList() ?? [];
+            var organisationsWithSimilars = new List<EntityWithSimilars>();
+
+            foreach (string organisation in tempOrganisations)
+            {
+                logger.Information("Finding similars for organisation '{Organisation}'", organisation);
+
+                HybridSearchResult result = await searchService.SearchAsync(
+                    organisation.Replace(".", ""),
+                    1,
+                    3,
+                    new Dictionary<string, object?> { { "type", new string[] { "organisation" } } }
+                );
+
+                // Filter out low-confidence matches (below 50%) and map to SimilarEntity
+                var similars = result.Items
+                    .Where(i => i.RelevanceScore >= 0.5f)
+                    .Select(i => new SimilarEntity
+                    {
+                        Id = i.Id,
+                        Name = i.Name,
+                        Score = i.RelevanceScore,
+                        Type = i.Type
+                    }).ToList();
+
+                foreach (var similar in similars)
+                {
+                    logger.Information("Found similar: {Name} ({Score})", similar.Name, similar.Score);
+                }
+
+                organisationsWithSimilars.Add(new EntityWithSimilars
+                {
+                    Name = organisation,
+                    Type = "organisation",
+                    Similars = similars
+                });
+            }
+
+            metadata.Organisations = organisationsWithSimilars;
+
+            // Step 8: Process related persons and find similars
+            var tempRelatedPersons = tempMetadata.RelatedPersons?.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p.Trim()).ToList() ?? [];
+            var relatedPersonsWithSimilars = new List<EntityWithSimilars>();
+
+            foreach (string person in tempRelatedPersons)
+            {
+                logger.Information("Finding similars for related person '{Person}'", person);
+
+                HybridSearchResult result = await searchService.SearchAsync(
+                    person.Replace(".", ""),
+                    1,
+                    3,
+                    new Dictionary<string, object?> { { "type", new string[] { "person" } } }
+                );
+
+                // Filter out low-confidence matches (below 50%) and map to SimilarEntity
+                var similars = result.Items
+                    .Where(i => i.RelevanceScore >= 0.5f)
+                    .Select(i => new SimilarEntity
+                    {
+                        Id = i.Id,
+                        Name = i.Name,
+                        Score = i.RelevanceScore,
+                        Type = i.Type
+                    }).ToList();
+
+                foreach (var similar in similars)
+                {
+                    logger.Information("Found similar: {Name} ({Score})", similar.Name, similar.Score);
+                }
+
+                relatedPersonsWithSimilars.Add(new EntityWithSimilars
+                {
+                    Name = person,
+                    Type = "person",
+                    Similars = similars
+                });
+            }
+
+            metadata.RelatedPersons = relatedPersonsWithSimilars;
+
+            logger.Information("Metadata extraction completed successfully. Title: {Title}, Authors: {AuthorCount}, Organisations: {OrgCount}, RelatedPersons: {PersonCount}, Tags: {TagCount}",
+                metadata.Title, metadata.Authors.Count, metadata.Organisations.Count, metadata.RelatedPersons.Count, metadata.Tags.Count);
 
             return metadata;
         }
@@ -809,9 +934,20 @@ internal class TempExtractedMetadata
     public string? Description { get; set; }
     public string? PublicationDate { get; set; }  // String to support partial dates (YYYY, YYYY-MM, YYYY-MM-DD)
     public string? LanguageCode { get; set; }
-    public List<string> Authors { get; set; } = [];
+    public List<TempAuthor> Authors { get; set; } = [];
+    public List<string> Organisations { get; set; } = [];
+    public List<string> RelatedPersons { get; set; } = [];
     public string? PublicationCode { get; set; }
     public List<string> Tags { get; set; } = [];
+}
+
+/// <summary>
+/// Temporary class for author with type information from LLM
+/// </summary>
+internal class TempAuthor
+{
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty; // "person" or "organisation"
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

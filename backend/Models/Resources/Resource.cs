@@ -103,6 +103,12 @@ public class RelatedEntry
     public string? Relation { get; set; }
 }
 
+public class AuthorEntry
+{
+    public required string Value { get; set; } // GUID for existing entity, or name for new entity
+    public string? Type { get; set; } // "person" or "organisation" - needed when creating new entities
+}
+
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "uploadType")]
 [JsonDerivedType(typeof(WebsiteCreateDto), "website")]
 [JsonDerivedType(typeof(DocumentCreateDto), "document")]
@@ -122,12 +128,10 @@ public class ResourceCreateDto // Data Transfer Object (DTO)
     public string? SourceUrl { get; set; }
     public string? Note { get; set; }
     public string[] Tags { get; set; } = [];
-    public string[] Authors { get; set; } = [];
-    // Tuple: (OrganisationId, role?)
-    public RelatedEntry[] Organisations { get; set; } = [];
+    public AuthorEntry[] Authors { get; set; } = [];
+    public string[] Organisations { get; set; } = [];
     public string[] Regions { get; set; } = [];
-    // Tuple: (PersonId, role?)
-    public RelatedEntry[] RelatedPersons { get; set; } = [];
+    public string[] RelatedPersons { get; set; } = [];
 }
 
 public class FileResourceCreateDto : ResourceCreateDto

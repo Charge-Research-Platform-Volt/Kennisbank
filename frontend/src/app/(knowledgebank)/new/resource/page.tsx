@@ -8,10 +8,10 @@ import { ProgressBox } from '@/components/progress-box';
 import { Spinner } from '@/components/ui/spinner';
 import { EditableField, EditableLanguageField, EditableDateField } from '@/components/new/MetadataFields';
 import { TagsSection } from '@/components/new/TagsSection';
-import { AuthorsSection } from '@/components/new/AuthorsSection';
+import { EntitySelectionSection } from '@/components/new/EntitySelectionSection';
 import { getFileHasher } from '@/utils/fileHashWorker';
 import { uploadFileChunked } from '@/actions/fileUploadActions';
-import { ExtractedMetadata, AuthorSelection } from '@/types/extractedMetadata.type';
+import { ExtractedMetadata, EntitySelection } from '@/types/extractedMetadata.type';
 import { DocumentCreateDtoSchema, type DocumentCreateDto } from '@/types/uploadTypes';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -38,7 +38,9 @@ export default function NewResourcePage()
     const [currentStep, setCurrentStep] = React.useState(1);
     const [editableMetadata, setEditableMetadata] = React.useState<ExtractedMetadata | null>(null);
     const [editingField, setEditingField] = React.useState<string | null>(null);
-    const [authorSelections, setAuthorSelections] = React.useState<Map<string, AuthorSelection>>(new Map());
+    const [authorSelections, setAuthorSelections] = React.useState<Map<string, EntitySelection>>(new Map());
+    const [organisationSelections, setOrganisationSelections] = React.useState<Map<string, EntitySelection>>(new Map());
+    const [relatedPersonSelections, setRelatedPersonSelections] = React.useState<Map<string, EntitySelection>>(new Map());
     const [uploadedFileId, setUploadedFileId] = React.useState<string | null>(null);
     const [fileHash, setFileHash] = React.useState<string | null>(null);
 
@@ -135,24 +137,64 @@ export default function NewResourcePage()
             setEditableMetadata(metadata.body);
 
             // Initialize default author selections
-            const defaultSelections = new Map<string, AuthorSelection>();
-            metadata.body.authors?.forEach((author: { name: string; similars: Array<{ id: string; score: number }> }) => {
+            const defaultAuthorSelections = new Map<string, EntitySelection>();
+            metadata.body.authors?.forEach((author: { name: string; type: string; similars: Array<{ id: string; score: number }> }) => {
                 // If there's a high-confidence match (>90%), auto-select it
                 const bestMatch = author.similars?.[0]; // Similars are already sorted by score
                 if (bestMatch && bestMatch.score >= 0.9) {
-                    defaultSelections.set(author.name, {
+                    defaultAuthorSelections.set(author.name, {
                         extractedName: author.name,
+                        action: 'use_existing',
+                        existingId: bestMatch.id,
+                        type: author.type
+                    });
+                } else {
+                    defaultAuthorSelections.set(author.name, {
+                        extractedName: author.name,
+                        action: 'create',
+                        type: author.type
+                    });
+                }
+            });
+            setAuthorSelections(defaultAuthorSelections);
+
+            // Initialize default organisation selections
+            const defaultOrgSelections = new Map<string, EntitySelection>();
+            metadata.body.organisations?.forEach((org: { name: string; similars: Array<{ id: string; score: number }> }) => {
+                const bestMatch = org.similars?.[0];
+                if (bestMatch && bestMatch.score >= 0.9) {
+                    defaultOrgSelections.set(org.name, {
+                        extractedName: org.name,
                         action: 'use_existing',
                         existingId: bestMatch.id
                     });
                 } else {
-                    defaultSelections.set(author.name, {
-                        extractedName: author.name,
+                    defaultOrgSelections.set(org.name, {
+                        extractedName: org.name,
                         action: 'create'
                     });
                 }
             });
-            setAuthorSelections(defaultSelections);
+            setOrganisationSelections(defaultOrgSelections);
+
+            // Initialize default related person selections
+            const defaultRelatedPersonSelections = new Map<string, EntitySelection>();
+            metadata.body.relatedPersons?.forEach((person: { name: string; similars: Array<{ id: string; score: number }> }) => {
+                const bestMatch = person.similars?.[0];
+                if (bestMatch && bestMatch.score >= 0.9) {
+                    defaultRelatedPersonSelections.set(person.name, {
+                        extractedName: person.name,
+                        action: 'use_existing',
+                        existingId: bestMatch.id
+                    });
+                } else {
+                    defaultRelatedPersonSelections.set(person.name, {
+                        extractedName: person.name,
+                        action: 'create'
+                    });
+                }
+            });
+            setRelatedPersonSelections(defaultRelatedPersonSelections);
 
             setTimeout(() => setPhase('review'), 500); // Small delay to show completion
         } catch (error)
@@ -223,24 +265,64 @@ export default function NewResourcePage()
             setEditableMetadata(metadata.body);
             
             // Initialize default author selections
-            const defaultSelections = new Map<string, AuthorSelection>();
-            metadata.body.authors?.forEach((author: { name: string; similars: Array<{ id: string; score: number }> }) => {
+            const defaultAuthorSelections = new Map<string, EntitySelection>();
+            metadata.body.authors?.forEach((author: { name: string; type: string; similars: Array<{ id: string; score: number }> }) => {
                 // If there's a high-confidence match (>90%), auto-select it
                 const bestMatch = author.similars?.[0]; // Similars are already sorted by score
                 if (bestMatch && bestMatch.score >= 0.9) {
-                    defaultSelections.set(author.name, {
+                    defaultAuthorSelections.set(author.name, {
                         extractedName: author.name,
+                        action: 'use_existing',
+                        existingId: bestMatch.id,
+                        type: author.type
+                    });
+                } else {
+                    defaultAuthorSelections.set(author.name, {
+                        extractedName: author.name,
+                        action: 'create',
+                        type: author.type
+                    });
+                }
+            });
+            setAuthorSelections(defaultAuthorSelections);
+
+            // Initialize default organisation selections
+            const defaultOrgSelections = new Map<string, EntitySelection>();
+            metadata.body.organisations?.forEach((org: { name: string; similars: Array<{ id: string; score: number }> }) => {
+                const bestMatch = org.similars?.[0];
+                if (bestMatch && bestMatch.score >= 0.9) {
+                    defaultOrgSelections.set(org.name, {
+                        extractedName: org.name,
                         action: 'use_existing',
                         existingId: bestMatch.id
                     });
                 } else {
-                    defaultSelections.set(author.name, {
-                        extractedName: author.name,
+                    defaultOrgSelections.set(org.name, {
+                        extractedName: org.name,
                         action: 'create'
                     });
                 }
             });
-            setAuthorSelections(defaultSelections);
+            setOrganisationSelections(defaultOrgSelections);
+
+            // Initialize default related person selections
+            const defaultRelatedPersonSelections = new Map<string, EntitySelection>();
+            metadata.body.relatedPersons?.forEach((person: { name: string; similars: Array<{ id: string; score: number }> }) => {
+                const bestMatch = person.similars?.[0];
+                if (bestMatch && bestMatch.score >= 0.9) {
+                    defaultRelatedPersonSelections.set(person.name, {
+                        extractedName: person.name,
+                        action: 'use_existing',
+                        existingId: bestMatch.id
+                    });
+                } else {
+                    defaultRelatedPersonSelections.set(person.name, {
+                        extractedName: person.name,
+                        action: 'create'
+                    });
+                }
+            });
+            setRelatedPersonSelections(defaultRelatedPersonSelections);
 
             setTimeout(() => setPhase('review'), 500); // Small delay to show completion
         }catch (error) 
@@ -307,10 +389,26 @@ export default function NewResourcePage()
         }
     };
 
-    const handleAuthorSelectionChange = (authorName: string, selection: AuthorSelection) => {
+    const handleAuthorSelectionChange = (authorName: string, selection: EntitySelection) => {
         setAuthorSelections((prev) => {
             const newSelections = new Map(prev);
             newSelections.set(authorName, selection);
+            return newSelections;
+        });
+    };
+
+    const handleOrganisationSelectionChange = (orgName: string, selection: EntitySelection) => {
+        setOrganisationSelections((prev) => {
+            const newSelections = new Map(prev);
+            newSelections.set(orgName, selection);
+            return newSelections;
+        });
+    };
+
+    const handleRelatedPersonSelectionChange = (personName: string, selection: EntitySelection) => {
+        setRelatedPersonSelections((prev) => {
+            const newSelections = new Map(prev);
+            newSelections.set(personName, selection);
             return newSelections;
         });
     };
@@ -321,13 +419,35 @@ export default function NewResourcePage()
             return;
         }
 
-        // Convert author selections to Authors array (GUIDs or names)
-        const authors: string[] = [];
+        // Convert author selections to Authors array with type information
+        const authors: Array<{ value: string; type?: string }> = [];
         for (const [authorName, selection] of authorSelections.entries()) {
             if (selection.action === 'use_existing' && selection.existingId) {
-                authors.push(selection.existingId); // Use existing GUID
+                // For existing entities, just send the GUID (type not needed, backend can look it up)
+                authors.push({ value: selection.existingId });
             } else {
-                authors.push(authorName); // Use name (backend will create new person)
+                // For new entities, send the name and type so backend knows what to create
+                authors.push({ value: authorName, type: selection.type });
+            }
+        }
+
+        // Convert organisation selections to Organisations array (GUIDs or names)
+        const organisations: string[] = [];
+        for (const [orgName, selection] of organisationSelections.entries()) {
+            if (selection.action === 'use_existing' && selection.existingId) {
+                organisations.push(selection.existingId); // Use existing GUID
+            } else {
+                organisations.push(orgName); // Use name (backend will create new organisation)
+            }
+        }
+
+        // Convert related person selections to RelatedPersons array (GUIDs or names)
+        const relatedPersons: string[] = [];
+        for (const [personName, selection] of relatedPersonSelections.entries()) {
+            if (selection.action === 'use_existing' && selection.existingId) {
+                relatedPersons.push(selection.existingId); // Use existing GUID
+            } else {
+                relatedPersons.push(personName); // Use name (backend will create new person)
             }
         }
 
@@ -381,9 +501,9 @@ export default function NewResourcePage()
             Abstract: editableMetadata.abstract,
 
             // Optional relations
-            Organisations: [],
+            Organisations: organisations,
             Regions: [],
-            RelatedPersons: [],
+            RelatedPersons: relatedPersons,
         };
 
         // Validate with Zod
@@ -416,8 +536,6 @@ export default function NewResourcePage()
             if (!response.ok) {
                 throw new Error(responseData.message || 'Failed to save resource');
             }
-            
-            console.log(responseData.body);
             
             // Success!
             toast.success('Resource saved successfully!');
@@ -662,14 +780,45 @@ export default function NewResourcePage()
                                 <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
                                     Authors
                                 </h2>
-                                <AuthorsSection
-                                    authors={editableMetadata.authors || []}
+                                <EntitySelectionSection
+                                    entities={editableMetadata.authors || []}
                                     selections={authorSelections}
                                     onSelectionChange={handleAuthorSelectionChange}
+                                    emptyMessage="No authors found"
+                                    singularLabel="author"
+                                    pluralLabel="authors"
                                 />
                             </div>
 
-                            {/* Future: Organizations, Regions, etc. will go here */}
+                            {/* Organisations */}
+                            <div className="bg-white border border-gray-300 rounded-lg p-6">
+                                <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
+                                    Organisations
+                                </h2>
+                                <EntitySelectionSection
+                                    entities={editableMetadata.organisations || []}
+                                    selections={organisationSelections}
+                                    onSelectionChange={handleOrganisationSelectionChange}
+                                    emptyMessage="No organisations found"
+                                    singularLabel="organisation"
+                                    pluralLabel="organisations"
+                                />
+                            </div>
+
+                            {/* Related Persons */}
+                            <div className="bg-white border border-gray-300 rounded-lg p-6">
+                                <h2 className="text-lg font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
+                                    Related Persons
+                                </h2>
+                                <EntitySelectionSection
+                                    entities={editableMetadata.relatedPersons || []}
+                                    selections={relatedPersonSelections}
+                                    onSelectionChange={handleRelatedPersonSelectionChange}
+                                    emptyMessage="No related persons found"
+                                    singularLabel="person"
+                                    pluralLabel="persons"
+                                />
+                            </div>
                         </div>
                     </div>
 

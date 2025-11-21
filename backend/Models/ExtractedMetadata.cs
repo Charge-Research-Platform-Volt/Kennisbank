@@ -12,17 +12,27 @@ public class ExtractedMetadata
     public PublicationDatePrecision? PublicationDatePrecision { get; set; }
     public string? LanguageCode { get; set; }
     public List<AuthorWithSimilars> Authors { get; set; } = [];
+    public List<EntityWithSimilars> Organisations { get; set; } = [];
+    public List<EntityWithSimilars> RelatedPersons { get; set; } = [];
     public string? PublicationCode { get; set; }
     public List<string> Tags { get; set; } = [];
 }
 
 /// <summary>
-/// Represents an author with potential similar entities from the database
+/// Represents an entity (person or organisation) with potential similar entities from the database
 /// </summary>
-public class AuthorWithSimilars
+public class EntityWithSimilars
 {
     public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty; // "person" or "organisation" - the suggested type for new entities
     public List<SimilarEntity> Similars { get; set; } = [];
+}
+
+/// <summary>
+/// Type alias for backward compatibility - authors are persons with similars
+/// </summary>
+public class AuthorWithSimilars : EntityWithSimilars
+{
 }
 
 /// <summary>

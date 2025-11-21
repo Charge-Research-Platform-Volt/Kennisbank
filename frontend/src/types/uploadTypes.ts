@@ -31,11 +31,16 @@ export const ResourceCreateDtoSchema = z.object(
    SourceUrl: z.string().nullish(),
    Note: z.string().nullish(),
    Tags: z.string().array().default([]),
-   // Authors can be either GUIDs (existing) or names (new to be created)
-   Authors: z.string().array().default([]),
-   Organisations: z.array(RelatedEntrySchema).default([]),
+   // Authors with type information (value is GUID for existing, or name for new; type is needed for new entities)
+   Authors: z.array(z.object({
+       value: z.string(),
+       type: z.string().optional() // "person" or "organisation" - needed when creating new entities
+   })).default([]),
+   // Organisations can be either GUIDs (existing) or names (new to be created)
+   Organisations: z.string().array().default([]),
    Regions: z.string().array().default([]),
-   RelatedPersons: z.array(RelatedEntrySchema).default([]),
+   // RelatedPersons can be either GUIDs (existing) or names (new to be created)
+   RelatedPersons: z.string().array().default([]),
 });
 
 /**

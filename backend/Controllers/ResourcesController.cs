@@ -28,6 +28,7 @@ using Microsoft.Extensions.AI;
 using System.Reflection.Metadata.Ecma335;
 using Docker.DotNet.Models;
 using System.Security.Claims;
+using System.Security.Cryptography;
 
 
 
@@ -129,24 +130,81 @@ namespace KnowledgeBank.Controllers
                 // Start transaction on the database
                 await resourceManager.BeginTransaction();
                 
-                // First check if we need to create any persons that don't exist yet
+                // First check if we need to create any persons / organisations in the author list that don't exist yet
                 for (int i = 0; i < dto.Authors.Length; i++)
                 {
                     // If valid ID nothing needs to be done.
-                    if (ValidityUtil.IsValidId(dto.Authors[i]))
+                    if (ValidityUtil.IsValidId(dto.Authors[i].Value))
                         continue;
 
-                    // Not a valid ID, so create a person and replace the value with new ID
-                    string name = dto.Authors[i];
-                    Guid personId = await resourceManager.CreatePersonAsync(new PersonCreateDto { Name = name });
-                    dto.Authors[i] = personId.ToString();
+                    // Not a valid ID, so create entity based on type
+                    string name = dto.Authors[i].Value;
+                    string? type = dto.Authors[i].Type?.ToLowerInvariant();
+                    Guid entityId;
 
-                    // Also start embedding task for this new person
+                    if (type == "organisation")
+                    {
+                        // Create organisation
+                        entityId = await resourceManager.CreateOrganisationAsync(new OrganisationCreateDto { Name = name });
+                        logger.Information("Created new organisation '{Name}' with ID {Id}", name, entityId);
+                    }
+                    else
+                    {
+                        // Default to person (includes when type is null, "person", or any other value)
+                        entityId = await resourceManager.CreatePersonAsync(new PersonCreateDto { Name = name });
+                        logger.Information("Created new person '{Name}' with ID {Id}", name, entityId);
+                    }
+
+                    dto.Authors[i].Value = entityId.ToString();
+
+                    // Also start embedding task for this new entity
                     taskQueue.QueueBackgroundWorkItem(async token =>
                     {
                         using var scope = serviceScopeFactory.CreateScope();
                         RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                        await rag.MainPipeline(id: personId, chunk: $"{name}");
+                        await rag.MainPipeline(id: entityId, chunk: $"{name}");
+                    });
+                }
+                
+                // Check if we need to create any organisations that don't exist yet
+                for (int i = 0; i < dto.Organisations.Length; i++) 
+                {   
+                    // If valid ID nothing needs to be done.
+                    if (ValidityUtil.IsValidId(dto.Organisations[i]))
+                        continue;
+
+                    // Else create the organisation and store its id
+                    string name = dto.Organisations[i];
+                    Guid oId = await resourceManager.CreateOrganisationAsync(new OrganisationCreateDto { Name = name });
+                    dto.Organisations[i] = oId.ToString();
+
+                    // Also start embedding task for this new organisation
+                    taskQueue.QueueBackgroundWorkItem(async token =>
+                    {
+                        using var scope = serviceScopeFactory.CreateScope();
+                        RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                        await rag.MainPipeline(id: oId, chunk: $"{name}");
+                    });
+                }
+
+                // Check if we need to create any related persons that don't exist yet
+                for (int i = 0; i < dto.RelatedPersons.Length; i++) 
+                {
+                    // If valid ID nothing needs to be done.
+                    if (ValidityUtil.IsValidId(dto.RelatedPersons[i]))
+                        continue;
+
+                    // Else create the person an store its id
+                    string name = dto.RelatedPersons[i];
+                    Guid pId = await resourceManager.CreatePersonAsync(new PersonCreateDto { Name = name });
+                    dto.RelatedPersons[i] = pId.ToString();
+
+                    // Start embedding task for this new person
+                    taskQueue.QueueBackgroundWorkItem(async token =>
+                    {
+                        using var scope = serviceScopeFactory.CreateScope();
+                        RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                        await rag.MainPipeline(id: pId, chunk: $"{name}");
                     });
                 }
 

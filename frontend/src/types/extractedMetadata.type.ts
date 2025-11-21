@@ -1,14 +1,10 @@
-export interface SimilarEntity {
-    id: string;
-    name: string;
-    score: number;
-    type: 'person' | 'organisation';
-}
-
-export interface AuthorWithSimilars {
-    name: string;
-    similars: SimilarEntity[];
-}
+// Re-export generic types from EntitySelectionSection
+export type {
+    SimilarEntity,
+    EntityWithSimilars,
+    EntitySelection
+} from '@/components/new/EntitySelectionSection';
+import type { EntityWithSimilars } from '@/components/new/EntitySelectionSection';
 
 export type PublicationDatePrecision = 'Year' | 'Month' | 'Day' | 0 | 1 | 2;
 
@@ -19,15 +15,11 @@ export interface ExtractedMetadata {
     publicationDate?: string;
     publicationDatePrecision?: PublicationDatePrecision;
     languageCode?: string;
-    authors?: AuthorWithSimilars[];
+    authors?: EntityWithSimilars[];
+    organisations?: EntityWithSimilars[];
+    relatedPersons?: EntityWithSimilars[];
     publicationCode?: string;
     tags?: string[];
     license?: string;
     sourceUrl?: string;
-}
-
-export interface AuthorSelection {
-    extractedName: string;
-    action: 'create' | 'use_existing';
-    existingId?: string;
 }

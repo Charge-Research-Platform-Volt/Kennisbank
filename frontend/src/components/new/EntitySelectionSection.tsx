@@ -1,51 +1,84 @@
 import React from 'react';
-import { AuthorWithSimilars, AuthorSelection } from '@/types/extractedMetadata.type';
 import { Check } from 'lucide-react';
 
-interface AuthorsSectionProps {
-    authors: AuthorWithSimilars[];
-    selections: Map<string, AuthorSelection>;
-    onSelectionChange: (authorName: string, selection: AuthorSelection) => void;
+export interface SimilarEntity {
+    id: string;
+    name: string;
+    score: number;
+    type: string;
 }
 
-export function AuthorsSection({ authors, selections, onSelectionChange }: AuthorsSectionProps) {
-    if (!authors || authors.length === 0) {
+export interface EntityWithSimilars {
+    name: string;
+    type: string; // "person" or "organisation" - suggested type for new entities
+    similars: SimilarEntity[];
+}
+
+export interface EntitySelection {
+    extractedName: string;
+    action: 'create' | 'use_existing';
+    existingId?: string;
+    type?: string; // "person" or "organisation" - type to use when creating new entity
+}
+
+interface EntitySelectionSectionProps {
+    entities: EntityWithSimilars[];
+    selections: Map<string, EntitySelection>;
+    onSelectionChange: (entityName: string, selection: EntitySelection) => void;
+    emptyMessage?: string;
+    singularLabel?: string; // e.g., "entity", "author", "organization"
+    pluralLabel?: string;   // e.g., "entities", "authors", "organizations"
+}
+
+export function EntitySelectionSection({
+    entities,
+    selections,
+    onSelectionChange,
+    emptyMessage = "No entities found",
+    singularLabel = "entity",
+    pluralLabel = "entities"
+}: EntitySelectionSectionProps) {
+    if (!entities || entities.length === 0) {
         return (
             <div className="space-y-2">
-                <p className="text-sm text-gray-500">No authors found</p>
+                <p className="text-sm text-gray-500">{emptyMessage}</p>
             </div>
         );
     }
 
     return (
         <div className="space-y-6">
-            {authors.map((author, index) => (
-                <AuthorItem
+            {entities.map((entity, index) => (
+                <EntityItem
                     key={index}
-                    author={author}
-                    selection={selections.get(author.name)}
-                    onSelectionChange={(selection) => onSelectionChange(author.name, selection)}
+                    entity={entity}
+                    selection={selections.get(entity.name)}
+                    onSelectionChange={(selection) => onSelectionChange(entity.name, selection)}
+                    singularLabel={singularLabel}
+                    pluralLabel={pluralLabel}
                 />
             ))}
         </div>
     );
 }
 
-interface AuthorItemProps {
-    author: AuthorWithSimilars;
-    selection?: AuthorSelection;
-    onSelectionChange: (selection: AuthorSelection) => void;
+interface EntityItemProps {
+    entity: EntityWithSimilars;
+    selection?: EntitySelection;
+    onSelectionChange: (selection: EntitySelection) => void;
+    singularLabel: string;
+    pluralLabel: string;
 }
 
-function AuthorItem({ author, selection, onSelectionChange }: AuthorItemProps) {
-    const hasSimilars = author.similars && author.similars.length > 0;
+function EntityItem({ entity, selection, onSelectionChange, singularLabel, pluralLabel }: EntityItemProps) {
+    const hasSimilars = entity.similars && entity.similars.length > 0;
 
     return (
         <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-            {/* Extracted author name */}
+            {/* Extracted entity name */}
             <div className="mb-3">
                 <h3 className="text-sm font-semibold text-gray-900">
-                    Extracted: <span className="text-purple-600">{author.name}</span>
+                    Extracted: <span className="text-purple-600">{entity.name}</span>
                 </h3>
             </div>
 
@@ -53,7 +86,7 @@ function AuthorItem({ author, selection, onSelectionChange }: AuthorItemProps) {
             {hasSimilars && (
                 <div className="mb-3">
                     <p className="text-xs text-gray-600 mb-2">
-                        Found {author.similars.length} similar {author.similars.length === 1 ? 'entity' : 'entities'}:
+                        Found {entity.similars.length} similar {entity.similars.length === 1 ? singularLabel : pluralLabel}:
                     </p>
                 </div>
             )}
@@ -63,11 +96,11 @@ function AuthorItem({ author, selection, onSelectionChange }: AuthorItemProps) {
                 {/* Create new option */}
                 <SelectionOption
                     label="Create new"
-                    sublabel={`Add "${author.name}" as a new entity`}
+                    sublabel={`Add "${entity.name}" as a new ${singularLabel}`}
                     selected={!selection || selection.action === 'create'}
                     onClick={() =>
                         onSelectionChange({
-                            extractedName: author.name,
+                            extractedName: entity.name,
                             action: 'create',
                         })
                     }
@@ -75,11 +108,13 @@ function AuthorItem({ author, selection, onSelectionChange }: AuthorItemProps) {
 
                 {/* Similar entity options */}
                 {hasSimilars &&
-                    author.similars.map((similar) => {
+                    entity.similars.map((similar) => {
                         // Normalize score for display (search boosting can push scores > 1.0)
-                        const displayScore = similar.score > 1.0
+                        const calculatedScore = similar.score > 1.0
                             ? 95 + Math.min(5, (similar.score - 1.0) * 2) // 95-100% for boosted scores
                             : Math.round(similar.score * 95); // 0-95% for normal scores
+                            
+                        const displayScore = Math.round(calculatedScore * 100) / 100;
 
                         const matchQuality = displayScore >= 95 ? 'Excellent' :
                                            displayScore >= 80 ? 'Very good' :
@@ -93,7 +128,7 @@ function AuthorItem({ author, selection, onSelectionChange }: AuthorItemProps) {
                                 selected={selection?.action === 'use_existing' && selection.existingId === similar.id}
                                 onClick={() =>
                                     onSelectionChange({
-                                        extractedName: author.name,
+                                        extractedName: entity.name,
                                         action: 'use_existing',
                                         existingId: similar.id,
                                     })
