@@ -649,7 +649,7 @@ Enhanced Query:";
                     ""organisations"": [""Array of organization names mentioned in the document, EXCLUDING any organizations that are authors""],
                     ""relatedPersons"": [""Array of person names related to this document who are NOT authors (e.g., people mentioned, cited, or acknowledged)""],
                     ""publicationCode"": ""DOI, ISBN, arXiv ID, etc. or null"",
-                    ""tags"": [""Array of categorization tags like 'Research Paper', 'Technical Report', 'Computer Science', etc.""]
+                    ""tags"": [""Array of descriptive tags like 'Research Paper', 'Technical Report', 'Computer Science', etc.""]
                 }}
 
                 Rules:
@@ -674,9 +674,27 @@ Enhanced Query:";
                 - When the full name is available use that instead of just the first letters (e.g., if document has both ""F. Lastname"" and ""Full Lastname"", prefer ""Full Lastname"")
 
                 Important distinctions:
-                - AUTHORS: Can be individual persons OR organizations. Include whoever created/wrote this document.
-                - ORGANISATIONS: Organizations mentioned or discussed in the document (companies, universities, research institutions, government agencies). Do NOT include organizations that are listed as authors.
-                - RELATEDPERSONS: Individual people who are related to the document but are NOT authors. This includes people cited in references, mentioned in acknowledgments, or discussed in the document content.
+                - AUTHORS: Who wrote/created this document. Can be individual persons OR organizations.
+                  * Step 1: Look for author attribution (bylines, ""by"", ""door"", etc.)
+                  * Step 2: Determine the type:
+                    - If it's a named individual (e.g., ""Door John Doe"") → add that person to AUTHORS
+                    - If it indicates the organization's own staff (e.g., ""by our newsroom"", ""by our editorial team"", ""door onze nieuwsredactie"", ""by staff"") → the organization itself is the author
+                    - If NO author attribution is found → leave AUTHORS empty
+                  * Step 3: When organizational authorship is indicated (""our newsroom"", ""onze redactie"", etc.):
+                    - Look for the publisher/organization name in the document (check headers, footers, logos, or prominent mentions)
+                    - Add that organization name to AUTHORS
+                  * CRITICAL: ""our""/""onze"" = the publishing organization. Find that organization's name in the document and use it as the author.
+
+                - ORGANISATIONS: Organizations associated with this document.
+                  * Include publishers and source organizations
+                  * Include other organizations mentioned or discussed in the content
+                  * Note: An organization can appear in BOTH authors (if they wrote it) AND organisations (if they published it)
+                  * Leave empty if none are mentioned
+
+                - RELATEDPERSONS: Individual people mentioned in the document who are NOT authors.
+                  * Examples: People cited, mentioned in acknowledgments, or discussed in the content
+                  * Do NOT include the document's author(s) here
+                  * Leave empty if no one is mentioned
 
                 - Return ONLY valid JSON, no additional text or explanation
             ";
