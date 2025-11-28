@@ -593,94 +593,95 @@ Enhanced Query:";
 
     #region Metadata Extraction
 
+    private const string metadataExtractionRules = $@"
+    
+        Extract the following information in JSON format:
+        {{
+            ""title"": ""The document title"",
+            ""abstract"": ""The abstract of the paper when it is a scientific paper, else leave empty"",
+            ""description"": ""A complete and concise description of the document (50-300 words)"",
+            ""publicationDate"": ""YYYY, YYYY-MM, or YYYY-MM-DD format (use most specific format available, or null)"",
+            ""languageCode"": ""ISO 639-1 two-letter code (e.g., 'en', 'nl', 'fr', etc.)"",
+            ""authors"": [{{""name"": ""Author name"", ""type"": ""person or organisation""}}],
+            ""organisations"": [""Array of organization names mentioned in the document, EXCLUDING any organizations that are authors""],
+            ""relatedPersons"": [""Array of person names related to this document who are NOT authors (e.g., people mentioned, cited, or acknowledged)""],
+            ""publicationCode"": ""DOI, ISBN, arXiv ID, etc. or null"",
+            ""tags"": [""Array of descriptive tags like 'Research Paper', 'Technical Report', 'Computer Science', etc.""]
+        }}
+
+        Rules:
+        - If a field cannot be determined, use null or empty array
+        - Language code must be 2 letters lowercase (From the ISO 639-1 list)
+        - Publication date can be partial: YYYY (year only), YYYY-MM (year and month), or YYYY-MM-DD (full date). Use the most specific format you can determine from the document.
+        - Note which type of publication code it is before the actual publication code
+        - Make sure tags are capitalized, so they look good
+        - **DEDUPLICATION RULE**: Each entity (person/organization) must appear ONLY ONCE per list
+            * EXAMPLES (do NOT include these fictional names): If document has ""F. Lastname"" and ""Full Lastname"", include ONLY ""Full Lastname""
+            * If the same name appears multiple times in document, include it ONLY ONCE in output
+            * EXAMPLES (fictional): If document has ""Company"" and ""Company Inc."", include ONLY ""Company Inc.""
+            * Always prefer the most complete version when you encounter variations of the same entity
+            * Check each name before adding - if it's already in the list (even with slight variation), don't add it again
+        - **CRITICAL NAME FORMATTING RULE**: All person names MUST follow the format: Given name(s) FIRST, Family name LAST
+            * FORMATTING EXAMPLES (do NOT include these fictional names in your output):
+            - If document shows ""Lastname, A.B."" → reformat to ""A.B. Lastname""
+            - If document shows ""Doe, Jane"" → reformat to ""Jane Doe""
+            * NEVER preserve comma-separated ""Last, First"" format from citations or references
+            * Always reorder names from the actual document to: [Given name] [Family name]
+            * IMPORTANT: Only extract names that actually appear in the document text, not from these examples
+        - When the full name is available use that instead of just the first letters (e.g., if document has both ""F. Lastname"" and ""Full Lastname"", prefer ""Full Lastname"")
+
+        Important distinctions:
+        - AUTHORS: Who wrote/created this document. Can be individual persons OR organizations.
+            * Step 1: Look for author attribution (bylines, ""by"", ""door"", etc.)
+            * Step 2: Determine the type:
+            - If it's a named individual (e.g., ""Door John Doe"") → add that person to AUTHORS
+            - If it indicates the organization's own staff (e.g., ""by our newsroom"", ""by our editorial team"", ""door onze nieuwsredactie"", ""by staff"") → the organization itself is the author
+            - If NO author attribution is found → leave AUTHORS empty
+            * Step 3: When organizational authorship is indicated (""our newsroom"", ""onze redactie"", etc.):
+            - Look for the publisher/organization name in the document (check headers, footers, logos, or prominent mentions)
+            - Add that organization name to AUTHORS
+            * CRITICAL: ""our""/""onze"" = the publishing organization. Find that organization's name in the document and use it as the author.
+
+        - ORGANISATIONS: Organizations associated with this document.
+            * Include publishers and source organizations
+            * Include other organizations mentioned or discussed in the content
+            * Note: An organization can appear in BOTH authors (if they wrote it) AND organisations (if they published it)
+            * Leave empty if none are mentioned
+
+        - RELATEDPERSONS: Individual people mentioned in the document who are NOT authors.
+            * Examples: People cited, mentioned in acknowledgments, or discussed in the content
+            * Do NOT include the document's author(s) here
+            * Leave empty if no one is mentioned
+
+        - Return ONLY valid JSON, no additional text or explanation
+    ";
+    
     /// <summary>
     /// Extracts metadata from document text using LLM analysis
     /// </summary>
     /// <param name="text">The full text extracted from the document</param>
-    /// <param name="fileNameOrUrl">The original filename or url for context</param>
+    /// <param name="fileName">The original filename for context</param>
     /// <returns>Extracted metadata or null if extraction fails</returns>
-    public async Task<ExtractedMetadata?> ExtractMetadataFromFileAsync(string text, string fileNameOrUrl)
+    public async Task<ExtractedMetadata?> ExtractMetadataFromFileAsync(string text, string fileName)
     {
-        logger.Information("Starting metadata extraction for: {FileNameOrUrl}", fileNameOrUrl);
+        logger.Information("Starting document metadata extraction for: {file}", fileName);
 
-        // Step 1: Smart sampling for long documents
-        // For academic papers, we need both the beginning (metadata, abstract, authors)
-        // and the end (references, acknowledgments) to extract all related persons / organisations
+        // Make text fit in context window of LLM
         string textToAnalyze = trimText(text);
 
         logger.Information("Analyzing {Length} characters of text", textToAnalyze.Length);
 
-        // Step 2: Create prompt for LLM
+        // Creating the prompt for documents
         string prompt = $@"
             You are a metadata extraction assistant. Analyze the following document text and extract structured metadata.
 
-            Filename/URL: {fileNameOrUrl}
+            Filename: {fileName}
 
             Document text:
             {textToAnalyze}
+        " + metadataExtractionRules;
 
-            Extract the following information in JSON format:
-            {{
-                ""title"": ""The document title"",
-                ""abstract"": ""The abstract of the paper when it is a scientific paper, else leave empty"",
-                ""description"": ""A complete and concise description of the document (50-300 words)"",
-                ""publicationDate"": ""YYYY, YYYY-MM, or YYYY-MM-DD format (use most specific format available, or null)"",
-                ""languageCode"": ""ISO 639-1 two-letter code (e.g., 'en', 'nl', 'fr', etc.)"",
-                ""authors"": [{{""name"": ""Author name"", ""type"": ""person or organisation""}}],
-                ""organisations"": [""Array of organization names mentioned in the document, EXCLUDING any organizations that are authors""],
-                ""relatedPersons"": [""Array of person names related to this document who are NOT authors (e.g., people mentioned, cited, or acknowledged)""],
-                ""publicationCode"": ""DOI, ISBN, arXiv ID, etc. or null"",
-                ""tags"": [""Array of descriptive tags like 'Research Paper', 'Technical Report', 'Computer Science', etc.""]
-            }}
-
-            Rules:
-            - If a field cannot be determined, use null or empty array
-            - Language code must be 2 letters lowercase (From the ISO 639-1 list)
-            - Publication date can be partial: YYYY (year only), YYYY-MM (year and month), or YYYY-MM-DD (full date). Use the most specific format you can determine from the document.
-            - Note which type of publication code it is before the actual publication code
-            - Make sure tags are capitalized, so they look good
-            - **DEDUPLICATION RULE**: Each entity (person/organization) must appear ONLY ONCE per list
-                * EXAMPLES (do NOT include these fictional names): If document has ""F. Lastname"" and ""Full Lastname"", include ONLY ""Full Lastname""
-                * If the same name appears multiple times in document, include it ONLY ONCE in output
-                * EXAMPLES (fictional): If document has ""Company"" and ""Company Inc."", include ONLY ""Company Inc.""
-                * Always prefer the most complete version when you encounter variations of the same entity
-                * Check each name before adding - if it's already in the list (even with slight variation), don't add it again
-            - **CRITICAL NAME FORMATTING RULE**: All person names MUST follow the format: Given name(s) FIRST, Family name LAST
-                * FORMATTING EXAMPLES (do NOT include these fictional names in your output):
-                - If document shows ""Lastname, A.B."" → reformat to ""A.B. Lastname""
-                - If document shows ""Doe, Jane"" → reformat to ""Jane Doe""
-                * NEVER preserve comma-separated ""Last, First"" format from citations or references
-                * Always reorder names from the actual document to: [Given name] [Family name]
-                * IMPORTANT: Only extract names that actually appear in the document text, not from these examples
-            - When the full name is available use that instead of just the first letters (e.g., if document has both ""F. Lastname"" and ""Full Lastname"", prefer ""Full Lastname"")
-
-            Important distinctions:
-            - AUTHORS: Who wrote/created this document. Can be individual persons OR organizations.
-                * Step 1: Look for author attribution (bylines, ""by"", ""door"", etc.)
-                * Step 2: Determine the type:
-                - If it's a named individual (e.g., ""Door John Doe"") → add that person to AUTHORS
-                - If it indicates the organization's own staff (e.g., ""by our newsroom"", ""by our editorial team"", ""door onze nieuwsredactie"", ""by staff"") → the organization itself is the author
-                - If NO author attribution is found → leave AUTHORS empty
-                * Step 3: When organizational authorship is indicated (""our newsroom"", ""onze redactie"", etc.):
-                - Look for the publisher/organization name in the document (check headers, footers, logos, or prominent mentions)
-                - Add that organization name to AUTHORS
-                * CRITICAL: ""our""/""onze"" = the publishing organization. Find that organization's name in the document and use it as the author.
-
-            - ORGANISATIONS: Organizations associated with this document.
-                * Include publishers and source organizations
-                * Include other organizations mentioned or discussed in the content
-                * Note: An organization can appear in BOTH authors (if they wrote it) AND organisations (if they published it)
-                * Leave empty if none are mentioned
-
-            - RELATEDPERSONS: Individual people mentioned in the document who are NOT authors.
-                * Examples: People cited, mentioned in acknowledgments, or discussed in the content
-                * Do NOT include the document's author(s) here
-                * Leave empty if no one is mentioned
-
-            - Return ONLY valid JSON, no additional text or explanation
-        ";
-
-        // Step 3: Call the LLM with JSON mode
+        // Extract metadata using LLM (this is raw metadata that needs to be processed)
         TempExtractedMetadata? tempMetadata = await extractMetadataWithLLM(text, prompt);
 
         if (tempMetadata == null)
@@ -689,8 +690,16 @@ Enhanced Query:";
             return null;
         }
 
-        // Step 5: Validate and clean the data
+        // Validate and process the metadata
         return await validateAndProcessMetadata(tempMetadata);
+    }
+    
+    public async Task<ExtractedMetadata?> ExtractMetadataFromWebAsync(string text, ReadabilityResult readabilityResult) 
+    {
+        logger.Information("Starting web metadata extraction for: " + readabilityResult.SiteName);
+
+        // TODO: Implement
+        return null;
     }
 
     /// <summary>

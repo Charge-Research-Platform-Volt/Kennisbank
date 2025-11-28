@@ -235,6 +235,8 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Docume
             logger.LogInformation("Extracted successfully.");
             return result;
         }
+        
+        // TODO: Maybe one more fallback? Like raw HTML?
 
         logger.LogInformation("Extraction failed.");
         return new ReadabilityResult();
@@ -256,7 +258,8 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Docume
                 Title = article.Title,
                 TextContent = article.TextContent,
                 Byline = article.Byline,
-                Excerpt = article.Excerpt
+                Excerpt = article.Excerpt,
+                SiteName = new Uri(url).Host.Replace("www.", "")
             };
             
             return result;
@@ -301,14 +304,17 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Docume
                 ");
                 
                 if (result != null) 
+                {
+                    result.SiteName = new Uri(url).Host.Replace("www.", "");
                     return result;
+                }
             }
             catch (Exception e) 
             {
                 logger.LogInformation("Failed to inject Readability.js: {message}", e.Message);
                 logger.LogInformation("Retrieving inner text...");
                 
-                
+                // TODO: Fetch innertext (fallback)
             }
 
             return new ReadabilityResult();
@@ -327,4 +333,5 @@ public class ReadabilityResult
     public string? TextContent { get; set; }
     public string? Byline { get; set; }
     public string? Excerpt { get; set; }
+    public string? SiteName { get; set; }
 }
