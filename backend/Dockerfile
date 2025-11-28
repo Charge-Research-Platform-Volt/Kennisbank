@@ -25,7 +25,7 @@ RUN dotnet publish backend.csproj -c Release -o /app/publish
 FROM base AS development
 ENV ASPNETCORE_ENVIRONMENT=Development
 WORKDIR /app
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl chromium && rm -rf /var/lib/apt/lists/*
 EXPOSE $PORT
 # Use CMD so we can override it in docker-compose in case we want to run watch mode
 CMD exec dotnet run --project backend.csproj --urls http://+:${PORT}
@@ -52,7 +52,7 @@ CMD exec dotnet run --project backend.csproj --urls http://+:${PORT}
 FROM base AS production
 ENV ASPNETCORE_ENVIRONMENT=Production
 WORKDIR /app
-RUN apt-get update && apt-get install -y wget curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y wget curl chromium && rm -rf /var/lib/apt/lists/*
 RUN rm -rf Migrations
 COPY --from=build /app/publish .
 EXPOSE $PORT

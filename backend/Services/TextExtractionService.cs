@@ -3,6 +3,10 @@ using Azure;
 using UglyToad.PdfPig;
 using System.Text;
 using System.Reflection.Metadata.Ecma335;
+using SmartReader;
+using PuppeteerSharp;
+using Google.Protobuf.WellKnownTypes;
+using System.Text.Json;
 
 namespace KnowledgeBank.Services;
 
@@ -10,16 +14,9 @@ namespace KnowledgeBank.Services;
 /// Service for extracting text from various document formats
 /// Uses free methods (PdfPig) when possible, falls back to Azure Document Intelligence (read)
 /// </summary>
-public class TextExtractionService 
+public class TextExtractionService(ILogger<TextExtractionService> logger, DocumentIntelligenceClient docIntelligenceClient, BrowserService browserService)
 {
-    private readonly ILogger<TextExtractionService> logger;
-    private readonly DocumentIntelligenceClient docIntelligenceClient;
-    
-    public TextExtractionService(ILogger<TextExtractionService> logger, DocumentIntelligenceClient docIntelligenceClient) 
-    {
-        this.logger = logger;
-        this.docIntelligenceClient = docIntelligenceClient;
-    }
+    #region File Text Extraction
     
     /// <summary>
     /// Extracts text from a document stream, choosing the best extraction method based on file type
@@ -27,7 +24,7 @@ public class TextExtractionService
     /// <param name="stream">Document file stream</param>
     /// <param name="fileExtension">File extension (e.g. ".pdf", ".docx")</param>
     /// <returns>Extracted text content</returns>
-    public async Task<string> ExtractTextAsync(Stream stream, string fileExtension) 
+    public async Task<string> ExtractTextFromFileAsync(Stream stream, string fileExtension) 
     {
         fileExtension = fileExtension.ToLowerInvariant();
 
@@ -107,7 +104,7 @@ public class TextExtractionService
     /// </summary>
     /// <param name="stream">The document stream</param>
     /// <returns>Document content</returns>
-    private string ExtractWithPdfPig(Stream stream)
+    private static string ExtractWithPdfPig(Stream stream)
     {
         StringBuilder textBuilder = new();
 
@@ -214,4 +211,120 @@ public class TextExtractionService
 
         return false;
     }
+    
+    #endregion
+    
+    #region Web Text Extraction
+    public async Task<ReadabilityResult> ExtractTextFromWebAsync(string url) 
+    {
+        logger.LogInformation("Extracting text from webpage with url '{url}'", url);
+
+        ReadabilityResult result = await ExtractWithSmartReaderAsync(url);
+        
+        if (result.Title != null) 
+        {
+            logger.LogInformation("Extracted successfully.");
+            return result;
+        }
+
+        logger.LogInformation("SmartReader failed, trying with Puppeteer Headless Browser");
+        result = await ExtractWithPuppeteerAsync(url);
+        
+        if (result.Title != null) 
+        {
+            logger.LogInformation("Extracted successfully.");
+            return result;
+        }
+
+        logger.LogInformation("Extraction failed.");
+        return new ReadabilityResult();
+    }
+    
+    private async Task<ReadabilityResult> ExtractWithSmartReaderAsync(string url) 
+    {
+        logger.LogInformation("Extracting webpage with SmartReader...");
+
+        // Fetch article using SmartReader (Mozilla Readability wrapper)
+        Article article = await Reader.ParseArticleAsync(url);
+
+        logger.LogInformation("Article readable: {readable}", article.IsReadable);
+        
+        if (article.IsReadable) 
+        {
+            ReadabilityResult result = new()
+            {
+                Title = article.Title,
+                TextContent = article.TextContent,
+                Byline = article.Byline,
+                Excerpt = article.Excerpt
+            };
+            
+            return result;
+        }
+
+        return new ReadabilityResult();
+    }
+    
+    private async Task<ReadabilityResult> ExtractWithPuppeteerAsync(string url) 
+    {
+        logger.LogInformation("Extracting webpage with Puppeteer...");
+
+        // Get shared headless browser instance and create new page
+        IBrowser browser = await browserService.GetBrowserAsync();
+        IPage page = await browser.NewPageAsync();
+        
+        try 
+        {
+            // Go to the url
+            await page.GoToAsync(url, new NavigationOptions
+            {
+                WaitUntil = [ WaitUntilNavigation.Networkidle0 ],
+                Timeout = 15000 // 15 seconds
+            });
+
+            try 
+            {
+                // Add Mozilla readability directly in the browser
+                await page.EvaluateExpressionAsync(await browserService.GetReadabilityScriptAsync());
+
+                ReadabilityResult? result = await page.EvaluateFunctionAsync<ReadabilityResult>(@"
+                    () => {
+                        const article = new Readability(document.cloneNode(true)).parse();
+                        if (!article) return null;
+                        return {
+                            title: article.title,
+                            textContent: article.textContent,
+                            byline: article.byline,
+                            excerpt: article.excerpt
+                        };
+                    }
+                ");
+                
+                if (result != null) 
+                    return result;
+            }
+            catch (Exception e) 
+            {
+                logger.LogInformation("Failed to inject Readability.js: {message}", e.Message);
+                logger.LogInformation("Retrieving inner text...");
+                
+                
+            }
+
+            return new ReadabilityResult();
+        }
+        finally 
+        {
+            await page.CloseAsync();
+        }
+    }
+    #endregion
+}
+
+public class ReadabilityResult
+{
+    public string? Title { get; set; }
+    public string? TextContent { get; set; }
+    public string? Byline { get; set; }
+    public string? Excerpt { get; set; }
 }

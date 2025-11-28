@@ -10,6 +10,9 @@ using KnowledgeBank.Data;
 using System.Security.Claims;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Net.Http;
+using SmartReader;
+using HandlebarsDotNet.Helpers.BlockHelpers;
+using PuppeteerSharp;
 
 namespace KnowledgeBank.Controllers;
 
@@ -17,7 +20,7 @@ namespace KnowledgeBank.Controllers;
 [Authorize]
 [Route("[controller]")]
 [Produces("application/json")]
-public class AIController(RAGManager ragManager, ResourceManager resourceManager, IAzureBlobService blobService, TextExtractionService textExtractionService) : ControllerBase
+public class AIController(RAGManager ragManager, ResourceManager resourceManager, IAzureBlobService blobService, TextExtractionService textExtractionService, BrowserService browserService) : ControllerBase
 {
     private readonly Serilog.ILogger logger = Log.ForContext<AIController>();
 
@@ -230,26 +233,17 @@ public class AIController(RAGManager ragManager, ResourceManager resourceManager
                 logger.Information("Extracting text from {FileType} document", extension);
 
                 // Copy blob stream to MemoryStream (Azure stream is not seekable)
-                using (Stream blobStream = ((BlobDownloadResponse)response).FileStream)
-                using (MemoryStream memoryStream = new MemoryStream())
-                {
-                    await blobStream.CopyToAsync(memoryStream);
-                    memoryStream.Position = 0;
-                    extractedText = await textExtractionService.ExtractTextAsync(memoryStream, extension);
-                }
+                using Stream blobStream = ((BlobDownloadResponse)response).FileStream;
+                using MemoryStream memoryStream = new();
+                await blobStream.CopyToAsync(memoryStream);
+                memoryStream.Position = 0;
+                extractedText = await textExtractionService.ExtractTextFromFileAsync(memoryStream, extension);
             }
             else 
             {
                 logger.Information("Metadata extraction requested for web with URL '{url}'", value);
 
-                HttpClient http = new();
-
-                HttpResponseMessage response = await http.GetAsync(value);
-
-                if (!response.IsSuccessStatusCode)
-                    return BadRequest(new ApiResponse(false, "Cannot read content of this website."));
-
-                extractedText = await response.Content.ReadAsStringAsync();
+                ReadabilityResult readabilityResult = await textExtractionService.ExtractTextFromWebAsync(value);
             }
 
             // Validate extracted text
@@ -261,7 +255,7 @@ public class AIController(RAGManager ragManager, ResourceManager resourceManager
             // Extract metadata using LLM
             logger.Information("Analyzing document with LLM to extract metadata");
 
-            var metadata = await ragManager.ExtractMetadataAsync(extractedText, fileNameOrUrl);
+            var metadata = await ragManager.ExtractMetadataFromFileAsync(extractedText, fileNameOrUrl);
 
             if (metadata == null)
                 return StatusCode(500, new ApiResponse(false, "Failed to extract metadata"));

@@ -185,6 +185,9 @@ namespace KnowledgeBank
             builder.Services.AddHostedService<InvitationsCleanupService>(); // Add the background service for cleaning up invitations
             builder.Services.AddHostedService<BlobCleanupService>(); // Add the background service for cleaning up orphaned blobs
 
+            // Headless browser service
+            builder.Services.AddSingleton<BrowserService>();
+
 
             builder.WebHost.ConfigureKestrel(serverOptions =>
             {
