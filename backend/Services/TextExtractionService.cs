@@ -235,8 +235,6 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Docume
             logger.LogInformation("Extracted successfully.");
             return result;
         }
-        
-        // TODO: Maybe one more fallback? Like raw HTML?
 
         logger.LogInformation("Extraction failed.");
         return new ReadabilityResult();
@@ -246,23 +244,30 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Docume
     {
         logger.LogInformation("Extracting webpage with SmartReader...");
 
-        // Fetch article using SmartReader (Mozilla Readability wrapper)
-        Article article = await Reader.ParseArticleAsync(url);
-
-        logger.LogInformation("Article readable: {readable}", article.IsReadable);
-        
-        if (article.IsReadable) 
+        try 
         {
-            ReadabilityResult result = new()
-            {
-                Title = article.Title,
-                TextContent = article.TextContent,
-                Byline = article.Byline,
-                Excerpt = article.Excerpt,
-                SiteName = new Uri(url).Host.Replace("www.", "")
-            };
+            // Fetch article using SmartReader (Mozilla Readability wrapper)
+            Article article = await Reader.ParseArticleAsync(url);
+
+            logger.LogInformation("Article readable: {readable}", article.IsReadable);
             
-            return result;
+            if (article.IsReadable) 
+            {
+                ReadabilityResult result = new()
+                {
+                    Title = article.Title,
+                    TextContent = article.TextContent,
+                    Byline = article.Byline,
+                    Excerpt = article.Excerpt,
+                    SiteName = article.SiteName ?? new Uri(url).Host.Replace("www.", "")
+                };
+                
+                return result;
+            }
+        }
+        catch (Exception e) 
+        {
+            logger.LogWarning("SmartReader threw an exception: {message}", e.Message);
         }
 
         return new ReadabilityResult();
@@ -312,9 +317,31 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Docume
             catch (Exception e) 
             {
                 logger.LogInformation("Failed to inject Readability.js: {message}", e.Message);
+            }
+            
+            try 
+            {
+                // Retrieve inner text as fallback, which has a bit more noise, but is better then raw HTML
                 logger.LogInformation("Retrieving inner text...");
-                
-                // TODO: Fetch innertext (fallback)
+
+                return new ReadabilityResult
+                {
+                    Title = await page.EvaluateFunctionAsync<string>("() => document.title"),
+                    TextContent = await page.EvaluateFunctionAsync<string>("() => document.body.innerText"),
+                    SiteName = new Uri(url).Host.Replace("www.", ""),
+                    Byline = await page.EvaluateFunctionAsync<string>(@"
+                        () => document.querySelector('meta[name=""author""]')?.content
+                            || document.querySelector('meta[property=""article:author""]')?.content
+                            || null"),
+                    Excerpt = await page.EvaluateFunctionAsync<string>(@"
+                        () => document.querySelector('meta[name=""description""]')?.content
+                            || document.querySelector('meta[property=""og:description""]')?.content
+                            || null")
+                };
+            }
+            catch (Exception e) 
+            {
+                logger.LogWarning("Failed to retrieve inner text using puppeteer: {message}", e.Message);
             }
 
             return new ReadabilityResult();

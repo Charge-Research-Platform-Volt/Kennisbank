@@ -13,6 +13,7 @@ using System.Net.Http;
 using SmartReader;
 using HandlebarsDotNet.Helpers.BlockHelpers;
 using PuppeteerSharp;
+using KnowledgeBank.Models;
 
 namespace KnowledgeBank.Controllers;
 
@@ -20,7 +21,7 @@ namespace KnowledgeBank.Controllers;
 [Authorize]
 [Route("[controller]")]
 [Produces("application/json")]
-public class AIController(RAGManager ragManager, ResourceManager resourceManager, IAzureBlobService blobService, TextExtractionService textExtractionService, BrowserService browserService) : ControllerBase
+public class AIController(RAGManager ragManager, ResourceManager resourceManager, IAzureBlobService blobService, TextExtractionService textExtractionService) : ControllerBase
 {
     private readonly Serilog.ILogger logger = Log.ForContext<AIController>();
 
@@ -204,12 +205,11 @@ public class AIController(RAGManager ragManager, ResourceManager resourceManager
     
         // Verify string
         if ((type == "file" && !ValidityUtil.IsValidId(value)) || (type == "web" && !ValidityUtil.IsValidUrl(value)))
-            return BadRequest(new ApiResponse(false, "Invalid " + type == "file" ? "ID" : "URL"));
+            return BadRequest(new ApiResponse(false, "Invalid " + (type == "file" ? "ID" : "URL")));
             
         try 
         {
-            string extractedText = "";
-            string fileNameOrUrl = "";
+            ExtractedMetadata? metadata = null;
         
             if (type == "file") 
             {
@@ -224,7 +224,7 @@ public class AIController(RAGManager ragManager, ResourceManager resourceManager
 
                 // Extract extension from metadata
                 string extension = ((BlobDownloadResponse)response).Metadata["extension"];
-                fileNameOrUrl = ((BlobDownloadResponse)response).Metadata["originalFileName"];
+                string fileName = ((BlobDownloadResponse)response).Metadata["originalFileName"];
 
                 // Verify that extension is supported
                 if (!Filetype.SupportedText(extension))
@@ -237,30 +237,42 @@ public class AIController(RAGManager ragManager, ResourceManager resourceManager
                 using MemoryStream memoryStream = new();
                 await blobStream.CopyToAsync(memoryStream);
                 memoryStream.Position = 0;
-                extractedText = await textExtractionService.ExtractTextFromFileAsync(memoryStream, extension);
+                string extractedText = await textExtractionService.ExtractTextFromFileAsync(memoryStream, extension);
+                
+                // Validate extracted text
+                if (string.IsNullOrWhiteSpace(extractedText))
+                    return BadRequest(new ApiResponse(false, "No text could be extracted from the document."));
+
+                logger.Information("Text extracted successfully. Length: {TextLength} characters", extractedText.Length);
+
+                // Extract metadata using LLM
+                logger.Information("Analyzing document with LLM to extract metadata");
+
+                metadata = await ragManager.ExtractMetadataFromFileAsync(extractedText, fileName);
             }
             else 
             {
                 logger.Information("Metadata extraction requested for web with URL '{url}'", value);
 
+                // Retrieve text and metadata from web using Readability
                 ReadabilityResult readabilityResult = await textExtractionService.ExtractTextFromWebAsync(value);
+                
+                // Validate extracted text
+                if (string.IsNullOrWhiteSpace(readabilityResult.TextContent))
+                    return BadRequest(new ApiResponse(false, "No text could be extracted from the webpage."));
+                    
+                logger.Information("Text extracted successfully. Length: {TextLength} characters", readabilityResult.TextContent.Length);
+
+                // Extract metadata using LLM
+                logger.Information("Analyzing webpage with LLM to extract metadata");
+
+                metadata = await ragManager.ExtractMetadataFromWebAsync(readabilityResult, value);
             }
-
-            // Validate extracted text
-            if (string.IsNullOrWhiteSpace(extractedText))
-                return BadRequest(new ApiResponse(false, "No text could be extracted from the document."));
-
-            logger.Information("Text extracted successfully. Length: {TextLength} characters", extractedText.Length);
-
-            // Extract metadata using LLM
-            logger.Information("Analyzing document with LLM to extract metadata");
-
-            var metadata = await ragManager.ExtractMetadataFromFileAsync(extractedText, fileNameOrUrl);
 
             if (metadata == null)
                 return StatusCode(500, new ApiResponse(false, "Failed to extract metadata"));
 
-            logger.Information("Metadata extraction completed successfully for {FileName}", fileNameOrUrl);
+            logger.Information("Metadata extraction completed successfully for {title}", metadata.Title);
 
             return Ok(new ApiResponse(true, "Metadata extracted successfully", metadata));
         }

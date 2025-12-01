@@ -603,16 +603,20 @@ Enhanced Query:";
             ""publicationDate"": ""YYYY, YYYY-MM, or YYYY-MM-DD format (use most specific format available, or null)"",
             ""languageCode"": ""ISO 639-1 two-letter code (e.g., 'en', 'nl', 'fr', etc.)"",
             ""authors"": [{{""name"": ""Author name"", ""type"": ""person or organisation""}}],
-            ""organisations"": [""Array of organization names mentioned in the document, EXCLUDING any organizations that are authors""],
-            ""relatedPersons"": [""Array of person names related to this document who are NOT authors (e.g., people mentioned, cited, or acknowledged)""],
+            ""organisations"": [""String: organization name 1"", ""String: organization name 2""],
+            ""relatedPersons"": [""String: person name 1"", ""String: person name 2""],
             ""publicationCode"": ""DOI, ISBN, arXiv ID, etc. or null"",
-            ""tags"": [""Array of descriptive tags like 'Research Paper', 'Technical Report', 'Computer Science', etc.""]
+            ""tags"": [""String: tag 1"", ""String: tag 2""]
         }}
+
+        IMPORTANT: organisations, relatedPersons, and tags are arrays of STRING values only, NOT objects.
+        Only authors uses the object format with name and type fields.
 
         Rules:
         - If a field cannot be determined, use null or empty array
         - Language code must be 2 letters lowercase (From the ISO 639-1 list)
         - Publication date can be partial: YYYY (year only), YYYY-MM (year and month), or YYYY-MM-DD (full date). Use the most specific format you can determine from the document.
+        - If the document uses relative dates (""today"", ""yesterday"", ""vandaag"", ""gisteren"", etc.), calculate the actual date using the Current date provided above
         - Note which type of publication code it is before the actual publication code
         - Make sure tags are capitalized, so they look good
         - **DEDUPLICATION RULE**: Each entity (person/organization) must appear ONLY ONCE per list
@@ -675,6 +679,8 @@ Enhanced Query:";
         string prompt = $@"
             You are a metadata extraction assistant. Analyze the following document text and extract structured metadata.
 
+            Current date: {DateTime.UtcNow:yyyy-MM-dd}
+
             Filename: {fileName}
 
             Document text:
@@ -682,7 +688,7 @@ Enhanced Query:";
         " + metadataExtractionRules;
 
         // Extract metadata using LLM (this is raw metadata that needs to be processed)
-        TempExtractedMetadata? tempMetadata = await extractMetadataWithLLM(text, prompt);
+        TempExtractedMetadata? tempMetadata = await extractMetadataWithLLM(prompt);
 
         if (tempMetadata == null)
         {
@@ -694,12 +700,82 @@ Enhanced Query:";
         return await validateAndProcessMetadata(tempMetadata);
     }
     
-    public async Task<ExtractedMetadata?> ExtractMetadataFromWebAsync(string text, ReadabilityResult readabilityResult) 
+    public async Task<ExtractedMetadata?> ExtractMetadataFromWebAsync(ReadabilityResult readabilityResult, string url) 
     {
+        if (string.IsNullOrWhiteSpace(readabilityResult.TextContent)) 
+        {
+            logger.Warning("No text content to be analyzed!");
+            return null;
+        }
+    
         logger.Information("Starting web metadata extraction for: " + readabilityResult.SiteName);
 
-        // TODO: Implement
-        return null;
+        // Make text fit in context window of LLM
+        string textToAnalyze = trimText(readabilityResult.TextContent);
+        
+        logger.Information("Analyzing {Length} characters of text", textToAnalyze.Length);
+
+        // Creating the prompt for web
+        string prompt = $@"
+            You are a metadata extraction assistant. Analyze the following web page and extract structured metadata.
+
+            Current date: {DateTime.UtcNow:yyyy-MM-dd}
+
+            URL:
+            {url}
+
+            The text was extracted using Readability or reading the inner text. The following information was already collected and should be preferred over anything else you can find:
+             - Title: {readabilityResult.Title ?? "Title was not extracted - Please identify from text"}
+             - Byline: {readabilityResult.Byline ?? "Byline was not extracted - Please identify from text"}
+             - Excerpt: {readabilityResult.Excerpt ?? "Excerpt was not extracted - Please identify from text"}
+             - SiteName: {readabilityResult.SiteName ?? "SiteName was not extracted - Please identify from text"}
+             
+            **CRITICAL BYLINE RULE FOR ORGANIZATIONAL AUTHORSHIP**:
+
+            If the Byline is EMPTY or was not extracted:
+             → This indicates organizational authorship (no individual journalist credited)
+             → The AUTHOR is the publishing organization itself
+             → Find the publisher name by checking: (1) the SiteName provided above, (2) branding at the START of the document
+             → The organization name might be the full SiteName (with domain), or just the base name (without domain extension)
+             → Author type = ""organisation""
+             → CRITICAL: Organizations mentioned in the article content (quoted sources, subjects) are NOT authors - add them to organisations or relatedPersons instead
+             → When in doubt with empty byline, default to deriving the author from SiteName
+
+            If the Byline is NOT EMPTY and indicates the article was written by an internal team, staff, or department of the publishing organization (in any language):
+             → The author is the publishing organization itself
+             → Author type = ""organisation""
+             → Look for the actual organization name in the document (headers, prominent mentions, branding)
+             → Use the SiteName provided above as a strong hint about which organization to identify
+             → The organization name might be the full SiteName (with domain), or just the base name (without domain extension)
+             → DO NOT use the byline text literally as the author name (it's a department, not the organization)
+             → DO NOT invent organization names not found in the document or SiteName
+
+            Common indicators (not exhaustive): possessive pronouns + department/team/editorial references.
+
+            Extracted text:
+            {textToAnalyze}
+
+            ===== IMPORTANT CONTEXT FOR THIS SPECIFIC ARTICLE =====
+            Byline status: {(string.IsNullOrWhiteSpace(readabilityResult.Byline) ? "EMPTY - Use publisher as author" : $"Present: {readabilityResult.Byline}")}
+            Publisher (SiteName): {readabilityResult.SiteName ?? "Unknown"}
+
+            {(string.IsNullOrWhiteSpace(readabilityResult.Byline) ?
+                "⚠️ CRITICAL: Since Byline is EMPTY, the author MUST be the publisher organization. Do NOT use organizations mentioned in the article text (like quoted sources) as authors. The author is the publishing organization only." :
+                "")}
+            =======================================================
+        " + metadataExtractionRules;
+
+        // Extract metadat using LLM (this is raw metadata that needs to be processed)
+        TempExtractedMetadata? tempMetadata = await extractMetadataWithLLM(prompt);
+        
+        if (tempMetadata == null)
+        {
+            logger.Warning("Failed to deserialize metadata from LLM response");
+            return null;
+        }
+
+        // Validate and process the metadata
+        return await validateAndProcessMetadata(tempMetadata);
     }
 
     /// <summary>
@@ -727,7 +803,7 @@ Enhanced Query:";
     }
 
     private readonly static JsonSerializerOptions jsonSerializerOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true};
-    private async Task<TempExtractedMetadata?> extractMetadataWithLLM(string text, string prompt) 
+    private async Task<TempExtractedMetadata?> extractMetadataWithLLM(string prompt) 
     {
         // Setup messages
         List<ChatMessage> messages =
