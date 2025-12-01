@@ -90,21 +90,25 @@ export function PersonContent()
                 occupation: data.body.occupation || null,
                 email: data.body.email || null,
                 linkedIn: data.body.linkedin || null,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 authored: (data.body.authored || []).map((item: any) => ({
                     id: item.id,
                     name: item.name,
                     relation: undefined
                 })),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 relatedResources: (data.body.relatedResources || []).map((item: any) => ({
                     id: item.id,
                     name: item.name,
                     relation: item.role
                 })),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 relatedPersons: (data.body.targetPersons || []).concat(data.body.sourcePersons || []).map((item: any) => ({
                     id: item.id,
                     name: item.name,
                     relation: item.relation
                 })),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 relatedOrganisations: (data.body.relatedOrganisations || []).map((item: any) => ({
                     id: item.id,
                     name: item.name,
@@ -115,7 +119,7 @@ export function PersonContent()
 
             setContent(newContent);
         }
-    }, [currentId])
+    }, [currentId, setCreationDate])
 
     // Reload content on sidebar open or when currentId changes
     React.useEffect(() =>
@@ -130,7 +134,7 @@ export function PersonContent()
             // Load content
             loadContent();
         }
-    }, [archiveSidebarOpen, currentId, loadContent]);
+    }, [archiveSidebarOpen, currentId, loadContent, setCreationDate, setPublicationDate]);
     
     // Delete the person
     const confirmDelete = async () => 
@@ -254,7 +258,21 @@ export function PersonContent()
                     )}
                 </div>
             </div>
-            
+
+            {/* Empty Profile Message */}
+            {!editMode && !content.occupation && !content.email && !content.linkedIn && !content.description &&
+             content.authored.length === 0 && content.relatedResources.length === 0 &&
+             content.relatedPersons.length === 0 && content.relatedOrganisations.length === 0 && (
+                <div className="mt-8 mb-8 p-6 bg-gray-50 border border-gray-200 rounded-lg text-center">
+                    <p className="text-sm text-gray-600 mb-2">
+                        This profile is empty
+                    </p>
+                    <p className="text-xs text-gray-500">
+                        Click the edit button to add information
+                    </p>
+                </div>
+            )}
+
             {/* Description */}
             <Expandable title="Description" collapsedHeight={100} hidden={!(editMode || content.description)} defaultOpen={editMode}>
                 {!editMode && (<span className="text-xs">{content.description || <Skeleton />}</span>)}

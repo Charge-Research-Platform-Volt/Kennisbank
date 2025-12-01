@@ -87,21 +87,25 @@ export function OrganisationContent()
                 website: data.body.website || null,
                 description: data.body.description || null,
                 email: data.body.email || null,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 authored: (data.body.authored || []).map((item: any) => ({
                     id: item.id,
                     name: item.name,
                     relation: undefined
                 })),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 resources: (data.body.resources || []).map((item: any) => ({
                     id: item.id,
                     name: item.name,
                     relation: item.role
                 })),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 organisations: (data.body.targetOrganisations || []).concat(data.body.sourceOrganisations || []).map((item: any) => ({
                     id: item.id,
                     name: item.name,
                     relation: item.relation
                 })),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 persons: (data.body.persons || []).map((item: any) => ({
                     id: item.id,
                     name: item.name,
@@ -113,7 +117,7 @@ export function OrganisationContent()
             setContent(newContent);
         }
         
-    }, [currentId]);
+    }, [currentId, setCreationDate]);
     
     // Load new content if sidebar is opened
     React.useEffect(() => {
@@ -229,7 +233,21 @@ export function OrganisationContent()
                     )}
                 </div>
             </div>
-            
+
+            {/* Empty Profile Message */}
+            {!editMode && !content.website && !content.email && !content.description &&
+             content.authored.length === 0 && content.resources.length === 0 &&
+             content.organisations.length === 0 && content.persons.length === 0 && (
+                <div className="mt-8 mb-8 p-6 bg-gray-50 border border-gray-200 rounded-lg text-center">
+                    <p className="text-sm text-gray-600 mb-2">
+                        This profile is empty
+                    </p>
+                    <p className="text-xs text-gray-500">
+                        Click the edit button to add information
+                    </p>
+                </div>
+            )}
+
             {/* Description */}
             <Expandable title="Description" collapsedHeight={100} hidden={!(editMode || content.description)} defaultOpen={editMode}>
                 {!editMode && (<span className="text-xs">{content.description || <Skeleton />}</span>)}

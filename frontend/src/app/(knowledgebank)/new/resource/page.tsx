@@ -30,10 +30,10 @@ export default function NewResourcePage()
     const [isDragging, setIsDragging] = React.useState(false);
     const [supportedExtensions, setSupportedExtensions] = React.useState<string[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
-    const [phase, setPhase] = React.useState<'select' | 'processing' | 'review'>('select');
+    const [phase, setPhase] = React.useState<'select' | 'processing' | 'review' | 'duplicate'>('select');
     const [progress, setProgress] = React.useState(0);
     const [processingStatus, setProcessingStatus] = React.useState('');
-    
+
     const [progressSteps, setProgressSteps] = React.useState(5);
     const [currentStep, setCurrentStep] = React.useState(1);
     const [editableMetadata, setEditableMetadata] = React.useState<ExtractedMetadata | null>(null);
@@ -43,6 +43,8 @@ export default function NewResourcePage()
     const [relatedPersonSelections, setRelatedPersonSelections] = React.useState<Map<string, EntitySelection>>(new Map());
     const [uploadedFileId, setUploadedFileId] = React.useState<string | null>(null);
     const [fileHash, setFileHash] = React.useState<string | null>(null);
+    const [duplicateResourceId, setDuplicateResourceId] = React.useState<string | null>(null);
+    const [duplicateType, setDuplicateType] = React.useState<'file' | 'url' | null>(null);
 
     const handleFileSelect = (selectedFile: File) => 
     {
@@ -55,9 +57,23 @@ export default function NewResourcePage()
         setUrl(e.target.value);
     }
     
-    const handleRemoveFile = () => 
+    const handleRemoveFile = () =>
     {
         setFile(null);
+    }
+
+    const handleReset = () =>
+    {
+        setFile(null);
+        setUrl('');
+        setPhase('select');
+        setProgress(0);
+        setProcessingStatus('');
+        setDuplicateResourceId(null);
+        setDuplicateType(null);
+        setEditableMetadata(null);
+        setUploadedFileId(null);
+        setFileHash(null);
     }
 
     const handleFileUpload = async () =>
@@ -82,8 +98,10 @@ export default function NewResourcePage()
         {
             console.log("This file already exists with ID: " + result.id);
 
-            // TODO: DUPLICATE FILE HANDLING
-            setProcessingStatus('File already exists!');
+            // Store duplicate info and show duplicate UI
+            setDuplicateResourceId(result.id);
+            setDuplicateType('file');
+            setPhase('duplicate');
 
             return;
         }
@@ -221,13 +239,15 @@ export default function NewResourcePage()
         
         const data = await response.json();
         
-        if (data.body.exists) 
+        if (data.body.exists)
         {
             console.log("This webpage already exists with ID: " + data.body.id);
-            
-            // TODO: DUPLICATE WEBPAGE HANDLING
-            setProcessingStatus("Webpage already exists!");
-            
+
+            // Store duplicate info and show duplicate UI
+            setDuplicateResourceId(data.body.id);
+            setDuplicateType('url');
+            setPhase('duplicate');
+
             return;
         }
         
@@ -647,6 +667,54 @@ export default function NewResourcePage()
             { phase == 'processing' &&
                 <div className="flex items-center min-h-[80vh]">
                     <ProgressBox title="Processing resource" value={progress} subtext={processingStatus} currentStep={currentStep} maxSteps={progressSteps} />
+                </div>
+            }
+
+            {/** Show duplicate warning */}
+            { phase == 'duplicate' && duplicateResourceId &&
+                <div className="flex items-center justify-center min-h-[60vh]">
+                    <div className="max-w-lg w-full">
+                        <div className="bg-white border-2 border-orange-300 rounded-lg p-8 shadow-lg">
+                            <div className="flex flex-col items-center text-center">
+                                {/* Icon */}
+                                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
+                                    <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+
+                                {/* Title */}
+                                <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+                                    {duplicateType === 'file' ? 'File Already Exists' : 'Webpage Already Exists'}
+                                </h2>
+
+                                {/* Message */}
+                                <p className="text-gray-600 mb-6">
+                                    {duplicateType === 'file'
+                                        ? 'This file has already been uploaded to your knowledge base.'
+                                        : 'This webpage has already been added to your knowledge base.'}
+                                </p>
+
+                                {/* Action Buttons */}
+                                <div className="flex flex-col sm:flex-row gap-3 w-full">
+                                    <button
+                                        onClick={() => router.push(`/archive?id=${duplicateResourceId}`)}
+                                        className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold
+                                        hover:bg-purple-700 transition-all hover:shadow-lg hover:-translate-y-0.5"
+                                    >
+                                        View Existing Resource
+                                    </button>
+                                    <button
+                                        onClick={handleReset}
+                                        className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold
+                                        hover:bg-gray-50 transition-all"
+                                    >
+                                        Try Another {duplicateType === 'file' ? 'File' : 'URL'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             }
 
