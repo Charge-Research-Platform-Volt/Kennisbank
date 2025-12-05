@@ -105,15 +105,18 @@ public class RAGSystem
         Uri azureOpenAiEndpoint = new Uri(_environmentConfig.GetVariableValue(EnvironmentVariable.AZURE_OPENAI_CLIENT_ENDPOINT));
         ApiKeyCredential azureOpenAiApiKeyCredential = new ApiKeyCredential(_environmentConfig.GetVariableValue(EnvironmentVariable.AZURE_OPENAI_CLIENT_API_KEY));
         AzureOpenAIClient AzureOpenAIClient = new AzureOpenAIClient(azureOpenAiEndpoint, azureOpenAiApiKeyCredential);
-        ChatClient = AzureOpenAIClient.GetChatClient(_environmentConfig.GetVariableValue(EnvironmentVariable.CHAT_DEPLOYMENT_NAME));
-        _logger.Information("Azure OpenAI client successfully initialized");
+        string chatDeploymentName = _environmentConfig.GetVariableValue(EnvironmentVariable.CHAT_DEPLOYMENT_NAME);
+        ChatClient = AzureOpenAIClient.GetChatClient(chatDeploymentName);
+        _logger.Information("Azure OpenAI client successfully initialized with deployment: {DeploymentName} at endpoint: {Endpoint}", chatDeploymentName, azureOpenAiEndpoint);
 
 
         // * Embeddings
         Uri embeddingsEndpoint = new Uri(_environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_CLIENT_ENDPOINT));
         AzureKeyCredential embeddingsKeyCredential = new AzureKeyCredential(_environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_CLIENT_API_KEY));
+        string embeddingsModelName = _environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_MODEL_NAME);
         EmbeddingsClient = new EmbeddingsClient(embeddingsEndpoint, embeddingsKeyCredential);
-        _logger.Information("Embeddings client successfully initialized");
+        _logger.Information("Embeddings client successfully initialized with model: {ModelName} at endpoint: {Endpoint}, configured dimensions: {Dimensions}",
+            embeddingsModelName, embeddingsEndpoint, EmbeddingsDimensions);
 
         _logger.Information("RAG system successfully initialized");
     }
@@ -271,6 +274,13 @@ public class RAGSystem
         {
             _logger.Warning("Generated embedding is null or empty.");
             throw new InvalidOperationException("Generated embedding is null or empty.");
+        }
+
+        // Log actual dimensions returned by the embeddings API
+        if (embeddingData.Length != (int)EmbeddingsDimensions)
+        {
+            _logger.Warning("Embedding dimension mismatch! Expected: {Expected}, Actual: {Actual}, Model: {Model}",
+                EmbeddingsDimensions, embeddingData.Length, _environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_MODEL_NAME));
         }
 
         // Store in cache

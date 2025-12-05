@@ -66,6 +66,7 @@ namespace KnowledgeBank
             Log.Information("OwnerUser configuration validated successfully for: {Email}", ownerConfig.Email);
             
             // # Services
+            builder.Services.AddRequestTimeouts();
             builder.Services.AddControllers();
             builder.Services.AddSignalR();
             builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
@@ -201,8 +202,22 @@ namespace KnowledgeBank
             using (var scope = app.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-                await db.Database.MigrateAsync();
-                Log.Information("Database migrations applied successfully");
+                try
+                {
+                    await db.Database.MigrateAsync();
+                    Log.Information("Database migrations applied successfully");
+                }
+                catch (Npgsql.PostgresException ex) when (ex.SqlState == "42P07")
+                {
+                    // Table already exists - this is okay, migrations were partially applied
+                    Log.Warning("Database tables already exist, skipping migration: {Message}", ex.Message);
+                    Log.Information("Database schema appears to be already initialized");
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Failed to apply database migrations");
+                    throw;
+                }
             }
 
             // # Reset database if env var is set
@@ -312,6 +327,7 @@ namespace KnowledgeBank
             app.UseHttpsRedirection();
             app.UseRouting();
             app.UseCors("AllowFrontend");
+            app.UseRequestTimeouts(); // Enable request timeout middleware
             app.UseAuthentication();
             app.UseAuthorization();
 

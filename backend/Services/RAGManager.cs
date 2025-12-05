@@ -786,9 +786,11 @@ Enhanced Query:";
     /// <returns>The trimmed text</returns>
     private string trimText(string text)
     {
-        const int firstChars = 50000;
-        const int lastChars = 30000;
-        const int maxTotal = firstChars + lastChars;
+        // Optimized for metadata extraction (title, authors, abstract, publication info)
+        // These are typically found in the first pages and last pages (references/acknowledgments)
+        const int firstChars = 150000;  // ~37.5K tokens - captures intro, abstract, authors, publication info
+        const int lastChars = 100000;   // ~25K tokens - captures references, acknowledgments
+        const int maxTotal = firstChars + lastChars;  // Total: ~62.5K tokens (~15-30 sec processing)
 
         // Don't trim if it fits
         if (text.Length <= maxTotal)
@@ -803,7 +805,7 @@ Enhanced Query:";
     }
 
     private readonly static JsonSerializerOptions jsonSerializerOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true};
-    private async Task<TempExtractedMetadata?> extractMetadataWithLLM(string prompt) 
+    private async Task<TempExtractedMetadata?> extractMetadataWithLLM(string prompt)
     {
         // Setup messages
         List<ChatMessage> messages =
@@ -817,17 +819,43 @@ Enhanced Query:";
         {
             ResponseFormat = ChatResponseFormat.CreateJsonObjectFormat()
         };
-        
-        // Run chat
+
+        // Run chat with retry logic for rate limits
         logger.Information("Calling LLM for metadata extraction");
-        ClientResult<ChatCompletion> response = await ragSystem.ChatClient.CompleteChatAsync(messages, chatOptions);
 
-        // Extract and parse JSON
-        string jsonContent = response.Value.Content[0].Text;
-        logger.Information("Received LLM response: {Length} characters", jsonContent.Length);
-        TempExtractedMetadata? tempMetadata = JsonSerializer.Deserialize<TempExtractedMetadata>(jsonContent, jsonSerializerOptions);
+        const int maxRetries = 3;
+        int retryCount = 0;
 
-        return tempMetadata;
+        while (retryCount < maxRetries)
+        {
+            try
+            {
+                ClientResult<ChatCompletion> response = await ragSystem.ChatClient.CompleteChatAsync(messages, chatOptions);
+
+                // Extract and parse JSON
+                string jsonContent = response.Value.Content[0].Text;
+                logger.Information("Received LLM response: {Length} characters", jsonContent.Length);
+                TempExtractedMetadata? tempMetadata = JsonSerializer.Deserialize<TempExtractedMetadata>(jsonContent, jsonSerializerOptions);
+
+                return tempMetadata;
+            }
+            catch (System.ClientModel.ClientResultException ex) when (ex.Message.Contains("429") || ex.Message.Contains("RateLimitReached"))
+            {
+                retryCount++;
+                int waitSeconds = 60 * retryCount; // 60s, 120s, 180s
+
+                if (retryCount >= maxRetries)
+                {
+                    logger.Error(ex, "Rate limit exceeded and max retries reached for metadata extraction");
+                    throw;
+                }
+
+                logger.Warning("Rate limit hit (429). Waiting {WaitSeconds} seconds before retry {RetryCount}/{MaxRetries}", waitSeconds, retryCount, maxRetries);
+                await Task.Delay(TimeSpan.FromSeconds(waitSeconds));
+            }
+        }
+
+        return null;
     }
     
     private async Task<ExtractedMetadata?> validateAndProcessMetadata(TempExtractedMetadata tempMetadata) 

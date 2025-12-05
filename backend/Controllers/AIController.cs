@@ -14,6 +14,7 @@ using SmartReader;
 using HandlebarsDotNet.Helpers.BlockHelpers;
 using PuppeteerSharp;
 using KnowledgeBank.Models;
+using Microsoft.AspNetCore.Http.Timeouts;
 
 namespace KnowledgeBank.Controllers;
 
@@ -192,6 +193,7 @@ public class AIController(RAGManager ragManager, ResourceManager resourceManager
     
     #region Extract Metadata
     [HttpGet("extract-metadata")]
+    [RequestTimeout(180000)] // 3 minutes timeout for metadata extraction (can take 60-180s with rate limit retries)
     [SwaggerOperation(Summary = "Extract metadata from document by ID")]
     [SwaggerResponse(200, "The extracted metadata", typeof(ApiResponse))]
     [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
