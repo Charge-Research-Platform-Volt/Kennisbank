@@ -3,6 +3,7 @@ import { QuickSearchProvider } from "@/context/quick-search-provider";
 import { LeftSidebarProvider } from "@/context/left-sidebar-provider";
 import { TanStackQueryProvider } from "@/context/tanStack-query-provider";
 import { UserRoleProvider } from "@/context/user-role-context";
+import { ArchiveSidebarProvider } from "@/context/archive-sidebar-provider";
 import { cookies } from "next/headers";
 
 export default async function KnowledgeBankLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -17,12 +18,14 @@ export default async function KnowledgeBankLayout({ children }: Readonly<{ child
     <TanStackQueryProvider>
       <UserRoleProvider>
       <LeftSidebarProvider leftSidebarDefaultState={leftSidebarDefault}>
+        <ArchiveSidebarProvider archiveSidebarDefaultState={false}>
         <QuickSearchProvider>
             <div className="flex h-screen w-full">
               <LeftSidebarServer />
               <main className="w-full overflow-y-auto">{children}</main>
             </div>
         </QuickSearchProvider>
+        </ArchiveSidebarProvider>
       </LeftSidebarProvider>
       </UserRoleProvider>
     </TanStackQueryProvider>

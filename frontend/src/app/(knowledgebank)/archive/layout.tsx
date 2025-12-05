@@ -1,22 +1,19 @@
 import ArchiveSidebar from "@/components/sidebars/archive-sidebar/archive-sidebar";
 import { ArchiveProvider } from "@/context/archive-provider";
-import { ArchiveSidebarProvider } from "@/context/archive-sidebar-provider";
 import React from "react";
 
 
 export default function ArchiveLayout({ children }: { children: React.ReactNode })
 {
     return (
-        <ArchiveSidebarProvider archiveSidebarDefaultState={false}>
-            <ArchiveProvider>
-                <div className="flex min-h-screen">
-                    <div className="flex-1">
-                        {children}
-                    </div>
-                    <ArchiveSidebar/>
+        <ArchiveProvider>
+            <div className="flex min-h-screen">
+                <div className="flex-1">
+                    {children}
                 </div>
-            </ArchiveProvider>
-        </ArchiveSidebarProvider>
+                <ArchiveSidebar/>
+            </div>
+        </ArchiveProvider>
     );
 }
 
