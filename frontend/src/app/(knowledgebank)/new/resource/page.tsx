@@ -75,7 +75,7 @@ export default function NewResourcePage()
     const [isDragging, setIsDragging] = React.useState(false);
     const [supportedExtensions, setSupportedExtensions] = React.useState<string[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
-    const [phase, setPhase] = React.useState<'select' | 'processing' | 'review' | 'duplicate'>('select');
+    const [phase, setPhase] = React.useState<'select' | 'processing' | 'review' | 'duplicate' | 'saving'>('select');
     const [progress, setProgress] = React.useState(0);
     const [processingStatus, setProcessingStatus] = React.useState('');
 
@@ -259,10 +259,31 @@ export default function NewResourcePage()
             setTimeout(() => setPhase('review'), 500); // Small delay to show completion
         } catch (error)
         {
-            throw error;
+            console.error('Metadata extraction failed:', error);
+            toast.error(`AI extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}. You can fill in the metadata manually.`);
+
+            // Create empty metadata so user can fill in manually
+            const emptyMetadata: ExtractedMetadata = {
+                title: file?.name.replace(/\.[^/.]+$/, "") || '', // Use filename without extension
+                abstract: '',
+                description: '',
+                languageCode: 'en',
+                publicationDate: undefined,
+                authors: [],
+                organisations: [],
+                relatedPersons: [],
+                tags: []
+            };
+
+            setEditableMetadata(emptyMetadata);
+            setAuthorSelections(new Map());
+            setOrganisationSelections(new Map());
+            setRelatedPersonSelections(new Map());
+
+            setTimeout(() => setPhase('review'), 500);
         }
     }
-    
+
     const handleWebUpload = async () => 
     {
         if (url == "") return;
@@ -382,10 +403,32 @@ export default function NewResourcePage()
             setTimeout(() => setPhase('review'), 500); // Small delay to show completion
         } catch (error)
         {
-            throw error;
+            console.error('Metadata extraction failed:', error);
+            toast.error(`AI extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}. You can fill in the metadata manually.`);
+
+            // Create empty metadata so user can fill in manually
+            const emptyMetadata: ExtractedMetadata = {
+                title: '', // No filename for URLs, user will fill it in
+                abstract: '',
+                description: '',
+                languageCode: 'en',
+                publicationDate: undefined,
+                sourceUrl: url,
+                authors: [],
+                organisations: [],
+                relatedPersons: [],
+                tags: []
+            };
+
+            setEditableMetadata(emptyMetadata);
+            setAuthorSelections(new Map());
+            setOrganisationSelections(new Map());
+            setRelatedPersonSelections(new Map());
+
+            setTimeout(() => setPhase('review'), 500);
         }
     }
-    
+
     const handleContinue = async () =>
     {
         if (!file && !url)
@@ -506,6 +549,276 @@ export default function NewResourcePage()
         });
     };
 
+    const handleEditAuthor = (oldName: string, newName: string) => {
+        if (!editableMetadata) return;
+
+        // Update metadata
+        setEditableMetadata({
+            ...editableMetadata,
+            authors: editableMetadata.authors?.map(a =>
+                a.name === oldName ? { ...a, name: newName } : a
+            )
+        });
+
+        // Update selections map
+        setAuthorSelections((prev) => {
+            const newSelections = new Map(prev);
+            const oldSelection = newSelections.get(oldName);
+            if (oldSelection) {
+                newSelections.delete(oldName);
+                newSelections.set(newName, {
+                    ...oldSelection,
+                    extractedName: newName
+                });
+            }
+            return newSelections;
+        });
+    };
+
+    const handleEditOrganisation = (oldName: string, newName: string) => {
+        if (!editableMetadata) return;
+
+        setEditableMetadata({
+            ...editableMetadata,
+            organisations: editableMetadata.organisations?.map(o =>
+                o.name === oldName ? { ...o, name: newName } : o
+            )
+        });
+
+        setOrganisationSelections((prev) => {
+            const newSelections = new Map(prev);
+            const oldSelection = newSelections.get(oldName);
+            if (oldSelection) {
+                newSelections.delete(oldName);
+                newSelections.set(newName, {
+                    ...oldSelection,
+                    extractedName: newName
+                });
+            }
+            return newSelections;
+        });
+    };
+
+    const handleEditRelatedPerson = (oldName: string, newName: string) => {
+        if (!editableMetadata) return;
+
+        setEditableMetadata({
+            ...editableMetadata,
+            relatedPersons: editableMetadata.relatedPersons?.map(p =>
+                p.name === oldName ? { ...p, name: newName } : p
+            )
+        });
+
+        setRelatedPersonSelections((prev) => {
+            const newSelections = new Map(prev);
+            const oldSelection = newSelections.get(oldName);
+            if (oldSelection) {
+                newSelections.delete(oldName);
+                newSelections.set(newName, {
+                    ...oldSelection,
+                    extractedName: newName
+                });
+            }
+            return newSelections;
+        });
+    };
+
+    const handleConvertAuthorToManual = (oldName: string, newName: string, similars: any[], existingId?: string) => {
+        if (!editableMetadata) return;
+
+        // Update metadata: change name, set isManual, and update similars
+        setEditableMetadata({
+            ...editableMetadata,
+            authors: editableMetadata.authors?.map(a =>
+                a.name === oldName ? { ...a, name: newName, isManual: true, similars } : a
+            )
+        });
+
+        // Update selections map
+        setAuthorSelections((prev) => {
+            const newSelections = new Map(prev);
+            newSelections.delete(oldName);
+
+            if (existingId) {
+                // Clicking on a search result - link to existing
+                newSelections.set(newName, {
+                    extractedName: newName,
+                    action: 'use_existing',
+                    existingId: existingId
+                });
+            } else if (similars.length > 0) {
+                // Saving edit with similars - default to create new
+                newSelections.set(newName, {
+                    extractedName: newName,
+                    action: 'create'
+                });
+            }
+            return newSelections;
+        });
+    };
+
+    const handleConvertOrganisationToManual = (oldName: string, newName: string, similars: any[], existingId?: string) => {
+        if (!editableMetadata) return;
+
+        setEditableMetadata({
+            ...editableMetadata,
+            organisations: editableMetadata.organisations?.map(o =>
+                o.name === oldName ? { ...o, name: newName, isManual: true, similars } : o
+            )
+        });
+
+        setOrganisationSelections((prev) => {
+            const newSelections = new Map(prev);
+            newSelections.delete(oldName);
+
+            if (existingId) {
+                newSelections.set(newName, {
+                    extractedName: newName,
+                    action: 'use_existing',
+                    existingId: existingId
+                });
+            } else if (similars.length > 0) {
+                newSelections.set(newName, {
+                    extractedName: newName,
+                    action: 'create'
+                });
+            }
+            return newSelections;
+        });
+    };
+
+    const handleConvertRelatedPersonToManual = (oldName: string, newName: string, similars: any[], existingId?: string) => {
+        if (!editableMetadata) return;
+
+        setEditableMetadata({
+            ...editableMetadata,
+            relatedPersons: editableMetadata.relatedPersons?.map(p =>
+                p.name === oldName ? { ...p, name: newName, isManual: true, similars } : p
+            )
+        });
+
+        setRelatedPersonSelections((prev) => {
+            const newSelections = new Map(prev);
+            newSelections.delete(oldName);
+
+            if (existingId) {
+                newSelections.set(newName, {
+                    extractedName: newName,
+                    action: 'use_existing',
+                    existingId: existingId
+                });
+            } else if (similars.length > 0) {
+                newSelections.set(newName, {
+                    extractedName: newName,
+                    action: 'create'
+                });
+            }
+            return newSelections;
+        });
+    };
+
+    const handleAddAuthor = (name: string, id?: string, type?: string) => {
+        if (!editableMetadata) return;
+
+        // Add to metadata
+        const newAuthor = {
+            name,
+            type: type || 'person',
+            similars: [],
+            isManual: true
+        };
+        setEditableMetadata({
+            ...editableMetadata,
+            authors: [...(editableMetadata.authors || []), newAuthor]
+        });
+
+        // Add to selections
+        setAuthorSelections((prev) => {
+            const newSelections = new Map(prev);
+            if (id) {
+                // Existing entity
+                newSelections.set(name, {
+                    extractedName: name,
+                    action: 'use_existing',
+                    existingId: id,
+                    type
+                });
+            } else {
+                // New entity
+                newSelections.set(name, {
+                    extractedName: name,
+                    action: 'create',
+                    type
+                });
+            }
+            return newSelections;
+        });
+    };
+
+    const handleAddOrganisation = (name: string, id?: string) => {
+        if (!editableMetadata) return;
+
+        const newOrg = {
+            name,
+            type: 'organisation',
+            similars: [],
+            isManual: true
+        };
+        setEditableMetadata({
+            ...editableMetadata,
+            organisations: [...(editableMetadata.organisations || []), newOrg]
+        });
+
+        setOrganisationSelections((prev) => {
+            const newSelections = new Map(prev);
+            if (id) {
+                newSelections.set(name, {
+                    extractedName: name,
+                    action: 'use_existing',
+                    existingId: id
+                });
+            } else {
+                newSelections.set(name, {
+                    extractedName: name,
+                    action: 'create'
+                });
+            }
+            return newSelections;
+        });
+    };
+
+    const handleAddRelatedPerson = (name: string, id?: string) => {
+        if (!editableMetadata) return;
+
+        const newPerson = {
+            name,
+            type: 'person',
+            similars: [],
+            isManual: true
+        };
+        setEditableMetadata({
+            ...editableMetadata,
+            relatedPersons: [...(editableMetadata.relatedPersons || []), newPerson]
+        });
+
+        setRelatedPersonSelections((prev) => {
+            const newSelections = new Map(prev);
+            if (id) {
+                newSelections.set(name, {
+                    extractedName: name,
+                    action: 'use_existing',
+                    existingId: id
+                });
+            } else {
+                newSelections.set(name, {
+                    extractedName: name,
+                    action: 'create'
+                });
+            }
+            return newSelections;
+        });
+    };
+
     const handleSave = async () => {
         if (!editableMetadata || !uploadedFileId || !fileHash || !file) {
             toast.error("Missing required data. Please try uploading again.");
@@ -591,7 +904,7 @@ export default function NewResourcePage()
             License: editableMetadata.license,
             SourceUrl: editableMetadata.sourceUrl,
             Tags: editableMetadata.tags || [],
-            Abstract: editableMetadata.abstract,
+            ...(editableMetadata.abstract && { Abstract: editableMetadata.abstract }),
 
             // Optional relations
             Organisations: organisations,
@@ -612,8 +925,7 @@ export default function NewResourcePage()
 
         // Send to backend
         try {
-            setPhase('processing');
-            setProcessingStatus('Saving resource...');
+            setPhase('saving');
 
             const response = await fetch('/api/resources/new', {
                 method: 'PUT',
@@ -740,6 +1052,14 @@ export default function NewResourcePage()
             { phase == 'processing' &&
                 <div className="flex items-center min-h-[80vh]">
                     <ProgressBox title="Processing resource" value={progress} subtext={processingStatus} currentStep={currentStep} maxSteps={progressSteps} />
+                </div>
+            }
+
+            {/** Show saving spinner */}
+            { phase == 'saving' &&
+                <div className="flex flex-col items-center justify-center min-h-[80vh]">
+                    <Spinner className="w-12 h-12 text-purple-600" />
+                    <p className="mt-4 text-gray-600">Saving resource...</p>
                 </div>
             }
 
@@ -926,6 +1246,10 @@ export default function NewResourcePage()
                                     selections={authorSelections}
                                     onSelectionChange={handleAuthorSelectionChange}
                                     onRemoveEntity={handleRemoveAuthor}
+                                    onEditEntity={handleEditAuthor}
+                                    onConvertToManual={handleConvertAuthorToManual}
+                                    onAddEntity={handleAddAuthor}
+                                    searchEndpoint="/api/persons/list"
                                     emptyMessage="No authors found"
                                     singularLabel="author"
                                     pluralLabel="authors"
@@ -942,6 +1266,10 @@ export default function NewResourcePage()
                                     selections={organisationSelections}
                                     onSelectionChange={handleOrganisationSelectionChange}
                                     onRemoveEntity={handleRemoveOrganisation}
+                                    onEditEntity={handleEditOrganisation}
+                                    onConvertToManual={handleConvertOrganisationToManual}
+                                    onAddEntity={handleAddOrganisation}
+                                    searchEndpoint="/api/organisations/list"
                                     emptyMessage="No organisations found"
                                     singularLabel="organisation"
                                     pluralLabel="organisations"
@@ -958,6 +1286,10 @@ export default function NewResourcePage()
                                     selections={relatedPersonSelections}
                                     onSelectionChange={handleRelatedPersonSelectionChange}
                                     onRemoveEntity={handleRemoveRelatedPerson}
+                                    onEditEntity={handleEditRelatedPerson}
+                                    onConvertToManual={handleConvertRelatedPersonToManual}
+                                    onAddEntity={handleAddRelatedPerson}
+                                    searchEndpoint="/api/persons/list"
                                     emptyMessage="No related persons found"
                                     singularLabel="person"
                                     pluralLabel="persons"
