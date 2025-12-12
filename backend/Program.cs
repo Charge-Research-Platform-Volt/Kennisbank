@@ -66,10 +66,10 @@ namespace KnowledgeBank
             Log.Information("OwnerUser configuration validated successfully for: {Email}", ownerConfig.Email);
             
             // # Services
-            builder.Services.AddRequestTimeouts();
             builder.Services.AddControllers();
             builder.Services.AddSignalR();
             builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
+            builder.Services.AddSingleton<MetadataExtractionJobService>();
 
             // Register DocumentIntelligenceClient for dependency injection
             builder.Services.AddSingleton(sp =>
@@ -221,7 +221,7 @@ namespace KnowledgeBank
             }
 
             // # Reset database if env var is set
-            if (app.Configuration.GetValue<bool>("RESET_DATABASE")) 
+            if (app.Configuration.GetValue<bool>("")) 
             {
                 try
                 {
@@ -327,7 +327,6 @@ namespace KnowledgeBank
             app.UseHttpsRedirection();
             app.UseRouting();
             app.UseCors("AllowFrontend");
-            app.UseRequestTimeouts(); // Enable request timeout middleware
             app.UseAuthentication();
             app.UseAuthorization();
 

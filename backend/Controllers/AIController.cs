@@ -14,7 +14,6 @@ using SmartReader;
 using HandlebarsDotNet.Helpers.BlockHelpers;
 using PuppeteerSharp;
 using KnowledgeBank.Models;
-using Microsoft.AspNetCore.Http.Timeouts;
 
 namespace KnowledgeBank.Controllers;
 
@@ -22,9 +21,10 @@ namespace KnowledgeBank.Controllers;
 [Authorize]
 [Route("[controller]")]
 [Produces("application/json")]
-public class AIController(RAGManager ragManager, ResourceManager resourceManager, IAzureBlobService blobService, TextExtractionService textExtractionService) : ControllerBase
+public class AIController(RAGManager ragManager, ResourceManager resourceManager, IAzureBlobService blobService, TextExtractionService textExtractionService, IServiceScopeFactory serviceScopeFactory) : ControllerBase
 {
     private readonly Serilog.ILogger logger = Log.ForContext<AIController>();
+    private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
 
     #region Generate Tags
     [HttpPost("generate-tags")]
@@ -192,37 +192,87 @@ public class AIController(RAGManager ragManager, ResourceManager resourceManager
     #endregion
     
     #region Extract Metadata
-    [HttpGet("extract-metadata")]
-    [RequestTimeout(180000)] // 3 minutes timeout for metadata extraction (can take 60-180s with rate limit retries)
-    [SwaggerOperation(Summary = "Extract metadata from document by ID")]
-    [SwaggerResponse(200, "The extracted metadata", typeof(ApiResponse))]
+
+    [HttpPost("extract-metadata/start")]
+    [SwaggerOperation(Summary = "Start metadata extraction job")]
+    [SwaggerResponse(200, "Job created", typeof(ApiResponse))]
     [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-    [SwaggerResponse(404, "File Not Found", typeof(ApiResponse))]
-    [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-    public async Task<IActionResult> ExtractMetadata(string type, string value) 
+    public IActionResult StartMetadataExtraction([FromQuery] string type, [FromQuery] string value)
     {
         // Verify type
         if (type != "file" && type != "web")
             return BadRequest(new ApiResponse(false, "Invalid extraction type"));
-    
+
         // Verify string
         if ((type == "file" && !ValidityUtil.IsValidId(value)) || (type == "web" && !ValidityUtil.IsValidUrl(value)))
             return BadRequest(new ApiResponse(false, "Invalid " + (type == "file" ? "ID" : "URL")));
-            
-        try 
+
+        // Create job
+        var jobService = HttpContext.RequestServices.GetRequiredService<MetadataExtractionJobService>();
+        var job = jobService.CreateJob(type, value);
+
+        logger.Information("Created metadata extraction job {JobId} for {Type}: {Value}", job.JobId, type, value);
+
+        // Start background processing
+        _ = Task.Run(async () => await ProcessMetadataExtractionJob(job.JobId, type, value));
+
+        return Ok(new ApiResponse(true, "Job created successfully", new { jobId = job.JobId }));
+    }
+
+    [HttpGet("extract-metadata/status/{jobId}")]
+    [SwaggerOperation(Summary = "Get metadata extraction job status")]
+    [SwaggerResponse(200, "Job status", typeof(ApiResponse))]
+    [SwaggerResponse(404, "Job not found", typeof(ApiResponse))]
+    public IActionResult GetJobStatus(string jobId)
+    {
+        var jobService = HttpContext.RequestServices.GetRequiredService<MetadataExtractionJobService>();
+        var job = jobService.GetJob(jobId);
+
+        if (job == null)
+            return NotFound(new ApiResponse(false, "Job not found"));
+
+        return Ok(new ApiResponse(true, "Job status retrieved", new
         {
+            jobId = job.JobId,
+            status = job.Status.ToString(),
+            statusMessage = job.StatusMessage,
+            progressPercentage = job.ProgressPercentage,
+            result = job.Result,
+            errorMessage = job.ErrorMessage,
+            createdAt = job.CreatedAt,
+            completedAt = job.CompletedAt
+        }));
+    }
+
+    private async Task ProcessMetadataExtractionJob(string jobId, string type, string value)
+    {
+        // Create a new scope for this background task
+        using var scope = _serviceScopeFactory.CreateScope();
+        var jobService = scope.ServiceProvider.GetRequiredService<MetadataExtractionJobService>();
+        var blobServiceScoped = scope.ServiceProvider.GetRequiredService<IAzureBlobService>();
+        var textExtractionServiceScoped = scope.ServiceProvider.GetRequiredService<TextExtractionService>();
+        var ragManagerScoped = scope.ServiceProvider.GetRequiredService<RAGManager>();
+
+        try
+        {
+            jobService.UpdateJobStatus(jobId, JobStatus.Processing, "Starting extraction...", 10);
             ExtractedMetadata? metadata = null;
-        
-            if (type == "file") 
+
+            if (type == "file")
             {
                 logger.Information("Metadata extraction requested for file with ID '{id}'", value);
-            
+
+                jobService.UpdateJobStatus(jobId, JobStatus.Processing, "Retrieving file...", 20);
+
                 // Retrieve blob from Azure Storage
-                BlobDownloadResponse? response = await blobService.DownloadBlobAsync("files", value);
+                BlobDownloadResponse? response = await blobServiceScoped.DownloadBlobAsync("files", value);
 
                 // Check if response is not empty, if so no file exists with this ID
                 if (response == null)
-                    return NotFound(new ApiResponse(false, $"There is no file with ID '{value}'"));
+                {
+                    jobService.SetJobError(jobId, $"File not found with ID '{value}'");
+                    return;
+                }
 
                 // Extract extension from metadata
                 string extension = ((BlobDownloadResponse)response).Metadata["extension"];
@@ -230,58 +280,81 @@ public class AIController(RAGManager ragManager, ResourceManager resourceManager
 
                 // Verify that extension is supported
                 if (!Filetype.SupportedText(extension))
-                    return BadRequest(new ApiResponse(false, "This filetype is not supported for metadata extraction."));
+                {
+                    jobService.SetJobError(jobId, "This filetype is not supported for metadata extraction");
+                    return;
+                }
 
                 logger.Information("Extracting text from {FileType} document", extension);
+                jobService.UpdateJobStatus(jobId, JobStatus.Processing, "Extracting text from document...", 30);
 
                 // Copy blob stream to MemoryStream (Azure stream is not seekable)
                 using Stream blobStream = ((BlobDownloadResponse)response).FileStream;
                 using MemoryStream memoryStream = new();
                 await blobStream.CopyToAsync(memoryStream);
                 memoryStream.Position = 0;
-                string extractedText = await textExtractionService.ExtractTextFromFileAsync(memoryStream, extension);
-                
+                string extractedText = await textExtractionServiceScoped.ExtractTextFromFileAsync(memoryStream, extension);
+
                 // Validate extracted text
                 if (string.IsNullOrWhiteSpace(extractedText))
-                    return BadRequest(new ApiResponse(false, "No text could be extracted from the document."));
+                {
+                    jobService.SetJobError(jobId, "No text could be extracted from the document");
+                    return;
+                }
 
                 logger.Information("Text extracted successfully. Length: {TextLength} characters", extractedText.Length);
 
                 // Extract metadata using LLM
                 logger.Information("Analyzing document with LLM to extract metadata");
+                jobService.UpdateJobStatus(jobId, JobStatus.Processing, "Analyzing with AI...", 50);
 
-                metadata = await ragManager.ExtractMetadataFromFileAsync(extractedText, fileName);
+                metadata = await ragManagerScoped.ExtractMetadataFromFileAsync(extractedText, fileName, () =>
+                {
+                    jobService.UpdateJobStatus(jobId, JobStatus.Processing, "Finding similar entities...", 70);
+                });
             }
-            else 
+            else
             {
                 logger.Information("Metadata extraction requested for web with URL '{url}'", value);
+                jobService.UpdateJobStatus(jobId, JobStatus.Processing, "Fetching webpage...", 20);
 
                 // Retrieve text and metadata from web using Readability
-                ReadabilityResult readabilityResult = await textExtractionService.ExtractTextFromWebAsync(value);
-                
+                ReadabilityResult readabilityResult = await textExtractionServiceScoped.ExtractTextFromWebAsync(value);
+
                 // Validate extracted text
                 if (string.IsNullOrWhiteSpace(readabilityResult.TextContent))
-                    return BadRequest(new ApiResponse(false, "No text could be extracted from the webpage."));
-                    
+                {
+                    jobService.SetJobError(jobId, "No text could be extracted from the webpage");
+                    return;
+                }
+
                 logger.Information("Text extracted successfully. Length: {TextLength} characters", readabilityResult.TextContent.Length);
 
                 // Extract metadata using LLM
                 logger.Information("Analyzing webpage with LLM to extract metadata");
+                jobService.UpdateJobStatus(jobId, JobStatus.Processing, "Analyzing with AI...", 50);
 
-                metadata = await ragManager.ExtractMetadataFromWebAsync(readabilityResult, value);
+                metadata = await ragManagerScoped.ExtractMetadataFromWebAsync(readabilityResult, value, () =>
+                {
+                    jobService.UpdateJobStatus(jobId, JobStatus.Processing, "Finding similar entities...", 70);
+                });
             }
 
             if (metadata == null)
-                return StatusCode(500, new ApiResponse(false, "Failed to extract metadata"));
+            {
+                jobService.SetJobError(jobId, "Failed to extract metadata");
+                return;
+            }
 
             logger.Information("Metadata extraction completed successfully for {title}", metadata.Title);
 
-            return Ok(new ApiResponse(true, "Metadata extracted successfully", metadata));
+            // Set the result
+            jobService.SetJobResult(jobId, metadata);
         }
-        catch (Exception e) 
+        catch (Exception e)
         {
-            logger.Error(e, "Error extracting metadata from {type} '{id}'.", type, value);
-            return StatusCode(500, new ApiResponse(false, $"Internal error during metadata extraction: {e.Message}"));
+            logger.Error(e, "Error extracting metadata from {type} '{value}'.", type, value);
+            jobService.SetJobError(jobId, $"Internal error: {e.Message}");
         }
     }
     #endregion

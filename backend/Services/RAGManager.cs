@@ -666,7 +666,7 @@ Enhanced Query:";
     /// <param name="text">The full text extracted from the document</param>
     /// <param name="fileName">The original filename for context</param>
     /// <returns>Extracted metadata or null if extraction fails</returns>
-    public async Task<ExtractedMetadata?> ExtractMetadataFromFileAsync(string text, string fileName)
+    public async Task<ExtractedMetadata?> ExtractMetadataFromFileAsync(string text, string fileName, Action? progressCallback = null)
     {
         logger.Information("Starting document metadata extraction for: {file}", fileName);
 
@@ -696,11 +696,14 @@ Enhanced Query:";
             return null;
         }
 
+        // Notify that we're now finding similar entities
+        progressCallback?.Invoke();
+
         // Validate and process the metadata
         return await validateAndProcessMetadata(tempMetadata);
     }
     
-    public async Task<ExtractedMetadata?> ExtractMetadataFromWebAsync(ReadabilityResult readabilityResult, string url) 
+    public async Task<ExtractedMetadata?> ExtractMetadataFromWebAsync(ReadabilityResult readabilityResult, string url, Action? progressCallback = null) 
     {
         if (string.IsNullOrWhiteSpace(readabilityResult.TextContent)) 
         {
@@ -767,12 +770,15 @@ Enhanced Query:";
 
         // Extract metadat using LLM (this is raw metadata that needs to be processed)
         TempExtractedMetadata? tempMetadata = await extractMetadataWithLLM(prompt);
-        
+
         if (tempMetadata == null)
         {
             logger.Warning("Failed to deserialize metadata from LLM response");
             return null;
         }
+
+        // Notify that we're now finding similar entities
+        progressCallback?.Invoke();
 
         // Validate and process the metadata
         return await validateAndProcessMetadata(tempMetadata);

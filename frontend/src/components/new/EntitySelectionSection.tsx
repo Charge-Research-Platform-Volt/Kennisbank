@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check } from 'lucide-react';
+import { Check, Trash2 } from 'lucide-react';
 
 export interface SimilarEntity {
     id: string;
@@ -25,6 +25,7 @@ interface EntitySelectionSectionProps {
     entities: EntityWithSimilars[];
     selections: Map<string, EntitySelection>;
     onSelectionChange: (entityName: string, selection: EntitySelection) => void;
+    onRemoveEntity?: (entityName: string) => void;
     emptyMessage?: string;
     singularLabel?: string; // e.g., "entity", "author", "organization"
     pluralLabel?: string;   // e.g., "entities", "authors", "organizations"
@@ -34,6 +35,7 @@ export function EntitySelectionSection({
     entities,
     selections,
     onSelectionChange,
+    onRemoveEntity,
     emptyMessage = "No entities found",
     singularLabel = "entity",
     pluralLabel = "entities"
@@ -54,6 +56,7 @@ export function EntitySelectionSection({
                     entity={entity}
                     selection={selections.get(entity.name)}
                     onSelectionChange={(selection) => onSelectionChange(entity.name, selection)}
+                    onRemove={onRemoveEntity ? () => onRemoveEntity(entity.name) : undefined}
                     singularLabel={singularLabel}
                     pluralLabel={pluralLabel}
                 />
@@ -66,17 +69,29 @@ interface EntityItemProps {
     entity: EntityWithSimilars;
     selection?: EntitySelection;
     onSelectionChange: (selection: EntitySelection) => void;
+    onRemove?: () => void;
     singularLabel: string;
     pluralLabel: string;
 }
 
-function EntityItem({ entity, selection, onSelectionChange, singularLabel, pluralLabel }: EntityItemProps) {
+function EntityItem({ entity, selection, onSelectionChange, onRemove, singularLabel, pluralLabel }: EntityItemProps) {
     const hasSimilars = entity.similars && entity.similars.length > 0;
 
     return (
-        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 relative">
+            {/* Remove button */}
+            {onRemove && (
+                <button
+                    onClick={onRemove}
+                    className="absolute top-3 right-3 p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    title={`Remove this ${singularLabel}`}
+                >
+                    <Trash2 className="w-4 h-4" />
+                </button>
+            )}
+
             {/* Extracted entity name */}
-            <div className="mb-3">
+            <div className="mb-3 pr-8">
                 <h3 className="text-sm font-semibold text-gray-900">
                     Extracted: <span className="text-purple-600">{entity.name}</span>
                 </h3>

@@ -21,6 +21,51 @@ class ResourceUploadDto
     hash: string = '';
 }
 
+// Helper function to poll job status
+async function pollJobStatus(
+    jobId: string,
+    setProgress: (progress: number) => void,
+    setProcessingStatus: (status: string) => void
+): Promise<ExtractedMetadata> {
+    const pollInterval = 2000; // Poll every 2 seconds
+    const maxAttempts = 150; // Max 5 minutes (150 * 2 seconds = 300 seconds)
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const statusResult = await fetch(`/api/ai/extract-metadata/status/${jobId}`, {
+            credentials: 'include'
+        });
+
+        if (!statusResult.ok) {
+            throw new Error('Failed to get job status');
+        }
+
+        const statusData = await statusResult.json();
+        const job = statusData.body;
+
+        // Update progress and status message
+        setProgress(job.progressPercentage || 0);
+        if (job.statusMessage) {
+            setProcessingStatus(job.statusMessage);
+        }
+
+        // Check if job is complete
+        if (job.status === 'Completed') {
+            console.log('Metadata extraction complete:', job.result);
+            return job.result as ExtractedMetadata;
+        }
+
+        // Check if job failed
+        if (job.status === 'Failed') {
+            throw new Error(job.errorMessage || 'Metadata extraction failed');
+        }
+
+        // Wait before next poll
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+    }
+
+    throw new Error('Metadata extraction timed out');
+}
+
 export default function NewResourcePage()
 {
     const router = useRouter();
@@ -129,34 +174,31 @@ export default function NewResourcePage()
         setProgress(0);
         setCurrentStep(3);
 
-        // Fake progress bar: gradually increase to 90% while waiting for API
-        const progressInterval = setInterval(() => {
-            setProgress((prev) => {
-                if (prev >= 90) {
-                    clearInterval(progressInterval);
-                    return 90;
-                }
-                return prev + 1;
-            });
-        }, 100); // Interval time in ms
-
         try
         {
-            const metaResult = await fetch(`/api/ai/extract-metadata?type=file&value=${encodeURIComponent(fileGuid)}`, { credentials: 'include' });
-            const metadata = await metaResult.json();
-            console.log(metadata.body);
+            // Start the extraction job
+            const startResult = await fetch(`/api/ai/extract-metadata/start?type=file&value=${encodeURIComponent(fileGuid)}`, {
+                method: 'POST',
+                credentials: 'include'
+            });
 
-            // Clear interval and jump to 100%
-            clearInterval(progressInterval);
-            setProgress(100);
-            setProcessingStatus("Metadata extraction complete");
+            if (!startResult.ok) {
+                throw new Error('Failed to start metadata extraction');
+            }
+
+            const startData = await startResult.json();
+            const jobId = startData.body.jobId;
+            console.log('Metadata extraction job started:', jobId);
+
+            // Poll for job status
+            const metadata = await pollJobStatus(jobId, setProgress, setProcessingStatus);
 
             // Store metadata and transition to review phase
-            setEditableMetadata(metadata.body);
+            setEditableMetadata(metadata);
 
             // Initialize default author selections
             const defaultAuthorSelections = new Map<string, EntitySelection>();
-            metadata.body.authors?.forEach((author: { name: string; type: string; similars: Array<{ id: string; score: number }> }) => {
+            metadata.authors?.forEach((author: { name: string; type: string; similars: Array<{ id: string; score: number }> }) => {
                 // If there's a high-confidence match (>90%), auto-select it
                 const bestMatch = author.similars?.[0]; // Similars are already sorted by score
                 if (bestMatch && bestMatch.score >= 0.9) {
@@ -178,7 +220,7 @@ export default function NewResourcePage()
 
             // Initialize default organisation selections
             const defaultOrgSelections = new Map<string, EntitySelection>();
-            metadata.body.organisations?.forEach((org: { name: string; similars: Array<{ id: string; score: number }> }) => {
+            metadata.organisations?.forEach((org: { name: string; similars: Array<{ id: string; score: number }> }) => {
                 const bestMatch = org.similars?.[0];
                 if (bestMatch && bestMatch.score >= 0.9) {
                     defaultOrgSelections.set(org.name, {
@@ -197,7 +239,7 @@ export default function NewResourcePage()
 
             // Initialize default related person selections
             const defaultRelatedPersonSelections = new Map<string, EntitySelection>();
-            metadata.body.relatedPersons?.forEach((person: { name: string; similars: Array<{ id: string; score: number }> }) => {
+            metadata.relatedPersons?.forEach((person: { name: string; similars: Array<{ id: string; score: number }> }) => {
                 const bestMatch = person.similars?.[0];
                 if (bestMatch && bestMatch.score >= 0.9) {
                     defaultRelatedPersonSelections.set(person.name, {
@@ -217,7 +259,6 @@ export default function NewResourcePage()
             setTimeout(() => setPhase('review'), 500); // Small delay to show completion
         } catch (error)
         {
-            clearInterval(progressInterval);
             throw error;
         }
     }
@@ -255,38 +296,32 @@ export default function NewResourcePage()
         setProcessingStatus("Extracting metadata...");
         setProgress(0);
         setCurrentStep(1);
-        
-        // Fake progress bar: gradually increase to 90% while waiting for API
-        const progressInterval = setInterval(() => 
+
+        try
         {
-            setProgress((prev) => 
-            {
-                if (prev >= 90) 
-                {
-                    clearInterval(progressInterval);
-                    return 90;
-                }
-                return prev + 1;
+            // Start the extraction job
+            const startResult = await fetch(`/api/ai/extract-metadata/start?type=web&value=${encodeURIComponent(url)}`, {
+                method: 'POST',
+                credentials: 'include'
             });
-        }, 100); // Interval time in ms
-        
-        try 
-        {
-            const metaResult = await fetch(`/api/ai/extract-metadata?type=web&value=${encodeURIComponent(url)}`, { credentials: 'include' });
-            const metadata = await metaResult.json();
-            console.log(metadata.body);
-            
-            // Clear interval and jump to 100%
-            clearInterval(progressInterval);
-            setProgress(100);
-            setProcessingStatus("Metadata extraction complete");
-            
+
+            if (!startResult.ok) {
+                throw new Error('Failed to start metadata extraction');
+            }
+
+            const startData = await startResult.json();
+            const jobId = startData.body.jobId;
+            console.log('Metadata extraction job started:', jobId);
+
+            // Poll for job status
+            const metadata = await pollJobStatus(jobId, setProgress, setProcessingStatus);
+
             // Store metadata and transition to review phase
-            setEditableMetadata(metadata.body);
+            setEditableMetadata(metadata);
             
             // Initialize default author selections
             const defaultAuthorSelections = new Map<string, EntitySelection>();
-            metadata.body.authors?.forEach((author: { name: string; type: string; similars: Array<{ id: string; score: number }> }) => {
+            metadata.authors?.forEach((author: { name: string; type: string; similars: Array<{ id: string; score: number }> }) => {
                 // If there's a high-confidence match (>90%), auto-select it
                 const bestMatch = author.similars?.[0]; // Similars are already sorted by score
                 if (bestMatch && bestMatch.score >= 0.9) {
@@ -308,7 +343,7 @@ export default function NewResourcePage()
 
             // Initialize default organisation selections
             const defaultOrgSelections = new Map<string, EntitySelection>();
-            metadata.body.organisations?.forEach((org: { name: string; similars: Array<{ id: string; score: number }> }) => {
+            metadata.organisations?.forEach((org: { name: string; similars: Array<{ id: string; score: number }> }) => {
                 const bestMatch = org.similars?.[0];
                 if (bestMatch && bestMatch.score >= 0.9) {
                     defaultOrgSelections.set(org.name, {
@@ -327,7 +362,7 @@ export default function NewResourcePage()
 
             // Initialize default related person selections
             const defaultRelatedPersonSelections = new Map<string, EntitySelection>();
-            metadata.body.relatedPersons?.forEach((person: { name: string; similars: Array<{ id: string; score: number }> }) => {
+            metadata.relatedPersons?.forEach((person: { name: string; similars: Array<{ id: string; score: number }> }) => {
                 const bestMatch = person.similars?.[0];
                 if (bestMatch && bestMatch.score >= 0.9) {
                     defaultRelatedPersonSelections.set(person.name, {
@@ -345,9 +380,8 @@ export default function NewResourcePage()
             setRelatedPersonSelections(defaultRelatedPersonSelections);
 
             setTimeout(() => setPhase('review'), 500); // Small delay to show completion
-        }catch (error) 
+        } catch (error)
         {
-            clearInterval(progressInterval);
             throw error;
         }
     }
@@ -429,6 +463,45 @@ export default function NewResourcePage()
         setRelatedPersonSelections((prev) => {
             const newSelections = new Map(prev);
             newSelections.set(personName, selection);
+            return newSelections;
+        });
+    };
+
+    const handleRemoveAuthor = (authorName: string) => {
+        if (!editableMetadata) return;
+        setEditableMetadata({
+            ...editableMetadata,
+            authors: editableMetadata.authors?.filter(a => a.name !== authorName)
+        });
+        setAuthorSelections((prev) => {
+            const newSelections = new Map(prev);
+            newSelections.delete(authorName);
+            return newSelections;
+        });
+    };
+
+    const handleRemoveOrganisation = (orgName: string) => {
+        if (!editableMetadata) return;
+        setEditableMetadata({
+            ...editableMetadata,
+            organisations: editableMetadata.organisations?.filter(o => o.name !== orgName)
+        });
+        setOrganisationSelections((prev) => {
+            const newSelections = new Map(prev);
+            newSelections.delete(orgName);
+            return newSelections;
+        });
+    };
+
+    const handleRemoveRelatedPerson = (personName: string) => {
+        if (!editableMetadata) return;
+        setEditableMetadata({
+            ...editableMetadata,
+            relatedPersons: editableMetadata.relatedPersons?.filter(p => p.name !== personName)
+        });
+        setRelatedPersonSelections((prev) => {
+            const newSelections = new Map(prev);
+            newSelections.delete(personName);
             return newSelections;
         });
     };
@@ -852,6 +925,7 @@ export default function NewResourcePage()
                                     entities={editableMetadata.authors || []}
                                     selections={authorSelections}
                                     onSelectionChange={handleAuthorSelectionChange}
+                                    onRemoveEntity={handleRemoveAuthor}
                                     emptyMessage="No authors found"
                                     singularLabel="author"
                                     pluralLabel="authors"
@@ -867,6 +941,7 @@ export default function NewResourcePage()
                                     entities={editableMetadata.organisations || []}
                                     selections={organisationSelections}
                                     onSelectionChange={handleOrganisationSelectionChange}
+                                    onRemoveEntity={handleRemoveOrganisation}
                                     emptyMessage="No organisations found"
                                     singularLabel="organisation"
                                     pluralLabel="organisations"
@@ -882,6 +957,7 @@ export default function NewResourcePage()
                                     entities={editableMetadata.relatedPersons || []}
                                     selections={relatedPersonSelections}
                                     onSelectionChange={handleRelatedPersonSelectionChange}
+                                    onRemoveEntity={handleRemoveRelatedPerson}
                                     emptyMessage="No related persons found"
                                     singularLabel="person"
                                     pluralLabel="persons"
