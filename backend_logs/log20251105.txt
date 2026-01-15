@@ -1,0 +1,1541 @@
+2025-11-05 10:45:51.843 +01:00 [INF] OwnerUser configuration validated successfully for: admin@admin.nl
+2025-11-05 10:45:52.556 +01:00 [INF] Database migrations applied successfully
+2025-11-05 10:45:52.767 +01:00 [INF] Tools successfully initialized
+2025-11-05 10:45:52.768 +01:00 [INF] Initializing RAG system with embedding cache enabled
+2025-11-05 10:45:52.775 +01:00 [INF] Qdrant client successfully initialized with host: qdrant, port: 6334
+2025-11-05 10:45:52.817 +01:00 [INF] Collection knowledgebank already exists. No action taken.
+2025-11-05 10:45:52.817 +01:00 [INF] Qdrant collection knowledgebank checked and initialized if necessary
+2025-11-05 10:45:52.865 +01:00 [INF] Azure Document Intelligence client initialized
+2025-11-05 10:45:52.868 +01:00 [INF] Azure OpenAI client successfully initialized
+2025-11-05 10:45:52.869 +01:00 [INF] Embeddings client successfully initialized
+2025-11-05 10:45:52.869 +01:00 [INF] RAG system successfully initialized
+2025-11-05 10:45:52.934 +01:00 [INF] Materialized view ResourceGridView with triggers created successfully
+2025-11-05 10:45:52.944 +01:00 [INF] Materialized view ResourceTrashView with triggers created successfully
+2025-11-05 10:45:53.000 +01:00 [INF] BlobCleanupService started
+2025-11-05 11:58:43.220 +01:00 [INF] Upload session initialized for file '2025_Self-Regulation and Individual Differences - Brightspace Version - Copy.pdf' with GUID "c39a890c-ea27-48d4-b6b8-854e6bb915f9"
+2025-11-05 11:58:44.011 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 11:58:44.056 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID c39a890c-ea27-48d4-b6b8-854e6bb915f9 (4194304 bytes)
+2025-11-05 11:58:44.367 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 11:58:44.383 +01:00 [INF] Chunk 3030303030303031 uploaded for GUID c39a890c-ea27-48d4-b6b8-854e6bb915f9 (2166974 bytes)
+2025-11-05 11:58:44.611 +01:00 [INF] Finalizing file upload for GUID c39a890c-ea27-48d4-b6b8-854e6bb915f9 with 2 blocks
+2025-11-05 11:58:44.613 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 11:58:44.627 +01:00 [INF] File upload finalized successfully for GUID c39a890c-ea27-48d4-b6b8-854e6bb915f9
+2025-11-05 12:04:07.077 +01:00 [INF] Upload session initialized for file '2025_Self-Regulation and Individual Differences - Brightspace Version - Copy.pdf' with GUID "f45aaecc-ca5d-4a12-9b02-f5f73877a0e8"
+2025-11-05 12:04:08.077 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 12:04:08.110 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID f45aaecc-ca5d-4a12-9b02-f5f73877a0e8 (4194304 bytes)
+2025-11-05 12:04:08.524 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 12:04:08.540 +01:00 [INF] Chunk 3030303030303031 uploaded for GUID f45aaecc-ca5d-4a12-9b02-f5f73877a0e8 (2166974 bytes)
+2025-11-05 12:04:08.782 +01:00 [INF] Finalizing file upload for GUID f45aaecc-ca5d-4a12-9b02-f5f73877a0e8 with 2 blocks
+2025-11-05 12:04:08.783 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 12:04:08.786 +01:00 [INF] File upload finalized successfully for GUID f45aaecc-ca5d-4a12-9b02-f5f73877a0e8
+2025-11-05 12:05:31.167 +01:00 [INF] Upload session initialized for file '2025_Self-Regulation and Individual Differences - Brightspace Version - Copy.pdf' with GUID "6d6ac4ac-7c1e-4a25-be31-3cec44f7abe1"
+2025-11-05 12:05:31.825 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 12:05:31.861 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID 6d6ac4ac-7c1e-4a25-be31-3cec44f7abe1 (4194304 bytes)
+2025-11-05 12:05:32.205 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 12:05:32.221 +01:00 [INF] Chunk 3030303030303031 uploaded for GUID 6d6ac4ac-7c1e-4a25-be31-3cec44f7abe1 (2166974 bytes)
+2025-11-05 12:05:32.422 +01:00 [INF] Finalizing file upload for GUID 6d6ac4ac-7c1e-4a25-be31-3cec44f7abe1 with 2 blocks
+2025-11-05 12:05:32.424 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 12:05:32.426 +01:00 [INF] File upload finalized successfully for GUID 6d6ac4ac-7c1e-4a25-be31-3cec44f7abe1
+2025-11-05 12:07:11.878 +01:00 [INF] Upload session initialized for file 'Depping_2017-WhyIsThisHappening.pdf' with GUID "e22c1b30-6eee-44f5-8bac-cfc035fe82cd"
+2025-11-05 12:07:12.377 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 12:07:12.398 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID e22c1b30-6eee-44f5-8bac-cfc035fe82cd (950232 bytes)
+2025-11-05 12:07:12.591 +01:00 [INF] Finalizing file upload for GUID e22c1b30-6eee-44f5-8bac-cfc035fe82cd with 1 blocks
+2025-11-05 12:07:12.593 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 12:07:12.595 +01:00 [INF] File upload finalized successfully for GUID e22c1b30-6eee-44f5-8bac-cfc035fe82cd
+2025-11-05 12:07:12.799 +01:00 [INF] Metadata extractoion requested for file with ID 'e22c1b30-6eee-44f5-8bac-cfc035fe82cd'
+2025-11-05 12:07:12.817 +01:00 [INF] Blob e22c1b30-6eee-44f5-8bac-cfc035fe82cd downloaded from container files.
+2025-11-05 12:07:12.817 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 12:07:13.313 +01:00 [INF] Text extracted successfully. Length: 70849 characters
+2025-11-05 12:07:13.313 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 12:07:13.314 +01:00 [INF] Starting metadata extraction for file: Depping_2017-WhyIsThisHappening.pdf
+2025-11-05 12:07:13.314 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 12:07:13.315 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 12:07:18.886 +01:00 [INF] Received LLM response: 1429 characters
+2025-11-05 12:07:18.888 +01:00 [INF] Metadata extraction completed successfully. Title: Why is This Happening to Me? How Player Attribution can Broaden our Understanding of Player Experience, Authors: 2, Tags: 4
+2025-11-05 12:07:18.888 +01:00 [INF] Metadata extraction completed successfully for Depping_2017-WhyIsThisHappening.pdf
+2025-11-05 12:08:15.202 +01:00 [INF] Upload session initialized for file 'Liedtka_2015-DesignThinkingCognitiveBiases.pdf' with GUID "f6e5ec19-6a7e-4db6-8d23-be581f40d290"
+2025-11-05 12:08:15.543 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 12:08:15.561 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID f6e5ec19-6a7e-4db6-8d23-be581f40d290 (106534 bytes)
+2025-11-05 12:08:15.773 +01:00 [INF] Finalizing file upload for GUID f6e5ec19-6a7e-4db6-8d23-be581f40d290 with 1 blocks
+2025-11-05 12:08:15.775 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 12:08:15.778 +01:00 [INF] File upload finalized successfully for GUID f6e5ec19-6a7e-4db6-8d23-be581f40d290
+2025-11-05 12:08:16.005 +01:00 [INF] Metadata extractoion requested for file with ID 'f6e5ec19-6a7e-4db6-8d23-be581f40d290'
+2025-11-05 12:08:16.008 +01:00 [INF] Blob f6e5ec19-6a7e-4db6-8d23-be581f40d290 downloaded from container files.
+2025-11-05 12:08:16.008 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 12:08:17.275 +01:00 [INF] Text extracted successfully. Length: 74097 characters
+2025-11-05 12:08:17.275 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 12:08:17.275 +01:00 [INF] Starting metadata extraction for file: Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 12:08:17.275 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 12:08:17.275 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 12:08:22.045 +01:00 [INF] Received LLM response: 1147 characters
+2025-11-05 12:08:22.046 +01:00 [INF] Metadata extraction completed successfully. Title: Linking Design Thinking with Innovation Outcomes through Cognitive Bias Reduction, Authors: 1, Tags: 5
+2025-11-05 12:08:22.046 +01:00 [INF] Metadata extraction completed successfully for Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 12:10:46.069 +01:00 [INF] Upload session initialized for file 'Waldenmeier_2024-ExternalSupportForFearOfFailure.pdf' with GUID "1d0f1f4f-7742-484e-9b88-ba3c66370b63"
+2025-11-05 12:10:46.525 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 12:10:46.545 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID 1d0f1f4f-7742-484e-9b88-ba3c66370b63 (823197 bytes)
+2025-11-05 12:10:46.744 +01:00 [INF] Finalizing file upload for GUID 1d0f1f4f-7742-484e-9b88-ba3c66370b63 with 1 blocks
+2025-11-05 12:10:46.745 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 12:10:46.747 +01:00 [INF] File upload finalized successfully for GUID 1d0f1f4f-7742-484e-9b88-ba3c66370b63
+2025-11-05 12:10:46.963 +01:00 [INF] Metadata extractoion requested for file with ID '1d0f1f4f-7742-484e-9b88-ba3c66370b63'
+2025-11-05 12:10:46.967 +01:00 [INF] Blob 1d0f1f4f-7742-484e-9b88-ba3c66370b63 downloaded from container files.
+2025-11-05 12:10:46.967 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 12:10:47.127 +01:00 [INF] Text extracted successfully. Length: 83315 characters
+2025-11-05 12:10:47.127 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 12:10:47.127 +01:00 [INF] Starting metadata extraction for file: Waldenmeier_2024-ExternalSupportForFearOfFailure.pdf
+2025-11-05 12:10:47.127 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 12:10:47.127 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 12:10:55.437 +01:00 [INF] Received LLM response: 1900 characters
+2025-11-05 12:10:55.438 +01:00 [INF] Metadata extraction completed successfully. Title: Cheat Codes as External Support for Players Navigating Fear of Failure and Self-Regulation Challenges In Digital Games, Authors: 5, Tags: 6
+2025-11-05 12:10:55.438 +01:00 [INF] Metadata extraction completed successfully for Waldenmeier_2024-ExternalSupportForFearOfFailure.pdf
+2025-11-05 12:19:30.928 +01:00 [INF] OwnerUser configuration validated successfully for: admin@admin.nl
+2025-11-05 12:19:31.615 +01:00 [INF] Database migrations applied successfully
+2025-11-05 12:19:31.820 +01:00 [INF] Tools successfully initialized
+2025-11-05 12:19:31.820 +01:00 [INF] Initializing RAG system with embedding cache enabled
+2025-11-05 12:19:31.826 +01:00 [INF] Qdrant client successfully initialized with host: qdrant, port: 6334
+2025-11-05 12:19:31.868 +01:00 [INF] Collection knowledgebank already exists. No action taken.
+2025-11-05 12:19:31.868 +01:00 [INF] Qdrant collection knowledgebank checked and initialized if necessary
+2025-11-05 12:19:31.918 +01:00 [INF] Azure Document Intelligence client initialized
+2025-11-05 12:19:31.920 +01:00 [INF] Azure OpenAI client successfully initialized
+2025-11-05 12:19:31.922 +01:00 [INF] Embeddings client successfully initialized
+2025-11-05 12:19:31.922 +01:00 [INF] RAG system successfully initialized
+2025-11-05 12:19:31.979 +01:00 [INF] Materialized view ResourceGridView with triggers created successfully
+2025-11-05 12:19:31.989 +01:00 [INF] Materialized view ResourceTrashView with triggers created successfully
+2025-11-05 12:19:32.045 +01:00 [INF] BlobCleanupService started
+2025-11-05 12:23:40.298 +01:00 [INF] OwnerUser configuration validated successfully for: admin@admin.nl
+2025-11-05 12:23:40.982 +01:00 [INF] Database migrations applied successfully
+2025-11-05 12:23:41.188 +01:00 [INF] Tools successfully initialized
+2025-11-05 12:23:41.188 +01:00 [INF] Initializing RAG system with embedding cache enabled
+2025-11-05 12:23:41.195 +01:00 [INF] Qdrant client successfully initialized with host: qdrant, port: 6334
+2025-11-05 12:23:41.236 +01:00 [INF] Collection knowledgebank already exists. No action taken.
+2025-11-05 12:23:41.236 +01:00 [INF] Qdrant collection knowledgebank checked and initialized if necessary
+2025-11-05 12:23:41.284 +01:00 [INF] Azure Document Intelligence client initialized
+2025-11-05 12:23:41.286 +01:00 [INF] Azure OpenAI client successfully initialized
+2025-11-05 12:23:41.288 +01:00 [INF] Embeddings client successfully initialized
+2025-11-05 12:23:41.288 +01:00 [INF] RAG system successfully initialized
+2025-11-05 12:23:41.342 +01:00 [INF] Materialized view ResourceGridView with triggers created successfully
+2025-11-05 12:23:41.353 +01:00 [INF] Materialized view ResourceTrashView with triggers created successfully
+2025-11-05 12:23:41.408 +01:00 [INF] BlobCleanupService started
+2025-11-05 12:26:13.214 +01:00 [INF] Upload session initialized for file 'jjcmcom0415.pdf' with GUID "af899653-9dfb-41b9-8728-bff2ae7e9a61"
+2025-11-05 12:26:13.598 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 12:26:13.616 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID af899653-9dfb-41b9-8728-bff2ae7e9a61 (207453 bytes)
+2025-11-05 12:26:13.846 +01:00 [INF] Finalizing file upload for GUID af899653-9dfb-41b9-8728-bff2ae7e9a61 with 1 blocks
+2025-11-05 12:26:13.849 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 12:26:13.862 +01:00 [INF] File upload finalized successfully for GUID af899653-9dfb-41b9-8728-bff2ae7e9a61
+2025-11-05 12:26:14.094 +01:00 [INF] Metadata extractoion requested for file with ID 'af899653-9dfb-41b9-8728-bff2ae7e9a61'
+2025-11-05 12:26:14.110 +01:00 [INF] Blob af899653-9dfb-41b9-8728-bff2ae7e9a61 downloaded from container files.
+2025-11-05 12:26:14.110 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 12:26:14.589 +01:00 [INF] Text extracted successfully. Length: 87281 characters
+2025-11-05 12:26:14.590 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 12:26:14.590 +01:00 [INF] Starting metadata extraction for file: jjcmcom0415.pdf
+2025-11-05 12:26:14.590 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 12:26:14.592 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 12:26:22.424 +01:00 [INF] Received LLM response: 1296 characters
+2025-11-05 12:26:22.428 +01:00 [INF] Metadata extraction completed successfully. Title: Managing Impressions Online: Self-Presentation Processes in the Online Dating Environment, Authors: 3, Tags: 4
+2025-11-05 12:26:22.428 +01:00 [INF] Metadata extraction completed successfully for jjcmcom0415.pdf
+2025-11-05 12:28:16.021 +01:00 [INF] Upload session initialized for file 'Waldenmeier_2024-ExternalSupportForFearOfFailure.pdf' with GUID "98f04f41-1304-43fd-8e3d-58c585894967"
+2025-11-05 12:28:16.485 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 12:28:16.497 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID 98f04f41-1304-43fd-8e3d-58c585894967 (823197 bytes)
+2025-11-05 12:28:16.719 +01:00 [INF] Finalizing file upload for GUID 98f04f41-1304-43fd-8e3d-58c585894967 with 1 blocks
+2025-11-05 12:28:16.720 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 12:28:16.723 +01:00 [INF] File upload finalized successfully for GUID 98f04f41-1304-43fd-8e3d-58c585894967
+2025-11-05 12:28:16.926 +01:00 [INF] Metadata extractoion requested for file with ID '98f04f41-1304-43fd-8e3d-58c585894967'
+2025-11-05 12:28:16.930 +01:00 [INF] Blob 98f04f41-1304-43fd-8e3d-58c585894967 downloaded from container files.
+2025-11-05 12:28:16.930 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 12:28:17.406 +01:00 [INF] Text extracted successfully. Length: 83315 characters
+2025-11-05 12:28:17.406 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 12:28:17.406 +01:00 [INF] Starting metadata extraction for file: Waldenmeier_2024-ExternalSupportForFearOfFailure.pdf
+2025-11-05 12:28:17.406 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 12:28:17.407 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 12:28:23.013 +01:00 [INF] Received LLM response: 2095 characters
+2025-11-05 12:28:23.015 +01:00 [INF] Metadata extraction completed successfully. Title: Cheat Codes as External Support for Players Navigating Fear of Failure and Self-Regulation Challenges In Digital Games, Authors: 5, Tags: 4
+2025-11-05 12:28:23.015 +01:00 [INF] Metadata extraction completed successfully for Waldenmeier_2024-ExternalSupportForFearOfFailure.pdf
+2025-11-05 12:31:55.046 +01:00 [INF] Upload session initialized for file '3289-Article Text-17673-1-10-20200425.pdf' with GUID "83cf761d-c413-4f99-bc44-69feb11035a8"
+2025-11-05 12:31:55.405 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 12:31:55.424 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID 83cf761d-c413-4f99-bc44-69feb11035a8 (235472 bytes)
+2025-11-05 12:31:55.654 +01:00 [INF] Finalizing file upload for GUID 83cf761d-c413-4f99-bc44-69feb11035a8 with 1 blocks
+2025-11-05 12:31:55.656 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 12:31:55.659 +01:00 [INF] File upload finalized successfully for GUID 83cf761d-c413-4f99-bc44-69feb11035a8
+2025-11-05 12:31:55.878 +01:00 [INF] Metadata extractoion requested for file with ID '83cf761d-c413-4f99-bc44-69feb11035a8'
+2025-11-05 12:31:55.881 +01:00 [INF] Blob 83cf761d-c413-4f99-bc44-69feb11035a8 downloaded from container files.
+2025-11-05 12:31:55.881 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 12:31:56.363 +01:00 [INF] Text extracted successfully. Length: 46358 characters
+2025-11-05 12:31:56.363 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 12:31:56.363 +01:00 [INF] Starting metadata extraction for file: 3289-Article Text-17673-1-10-20200425.pdf
+2025-11-05 12:31:56.363 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 12:31:56.363 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 12:32:05.293 +01:00 [INF] Received LLM response: 1608 characters
+2025-11-05 12:32:05.294 +01:00 [INF] Metadata extraction completed successfully. Title: Factors Related to Initiating Interpersonal Contacts on Internet Dating Sites: A View From the Social Exchange Theory, Authors: 2, Tags: 4
+2025-11-05 12:32:05.294 +01:00 [INF] Metadata extraction completed successfully for 3289-Article Text-17673-1-10-20200425.pdf
+2025-11-05 13:12:27.068 +01:00 [INF] OwnerUser configuration validated successfully for: admin@admin.nl
+2025-11-05 13:12:27.745 +01:00 [INF] Database migrations applied successfully
+2025-11-05 13:12:27.951 +01:00 [INF] Tools successfully initialized
+2025-11-05 13:12:27.951 +01:00 [INF] Initializing RAG system with embedding cache enabled
+2025-11-05 13:12:27.958 +01:00 [INF] Qdrant client successfully initialized with host: qdrant, port: 6334
+2025-11-05 13:12:27.999 +01:00 [INF] Collection knowledgebank already exists. No action taken.
+2025-11-05 13:12:27.999 +01:00 [INF] Qdrant collection knowledgebank checked and initialized if necessary
+2025-11-05 13:12:28.047 +01:00 [INF] Azure Document Intelligence client initialized
+2025-11-05 13:12:28.050 +01:00 [INF] Azure OpenAI client successfully initialized
+2025-11-05 13:12:28.051 +01:00 [INF] Embeddings client successfully initialized
+2025-11-05 13:12:28.051 +01:00 [INF] RAG system successfully initialized
+2025-11-05 13:12:28.105 +01:00 [INF] Materialized view ResourceGridView with triggers created successfully
+2025-11-05 13:12:28.116 +01:00 [INF] Materialized view ResourceTrashView with triggers created successfully
+2025-11-05 13:12:28.171 +01:00 [INF] BlobCleanupService started
+2025-11-05 13:19:10.676 +01:00 [INF] Upload session initialized for file '3289-Article Text-17673-1-10-20200425.pdf' with GUID "bdd05f62-29ca-4c3a-a584-87274f1d9642"
+2025-11-05 13:19:10.951 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 13:19:10.965 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID bdd05f62-29ca-4c3a-a584-87274f1d9642 (235472 bytes)
+2025-11-05 13:19:11.002 +01:00 [INF] Finalizing file upload for GUID bdd05f62-29ca-4c3a-a584-87274f1d9642 with 1 blocks
+2025-11-05 13:19:11.004 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 13:19:11.013 +01:00 [INF] File upload finalized successfully for GUID bdd05f62-29ca-4c3a-a584-87274f1d9642
+2025-11-05 13:19:11.217 +01:00 [INF] Metadata extractoion requested for file with ID 'bdd05f62-29ca-4c3a-a584-87274f1d9642'
+2025-11-05 13:19:11.232 +01:00 [INF] Blob bdd05f62-29ca-4c3a-a584-87274f1d9642 downloaded from container files.
+2025-11-05 13:19:11.232 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 13:19:12.053 +01:00 [INF] Text extracted successfully. Length: 46358 characters
+2025-11-05 13:19:12.053 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 13:19:12.053 +01:00 [INF] Starting metadata extraction for file: 3289-Article Text-17673-1-10-20200425.pdf
+2025-11-05 13:19:12.053 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 13:19:12.055 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 13:19:17.091 +01:00 [INF] Received LLM response: 1784 characters
+2025-11-05 13:19:17.095 +01:00 [INF] Metadata extraction completed successfully. Title: Factors Related to Initiating Interpersonal Contacts on Internet Dating Sites: A View From the Social Exchange Theory, Authors: 2, Tags: 4
+2025-11-05 13:19:17.095 +01:00 [INF] Metadata extraction completed successfully for 3289-Article Text-17673-1-10-20200425.pdf
+2025-11-05 13:30:58.790 +01:00 [INF] Upload session initialized for file '3289-Article Text-17673-1-10-20200425.pdf' with GUID "7fc3a90a-e92a-4a27-96e9-f9ef31e27bc5"
+2025-11-05 13:30:59.222 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 13:30:59.232 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID 7fc3a90a-e92a-4a27-96e9-f9ef31e27bc5 (235472 bytes)
+2025-11-05 13:30:59.427 +01:00 [INF] Finalizing file upload for GUID 7fc3a90a-e92a-4a27-96e9-f9ef31e27bc5 with 1 blocks
+2025-11-05 13:30:59.428 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 13:30:59.431 +01:00 [INF] File upload finalized successfully for GUID 7fc3a90a-e92a-4a27-96e9-f9ef31e27bc5
+2025-11-05 13:30:59.622 +01:00 [INF] Metadata extractoion requested for file with ID '7fc3a90a-e92a-4a27-96e9-f9ef31e27bc5'
+2025-11-05 13:30:59.625 +01:00 [INF] Blob 7fc3a90a-e92a-4a27-96e9-f9ef31e27bc5 downloaded from container files.
+2025-11-05 13:30:59.625 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 13:30:59.792 +01:00 [INF] Text extracted successfully. Length: 46358 characters
+2025-11-05 13:30:59.792 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 13:30:59.792 +01:00 [INF] Starting metadata extraction for file: 3289-Article Text-17673-1-10-20200425.pdf
+2025-11-05 13:30:59.792 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 13:30:59.792 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 13:31:06.573 +01:00 [INF] Received LLM response: 1687 characters
+2025-11-05 13:31:06.574 +01:00 [INF] Metadata extraction completed successfully. Title: Factors Related to Initiating Interpersonal Contacts on Internet Dating Sites: A View From the Social Exchange Theory, Authors: 2, Tags: 4
+2025-11-05 13:31:06.574 +01:00 [INF] Metadata extraction completed successfully for 3289-Article Text-17673-1-10-20200425.pdf
+2025-11-05 13:44:39.974 +01:00 [INF] Upload session initialized for file 'Liedtka_2015-DesignThinkingCognitiveBiases.pdf' with GUID "cb4b80be-50bc-49fe-91d0-cebc58b6096f"
+2025-11-05 13:44:40.301 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 13:44:40.310 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID cb4b80be-50bc-49fe-91d0-cebc58b6096f (106534 bytes)
+2025-11-05 13:44:40.516 +01:00 [INF] Finalizing file upload for GUID cb4b80be-50bc-49fe-91d0-cebc58b6096f with 1 blocks
+2025-11-05 13:44:40.517 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 13:44:40.519 +01:00 [INF] File upload finalized successfully for GUID cb4b80be-50bc-49fe-91d0-cebc58b6096f
+2025-11-05 13:44:40.786 +01:00 [INF] Metadata extractoion requested for file with ID 'cb4b80be-50bc-49fe-91d0-cebc58b6096f'
+2025-11-05 13:44:40.789 +01:00 [INF] Blob cb4b80be-50bc-49fe-91d0-cebc58b6096f downloaded from container files.
+2025-11-05 13:44:40.789 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 13:44:40.944 +01:00 [INF] Text extracted successfully. Length: 74097 characters
+2025-11-05 13:44:40.944 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 13:44:40.944 +01:00 [INF] Starting metadata extraction for file: Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 13:44:40.944 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 13:44:40.944 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 13:44:44.567 +01:00 [INF] Received LLM response: 1004 characters
+2025-11-05 13:44:44.568 +01:00 [INF] Metadata extraction completed successfully. Title: Linking Design Thinking with Innovation Outcomes through Cognitive Bias Reduction, Authors: 1, Tags: 5
+2025-11-05 13:44:44.568 +01:00 [INF] Metadata extraction completed successfully for Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 13:52:16.886 +01:00 [INF] Upload session initialized for file 'test-document.pdf' with GUID "e3f3a36c-3761-4468-aea6-8d7d5896cce1"
+2025-11-05 13:52:17.113 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 13:52:17.130 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID e3f3a36c-3761-4468-aea6-8d7d5896cce1 (4021 bytes)
+2025-11-05 13:52:17.326 +01:00 [INF] Finalizing file upload for GUID e3f3a36c-3761-4468-aea6-8d7d5896cce1 with 1 blocks
+2025-11-05 13:52:17.327 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 13:52:17.330 +01:00 [INF] File upload finalized successfully for GUID e3f3a36c-3761-4468-aea6-8d7d5896cce1
+2025-11-05 13:52:17.606 +01:00 [INF] Metadata extractoion requested for file with ID 'e3f3a36c-3761-4468-aea6-8d7d5896cce1'
+2025-11-05 13:52:17.608 +01:00 [INF] Blob e3f3a36c-3761-4468-aea6-8d7d5896cce1 downloaded from container files.
+2025-11-05 13:52:17.608 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 13:54:20.534 +01:00 [INF] Upload session initialized for file 'Liedtka_2015-DesignThinkingCognitiveBiases.pdf' with GUID "52505df0-ac73-4b4f-af54-438e553a2faf"
+2025-11-05 13:54:20.847 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 13:54:20.864 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID 52505df0-ac73-4b4f-af54-438e553a2faf (106534 bytes)
+2025-11-05 13:54:21.096 +01:00 [INF] Finalizing file upload for GUID 52505df0-ac73-4b4f-af54-438e553a2faf with 1 blocks
+2025-11-05 13:54:21.097 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 13:54:21.099 +01:00 [INF] File upload finalized successfully for GUID 52505df0-ac73-4b4f-af54-438e553a2faf
+2025-11-05 13:54:21.306 +01:00 [INF] Metadata extractoion requested for file with ID '52505df0-ac73-4b4f-af54-438e553a2faf'
+2025-11-05 13:54:21.308 +01:00 [INF] Blob 52505df0-ac73-4b4f-af54-438e553a2faf downloaded from container files.
+2025-11-05 13:54:21.308 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 13:54:21.352 +01:00 [INF] Text extracted successfully. Length: 74097 characters
+2025-11-05 13:54:21.352 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 13:54:21.352 +01:00 [INF] Starting metadata extraction for file: Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 13:54:21.352 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 13:54:21.352 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 13:54:25.509 +01:00 [INF] Received LLM response: 830 characters
+2025-11-05 13:54:25.509 +01:00 [INF] Metadata extraction completed successfully. Title: Linking Design Thinking with Innovation Outcomes through Cognitive Bias Reduction, Authors: 1, Tags: 4
+2025-11-05 13:54:25.509 +01:00 [INF] Metadata extraction completed successfully for Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 14:06:24.047 +01:00 [INF] Upload session initialized for file 'Liedtka_2015-DesignThinkingCognitiveBiases.pdf' with GUID "9f629cf1-6e85-4bd2-afe1-6e6e425eb349"
+2025-11-05 14:06:24.357 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 14:06:24.366 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID 9f629cf1-6e85-4bd2-afe1-6e6e425eb349 (106534 bytes)
+2025-11-05 14:06:24.564 +01:00 [INF] Finalizing file upload for GUID 9f629cf1-6e85-4bd2-afe1-6e6e425eb349 with 1 blocks
+2025-11-05 14:06:24.565 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 14:06:24.567 +01:00 [INF] File upload finalized successfully for GUID 9f629cf1-6e85-4bd2-afe1-6e6e425eb349
+2025-11-05 14:06:24.839 +01:00 [INF] Metadata extractoion requested for file with ID '9f629cf1-6e85-4bd2-afe1-6e6e425eb349'
+2025-11-05 14:06:24.841 +01:00 [INF] Blob 9f629cf1-6e85-4bd2-afe1-6e6e425eb349 downloaded from container files.
+2025-11-05 14:06:24.841 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 14:06:24.882 +01:00 [INF] Text extracted successfully. Length: 74097 characters
+2025-11-05 14:06:24.882 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 14:06:24.882 +01:00 [INF] Starting metadata extraction for file: Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 14:06:24.882 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 14:06:24.882 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 14:06:29.886 +01:00 [INF] Received LLM response: 1088 characters
+2025-11-05 14:06:29.887 +01:00 [INF] Metadata extraction completed successfully. Title: Linking Design Thinking with Innovation Outcomes through Cognitive Bias Reduction, Authors: 1, Tags: 5
+2025-11-05 14:06:29.888 +01:00 [INF] Metadata extraction completed successfully for Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 14:39:18.419 +01:00 [INF] Upload session initialized for file 'Liedtka_2015-DesignThinkingCognitiveBiases.pdf' with GUID "4804e5ea-7860-40a3-ac94-c71994ae320e"
+2025-11-05 14:39:18.769 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 14:39:18.777 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID 4804e5ea-7860-40a3-ac94-c71994ae320e (106534 bytes)
+2025-11-05 14:39:18.983 +01:00 [INF] Finalizing file upload for GUID 4804e5ea-7860-40a3-ac94-c71994ae320e with 1 blocks
+2025-11-05 14:39:18.985 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 14:39:18.986 +01:00 [INF] File upload finalized successfully for GUID 4804e5ea-7860-40a3-ac94-c71994ae320e
+2025-11-05 14:39:19.211 +01:00 [INF] Metadata extractoion requested for file with ID '4804e5ea-7860-40a3-ac94-c71994ae320e'
+2025-11-05 14:39:19.213 +01:00 [INF] Blob 4804e5ea-7860-40a3-ac94-c71994ae320e downloaded from container files.
+2025-11-05 14:39:19.213 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 14:39:19.244 +01:00 [INF] Text extracted successfully. Length: 74097 characters
+2025-11-05 14:39:19.244 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 14:39:19.244 +01:00 [INF] Starting metadata extraction for file: Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 14:39:19.244 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 14:39:19.244 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 14:39:24.819 +01:00 [INF] Received LLM response: 1196 characters
+2025-11-05 14:39:24.820 +01:00 [INF] Metadata extraction completed successfully. Title: Linking Design Thinking with Innovation Outcomes through Cognitive Bias Reduction, Authors: 1, Tags: 4
+2025-11-05 14:39:24.820 +01:00 [INF] Metadata extraction completed successfully for Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 14:43:10.502 +01:00 [INF] Executing hybrid search for query: 'F. Ricci'
+2025-11-05 14:43:10.503 +01:00 [INF] Starting hybrid search for query: 'F. Ricci'
+2025-11-05 14:43:10.504 +01:00 [DBG] Executing semantic search
+2025-11-05 14:43:10.509 +01:00 [DBG] Executing text-based search
+2025-11-05 14:43:10.511 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 14:43:10.528 +01:00 [INF] Postgres search returned 1 results
+2025-11-05 14:43:10.531 +01:00 [INF] Text search returned 3 results
+2025-11-05 14:43:11.271 +01:00 [DBG] Cached embedding for query. Cache size: 1
+2025-11-05 14:43:11.271 +01:00 [INF] Successfully generated embedding
+2025-11-05 14:43:11.277 +01:00 [INF] Semantic search returned 4 results
+2025-11-05 14:43:11.277 +01:00 [INF] Retrieved 8 total candidates before fusion
+2025-11-05 14:43:11.278 +01:00 [DBG] Fusing 8 search candidates
+2025-11-05 14:43:11.279 +01:00 [DBG] After deduplication: 5 unique candidates
+2025-11-05 14:43:11.284 +01:00 [INF] Fusion complete. Top score: 0.476, Bottom score: 0.009
+2025-11-05 14:43:11.286 +01:00 [DBG] Loading item data for 4 candidates
+2025-11-05 14:43:11.292 +01:00 [DBG] Re-ranking 5 candidates
+2025-11-05 14:43:11.293 +01:00 [DBG] Applying contextual boosting to 5 candidates
+2025-11-05 14:43:11.293 +01:00 [DBG] Exact phrase match in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.25
+2025-11-05 14:43:11.293 +01:00 [DBG] Exact phrase match in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.25
+2025-11-05 14:43:11.293 +01:00 [DBG] Exact phrase match in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.25
+2025-11-05 14:43:11.293 +01:00 [DBG] Exact phrase match in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.25
+2025-11-05 14:43:11.293 +01:00 [DBG] Multiple chunks with keywords for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.150
+2025-11-05 14:43:11.293 +01:00 [DBG] Exact phrase match in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.25
+2025-11-05 14:43:11.293 +01:00 [DBG] Partial query words found in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.040
+2025-11-05 14:43:11.293 +01:00 [DBG] Exact phrase match in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.25
+2025-11-05 14:43:11.293 +01:00 [DBG] Exact phrase match in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.25
+2025-11-05 14:43:11.293 +01:00 [DBG] Multiple chunks with keywords for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.150
+2025-11-05 14:43:11.293 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 14:43:11.293 +01:00 [DBG] Exact phrase match in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.25
+2025-11-05 14:43:11.293 +01:00 [DBG] Exact phrase match in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.25
+2025-11-05 14:43:11.293 +01:00 [DBG] Exact phrase match in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.25
+2025-11-05 14:43:11.293 +01:00 [DBG] Multiple chunks with keywords for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.150
+2025-11-05 14:43:11.294 +01:00 [INF] Boosting applied to 4/5 candidates
+2025-11-05 14:43:11.294 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.476, Boost=1.230, Final=1.706
+2025-11-05 14:43:11.294 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.079, Boost=0.060, Final=0.139
+2025-11-05 14:43:11.294 +01:00 [DBG] Score for 'Francesco Ricci': Base=0.074, Boost=0.000, Final=0.074
+2025-11-05 14:43:11.294 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.009, Boost=1.020, Final=1.029
+2025-11-05 14:43:11.294 +01:00 [INF] Re-ranking complete. Score range: 0.074 - 1.706
+2025-11-05 14:43:11.294 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 14:43:11.294 +01:00 [INF]   1. 'Recommender Systems Handbook' - Score: 1.706 (Boost: 1.230)
+2025-11-05 14:43:11.294 +01:00 [INF]   2. 'Food Recommender Systems' - Score: 1.029 (Boost: 1.020)
+2025-11-05 14:43:11.294 +01:00 [INF]   3. 'Unknown' - Score: 0.991 (Boost: 0.940)
+2025-11-05 14:43:11.294 +01:00 [INF] Filtered out 2 candidates below threshold 0.150
+2025-11-05 14:43:11.299 +01:00 [INF] Applied filters: 3 -> 2 candidates
+2025-11-05 14:43:11.300 +01:00 [INF] Hybrid search complete. Results: 2/2, Duration: 797ms, Avg Score: 1.368
+2025-11-05 14:43:11.301 +01:00 [INF] Hybrid search complete. Results: 2/2, Avg Score: 1.368
+2025-11-05 14:43:15.205 +01:00 [INF] Executing hybrid search for query: 'F. '
+2025-11-05 14:43:15.205 +01:00 [INF] Starting hybrid search for query: 'F. '
+2025-11-05 14:43:15.205 +01:00 [DBG] Executing semantic search
+2025-11-05 14:43:15.206 +01:00 [DBG] Executing text-based search
+2025-11-05 14:43:15.206 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 14:43:15.207 +01:00 [INF] Text search returned 0 results
+2025-11-05 14:43:15.207 +01:00 [INF] Postgres search returned 3 results
+2025-11-05 14:43:15.515 +01:00 [DBG] Cached embedding for query. Cache size: 2
+2025-11-05 14:43:15.515 +01:00 [INF] Successfully generated embedding
+2025-11-05 14:43:15.520 +01:00 [INF] Semantic search returned 5 results
+2025-11-05 14:43:15.520 +01:00 [INF] Retrieved 8 total candidates before fusion
+2025-11-05 14:43:15.520 +01:00 [DBG] Fusing 8 search candidates
+2025-11-05 14:43:15.520 +01:00 [DBG] After deduplication: 7 unique candidates
+2025-11-05 14:43:15.520 +01:00 [INF] Fusion complete. Top score: 0.705, Bottom score: 0.005
+2025-11-05 14:43:15.520 +01:00 [DBG] Loading item data for 5 candidates
+2025-11-05 14:43:15.520 +01:00 [DBG] Re-ranking 7 candidates
+2025-11-05 14:43:15.521 +01:00 [DBG] Applying contextual boosting to 7 candidates
+2025-11-05 14:43:15.521 +01:00 [DBG] Exact phrase match in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.25
+2025-11-05 14:43:15.521 +01:00 [DBG] Exact phrase match in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.25
+2025-11-05 14:43:15.521 +01:00 [DBG] Multiple chunks with keywords for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.100
+2025-11-05 14:43:15.521 +01:00 [INF] Boosting applied to 4/7 candidates
+2025-11-05 14:43:15.521 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.705, Boost=0.680, Final=1.385
+2025-11-05 14:43:15.521 +01:00 [DBG] Score for 'Abel Dieterich': Base=0.705, Boost=0.000, Final=0.705
+2025-11-05 14:43:15.521 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.345, Boost=0.080, Final=0.425
+2025-11-05 14:43:15.521 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.087, Boost=0.080, Final=0.167
+2025-11-05 14:43:15.521 +01:00 [DBG] Score for 'A Minority of One against a Majority of Robots: Robots Cause Normative and Informational Conformity': Base=0.014, Boost=0.080, Final=0.094
+2025-11-05 14:43:15.521 +01:00 [DBG] Score for 'Francesco Ricci': Base=0.005, Boost=0.000, Final=0.005
+2025-11-05 14:43:15.521 +01:00 [INF] Re-ranking complete. Score range: 0.005 - 1.385
+2025-11-05 14:43:15.521 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 14:43:15.521 +01:00 [INF]   1. 'Recommender Systems Handbook' - Score: 1.385 (Boost: 0.680)
+2025-11-05 14:43:15.521 +01:00 [INF]   2. 'Abel Dieterich' - Score: 0.705 (Boost: 0.000)
+2025-11-05 14:43:15.521 +01:00 [INF]   3. 'Under Pressure: Examining Social Conformity With Computer and Robot Groups' - Score: 0.425 (Boost: 0.080)
+2025-11-05 14:43:15.521 +01:00 [INF] Filtered out 3 candidates below threshold 0.150
+2025-11-05 14:43:15.521 +01:00 [INF] Applied filters: 4 -> 4 candidates
+2025-11-05 14:43:15.521 +01:00 [INF] Hybrid search complete. Results: 4/4, Duration: 315ms, Avg Score: 0.670
+2025-11-05 14:43:15.521 +01:00 [INF] Hybrid search complete. Results: 4/4, Avg Score: 0.670
+2025-11-05 14:43:15.955 +01:00 [INF] Executing hybrid search for query: 'F.'
+2025-11-05 14:43:15.955 +01:00 [INF] Starting hybrid search for query: 'F.'
+2025-11-05 14:43:15.955 +01:00 [DBG] Executing semantic search
+2025-11-05 14:43:15.956 +01:00 [DBG] Cache hit for query embedding
+2025-11-05 14:43:15.956 +01:00 [DBG] Executing text-based search
+2025-11-05 14:43:15.956 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 14:43:15.956 +01:00 [INF] Postgres search returned 3 results
+2025-11-05 14:43:15.957 +01:00 [INF] Text search returned 0 results
+2025-11-05 14:43:15.960 +01:00 [INF] Semantic search returned 5 results
+2025-11-05 14:43:15.960 +01:00 [INF] Retrieved 8 total candidates before fusion
+2025-11-05 14:43:15.960 +01:00 [DBG] Fusing 8 search candidates
+2025-11-05 14:43:15.960 +01:00 [DBG] After deduplication: 7 unique candidates
+2025-11-05 14:43:15.960 +01:00 [INF] Fusion complete. Top score: 0.705, Bottom score: 0.005
+2025-11-05 14:43:15.960 +01:00 [DBG] Loading item data for 5 candidates
+2025-11-05 14:43:15.961 +01:00 [DBG] Re-ranking 7 candidates
+2025-11-05 14:43:15.961 +01:00 [DBG] Applying contextual boosting to 7 candidates
+2025-11-05 14:43:15.961 +01:00 [DBG] Exact phrase match in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.25
+2025-11-05 14:43:15.961 +01:00 [DBG] Exact phrase match in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.25
+2025-11-05 14:43:15.961 +01:00 [DBG] Multiple chunks with keywords for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.100
+2025-11-05 14:43:15.961 +01:00 [INF] Boosting applied to 4/7 candidates
+2025-11-05 14:43:15.961 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.705, Boost=0.680, Final=1.385
+2025-11-05 14:43:15.961 +01:00 [DBG] Score for 'Abel Dieterich': Base=0.705, Boost=0.000, Final=0.705
+2025-11-05 14:43:15.961 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.345, Boost=0.080, Final=0.425
+2025-11-05 14:43:15.961 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.087, Boost=0.080, Final=0.167
+2025-11-05 14:43:15.961 +01:00 [DBG] Score for 'A Minority of One against a Majority of Robots: Robots Cause Normative and Informational Conformity': Base=0.014, Boost=0.080, Final=0.094
+2025-11-05 14:43:15.961 +01:00 [DBG] Score for 'Francesco Ricci': Base=0.005, Boost=0.000, Final=0.005
+2025-11-05 14:43:15.961 +01:00 [INF] Re-ranking complete. Score range: 0.005 - 1.385
+2025-11-05 14:43:15.961 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 14:43:15.961 +01:00 [INF]   1. 'Recommender Systems Handbook' - Score: 1.385 (Boost: 0.680)
+2025-11-05 14:43:15.961 +01:00 [INF]   2. 'Abel Dieterich' - Score: 0.705 (Boost: 0.000)
+2025-11-05 14:43:15.961 +01:00 [INF]   3. 'Under Pressure: Examining Social Conformity With Computer and Robot Groups' - Score: 0.425 (Boost: 0.080)
+2025-11-05 14:43:15.961 +01:00 [INF] Filtered out 3 candidates below threshold 0.150
+2025-11-05 14:43:15.961 +01:00 [INF] Applied filters: 4 -> 4 candidates
+2025-11-05 14:43:15.961 +01:00 [INF] Hybrid search complete. Results: 4/4, Duration: 5ms, Avg Score: 0.670
+2025-11-05 14:43:15.961 +01:00 [INF] Hybrid search complete. Results: 4/4, Avg Score: 0.670
+2025-11-05 14:43:19.557 +01:00 [INF] Executing hybrid search for query: 'F'
+2025-11-05 14:43:19.557 +01:00 [INF] Starting hybrid search for query: 'F'
+2025-11-05 14:43:19.557 +01:00 [DBG] Executing semantic search
+2025-11-05 14:43:19.557 +01:00 [DBG] Executing text-based search
+2025-11-05 14:43:19.557 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 14:43:19.558 +01:00 [INF] Postgres search returned 6 results
+2025-11-05 14:43:19.558 +01:00 [INF] Text search returned 0 results
+2025-11-05 14:43:19.860 +01:00 [DBG] Cached embedding for query. Cache size: 3
+2025-11-05 14:43:19.860 +01:00 [INF] Successfully generated embedding
+2025-11-05 14:43:19.864 +01:00 [INF] Semantic search returned 6 results
+2025-11-05 14:43:19.864 +01:00 [INF] Retrieved 12 total candidates before fusion
+2025-11-05 14:43:19.864 +01:00 [DBG] Fusing 12 search candidates
+2025-11-05 14:43:19.864 +01:00 [DBG] After deduplication: 8 unique candidates
+2025-11-05 14:43:19.864 +01:00 [INF] Fusion complete. Top score: 0.705, Bottom score: 0.009
+2025-11-05 14:43:19.864 +01:00 [DBG] Loading item data for 6 candidates
+2025-11-05 14:43:19.865 +01:00 [DBG] Re-ranking 8 candidates
+2025-11-05 14:43:19.865 +01:00 [DBG] Applying contextual boosting to 8 candidates
+2025-11-05 14:43:19.865 +01:00 [DBG] Name prefix match boost applied to "ed21d0b2-1ce5-4c07-9989-38f8c9a8d9ab": +1.5
+2025-11-05 14:43:19.865 +01:00 [DBG] Name contains all words boost applied to "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.5
+2025-11-05 14:43:19.865 +01:00 [DBG] Exact phrase match in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.25
+2025-11-05 14:43:19.865 +01:00 [DBG] Name prefix match boost applied to "b7568169-c15c-448b-b291-11677ad1cdc0": +1.5
+2025-11-05 14:43:19.865 +01:00 [DBG] Name contains all words boost applied to "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.5
+2025-11-05 14:43:19.865 +01:00 [DBG] Exact phrase match in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.25
+2025-11-05 14:43:19.865 +01:00 [DBG] Name contains all words boost applied to "3fe3fd68-986e-4dfa-a8b8-716cdbd05cfc": +0.5
+2025-11-05 14:43:19.865 +01:00 [DBG] Exact phrase match in chunk for "3fe3fd68-986e-4dfa-a8b8-716cdbd05cfc": +0.25
+2025-11-05 14:43:19.865 +01:00 [INF] Boosting applied to 6/8 candidates
+2025-11-05 14:43:19.865 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.705, Boost=0.080, Final=0.785
+2025-11-05 14:43:19.865 +01:00 [DBG] Score for 'Francesco Ricci': Base=0.705, Boost=1.500, Final=2.205
+2025-11-05 14:43:19.865 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.306, Boost=0.830, Final=1.136
+2025-11-05 14:43:19.865 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.206, Boost=1.580, Final=1.786
+2025-11-05 14:43:19.865 +01:00 [DBG] Score for 'A Minority of One against a Majority of Robots: Robots Cause Normative and Informational Conformity': Base=0.147, Boost=0.830, Final=0.977
+2025-11-05 14:43:19.865 +01:00 [DBG] Score for 'Abel Dieterich': Base=0.085, Boost=0.000, Final=0.085
+2025-11-05 14:43:19.865 +01:00 [DBG] Score for 'Mixing It Up: How Mixed Groups of Humans and Machines Modulate Conformity': Base=0.009, Boost=0.750, Final=0.759
+2025-11-05 14:43:19.865 +01:00 [INF] Re-ranking complete. Score range: 0.085 - 2.205
+2025-11-05 14:43:19.865 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 14:43:19.865 +01:00 [INF]   1. 'Francesco Ricci' - Score: 2.205 (Boost: 1.500)
+2025-11-05 14:43:19.865 +01:00 [INF]   2. 'Food Recommender Systems' - Score: 1.786 (Boost: 1.580)
+2025-11-05 14:43:19.865 +01:00 [INF]   3. 'Under Pressure: Examining Social Conformity With Computer and Robot Groups' - Score: 1.136 (Boost: 0.830)
+2025-11-05 14:43:19.865 +01:00 [INF] Filtered out 2 candidates below threshold 0.150
+2025-11-05 14:43:19.866 +01:00 [INF] Applied filters: 6 -> 6 candidates
+2025-11-05 14:43:19.866 +01:00 [INF] Hybrid search complete. Results: 6/6, Duration: 309ms, Avg Score: 1.275
+2025-11-05 14:43:19.866 +01:00 [INF] Hybrid search complete. Results: 6/6, Avg Score: 1.275
+2025-11-05 14:43:24.165 +01:00 [INF] Executing hybrid search for query: 'Ricci'
+2025-11-05 14:43:24.165 +01:00 [INF] Starting hybrid search for query: 'Ricci'
+2025-11-05 14:43:24.165 +01:00 [DBG] Executing semantic search
+2025-11-05 14:43:24.165 +01:00 [DBG] Executing text-based search
+2025-11-05 14:43:24.165 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 14:43:24.166 +01:00 [INF] Postgres search returned 1 results
+2025-11-05 14:43:24.168 +01:00 [INF] Text search returned 3 results
+2025-11-05 14:43:24.303 +01:00 [DBG] Cached embedding for query. Cache size: 4
+2025-11-05 14:43:24.303 +01:00 [INF] Successfully generated embedding
+2025-11-05 14:43:24.307 +01:00 [INF] Semantic search returned 6 results
+2025-11-05 14:43:24.307 +01:00 [INF] Retrieved 10 total candidates before fusion
+2025-11-05 14:43:24.307 +01:00 [DBG] Fusing 10 search candidates
+2025-11-05 14:43:24.307 +01:00 [DBG] After deduplication: 7 unique candidates
+2025-11-05 14:43:24.307 +01:00 [INF] Fusion complete. Top score: 1.000, Bottom score: 0.005
+2025-11-05 14:43:24.307 +01:00 [DBG] Loading item data for 6 candidates
+2025-11-05 14:43:24.308 +01:00 [DBG] Re-ranking 7 candidates
+2025-11-05 14:43:24.308 +01:00 [DBG] Applying contextual boosting to 7 candidates
+2025-11-05 14:43:24.308 +01:00 [DBG] Name word prefix match boost applied to "ed21d0b2-1ce5-4c07-9989-38f8c9a8d9ab": +1.0
+2025-11-05 14:43:24.308 +01:00 [DBG] Exact phrase match in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.25
+2025-11-05 14:43:24.308 +01:00 [DBG] Exact phrase match in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.25
+2025-11-05 14:43:24.308 +01:00 [DBG] Exact phrase match in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.25
+2025-11-05 14:43:24.308 +01:00 [DBG] Multiple chunks with keywords for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.150
+2025-11-05 14:43:24.308 +01:00 [DBG] Exact phrase match in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.25
+2025-11-05 14:43:24.308 +01:00 [DBG] Exact phrase match in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.25
+2025-11-05 14:43:24.308 +01:00 [DBG] Exact phrase match in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.25
+2025-11-05 14:43:24.308 +01:00 [DBG] Multiple chunks with keywords for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.150
+2025-11-05 14:43:24.308 +01:00 [INF] Boosting applied to 5/7 candidates
+2025-11-05 14:43:24.308 +01:00 [DBG] Score for 'Francesco Ricci': Base=1.000, Boost=1.000, Final=2.000
+2025-11-05 14:43:24.308 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.551, Boost=0.080, Final=0.631
+2025-11-05 14:43:24.308 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.476, Boost=0.080, Final=0.556
+2025-11-05 14:43:24.308 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.083, Boost=0.980, Final=1.063
+2025-11-05 14:43:24.308 +01:00 [DBG] Score for 'A Minority of One against a Majority of Robots: Robots Cause Normative and Informational Conformity': Base=0.071, Boost=0.000, Final=0.071
+2025-11-05 14:43:24.308 +01:00 [DBG] Score for 'Nicholas Hertz': Base=0.005, Boost=0.000, Final=0.005
+2025-11-05 14:43:24.308 +01:00 [INF] Re-ranking complete. Score range: 0.005 - 2.000
+2025-11-05 14:43:24.308 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 14:43:24.308 +01:00 [INF]   1. 'Francesco Ricci' - Score: 2.000 (Boost: 1.000)
+2025-11-05 14:43:24.308 +01:00 [INF]   2. 'Food Recommender Systems' - Score: 1.063 (Boost: 0.980)
+2025-11-05 14:43:24.308 +01:00 [INF]   3. 'Unknown' - Score: 1.031 (Boost: 0.900)
+2025-11-05 14:43:24.308 +01:00 [INF] Filtered out 2 candidates below threshold 0.150
+2025-11-05 14:43:24.309 +01:00 [INF] Applied filters: 5 -> 4 candidates
+2025-11-05 14:43:24.309 +01:00 [INF] Hybrid search complete. Results: 4/4, Duration: 143ms, Avg Score: 1.063
+2025-11-05 14:43:24.309 +01:00 [INF] Hybrid search complete. Results: 4/4, Avg Score: 1.063
+2025-11-05 14:43:29.634 +01:00 [INF] Executing hybrid search for query: 'Frances'
+2025-11-05 14:43:29.634 +01:00 [INF] Starting hybrid search for query: 'Frances'
+2025-11-05 14:43:29.634 +01:00 [DBG] Executing semantic search
+2025-11-05 14:43:29.634 +01:00 [DBG] Executing text-based search
+2025-11-05 14:43:29.634 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 14:43:29.635 +01:00 [INF] Postgres search returned 1 results
+2025-11-05 14:43:29.635 +01:00 [INF] Text search returned 1 results
+2025-11-05 14:43:30.261 +01:00 [DBG] Cached embedding for query. Cache size: 5
+2025-11-05 14:43:30.261 +01:00 [INF] Successfully generated embedding
+2025-11-05 14:43:30.265 +01:00 [INF] Semantic search returned 5 results
+2025-11-05 14:43:30.265 +01:00 [INF] Retrieved 7 total candidates before fusion
+2025-11-05 14:43:30.265 +01:00 [DBG] Fusing 7 search candidates
+2025-11-05 14:43:30.265 +01:00 [DBG] After deduplication: 6 unique candidates
+2025-11-05 14:43:30.265 +01:00 [INF] Fusion complete. Top score: 0.747, Bottom score: 0.005
+2025-11-05 14:43:30.265 +01:00 [DBG] Loading item data for 5 candidates
+2025-11-05 14:43:30.266 +01:00 [DBG] Re-ranking 6 candidates
+2025-11-05 14:43:30.266 +01:00 [DBG] Applying contextual boosting to 6 candidates
+2025-11-05 14:43:30.266 +01:00 [DBG] Name prefix match boost applied to "ed21d0b2-1ce5-4c07-9989-38f8c9a8d9ab": +1.5
+2025-11-05 14:43:30.266 +01:00 [DBG] Exact phrase match in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.25
+2025-11-05 14:43:30.266 +01:00 [INF] Boosting applied to 4/6 candidates
+2025-11-05 14:43:30.266 +01:00 [DBG] Score for 'Francesco Ricci': Base=0.747, Boost=1.500, Final=2.247
+2025-11-05 14:43:30.266 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.705, Boost=0.080, Final=0.785
+2025-11-05 14:43:30.266 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.463, Boost=0.080, Final=0.543
+2025-11-05 14:43:30.266 +01:00 [DBG] Score for 'A Minority of One against a Majority of Robots: Robots Cause Normative and Informational Conformity': Base=0.254, Boost=0.250, Final=0.504
+2025-11-05 14:43:30.266 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.056, Boost=0.000, Final=0.056
+2025-11-05 14:43:30.266 +01:00 [INF] Re-ranking complete. Score range: 0.005 - 2.247
+2025-11-05 14:43:30.266 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 14:43:30.266 +01:00 [INF]   1. 'Francesco Ricci' - Score: 2.247 (Boost: 1.500)
+2025-11-05 14:43:30.266 +01:00 [INF]   2. 'Recommender Systems Handbook' - Score: 0.785 (Boost: 0.080)
+2025-11-05 14:43:30.266 +01:00 [INF]   3. 'Under Pressure: Examining Social Conformity With Computer and Robot Groups' - Score: 0.543 (Boost: 0.080)
+2025-11-05 14:43:30.266 +01:00 [INF] Filtered out 2 candidates below threshold 0.150
+2025-11-05 14:43:30.267 +01:00 [INF] Applied filters: 4 -> 4 candidates
+2025-11-05 14:43:30.267 +01:00 [INF] Hybrid search complete. Results: 4/4, Duration: 632ms, Avg Score: 1.020
+2025-11-05 14:43:30.267 +01:00 [INF] Hybrid search complete. Results: 4/4, Avg Score: 1.020
+2025-11-05 14:43:30.281 +01:00 [INF] Executing hybrid search for query: 'Francesco '
+2025-11-05 14:43:30.281 +01:00 [INF] Starting hybrid search for query: 'Francesco '
+2025-11-05 14:43:30.281 +01:00 [DBG] Executing semantic search
+2025-11-05 14:43:30.281 +01:00 [DBG] Executing text-based search
+2025-11-05 14:43:30.281 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 14:43:30.282 +01:00 [INF] Postgres search returned 1 results
+2025-11-05 14:43:30.282 +01:00 [INF] Text search returned 2 results
+2025-11-05 14:43:30.382 +01:00 [DBG] Cached embedding for query. Cache size: 6
+2025-11-05 14:43:30.382 +01:00 [INF] Successfully generated embedding
+2025-11-05 14:43:30.385 +01:00 [INF] Semantic search returned 4 results
+2025-11-05 14:43:30.385 +01:00 [INF] Retrieved 7 total candidates before fusion
+2025-11-05 14:43:30.385 +01:00 [DBG] Fusing 7 search candidates
+2025-11-05 14:43:30.386 +01:00 [DBG] After deduplication: 6 unique candidates
+2025-11-05 14:43:30.386 +01:00 [INF] Fusion complete. Top score: 1.000, Bottom score: 0.005
+2025-11-05 14:43:30.386 +01:00 [DBG] Loading item data for 5 candidates
+2025-11-05 14:43:30.386 +01:00 [DBG] Re-ranking 6 candidates
+2025-11-05 14:43:30.386 +01:00 [DBG] Applying contextual boosting to 6 candidates
+2025-11-05 14:43:30.386 +01:00 [DBG] Name prefix match boost applied to "ed21d0b2-1ce5-4c07-9989-38f8c9a8d9ab": +1.5
+2025-11-05 14:43:30.386 +01:00 [DBG] Exact phrase match in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.25
+2025-11-05 14:43:30.386 +01:00 [DBG] Exact phrase match in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.25
+2025-11-05 14:43:30.386 +01:00 [DBG] Exact phrase match in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.25
+2025-11-05 14:43:30.386 +01:00 [DBG] Exact phrase match in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.25
+2025-11-05 14:43:30.386 +01:00 [DBG] Multiple chunks with keywords for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.150
+2025-11-05 14:43:30.386 +01:00 [INF] Boosting applied to 3/6 candidates
+2025-11-05 14:43:30.386 +01:00 [DBG] Score for 'Francesco Ricci': Base=1.000, Boost=1.500, Final=2.500
+2025-11-05 14:43:30.386 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.705, Boost=0.000, Final=0.705
+2025-11-05 14:43:30.386 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.457, Boost=0.080, Final=0.537
+2025-11-05 14:43:30.386 +01:00 [DBG] Score for 'Nicholas Hertz': Base=0.165, Boost=0.000, Final=0.165
+2025-11-05 14:43:30.386 +01:00 [DBG] Score for 'A Minority of One against a Majority of Robots: Robots Cause Normative and Informational Conformity': Base=0.005, Boost=0.000, Final=0.005
+2025-11-05 14:43:30.386 +01:00 [INF] Re-ranking complete. Score range: 0.005 - 2.500
+2025-11-05 14:43:30.386 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 14:43:30.386 +01:00 [INF]   1. 'Francesco Ricci' - Score: 2.500 (Boost: 1.500)
+2025-11-05 14:43:30.386 +01:00 [INF]   2. 'Unknown' - Score: 1.155 (Boost: 1.150)
+2025-11-05 14:43:30.386 +01:00 [INF]   3. 'Under Pressure: Examining Social Conformity With Computer and Robot Groups' - Score: 0.705 (Boost: 0.000)
+2025-11-05 14:43:30.386 +01:00 [INF] Filtered out 1 candidates below threshold 0.150
+2025-11-05 14:43:30.387 +01:00 [INF] Applied filters: 5 -> 4 candidates
+2025-11-05 14:43:30.387 +01:00 [INF] Hybrid search complete. Results: 4/4, Duration: 106ms, Avg Score: 0.977
+2025-11-05 14:43:30.387 +01:00 [INF] Hybrid search complete. Results: 4/4, Avg Score: 0.977
+2025-11-05 14:43:31.956 +01:00 [INF] Executing hybrid search for query: 'Francesco Ricci'
+2025-11-05 14:43:31.956 +01:00 [INF] Starting hybrid search for query: 'Francesco Ricci'
+2025-11-05 14:43:31.956 +01:00 [DBG] Executing semantic search
+2025-11-05 14:43:31.956 +01:00 [DBG] Executing text-based search
+2025-11-05 14:43:31.956 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 14:43:31.957 +01:00 [INF] Postgres search returned 1 results
+2025-11-05 14:43:31.957 +01:00 [INF] Text search returned 2 results
+2025-11-05 14:43:32.058 +01:00 [DBG] Cached embedding for query. Cache size: 7
+2025-11-05 14:43:32.058 +01:00 [INF] Successfully generated embedding
+2025-11-05 14:43:32.062 +01:00 [INF] Semantic search returned 3 results
+2025-11-05 14:43:32.062 +01:00 [INF] Retrieved 6 total candidates before fusion
+2025-11-05 14:43:32.062 +01:00 [DBG] Fusing 6 search candidates
+2025-11-05 14:43:32.062 +01:00 [DBG] After deduplication: 4 unique candidates
+2025-11-05 14:43:32.062 +01:00 [INF] Fusion complete. Top score: 1.000, Bottom score: 0.005
+2025-11-05 14:43:32.062 +01:00 [DBG] Loading item data for 3 candidates
+2025-11-05 14:43:32.062 +01:00 [DBG] Re-ranking 4 candidates
+2025-11-05 14:43:32.062 +01:00 [DBG] Applying contextual boosting to 4 candidates
+2025-11-05 14:43:32.062 +01:00 [DBG] Exact name match boost applied to "ed21d0b2-1ce5-4c07-9989-38f8c9a8d9ab": +2.0
+2025-11-05 14:43:32.063 +01:00 [DBG] Partial query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.040
+2025-11-05 14:43:32.063 +01:00 [DBG] Partial query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.040
+2025-11-05 14:43:32.063 +01:00 [DBG] Partial query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.040
+2025-11-05 14:43:32.063 +01:00 [DBG] Partial query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.040
+2025-11-05 14:43:32.063 +01:00 [DBG] Multiple chunks with keywords for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.150
+2025-11-05 14:43:32.063 +01:00 [DBG] Exact phrase match in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.25
+2025-11-05 14:43:32.063 +01:00 [DBG] Partial query words found in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.040
+2025-11-05 14:43:32.063 +01:00 [DBG] Exact phrase match in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.25
+2025-11-05 14:43:32.063 +01:00 [DBG] Exact phrase match in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.25
+2025-11-05 14:43:32.063 +01:00 [DBG] Multiple chunks with keywords for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.150
+2025-11-05 14:43:32.063 +01:00 [INF] Boosting applied to 3/4 candidates
+2025-11-05 14:43:32.063 +01:00 [DBG] Score for 'Francesco Ricci': Base=1.000, Boost=2.000, Final=3.000
+2025-11-05 14:43:32.063 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.476, Boost=0.390, Final=0.866
+2025-11-05 14:43:32.063 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.005, Boost=0.000, Final=0.005
+2025-11-05 14:43:32.063 +01:00 [INF] Re-ranking complete. Score range: 0.005 - 3.000
+2025-11-05 14:43:32.063 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 14:43:32.063 +01:00 [INF]   1. 'Francesco Ricci' - Score: 3.000 (Boost: 2.000)
+2025-11-05 14:43:32.063 +01:00 [INF]   2. 'Unknown' - Score: 1.002 (Boost: 0.940)
+2025-11-05 14:43:32.063 +01:00 [INF]   3. 'Recommender Systems Handbook' - Score: 0.866 (Boost: 0.390)
+2025-11-05 14:43:32.063 +01:00 [INF] Filtered out 1 candidates below threshold 0.150
+2025-11-05 14:43:32.063 +01:00 [INF] Applied filters: 3 -> 2 candidates
+2025-11-05 14:43:32.063 +01:00 [INF] Hybrid search complete. Results: 2/2, Duration: 107ms, Avg Score: 1.933
+2025-11-05 14:43:32.063 +01:00 [INF] Hybrid search complete. Results: 2/2, Avg Score: 1.933
+2025-11-05 14:43:36.033 +01:00 [INF] Executing hybrid search for query: 'F Ricci'
+2025-11-05 14:43:36.033 +01:00 [INF] Starting hybrid search for query: 'F Ricci'
+2025-11-05 14:43:36.034 +01:00 [DBG] Executing semantic search
+2025-11-05 14:43:36.034 +01:00 [DBG] Executing text-based search
+2025-11-05 14:43:36.034 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 14:43:36.035 +01:00 [INF] Postgres search returned 1 results
+2025-11-05 14:43:36.037 +01:00 [INF] Text search returned 3 results
+2025-11-05 14:43:36.579 +01:00 [DBG] Cached embedding for query. Cache size: 8
+2025-11-05 14:43:36.579 +01:00 [INF] Successfully generated embedding
+2025-11-05 14:43:36.584 +01:00 [INF] Semantic search returned 4 results
+2025-11-05 14:43:36.584 +01:00 [INF] Retrieved 8 total candidates before fusion
+2025-11-05 14:43:36.584 +01:00 [DBG] Fusing 8 search candidates
+2025-11-05 14:43:36.584 +01:00 [DBG] After deduplication: 5 unique candidates
+2025-11-05 14:43:36.584 +01:00 [INF] Fusion complete. Top score: 0.476, Bottom score: 0.010
+2025-11-05 14:43:36.584 +01:00 [DBG] Loading item data for 4 candidates
+2025-11-05 14:43:36.585 +01:00 [DBG] Re-ranking 5 candidates
+2025-11-05 14:43:36.585 +01:00 [DBG] Applying contextual boosting to 5 candidates
+2025-11-05 14:43:36.585 +01:00 [DBG] All query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.15
+2025-11-05 14:43:36.585 +01:00 [DBG] All query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.15
+2025-11-05 14:43:36.585 +01:00 [DBG] All query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.15
+2025-11-05 14:43:36.585 +01:00 [DBG] All query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.15
+2025-11-05 14:43:36.585 +01:00 [DBG] Multiple chunks with keywords for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.150
+2025-11-05 14:43:36.585 +01:00 [DBG] Name contains all words boost applied to "ed21d0b2-1ce5-4c07-9989-38f8c9a8d9ab": +0.5
+2025-11-05 14:43:36.585 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 14:43:36.585 +01:00 [DBG] All query words found in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.15
+2025-11-05 14:43:36.585 +01:00 [DBG] All query words found in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.15
+2025-11-05 14:43:36.585 +01:00 [DBG] All query words found in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.15
+2025-11-05 14:43:36.585 +01:00 [DBG] Multiple chunks with keywords for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.150
+2025-11-05 14:43:36.585 +01:00 [INF] Boosting applied to 5/5 candidates
+2025-11-05 14:43:36.585 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.476, Boost=0.830, Final=1.306
+2025-11-05 14:43:36.585 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.159, Boost=0.080, Final=0.239
+2025-11-05 14:43:36.585 +01:00 [DBG] Score for 'Francesco Ricci': Base=0.074, Boost=0.500, Final=0.574
+2025-11-05 14:43:36.585 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.042, Boost=0.120, Final=0.162
+2025-11-05 14:43:36.585 +01:00 [INF] Re-ranking complete. Score range: 0.162 - 1.306
+2025-11-05 14:43:36.585 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 14:43:36.585 +01:00 [INF]   1. 'Recommender Systems Handbook' - Score: 1.306 (Boost: 0.830)
+2025-11-05 14:43:36.585 +01:00 [INF]   2. 'Unknown' - Score: 0.610 (Boost: 0.600)
+2025-11-05 14:43:36.585 +01:00 [INF]   3. 'Francesco Ricci' - Score: 0.574 (Boost: 0.500)
+2025-11-05 14:43:36.586 +01:00 [INF] Applied filters: 5 -> 4 candidates
+2025-11-05 14:43:36.586 +01:00 [INF] Hybrid search complete. Results: 4/4, Duration: 552ms, Avg Score: 0.570
+2025-11-05 14:43:36.586 +01:00 [INF] Hybrid search complete. Results: 4/4, Avg Score: 0.570
+2025-11-05 14:43:43.344 +01:00 [INF] Executing hybrid search for query: 'F. Ricci'
+2025-11-05 14:43:43.344 +01:00 [INF] Starting hybrid search for query: 'F. Ricci'
+2025-11-05 14:43:43.344 +01:00 [DBG] Executing semantic search
+2025-11-05 14:43:43.344 +01:00 [DBG] Cache hit for query embedding
+2025-11-05 14:43:43.344 +01:00 [DBG] Executing text-based search
+2025-11-05 14:43:43.344 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 14:43:43.345 +01:00 [INF] Postgres search returned 1 results
+2025-11-05 14:43:43.347 +01:00 [INF] Text search returned 3 results
+2025-11-05 14:43:43.348 +01:00 [INF] Semantic search returned 4 results
+2025-11-05 14:43:43.348 +01:00 [INF] Retrieved 8 total candidates before fusion
+2025-11-05 14:43:43.348 +01:00 [DBG] Fusing 8 search candidates
+2025-11-05 14:43:43.348 +01:00 [DBG] After deduplication: 5 unique candidates
+2025-11-05 14:43:43.348 +01:00 [INF] Fusion complete. Top score: 0.477, Bottom score: 0.010
+2025-11-05 14:43:43.348 +01:00 [DBG] Loading item data for 4 candidates
+2025-11-05 14:43:43.349 +01:00 [DBG] Re-ranking 5 candidates
+2025-11-05 14:43:43.349 +01:00 [DBG] Applying contextual boosting to 5 candidates
+2025-11-05 14:43:43.349 +01:00 [DBG] Exact phrase match in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.25
+2025-11-05 14:43:43.349 +01:00 [DBG] Exact phrase match in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.25
+2025-11-05 14:43:43.349 +01:00 [DBG] Exact phrase match in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.25
+2025-11-05 14:43:43.349 +01:00 [DBG] Exact phrase match in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.25
+2025-11-05 14:43:43.349 +01:00 [DBG] Multiple chunks with keywords for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.150
+2025-11-05 14:43:43.349 +01:00 [DBG] Exact phrase match in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.25
+2025-11-05 14:43:43.349 +01:00 [DBG] Partial query words found in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.040
+2025-11-05 14:43:43.349 +01:00 [DBG] Exact phrase match in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.25
+2025-11-05 14:43:43.349 +01:00 [DBG] Exact phrase match in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.25
+2025-11-05 14:43:43.349 +01:00 [DBG] Multiple chunks with keywords for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.150
+2025-11-05 14:43:43.349 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 14:43:43.349 +01:00 [DBG] Exact phrase match in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.25
+2025-11-05 14:43:43.349 +01:00 [DBG] Exact phrase match in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.25
+2025-11-05 14:43:43.349 +01:00 [DBG] Exact phrase match in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.25
+2025-11-05 14:43:43.349 +01:00 [DBG] Multiple chunks with keywords for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.150
+2025-11-05 14:43:43.349 +01:00 [INF] Boosting applied to 4/5 candidates
+2025-11-05 14:43:43.349 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.477, Boost=1.230, Final=1.707
+2025-11-05 14:43:43.349 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.079, Boost=0.060, Final=0.139
+2025-11-05 14:43:43.349 +01:00 [DBG] Score for 'Francesco Ricci': Base=0.074, Boost=0.000, Final=0.074
+2025-11-05 14:43:43.349 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.010, Boost=1.020, Final=1.030
+2025-11-05 14:43:43.349 +01:00 [INF] Re-ranking complete. Score range: 0.074 - 1.707
+2025-11-05 14:43:43.349 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 14:43:43.349 +01:00 [INF]   1. 'Recommender Systems Handbook' - Score: 1.707 (Boost: 1.230)
+2025-11-05 14:43:43.349 +01:00 [INF]   2. 'Food Recommender Systems' - Score: 1.030 (Boost: 1.020)
+2025-11-05 14:43:43.349 +01:00 [INF]   3. 'Unknown' - Score: 0.990 (Boost: 0.940)
+2025-11-05 14:43:43.349 +01:00 [INF] Filtered out 2 candidates below threshold 0.150
+2025-11-05 14:43:43.350 +01:00 [INF] Applied filters: 3 -> 2 candidates
+2025-11-05 14:43:43.350 +01:00 [INF] Hybrid search complete. Results: 2/2, Duration: 5ms, Avg Score: 1.368
+2025-11-05 14:43:43.350 +01:00 [INF] Hybrid search complete. Results: 2/2, Avg Score: 1.368
+2025-11-05 14:43:45.540 +01:00 [INF] Executing hybrid search for query: 'F Ricci'
+2025-11-05 14:43:45.540 +01:00 [INF] Starting hybrid search for query: 'F Ricci'
+2025-11-05 14:43:45.540 +01:00 [DBG] Executing semantic search
+2025-11-05 14:43:45.540 +01:00 [DBG] Cache hit for query embedding
+2025-11-05 14:43:45.540 +01:00 [DBG] Executing text-based search
+2025-11-05 14:43:45.540 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 14:43:45.541 +01:00 [INF] Postgres search returned 1 results
+2025-11-05 14:43:45.543 +01:00 [INF] Text search returned 3 results
+2025-11-05 14:43:45.545 +01:00 [INF] Semantic search returned 4 results
+2025-11-05 14:43:45.545 +01:00 [INF] Retrieved 8 total candidates before fusion
+2025-11-05 14:43:45.545 +01:00 [DBG] Fusing 8 search candidates
+2025-11-05 14:43:45.545 +01:00 [DBG] After deduplication: 5 unique candidates
+2025-11-05 14:43:45.545 +01:00 [INF] Fusion complete. Top score: 0.477, Bottom score: 0.010
+2025-11-05 14:43:45.545 +01:00 [DBG] Loading item data for 4 candidates
+2025-11-05 14:43:45.545 +01:00 [DBG] Re-ranking 5 candidates
+2025-11-05 14:43:45.545 +01:00 [DBG] Applying contextual boosting to 5 candidates
+2025-11-05 14:43:45.545 +01:00 [DBG] All query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.15
+2025-11-05 14:43:45.546 +01:00 [DBG] All query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.15
+2025-11-05 14:43:45.546 +01:00 [DBG] All query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.15
+2025-11-05 14:43:45.546 +01:00 [DBG] All query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.15
+2025-11-05 14:43:45.546 +01:00 [DBG] Multiple chunks with keywords for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.150
+2025-11-05 14:43:45.546 +01:00 [DBG] Name contains all words boost applied to "ed21d0b2-1ce5-4c07-9989-38f8c9a8d9ab": +0.5
+2025-11-05 14:43:45.546 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 14:43:45.546 +01:00 [DBG] All query words found in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.15
+2025-11-05 14:43:45.546 +01:00 [DBG] All query words found in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.15
+2025-11-05 14:43:45.546 +01:00 [DBG] All query words found in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.15
+2025-11-05 14:43:45.546 +01:00 [DBG] Multiple chunks with keywords for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.150
+2025-11-05 14:43:45.546 +01:00 [INF] Boosting applied to 5/5 candidates
+2025-11-05 14:43:45.546 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.477, Boost=0.830, Final=1.307
+2025-11-05 14:43:45.546 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.159, Boost=0.080, Final=0.239
+2025-11-05 14:43:45.546 +01:00 [DBG] Score for 'Francesco Ricci': Base=0.074, Boost=0.500, Final=0.574
+2025-11-05 14:43:45.546 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.042, Boost=0.120, Final=0.162
+2025-11-05 14:43:45.546 +01:00 [INF] Re-ranking complete. Score range: 0.162 - 1.307
+2025-11-05 14:43:45.546 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 14:43:45.546 +01:00 [INF]   1. 'Recommender Systems Handbook' - Score: 1.307 (Boost: 0.830)
+2025-11-05 14:43:45.546 +01:00 [INF]   2. 'Unknown' - Score: 0.610 (Boost: 0.600)
+2025-11-05 14:43:45.546 +01:00 [INF]   3. 'Francesco Ricci' - Score: 0.574 (Boost: 0.500)
+2025-11-05 14:43:45.546 +01:00 [INF] Applied filters: 5 -> 4 candidates
+2025-11-05 14:43:45.546 +01:00 [INF] Hybrid search complete. Results: 4/4, Duration: 6ms, Avg Score: 0.570
+2025-11-05 14:43:45.546 +01:00 [INF] Hybrid search complete. Results: 4/4, Avg Score: 0.570
+2025-11-05 14:43:53.570 +01:00 [INF] Executing hybrid search for query: 'A Dieterich'
+2025-11-05 14:43:53.570 +01:00 [INF] Starting hybrid search for query: 'A Dieterich'
+2025-11-05 14:43:53.570 +01:00 [DBG] Executing semantic search
+2025-11-05 14:43:53.570 +01:00 [DBG] Executing text-based search
+2025-11-05 14:43:53.570 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 14:43:53.571 +01:00 [INF] Text search returned 1 results
+2025-11-05 14:43:53.572 +01:00 [INF] Postgres search returned 1 results
+2025-11-05 14:43:53.879 +01:00 [DBG] Cached embedding for query. Cache size: 9
+2025-11-05 14:43:53.879 +01:00 [INF] Successfully generated embedding
+2025-11-05 14:43:53.883 +01:00 [INF] Semantic search returned 6 results
+2025-11-05 14:43:53.883 +01:00 [INF] Retrieved 8 total candidates before fusion
+2025-11-05 14:43:53.883 +01:00 [DBG] Fusing 8 search candidates
+2025-11-05 14:43:53.883 +01:00 [DBG] After deduplication: 6 unique candidates
+2025-11-05 14:43:53.883 +01:00 [INF] Fusion complete. Top score: 1.000, Bottom score: 0.005
+2025-11-05 14:43:53.883 +01:00 [DBG] Loading item data for 6 candidates
+2025-11-05 14:43:53.883 +01:00 [DBG] Re-ranking 6 candidates
+2025-11-05 14:43:53.883 +01:00 [DBG] Applying contextual boosting to 6 candidates
+2025-11-05 14:43:53.883 +01:00 [DBG] Name contains all words boost applied to "ef87423d-92fe-4c27-969b-f2f2e0c41439": +0.5
+2025-11-05 14:43:53.883 +01:00 [DBG] All query words found in chunk for "ef87423d-92fe-4c27-969b-f2f2e0c41439": +0.15
+2025-11-05 14:43:53.883 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 14:43:53.883 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 14:43:53.884 +01:00 [DBG] Multiple chunks with keywords for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.100
+2025-11-05 14:43:53.884 +01:00 [DBG] Partial query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.040
+2025-11-05 14:43:53.884 +01:00 [DBG] Partial query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.040
+2025-11-05 14:43:53.884 +01:00 [DBG] Multiple chunks with keywords for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.100
+2025-11-05 14:43:53.884 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 14:43:53.884 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 14:43:53.884 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 14:43:53.884 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 14:43:53.884 +01:00 [DBG] Multiple chunks with keywords for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.150
+2025-11-05 14:43:53.884 +01:00 [DBG] Partial query words found in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.040
+2025-11-05 14:43:53.884 +01:00 [INF] Boosting applied to 5/6 candidates
+2025-11-05 14:43:53.884 +01:00 [DBG] Score for 'Abel Dieterich': Base=1.000, Boost=0.650, Final=1.650
+2025-11-05 14:43:53.884 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.217, Boost=0.260, Final=0.477
+2025-11-05 14:43:53.884 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.210, Boost=0.260, Final=0.470
+2025-11-05 14:43:53.884 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.070, Boost=0.390, Final=0.460
+2025-11-05 14:43:53.884 +01:00 [DBG] Score for 'A Minority of One against a Majority of Robots: Robots Cause Normative and Informational Conformity': Base=0.005, Boost=0.100, Final=0.105
+2025-11-05 14:43:53.884 +01:00 [INF] Re-ranking complete. Score range: 0.015 - 1.650
+2025-11-05 14:43:53.884 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 14:43:53.884 +01:00 [INF]   1. 'Abel Dieterich' - Score: 1.650 (Boost: 0.650)
+2025-11-05 14:43:53.884 +01:00 [INF]   2. 'Under Pressure: Examining Social Conformity With Computer and Robot Groups' - Score: 0.477 (Boost: 0.260)
+2025-11-05 14:43:53.884 +01:00 [INF]   3. 'Recommender Systems Handbook' - Score: 0.470 (Boost: 0.260)
+2025-11-05 14:43:53.884 +01:00 [INF] Filtered out 2 candidates below threshold 0.150
+2025-11-05 14:43:53.884 +01:00 [INF] Applied filters: 4 -> 4 candidates
+2025-11-05 14:43:53.884 +01:00 [INF] Hybrid search complete. Results: 4/4, Duration: 314ms, Avg Score: 0.764
+2025-11-05 14:43:53.884 +01:00 [INF] Hybrid search complete. Results: 4/4, Avg Score: 0.764
+2025-11-05 14:44:01.964 +01:00 [INF] Executing hybrid search for query: 'D Elsweiler'
+2025-11-05 14:44:01.964 +01:00 [INF] Starting hybrid search for query: 'D Elsweiler'
+2025-11-05 14:44:01.964 +01:00 [DBG] Executing semantic search
+2025-11-05 14:44:01.964 +01:00 [DBG] Executing text-based search
+2025-11-05 14:44:01.964 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 14:44:01.965 +01:00 [INF] Postgres search returned 1 results
+2025-11-05 14:44:01.966 +01:00 [INF] Text search returned 4 results
+2025-11-05 14:44:02.278 +01:00 [DBG] Cached embedding for query. Cache size: 10
+2025-11-05 14:44:02.278 +01:00 [INF] Successfully generated embedding
+2025-11-05 14:44:02.281 +01:00 [INF] Semantic search returned 4 results
+2025-11-05 14:44:02.281 +01:00 [INF] Retrieved 9 total candidates before fusion
+2025-11-05 14:44:02.281 +01:00 [DBG] Fusing 9 search candidates
+2025-11-05 14:44:02.281 +01:00 [DBG] After deduplication: 5 unique candidates
+2025-11-05 14:44:02.281 +01:00 [INF] Fusion complete. Top score: 0.441, Bottom score: 0.005
+2025-11-05 14:44:02.281 +01:00 [DBG] Loading item data for 5 candidates
+2025-11-05 14:44:02.282 +01:00 [DBG] Re-ranking 5 candidates
+2025-11-05 14:44:02.282 +01:00 [DBG] Applying contextual boosting to 5 candidates
+2025-11-05 14:44:02.282 +01:00 [DBG] Name contains all words boost applied to "87f16afe-8e54-41e2-8256-546d6005b8ef": +0.5
+2025-11-05 14:44:02.282 +01:00 [DBG] Exact phrase match in chunk for "87f16afe-8e54-41e2-8256-546d6005b8ef": +0.25
+2025-11-05 14:44:02.282 +01:00 [DBG] All query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.15
+2025-11-05 14:44:02.282 +01:00 [DBG] All query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.15
+2025-11-05 14:44:02.282 +01:00 [DBG] All query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.15
+2025-11-05 14:44:02.282 +01:00 [DBG] All query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.15
+2025-11-05 14:44:02.282 +01:00 [DBG] Multiple chunks with keywords for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.150
+2025-11-05 14:44:02.282 +01:00 [DBG] All query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.15
+2025-11-05 14:44:02.282 +01:00 [DBG] All query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.15
+2025-11-05 14:44:02.282 +01:00 [DBG] All query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.15
+2025-11-05 14:44:02.282 +01:00 [DBG] All query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.15
+2025-11-05 14:44:02.282 +01:00 [DBG] Multiple chunks with keywords for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.150
+2025-11-05 14:44:02.282 +01:00 [DBG] All query words found in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.15
+2025-11-05 14:44:02.282 +01:00 [DBG] All query words found in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.15
+2025-11-05 14:44:02.282 +01:00 [DBG] All query words found in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.15
+2025-11-05 14:44:02.282 +01:00 [DBG] All query words found in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.15
+2025-11-05 14:44:02.282 +01:00 [DBG] Multiple chunks with keywords for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.150
+2025-11-05 14:44:02.282 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 14:44:02.282 +01:00 [INF] Boosting applied to 5/5 candidates
+2025-11-05 14:44:02.282 +01:00 [DBG] Score for 'David Elsweiler': Base=0.441, Boost=0.750, Final=1.191
+2025-11-05 14:44:02.282 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.259, Boost=0.830, Final=1.089
+2025-11-05 14:44:02.282 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.252, Boost=0.830, Final=1.082
+2025-11-05 14:44:02.282 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.005, Boost=0.040, Final=0.045
+2025-11-05 14:44:02.282 +01:00 [INF] Re-ranking complete. Score range: 0.045 - 1.191
+2025-11-05 14:44:02.282 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 14:44:02.282 +01:00 [INF]   1. 'David Elsweiler' - Score: 1.191 (Boost: 0.750)
+2025-11-05 14:44:02.282 +01:00 [INF]   2. 'Food Recommender Systems' - Score: 1.089 (Boost: 0.830)
+2025-11-05 14:44:02.282 +01:00 [INF]   3. 'Recommender Systems Handbook' - Score: 1.082 (Boost: 0.830)
+2025-11-05 14:44:02.282 +01:00 [INF] Filtered out 1 candidates below threshold 0.150
+2025-11-05 14:44:02.282 +01:00 [INF] Applied filters: 4 -> 3 candidates
+2025-11-05 14:44:02.283 +01:00 [INF] Hybrid search complete. Results: 3/3, Duration: 318ms, Avg Score: 1.121
+2025-11-05 14:44:02.283 +01:00 [INF] Hybrid search complete. Results: 3/3, Avg Score: 1.121
+2025-11-05 14:44:07.309 +01:00 [INF] Executing hybrid search for query: 'David E'
+2025-11-05 14:44:07.309 +01:00 [INF] Starting hybrid search for query: 'David E'
+2025-11-05 14:44:07.309 +01:00 [DBG] Executing semantic search
+2025-11-05 14:44:07.310 +01:00 [DBG] Executing text-based search
+2025-11-05 14:44:07.310 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 14:44:07.310 +01:00 [INF] Postgres search returned 1 results
+2025-11-05 14:44:07.311 +01:00 [INF] Text search returned 6 results
+2025-11-05 14:44:07.422 +01:00 [DBG] Cached embedding for query. Cache size: 11
+2025-11-05 14:44:07.422 +01:00 [INF] Successfully generated embedding
+2025-11-05 14:44:07.426 +01:00 [INF] Semantic search returned 6 results
+2025-11-05 14:44:07.426 +01:00 [INF] Retrieved 13 total candidates before fusion
+2025-11-05 14:44:07.426 +01:00 [DBG] Fusing 13 search candidates
+2025-11-05 14:44:07.426 +01:00 [DBG] After deduplication: 7 unique candidates
+2025-11-05 14:44:07.426 +01:00 [INF] Fusion complete. Top score: 0.476, Bottom score: 0.005
+2025-11-05 14:44:07.426 +01:00 [DBG] Loading item data for 7 candidates
+2025-11-05 14:44:07.426 +01:00 [DBG] Re-ranking 7 candidates
+2025-11-05 14:44:07.426 +01:00 [DBG] Applying contextual boosting to 7 candidates
+2025-11-05 14:44:07.426 +01:00 [DBG] Partial query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.040
+2025-11-05 14:44:07.426 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 14:44:07.426 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 14:44:07.426 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 14:44:07.426 +01:00 [DBG] Multiple chunks with keywords for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.150
+2025-11-05 14:44:07.426 +01:00 [DBG] Name prefix match boost applied to "87f16afe-8e54-41e2-8256-546d6005b8ef": +1.5
+2025-11-05 14:44:07.426 +01:00 [DBG] Exact phrase match in chunk for "87f16afe-8e54-41e2-8256-546d6005b8ef": +0.25
+2025-11-05 14:44:07.426 +01:00 [DBG] Partial query words found in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.040
+2025-11-05 14:44:07.427 +01:00 [DBG] Partial query words found in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.040
+2025-11-05 14:44:07.427 +01:00 [DBG] All query words found in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.15
+2025-11-05 14:44:07.427 +01:00 [DBG] Multiple chunks with keywords for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.150
+2025-11-05 14:44:07.427 +01:00 [DBG] Partial query words found in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.040
+2025-11-05 14:44:07.427 +01:00 [DBG] All query words found in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.15
+2025-11-05 14:44:07.427 +01:00 [DBG] Exact phrase match in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.25
+2025-11-05 14:44:07.427 +01:00 [DBG] All query words found in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.15
+2025-11-05 14:44:07.427 +01:00 [DBG] Multiple chunks with keywords for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.150
+2025-11-05 14:44:07.427 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 14:44:07.427 +01:00 [DBG] All query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.15
+2025-11-05 14:44:07.427 +01:00 [DBG] Exact phrase match in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.25
+2025-11-05 14:44:07.427 +01:00 [DBG] Multiple chunks with keywords for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.150
+2025-11-05 14:44:07.427 +01:00 [DBG] All query words found in chunk for "3fe3fd68-986e-4dfa-a8b8-716cdbd05cfc": +0.15
+2025-11-05 14:44:07.427 +01:00 [DBG] All query words found in chunk for "3fe3fd68-986e-4dfa-a8b8-716cdbd05cfc": +0.15
+2025-11-05 14:44:07.427 +01:00 [DBG] All query words found in chunk for "3fe3fd68-986e-4dfa-a8b8-716cdbd05cfc": +0.15
+2025-11-05 14:44:07.427 +01:00 [DBG] Multiple chunks with keywords for "3fe3fd68-986e-4dfa-a8b8-716cdbd05cfc": +0.150
+2025-11-05 14:44:07.427 +01:00 [INF] Boosting applied to 7/7 candidates
+2025-11-05 14:44:07.427 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.476, Boost=0.120, Final=0.596
+2025-11-05 14:44:07.427 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.418, Boost=0.350, Final=0.768
+2025-11-05 14:44:07.427 +01:00 [DBG] Score for 'David Elsweiler': Base=0.174, Boost=1.750, Final=1.924
+2025-11-05 14:44:07.427 +01:00 [DBG] Score for 'A Minority of One against a Majority of Robots: Robots Cause Normative and Informational Conformity': Base=0.148, Boost=0.440, Final=0.588
+2025-11-05 14:44:07.427 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.009, Boost=0.670, Final=0.679
+2025-11-05 14:44:07.427 +01:00 [DBG] Score for 'Mixing It Up: How Mixed Groups of Humans and Machines Modulate Conformity': Base=0.005, Boost=0.660, Final=0.665
+2025-11-05 14:44:07.427 +01:00 [INF] Re-ranking complete. Score range: 0.588 - 1.924
+2025-11-05 14:44:07.427 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 14:44:07.427 +01:00 [INF]   1. 'David Elsweiler' - Score: 1.924 (Boost: 1.750)
+2025-11-05 14:44:07.427 +01:00 [INF]   2. 'Unknown' - Score: 0.804 (Boost: 0.740)
+2025-11-05 14:44:07.427 +01:00 [INF]   3. 'Under Pressure: Examining Social Conformity With Computer and Robot Groups' - Score: 0.768 (Boost: 0.350)
+2025-11-05 14:44:07.427 +01:00 [INF] Applied filters: 7 -> 6 candidates
+2025-11-05 14:44:07.427 +01:00 [INF] Hybrid search complete. Results: 6/6, Duration: 117ms, Avg Score: 0.870
+2025-11-05 14:44:07.427 +01:00 [INF] Hybrid search complete. Results: 6/6, Avg Score: 0.870
+2025-11-05 14:44:14.442 +01:00 [INF] Executing hybrid search for query: 'Nicole S'
+2025-11-05 14:44:14.442 +01:00 [INF] Starting hybrid search for query: 'Nicole S'
+2025-11-05 14:44:14.442 +01:00 [DBG] Executing semantic search
+2025-11-05 14:44:14.442 +01:00 [DBG] Executing text-based search
+2025-11-05 14:44:14.442 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 14:44:14.443 +01:00 [INF] Postgres search returned 1 results
+2025-11-05 14:44:14.443 +01:00 [INF] Text search returned 2 results
+2025-11-05 14:44:15.735 +01:00 [DBG] Cached embedding for query. Cache size: 12
+2025-11-05 14:44:15.735 +01:00 [INF] Successfully generated embedding
+2025-11-05 14:44:15.740 +01:00 [INF] Semantic search returned 7 results
+2025-11-05 14:44:15.740 +01:00 [INF] Retrieved 10 total candidates before fusion
+2025-11-05 14:44:15.740 +01:00 [DBG] Fusing 10 search candidates
+2025-11-05 14:44:15.740 +01:00 [DBG] After deduplication: 7 unique candidates
+2025-11-05 14:44:15.740 +01:00 [INF] Fusion complete. Top score: 1.000, Bottom score: 0.004
+2025-11-05 14:44:15.740 +01:00 [DBG] Loading item data for 7 candidates
+2025-11-05 14:44:15.740 +01:00 [DBG] Re-ranking 7 candidates
+2025-11-05 14:44:15.740 +01:00 [DBG] Applying contextual boosting to 7 candidates
+2025-11-05 14:44:15.740 +01:00 [DBG] Name prefix match boost applied to "b8e8a245-48d5-4c6f-bbe5-513360a0bcf8": +1.5
+2025-11-05 14:44:15.741 +01:00 [DBG] Exact phrase match in chunk for "b8e8a245-48d5-4c6f-bbe5-513360a0bcf8": +0.25
+2025-11-05 14:44:15.741 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 14:44:15.741 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 14:44:15.741 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 14:44:15.741 +01:00 [DBG] Multiple chunks with keywords for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.150
+2025-11-05 14:44:15.741 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 14:44:15.741 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 14:44:15.741 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 14:44:15.741 +01:00 [DBG] Multiple chunks with keywords for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.150
+2025-11-05 14:44:15.741 +01:00 [DBG] Partial query words found in chunk for "c3f16d13-e76e-4096-9e03-9f61d4d52590": +0.040
+2025-11-05 14:44:15.741 +01:00 [DBG] Partial query words found in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.040
+2025-11-05 14:44:15.741 +01:00 [DBG] Partial query words found in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.040
+2025-11-05 14:44:15.741 +01:00 [DBG] All query words found in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.15
+2025-11-05 14:44:15.741 +01:00 [DBG] Exact phrase match in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.25
+2025-11-05 14:44:15.741 +01:00 [DBG] Multiple chunks with keywords for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.150
+2025-11-05 14:44:15.741 +01:00 [DBG] Partial query words found in chunk for "a7b1746c-6cec-4264-a4bf-ee377dbda265": +0.040
+2025-11-05 14:44:15.741 +01:00 [INF] Boosting applied to 7/7 candidates
+2025-11-05 14:44:15.741 +01:00 [DBG] Score for 'Nicole Salomons': Base=1.000, Boost=1.750, Final=2.750
+2025-11-05 14:44:15.741 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.453, Boost=0.080, Final=0.533
+2025-11-05 14:44:15.741 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.382, Boost=0.330, Final=0.712
+2025-11-05 14:44:15.741 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.129, Boost=0.330, Final=0.459
+2025-11-05 14:44:15.741 +01:00 [DBG] Score for 'Nicholas Hertz': Base=0.112, Boost=0.040, Final=0.152
+2025-11-05 14:44:15.741 +01:00 [DBG] Score for 'A Minority of One against a Majority of Robots: Robots Cause Normative and Informational Conformity': Base=0.028, Boost=0.710, Final=0.738
+2025-11-05 14:44:15.741 +01:00 [INF] Re-ranking complete. Score range: 0.044 - 2.750
+2025-11-05 14:44:15.741 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 14:44:15.741 +01:00 [INF]   1. 'Nicole Salomons' - Score: 2.750 (Boost: 1.750)
+2025-11-05 14:44:15.741 +01:00 [INF]   2. 'A Minority of One against a Majority of Robots: Robots Cause Normative and Informational Conformity' - Score: 0.738 (Boost: 0.710)
+2025-11-05 14:44:15.741 +01:00 [INF]   3. 'Under Pressure: Examining Social Conformity With Computer and Robot Groups' - Score: 0.712 (Boost: 0.330)
+2025-11-05 14:44:15.741 +01:00 [INF] Filtered out 1 candidates below threshold 0.150
+2025-11-05 14:44:15.741 +01:00 [INF] Applied filters: 6 -> 6 candidates
+2025-11-05 14:44:15.741 +01:00 [INF] Hybrid search complete. Results: 6/6, Duration: 1299ms, Avg Score: 0.891
+2025-11-05 14:44:15.741 +01:00 [INF] Hybrid search complete. Results: 6/6, Avg Score: 0.891
+2025-11-05 14:44:23.211 +01:00 [INF] Executing hybrid search for query: 'N Hertz'
+2025-11-05 14:44:23.211 +01:00 [INF] Starting hybrid search for query: 'N Hertz'
+2025-11-05 14:44:23.211 +01:00 [DBG] Executing semantic search
+2025-11-05 14:44:23.211 +01:00 [DBG] Executing text-based search
+2025-11-05 14:44:23.211 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 14:44:23.212 +01:00 [INF] Postgres search returned 1 results
+2025-11-05 14:44:23.213 +01:00 [INF] Text search returned 4 results
+2025-11-05 14:44:23.828 +01:00 [DBG] Cached embedding for query. Cache size: 13
+2025-11-05 14:44:23.828 +01:00 [INF] Successfully generated embedding
+2025-11-05 14:44:23.831 +01:00 [INF] Semantic search returned 5 results
+2025-11-05 14:44:23.831 +01:00 [INF] Retrieved 10 total candidates before fusion
+2025-11-05 14:44:23.831 +01:00 [DBG] Fusing 10 search candidates
+2025-11-05 14:44:23.831 +01:00 [DBG] After deduplication: 6 unique candidates
+2025-11-05 14:44:23.832 +01:00 [INF] Fusion complete. Top score: 0.705, Bottom score: 0.005
+2025-11-05 14:44:23.832 +01:00 [DBG] Loading item data for 6 candidates
+2025-11-05 14:44:23.832 +01:00 [DBG] Re-ranking 6 candidates
+2025-11-05 14:44:23.832 +01:00 [DBG] Applying contextual boosting to 6 candidates
+2025-11-05 14:44:23.832 +01:00 [DBG] Partial query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.040
+2025-11-05 14:44:23.832 +01:00 [DBG] Partial query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.040
+2025-11-05 14:44:23.832 +01:00 [DBG] Multiple chunks with keywords for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.100
+2025-11-05 14:44:23.832 +01:00 [DBG] Name contains all words boost applied to "c3f16d13-e76e-4096-9e03-9f61d4d52590": +0.5
+2025-11-05 14:44:23.832 +01:00 [DBG] All query words found in chunk for "c3f16d13-e76e-4096-9e03-9f61d4d52590": +0.15
+2025-11-05 14:44:23.832 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 14:44:23.832 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 14:44:23.832 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 14:44:23.832 +01:00 [DBG] Multiple chunks with keywords for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.150
+2025-11-05 14:44:23.832 +01:00 [DBG] Partial query words found in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.040
+2025-11-05 14:44:23.832 +01:00 [DBG] Partial query words found in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.040
+2025-11-05 14:44:23.832 +01:00 [DBG] All query words found in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.15
+2025-11-05 14:44:23.832 +01:00 [DBG] All query words found in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.15
+2025-11-05 14:44:23.832 +01:00 [DBG] Multiple chunks with keywords for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.150
+2025-11-05 14:44:23.832 +01:00 [DBG] All query words found in chunk for "3fe3fd68-986e-4dfa-a8b8-716cdbd05cfc": +0.15
+2025-11-05 14:44:23.832 +01:00 [DBG] All query words found in chunk for "3fe3fd68-986e-4dfa-a8b8-716cdbd05cfc": +0.15
+2025-11-05 14:44:23.832 +01:00 [DBG] All query words found in chunk for "3fe3fd68-986e-4dfa-a8b8-716cdbd05cfc": +0.15
+2025-11-05 14:44:23.832 +01:00 [DBG] All query words found in chunk for "3fe3fd68-986e-4dfa-a8b8-716cdbd05cfc": +0.15
+2025-11-05 14:44:23.832 +01:00 [DBG] Multiple chunks with keywords for "3fe3fd68-986e-4dfa-a8b8-716cdbd05cfc": +0.150
+2025-11-05 14:44:23.832 +01:00 [INF] Boosting applied to 5/6 candidates
+2025-11-05 14:44:23.833 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.705, Boost=0.260, Final=0.965
+2025-11-05 14:44:23.833 +01:00 [DBG] Score for 'Nicholas Hertz': Base=0.439, Boost=0.650, Final=1.089
+2025-11-05 14:44:23.833 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.335, Boost=0.350, Final=0.685
+2025-11-05 14:44:23.833 +01:00 [DBG] Score for 'A Minority of One against a Majority of Robots: Robots Cause Normative and Informational Conformity': Base=0.207, Boost=0.610, Final=0.817
+2025-11-05 14:44:23.833 +01:00 [DBG] Score for 'Mixing It Up: How Mixed Groups of Humans and Machines Modulate Conformity': Base=0.005, Boost=0.830, Final=0.835
+2025-11-05 14:44:23.833 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.005, Boost=0.000, Final=0.005
+2025-11-05 14:44:23.833 +01:00 [INF] Re-ranking complete. Score range: 0.005 - 1.089
+2025-11-05 14:44:23.833 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 14:44:23.833 +01:00 [INF]   1. 'Nicholas Hertz' - Score: 1.089 (Boost: 0.650)
+2025-11-05 14:44:23.833 +01:00 [INF]   2. 'Recommender Systems Handbook' - Score: 0.965 (Boost: 0.260)
+2025-11-05 14:44:23.833 +01:00 [INF]   3. 'Mixing It Up: How Mixed Groups of Humans and Machines Modulate Conformity' - Score: 0.835 (Boost: 0.830)
+2025-11-05 14:44:23.833 +01:00 [INF] Filtered out 1 candidates below threshold 0.150
+2025-11-05 14:44:23.833 +01:00 [INF] Applied filters: 5 -> 5 candidates
+2025-11-05 14:44:23.833 +01:00 [INF] Hybrid search complete. Results: 5/5, Duration: 622ms, Avg Score: 0.878
+2025-11-05 14:44:23.833 +01:00 [INF] Hybrid search complete. Results: 5/5, Avg Score: 0.878
+2025-11-05 14:46:45.931 +01:00 [INF] Upload session initialized for file 'Liedtka_2015-DesignThinkingCognitiveBiases.pdf' with GUID "9b348b09-7e35-444a-8d25-cd5270404d03"
+2025-11-05 14:46:46.496 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 14:46:46.513 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID 9b348b09-7e35-444a-8d25-cd5270404d03 (106534 bytes)
+2025-11-05 14:46:46.718 +01:00 [INF] Finalizing file upload for GUID 9b348b09-7e35-444a-8d25-cd5270404d03 with 1 blocks
+2025-11-05 14:46:46.719 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 14:46:46.721 +01:00 [INF] File upload finalized successfully for GUID 9b348b09-7e35-444a-8d25-cd5270404d03
+2025-11-05 14:46:46.918 +01:00 [INF] Metadata extractoion requested for file with ID '9b348b09-7e35-444a-8d25-cd5270404d03'
+2025-11-05 14:46:46.920 +01:00 [INF] Blob 9b348b09-7e35-444a-8d25-cd5270404d03 downloaded from container files.
+2025-11-05 14:46:46.920 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 14:46:46.947 +01:00 [INF] Text extracted successfully. Length: 74097 characters
+2025-11-05 14:46:46.947 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 14:46:46.947 +01:00 [INF] Starting metadata extraction for file: Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 14:46:46.947 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 14:46:46.947 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 14:46:50.368 +01:00 [INF] Received LLM response: 887 characters
+2025-11-05 14:46:50.368 +01:00 [INF] Metadata extraction completed successfully. Title: Linking Design Thinking with Innovation Outcomes through Cognitive Bias Reduction, Authors: 1, Tags: 4
+2025-11-05 14:46:50.368 +01:00 [INF] Metadata extraction completed successfully for Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 14:49:28.531 +01:00 [INF] Upload session initialized for file 'Liedtka_2015-DesignThinkingCognitiveBiases.pdf' with GUID "11bb1b4a-b8e3-4976-b6aa-fee8a109f26a"
+2025-11-05 14:49:28.954 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 14:49:28.962 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID 11bb1b4a-b8e3-4976-b6aa-fee8a109f26a (106534 bytes)
+2025-11-05 14:49:29.159 +01:00 [INF] Finalizing file upload for GUID 11bb1b4a-b8e3-4976-b6aa-fee8a109f26a with 1 blocks
+2025-11-05 14:49:29.160 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 14:49:29.162 +01:00 [INF] File upload finalized successfully for GUID 11bb1b4a-b8e3-4976-b6aa-fee8a109f26a
+2025-11-05 14:49:29.373 +01:00 [INF] Metadata extractoion requested for file with ID '11bb1b4a-b8e3-4976-b6aa-fee8a109f26a'
+2025-11-05 14:49:29.375 +01:00 [INF] Blob 11bb1b4a-b8e3-4976-b6aa-fee8a109f26a downloaded from container files.
+2025-11-05 14:49:29.375 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 14:49:29.405 +01:00 [INF] Text extracted successfully. Length: 74097 characters
+2025-11-05 14:49:29.405 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 14:49:29.405 +01:00 [INF] Starting metadata extraction for file: Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 14:49:29.405 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 14:49:29.405 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 14:49:32.499 +01:00 [INF] Received LLM response: 1044 characters
+2025-11-05 14:49:32.500 +01:00 [INF] Metadata extraction completed successfully. Title: Linking Design Thinking with Innovation Outcomes through Cognitive Bias Reduction, Authors: 1, Tags: 5
+2025-11-05 14:49:32.500 +01:00 [INF] Metadata extraction completed successfully for Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 14:51:38.426 +01:00 [INF] Upload session initialized for file 'Liedtka_2015-DesignThinkingCognitiveBiases.pdf' with GUID "6b79dbaf-3229-41df-8901-2181d51727d4"
+2025-11-05 14:51:38.748 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 14:51:38.765 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID 6b79dbaf-3229-41df-8901-2181d51727d4 (106534 bytes)
+2025-11-05 14:51:38.956 +01:00 [INF] Finalizing file upload for GUID 6b79dbaf-3229-41df-8901-2181d51727d4 with 1 blocks
+2025-11-05 14:51:38.957 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 14:51:38.958 +01:00 [INF] File upload finalized successfully for GUID 6b79dbaf-3229-41df-8901-2181d51727d4
+2025-11-05 14:51:39.166 +01:00 [INF] Metadata extractoion requested for file with ID '6b79dbaf-3229-41df-8901-2181d51727d4'
+2025-11-05 14:51:39.168 +01:00 [INF] Blob 6b79dbaf-3229-41df-8901-2181d51727d4 downloaded from container files.
+2025-11-05 14:51:39.168 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 14:51:39.194 +01:00 [INF] Text extracted successfully. Length: 74097 characters
+2025-11-05 14:51:39.194 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 14:51:39.194 +01:00 [INF] Starting metadata extraction for file: Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 14:51:39.194 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 14:51:39.194 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 14:51:42.763 +01:00 [INF] Received LLM response: 1022 characters
+2025-11-05 14:51:42.763 +01:00 [INF] Metadata extraction completed successfully. Title: Linking Design Thinking with Innovation Outcomes through Cognitive Bias Reduction, Authors: 1, Tags: 4
+2025-11-05 14:51:42.763 +01:00 [INF] Metadata extraction completed successfully for Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 15:01:46.332 +01:00 [INF] OwnerUser configuration validated successfully for: admin@admin.nl
+2025-11-05 15:01:47.016 +01:00 [INF] Database migrations applied successfully
+2025-11-05 15:01:47.221 +01:00 [INF] Tools successfully initialized
+2025-11-05 15:01:47.222 +01:00 [INF] Initializing RAG system with embedding cache enabled
+2025-11-05 15:01:47.228 +01:00 [INF] Qdrant client successfully initialized with host: qdrant, port: 6334
+2025-11-05 15:01:47.269 +01:00 [INF] Collection knowledgebank already exists. No action taken.
+2025-11-05 15:01:47.269 +01:00 [INF] Qdrant collection knowledgebank checked and initialized if necessary
+2025-11-05 15:01:47.318 +01:00 [INF] Azure Document Intelligence client initialized
+2025-11-05 15:01:47.321 +01:00 [INF] Azure OpenAI client successfully initialized
+2025-11-05 15:01:47.322 +01:00 [INF] Embeddings client successfully initialized
+2025-11-05 15:01:47.322 +01:00 [INF] RAG system successfully initialized
+2025-11-05 15:01:47.377 +01:00 [INF] Materialized view ResourceGridView with triggers created successfully
+2025-11-05 15:01:47.387 +01:00 [INF] Materialized view ResourceTrashView with triggers created successfully
+2025-11-05 15:01:47.442 +01:00 [INF] BlobCleanupService started
+2025-11-05 15:02:23.397 +01:00 [INF] Upload session initialized for file 'Liedtka_2015-DesignThinkingCognitiveBiases.pdf' with GUID "fae354fc-f9d1-438e-8981-83056e4ecb76"
+2025-11-05 15:02:23.733 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 15:02:23.756 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID fae354fc-f9d1-438e-8981-83056e4ecb76 (106534 bytes)
+2025-11-05 15:02:23.916 +01:00 [INF] Finalizing file upload for GUID fae354fc-f9d1-438e-8981-83056e4ecb76 with 1 blocks
+2025-11-05 15:02:23.917 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 15:02:23.928 +01:00 [INF] File upload finalized successfully for GUID fae354fc-f9d1-438e-8981-83056e4ecb76
+2025-11-05 15:02:24.171 +01:00 [INF] Metadata extractoion requested for file with ID 'fae354fc-f9d1-438e-8981-83056e4ecb76'
+2025-11-05 15:02:24.186 +01:00 [INF] Blob fae354fc-f9d1-438e-8981-83056e4ecb76 downloaded from container files.
+2025-11-05 15:02:24.186 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 15:02:25.012 +01:00 [INF] Text extracted successfully. Length: 74097 characters
+2025-11-05 15:02:25.012 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 15:02:25.013 +01:00 [INF] Starting metadata extraction for file: Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 15:02:25.013 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 15:02:25.014 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 15:02:28.545 +01:00 [INF] Received LLM response: 1039 characters
+2025-11-05 15:02:28.549 +01:00 [INF] Metadata extraction completed successfully. Title: Linking Design Thinking with Innovation Outcomes through Cognitive Bias Reduction, Authors: 1, Tags: 5
+2025-11-05 15:02:28.549 +01:00 [INF] Metadata extraction completed successfully for Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 15:03:44.980 +01:00 [INF] Upload session initialized for file 'Liedtka_2015-DesignThinkingCognitiveBiases.pdf' with GUID "2153198d-cdd2-4d75-8208-c7e417100ea3"
+2025-11-05 15:03:45.319 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 15:03:45.328 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID 2153198d-cdd2-4d75-8208-c7e417100ea3 (106534 bytes)
+2025-11-05 15:03:45.533 +01:00 [INF] Finalizing file upload for GUID 2153198d-cdd2-4d75-8208-c7e417100ea3 with 1 blocks
+2025-11-05 15:03:45.534 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 15:03:45.536 +01:00 [INF] File upload finalized successfully for GUID 2153198d-cdd2-4d75-8208-c7e417100ea3
+2025-11-05 15:03:45.731 +01:00 [INF] Metadata extractoion requested for file with ID '2153198d-cdd2-4d75-8208-c7e417100ea3'
+2025-11-05 15:03:45.733 +01:00 [INF] Blob 2153198d-cdd2-4d75-8208-c7e417100ea3 downloaded from container files.
+2025-11-05 15:03:45.733 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 15:03:45.848 +01:00 [INF] Text extracted successfully. Length: 74097 characters
+2025-11-05 15:03:45.848 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 15:03:45.849 +01:00 [INF] Starting metadata extraction for file: Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 15:03:45.849 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 15:03:45.849 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 15:03:49.077 +01:00 [INF] Received LLM response: 1206 characters
+2025-11-05 15:03:49.078 +01:00 [INF] Metadata extraction completed successfully. Title: Linking Design Thinking with Innovation Outcomes through Cognitive Bias Reduction, Authors: 1, Tags: 4
+2025-11-05 15:03:49.078 +01:00 [INF] Metadata extraction completed successfully for Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 15:16:18.053 +01:00 [INF] Executing hybrid search for query: 'a dieterich'
+2025-11-05 15:16:18.054 +01:00 [INF] Starting hybrid search for query: 'a dieterich'
+2025-11-05 15:16:18.055 +01:00 [DBG] Executing semantic search
+2025-11-05 15:16:18.060 +01:00 [DBG] Executing text-based search
+2025-11-05 15:16:18.063 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 15:16:18.071 +01:00 [INF] Text search returned 1 results
+2025-11-05 15:16:18.074 +01:00 [INF] Postgres search returned 1 results
+2025-11-05 15:16:18.808 +01:00 [DBG] Cached embedding for query. Cache size: 1
+2025-11-05 15:16:18.808 +01:00 [INF] Successfully generated embedding
+2025-11-05 15:16:18.814 +01:00 [INF] Semantic search returned 6 results
+2025-11-05 15:16:18.815 +01:00 [INF] Retrieved 8 total candidates before fusion
+2025-11-05 15:16:18.815 +01:00 [DBG] Fusing 8 search candidates
+2025-11-05 15:16:18.817 +01:00 [DBG] After deduplication: 6 unique candidates
+2025-11-05 15:16:18.822 +01:00 [INF] Fusion complete. Top score: 1.000, Bottom score: 0.005
+2025-11-05 15:16:18.824 +01:00 [DBG] Loading item data for 6 candidates
+2025-11-05 15:16:18.831 +01:00 [DBG] Re-ranking 6 candidates
+2025-11-05 15:16:18.831 +01:00 [DBG] Applying contextual boosting to 6 candidates
+2025-11-05 15:16:18.832 +01:00 [DBG] Name contains all words boost applied to "ef87423d-92fe-4c27-969b-f2f2e0c41439": +0.5
+2025-11-05 15:16:18.832 +01:00 [DBG] All query words found in chunk for "ef87423d-92fe-4c27-969b-f2f2e0c41439": +0.15
+2025-11-05 15:16:18.832 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 15:16:18.832 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 15:16:18.832 +01:00 [DBG] Multiple chunks with keywords for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.100
+2025-11-05 15:16:18.832 +01:00 [DBG] Partial query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.040
+2025-11-05 15:16:18.832 +01:00 [DBG] Partial query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.040
+2025-11-05 15:16:18.832 +01:00 [DBG] Multiple chunks with keywords for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.100
+2025-11-05 15:16:18.832 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:16:18.832 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:16:18.832 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:16:18.832 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:16:18.832 +01:00 [DBG] Multiple chunks with keywords for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.150
+2025-11-05 15:16:18.832 +01:00 [DBG] Partial query words found in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.040
+2025-11-05 15:16:18.833 +01:00 [INF] Boosting applied to 5/6 candidates
+2025-11-05 15:16:18.833 +01:00 [DBG] Score for 'Abel Dieterich': Base=1.000, Boost=0.650, Final=1.650
+2025-11-05 15:16:18.833 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.217, Boost=0.260, Final=0.477
+2025-11-05 15:16:18.833 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.210, Boost=0.260, Final=0.470
+2025-11-05 15:16:18.833 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.070, Boost=0.390, Final=0.460
+2025-11-05 15:16:18.833 +01:00 [DBG] Score for 'A Minority of One against a Majority of Robots: Robots Cause Normative and Informational Conformity': Base=0.005, Boost=0.100, Final=0.105
+2025-11-05 15:16:18.833 +01:00 [INF] Re-ranking complete. Score range: 0.015 - 1.650
+2025-11-05 15:16:18.833 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 15:16:18.833 +01:00 [INF]   1. 'Abel Dieterich' - Score: 1.650 (Boost: 0.650)
+2025-11-05 15:16:18.833 +01:00 [INF]   2. 'Under Pressure: Examining Social Conformity With Computer and Robot Groups' - Score: 0.477 (Boost: 0.260)
+2025-11-05 15:16:18.833 +01:00 [INF]   3. 'Recommender Systems Handbook' - Score: 0.470 (Boost: 0.260)
+2025-11-05 15:16:18.833 +01:00 [INF] Filtered out 2 candidates below threshold 0.150
+2025-11-05 15:16:18.838 +01:00 [INF] Applied filters: 4 -> 4 candidates
+2025-11-05 15:16:18.840 +01:00 [INF] Hybrid search complete. Results: 4/4, Duration: 785ms, Avg Score: 0.764
+2025-11-05 15:16:18.840 +01:00 [INF] Hybrid search complete. Results: 4/4, Avg Score: 0.764
+2025-11-05 15:17:24.810 +01:00 [INF] Upload session initialized for file 'Liedtka_2015-DesignThinkingCognitiveBiases.pdf' with GUID "f1e9bdc1-e00c-4263-ade0-e1daa8df3d40"
+2025-11-05 15:17:25.145 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 15:17:25.162 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID f1e9bdc1-e00c-4263-ade0-e1daa8df3d40 (106534 bytes)
+2025-11-05 15:17:25.446 +01:00 [INF] Finalizing file upload for GUID f1e9bdc1-e00c-4263-ade0-e1daa8df3d40 with 1 blocks
+2025-11-05 15:17:25.447 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 15:17:25.449 +01:00 [INF] File upload finalized successfully for GUID f1e9bdc1-e00c-4263-ade0-e1daa8df3d40
+2025-11-05 15:17:25.743 +01:00 [INF] Metadata extractoion requested for file with ID 'f1e9bdc1-e00c-4263-ade0-e1daa8df3d40'
+2025-11-05 15:17:25.746 +01:00 [INF] Blob f1e9bdc1-e00c-4263-ade0-e1daa8df3d40 downloaded from container files.
+2025-11-05 15:17:25.746 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 15:17:25.781 +01:00 [INF] Text extracted successfully. Length: 74097 characters
+2025-11-05 15:17:25.781 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 15:17:25.782 +01:00 [INF] Starting metadata extraction for file: Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 15:17:25.782 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 15:17:25.782 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 15:17:31.086 +01:00 [INF] Received LLM response: 993 characters
+2025-11-05 15:17:31.087 +01:00 [INF] Metadata extraction completed successfully. Title: Linking Design Thinking with Innovation Outcomes through Cognitive Bias Reduction, Authors: 1, Tags: 4
+2025-11-05 15:17:31.087 +01:00 [INF] Metadata extraction completed successfully for Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 15:28:49.924 +01:00 [INF] OwnerUser configuration validated successfully for: admin@admin.nl
+2025-11-05 15:28:50.610 +01:00 [INF] Database migrations applied successfully
+2025-11-05 15:28:50.816 +01:00 [INF] Tools successfully initialized
+2025-11-05 15:28:50.817 +01:00 [INF] Initializing RAG system with embedding cache enabled
+2025-11-05 15:28:50.823 +01:00 [INF] Qdrant client successfully initialized with host: qdrant, port: 6334
+2025-11-05 15:28:50.864 +01:00 [INF] Collection knowledgebank already exists. No action taken.
+2025-11-05 15:28:50.864 +01:00 [INF] Qdrant collection knowledgebank checked and initialized if necessary
+2025-11-05 15:28:50.913 +01:00 [INF] Azure Document Intelligence client initialized
+2025-11-05 15:28:50.915 +01:00 [INF] Azure OpenAI client successfully initialized
+2025-11-05 15:28:50.917 +01:00 [INF] Embeddings client successfully initialized
+2025-11-05 15:28:50.917 +01:00 [INF] RAG system successfully initialized
+2025-11-05 15:28:50.972 +01:00 [INF] Materialized view ResourceGridView with triggers created successfully
+2025-11-05 15:28:50.982 +01:00 [INF] Materialized view ResourceTrashView with triggers created successfully
+2025-11-05 15:28:51.037 +01:00 [INF] BlobCleanupService started
+2025-11-05 15:29:02.912 +01:00 [INF] Upload session initialized for file 'Liedtka_2015-DesignThinkingCognitiveBiases.pdf' with GUID "1465a934-e279-460f-824b-06f319d06316"
+2025-11-05 15:29:03.334 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 15:29:03.349 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID 1465a934-e279-460f-824b-06f319d06316 (106534 bytes)
+2025-11-05 15:29:03.559 +01:00 [INF] Finalizing file upload for GUID 1465a934-e279-460f-824b-06f319d06316 with 1 blocks
+2025-11-05 15:29:03.561 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 15:29:03.570 +01:00 [INF] File upload finalized successfully for GUID 1465a934-e279-460f-824b-06f319d06316
+2025-11-05 15:29:03.847 +01:00 [INF] Metadata extractoion requested for file with ID '1465a934-e279-460f-824b-06f319d06316'
+2025-11-05 15:29:03.862 +01:00 [INF] Blob 1465a934-e279-460f-824b-06f319d06316 downloaded from container files.
+2025-11-05 15:29:03.862 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 15:29:04.698 +01:00 [INF] Text extracted successfully. Length: 74097 characters
+2025-11-05 15:29:04.698 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 15:29:04.699 +01:00 [INF] Starting metadata extraction for file: Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 15:29:04.700 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 15:29:04.701 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 15:29:07.919 +01:00 [INF] Received LLM response: 972 characters
+2025-11-05 15:29:07.923 +01:00 [ERR] Error extracting metadata from document
+System.ArgumentException: An item with the same key has already been added. Key: type
+   at System.Collections.Generic.Dictionary`2.TryInsert(TKey key, TValue value, InsertionBehavior behavior)
+   at System.Collections.Generic.Dictionary`2.Add(TKey key, TValue value)
+   at KnowledgeBank.Services.RAGManager.ExtractMetadataAsync(String text, String fileName) in /home/ablos/Coding/knowledgebank/backend/Services/RAGManager.cs:line 646
+2025-11-05 15:30:20.260 +01:00 [INF] Upload session initialized for file 'Liedtka_2015-DesignThinkingCognitiveBiases.pdf' with GUID "ae381ee5-d4f0-4e75-8141-bd2b70946ff2"
+2025-11-05 15:30:20.456 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 15:30:20.465 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID ae381ee5-d4f0-4e75-8141-bd2b70946ff2 (106534 bytes)
+2025-11-05 15:30:20.666 +01:00 [INF] Finalizing file upload for GUID ae381ee5-d4f0-4e75-8141-bd2b70946ff2 with 1 blocks
+2025-11-05 15:30:20.667 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 15:30:20.669 +01:00 [INF] File upload finalized successfully for GUID ae381ee5-d4f0-4e75-8141-bd2b70946ff2
+2025-11-05 15:30:20.847 +01:00 [INF] Metadata extractoion requested for file with ID 'ae381ee5-d4f0-4e75-8141-bd2b70946ff2'
+2025-11-05 15:30:20.849 +01:00 [INF] Blob ae381ee5-d4f0-4e75-8141-bd2b70946ff2 downloaded from container files.
+2025-11-05 15:30:20.849 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 15:30:21.019 +01:00 [INF] Text extracted successfully. Length: 74097 characters
+2025-11-05 15:30:21.019 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 15:30:21.020 +01:00 [INF] Starting metadata extraction for file: Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 15:30:21.020 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 15:30:21.020 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 15:30:24.488 +01:00 [INF] Received LLM response: 1106 characters
+2025-11-05 15:30:24.490 +01:00 [INF] Starting hybrid search for query: 'a dieterich'
+2025-11-05 15:30:24.491 +01:00 [DBG] Executing semantic search
+2025-11-05 15:30:24.497 +01:00 [DBG] Executing text-based search
+2025-11-05 15:30:24.499 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 15:30:24.507 +01:00 [INF] Text search returned 1 results
+2025-11-05 15:30:24.514 +01:00 [INF] Postgres search returned 1 results
+2025-11-05 15:30:29.338 +01:00 [DBG] Cached embedding for query. Cache size: 1
+2025-11-05 15:30:29.338 +01:00 [INF] Successfully generated embedding
+2025-11-05 15:30:29.345 +01:00 [INF] Semantic search returned 6 results
+2025-11-05 15:30:29.345 +01:00 [INF] Retrieved 8 total candidates before fusion
+2025-11-05 15:30:29.345 +01:00 [DBG] Fusing 8 search candidates
+2025-11-05 15:30:29.347 +01:00 [DBG] After deduplication: 6 unique candidates
+2025-11-05 15:30:29.352 +01:00 [INF] Fusion complete. Top score: 1.000, Bottom score: 0.005
+2025-11-05 15:30:29.355 +01:00 [DBG] Loading item data for 6 candidates
+2025-11-05 15:30:29.396 +01:00 [DBG] Re-ranking 6 candidates
+2025-11-05 15:30:29.397 +01:00 [DBG] Applying contextual boosting to 6 candidates
+2025-11-05 15:30:29.397 +01:00 [DBG] Name contains all words boost applied to "ef87423d-92fe-4c27-969b-f2f2e0c41439": +0.5
+2025-11-05 15:30:29.397 +01:00 [DBG] All query words found in chunk for "ef87423d-92fe-4c27-969b-f2f2e0c41439": +0.15
+2025-11-05 15:30:29.398 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 15:30:29.398 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 15:30:29.398 +01:00 [DBG] Multiple chunks with keywords for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.100
+2025-11-05 15:30:29.398 +01:00 [DBG] Partial query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.040
+2025-11-05 15:30:29.398 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:30:29.398 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:30:29.398 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:30:29.398 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:30:29.398 +01:00 [DBG] Multiple chunks with keywords for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.150
+2025-11-05 15:30:29.398 +01:00 [DBG] Partial query words found in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.040
+2025-11-05 15:30:29.398 +01:00 [INF] Boosting applied to 5/6 candidates
+2025-11-05 15:30:29.398 +01:00 [DBG] Score for 'Abel Dieterich': Base=1.000, Boost=0.650, Final=1.650
+2025-11-05 15:30:29.398 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.218, Boost=0.260, Final=0.478
+2025-11-05 15:30:29.398 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.210, Boost=0.120, Final=0.330
+2025-11-05 15:30:29.398 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.070, Boost=0.390, Final=0.460
+2025-11-05 15:30:29.398 +01:00 [DBG] Score for 'A Minority of One against a Majority of Robots: Robots Cause Normative and Informational Conformity': Base=0.005, Boost=0.100, Final=0.105
+2025-11-05 15:30:29.398 +01:00 [INF] Re-ranking complete. Score range: 0.015 - 1.650
+2025-11-05 15:30:29.398 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 15:30:29.398 +01:00 [INF]   1. 'Abel Dieterich' - Score: 1.650 (Boost: 0.650)
+2025-11-05 15:30:29.398 +01:00 [INF]   2. 'Under Pressure: Examining Social Conformity With Computer and Robot Groups' - Score: 0.478 (Boost: 0.260)
+2025-11-05 15:30:29.398 +01:00 [INF]   3. 'Food Recommender Systems' - Score: 0.460 (Boost: 0.390)
+2025-11-05 15:30:29.399 +01:00 [INF] Filtered out 2 candidates below threshold 0.150
+2025-11-05 15:30:29.406 +01:00 [INF] Applied filters: 4 -> 1 candidates
+2025-11-05 15:30:29.408 +01:00 [INF] Hybrid search complete. Results: 1/1, Duration: 4917ms, Avg Score: 1.650
+2025-11-05 15:30:29.408 +01:00 [INF] Abel Dieterich
+2025-11-05 15:30:29.408 +01:00 [INF] Metadata extraction completed successfully. Title: Linking Design Thinking with Innovation Outcomes through Cognitive Bias Reduction, Authors: 1, Tags: 3
+2025-11-05 15:30:29.408 +01:00 [INF] Metadata extraction completed successfully for Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 15:31:01.054 +01:00 [INF] Creating organisation 'Dieterich Inc.'...
+2025-11-05 15:31:01.146 +01:00 [INF] Organisation 'Dieterich Inc.' created successfully.
+2025-11-05 15:31:01.147 +01:00 [INF] Main RAG pipeline started for resource ID: "9b099c9b-7d35-402a-be4a-4e58d71efc39"
+2025-11-05 15:31:01.151 +01:00 [WRN] Failed to build rich metadata for resource "9b099c9b-7d35-402a-be4a-4e58d71efc39". Using basic metadata.
+System.InvalidOperationException: An error was generated for warning 'Microsoft.EntityFrameworkCore.Query.InvalidIncludePathError': Unable to find navigation 'Authors,Tags,Organisations,Regions' specified in string based include path 'Authors,Tags,Organisations,Regions'. This exception can be suppressed or logged by passing event ID 'CoreEventId.InvalidIncludePathError' to the 'ConfigureWarnings' method in 'DbContext.OnConfiguring' or 'AddDbContext'.
+   at Microsoft.EntityFrameworkCore.Diagnostics.EventDefinition`2.Log[TLoggerCategory](IDiagnosticsLogger`1 logger, TParam1 arg1, TParam2 arg2)
+   at Microsoft.EntityFrameworkCore.Diagnostics.CoreLoggerExtensions.InvalidIncludePathError(IDiagnosticsLogger`1 diagnostics, String navigationChain, String navigationName)
+   at Microsoft.EntityFrameworkCore.Query.Internal.NavigationExpandingExpressionVisitor.ProcessInclude(NavigationExpansionExpression source, Expression expression, Boolean thenInclude, Boolean setLoaded)
+   at Microsoft.EntityFrameworkCore.Query.Internal.NavigationExpandingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.Internal.NavigationExpandingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.Internal.NavigationExpandingExpressionVisitor.VisitMethodCall(MethodCallExpression methodCallExpression)
+   at Microsoft.EntityFrameworkCore.Query.Internal.NavigationExpandingExpressionVisitor.Expand(Expression query)
+   at Microsoft.EntityFrameworkCore.Query.QueryTranslationPreprocessor.Process(Expression query)
+   at Microsoft.EntityFrameworkCore.Query.QueryCompilationContext.CreateQueryExecutorExpression[TResult](Expression query)
+   at Microsoft.EntityFrameworkCore.Query.QueryCompilationContext.CreateQueryExecutor[TResult](Expression query)
+   at Microsoft.EntityFrameworkCore.Storage.Database.CompileQuery[TResult](Expression query, Boolean async)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.CompileQueryCore[TResult](IDatabase database, Expression query, IModel model, Boolean async)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.<>c__DisplayClass11_0`1.<ExecuteCore>b__0()
+   at Microsoft.EntityFrameworkCore.Query.Internal.CompiledQueryCache.GetOrAddQuery[TResult](Object cacheKey, Func`1 compiler)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.ExecuteCore[TResult](Expression query, Boolean async, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.QueryCompiler.ExecuteAsync[TResult](Expression query, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.EntityQueryProvider.ExecuteAsync[TResult](Expression expression, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ExecuteAsync[TSource,TResult](MethodInfo operatorMethodInfo, IQueryable`1 source, Expression expression, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ExecuteAsync[TSource,TResult](MethodInfo operatorMethodInfo, IQueryable`1 source, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
+   at KnowledgeBank.Data.ResourceManager.GetAsync[T](DbSet`1 dbSet, Expression`1 predicate, Expression`1 orderBy, Boolean orderDescending, String[] includeProperties)
+   at KnowledgeBank.Data.ResourceManager.GetResourceAsync(Expression`1 predicate, String[] includeProperties)
+   at KnowledgeBank.Services.RAGManager.BuildRichMetadataChunk(Guid id, String basicMetadata)
+2025-11-05 15:31:01.154 +01:00 [INF] Extracting text from the document for resource ID: "9b099c9b-7d35-402a-be4a-4e58d71efc39"
+2025-11-05 15:31:01.154 +01:00 [INF] Generating vector embeddings and storing 1 chunks for resource ID: "9b099c9b-7d35-402a-be4a-4e58d71efc39"
+2025-11-05 15:31:01.155 +01:00 [INF] Creating points for resource ID: "9b099c9b-7d35-402a-be4a-4e58d71efc39"
+2025-11-05 15:31:01.155 +01:00 [DBG] Chunks count: 1
+2025-11-05 15:31:01.156 +01:00 [DBG] Processing batch starting at chunk 0, retry 0
+2025-11-05 15:31:02.962 +01:00 [INF] Successfully generated embeddings
+2025-11-05 15:31:02.963 +01:00 [DBG] Successfully processed batch at index 0
+2025-11-05 15:31:02.963 +01:00 [INF] Upserting 1 points to Qdrant for resource "9b099c9b-7d35-402a-be4a-4e58d71efc39"
+2025-11-05 15:31:02.975 +01:00 [INF] Successfully created 1/1 points for resource "9b099c9b-7d35-402a-be4a-4e58d71efc39"
+2025-11-05 15:31:02.975 +01:00 [INF] Initiating AI tag generation for resource ID: "9b099c9b-7d35-402a-be4a-4e58d71efc39"
+2025-11-05 15:31:02.975 +01:00 [INF] Generating new AI tags for resource 9b099c9b-7d35-402a-be4a-4e58d71efc39
+2025-11-05 15:31:04.267 +01:00 [INF] AI-generated tags saved to resource 9b099c9b-7d35-402a-be4a-4e58d71efc39
+2025-11-05 15:31:04.267 +01:00 [INF] Tags generated successfully for resource 9b099c9b-7d35-402a-be4a-4e58d71efc39. Total tags: 7
+2025-11-05 15:31:04.267 +01:00 [INF] RAG pipeline completed successfully for resource ID: "9b099c9b-7d35-402a-be4a-4e58d71efc39"
+2025-11-05 15:31:09.003 +01:00 [INF] Executing hybrid search for query: 'a dieterich'
+2025-11-05 15:31:09.003 +01:00 [INF] Starting hybrid search for query: 'a dieterich'
+2025-11-05 15:31:09.003 +01:00 [DBG] Executing semantic search
+2025-11-05 15:31:09.003 +01:00 [DBG] Cache hit for query embedding
+2025-11-05 15:31:09.003 +01:00 [DBG] Executing text-based search
+2025-11-05 15:31:09.003 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 15:31:09.005 +01:00 [INF] Text search returned 2 results
+2025-11-05 15:31:09.007 +01:00 [INF] Postgres search returned 2 results
+2025-11-05 15:31:09.008 +01:00 [INF] Semantic search returned 7 results
+2025-11-05 15:31:09.008 +01:00 [INF] Retrieved 11 total candidates before fusion
+2025-11-05 15:31:09.008 +01:00 [DBG] Fusing 11 search candidates
+2025-11-05 15:31:09.008 +01:00 [DBG] After deduplication: 7 unique candidates
+2025-11-05 15:31:09.008 +01:00 [INF] Fusion complete. Top score: 0.502, Bottom score: 0.004
+2025-11-05 15:31:09.008 +01:00 [DBG] Loading item data for 7 candidates
+2025-11-05 15:31:09.009 +01:00 [DBG] Re-ranking 7 candidates
+2025-11-05 15:31:09.009 +01:00 [DBG] Applying contextual boosting to 7 candidates
+2025-11-05 15:31:09.009 +01:00 [DBG] Name contains all words boost applied to "ef87423d-92fe-4c27-969b-f2f2e0c41439": +0.5
+2025-11-05 15:31:09.009 +01:00 [DBG] All query words found in chunk for "ef87423d-92fe-4c27-969b-f2f2e0c41439": +0.15
+2025-11-05 15:31:09.009 +01:00 [DBG] Partial query words found in chunk for "9b099c9b-7d35-402a-be4a-4e58d71efc39": +0.040
+2025-11-05 15:31:09.009 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 15:31:09.009 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 15:31:09.009 +01:00 [DBG] Multiple chunks with keywords for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.100
+2025-11-05 15:31:09.009 +01:00 [DBG] Partial query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.040
+2025-11-05 15:31:09.009 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:31:09.009 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:31:09.009 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:31:09.009 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:31:09.009 +01:00 [DBG] Multiple chunks with keywords for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.150
+2025-11-05 15:31:09.009 +01:00 [DBG] Partial query words found in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.040
+2025-11-05 15:31:09.009 +01:00 [INF] Boosting applied to 6/7 candidates
+2025-11-05 15:31:09.009 +01:00 [DBG] Score for 'Abel Dieterich': Base=0.502, Boost=0.650, Final=1.152
+2025-11-05 15:31:09.009 +01:00 [DBG] Score for 'Dieterich Inc.': Base=0.435, Boost=0.040, Final=0.475
+2025-11-05 15:31:09.009 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.217, Boost=0.260, Final=0.477
+2025-11-05 15:31:09.009 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.209, Boost=0.120, Final=0.329
+2025-11-05 15:31:09.009 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.070, Boost=0.390, Final=0.460
+2025-11-05 15:31:09.009 +01:00 [DBG] Score for 'A Minority of One against a Majority of Robots: Robots Cause Normative and Informational Conformity': Base=0.004, Boost=0.100, Final=0.104
+2025-11-05 15:31:09.009 +01:00 [INF] Re-ranking complete. Score range: 0.015 - 1.152
+2025-11-05 15:31:09.009 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 15:31:09.009 +01:00 [INF]   1. 'Abel Dieterich' - Score: 1.152 (Boost: 0.650)
+2025-11-05 15:31:09.009 +01:00 [INF]   2. 'Under Pressure: Examining Social Conformity With Computer and Robot Groups' - Score: 0.477 (Boost: 0.260)
+2025-11-05 15:31:09.009 +01:00 [INF]   3. 'Dieterich Inc.' - Score: 0.475 (Boost: 0.040)
+2025-11-05 15:31:09.009 +01:00 [INF] Filtered out 2 candidates below threshold 0.150
+2025-11-05 15:31:09.010 +01:00 [INF] Applied filters: 5 -> 5 candidates
+2025-11-05 15:31:09.010 +01:00 [INF] Hybrid search complete. Results: 5/5, Duration: 7ms, Avg Score: 0.579
+2025-11-05 15:31:09.010 +01:00 [INF] Hybrid search complete. Results: 5/5, Avg Score: 0.579
+2025-11-05 15:31:18.798 +01:00 [INF] Upload session initialized for file 'Liedtka_2015-DesignThinkingCognitiveBiases.pdf' with GUID "3055d753-3998-41a5-b609-9cb7daed2a6d"
+2025-11-05 15:31:19.098 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 15:31:19.116 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID 3055d753-3998-41a5-b609-9cb7daed2a6d (106534 bytes)
+2025-11-05 15:31:19.314 +01:00 [INF] Finalizing file upload for GUID 3055d753-3998-41a5-b609-9cb7daed2a6d with 1 blocks
+2025-11-05 15:31:19.315 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 15:31:19.317 +01:00 [INF] File upload finalized successfully for GUID 3055d753-3998-41a5-b609-9cb7daed2a6d
+2025-11-05 15:31:19.535 +01:00 [INF] Metadata extractoion requested for file with ID '3055d753-3998-41a5-b609-9cb7daed2a6d'
+2025-11-05 15:31:19.538 +01:00 [INF] Blob 3055d753-3998-41a5-b609-9cb7daed2a6d downloaded from container files.
+2025-11-05 15:31:19.538 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 15:31:19.573 +01:00 [INF] Text extracted successfully. Length: 74097 characters
+2025-11-05 15:31:19.573 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 15:31:19.573 +01:00 [INF] Starting metadata extraction for file: Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 15:31:19.573 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 15:31:19.573 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 15:31:22.676 +01:00 [INF] Received LLM response: 950 characters
+2025-11-05 15:31:22.676 +01:00 [INF] Starting hybrid search for query: 'a dieterich'
+2025-11-05 15:31:22.677 +01:00 [DBG] Executing semantic search
+2025-11-05 15:31:22.677 +01:00 [DBG] Cache hit for query embedding
+2025-11-05 15:31:22.677 +01:00 [DBG] Executing text-based search
+2025-11-05 15:31:22.677 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 15:31:22.678 +01:00 [INF] Text search returned 2 results
+2025-11-05 15:31:22.678 +01:00 [INF] Postgres search returned 2 results
+2025-11-05 15:31:22.681 +01:00 [INF] Semantic search returned 7 results
+2025-11-05 15:31:22.682 +01:00 [INF] Retrieved 11 total candidates before fusion
+2025-11-05 15:31:22.682 +01:00 [DBG] Fusing 11 search candidates
+2025-11-05 15:31:22.682 +01:00 [DBG] After deduplication: 7 unique candidates
+2025-11-05 15:31:22.682 +01:00 [INF] Fusion complete. Top score: 0.502, Bottom score: 0.004
+2025-11-05 15:31:22.682 +01:00 [DBG] Loading item data for 7 candidates
+2025-11-05 15:31:22.682 +01:00 [DBG] Re-ranking 7 candidates
+2025-11-05 15:31:22.682 +01:00 [DBG] Applying contextual boosting to 7 candidates
+2025-11-05 15:31:22.682 +01:00 [DBG] Name contains all words boost applied to "ef87423d-92fe-4c27-969b-f2f2e0c41439": +0.5
+2025-11-05 15:31:22.682 +01:00 [DBG] All query words found in chunk for "ef87423d-92fe-4c27-969b-f2f2e0c41439": +0.15
+2025-11-05 15:31:22.682 +01:00 [DBG] Partial query words found in chunk for "9b099c9b-7d35-402a-be4a-4e58d71efc39": +0.040
+2025-11-05 15:31:22.682 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 15:31:22.682 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 15:31:22.682 +01:00 [DBG] Multiple chunks with keywords for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.100
+2025-11-05 15:31:22.682 +01:00 [DBG] Partial query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.040
+2025-11-05 15:31:22.682 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:31:22.682 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:31:22.682 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:31:22.682 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:31:22.682 +01:00 [DBG] Multiple chunks with keywords for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.150
+2025-11-05 15:31:22.682 +01:00 [DBG] Partial query words found in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.040
+2025-11-05 15:31:22.682 +01:00 [INF] Boosting applied to 6/7 candidates
+2025-11-05 15:31:22.682 +01:00 [DBG] Score for 'Abel Dieterich': Base=0.502, Boost=0.650, Final=1.152
+2025-11-05 15:31:22.682 +01:00 [DBG] Score for 'Dieterich Inc.': Base=0.435, Boost=0.040, Final=0.475
+2025-11-05 15:31:22.682 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.217, Boost=0.260, Final=0.477
+2025-11-05 15:31:22.683 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.209, Boost=0.120, Final=0.329
+2025-11-05 15:31:22.683 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.070, Boost=0.390, Final=0.460
+2025-11-05 15:31:22.683 +01:00 [DBG] Score for 'A Minority of One against a Majority of Robots: Robots Cause Normative and Informational Conformity': Base=0.004, Boost=0.100, Final=0.104
+2025-11-05 15:31:22.683 +01:00 [INF] Re-ranking complete. Score range: 0.015 - 1.152
+2025-11-05 15:31:22.683 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 15:31:22.683 +01:00 [INF]   1. 'Abel Dieterich' - Score: 1.152 (Boost: 0.650)
+2025-11-05 15:31:22.683 +01:00 [INF]   2. 'Under Pressure: Examining Social Conformity With Computer and Robot Groups' - Score: 0.477 (Boost: 0.260)
+2025-11-05 15:31:22.683 +01:00 [INF]   3. 'Dieterich Inc.' - Score: 0.475 (Boost: 0.040)
+2025-11-05 15:31:22.683 +01:00 [INF] Filtered out 2 candidates below threshold 0.150
+2025-11-05 15:31:22.683 +01:00 [INF] Applied filters: 5 -> 2 candidates
+2025-11-05 15:31:22.683 +01:00 [INF] Hybrid search complete. Results: 2/2, Duration: 6ms, Avg Score: 0.814
+2025-11-05 15:31:22.683 +01:00 [INF] Abel Dieterich
+2025-11-05 15:31:22.683 +01:00 [INF] Dieterich Inc.
+2025-11-05 15:31:22.683 +01:00 [INF] Metadata extraction completed successfully. Title: Linking Design Thinking with Innovation Outcomes through Cognitive Bias Reduction, Authors: 1, Tags: 4
+2025-11-05 15:31:22.683 +01:00 [INF] Metadata extraction completed successfully for Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 15:34:17.632 +01:00 [INF] Upload session initialized for file 'Liedtka_2015-DesignThinkingCognitiveBiases.pdf' with GUID "c813b586-2a3c-4374-85f0-9461b389bda5"
+2025-11-05 15:34:17.990 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 15:34:18.007 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID c813b586-2a3c-4374-85f0-9461b389bda5 (106534 bytes)
+2025-11-05 15:34:18.210 +01:00 [INF] Finalizing file upload for GUID c813b586-2a3c-4374-85f0-9461b389bda5 with 1 blocks
+2025-11-05 15:34:18.211 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 15:34:18.213 +01:00 [INF] File upload finalized successfully for GUID c813b586-2a3c-4374-85f0-9461b389bda5
+2025-11-05 15:34:18.452 +01:00 [INF] Metadata extractoion requested for file with ID 'c813b586-2a3c-4374-85f0-9461b389bda5'
+2025-11-05 15:34:18.454 +01:00 [INF] Blob c813b586-2a3c-4374-85f0-9461b389bda5 downloaded from container files.
+2025-11-05 15:34:18.454 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 15:34:18.483 +01:00 [INF] Text extracted successfully. Length: 74097 characters
+2025-11-05 15:34:18.483 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 15:34:18.486 +01:00 [INF] Starting metadata extraction for file: Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 15:34:18.486 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 15:34:18.486 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 15:34:22.476 +01:00 [INF] Received LLM response: 1383 characters
+2025-11-05 15:34:22.478 +01:00 [INF] Starting hybrid search for query: 'a dieterich'
+2025-11-05 15:34:22.478 +01:00 [DBG] Executing semantic search
+2025-11-05 15:34:22.478 +01:00 [DBG] Cache hit for query embedding
+2025-11-05 15:34:22.478 +01:00 [DBG] Executing text-based search
+2025-11-05 15:34:22.478 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 15:34:22.481 +01:00 [INF] Postgres search returned 2 results
+2025-11-05 15:34:22.481 +01:00 [INF] Text search returned 2 results
+2025-11-05 15:34:22.484 +01:00 [INF] Semantic search returned 7 results
+2025-11-05 15:34:22.484 +01:00 [INF] Retrieved 11 total candidates before fusion
+2025-11-05 15:34:22.484 +01:00 [DBG] Fusing 11 search candidates
+2025-11-05 15:34:22.484 +01:00 [DBG] After deduplication: 7 unique candidates
+2025-11-05 15:34:22.484 +01:00 [INF] Fusion complete. Top score: 0.502, Bottom score: 0.004
+2025-11-05 15:34:22.484 +01:00 [DBG] Loading item data for 7 candidates
+2025-11-05 15:34:22.485 +01:00 [DBG] Re-ranking 7 candidates
+2025-11-05 15:34:22.485 +01:00 [DBG] Applying contextual boosting to 7 candidates
+2025-11-05 15:34:22.485 +01:00 [DBG] Name contains all words boost applied to "ef87423d-92fe-4c27-969b-f2f2e0c41439": +0.5
+2025-11-05 15:34:22.485 +01:00 [DBG] All query words found in chunk for "ef87423d-92fe-4c27-969b-f2f2e0c41439": +0.15
+2025-11-05 15:34:22.485 +01:00 [DBG] Partial query words found in chunk for "9b099c9b-7d35-402a-be4a-4e58d71efc39": +0.040
+2025-11-05 15:34:22.485 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 15:34:22.485 +01:00 [DBG] Partial query words found in chunk for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.040
+2025-11-05 15:34:22.485 +01:00 [DBG] Multiple chunks with keywords for "30bb56ef-d5d0-42e3-8090-184cd75e2429": +0.100
+2025-11-05 15:34:22.485 +01:00 [DBG] Partial query words found in chunk for "e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c": +0.040
+2025-11-05 15:34:22.485 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:34:22.485 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:34:22.485 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:34:22.485 +01:00 [DBG] Partial query words found in chunk for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.040
+2025-11-05 15:34:22.485 +01:00 [DBG] Multiple chunks with keywords for "b7568169-c15c-448b-b291-11677ad1cdc0": +0.150
+2025-11-05 15:34:22.485 +01:00 [DBG] Partial query words found in chunk for "ca6ea14b-e67b-4203-9977-c7c24d97fd5c": +0.040
+2025-11-05 15:34:22.485 +01:00 [INF] Boosting applied to 6/7 candidates
+2025-11-05 15:34:22.485 +01:00 [DBG] Score for 'Abel Dieterich': Base=0.502, Boost=0.650, Final=1.152
+2025-11-05 15:34:22.485 +01:00 [DBG] Score for 'Dieterich Inc.': Base=0.435, Boost=0.040, Final=0.475
+2025-11-05 15:34:22.485 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.217, Boost=0.260, Final=0.477
+2025-11-05 15:34:22.485 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.209, Boost=0.120, Final=0.329
+2025-11-05 15:34:22.485 +01:00 [DBG] Score for 'Food Recommender Systems': Base=0.070, Boost=0.390, Final=0.460
+2025-11-05 15:34:22.485 +01:00 [DBG] Score for 'A Minority of One against a Majority of Robots: Robots Cause Normative and Informational Conformity': Base=0.004, Boost=0.100, Final=0.104
+2025-11-05 15:34:22.485 +01:00 [INF] Re-ranking complete. Score range: 0.015 - 1.152
+2025-11-05 15:34:22.485 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 15:34:22.485 +01:00 [INF]   1. 'Abel Dieterich' - Score: 1.152 (Boost: 0.650)
+2025-11-05 15:34:22.485 +01:00 [INF]   2. 'Under Pressure: Examining Social Conformity With Computer and Robot Groups' - Score: 0.477 (Boost: 0.260)
+2025-11-05 15:34:22.485 +01:00 [INF]   3. 'Dieterich Inc.' - Score: 0.475 (Boost: 0.040)
+2025-11-05 15:34:22.485 +01:00 [INF] Filtered out 2 candidates below threshold 0.150
+2025-11-05 15:34:22.486 +01:00 [INF] Applied filters: 5 -> 2 candidates
+2025-11-05 15:34:22.486 +01:00 [INF] Hybrid search complete. Results: 2/2, Duration: 7ms, Avg Score: 0.814
+2025-11-05 15:34:22.486 +01:00 [INF] Abel Dieterich
+Dieterich Inc.
+2025-11-05 15:34:22.486 +01:00 [INF] Metadata extraction completed successfully. Title: Linking Design Thinking with Innovation Outcomes through Cognitive Bias Reduction, Authors: 1, Tags: 4
+2025-11-05 15:34:22.486 +01:00 [INF] Metadata extraction completed successfully for Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 15:45:00.086 +01:00 [INF] Upload session initialized for file 'Liedtka_2015-DesignThinkingCognitiveBiases.pdf' with GUID "eff0080f-ef12-4a10-8aa2-26accea58a6d"
+2025-11-05 15:45:00.531 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 15:45:00.547 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID eff0080f-ef12-4a10-8aa2-26accea58a6d (106534 bytes)
+2025-11-05 15:45:00.991 +01:00 [INF] Finalizing file upload for GUID eff0080f-ef12-4a10-8aa2-26accea58a6d with 1 blocks
+2025-11-05 15:45:00.992 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 15:45:00.994 +01:00 [INF] File upload finalized successfully for GUID eff0080f-ef12-4a10-8aa2-26accea58a6d
+2025-11-05 15:45:01.147 +01:00 [INF] Metadata extractoion requested for file with ID 'eff0080f-ef12-4a10-8aa2-26accea58a6d'
+2025-11-05 15:45:01.149 +01:00 [INF] Blob eff0080f-ef12-4a10-8aa2-26accea58a6d downloaded from container files.
+2025-11-05 15:45:01.149 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 15:45:01.178 +01:00 [INF] Text extracted successfully. Length: 74097 characters
+2025-11-05 15:45:01.178 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 15:45:01.182 +01:00 [INF] Starting metadata extraction for file: Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 15:45:01.182 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 15:45:01.182 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 15:45:04.533 +01:00 [INF] Received LLM response: 900 characters
+2025-11-05 15:45:04.535 +01:00 [INF] Finding similars for author 'Jeanne Liedtka'
+2025-11-05 15:45:04.535 +01:00 [INF] Starting hybrid search for query: 'Jeanne Liedtka'
+2025-11-05 15:45:04.535 +01:00 [DBG] Executing semantic search
+2025-11-05 15:45:04.535 +01:00 [DBG] Executing text-based search
+2025-11-05 15:45:04.535 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 15:45:04.536 +01:00 [INF] Text search returned 0 results
+2025-11-05 15:45:04.537 +01:00 [INF] Postgres search returned 0 results
+2025-11-05 15:45:07.240 +01:00 [DBG] Cached embedding for query. Cache size: 2
+2025-11-05 15:45:07.240 +01:00 [INF] Successfully generated embedding
+2025-11-05 15:45:07.243 +01:00 [INF] Semantic search returned 2 results
+2025-11-05 15:45:07.243 +01:00 [INF] Retrieved 2 total candidates before fusion
+2025-11-05 15:45:07.243 +01:00 [DBG] Fusing 2 search candidates
+2025-11-05 15:45:07.243 +01:00 [DBG] After deduplication: 2 unique candidates
+2025-11-05 15:45:07.243 +01:00 [INF] Fusion complete. Top score: 0.705, Bottom score: 0.005
+2025-11-05 15:45:07.243 +01:00 [DBG] Loading item data for 2 candidates
+2025-11-05 15:45:07.244 +01:00 [DBG] Re-ranking 2 candidates
+2025-11-05 15:45:07.244 +01:00 [DBG] Applying contextual boosting to 2 candidates
+2025-11-05 15:45:07.244 +01:00 [INF] Boosting applied to 1/2 candidates
+2025-11-05 15:45:07.244 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.705, Boost=0.080, Final=0.785
+2025-11-05 15:45:07.244 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.005, Boost=0.000, Final=0.005
+2025-11-05 15:45:07.244 +01:00 [INF] Re-ranking complete. Score range: 0.005 - 0.785
+2025-11-05 15:45:07.244 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 15:45:07.244 +01:00 [INF]   1. 'Recommender Systems Handbook' - Score: 0.785 (Boost: 0.080)
+2025-11-05 15:45:07.244 +01:00 [INF]   2. 'Under Pressure: Examining Social Conformity With Computer and Robot Groups' - Score: 0.005 (Boost: 0.000)
+2025-11-05 15:45:07.244 +01:00 [INF] Filtered out 1 candidates below threshold 0.150
+2025-11-05 15:45:07.245 +01:00 [INF] Applied filters: 1 -> 0 candidates
+2025-11-05 15:45:07.245 +01:00 [INF] Hybrid search complete. Results: 0/0, Duration: 2709ms, Avg Score: 0.000
+2025-11-05 15:45:07.245 +01:00 [INF] Metadata extraction completed successfully. Title: Linking Design Thinking with Innovation Outcomes through Cognitive Bias Reduction, Authors: 1, Tags: 4
+2025-11-05 15:45:07.245 +01:00 [INF] Metadata extraction completed successfully for Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 15:46:35.091 +01:00 [INF] Returning existing AI-generated tags for resource e39cd4b0-9238-4b03-b9f4-45a04cfa3c7c
+2025-11-05 15:47:03.427 +01:00 [INF] Upload session initialized for file 'Liedtka_2015-DesignThinkingCognitiveBiases.pdf' with GUID "9bc32695-3e71-4f1d-b1cc-5e9447735810"
+2025-11-05 15:47:03.743 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 15:47:03.751 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID 9bc32695-3e71-4f1d-b1cc-5e9447735810 (106534 bytes)
+2025-11-05 15:47:03.956 +01:00 [INF] Finalizing file upload for GUID 9bc32695-3e71-4f1d-b1cc-5e9447735810 with 1 blocks
+2025-11-05 15:47:03.957 +01:00 [INF] Container files retrieved or created successfully
+2025-11-05 15:47:03.958 +01:00 [INF] File upload finalized successfully for GUID 9bc32695-3e71-4f1d-b1cc-5e9447735810
+2025-11-05 15:47:04.171 +01:00 [INF] Metadata extractoion requested for file with ID '9bc32695-3e71-4f1d-b1cc-5e9447735810'
+2025-11-05 15:47:04.173 +01:00 [INF] Blob 9bc32695-3e71-4f1d-b1cc-5e9447735810 downloaded from container files.
+2025-11-05 15:47:04.173 +01:00 [INF] Extracting text from .pdf document
+2025-11-05 15:47:04.198 +01:00 [INF] Text extracted successfully. Length: 74097 characters
+2025-11-05 15:47:04.198 +01:00 [INF] Analyzing document with LLM to extract metadata
+2025-11-05 15:47:04.198 +01:00 [INF] Starting metadata extraction for file: Liedtka_2015-DesignThinkingCognitiveBiases.pdf
+2025-11-05 15:47:04.198 +01:00 [INF] Analyzing 8000 characters of text
+2025-11-05 15:47:04.198 +01:00 [INF] Calling LLM for metadata extraction
+2025-11-05 15:47:08.640 +01:00 [INF] Received LLM response: 928 characters
+2025-11-05 15:47:08.640 +01:00 [INF] Finding similars for author 'Jeanne Liedtka'
+2025-11-05 15:47:08.640 +01:00 [INF] Starting hybrid search for query: 'Jeanne Liedtka'
+2025-11-05 15:47:08.640 +01:00 [DBG] Executing semantic search
+2025-11-05 15:47:08.640 +01:00 [DBG] Cache hit for query embedding
+2025-11-05 15:47:08.640 +01:00 [DBG] Executing text-based search
+2025-11-05 15:47:08.640 +01:00 [DBG] Executing Postgres full-text search
+2025-11-05 15:47:08.641 +01:00 [INF] Text search returned 0 results
+2025-11-05 15:47:08.642 +01:00 [INF] Postgres search returned 0 results
+2025-11-05 15:47:08.643 +01:00 [INF] Semantic search returned 2 results
+2025-11-05 15:47:08.643 +01:00 [INF] Retrieved 2 total candidates before fusion
+2025-11-05 15:47:08.643 +01:00 [DBG] Fusing 2 search candidates
+2025-11-05 15:47:08.643 +01:00 [DBG] After deduplication: 2 unique candidates
+2025-11-05 15:47:08.643 +01:00 [INF] Fusion complete. Top score: 0.705, Bottom score: 0.005
+2025-11-05 15:47:08.643 +01:00 [DBG] Loading item data for 2 candidates
+2025-11-05 15:47:08.644 +01:00 [DBG] Re-ranking 2 candidates
+2025-11-05 15:47:08.644 +01:00 [DBG] Applying contextual boosting to 2 candidates
+2025-11-05 15:47:08.644 +01:00 [INF] Boosting applied to 1/2 candidates
+2025-11-05 15:47:08.644 +01:00 [DBG] Score for 'Recommender Systems Handbook': Base=0.705, Boost=0.080, Final=0.785
+2025-11-05 15:47:08.644 +01:00 [DBG] Score for 'Under Pressure: Examining Social Conformity With Computer and Robot Groups': Base=0.005, Boost=0.000, Final=0.005
+2025-11-05 15:47:08.644 +01:00 [INF] Re-ranking complete. Score range: 0.005 - 0.785
+2025-11-05 15:47:08.644 +01:00 [INF] Top 3 results after re-ranking:
+2025-11-05 15:47:08.644 +01:00 [INF]   1. 'Recommender Systems Handbook' - Score: 0.785 (Boost: 0.080)
+2025-11-05 15:47:08.644 +01:00 [INF]   2. 'Under Pressure: Examining Social Conformity With Computer and Robot Groups' - Score: 0.005 (Boost: 0.000)
+2025-11-05 15:47:08.644 +01:00 [INF] Filtered out 1 candidates below threshold 0.150
+2025-11-05 15:47:08.644 +01:00 [INF] Applied filters: 1 -> 0 candidates
+2025-11-05 15:47:08.644 +01:00 [INF] Hybrid search complete. Results: 0/0, Duration: 4ms, Avg Score: 0.000
+2025-11-05 15:47:08.645 +01:00 [INF] Metadata extraction completed successfully. Title: Linking Design Thinking with Innovation Outcomes through Cognitive Bias Reduction, Authors: 1, Tags: 4
+2025-11-05 15:47:08.645 +01:00 [INF] Metadata extraction completed successfully for Liedtka_2015-DesignThinkingCognitiveBiases.pdf

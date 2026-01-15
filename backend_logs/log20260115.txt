@@ -1,0 +1,276 @@
+2026-01-15 10:16:03.898 +01:00 [INF] OwnerUser configuration validated successfully for: admin@admin.nl
+2026-01-15 10:16:04.631 +01:00 [INF] Database migrations applied successfully
+2026-01-15 10:16:04.855 +01:00 [INF] Tools successfully initialized
+2026-01-15 10:16:04.855 +01:00 [INF] Initializing RAG system with embedding cache enabled
+2026-01-15 10:16:04.862 +01:00 [INF] Qdrant client successfully initialized with host: qdrant, port: 6334
+2026-01-15 10:16:04.908 +01:00 [INF] Collection knowledgebank already exists. No action taken.
+2026-01-15 10:16:04.908 +01:00 [INF] Qdrant collection knowledgebank checked and initialized if necessary
+2026-01-15 10:16:04.959 +01:00 [INF] Azure Document Intelligence client initialized
+2026-01-15 10:16:04.962 +01:00 [INF] Azure OpenAI client successfully initialized with deployment: gpt-5-nano at endpoint: "https://ohmega-knowledgebank-resource.cognitiveservices.azure.com/"
+2026-01-15 10:16:04.964 +01:00 [INF] Embeddings client successfully initialized with model: embed-v-4-0 at endpoint: "https://ohmega-knowledgebank-resource.services.ai.azure.com/models", configured dimensions: 1536
+2026-01-15 10:16:04.964 +01:00 [INF] RAG system successfully initialized
+2026-01-15 10:16:05.039 +01:00 [INF] Materialized view ResourceGridView with triggers created successfully
+2026-01-15 10:16:05.051 +01:00 [INF] Materialized view ResourceTrashView with triggers created successfully
+2026-01-15 10:16:05.108 +01:00 [INF] BlobCleanupService started
+2026-01-15 10:17:54.732 +01:00 [INF] Client connected: KTSIBXxh_ykLnFI88VLNVQ
+2026-01-15 10:17:56.129 +01:00 [INF] Client disconnected: KTSIBXxh_ykLnFI88VLNVQ
+2026-01-15 10:18:07.442 +01:00 [INF] Upload session initialized for file 'INFOMQLM2026_paper_2.pdf' with GUID "f47439c4-ffbd-42ba-a00e-8ac88ce489a2"
+2026-01-15 10:18:07.491 +01:00 [INF] Container files retrieved or created successfully
+2026-01-15 10:18:07.519 +01:00 [INF] Chunk 3030303030303030 uploaded for GUID f47439c4-ffbd-42ba-a00e-8ac88ce489a2 (1800758 bytes)
+2026-01-15 10:18:07.529 +01:00 [INF] Finalizing file upload for GUID f47439c4-ffbd-42ba-a00e-8ac88ce489a2 with 1 blocks
+2026-01-15 10:18:07.532 +01:00 [INF] Container files retrieved or created successfully
+2026-01-15 10:18:07.547 +01:00 [INF] File upload finalized successfully for GUID f47439c4-ffbd-42ba-a00e-8ac88ce489a2
+2026-01-15 10:18:07.557 +01:00 [INF] Created metadata extraction job 1690d270-1330-44f5-b586-b1192f7121b1 for file: f47439c4-ffbd-42ba-a00e-8ac88ce489a2
+2026-01-15 10:18:07.559 +01:00 [INF] Metadata extraction requested for file with ID 'f47439c4-ffbd-42ba-a00e-8ac88ce489a2'
+2026-01-15 10:18:07.581 +01:00 [INF] Blob f47439c4-ffbd-42ba-a00e-8ac88ce489a2 downloaded from container files.
+2026-01-15 10:18:07.581 +01:00 [INF] Extracting text from .pdf document
+2026-01-15 10:18:07.970 +01:00 [INF] Text extracted successfully. Length: 41373 characters
+2026-01-15 10:18:07.970 +01:00 [INF] Analyzing document with LLM to extract metadata
+2026-01-15 10:18:07.971 +01:00 [INF] Starting document metadata extraction for: INFOMQLM2026_paper_2.pdf
+2026-01-15 10:18:07.971 +01:00 [INF] Analyzing 41373 characters of text
+2026-01-15 10:18:07.973 +01:00 [INF] Calling LLM for metadata extraction
+2026-01-15 10:18:38.737 +01:00 [INF] Received LLM response: 2740 characters
+2026-01-15 10:18:38.740 +01:00 [INF] Parsed publication date with year precision: 2026
+2026-01-15 10:18:38.741 +01:00 [INF] Finding similars for author 'André Agius' (type: person)
+2026-01-15 10:18:38.741 +01:00 [INF] Starting hybrid search for query: 'André Agius'
+2026-01-15 10:18:38.742 +01:00 [DBG] Executing semantic search
+2026-01-15 10:18:38.748 +01:00 [DBG] Executing text-based search
+2026-01-15 10:18:38.750 +01:00 [DBG] Executing Postgres full-text search
+2026-01-15 10:18:38.758 +01:00 [INF] Text search returned 0 results
+2026-01-15 10:18:38.761 +01:00 [INF] Postgres search returned 0 results
+2026-01-15 10:18:39.198 +01:00 [DBG] Cached embedding for query. Cache size: 1
+2026-01-15 10:18:39.198 +01:00 [INF] Successfully generated embedding
+2026-01-15 10:18:39.207 +01:00 [INF] Semantic search returned 1 results
+2026-01-15 10:18:39.207 +01:00 [INF] Retrieved 1 total candidates before fusion
+2026-01-15 10:18:39.208 +01:00 [DBG] Fusing 1 search candidates
+2026-01-15 10:18:39.210 +01:00 [DBG] After deduplication: 1 unique candidates
+2026-01-15 10:18:39.214 +01:00 [INF] Fusion complete. Top score: 0.238, Bottom score: 0.238
+2026-01-15 10:18:39.216 +01:00 [DBG] Loading item data for 1 candidates
+2026-01-15 10:18:39.223 +01:00 [DBG] Re-ranking 1 candidates
+2026-01-15 10:18:39.224 +01:00 [DBG] Applying contextual boosting to 1 candidates
+2026-01-15 10:18:39.224 +01:00 [INF] Boosting applied to 0/1 candidates
+2026-01-15 10:18:39.224 +01:00 [DBG] Score for 'Christian Desrosiers': Base=0.238, Boost=0.000, Final=0.238
+2026-01-15 10:18:39.224 +01:00 [INF] Re-ranking complete. Score range: 0.238 - 0.238
+2026-01-15 10:18:39.224 +01:00 [INF] Top 3 results after re-ranking:
+2026-01-15 10:18:39.224 +01:00 [INF]   1. 'Christian Desrosiers' - Score: 0.238 (Boost: 0.000)
+2026-01-15 10:18:39.230 +01:00 [INF] Applied filters: 1 -> 1 candidates
+2026-01-15 10:18:39.231 +01:00 [INF] Hybrid search complete. Results: 1/1, Duration: 490ms, Avg Score: 0.238
+2026-01-15 10:18:39.232 +01:00 [INF] Finding similars for author 'Remco van Vliet' (type: person)
+2026-01-15 10:18:39.232 +01:00 [INF] Starting hybrid search for query: 'Remco van Vliet'
+2026-01-15 10:18:39.232 +01:00 [DBG] Executing semantic search
+2026-01-15 10:18:39.232 +01:00 [DBG] Executing text-based search
+2026-01-15 10:18:39.232 +01:00 [DBG] Executing Postgres full-text search
+2026-01-15 10:18:39.233 +01:00 [INF] Text search returned 0 results
+2026-01-15 10:18:39.233 +01:00 [INF] Postgres search returned 0 results
+2026-01-15 10:18:39.364 +01:00 [DBG] Cached embedding for query. Cache size: 2
+2026-01-15 10:18:39.364 +01:00 [INF] Successfully generated embedding
+2026-01-15 10:18:39.366 +01:00 [INF] Semantic search returned 6 results
+2026-01-15 10:18:39.366 +01:00 [INF] Retrieved 6 total candidates before fusion
+2026-01-15 10:18:39.366 +01:00 [DBG] Fusing 6 search candidates
+2026-01-15 10:18:39.366 +01:00 [DBG] After deduplication: 6 unique candidates
+2026-01-15 10:18:39.367 +01:00 [INF] Fusion complete. Top score: 0.705, Bottom score: 0.005
+2026-01-15 10:18:39.367 +01:00 [DBG] Loading item data for 6 candidates
+2026-01-15 10:18:39.368 +01:00 [DBG] Re-ranking 6 candidates
+2026-01-15 10:18:39.368 +01:00 [DBG] Applying contextual boosting to 6 candidates
+2026-01-15 10:18:39.368 +01:00 [INF] Boosting applied to 0/6 candidates
+2026-01-15 10:18:39.368 +01:00 [DBG] Score for 'Christian Desrosiers': Base=0.705, Boost=0.000, Final=0.705
+2026-01-15 10:18:39.368 +01:00 [DBG] Score for 'John Sweller': Base=0.586, Boost=0.000, Final=0.586
+2026-01-15 10:18:39.368 +01:00 [DBG] Score for 'Susan Lagerstrom-Fife': Base=0.433, Boost=0.000, Final=0.433
+2026-01-15 10:18:39.368 +01:00 [DBG] Score for 'University of Minnesota': Base=0.191, Boost=0.000, Final=0.191
+2026-01-15 10:18:39.368 +01:00 [DBG] Score for 'Springer Nature': Base=0.096, Boost=0.000, Final=0.096
+2026-01-15 10:18:39.368 +01:00 [DBG] Score for 'Amazon': Base=0.005, Boost=0.000, Final=0.005
+2026-01-15 10:18:39.368 +01:00 [INF] Re-ranking complete. Score range: 0.005 - 0.705
+2026-01-15 10:18:39.368 +01:00 [INF] Top 3 results after re-ranking:
+2026-01-15 10:18:39.368 +01:00 [INF]   1. 'Christian Desrosiers' - Score: 0.705 (Boost: 0.000)
+2026-01-15 10:18:39.368 +01:00 [INF]   2. 'John Sweller' - Score: 0.586 (Boost: 0.000)
+2026-01-15 10:18:39.368 +01:00 [INF]   3. 'Susan Lagerstrom-Fife' - Score: 0.433 (Boost: 0.000)
+2026-01-15 10:18:39.368 +01:00 [INF] Filtered out 2 candidates below threshold 0.150
+2026-01-15 10:18:39.369 +01:00 [INF] Applied filters: 4 -> 4 candidates
+2026-01-15 10:18:39.369 +01:00 [INF] Hybrid search complete. Results: 3/4, Duration: 137ms, Avg Score: 0.574
+2026-01-15 10:18:39.369 +01:00 [INF] Found similar: Christian Desrosiers (0.704918)
+2026-01-15 10:18:39.370 +01:00 [INF] Found similar: John Sweller (0.58567536)
+2026-01-15 10:18:39.370 +01:00 [INF] Finding similars for organisation 'ACM'
+2026-01-15 10:18:39.370 +01:00 [INF] Starting hybrid search for query: 'ACM'
+2026-01-15 10:18:39.370 +01:00 [DBG] Executing semantic search
+2026-01-15 10:18:39.371 +01:00 [DBG] Executing text-based search
+2026-01-15 10:18:39.371 +01:00 [DBG] Executing Postgres full-text search
+2026-01-15 10:18:39.371 +01:00 [INF] Postgres search returned 0 results
+2026-01-15 10:18:39.373 +01:00 [INF] Text search returned 1 results
+2026-01-15 10:18:39.867 +01:00 [DBG] Cached embedding for query. Cache size: 3
+2026-01-15 10:18:39.867 +01:00 [INF] Successfully generated embedding
+2026-01-15 10:18:39.869 +01:00 [INF] Semantic search returned 9 results
+2026-01-15 10:18:39.869 +01:00 [INF] Retrieved 10 total candidates before fusion
+2026-01-15 10:18:39.869 +01:00 [DBG] Fusing 10 search candidates
+2026-01-15 10:18:39.870 +01:00 [DBG] After deduplication: 9 unique candidates
+2026-01-15 10:18:39.871 +01:00 [INF] Fusion complete. Top score: 0.705, Bottom score: 0.004
+2026-01-15 10:18:39.872 +01:00 [DBG] Loading item data for 9 candidates
+2026-01-15 10:18:39.872 +01:00 [DBG] Re-ranking 9 candidates
+2026-01-15 10:18:39.872 +01:00 [DBG] Applying contextual boosting to 9 candidates
+2026-01-15 10:18:39.872 +01:00 [DBG] Exact phrase match in chunk for "22d11f06-e9b1-45ff-b33b-c208f144e1d3": +0.25
+2026-01-15 10:18:39.872 +01:00 [DBG] Exact phrase match in chunk for "22d11f06-e9b1-45ff-b33b-c208f144e1d3": +0.25
+2026-01-15 10:18:39.872 +01:00 [DBG] Exact phrase match in chunk for "22d11f06-e9b1-45ff-b33b-c208f144e1d3": +0.25
+2026-01-15 10:18:39.873 +01:00 [DBG] Multiple chunks with keywords for "22d11f06-e9b1-45ff-b33b-c208f144e1d3": +0.150
+2026-01-15 10:18:39.873 +01:00 [INF] Boosting applied to 1/9 candidates
+2026-01-15 10:18:39.873 +01:00 [DBG] Score for 'Springer Nature': Base=0.705, Boost=0.000, Final=0.705
+2026-01-15 10:18:39.873 +01:00 [DBG] Score for 'Amazon': Base=0.607, Boost=0.000, Final=0.607
+2026-01-15 10:18:39.873 +01:00 [DBG] Score for 'University of Minnesota': Base=0.438, Boost=0.000, Final=0.438
+2026-01-15 10:18:39.873 +01:00 [DBG] Score for 'Trust Your Neighbors: A Comprehensive Survey of Neighborhood-Based Methods for Recommender Systems': Base=0.397, Boost=0.980, Final=1.377
+2026-01-15 10:18:39.873 +01:00 [DBG] Score for 'The Ohio State University': Base=0.269, Boost=0.000, Final=0.269
+2026-01-15 10:18:39.873 +01:00 [DBG] Score for 'Christian Desrosiers': Base=0.053, Boost=0.000, Final=0.053
+2026-01-15 10:18:39.873 +01:00 [DBG] Score for 'Ben-Gurion University of the Negev': Base=0.020, Boost=0.000, Final=0.020
+2026-01-15 10:18:39.873 +01:00 [DBG] Score for 'Xia Ning': Base=0.013, Boost=0.000, Final=0.013
+2026-01-15 10:18:39.873 +01:00 [DBG] Score for 'John Sweller': Base=0.004, Boost=0.000, Final=0.004
+2026-01-15 10:18:39.873 +01:00 [INF] Re-ranking complete. Score range: 0.004 - 1.377
+2026-01-15 10:18:39.873 +01:00 [INF] Top 3 results after re-ranking:
+2026-01-15 10:18:39.873 +01:00 [INF]   1. 'Trust Your Neighbors: A Comprehensive Survey of Neighborhood-Based Methods for Recommender Systems' - Score: 1.377 (Boost: 0.980)
+2026-01-15 10:18:39.873 +01:00 [INF]   2. 'Springer Nature' - Score: 0.705 (Boost: 0.000)
+2026-01-15 10:18:39.873 +01:00 [INF]   3. 'Amazon' - Score: 0.607 (Boost: 0.000)
+2026-01-15 10:18:39.873 +01:00 [INF] Filtered out 4 candidates below threshold 0.150
+2026-01-15 10:18:39.873 +01:00 [INF] Applied filters: 5 -> 4 candidates
+2026-01-15 10:18:39.873 +01:00 [INF] Hybrid search complete. Results: 3/4, Duration: 503ms, Avg Score: 0.583
+2026-01-15 10:18:39.874 +01:00 [INF] Found similar: Springer Nature (0.704918)
+2026-01-15 10:18:39.874 +01:00 [INF] Found similar: Amazon (0.60671055)
+2026-01-15 10:18:39.874 +01:00 [INF] Finding similars for organisation 'AISHE'
+2026-01-15 10:18:39.874 +01:00 [INF] Starting hybrid search for query: 'AISHE'
+2026-01-15 10:18:39.874 +01:00 [DBG] Executing semantic search
+2026-01-15 10:18:39.874 +01:00 [DBG] Executing text-based search
+2026-01-15 10:18:39.874 +01:00 [DBG] Executing Postgres full-text search
+2026-01-15 10:18:39.874 +01:00 [INF] Text search returned 0 results
+2026-01-15 10:18:39.875 +01:00 [INF] Postgres search returned 0 results
+2026-01-15 10:18:39.977 +01:00 [DBG] Cached embedding for query. Cache size: 4
+2026-01-15 10:18:39.977 +01:00 [INF] Successfully generated embedding
+2026-01-15 10:18:39.979 +01:00 [INF] Semantic search returned 6 results
+2026-01-15 10:18:39.979 +01:00 [INF] Retrieved 6 total candidates before fusion
+2026-01-15 10:18:39.979 +01:00 [DBG] Fusing 6 search candidates
+2026-01-15 10:18:39.979 +01:00 [DBG] After deduplication: 6 unique candidates
+2026-01-15 10:18:39.979 +01:00 [INF] Fusion complete. Top score: 0.705, Bottom score: 0.005
+2026-01-15 10:18:39.979 +01:00 [DBG] Loading item data for 6 candidates
+2026-01-15 10:18:39.980 +01:00 [DBG] Re-ranking 6 candidates
+2026-01-15 10:18:39.980 +01:00 [DBG] Applying contextual boosting to 6 candidates
+2026-01-15 10:18:39.980 +01:00 [INF] Boosting applied to 0/6 candidates
+2026-01-15 10:18:39.980 +01:00 [DBG] Score for 'Springer Nature': Base=0.705, Boost=0.000, Final=0.705
+2026-01-15 10:18:39.980 +01:00 [DBG] Score for 'Amazon': Base=0.682, Boost=0.000, Final=0.682
+2026-01-15 10:18:39.980 +01:00 [DBG] Score for 'Xia Ning': Base=0.517, Boost=0.000, Final=0.517
+2026-01-15 10:18:39.980 +01:00 [DBG] Score for 'University of Minnesota': Base=0.228, Boost=0.000, Final=0.228
+2026-01-15 10:18:39.980 +01:00 [DBG] Score for 'The Ohio State University': Base=0.180, Boost=0.000, Final=0.180
+2026-01-15 10:18:39.980 +01:00 [DBG] Score for 'Susan Lagerstrom-Fife': Base=0.005, Boost=0.000, Final=0.005
+2026-01-15 10:18:39.980 +01:00 [INF] Re-ranking complete. Score range: 0.005 - 0.705
+2026-01-15 10:18:39.980 +01:00 [INF] Top 3 results after re-ranking:
+2026-01-15 10:18:39.980 +01:00 [INF]   1. 'Springer Nature' - Score: 0.705 (Boost: 0.000)
+2026-01-15 10:18:39.980 +01:00 [INF]   2. 'Amazon' - Score: 0.682 (Boost: 0.000)
+2026-01-15 10:18:39.980 +01:00 [INF]   3. 'Xia Ning' - Score: 0.517 (Boost: 0.000)
+2026-01-15 10:18:39.980 +01:00 [INF] Filtered out 1 candidates below threshold 0.150
+2026-01-15 10:18:39.980 +01:00 [INF] Applied filters: 5 -> 4 candidates
+2026-01-15 10:18:39.980 +01:00 [INF] Hybrid search complete. Results: 3/4, Duration: 106ms, Avg Score: 0.538
+2026-01-15 10:18:39.980 +01:00 [INF] Found similar: Springer Nature (0.704918)
+2026-01-15 10:18:39.981 +01:00 [INF] Found similar: Amazon (0.6824149)
+2026-01-15 10:18:39.981 +01:00 [INF] Finding similars for organisation 'Eurasia Journal of Mathematics, Science and Technology Education'
+2026-01-15 10:18:39.981 +01:00 [INF] Starting hybrid search for query: 'Eurasia Journal of Mathematics, Science and Technology Education'
+2026-01-15 10:18:39.981 +01:00 [DBG] Executing semantic search
+2026-01-15 10:18:39.981 +01:00 [DBG] Executing text-based search
+2026-01-15 10:18:39.981 +01:00 [DBG] Executing Postgres full-text search
+2026-01-15 10:18:39.981 +01:00 [INF] Text search returned 0 results
+2026-01-15 10:18:39.982 +01:00 [INF] Postgres search returned 0 results
+2026-01-15 10:18:40.080 +01:00 [DBG] Cached embedding for query. Cache size: 5
+2026-01-15 10:18:40.080 +01:00 [INF] Successfully generated embedding
+2026-01-15 10:18:40.082 +01:00 [INF] Semantic search returned 7 results
+2026-01-15 10:18:40.082 +01:00 [INF] Retrieved 7 total candidates before fusion
+2026-01-15 10:18:40.082 +01:00 [DBG] Fusing 7 search candidates
+2026-01-15 10:18:40.082 +01:00 [DBG] After deduplication: 7 unique candidates
+2026-01-15 10:18:40.082 +01:00 [INF] Fusion complete. Top score: 0.705, Bottom score: 0.004
+2026-01-15 10:18:40.082 +01:00 [DBG] Loading item data for 7 candidates
+2026-01-15 10:18:40.083 +01:00 [DBG] Re-ranking 7 candidates
+2026-01-15 10:18:40.083 +01:00 [DBG] Applying contextual boosting to 7 candidates
+2026-01-15 10:18:40.083 +01:00 [INF] Boosting applied to 0/7 candidates
+2026-01-15 10:18:40.083 +01:00 [DBG] Score for 'Springer Nature': Base=0.705, Boost=0.000, Final=0.705
+2026-01-15 10:18:40.083 +01:00 [DBG] Score for 'École de Technologie Supérieure': Base=0.602, Boost=0.000, Final=0.602
+2026-01-15 10:18:40.083 +01:00 [DBG] Score for 'University of Minnesota': Base=0.269, Boost=0.000, Final=0.269
+2026-01-15 10:18:40.083 +01:00 [DBG] Score for 'The Ohio State University': Base=0.267, Boost=0.000, Final=0.267
+2026-01-15 10:18:40.083 +01:00 [DBG] Score for 'Trust Your Neighbors: A Comprehensive Survey of Neighborhood-Based Methods for Recommender Systems': Base=0.062, Boost=0.000, Final=0.062
+2026-01-15 10:18:40.083 +01:00 [DBG] Score for 'Free University of Bozen-Bolzano': Base=0.045, Boost=0.000, Final=0.045
+2026-01-15 10:18:40.083 +01:00 [DBG] Score for 'Ben-Gurion University of the Negev': Base=0.004, Boost=0.000, Final=0.004
+2026-01-15 10:18:40.083 +01:00 [INF] Re-ranking complete. Score range: 0.004 - 0.705
+2026-01-15 10:18:40.083 +01:00 [INF] Top 3 results after re-ranking:
+2026-01-15 10:18:40.083 +01:00 [INF]   1. 'Springer Nature' - Score: 0.705 (Boost: 0.000)
+2026-01-15 10:18:40.083 +01:00 [INF]   2. 'École de Technologie Supérieure' - Score: 0.602 (Boost: 0.000)
+2026-01-15 10:18:40.083 +01:00 [INF]   3. 'University of Minnesota' - Score: 0.269 (Boost: 0.000)
+2026-01-15 10:18:40.083 +01:00 [INF] Filtered out 3 candidates below threshold 0.150
+2026-01-15 10:18:40.084 +01:00 [INF] Applied filters: 4 -> 4 candidates
+2026-01-15 10:18:40.084 +01:00 [INF] Hybrid search complete. Results: 3/4, Duration: 103ms, Avg Score: 0.525
+2026-01-15 10:18:40.084 +01:00 [INF] Found similar: Springer Nature (0.704918)
+2026-01-15 10:18:40.084 +01:00 [INF] Found similar: École de Technologie Supérieure (0.60210675)
+2026-01-15 10:18:40.084 +01:00 [INF] Finding similars for organisation 'Metathesis: Journal of English Language, Literature and Teaching'
+2026-01-15 10:18:40.084 +01:00 [INF] Starting hybrid search for query: 'Metathesis: Journal of English Language, Literature and Teaching'
+2026-01-15 10:18:40.084 +01:00 [DBG] Executing semantic search
+2026-01-15 10:18:40.084 +01:00 [DBG] Executing text-based search
+2026-01-15 10:18:40.084 +01:00 [DBG] Executing Postgres full-text search
+2026-01-15 10:18:40.085 +01:00 [INF] Text search returned 0 results
+2026-01-15 10:18:40.091 +01:00 [WRN] Postgres search failed
+Npgsql.PostgresException (0x80004005): 42601: syntax error in tsquery: "Metathesis::* & Journal:* & of:* & English:* & Language,:* & Literature:* & and:* & Teaching:*"
+   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.FromSqlQueryingEnumerable`1.AsyncEnumerator.InitializeReaderAsync(AsyncEnumerator enumerator, CancellationToken cancellationToken)
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.FromSqlQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
+   at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
+   at KnowledgeBank.Services.Search.HybridSearchService.ExecutePostgresSearchAsync(String searchQuery, Int32 limit, SearchMetadata metadata) in /home/ablos/Coding/knowledgebank/backend/Services/Search/HybridSearchService.cs:line 334
+  Exception data:
+    Severity: ERROR
+    SqlState: 42601
+    MessageText: syntax error in tsquery: "Metathesis::* & Journal:* & of:* & English:* & Language,:* & Literature:* & and:* & Teaching:*"
+    File: tsquery.c
+    Line: 711
+    Routine: makepol
+2026-01-15 10:18:40.187 +01:00 [DBG] Cached embedding for query. Cache size: 6
+2026-01-15 10:18:40.187 +01:00 [INF] Successfully generated embedding
+2026-01-15 10:18:40.189 +01:00 [INF] Semantic search returned 5 results
+2026-01-15 10:18:40.189 +01:00 [INF] Retrieved 5 total candidates before fusion
+2026-01-15 10:18:40.189 +01:00 [DBG] Fusing 5 search candidates
+2026-01-15 10:18:40.189 +01:00 [DBG] After deduplication: 5 unique candidates
+2026-01-15 10:18:40.189 +01:00 [INF] Fusion complete. Top score: 0.705, Bottom score: 0.005
+2026-01-15 10:18:40.189 +01:00 [DBG] Loading item data for 5 candidates
+2026-01-15 10:18:40.189 +01:00 [DBG] Re-ranking 5 candidates
+2026-01-15 10:18:40.189 +01:00 [DBG] Applying contextual boosting to 5 candidates
+2026-01-15 10:18:40.189 +01:00 [INF] Boosting applied to 0/5 candidates
+2026-01-15 10:18:40.189 +01:00 [DBG] Score for 'Springer Nature': Base=0.705, Boost=0.000, Final=0.705
+2026-01-15 10:18:40.189 +01:00 [DBG] Score for 'The Ohio State University': Base=0.378, Boost=0.000, Final=0.378
+2026-01-15 10:18:40.189 +01:00 [DBG] Score for 'University of Minnesota': Base=0.317, Boost=0.000, Final=0.317
+2026-01-15 10:18:40.189 +01:00 [DBG] Score for 'Ben-Gurion University of the Negev': Base=0.032, Boost=0.000, Final=0.032
+2026-01-15 10:18:40.189 +01:00 [DBG] Score for 'Amazon': Base=0.005, Boost=0.000, Final=0.005
+2026-01-15 10:18:40.189 +01:00 [INF] Re-ranking complete. Score range: 0.005 - 0.705
+2026-01-15 10:18:40.189 +01:00 [INF] Top 3 results after re-ranking:
+2026-01-15 10:18:40.189 +01:00 [INF]   1. 'Springer Nature' - Score: 0.705 (Boost: 0.000)
+2026-01-15 10:18:40.189 +01:00 [INF]   2. 'The Ohio State University' - Score: 0.378 (Boost: 0.000)
+2026-01-15 10:18:40.189 +01:00 [INF]   3. 'University of Minnesota' - Score: 0.317 (Boost: 0.000)
+2026-01-15 10:18:40.189 +01:00 [INF] Filtered out 2 candidates below threshold 0.150
+2026-01-15 10:18:40.190 +01:00 [INF] Applied filters: 3 -> 3 candidates
+2026-01-15 10:18:40.190 +01:00 [INF] Hybrid search complete. Results: 3/3, Duration: 106ms, Avg Score: 0.467
+2026-01-15 10:18:40.190 +01:00 [INF] Found similar: Springer Nature (0.704918)
+2026-01-15 10:18:40.191 +01:00 [INF] Metadata extraction completed successfully. Title: Studying the impact of AI use in university student’s self-efficacy, Authors: 2, Organisations: 4, RelatedPersons: 0, Tags: 10
+2026-01-15 10:18:40.191 +01:00 [INF] Metadata extraction completed successfully for Studying the impact of AI use in university student’s self-efficacy
+2026-01-15 10:29:56.754 +01:00 [INF] Client connected: VXIkCPGqF6zi5FFp64EvYg
+2026-01-15 10:29:57.675 +01:00 [INF] Client disconnected: VXIkCPGqF6zi5FFp64EvYg
+2026-01-15 10:30:20.479 +01:00 [INF] Client connected: SnPZ3gqHaQFayvXQTLUHFQ
+2026-01-15 10:30:21.121 +01:00 [INF] Client disconnected: SnPZ3gqHaQFayvXQTLUHFQ
+2026-01-15 10:37:13.737 +01:00 [INF] OwnerUser configuration validated successfully for: admin@admin.nl
+2026-01-15 10:37:14.455 +01:00 [INF] Database migrations applied successfully
+2026-01-15 10:37:14.670 +01:00 [INF] Tools successfully initialized
+2026-01-15 10:37:14.670 +01:00 [INF] Initializing RAG system with embedding cache enabled
+2026-01-15 10:37:14.678 +01:00 [INF] Qdrant client successfully initialized with host: qdrant, port: 6334
+2026-01-15 10:37:14.721 +01:00 [INF] Collection knowledgebank already exists. No action taken.
+2026-01-15 10:37:14.721 +01:00 [INF] Qdrant collection knowledgebank checked and initialized if necessary
+2026-01-15 10:37:14.769 +01:00 [INF] Azure Document Intelligence client initialized
+2026-01-15 10:37:14.772 +01:00 [INF] Azure OpenAI client successfully initialized with deployment: gpt-5-nano at endpoint: "https://ohmega-knowledgebank-resource.cognitiveservices.azure.com/"
+2026-01-15 10:37:14.774 +01:00 [INF] Embeddings client successfully initialized with model: embed-v-4-0 at endpoint: "https://ohmega-knowledgebank-resource.services.ai.azure.com/models", configured dimensions: 1536
+2026-01-15 10:37:14.774 +01:00 [INF] RAG system successfully initialized
+2026-01-15 10:37:14.843 +01:00 [INF] Materialized view ResourceGridView with triggers created successfully
+2026-01-15 10:37:14.857 +01:00 [INF] Materialized view ResourceTrashView with triggers created successfully
+2026-01-15 10:37:14.911 +01:00 [INF] BlobCleanupService started
