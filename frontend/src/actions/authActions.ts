@@ -1,3 +1,5 @@
+"use client";
+
 import { FormResponse } from "@/types/return.type";
 import {RegisterRequestSchema, RegisterRequest} from "../types/registerRequest.type";
 import { LoginRequest, LoginRequestSchema } from "@/types/loginRequest.type";

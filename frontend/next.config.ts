@@ -21,18 +21,6 @@ const nextConfig: NextConfig = {
     removeConsole: process.env.NODE_ENV === "production",
   },
 
-  // Increases the maximum body size limit for server actions
-  experimental: {
-    serverActions: {
-      bodySizeLimit: "105mb",
-    },
-  },
-
-  // Disable ESLint during production builds
-  eslint: {
-    ignoreDuringBuilds: process.env.NODE_ENV === "production", // Disable ESLint in production
-  },
-
   // Pass environment variables to the client and server
   env: {
     API_URL: process.env.API_URL,
