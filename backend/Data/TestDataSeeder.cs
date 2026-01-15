@@ -9,11 +9,11 @@ namespace KnowledgeBank.Data
 {
     public static class TestDataSeeder
     {
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+#pragma warning disable CS8618, CS0649 // Test data seeding is disabled - fields are intentionally unassigned
         private static IAzureBlobService blobService;
         private static ResourceManager resourceManager;
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-        private static string testDataPath = Path.Combine("/app", "testdata") + "/";
+#pragma warning restore CS8618, CS0649
+        private static readonly string testDataPath = Path.Combine("/app", "testdata") + "/";
         private static readonly string systemAdminId = "00000000-0000-0000-0000-000000000001";
 
         /// <summary>
@@ -23,8 +23,10 @@ namespace KnowledgeBank.Data
         /// <returns></returns>
         public static async Task Seed(IServiceProvider serviceProvider)
         {
-            return;
-        
+            // Test data seeding is disabled
+            await Task.CompletedTask;
+
+#if false // Enable this block to seed test data
             using IServiceScope scope = serviceProvider.CreateScope();
             blobService = scope.ServiceProvider.GetRequiredService<IAzureBlobService>();
             resourceManager = scope.ServiceProvider.GetRequiredService<ResourceManager>();
@@ -32,6 +34,7 @@ namespace KnowledgeBank.Data
             await SeedOrganisations();
             await SeedPersons();
             await SeedResources();
+#endif
         }    
         
         #region Seed Organisations

@@ -21,7 +21,7 @@ namespace KnowledgeBank.Controllers;
 [Authorize]
 [Route("[controller]")]
 [Produces("application/json")]
-public class AIController(RAGManager ragManager, ResourceManager resourceManager, IAzureBlobService blobService, TextExtractionService textExtractionService, IServiceScopeFactory serviceScopeFactory) : ControllerBase
+public class AIController(ResourceManager resourceManager, IServiceScopeFactory serviceScopeFactory) : ControllerBase
 {
     private readonly Serilog.ILogger logger = Log.ForContext<AIController>();
     private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;

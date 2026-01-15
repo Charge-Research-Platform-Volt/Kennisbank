@@ -25,7 +25,7 @@ namespace KnowledgeBank.Data
             return await GetAllAsync(database.ProjectFolderRelations, orderBy, orderDescending, predicate);
         }
 
-        private readonly Expression<Func<ProjectTagRelation, object>> projectTagRelationDefaultOrderBy = relation => relation.Tag.Name;
+        private readonly Expression<Func<ProjectTagRelation, object>> projectTagRelationDefaultOrderBy = relation => relation.Tag!.Name;
         private const bool projectTagRelationDefaultOrderDescending = true;
 
         /// <summary>

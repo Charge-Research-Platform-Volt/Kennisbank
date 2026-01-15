@@ -665,6 +665,7 @@ Enhanced Query:";
     /// </summary>
     /// <param name="text">The full text extracted from the document</param>
     /// <param name="fileName">The original filename for context</param>
+    /// <param name="progressCallback">Optional callback invoked during processing to report progress</param>
     /// <returns>Extracted metadata or null if extraction fails</returns>
     public async Task<ExtractedMetadata?> ExtractMetadataFromFileAsync(string text, string fileName, Action? progressCallback = null)
     {

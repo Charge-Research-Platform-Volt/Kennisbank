@@ -18,7 +18,8 @@ namespace KnowledgeBank.Utils
         /// </summary>
         /// <param name="value">The value to be converted</param>
         /// <param name="targetType">The target type</param>
-        public static object ConvertValue(object value, Type targetType)
+        /// <returns>The converted value, or null for nullable types</returns>
+        public static object? ConvertValue(object? value, Type targetType)
         {
             // Check for null
             if (value == null)
@@ -92,22 +93,23 @@ namespace KnowledgeBank.Utils
                     {
                         case System.Text.Json.JsonValueKind.String:
                             // For string-based types, try specialized conversion
-                            string stringValue = jsonElement.GetString();
+                            string? stringValue = jsonElement.GetString();
 
                             if (targetType == typeof(string))
                                 return stringValue;
-                            else if (targetType == typeof(Guid))
+                            if (stringValue == null)
+                                return null;
+                            if (targetType == typeof(Guid))
                                 return Guid.Parse(stringValue);
-                            else if (targetType == typeof(DateTime))
+                            if (targetType == typeof(DateTime))
                             {
                                 DateTime parsedDate = DateTime.Parse(stringValue);
                                 // Ensure UTC kind for all DateTime values coming from the frontend
                                 return DateTime.SpecifyKind(parsedDate, DateTimeKind.Utc);
                             }
-                            else if (targetType.IsEnum)
+                            if (targetType.IsEnum)
                                 return Enum.Parse(targetType, stringValue, true);
-                            else
-                                return Convert.ChangeType(stringValue, targetType);
+                            return Convert.ChangeType(stringValue, targetType);
 
                         case System.Text.Json.JsonValueKind.Number:
                             // For numeric types
@@ -242,8 +244,12 @@ namespace KnowledgeBank.Utils
                 // Convert the incoming value to the correct type
                 var typedValue = ConvertValue(update.Value, prop.PropertyType);
 
+                // Skip if conversion resulted in null for a non-nullable type
+                if (typedValue == null && !prop.PropertyType.IsClass && Nullable.GetUnderlyingType(prop.PropertyType) == null)
+                    continue;
+
                 // Use reflection to determine type at runtime and update the property
-                await InvokeGenericMethodAsync(instance, methodName, id, prop.Name, typedValue, type, prop.PropertyType);
+                await InvokeGenericMethodAsync(instance, methodName, id, prop.Name, typedValue!, type, prop.PropertyType);
 
                 // Add property to updated list
                 updatedProperties.Add(prop.Name);

@@ -86,7 +86,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             throw new Exception("No current user found");
 
         // Always add the actual creator to the list
-        dto.Creators = dto.Creators.Append(userId.ToString()).ToArray();
+        dto.Creators = dto.Creators.Append(userId.Value.ToString()).ToArray();
 
         // Add the project to the database using the ProjectManager class
         try

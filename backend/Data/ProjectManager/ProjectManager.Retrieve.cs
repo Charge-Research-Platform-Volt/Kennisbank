@@ -343,12 +343,13 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Gets a page of projects using predicate and with properties.
-        /// 
+        ///
         /// Author: Justin Liem
         /// </summary>
         /// <param name="pageIndex">Index of the page to fetch.</param>
         /// <param name="pageSize">Size of pages.</param>
         /// <param name="predicate">Predicate to filter projects on.</param>
+        /// <param name="includeProperties">Navigation properties to include.</param>
         /// <returns>Page of projects, of the indicated size (or less if there aren't that many) and filtered by the predicate, with properties.</returns>
         public async Task<Project[]> GetProjectPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<Project, bool>>? predicate = null, params string[] includeProperties)
         { return await GetPageAsync(database.Projects, pageIndex, pageSize, projectDefaultOrderBy, projectDefaultOrderDescending, predicate, includeProperties); }
@@ -466,13 +467,14 @@ namespace KnowledgeBank.Data
 
         /// <summary>
         /// Gets a page of projects using predicate and with properties and projection of a column.
-        /// 
+        ///
         /// Author: Justin Liem
         /// </summary>
         /// <param name="projection">Which column to display.</param>
         /// <param name="pageIndex">Index of the page to fetch.</param>
         /// <param name="pageSize">Size of pages.</param>
         /// <param name="predicate">Predicate to filter projects on.</param>
+        /// <param name="includeProperties">Navigation properties to include.</param>
         /// <returns>Page of projects, of the indicated size (or less if there aren't that many) and filtered by the predicate, with properties.</returns>
         public async Task<TResult[]> GetProjectPageAsync<TResult>(Expression<Func<Project, TResult>> projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Project, bool>>? predicate = null, params string[] includeProperties)
         { return await GetPageAsync(database.Projects, projection, pageIndex, pageSize, projectDefaultOrderBy, projectDefaultOrderDescending, predicate, includeProperties); }

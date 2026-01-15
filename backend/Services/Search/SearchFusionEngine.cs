@@ -154,7 +154,7 @@ public class SearchFusionEngine
                 foreach (var candidate in candidates.Where(c => c.Provenance.SemanticScore.HasValue))
                 {
                     candidate.Provenance.SemanticScore =
-                        (candidate.Provenance.SemanticScore.Value - minSemantic) / rangeSemantic;
+                        (candidate.Provenance.SemanticScore.GetValueOrDefault() - minSemantic) / rangeSemantic;
                 }
             }
         }
@@ -170,7 +170,7 @@ public class SearchFusionEngine
                 foreach (var candidate in candidates.Where(c => c.Provenance.TextScore.HasValue))
                 {
                     candidate.Provenance.TextScore =
-                        (candidate.Provenance.TextScore.Value - minText) / rangeText;
+                        (candidate.Provenance.TextScore.GetValueOrDefault() - minText) / rangeText;
                 }
             }
         }
@@ -186,7 +186,7 @@ public class SearchFusionEngine
                 foreach (var candidate in candidates.Where(c => c.Provenance.PostgresScore.HasValue))
                 {
                     candidate.Provenance.PostgresScore =
-                        (candidate.Provenance.PostgresScore.Value - minPostgres) / rangePostgres;
+                        (candidate.Provenance.PostgresScore.GetValueOrDefault() - minPostgres) / rangePostgres;
                 }
             }
         }
