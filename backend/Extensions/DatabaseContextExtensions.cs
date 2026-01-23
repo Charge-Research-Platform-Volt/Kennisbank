@@ -7,10 +7,42 @@ namespace KnowledgeBank.Extensions;
 
 public static class DatabaseContextExtensions 
 {
-    public static async Task EnsureViewsCreatedAsync(this DatabaseContext context) 
+    public static async Task EnsureDatabaseSetupAsync(this DatabaseContext context) 
     {
+        await context.EnsureVectorExtensionsCreatedAsync();
         await context.CreateResourceGridViewAsync();
         await context.CreateResourceTrashViewAsync();
+    }
+    
+    public static async Task EnsureVectorExtensionsCreatedAsync(this DatabaseContext context) 
+    {
+        try 
+        {
+            // Enable required extensions
+            await context.Database.ExecuteSqlRawAsync(@"
+                CREATE EXTENSION IF NOT EXISTS vector;
+                CREATE EXTENSION IF NOT EXISTS pg_trgm;
+            ");
+
+            // Create HNSW index for semantic search
+            await context.Database.ExecuteSqlRawAsync(@"
+                CREATE INDEX IF NOT EXISTS idx_resource_chunks_embedding_hnsw
+                ON ""resource-chunks""
+                USING hnsw (embedding vector_cosine_ops)
+                WITH (m = 16, ef_construction = 100);
+            ");
+
+            // Create trigram index for text search
+            await context.Database.ExecuteSqlRawAsync(@"
+                CREATE INDEX IF NOT EXISTS idx_resource_chunks_text_trgm
+                ON ""resource-chunks""
+                USING GIN (""chunk-text"" gin_trgm_ops);
+            ");
+        }
+        catch (Exception e) 
+        {
+            Serilog.Log.Error(e, "Failed to create vector extensions/indexed");
+        }
     }
     
     public static async Task CreateResourceGridViewAsync(this DatabaseContext context) 
@@ -19,10 +51,6 @@ public static class DatabaseContextExtensions
     
         try 
         {
-            // Step 0: Enable required extensions for fuzzy search
-            // await context.Database.ExecuteSqlRawAsync(@"
-            //     CREATE EXTENSION IF NOT EXISTS pg_trgm;");
-        
             // Step 1: Drop existing objects
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP TRIGGER IF EXISTS refresh_grid_on_resource_change ON ""resources"";");
@@ -127,11 +155,11 @@ public static class DatabaseContextExtensions
             await context.Database.ExecuteSqlRawAsync(@"
                 CREATE INDEX idx_resourcegridview_search ON ResourceGridView USING GIN(""SearchVector"");");
 
-            // await context.Database.ExecuteSqlRawAsync(@"
-            //     CREATE INDEX idx_resourcegridview_name_trgm ON ResourceGridView USING GIN(""Name"" gin_trgm_ops);");
+            await context.Database.ExecuteSqlRawAsync(@"
+                CREATE INDEX idx_resourcegridview_name_trgm ON ResourceGridView USING GIN(""Name"" gin_trgm_ops);");
 
-            // await context.Database.ExecuteSqlRawAsync(@"
-            //     CREATE INDEX idx_resourcegridview_desc_trgm ON ResourceGridView USING GIN(""Description"" gin_trgm_ops);");
+            await context.Database.ExecuteSqlRawAsync(@"
+                CREATE INDEX idx_resourcegridview_desc_trgm ON ResourceGridView USING GIN(""Description"" gin_trgm_ops);");
 
             // Step 4: Create refresh function
             await context.Database.ExecuteSqlRawAsync(@"

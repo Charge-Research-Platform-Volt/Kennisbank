@@ -314,7 +314,7 @@ namespace KnowledgeBank
                 await roleInitializer.InitializeAsync();
                 
                 await DatabaseSeeder.Seed(app.Services);
-                await scope.ServiceProvider.GetRequiredService<DatabaseContext>().EnsureViewsCreatedAsync();
+                await scope.ServiceProvider.GetRequiredService<DatabaseContext>().EnsureDatabaseSetupAsync();
 
 
                 if (app.Environment.IsDevelopment())

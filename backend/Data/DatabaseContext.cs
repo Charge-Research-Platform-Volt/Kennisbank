@@ -2,6 +2,7 @@ using System.Data;
 using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Org.BouncyCastle.Asn1.Pkcs;
 
 namespace KnowledgeBank.Data
 {
@@ -10,6 +11,7 @@ namespace KnowledgeBank.Data
         public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options) { }
 
         public DbSet<Resource> Resources { get; set; }
+        public DbSet<ResourceChunk> ResourceChunks { get; set; }
         public DbSet<Project> Projects { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<ResourceTagRelation> ResourceTagRelations { get; set; }
@@ -47,8 +49,6 @@ namespace KnowledgeBank.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // modelBuilder.HasPostgresExtension("pg_trgm");
-
             // Configure TPT inheritance for Entity hierarchy
             modelBuilder.Entity<Entity>()
                 .UseTptMappingStrategy();
@@ -112,6 +112,30 @@ namespace KnowledgeBank.Data
                 .HasOne(or => or.TargetPerson)
                 .WithMany(o => o.SourceRelationships)
                 .HasForeignKey(or => or.TargetPersonId);
+
+            // Resource chunks
+            modelBuilder.Entity<ResourceChunk>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                // Relationship to Resource with cascade delete
+                entity.HasOne(rc => rc.Resource)
+                    .WithMany()
+                    .HasForeignKey(rc => rc.ResourceId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Store enum as string for readability
+                entity.Property(e => e.ChunkType)
+                    .HasConversion<string>();
+
+                // Index on resource-id for fast lookups
+                entity.HasIndex(e => e.ResourceId)
+                    .HasDatabaseName("idx_resource_chunks_resource_id");
+
+                // Composite index for common query pattern
+                entity.HasIndex(e => new { e.ResourceId, e.ChunkPart })
+                    .HasDatabaseName("id_resource_chunks_resource_part");
+            });
 
 
             // Configure Chat entity
