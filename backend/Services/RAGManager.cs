@@ -7,18 +7,17 @@ using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using OpenAI.Chat;
 using Serilog;
-using static Qdrant.Client.Grpc.Conditions;
 using Azure.AI.DocumentIntelligence;
 using Azure;
 using System.ClientModel;
 using KnowledgeBank.Services.Search.Models;
 using KnowledgeBank.Services.Search;
-using System.Threading.Tasks;
+using KnowledgeBank.Services.Vector;
 
 
 namespace KnowledgeBank.Services;
 
-public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, HybridSearchService searchService)
+public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, HybridSearchService searchService, IVectorStore vectorStore)
 {
     private readonly Serilog.ILogger logger = Log.ForContext<RAGManager>();
 
@@ -35,7 +34,7 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
     /// 1. Text Extraction: Extract text from the document using Azure Document Intelligence with markdown formatting
     /// 2. Text Chunking: Split the extracted text into smaller, manageable segments for embedding generation
     /// 3. Vector Embedding Generation: Create vector embeddings for each text chunk using the configured embedding model
-    /// 4. Vector Storage: Store the chunks and their corresponding embeddings in the Qdrant vector database
+    /// 4. Vector Storage: Store the chunks and their corresponding embeddings in the PostgreSQL vector database
     /// 5. AI Tag Generation: Generate contextual tags for the document using AI analysis of the processed chunks
     /// 
     /// If no text is extracted from the document (empty or corrupted file), the process will terminate early
@@ -203,13 +202,18 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
             // * STEP 3 & 4: Vector Embedding Generation and Storage
             // Generate embeddings for each chunk and store them in the vector database
             logger.Information("Generating vector embeddings and storing {ChunkCount} chunks for resource ID: {Id}", chunks.Count, id);
-            await ragSystem.CreatePoints(id, chunks);
+            var chunkData = chunks.Select((text, index) => (
+                Text: text,
+                Type: index == 0 ? ChunkType.MetaData : ChunkType.ContentText,
+                Part: index
+            )).ToList();
+            await vectorStore.CreatePointsAsync(id, chunkData);
 
 
             // * STEP 5: AI Tag Generation
             // Generate contextual tags based on the processed document content
-            logger.Information("Initiating AI tag generation for resource ID: {Id}", id);
-            await GenerateTagsAsync(id.ToString());
+            //logger.Information("Initiating AI tag generation for resource ID: {Id}", id);
+            //await GenerateTagsAsync(id.ToString());
 
             logger.Information("RAG pipeline completed successfully for resource ID: {Id}", id);
         }
@@ -295,26 +299,13 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
     /// <returns>A task representing the asynchronous operation of processing all document chunks for the specified resource.</returns>
     private async Task ProcessDocumentChunksAsync(string id, HashSet<string> uniqueTags, ChatCompletionOptions options)
     {
-        ulong offset = 0;
-        const ulong batchSize = 1000;
+        // Get all chunks for this resource using IVectorStore
+        var results = await vectorStore.GetChunksByResourceIdAsync(Guid.Parse(id));
 
-        while (true)
-        {
-            var results = await ragSystem.QdrantClient.QueryAsync(
-                ragSystem.CollectionName,
-                filter: MatchKeyword("resourceId", id),
-                limit: batchSize,
-                offset: offset
-            );
+        if (results.Count == 0) return;
 
-            // If no results are returned, break the loop
-            if (results.Count == 0) break;
-
-            TagsExtraction? extractedTags = await ExtractTagsFromChunksAsync(results, uniqueTags, options);
-            if (extractedTags != null) AddTagsToCollection(extractedTags, uniqueTags);
-
-            offset += batchSize;
-        }
+        TagsExtraction? extractedTags = await ExtractTagsFromChunksAsync(results, uniqueTags, options);
+        if (extractedTags != null) AddTagsToCollection(extractedTags, uniqueTags);
     }
 
 
@@ -329,18 +320,14 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
     /// A task that represents the asynchronous operation. The task result contains a <see cref="TagsExtraction"/> object
     /// with extracted tags, or null if deserialization fails.
     /// </returns>
-    private async Task<TagsExtraction?> ExtractTagsFromChunksAsync(IReadOnlyList<Qdrant.Client.Grpc.ScoredPoint> results, HashSet<string> existingTags, ChatCompletionOptions options)
+    private async Task<TagsExtraction?> ExtractTagsFromChunksAsync(List<VectorSearchResult> results, HashSet<string> existingTags, ChatCompletionOptions options)
     {
         try
         {
             var templateData = new
             {
                 tags = existingTags.Count == 0 ? "No tags generated yet." : string.Join(", ", existingTags),
-                content = results.Select(item =>
-                {
-                    var payload = CustomPayload.FromPayload(item.Payload);
-                    return new { text = payload.ChunkText };
-                }).ToList()
+                content = results.Select(item => new { text = item.ChunkText }).ToList()
             };
             string prompt = Prompts.TagsTemplate(templateData);
 
@@ -421,7 +408,7 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
     #region Metadata Updates
 
     /// <summary>
-    /// Updates the metadata point in Qdrant when resource metadata changes.
+    /// Updates the metadata point in the vector database when resource metadata changes.
     /// This rebuilds the rich metadata chunk and updates the vector embedding.
     /// </summary>
     /// <param name="id">The resource ID to update metadata for</param>
@@ -436,7 +423,7 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
             string richMetadata = await BuildRichMetadataChunk(id, string.Empty);
 
             // Update the vector database
-            bool success = await ragSystem.UpdateMetadataPointAsync(id.ToString(), richMetadata);
+            bool success = await vectorStore.UpdateMetadataPointAsync(id, richMetadata);
 
             if (success)
             {

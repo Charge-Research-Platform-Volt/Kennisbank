@@ -1,8 +1,7 @@
-using System.Data;
 using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Org.BouncyCastle.Asn1.Pkcs;
+using Npgsql;
 
 namespace KnowledgeBank.Data
 {

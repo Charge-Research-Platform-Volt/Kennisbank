@@ -6,7 +6,6 @@
 
 using System.Linq.Expressions;
 using System.Reflection;
-using KnowledgeBank.Data;
 using KnowledgeBank.Services;
 
 namespace KnowledgeBank.Utils
@@ -212,12 +211,11 @@ namespace KnowledgeBank.Utils
         /// Updates the properties of a database entry of the given type with the given ID with the given property names to the given new values
         /// </summary>
         /// <param name="instance">The instance where the update method exists</param>
-        ///  <param name="methodName">The name of the update method in the given instance</param>
+        /// <param name="methodName">The name of the update method in the given instance</param>
         /// <param name="type">The type of the database entry</param>
-        /// <param name="id">The ID of the databse entry</param>
+        /// <param name="id">The ID of the database entry</param>
         /// <param name="updates">A dictionary of parameter names and their new values</param>
-        /// <param name="ragSystem">The RAG system to update metadata in (deprecated - use ragManager)</param>
-        /// <param name="ragManager">The RAG manager to update rich metadata (optional, recommended)</param>
+        /// <param name="ragManager">The RAG manager to update rich metadata (optional)</param>
         /// <returns>A list of successfully updated parameters</returns>
         public static async Task<List<string>> UpdateProperties(
             object instance,
@@ -225,7 +223,6 @@ namespace KnowledgeBank.Utils
             Type type,
             string id,
             Dictionary<string, object> updates,
-            RAGSystem ragSystem,
             RAGManager? ragManager = null)
         {
             // Get the properties of the type
@@ -256,7 +253,7 @@ namespace KnowledgeBank.Utils
             }
 
 
-            if (updatedProperties.Count != 0)
+            if (updatedProperties.Count != 0 && ragManager != null)
             {
                 // Define fields that should trigger metadata updates
                 var metadataFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -270,23 +267,7 @@ namespace KnowledgeBank.Utils
 
                 if (metadataChanged)
                 {
-                    // Use RAGManager if available (preferred - updates rich metadata)
-                    if (ragManager != null)
-                    {
-                        await ragManager.UpdateResourceMetadataAsync(Guid.Parse(id));
-                    }
-                    // Fallback to RAGSystem (legacy - only basic metadata)
-                    else
-                    {
-                        string? name = updates.ContainsKey("Name") ? updates["Name"].ToString() :
-                                      updates.ContainsKey("Title") ? updates["Title"].ToString() : null;
-                        string? description = updates.ContainsKey("Description") ? updates["Description"].ToString() : null;
-
-                        if (!string.IsNullOrEmpty(name) || !string.IsNullOrEmpty(description))
-                        {
-                            await ragSystem.UpdateMetadataPointAsync(id, $"{name}\n{description}");
-                        }
-                    }
+                    await ragManager.UpdateResourceMetadataAsync(Guid.Parse(id));
                 }
             }
 

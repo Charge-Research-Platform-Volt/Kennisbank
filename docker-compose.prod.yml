@@ -4,7 +4,7 @@
 services:
   # PostgreSQL Database
   database:
-    image: postgres:latest
+    image: pgvector/pgvector:pg16
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -25,12 +25,6 @@ services:
       - azurite_data:/data
     restart: unless-stopped
 
-  # Qdrant Vector Database
-  qdrant:
-    image: qdrant/qdrant:latest
-    volumes:
-      - qdrant_data:/qdrant/storage
-    restart: unless-stopped
 
   # Backend API
   backend:
@@ -62,17 +56,10 @@ services:
       - EMBEDDINGS_MODEL_NAME=${EMBEDDINGS_MODEL_NAME:-embed-v-4-0}
       - EMBEDDINGS_CLIENT_ENDPOINT=${EMBEDDINGS_CLIENT_ENDPOINT}
       - EMBEDDINGS_CLIENT_API_KEY=${EMBEDDINGS_CLIENT_API_KEY}
-      - QDRANT_EMBEDDINGS_DIMENSIONS=${QDRANT_EMBEDDINGS_DIMENSIONS:-1536}
-      - QDRANT_COLLECTION_NAME=${QDRANT_COLLECTION_NAME:-knowledgebank}
-      - QDRANT_HOST=qdrant
-      - QDRANT_API_KEY=${QDRANT_API_KEY:-null}
-      - QDRANT_HTTPS=${QDRANT_HTTPS:-false}
     depends_on:
       database:
         condition: service_healthy
       storage:
-        condition: service_started
-      qdrant:
         condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/status"]
@@ -102,7 +89,6 @@ services:
 volumes:
   postgres_data:
   azurite_data:
-  qdrant_data:
 
 # This program has been developed by students from the bachelor Computer Science at Utrecht
 # University within the Software Project course.

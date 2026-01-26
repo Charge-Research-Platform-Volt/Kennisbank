@@ -7,6 +7,7 @@
 using KnowledgeBank.Services;
 using KnowledgeBank.Services.Search;
 using KnowledgeBank.Services.Search.Models;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 namespace KnowledgeBank.Data
@@ -16,12 +17,11 @@ namespace KnowledgeBank.Data
     ///
     /// Author: Abel Dieterich
     /// </summary>
-    /// <param name="dbContext">The database context variable</param>
+    /// <param name="dbFactory">The database context variable</param>
     /// <param name="ragSystem">The RAG system variable</param>
     /// <param name="hybridSearchService">The hybrid search service variable</param>
-    public partial class ResourceManager(DatabaseContext dbContext, RAGSystem ragSystem, HybridSearchService hybridSearchService)
+    public partial class ResourceManager(IDbContextFactory<DatabaseContext> dbFactory, RAGSystem ragSystem, HybridSearchService hybridSearchService)
     {
-        private readonly DatabaseContext database = dbContext;
         private readonly Serilog.ILogger _logger = Log.ForContext<ResourceManager>();
         private readonly RAGSystem _ragSystem = ragSystem;
         private readonly HybridSearchService _hybridSearchService = hybridSearchService;
@@ -33,7 +33,7 @@ namespace KnowledgeBank.Data
         /// Starts a database transaction
         /// </summary>
         /// <returns>If the transaction was started or not (if false, there was already a transaction running)</returns>
-        public async Task<bool> BeginTransaction()
+        public async Task<bool> BeginTransaction(DatabaseContext database)
         {
             // Begin a transaction that can be committed or rolled back later
             if (database.Database.CurrentTransaction == null)
@@ -48,7 +48,7 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Commits the current database transaction
         /// </summary>
-        public async Task Commit()
+        public async Task Commit(DatabaseContext database)
         {
             // Commit changes from transaction to database
             if (database.Database.CurrentTransaction != null)
@@ -61,7 +61,7 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Rolls back the current database transaction
         /// </summary>
-        public async Task Rollback()
+        public async Task Rollback(DatabaseContext database)
         {
             // Roll back the transaction if one exists
             if (database.Database.CurrentTransaction != null)

@@ -4,11 +4,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.Vector;
 
-public class PostgresVectorStore(DatabaseContext database, RAGSystem ragSystem) : IVectorStore 
+public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, RAGSystem ragSystem) : IVectorStore 
 {
     /// <inherit/>
     public async Task CreatePointsAsync(Guid resourceId, List<(string Text, ChunkType Type, int Part)> chunks) 
     {
+        await using var database = await dbFactory.CreateDbContextAsync();
+    
         foreach (var chunk in chunks) 
         {
             float[] embedding = await ragSystem.GenerateEmbedding(chunk.Text);
@@ -32,6 +34,8 @@ public class PostgresVectorStore(DatabaseContext database, RAGSystem ragSystem) 
     /// <inherit/>
     public async Task<bool> DeletePointsByResourceIdAsync(Guid resourceId)
     {
+        await using var database = await dbFactory.CreateDbContextAsync();
+    
         int deleted = await database.ResourceChunks
             .Where(c => c.ResourceId == resourceId)
             .ExecuteDeleteAsync();
@@ -41,6 +45,8 @@ public class PostgresVectorStore(DatabaseContext database, RAGSystem ragSystem) 
     /// <inherit/>
     public async Task<bool> UpdateMetadataPointAsync(Guid resourceId, string newChunkText) 
     {
+        await using var database = await dbFactory.CreateDbContextAsync();
+    
         var metadataChunk = await database.ResourceChunks
             .FirstOrDefaultAsync(c => c.ResourceId == resourceId && c.ChunkType == ChunkType.MetaData);
 
@@ -59,6 +65,8 @@ public class PostgresVectorStore(DatabaseContext database, RAGSystem ragSystem) 
     {
         // Convert float[] to PostgreSQL vector format
         string vectorString = $"[{string.Join(",", queryEmbedding)}]";
+        
+        await using var database = await dbFactory.CreateDbContextAsync();
 
         return await database.Database.SqlQuery<VectorSearchResult>($@"
             SELECT
@@ -79,6 +87,8 @@ public class PostgresVectorStore(DatabaseContext database, RAGSystem ragSystem) 
     /// <inherit/>
     public async Task<List<VectorSearchResult>> TextSearchAsync(string query, int limit) 
     {
+        await using var database = await dbFactory.CreateDbContextAsync();
+    
         return await database.Database.SqlQuery<VectorSearchResult>($@"
             SELECT
                 id as ""Id"",
@@ -97,6 +107,8 @@ public class PostgresVectorStore(DatabaseContext database, RAGSystem ragSystem) 
     /// <inherit/>
     public async Task<List<VectorSearchResult>> GetChunksByResourceIdAsync(Guid resourceId) 
     {
+        await using var database = await dbFactory.CreateDbContextAsync();
+    
         return await database.ResourceChunks
             .Where(c => c.ResourceId == resourceId)
             .OrderBy(c => c.ChunkPart)
@@ -114,6 +126,8 @@ public class PostgresVectorStore(DatabaseContext database, RAGSystem ragSystem) 
     /// <inherit/>
     public async Task<List<VectorSearchResult>> RecommendSimilarAsync(Guid resourceId, int limit, float scoreThreshold)
     {
+        await using var database = await dbFactory.CreateDbContextAsync();
+    
         // Get average embedding for the resource's chunks
         var avgEmbedding = await database.Database.SqlQuery<float[]>($@"
             SELECT AVG(embedding)::vector as ""Value""

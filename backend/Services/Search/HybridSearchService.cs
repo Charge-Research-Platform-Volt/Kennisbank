@@ -2,10 +2,9 @@ using System.Diagnostics;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.Search.Models;
+using KnowledgeBank.Services.Vector;
 using Microsoft.EntityFrameworkCore;
-using Qdrant.Client.Grpc;
 using Serilog;
-using static Qdrant.Client.Grpc.Conditions;
 
 namespace KnowledgeBank.Services.Search;
 
@@ -17,22 +16,25 @@ public class HybridSearchService
 {
     private readonly Serilog.ILogger _logger;
     private readonly RAGSystem _ragSystem;
-    private readonly DatabaseContext _database;
+    private readonly IDbContextFactory<DatabaseContext> _dbFactory;
     private readonly HybridSearchConfig _config;
     private readonly SearchFusionEngine _fusionEngine;
     private readonly SearchRanker _ranker;
+    private readonly IVectorStore _vectorStore;
 
     public HybridSearchService(
         RAGSystem ragSystem,
-        DatabaseContext database,
-        HybridSearchConfig config)
+        IDbContextFactory<DatabaseContext> dbFactory,
+        HybridSearchConfig config,
+        IVectorStore vectorStore)
     {
         _ragSystem = ragSystem;
-        _database = database;
+        _dbFactory = dbFactory;
         _config = config;
         _fusionEngine = new SearchFusionEngine(config);
         _ranker = new SearchRanker(config);
         _logger = Log.ForContext<HybridSearchService>();
+        _vectorStore = vectorStore;
 
         // Validate configuration
         _config.Validate();
@@ -167,11 +169,11 @@ public class HybridSearchService
         // Semantic search
         tasks.Add(ExecuteSemanticSearchAsync(searchQuery, candidateLimit, metadata));
 
-        // Text-based search (Qdrant)
+        // Text-based search (pgvector trigram)
         tasks.Add(ExecuteTextSearchAsync(searchQuery, candidateLimit, metadata));
 
-        // Postgres full-text search
-        if (_config.UsePostgresWhenQdrantFails)
+        // Postgres full-text search (on metadata fields)
+        if (_config.UsePostgresFullTextSearch)
         {
             tasks.Add(ExecutePostgresSearchAsync(searchQuery, candidateLimit, metadata));
         }
@@ -189,7 +191,7 @@ public class HybridSearchService
     }
 
     /// <summary>
-    /// Executes semantic (vector) search using Qdrant.
+    /// Executes semantic (vector) search using pgvector.
     /// </summary>
     private async Task<List<SearchCandidate>> ExecuteSemanticSearchAsync(
         string searchQuery,
@@ -205,30 +207,22 @@ public class HybridSearchService
             // Generate embedding for the search query
             float[] embeddingData = await _ragSystem.GenerateEmbedding(searchQuery);
 
-            // Perform vector search in Qdrant
-            var searchResults = await _ragSystem.QdrantClient.QueryGroupsAsync(
-                _ragSystem.CollectionName,
-                groupBy: "resourceId",
-                query: embeddingData,
-                limit: (uint)limit,
-                groupSize: (uint)_config.MaxChunksPerResource,
-                scoreThreshold: _config.SemanticScoreThreshold
-            );
+            // Perform vector search using pgvector
+            var searchResults = await _vectorStore.SemanticSearchAsync(embeddingData, limit, _config.SemanticScoreThreshold);
+
+            // Group by resource ID and take top chunks per resource
+            var grouped = searchResults.GroupBy(r => r.ResourceId).Take(limit);
 
             int rank = 1;
-            foreach (var group in searchResults)
+            foreach (var group in grouped)
             {
-                var resourceId = Guid.Parse(group.Id.StringValue);
-                var chunks = group.Hits
-                    .Select(hit => CustomPayload.FromPayload(hit.Payload).ChunkText)
-                    .ToList();
+                var chunks = group.OrderByDescending(r => r.Score).Take(_config.MaxChunksPerResource).Select(r => r.ChunkText).ToList();
 
-                // Use the top hit score as the representative score for this resource
-                float score = group.Hits.FirstOrDefault()?.Score ?? 0f;
+                float score = group.Max(r => r.Score);
 
                 candidates.Add(new SearchCandidate
                 {
-                    ResourceId = resourceId,
+                    ResourceId = group.Key,
                     Provenance = new SearchProvenance
                     {
                         SemanticScore = score
@@ -253,7 +247,7 @@ public class HybridSearchService
     }
 
     /// <summary>
-    /// Executes text-based keyword search using Qdrant.
+    /// Executes text-based keyword search using pg_trgm trigram matching.
     /// </summary>
     private async Task<List<SearchCandidate>> ExecuteTextSearchAsync(
         string searchQuery,
@@ -266,27 +260,21 @@ public class HybridSearchService
         {
             _logger.Debug("Executing text-based search");
 
-            var searchResults = await _ragSystem.QdrantClient.QueryGroupsAsync(
-                _ragSystem.CollectionName,
-                groupBy: "resourceId",
-                filter: MatchText("chunkText", searchQuery),
-                limit: (uint)limit,
-                groupSize: (uint)_config.MaxChunksPerResource
-            );
+            var searchResults = await _vectorStore.TextSearchAsync(searchQuery, limit * _config.MaxChunksPerResource);
+
+            // Group by resource ID
+            var grouped = searchResults.GroupBy(r => r.ResourceId).Take(limit);
 
             int rank = 1;
-            foreach (var group in searchResults)
+            foreach (var group in grouped)
             {
-                var resourceId = Guid.Parse(group.Id.StringValue);
-                var chunks = group.Hits
-                    .Select(hit => CustomPayload.FromPayload(hit.Payload).ChunkText)
-                    .ToList();
+                var chunks = group.OrderByDescending(r => r.Score).Take(_config.MaxChunksPerResource).Select(r => r.ChunkText).ToList();
 
-                float score = group.Hits.FirstOrDefault()?.Score ?? 0.5f;
+                float score = group.Max(r => r.Score);
 
                 candidates.Add(new SearchCandidate
                 {
-                    ResourceId = resourceId,
+                    ResourceId = group.Key,
                     Provenance = new SearchProvenance
                     {
                         TextScore = score
@@ -331,7 +319,8 @@ public class HybridSearchService
             string[] words = searchQuery.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             string prefixQuery = string.Join(" & ", words.Select(w => $"{w}:*"));
 
-            var searchResults = await _database.ResourceGridSearchResults
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var searchResults = await db.ResourceGridSearchResults
                 .FromSqlRaw(sql, searchQuery, prefixQuery, searchQuery, $"%{searchQuery}%", searchQuery + "%")
                 .ToListAsync();
 
@@ -414,7 +403,8 @@ public class HybridSearchService
         _logger.Debug("Loading item data for {Count} candidates", idsToLoad.Length);
 
         // Query database for full resource data
-        var resourceItems = await _database.ResourceGridItems
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        var resourceItems = await db.ResourceGridItems
             .Where(x => idsToLoad.Contains(x.Id))
             .ToListAsync();
 
@@ -447,10 +437,11 @@ public class HybridSearchService
         var resourceIds = candidates.Select(c => c.ResourceId).ToArray();
 
         // Query database for full resource data
-        var query = _database.ResourceGridItems.Where(x => resourceIds.Contains(x.Id));
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        var query = db.ResourceGridItems.Where(x => resourceIds.Contains(x.Id));
 
         // Apply filters (same logic as ResourceManager)
-        query = ApplyFilters(query, filters);
+        query = ApplyFilters(query, db, filters);
 
         // Execute query
         var resourceItems = await query.ToListAsync();
@@ -481,6 +472,7 @@ public class HybridSearchService
     /// </summary>
     private IQueryable<ResourceGridItem> ApplyFilters(
         IQueryable<ResourceGridItem> query,
+        DatabaseContext db,
         Dictionary<string, object?> filters)
     {
         // Type filter
@@ -495,10 +487,10 @@ public class HybridSearchService
             query = query.Where(x => x.PublicationDate == null || x.PublicationDate <= maxDate);
 
         // Tag filter
-        query = ApplyRelationFilter(query, filters, "tag_ids", "tag_filter_mode", "tag");
+        query = ApplyRelationFilter(query, db, filters, "tag_ids", "tag_filter_mode", "tag");
 
         // Region filter
-        query = ApplyRelationFilter(query, filters, "region_ids", "region_filter_mode", "region");
+        query = ApplyRelationFilter(query, db, filters, "region_ids", "region_filter_mode", "region");
 
         return query;
     }
@@ -508,6 +500,7 @@ public class HybridSearchService
     /// </summary>
     private IQueryable<ResourceGridItem> ApplyRelationFilter(
         IQueryable<ResourceGridItem> query,
+        DatabaseContext db,
         Dictionary<string, object?> filters,
         string idsKey,
         string modeKey,
@@ -523,19 +516,19 @@ public class HybridSearchService
             foreach (Guid id in ids)
             {
                 if (relationType == "tag")
-                    query = query.Where(x => x.Type != "resource" || _database.ResourceTagRelations.Any(rt => rt.TagId == id && rt.ResourceId == x.Id));
+                    query = query.Where(x => x.Type != "resource" || db.ResourceTagRelations.Any(rt => rt.TagId == id && rt.ResourceId == x.Id));
 
                 if (relationType == "region")
-                    query = query.Where(x => x.Type != "resource" || _database.ResourceRegionRelations.Any(rr => rr.RegionId == id && rr.ResourceId == x.Id));
+                    query = query.Where(x => x.Type != "resource" || db.ResourceRegionRelations.Any(rr => rr.RegionId == id && rr.ResourceId == x.Id));
             }
         }
         else
         {
             if (relationType == "tag")
-                query = query.Where(x => x.Type != "resource" || _database.ResourceTagRelations.Any(rt => ids.Contains(rt.TagId) && rt.ResourceId == x.Id));
+                query = query.Where(x => x.Type != "resource" || db.ResourceTagRelations.Any(rt => ids.Contains(rt.TagId) && rt.ResourceId == x.Id));
 
             if (relationType == "region")
-                query = query.Where(x => x.Type != "resource" || _database.ResourceRegionRelations.Any(rr => ids.Contains(rr.RegionId) && rr.ResourceId == x.Id));
+                query = query.Where(x => x.Type != "resource" || db.ResourceRegionRelations.Any(rr => ids.Contains(rr.RegionId) && rr.ResourceId == x.Id));
         }
 
         return query;

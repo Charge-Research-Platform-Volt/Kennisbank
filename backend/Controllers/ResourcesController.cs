@@ -5,30 +5,21 @@
 // Author: Abel Dieterich
 
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.StaticFiles;
 using Swashbuckle.AspNetCore.Annotations;
 using Serilog;
 using KnowledgeBank.Responses;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using KnowledgeBank.Utils;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
-using System.Text.Json;
 using KnowledgeBank.BackgroundServices;
 using KnowledgeBank.Services;
-using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Specialized;
 using System.Linq.Expressions;
-using static Qdrant.Client.Grpc.Conditions;
-using Qdrant.Client.Grpc;
 using Microsoft.Extensions.AI;
-using System.Reflection.Metadata.Ecma335;
-using Docker.DotNet.Models;
 using System.Security.Claims;
-using System.Security.Cryptography;
+using KnowledgeBank.Services.Vector;
 
 
 
@@ -44,14 +35,14 @@ namespace KnowledgeBank.Controllers
     /// <param name="resourceManager">The resource manager service for database interactions</param>
     /// <param name="blobService">The Azure Blob Service for file storage</param>
     /// <param name="taskQueue">The background task queue for processing tasks asynchronously</param>
-    /// <param name="ragSystem">The RAG system for handling document processing</param>
     /// <param name="ragManager">The RAG manager for metadata updates and query processing</param>
     /// <param name="serviceScopeFactory">The service scope factory for creating service scopes in background tasks</param>
+    /// <param name="vectorStore">The vector store for handling vector database interactions</param>
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem, RAGManager ragManager, IServiceScopeFactory serviceScopeFactory) : ControllerBase
+    public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService, IBackgroundTaskQueue taskQueue, RAGManager ragManager, IServiceScopeFactory serviceScopeFactory, IVectorStore vectorStore) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<ResourcesController>();
 
@@ -450,7 +441,7 @@ namespace KnowledgeBank.Controllers
                 await resourceManager.DeleteResourceAsync(id);
 
                 // Delete the chunks from the vector database
-                bool chunkDeleted = await ragSystem.DeleteAllPointsWithIdAsync(id);
+                bool chunkDeleted = await vectorStore.DeletePointsByResourceIdAsync(Guid.Parse(id));
                 if (!chunkDeleted)
                 {
                     logger.Warning("Something went wrong while deleting chunks for resource with ID '{ID}'", id);
@@ -506,11 +497,11 @@ namespace KnowledgeBank.Controllers
                 List<string> updatedProperties = [];
 
                 // Update the properties (pass ragManager for rich metadata updates)
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Resource), id, updates, ragSystem, ragManager));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(WebsiteMetadata), id, updates, ragSystem, ragManager));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(DocumentMetadata), id, updates, ragSystem, ragManager));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(AudioMetadata), id, updates, ragSystem, ragManager));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(VideoMetadata), id, updates, ragSystem, ragManager));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Resource), id, updates, ragManager));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(WebsiteMetadata), id, updates, ragManager));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(DocumentMetadata), id, updates, ragManager));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(AudioMetadata), id, updates, ragManager));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(VideoMetadata), id, updates, ragManager));
 
                 // No props were found
                 if (updatedProperties.Count == 0)
@@ -1213,31 +1204,13 @@ namespace KnowledgeBank.Controllers
                     return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
 
                 // Get vector points for the current resource
-                IReadOnlyList<ScoredPoint> pointsIds = await ragSystem.QdrantClient.QueryAsync(
-                    ragSystem.CollectionName,
-                    filter: MatchKeyword("resourceId", id)
-                );
+                var results = await vectorStore.RecommendSimilarAsync(Guid.Parse(id), limit: 5, scoreThreshold: similarityThreshold);
 
-                if (pointsIds.Count == 0)
-                    return Ok(new ApiResponse(true, "No vector points found for resource", Array.Empty<Resource>()));
-
-                // Find similar resources using vector similarity
-                // scoreThreshold ensures only resources with similarity >= 0.6 are returned
-                IReadOnlyList<PointGroup> results = await ragSystem.QdrantClient.RecommendGroupsAsync(
-                    ragSystem.CollectionName,
-                    groupBy: "resourceId",
-                    positive: pointsIds.Select(p => p.Id).ToArray(),
-                    filter: !MatchKeyword("resourceId", id), // Exclude the current resource
-                    limit: 5, // Limit to top 5 similar resources
-                    scoreThreshold: similarityThreshold
-                );
-
-                // Retrieve the actual resource objects
                 if (results.Count == 0)
                     return Ok(new ApiResponse(true, "No similar resources found", Array.Empty<Resource>()));
 
-                // Extract resource IDs
-                var resourceIds = results.Select(result => Guid.Parse(result.Id.StringValue)).ToList();
+                // Extract unique resource IDs
+                var resourceIds = results.Select(r => r.ResourceId).Distinct().ToList();
 
                 // Retrieve resources based on the found IDs
                 var resources = await resourceManager.GetAllResourcesAsync(

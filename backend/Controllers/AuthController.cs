@@ -8,6 +8,7 @@ using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
 using KnowledgeBank.Utils;
 using KnowledgeBank.Responses;
+using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Controllers
 {
@@ -17,7 +18,7 @@ namespace KnowledgeBank.Controllers
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
-    public class AuthController (SignInManager<User> signInManager, DatabaseContext context, EnvironmentConfig _environmentConfig, MailUtils _mailUtils, IAzureBlobService blobService) : ControllerBase
+    public class AuthController (SignInManager<User> signInManager, IDbContextFactory<DatabaseContext> dbFactory, EnvironmentConfig _environmentConfig, MailUtils _mailUtils, IAzureBlobService blobService) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<AuthController>();
 
@@ -89,8 +90,10 @@ namespace KnowledgeBank.Controllers
                 // generate a token
                 Guid token = Guid.NewGuid();
 
+                await using var database = await dbFactory.CreateDbContextAsync();
+
                 // save the invitation
-                context.Invitations.Add(new Invitation
+                database.Invitations.Add(new Invitation
                 {
                     Id = Guid.NewGuid(),
                     Email = ShaUtils.Sha256(email),
@@ -98,7 +101,7 @@ namespace KnowledgeBank.Controllers
                     CreatedAt = DateTime.UtcNow
                 });
 
-                await context.SaveChangesAsync();
+                await database.SaveChangesAsync();
 
                 // send the email
                 _mailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: {_environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL)}/signup?token={token}");
@@ -118,6 +121,8 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(400, "Bad request")]
         public async Task<IActionResult> Register([FromForm] SignUpDto signUpDto)
         {
+            await using var context = await dbFactory.CreateDbContextAsync();
+        
             using (Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction = await context.Database.BeginTransactionAsync())
             {
                 try

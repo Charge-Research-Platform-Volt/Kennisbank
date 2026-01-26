@@ -2,11 +2,8 @@ using Azure.AI.DocumentIntelligence;
 using Azure;
 using UglyToad.PdfPig;
 using System.Text;
-using System.Reflection.Metadata.Ecma335;
 using SmartReader;
 using PuppeteerSharp;
-using Google.Protobuf.WellKnownTypes;
-using System.Text.Json;
 
 namespace KnowledgeBank.Services;
 

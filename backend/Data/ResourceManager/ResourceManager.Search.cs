@@ -1,9 +1,5 @@
 using KnowledgeBank.Models;
-using KnowledgeBank.Services;
-using KnowledgeBank.Services.Search.Models;
 using Microsoft.EntityFrameworkCore;
-using Qdrant.Client.Grpc;
-using static Qdrant.Client.Grpc.Conditions;
 
 namespace KnowledgeBank.Data;
 

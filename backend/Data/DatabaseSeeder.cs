@@ -2,6 +2,8 @@
 using KnowledgeBank.Services;
 using KnowledgeBank.Services.Search;
 using KnowledgeBank.Services.Search.Models;
+using KnowledgeBank.Services.Vector;
+using Microsoft.EntityFrameworkCore;
 using Npgsql.Replication;
 
 namespace KnowledgeBank.Data
@@ -10,8 +12,9 @@ namespace KnowledgeBank.Data
     {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         public const string UnknownResourceTypeId = "0cc285a8-0f07-11f0-a0a6-5600051f1387";
-        private static DatabaseContext database;
+        private static IDbContextFactory<DatabaseContext> dbFactory;
         private static RAGSystem ragSystem;
+        private static IVectorStore vectorStore;
         private static HybridSearchService hybridSearchService;
 
         private static ResourceManager resourceManager;
@@ -23,6 +26,8 @@ namespace KnowledgeBank.Data
         /// <returns></returns>
         private static async Task SeedData()
         {
+            await using var database = await dbFactory.CreateDbContextAsync();
+        
             // Seed data (this part is common between both Seed and SeedTemplate methods)
 
             // Add the unknown resource type if it doesn't exist
@@ -46,7 +51,7 @@ namespace KnowledgeBank.Data
         {
             // Get database service from the main database
             using IServiceScope scope = serviceProvider.CreateScope();
-            database = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+            dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<DatabaseContext>>();
             resourceManager = scope.ServiceProvider.GetRequiredService<ResourceManager>();
             ragSystem = scope.ServiceProvider.GetRequiredService<RAGSystem>();
 
@@ -57,15 +62,15 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Method for seeding the template databases in TestBase
         /// </summary>
-        /// <param name="database">Database to be seeded with a template</param>
+        /// <param name="dbFactory">Database to be seeded with a template</param>
         /// <returns></returns>
-        public static async Task SeedTemplate(DatabaseContext database)
+        public static async Task SeedTemplate(IDbContextFactory<DatabaseContext> dbFactory)
         {
-            DatabaseSeeder.database = database;
             // Create a default hybrid search config for testing
             var config = new HybridSearchConfig();
-            hybridSearchService = new HybridSearchService(ragSystem, database, config);
-            resourceManager = new ResourceManager(database, ragSystem, hybridSearchService);
+            vectorStore = new PostgresVectorStore(dbFactory, ragSystem);
+            hybridSearchService = new HybridSearchService(ragSystem, dbFactory, config, vectorStore);
+            resourceManager = new ResourceManager(dbFactory, ragSystem, hybridSearchService);
 
             // Call the common seed logic for the template database
             await SeedData();

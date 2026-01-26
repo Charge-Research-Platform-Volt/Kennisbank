@@ -11,11 +11,13 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using KnowledgeBank.BackgroundServices;
 using KnowledgeBank.Services;
+using KnowledgeBank.Services.Vector;
 using Hubs;
 
 using Microsoft.AspNetCore.Http.Features;
 using KnowledgeBank.Utils;
 using DotNetEnv;
+using Pgvector.EntityFrameworkCore;
 
 namespace KnowledgeBank
 {
@@ -88,7 +90,6 @@ namespace KnowledgeBank
                 foreach (string roleName in RoleInitializer.roleNames)
                 {
                     options.AddPolicy($"Require{char.ToUpper(roleName[0]) + roleName.Substring(1)}Role", policy => policy.RequireRole(roleName));
-                    options.AddPolicy($"Require{char.ToUpper(roleName[0]) + roleName.Substring(1)}Role", policy => policy.RequireRole(roleName));
                 }
 
                 // This line terminates the handler on first failure, when more information is required, set this to true.
@@ -124,8 +125,11 @@ namespace KnowledgeBank
 
 
             // # Database context
-            builder.Services.AddDbContext<DatabaseContext>(
-                options => options.UseNpgsql(environmentConfig.GetVariableValue(EnvironmentVariable.DATABASE_CONNECTION_STRING))
+            builder.Services.AddDbContextFactory<DatabaseContext>(options =>
+                options.UseNpgsql(
+                    environmentConfig.GetVariableValue(EnvironmentVariable.DATABASE_CONNECTION_STRING),
+                    o => o.UseVector()
+                )
             );
 
 
@@ -137,6 +141,7 @@ namespace KnowledgeBank
             // Retrieval Augmented Generation system
             builder.Services.AddSingleton<RAGSystem, RAGSystem>();
             builder.Services.AddScoped<RAGManager>();
+            builder.Services.AddScoped<IVectorStore, PostgresVectorStore>();
 
             // Hybrid Search System
             builder.Services.AddSingleton<KnowledgeBank.Services.Search.Models.HybridSearchConfig>(sp =>
@@ -204,6 +209,7 @@ namespace KnowledgeBank
                 var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
                 try
                 {
+                    await db.Database.ExecuteSqlRawAsync("CREATE EXTENSION IF NOT EXISTS vector;");
                     await db.Database.MigrateAsync();
                     Log.Information("Database migrations applied successfully");
                 }
@@ -336,7 +342,6 @@ namespace KnowledgeBank
 
             app.MapGroup("Auth").MapIdentityApi<User>().WithTags("Auth").WithOpenApi(ConfigureIdentityApiOptions).AddEndpointFilter(async (efiContext, next) =>
             {
-                if (HideEndpointFilter.PathsToHide.Any(p => p == efiContext.HttpContext.Request.Path))
                 if (HideEndpointFilter.PathsToHide.Any(p => p == efiContext.HttpContext.Request.Path))
                     return Results.Forbid();
                 return await next(efiContext);

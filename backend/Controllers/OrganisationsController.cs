@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Cors;
 using System.Reflection;
 using KnowledgeBank.BackgroundServices;
 using KnowledgeBank.Services;
+using KnowledgeBank.Services.Vector;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,12 +27,12 @@ namespace KnowledgeBank.Controllers
     /// </summary>
     /// <param name="resourceManager">The resource manager service for database interactions</param>
     /// <param name="taskQueue">The background task queue for handling long-running tasks</param>
-    /// <param name="ragSystem">The RAG system for handling retrieval-augmented generation tasks</param>
+    /// <param name="vectorStore">The vector store for handling vector database interactions</param>
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class OrganisationsController(ResourceManager resourceManager, IBackgroundTaskQueue taskQueue, RAGSystem ragSystem) : ControllerBase
+    public class OrganisationsController(ResourceManager resourceManager, IBackgroundTaskQueue taskQueue, IVectorStore vectorStore) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<OrganisationsController>();
         private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
@@ -192,7 +193,7 @@ namespace KnowledgeBank.Controllers
                 }
 
                 // Delete the organisation chunks from the vector database
-                bool chunkDeleted = await ragSystem.DeleteAllPointsWithIdAsync(id);
+                bool chunkDeleted = await vectorStore.DeletePointsByResourceIdAsync(Guid.Parse(id));
                 if (!chunkDeleted)
                 {
                     logger.Warning("Something went wrong while deleting the organisation chunks from the vector database for ID: {ID}", id);
@@ -245,8 +246,10 @@ namespace KnowledgeBank.Controllers
                 // Start a database transaction, since we could be doing multiple updates
                 await resourceManager.BeginTransaction();
 
-                // Update the properties
-                List<string> updatedProperties = await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Organisation), id, updates, ragSystem);
+                // Update the properties (get RAGManager from DI for metadata updates)
+                using var scope = HttpContext.RequestServices.CreateScope();
+                var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                List<string> updatedProperties = await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Organisation), id, updates, ragManager);
 
                 // No props were found
                 if (updatedProperties.Count == 0)

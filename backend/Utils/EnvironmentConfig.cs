@@ -18,14 +18,6 @@ public enum EnvironmentVariable
     // Client URL
     HOST_URL,
 
-
-    // Vector DB
-    QDRANT_EMBEDDINGS_DIMENSIONS,
-    QDRANT_COLLECTION_NAME,
-    QDRANT_HOST,
-    QDRANT_API_KEY,
-    QDRANT_HTTPS,
-
     // Embeddings
     EMBEDDINGS_MODEL_NAME,
     EMBEDDINGS_CLIENT_ENDPOINT,
@@ -71,13 +63,6 @@ public class EnvironmentConfig
 
         // Client URL
         _variableNames.Add(EnvironmentVariable.HOST_URL, "HOST_URL");
-
-        // Vector DB
-        _variableNames.Add(EnvironmentVariable.QDRANT_EMBEDDINGS_DIMENSIONS, "QDRANT_EMBEDDINGS_DIMENSIONS");
-        _variableNames.Add(EnvironmentVariable.QDRANT_COLLECTION_NAME, "QDRANT_COLLECTION_NAME");
-        _variableNames.Add(EnvironmentVariable.QDRANT_HOST, "QDRANT_HOST");
-        _variableNames.Add(EnvironmentVariable.QDRANT_API_KEY, "QDRANT_API_KEY");
-        _variableNames.Add(EnvironmentVariable.QDRANT_HTTPS, "QDRANT_HTTPS");
 
         // Embeddings
         _variableNames.Add(EnvironmentVariable.EMBEDDINGS_MODEL_NAME, "EMBEDDINGS_MODEL_NAME");

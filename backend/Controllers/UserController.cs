@@ -22,15 +22,15 @@ namespace KnowledgeBank.Controllers;
 public class UserController : ControllerBase
 {
     private readonly Serilog.ILogger logger;
-    private readonly DatabaseContext database;
+    private readonly IDbContextFactory<DatabaseContext> dbFactory;
     private readonly IAzureBlobService blobService;
     private readonly UserManager<User> userManager;
     private readonly OwnerUserConfig ownerConfig;
 
-    public UserController(DatabaseContext databaseContext, IAzureBlobService blobService, UserManager<User> userManager, IOptions<OwnerUserConfig> ownerConfig)
+    public UserController(IDbContextFactory<DatabaseContext> dbFactory, IAzureBlobService blobService, UserManager<User> userManager, IOptions<OwnerUserConfig> ownerConfig)
     {
         this.logger = Log.ForContext<UserController>();
-        this.database = databaseContext;
+        this.dbFactory = dbFactory;
         this.blobService = blobService;
         this.userManager = userManager;
         this.ownerConfig = ownerConfig.Value;
@@ -113,6 +113,8 @@ public class UserController : ControllerBase
     {
         try
         {
+            await using var database = await dbFactory.CreateDbContextAsync();
+        
             User[]? users = await database.Users.OrderBy(u => u.Email).ToArrayAsync();
 
             if (users == null)
@@ -153,6 +155,8 @@ public class UserController : ControllerBase
         
         try
         {
+            await using var database = await dbFactory.CreateDbContextAsync();
+        
             // Calculate how many records we need to skip
             int skip = (pageIndex - 1) * pageSize;
 
@@ -206,6 +210,8 @@ public class UserController : ControllerBase
     {
         try
         {
+            await using var database = await dbFactory.CreateDbContextAsync();
+        
             User? user = await userManager.FindByIdAsync(dto.UserId);
 
             if (user == null)
@@ -363,6 +369,8 @@ public class UserController : ControllerBase
 
             if (user.Email == ownerConfig.Email)
                 return StatusCode(403, "The owner account cannot be altered.");
+
+            await using var database = await dbFactory.CreateDbContextAsync();
 
             // Use a transaction to ensure that all changes are saved or none
             using (Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction = await database.Database.BeginTransactionAsync())

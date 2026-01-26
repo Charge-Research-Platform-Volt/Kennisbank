@@ -43,8 +43,9 @@ public class BlobCleanupService : BackgroundService
             using (IServiceScope scope = _serviceProvider.CreateScope())
             {
                 IAzureBlobService blobService = scope.ServiceProvider.GetRequiredService<IAzureBlobService>();
-                DatabaseContext context = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-
+                IDbContextFactory<DatabaseContext> dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<DatabaseContext>>();
+                await using var context = await dbFactory.CreateDbContextAsync();
+                
                 try
                 {
                     await CleanupOrphanedBlobs(blobService, context);

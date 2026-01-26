@@ -32,7 +32,7 @@ public class HybridSearchConfig
     public float MinimumRelevanceScore { get; set; } = 0.15f;
 
     /// <summary>
-    /// Minimum similarity score for semantic search results from Qdrant.
+    /// Minimum similarity score for semantic search results from pgvector.
     /// Default: 0.3
     /// </summary>
     public float SemanticScoreThreshold { get; set; } = 0.3f;
@@ -63,10 +63,11 @@ public class HybridSearchConfig
     public bool EnableBoosting { get; set; } = true;
 
     /// <summary>
-    /// Fall back to Postgres search when Qdrant is unavailable.
+    /// Enable Postgres full-text search as an additional search source.
+    /// This searches metadata fields (title, description) using tsvector indexing.
     /// Default: true
     /// </summary>
-    public bool UsePostgresWhenQdrantFails { get; set; } = true;
+    public bool UsePostgresFullTextSearch { get; set; } = true;
 
     /// <summary>
     /// Boost factor for exact phrase matches in resource name.

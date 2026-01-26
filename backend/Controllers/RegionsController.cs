@@ -15,22 +15,20 @@ using Microsoft.AspNetCore.Cors;
 using System.Reflection;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
-using KnowledgeBank.Services;
 
 namespace KnowledgeBank.Controllers
 {
     /// <summary>
     /// This controller is responsible for handing API calls to manage regions and their metadata.
-    /// 
+    ///
     /// Author: Abel Dieterich
     /// </summary>
     /// <param name="resourceManager">The resource manager service for database interactions</param>
-    /// <param name="ragSystem">The RAG system for handling region-related operations</param>
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class RegionsController(ResourceManager resourceManager, RAGSystem ragSystem) : ControllerBase
+    public class RegionsController(ResourceManager resourceManager) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<RegionsController>();
 
@@ -146,8 +144,8 @@ namespace KnowledgeBank.Controllers
                 // Start a database transaction, since we could be doing multiple updates
                 await resourceManager.BeginTransaction();
 
-                // Update the properties
-                List<string> updatedProperties = await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Region), id, updates, ragSystem);
+                // Update the properties (regions don't have vector embeddings, so no ragManager needed)
+                List<string> updatedProperties = await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Region), id, updates);
 
                 // No props were found
                 if (updatedProperties.Count == 0)
