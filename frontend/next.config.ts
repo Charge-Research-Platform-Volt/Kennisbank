@@ -27,6 +27,15 @@ const nextConfig: NextConfig = {
     HELP_URL: process.env.HELP_URL,
     NEXT_PUBLIC_TIMEZONE: process.env.NEXT_PUBLIC_TIMEZONE,
   },
+
+  // Allow API images with query strings (e.g., avatar cache busting)
+  images: {
+    localPatterns: [
+      {
+        pathname: "/api/**",
+      },
+    ],
+  },
 };
 
 export default nextConfig;
