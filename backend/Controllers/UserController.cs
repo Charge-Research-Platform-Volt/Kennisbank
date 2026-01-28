@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using KnowledgeBank.Utils;
 using Microsoft.Extensions.Options;
+using KnowledgeBank.Services.Storage;
 
 namespace KnowledgeBank.Controllers;
 
@@ -19,22 +20,10 @@ namespace KnowledgeBank.Controllers;
 /// </summary>
 [ApiController]
 [Route("[controller]")]
-public class UserController : ControllerBase
+public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStorageService storageService, UserManager<User> userManager, IOptions<OwnerUserConfig> ownerConfig) : ControllerBase
 {
-    private readonly Serilog.ILogger logger;
-    private readonly IDbContextFactory<DatabaseContext> dbFactory;
-    private readonly IAzureBlobService blobService;
-    private readonly UserManager<User> userManager;
-    private readonly OwnerUserConfig ownerConfig;
-
-    public UserController(IDbContextFactory<DatabaseContext> dbFactory, IAzureBlobService blobService, UserManager<User> userManager, IOptions<OwnerUserConfig> ownerConfig)
-    {
-        this.logger = Log.ForContext<UserController>();
-        this.dbFactory = dbFactory;
-        this.blobService = blobService;
-        this.userManager = userManager;
-        this.ownerConfig = ownerConfig.Value;
-    }
+    private readonly Serilog.ILogger logger = Log.ForContext<UserController>();
+    private readonly OwnerUserConfig ownerConfig = ownerConfig.Value;
 
     /// <summary>
     /// Gets the current user's account info.
@@ -79,20 +68,13 @@ public class UserController : ControllerBase
     {
         try
         {
-            BlobAvatarResponse? avatarResponse = await blobService.RetreiveUserAvatarStream(userId);
+            ObjectDownloadResponse response = await storageService.DownloadObjectAsync("avatar", userId);
 
 
-            if (avatarResponse == null)
-            {
-                return NotFound(new { message = "No avatar found for user." });
-            }
-            else
-            {
-                Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
-                Response.Headers.Append("Pragma", "no-cache");
-                Response.Headers.Append("Expires", "0");
-                return File(avatarResponse.stream, avatarResponse.contentType);
-            }
+            Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+            Response.Headers.Append("Pragma", "no-cache");
+            Response.Headers.Append("Expires", "0");
+            return File(response.Stream, response.ContentType);
         }
         catch (Exception e)
         {
@@ -300,19 +282,14 @@ public class UserController : ControllerBase
             if (newAvatar.ContentType != "image/png")
                 return BadRequest("Invalid image type. Png expected");
 
-            BLOB_STATUSCODE upload = await blobService.UploadBlobAsync("avatar", userId, new Dictionary<string, string>(), newAvatar.OpenReadStream(), overwrite: true);
-            if (upload != BLOB_STATUSCODE.OK)
-                return StatusCode(500, "Failed to upload avatar.");
+            await storageService.UploadObjectAsync("avatar", userId, newAvatar.OpenReadStream());
 
             user.CustomAvatarVersion++;
             user.HasCustom = true;
         }
         else if (user.HasCustom)
         {
-            // Changed avatar AND New avatar is null AND The user had a custom avatar
-            BLOB_STATUSCODE delete = await blobService.DeleteBlobAsync("avatar", userId);
-            if (delete != BLOB_STATUSCODE.OK)
-                return StatusCode(500, "Failed to delete avatar.");
+            await storageService.DeleteObjectAsync("avatar", userId);
 
             user.HasCustom = false;
         }

@@ -11,35 +11,21 @@ export interface FileUploadInitDto {
 }
 
 export interface FileUploadInitResponse {
-  guid: string;
+  objectName: string;
+  uploadId: string;
   fileName: string;
   fileSize: number;
   extension: string;
 }
 
 export interface FileUploadFinalizeDto {
-  guid: string;
-  fileName: string;
-  blockIds: string[];
+  objectName: string;
+  uploadId: string;
+  partETags: Record<string, string>;
 }
 
 export interface FileUploadFinalizeResponse {
-  guid: string;
-  fileName: string;
-  extension: string;
-}
-
-export interface MigrationResult {
-  migrated: number;
-  failed: number;
-  errors?: string[];
-}
-
-export interface MigrationVerifyResult {
-  totalLegacyBlobs: number;
-  foundInFiles: number;
-  notFoundInFiles: number;
-  missingBlobs: string[];
+  objectName: string;
 }
 
 /**
@@ -84,11 +70,12 @@ export async function uploadInit(dto: FileUploadInitDto): Promise<FileUploadInit
  * @param chunkData The chunk data to upload
  */
 export async function uploadChunk(
-  guid: string,
-  blockId: string,
+  objectName: string,
+  uploadId: string,
+  partNumber: number,
   chunkData: Blob
-): Promise<void> {
-  const response = await fetch(`/api/files/upload/chunk/${guid}/${blockId}`, {
+): Promise<string> {
+  const response = await fetch(`/api/files/upload/part/${objectName}/${uploadId}/${partNumber}`, {
     method: "POST",
     credentials: "include",
     headers: {
@@ -102,6 +89,8 @@ export async function uploadChunk(
   if (!response.ok || !result.success) {
     throw new Error(`Chunk upload failed: ${result.message}`);
   }
+  
+  return result.body.eTag;
 }
 
 /**
@@ -128,8 +117,8 @@ export async function uploadFinalize(
  * Cancels an upload session by deleting all staged chunks
  * @param guid Upload session GUID to cancel
  */
-export async function uploadCancel(guid: string): Promise<void> {
-  const response = await fetch(`/api/files/upload/cancel/${guid}`, {
+export async function uploadCancel(objectName: string, uploadId: string): Promise<void> {
+  const response = await fetch(`/api/files/upload/cancel/${objectName}/${uploadId}`, {
     method: "DELETE",
     credentials: "include",
   });
@@ -194,13 +183,13 @@ export async function downloadFileToDevice(id: string, filename?: string): Promi
 /**
  * Uploads a file using chunked upload strategy
  * @param file The file to upload
- * @param maxChunkSize Maximum size of each chunk in bytes (default: 4MB)
+ * @param maxPartSize Maximum size of each chunk in bytes (default: 4MB)
  * @param onProgress Optional callback for progress updates (0-100)
  * @returns The GUID of the uploaded file
  */
 export async function uploadFileChunked(
   file: File,
-  maxChunkSize: number = 4 * 1024 * 1024, // 4MB default
+  maxPartSize: number = 5 * 1024 * 1024, // 5MB default
   onProgress?: (progress: number) => void
 ): Promise<string> {
   // Initialize upload
@@ -209,46 +198,51 @@ export async function uploadFileChunked(
     fileSize: file.size,
   });
 
-  const { guid } = initResponse;
-  const numberOfChunks = Math.ceil(file.size / maxChunkSize);
-  const blockIds: string[] = [];
+  const { objectName, uploadId } = initResponse;
+  const numberOfParts = Math.ceil(file.size / maxPartSize);
+  const partETags: Record<string, string> = {};
 
-  try {
+  try
+  {
     // Upload chunks
-    for (let i = 0; i < numberOfChunks; i++) {
-      const start = i * maxChunkSize;
-      const end = Math.min(start + maxChunkSize, file.size);
+    for (let i = 1; i <= numberOfParts; i++)
+    {
+      const start = (i - 1) * maxPartSize;
+      const end = Math.min(start + maxPartSize, file.size);
       const chunk = file.slice(start, end);
 
-      // Create block ID (padded to 8 digits, then convert to hex)
-      const blockId = Buffer.from(i.toString().padStart(8, "0")).toString("hex");
-      blockIds.push(blockId);
-
-      try {
-        await uploadChunk(guid, blockId, chunk);
+      try
+      {
+        const eTag: string = await uploadChunk(objectName, uploadId, i, chunk);
+        partETags[i] = eTag;
 
         // Report progress
-        if (onProgress) {
-          const progress = Math.round(((i + 1) / numberOfChunks) * 100);
+        if (onProgress)
+        {
+          const progress = Math.round(((i + 1) / numberOfParts) * 100);
           onProgress(progress);
         }
-      } catch (error) {
-        throw new Error(`Failed to upload chunk ${i + 1}/${numberOfChunks}: ${error}`);
+      } catch (error)
+      {
+        throw new Error(`Failed to upload chunk ${i + 1}/${numberOfParts}: ${error}`);
       }
     }
 
     // Finalize upload
-    await uploadFinalize({
-      guid,
-      fileName: file.name,
-      blockIds,
-    });
+    const uploadDto: FileUploadFinalizeDto = 
+    {
+        objectName,
+        uploadId,
+        partETags
+    }
+    
+    await uploadFinalize(uploadDto);
 
-    return guid;
+    return objectName;
   } catch (error) {
     // Clean up on error
     try {
-      await uploadCancel(guid);
+      await uploadCancel(objectName, uploadId);
     } catch (cleanupError) {
       console.error("Failed to clean up after error:", cleanupError);
     }

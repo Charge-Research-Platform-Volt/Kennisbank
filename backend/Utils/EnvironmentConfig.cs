@@ -12,8 +12,11 @@ public enum EnvironmentVariable
     // PostgreSQL
     DATABASE_CONNECTION_STRING,
 
-    // Azure Storage
-    STORAGE_CONNECTION_STRING,
+    // S3 Storage
+    S3_ENDPOINT,
+    S3_ACCESS_KEY,
+    S3_SECRET_KEY,
+    S3_USE_SSL,
 
     // Client URL
     HOST_URL,
@@ -58,8 +61,11 @@ public class EnvironmentConfig
         // PostgreSQL
         _variableNames.Add(EnvironmentVariable.DATABASE_CONNECTION_STRING, "DATABASE_CONNECTION_STRING");
 
-        // Azure Storage
-        _variableNames.Add(EnvironmentVariable.STORAGE_CONNECTION_STRING, "STORAGE_CONNECTION_STRING");
+        // S3 Storage
+        _variableNames.Add(EnvironmentVariable.S3_ENDPOINT, "S3_ENDPOINT");
+        _variableNames.Add(EnvironmentVariable.S3_ACCESS_KEY, "S3_ACCESS_KEY");
+        _variableNames.Add(EnvironmentVariable.S3_SECRET_KEY, "S3_SECRET_KEY");
+        _variableNames.Add(EnvironmentVariable.S3_USE_SSL, "S3_USE_SSL");
 
         // Client URL
         _variableNames.Add(EnvironmentVariable.HOST_URL, "HOST_URL");

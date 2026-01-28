@@ -9,6 +9,7 @@ using Swashbuckle.AspNetCore.Annotations;
 using KnowledgeBank.Utils;
 using KnowledgeBank.Responses;
 using Microsoft.EntityFrameworkCore;
+using KnowledgeBank.Services.Storage;
 
 namespace KnowledgeBank.Controllers
 {
@@ -18,7 +19,7 @@ namespace KnowledgeBank.Controllers
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
-    public class AuthController (SignInManager<User> signInManager, IDbContextFactory<DatabaseContext> dbFactory, EnvironmentConfig _environmentConfig, MailUtils _mailUtils, IAzureBlobService blobService) : ControllerBase
+    public class AuthController (SignInManager<User> signInManager, IDbContextFactory<DatabaseContext> dbFactory, EnvironmentConfig _environmentConfig, MailUtils _mailUtils, IStorageService storageService) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<AuthController>();
 
@@ -152,9 +153,7 @@ namespace KnowledgeBank.Controllers
                         if (signUpDto.Avatar.Length > Constants.MaxAvatarSize)
                             return BadRequest(new { message = $"Avatar file is too large (max {Constants.MaxAvatarSizeInMb}MB)" });
 
-                        BLOB_STATUSCODE status = await blobService.UploadBlobAsync("avatar", user.Id, new Dictionary<string, string>(), signUpDto.Avatar.OpenReadStream());
-                        if (status != BLOB_STATUSCODE.OK)
-                            throw new Exception("Failed to upload avatar");
+                        await storageService.UploadObjectAsync("avatar", user.Id, signUpDto.Avatar.OpenReadStream(), new Dictionary<string, string>());
 
                         user.CustomAvatarVersion++;
                         user.HasCustom = true;

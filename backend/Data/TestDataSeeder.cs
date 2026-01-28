@@ -4,13 +4,14 @@ using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
 using CsvHelper.Configuration.Attributes;
+using KnowledgeBank.Services.Storage;
 
 namespace KnowledgeBank.Data
 {
     public static class TestDataSeeder
     {
 #pragma warning disable CS8618, CS0649 // Test data seeding is disabled - fields are intentionally unassigned
-        private static IAzureBlobService blobService;
+        private static IStorageService storageService;
         private static ResourceManager resourceManager;
 #pragma warning restore CS8618, CS0649
         private static readonly string testDataPath = Path.Combine("/app", "testdata") + "/";
@@ -28,7 +29,7 @@ namespace KnowledgeBank.Data
 
 #if false // Enable this block to seed test data
             using IServiceScope scope = serviceProvider.CreateScope();
-            blobService = scope.ServiceProvider.GetRequiredService<IAzureBlobService>();
+            storageService = scope.ServiceProvider.GetRequiredService<IStorageService>();
             resourceManager = scope.ServiceProvider.GetRequiredService<ResourceManager>();
 
             await SeedOrganisations();
@@ -159,7 +160,7 @@ namespace KnowledgeBank.Data
 
                         // Then upload to blob storage
                         Dictionary<string, string> metadata = new Dictionary<string, string> { { "extension", extension } };
-                        BLOB_STATUSCODE result = await blobService.UploadBlobAsync(fileType, resourceId.ToString(), metadata, File.OpenRead(filePath), false);
+                        await storageService.UploadObjectAsync("files", resourceId.ToString(), File.OpenRead(filePath), metadata);
 
 
                         // If the resource has tags, add them

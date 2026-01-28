@@ -10,10 +10,9 @@ using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
-using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Specialized;
 using Microsoft.AspNetCore.StaticFiles;
 using System.Text;
+using KnowledgeBank.Services.Storage;
 
 namespace KnowledgeBank.Controllers
 {
@@ -24,7 +23,7 @@ namespace KnowledgeBank.Controllers
     [ApiController]
     [Route("[controller]")]
     [Authorize]
-    public class FilesController(IAzureBlobService blobService, ResourceManager resourceManager) : ControllerBase
+    public class FilesController(IStorageService storageService, ResourceManager resourceManager) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<FilesController>();
 
@@ -40,7 +39,7 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(200, "Upload session initialized", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public IActionResult UploadInit([FromBody] FileUploadInitDto dto)
+        public async Task<IActionResult> UploadInit([FromBody] FileUploadInitDto dto)
         {
             // Validation
             if (string.IsNullOrEmpty(dto.FileName))
@@ -64,12 +63,21 @@ namespace KnowledgeBank.Controllers
                 if (!Filetype.Supported(extension))
                     return BadRequest(new ApiResponse(false, $"File type '{extension}' is not supported."));
 
+                Dictionary<string, string> metadata = new()
+                {
+                    { "extension", extension },
+                    { "originalFileName", Path.GetFileNameWithoutExtension(dto.FileName) }
+                };
+
+                string uploadId = await storageService.InitiateMultipartUploadAsync("files", uploadGuid.ToString(), metadata);
+                
                 logger.Information("Upload session initialized for file '{FileName}' with GUID {Guid}", dto.FileName, uploadGuid);
 
                 // Return upload session information
                 return Ok(new ApiResponse(true, "Upload session initialized successfully.", new
                 {
-                    guid = uploadGuid,
+                    objectName = uploadGuid,
+                    uploadId,
                     fileName = dto.FileName,
                     fileSize = dto.FileSize,
                     extension
@@ -88,51 +96,45 @@ namespace KnowledgeBank.Controllers
         /// Uploads a single chunk of a file. Can be called multiple times for large files,
         /// or once for small files. Each chunk is staged with a unique block ID.
         /// </summary>
-        /// <param name="guid">Upload session GUID from initialization</param>
-        /// <param name="blockId">Unique block ID (hex encoded, will be converted to base64)</param>
-        [HttpPost("upload/chunk/{guid}/{blockId}")]
+        /// <param name="objectName">Name of object being uploaded</param>
+        /// <param name="uploadId">The ID of the current upload</param>
+        /// <param name="partNumber">The chunk number that is uploaded</param>
+        [HttpPost("upload/part/{objectName}/{uploadId}/{partNumber}")]
         [SwaggerOperation(Summary = "Upload a chunk of a file")]
         [SwaggerResponse(200, "Chunk uploaded successfully", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> UploadChunk(string guid, string blockId)
+        public async Task<IActionResult> UploadChunk(string objectName, string uploadId, int partNumber)
         {
             // Validation
             if (Request.Body == null)
                 return BadRequest(new ApiResponse(false, "No chunk data was provided."));
 
-            if (string.IsNullOrEmpty(guid) || !ValidityUtil.IsValidId(guid))
-                return BadRequest(new ApiResponse(false, "Invalid upload GUID."));
+            if (string.IsNullOrEmpty(objectName) || !ValidityUtil.IsValidId(objectName))
+                return BadRequest(new ApiResponse(false, "Invalid objectName."));
 
-            if (string.IsNullOrEmpty(blockId))
-                return BadRequest(new ApiResponse(false, "Block ID is required."));
+            if (string.IsNullOrEmpty(uploadId))
+                return BadRequest(new ApiResponse(false, "Upload ID is required."));
+
+            if (partNumber == 0)
+                return BadRequest(new ApiResponse(false, "Part number cannot be 0, count starts at 1"));
 
             try
             {
-                // Convert hex blockId to base64 (Azure requires base64)
-                string base64BlockId = Convert.ToBase64String(Convert.FromHexString(blockId));
-
-                // Get or create the files container
-                BlobContainerClient container = await blobService.GetOrCreateContainerAsync("files");
-
-                // Get block blob client
-                BlockBlobClient blockBlobClient = container.GetBlockBlobClient(guid);
-
                 // Read request body into memory stream
                 using MemoryStream memoryStream = new MemoryStream();
                 await Request.Body.CopyToAsync(memoryStream);
                 memoryStream.Position = 0;
 
-                // Stage the chunk
-                await blockBlobClient.StageBlockAsync(base64BlockId, memoryStream);
+                string ETag = await storageService.UploadPartAsync("files", objectName, uploadId, partNumber, memoryStream);
 
-                logger.Information("Chunk {BlockId} uploaded for GUID {Guid} ({Size} bytes)", blockId, guid, memoryStream.Length);
+                logger.Information("Part {PartNumber} uploaded for object {ObjectName} ({Size} bytes)", partNumber, objectName, memoryStream.Length);
 
-                return Ok(new ApiResponse(true, "Chunk uploaded successfully."));
+                return Ok(new ApiResponse(true, "Chunk uploaded successfully.", new { eTag = ETag }));
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error uploading chunk {BlockId} for GUID {Guid}", blockId, guid);
+                logger.Error(e, "Error uploading part {PartNumber} for object {ObjectName}", partNumber, objectName);
                 return StatusCode(500, new ApiResponse(false, "Error uploading chunk.", e.Message));
             }
         }
@@ -152,75 +154,26 @@ namespace KnowledgeBank.Controllers
         public async Task<IActionResult> UploadFinalize([FromBody] FileUploadFinalizeDto dto)
         {
             // Validation
-            if (string.IsNullOrEmpty(dto.Guid) || !ValidityUtil.IsValidId(dto.Guid))
-                return BadRequest(new ApiResponse(false, "Invalid upload GUID."));
+            if (string.IsNullOrEmpty(dto.ObjectName) || !ValidityUtil.IsValidId(dto.ObjectName))
+                return BadRequest(new ApiResponse(false, "Invalid upload object name."));
 
-            if (string.IsNullOrEmpty(dto.FileName))
+            if (string.IsNullOrEmpty(dto.UploadId))
                 return BadRequest(new ApiResponse(false, "File name is required."));
 
-            if (dto.BlockIds == null || dto.BlockIds.Count == 0)
-                return BadRequest(new ApiResponse(false, "No block IDs were provided."));
+            if (dto.PartETags == null || dto.PartETags.Count == 0)
+                return BadRequest(new ApiResponse(false, "No ETags were provided."));
 
             try
             {
-                logger.Information("Finalizing file upload for GUID {Guid} with {BlockCount} blocks", dto.Guid, dto.BlockIds.Count);
+                logger.Information("Finalizing file upload for object {ObjectName} with {PartCount} parts", dto.ObjectName, dto.PartETags.Count);
 
-                string extension = Path.GetExtension(dto.FileName);
+                await storageService.CompleteMultipartUploadAsync("files", dto.ObjectName, dto.UploadId, dto.PartETags);
 
-                // Convert hex block IDs to base64
-                List<string> base64BlockIds;
-                try
-                {
-                    base64BlockIds = dto.BlockIds
-                        .Select(id => Convert.ToBase64String(Convert.FromHexString(id)))
-                        .ToList();
-                }
-                catch (Exception hexException)
-                {
-                    logger.Error(hexException, "Failed to convert block IDs from hex to base64 for GUID {Guid}", dto.Guid);
-                    return BadRequest(new ApiResponse(false, "Invalid block ID format. Unable to convert from hex."));
-                }
-
-                // Create metadata to attach to the blob
-                Dictionary<string, string> metadata = new()
-                {
-                    { "extension", extension },
-                    { "originalFileName", dto.FileName },
-                    { "uploadTimestamp", DateTime.UtcNow.ToString("o") }
-                };
-
-                // Commit the block list
-                BLOB_STATUSCODE code = await blobService.CommitBlockListAsync(
-                    dto.Guid,
-                    "files",
-                    base64BlockIds,
-                    metadata
-                );
-
-                // Handle response
-                switch (code)
-                {
-                    case BLOB_STATUSCODE.OK:
-                        logger.Information("File upload finalized successfully for GUID {Guid}", dto.Guid);
-                        return Ok(new ApiResponse(true, "File upload finalized successfully.", new
-                        {
-                            guid = dto.Guid,
-                            fileName = dto.FileName,
-                            extension
-                        }));
-
-                    case BLOB_STATUSCODE.FAILED:
-                        logger.Error("Block list commit failed for GUID {Guid}. Some blocks may be missing or invalid.", dto.Guid);
-                        return Conflict(new ApiResponse(false, "Failed to commit block list. Some uploaded blocks may be missing or invalid."));
-
-                    default:
-                        logger.Error("Unexpected blob service response {StatusCode} for GUID {Guid}", code, dto.Guid);
-                        return StatusCode(500, new ApiResponse(false, "Unexpected error during finalization."));
-                }
+                return Ok(new ApiResponse(true, "File upload successful.", new { objectName = dto.ObjectName }));
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error finalizing file upload for GUID {Guid}", dto.Guid);
+                logger.Error(e, "Error finalizing file upload for object {ObjectName}", dto.ObjectName);
                 return StatusCode(500, new ApiResponse(false, "Error finalizing upload.", e.Message));
             }
         }
@@ -229,54 +182,32 @@ namespace KnowledgeBank.Controllers
         #region Upload Cancel
         /// <summary>
         /// Cancels an upload by deleting all staged chunks.
-        /// Note: Uncommitted chunks are automatically cleaned up by Azure after 7 days,
-        /// but this endpoint allows immediate cleanup.
         /// </summary>
-        /// <param name="guid">Upload session GUID to cancel</param>
-        [HttpDelete("upload/cancel/{guid}")]
+        [HttpDelete("upload/cancel/{objectName}/{uploadId}")]
         [SwaggerOperation(Summary = "Cancel an upload session")]
         [SwaggerResponse(200, "Upload cancelled successfully", typeof(ApiResponse))]
         [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> UploadCancel(string guid)
+        public async Task<IActionResult> UploadCancel(string objectName, string uploadId)
         {
             // Validation
-            if (string.IsNullOrEmpty(guid) || !ValidityUtil.IsValidId(guid))
-                return BadRequest(new ApiResponse(false, "Invalid upload GUID."));
+            if (string.IsNullOrEmpty(objectName) || !ValidityUtil.IsValidId(objectName))
+                return BadRequest(new ApiResponse(false, "Invalid upload object name"));
+
+            if (string.IsNullOrEmpty(uploadId))
+                return BadRequest(new ApiResponse(false, "Invalid upload ID"));
 
             try
             {
-                logger.Information("Cancelling upload for GUID {Guid}", guid);
+                logger.Information("Cancelling upload for object {ObjectName}", objectName);
 
-                // Try to commit an empty block list, which will clear any uncommitted blocks
-                BLOB_STATUSCODE code = await blobService.CommitBlockListAsync(
-                    guid,
-                    "files",
-                    [],
-                    []
-                );
+                await storageService.AbortMultipartUploadAsync("files", objectName, uploadId);
 
-                if (code == BLOB_STATUSCODE.OK)
-                {
-                    // Now delete the empty blob
-                    await blobService.DeleteBlobAsync("files", guid);
-                    logger.Information("Upload cancelled successfully for GUID {Guid}", guid);
-                    return Ok(new ApiResponse(true, "Upload cancelled successfully."));
-                }
-                else if (code == BLOB_STATUSCODE.NOTFOUND)
-                {
-                    logger.Information("No upload found for GUID {Guid}, nothing to cancel", guid);
-                    return Ok(new ApiResponse(true, "No upload found, nothing to cancel."));
-                }
-                else
-                {
-                    logger.Warning("Unexpected response when cancelling upload for GUID {Guid}: {Code}", guid, code);
-                    return StatusCode(500, new ApiResponse(false, "Error cancelling upload."));
-                }
+                return Ok(new ApiResponse(true, "Successfully aborted upload."));
             }
             catch (Exception e)
             {
-                logger.Error(e, "Error cancelling upload for GUID {Guid}", guid);
+                logger.Error(e, "Error cancelling upload for object {ObjectName}", objectName);
                 return StatusCode(500, new ApiResponse(false, "Error cancelling upload.", e.Message));
             }
         }
@@ -303,17 +234,10 @@ namespace KnowledgeBank.Controllers
             {
                 logger.Information("Downloading file with ID: {ID}", id);
 
-                // Try to retrieve the file from the files container
-                BlobDownloadResponse? maybeResponse = await blobService.DownloadBlobAsync("files", id);
+                ObjectDownloadResponse response = await storageService.DownloadObjectAsync("files", id);
+                
 
-                // If response is empty, the file does not exist in storage
-                if (maybeResponse == null)
-                    return NotFound(new ApiResponse(false, "File not found in storage."));
-
-                // Convert to a non-empty response
-                BlobDownloadResponse response = (BlobDownloadResponse)maybeResponse;
-
-                // Get the extension from blob metadata
+                // Get the extension from metadata
                 string extension = response.Metadata["extension"];
 
                 // Get the title from the database to use as filename
@@ -357,7 +281,7 @@ namespace KnowledgeBank.Controllers
                 Response.Headers.Append("Content-Disposition", contentDisposition);
 
                 // Stream the file directly to the response body (no buffering)
-                await response.FileStream.CopyToAsync(Response.Body);
+                await response.Stream.CopyToAsync(Response.Body);
 
                 logger.Information("File with ID '{ID}' downloaded successfully.", id);
                 return new EmptyResult();
@@ -415,258 +339,6 @@ namespace KnowledgeBank.Controllers
                 result = result[..maxLength];
 
             return result;
-        }
-        #endregion
-
-        #region Migration
-        /// <summary>
-        /// Migrates all blobs from legacy containers (document, audio, video) to the new unified 'files' container.
-        /// This is a one-time migration for existing deployments.
-        /// </summary>
-        [HttpPost("migrate")]
-        [Authorize(Policy = "RequireAdminRole")]
-        [SwaggerOperation(Summary = "Migrate blobs from legacy containers to 'files' container")]
-        [SwaggerResponse(200, "Migration completed successfully", typeof(ApiResponse))]
-        [SwaggerResponse(207, "Partial success - some blobs failed to migrate", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Migration failed completely", typeof(ApiResponse))]
-        public async Task<IActionResult> MigrateBlobsToFilesContainer()
-        {
-            try
-            {
-                logger.Information("Starting blob migration from legacy containers to 'files' container");
-
-                // Ensure the 'files' container exists before migration
-                await blobService.GetOrCreateContainerAsync("files");
-                logger.Information("Files container verified/created");
-
-                string[] legacyContainers = { "document", "audio", "video" };
-                int totalMigrated = 0;
-                int totalFailed = 0;
-                List<string> errors = new();
-
-                foreach (string containerName in legacyContainers)
-                {
-                    logger.Information("Processing container: {ContainerName}", containerName);
-
-                    // List all blobs in the legacy container
-                    string[]? blobs = await blobService.ListBlobsAsync(containerName);
-
-                    if (blobs == null || blobs.Length == 0)
-                    {
-                        logger.Information("No blobs found in container {ContainerName}", containerName);
-                        continue;
-                    }
-
-                    logger.Information("Found {Count} blobs in {ContainerName}", blobs.Length, containerName);
-
-                    // Copy each blob to the files container
-                    foreach (string blobName in blobs)
-                    {
-                        try
-                        {
-                            // Copy blob from legacy container to files container
-                            BLOB_STATUSCODE result = await blobService.CopyBlobAsync(
-                                containerName,
-                                blobName,
-                                "files",
-                                blobName,
-                                overwrite: false,
-                                surpressLogging: true
-                            );
-
-                            if (result == BLOB_STATUSCODE.OK)
-                            {
-                                totalMigrated++;
-                                logger.Information("Migrated blob {BlobName} from {Container}", blobName, containerName);
-                            }
-                            else if (result == BLOB_STATUSCODE.ALREADYEXISTS)
-                            {
-                                logger.Information("Blob {BlobName} already exists in files container, skipping", blobName);
-                                totalMigrated++; // Count as migrated since it's already there
-                            }
-                            else
-                            {
-                                string error = $"Failed to migrate {blobName} from {containerName}: {result}";
-                                errors.Add(error);
-                                totalFailed++;
-                                logger.Warning(error);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            string error = $"Error migrating {blobName} from {containerName}: {ex.Message}";
-                            errors.Add(error);
-                            totalFailed++;
-                            logger.Error(ex, error);
-                        }
-                    }
-                }
-
-                string message = $"Migration completed. Migrated: {totalMigrated}, Failed: {totalFailed}";
-
-                // If all migrations failed, return error
-                if (totalMigrated == 0 && totalFailed > 0)
-                {
-                    logger.Error("Migration failed completely - no blobs were migrated");
-                    return StatusCode(500, new ApiResponse(false, "Migration failed - no blobs were migrated.", new
-                    {
-                        migrated = totalMigrated,
-                        failed = totalFailed,
-                        errors
-                    }));
-                }
-
-                // If some migrations failed, return partial success with warning
-                if (totalFailed > 0)
-                {
-                    logger.Warning(message);
-                    return StatusCode(207, new ApiResponse(true, message + " (Partial success - some blobs failed)", new
-                    {
-                        migrated = totalMigrated,
-                        failed = totalFailed,
-                        errors
-                    }));
-                }
-
-                // All succeeded
-                logger.Information(message);
-                return Ok(new ApiResponse(true, message, new
-                {
-                    migrated = totalMigrated,
-                    failed = totalFailed
-                }));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error during blob migration");
-                return StatusCode(500, new ApiResponse(false, "Error during migration", e.Message));
-            }
-        }
-
-        /// <summary>
-        /// Verifies the migration by checking if all blobs from legacy containers exist in 'files' container.
-        /// </summary>
-        [HttpGet("migrate/verify")]
-        [Authorize(Policy = "RequireAdminRole")]
-        [SwaggerOperation(Summary = "Verify blob migration status")]
-        [SwaggerResponse(200, "Verification completed", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> VerifyMigration()
-        {
-            try
-            {
-                logger.Information("Verifying blob migration");
-
-                string[] legacyContainers = { "document", "audio", "video" };
-                int totalLegacyBlobs = 0;
-                int foundInFiles = 0;
-                int notFoundInFiles = 0;
-                List<string> missingBlobs = new();
-
-                foreach (string containerName in legacyContainers)
-                {
-                    string[]? blobs = await blobService.ListBlobsAsync(containerName);
-
-                    if (blobs == null || blobs.Length == 0)
-                        continue;
-
-                    totalLegacyBlobs += blobs.Length;
-
-                    foreach (string blobName in blobs)
-                    {
-                        BLOB_STATUSCODE exists = await blobService.BlobExistsAsync("files", blobName);
-
-                        if (exists == BLOB_STATUSCODE.OK)
-                        {
-                            foundInFiles++;
-                        }
-                        else
-                        {
-                            notFoundInFiles++;
-                            missingBlobs.Add($"{containerName}/{blobName}");
-                        }
-                    }
-                }
-
-                bool allMigrated = notFoundInFiles == 0;
-                string message = allMigrated
-                    ? $"All {totalLegacyBlobs} blobs have been migrated successfully."
-                    : $"Migration incomplete: {foundInFiles}/{totalLegacyBlobs} blobs migrated. {notFoundInFiles} blobs missing.";
-
-                logger.Information(message);
-
-                return Ok(new ApiResponse(allMigrated, message, new
-                {
-                    totalLegacyBlobs,
-                    foundInFiles,
-                    notFoundInFiles,
-                    missingBlobs = missingBlobs.Take(100).ToArray() // Limit to first 100
-                }));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error verifying migration");
-                return StatusCode(500, new ApiResponse(false, "Error verifying migration", e.Message));
-            }
-        }
-
-        /// <summary>
-        /// Deletes legacy containers after successful migration.
-        /// WARNING: This is irreversible! Verify migration first.
-        /// </summary>
-        [HttpDelete("migrate/cleanup")]
-        [Authorize(Policy = "RequireAdminRole")]
-        [SwaggerOperation(Summary = "Delete legacy containers after migration")]
-        [SwaggerResponse(200, "Cleanup completed", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> CleanupLegacyContainers([FromQuery] bool confirm = false)
-        {
-            if (!confirm)
-            {
-                return BadRequest(new ApiResponse(false, "This action is irreversible. Set confirm=true to proceed."));
-            }
-
-            try
-            {
-                logger.Warning("Deleting legacy containers - this action is irreversible");
-
-                string[] legacyContainers = { "document", "audio", "video" };
-                int deleted = 0;
-                List<string> results = new();
-
-                foreach (string containerName in legacyContainers)
-                {
-                    BLOB_STATUSCODE result = await blobService.DeleteContainerAsync(containerName);
-
-                    if (result == BLOB_STATUSCODE.OK)
-                    {
-                        deleted++;
-                        results.Add($"Deleted container: {containerName}");
-                        logger.Information("Deleted container {ContainerName}", containerName);
-                    }
-                    else if (result == BLOB_STATUSCODE.NOTFOUND)
-                    {
-                        results.Add($"Container not found: {containerName}");
-                        logger.Information("Container {ContainerName} not found, already deleted", containerName);
-                    }
-                    else
-                    {
-                        results.Add($"Failed to delete container: {containerName}");
-                        logger.Warning("Failed to delete container {ContainerName}", containerName);
-                    }
-                }
-
-                string message = $"Cleanup completed. Deleted {deleted} legacy containers.";
-                logger.Information(message);
-
-                return Ok(new ApiResponse(true, message, results));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error during cleanup");
-                return StatusCode(500, new ApiResponse(false, "Error during cleanup", e.Message));
-            }
         }
         #endregion
     }

@@ -4,6 +4,7 @@ using Azure.AI.DocumentIntelligence;
 using Azure.AI.Inference;
 using Azure.AI.OpenAI;
 using KnowledgeBank.Data;
+using KnowledgeBank.Services.Storage;
 using KnowledgeBank.Utils;
 using OpenAI.Chat;
 using Serilog;
@@ -57,7 +58,7 @@ public class RAGSystem
     /// </remarks>
     /// <exception cref="ArgumentException">Thrown when environment configuration values are invalid or missing</exception>
     /// <exception cref="HttpRequestException">Thrown when API endpoints are unreachable during initialization</exception>
-    public RAGSystem(IAzureBlobService blobService, EnvironmentConfig environmentConfig, DocumentIntelligenceClient documentIntelligenceClient)
+    public RAGSystem(EnvironmentConfig environmentConfig, DocumentIntelligenceClient documentIntelligenceClient)
     {
         _logger = Log.ForContext<RAGSystem>();
         Toolbox = new Tools();

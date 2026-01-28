@@ -17,7 +17,8 @@ using Hubs;
 using Microsoft.AspNetCore.Http.Features;
 using KnowledgeBank.Utils;
 using DotNetEnv;
-using Pgvector.EntityFrameworkCore;
+using KnowledgeBank.Services.Storage;
+using KnowledgeBank.Services.Search;
 
 namespace KnowledgeBank
 {
@@ -70,7 +71,7 @@ namespace KnowledgeBank
             // # Services
             builder.Services.AddControllers();
             builder.Services.AddSignalR();
-            builder.Services.AddSingleton<IAzureBlobService, AzureBlobService>();
+            builder.Services.AddSingleton<IStorageService, S3StorageService>();
             builder.Services.AddSingleton<MetadataExtractionJobService>();
 
             // Register DocumentIntelligenceClient for dependency injection
@@ -144,13 +145,13 @@ namespace KnowledgeBank
             builder.Services.AddScoped<IVectorStore, PostgresVectorStore>();
 
             // Hybrid Search System
-            builder.Services.AddSingleton<KnowledgeBank.Services.Search.Models.HybridSearchConfig>(sp =>
+            builder.Services.AddSingleton(sp =>
             {
-                var config = new KnowledgeBank.Services.Search.Models.HybridSearchConfig();
+                var config = new Services.Search.Models.HybridSearchConfig();
                 config.Validate();
                 return config;
             });
-            builder.Services.AddScoped<KnowledgeBank.Services.Search.HybridSearchService>();
+            builder.Services.AddScoped<HybridSearchService>();
 
             // Background services
             builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
@@ -189,7 +190,7 @@ namespace KnowledgeBank
 
             builder.Services.AddHostedService<TrashbinCleanupService>(); // Add the background service for cleaning up the trashbin
             builder.Services.AddHostedService<InvitationsCleanupService>(); // Add the background service for cleaning up invitations
-            builder.Services.AddHostedService<BlobCleanupService>(); // Add the background service for cleaning up orphaned blobs
+            //builder.Services.AddHostedService<BlobCleanupService>(); // Add the background service for cleaning up orphaned blobs
 
             // Headless browser service
             builder.Services.AddSingleton<BrowserService>();
@@ -225,83 +226,17 @@ namespace KnowledgeBank
                     throw;
                 }
             }
-
-            // # Reset database if env var is set
-            if (app.Configuration.GetValue<bool>("")) 
+            
+            // Set up buckets
+            using (var scope = app.Services.CreateScope()) 
             {
-                try
-                {
-                    using var scope = app.Services.CreateScope();
-                    var context = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-                    
-                    Console.WriteLine("Starting database reset with raw SQL...");
-                    
-                    // Raw SQL to drop all tables, sequences, and constraints
-                    var resetSql = @"
-                        DO $$ 
-                        DECLARE 
-                            r RECORD;
-                        BEGIN
-                            -- Drop all foreign key constraints first
-                            FOR r IN (
-                                SELECT constraint_name, table_name 
-                                FROM information_schema.table_constraints 
-                                WHERE constraint_type = 'FOREIGN KEY' 
-                                AND table_schema = 'public'
-                            ) 
-                            LOOP
-                                EXECUTE 'ALTER TABLE ' || quote_ident(r.table_name) || ' DROP CONSTRAINT ' || quote_ident(r.constraint_name);
-                            END LOOP;
-                            
-                            -- Drop all tables
-                            FOR r IN (
-                                SELECT table_name 
-                                FROM information_schema.tables 
-                                WHERE table_schema = 'public' 
-                                AND table_type = 'BASE TABLE'
-                            ) 
-                            LOOP
-                                EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.table_name) || ' CASCADE';
-                            END LOOP;
-                            
-                            -- Drop all sequences
-                            FOR r IN (
-                                SELECT sequence_name 
-                                FROM information_schema.sequences 
-                                WHERE sequence_schema = 'public'
-                            )
-                            LOOP
-                                EXECUTE 'DROP SEQUENCE IF EXISTS ' || quote_ident(r.sequence_name) || ' CASCADE';
-                            END LOOP;
-                            
-                            -- Drop all functions (if any)
-                            FOR r IN (
-                                SELECT routine_name 
-                                FROM information_schema.routines 
-                                WHERE routine_schema = 'public' 
-                                AND routine_type = 'FUNCTION'
-                            )
-                            LOOP
-                                EXECUTE 'DROP FUNCTION IF EXISTS ' || quote_ident(r.routine_name) || ' CASCADE';
-                            END LOOP;
-                        END $$;
-                    ";
-                    
-                    await context.Database.ExecuteSqlRawAsync(resetSql);
-                    
-                    // Now recreate schema using EF
-                    await context.Database.EnsureCreatedAsync();
-                    
-                    Console.WriteLine("Database schema reset completed successfully");
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Failed to reset database: {e.Message}");
-                    Console.WriteLine($"Stack trace: {e.StackTrace}");
-                    throw;
-                }
-            }
+                IStorageService storageService = scope.ServiceProvider.GetRequiredService<IStorageService>();
 
+                Log.Information("Creating buckets in object storage...");
+                
+                await storageService.CreateBucketAsync("files");
+                await storageService.CreateBucketAsync("avatar");
+            }
             
             // # Middleware
             if (app.Environment.IsDevelopment())

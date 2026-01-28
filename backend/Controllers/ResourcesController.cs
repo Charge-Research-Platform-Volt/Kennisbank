@@ -20,6 +20,7 @@ using System.Linq.Expressions;
 using Microsoft.Extensions.AI;
 using System.Security.Claims;
 using KnowledgeBank.Services.Vector;
+using KnowledgeBank.Services.Storage;
 
 
 
@@ -42,7 +43,7 @@ namespace KnowledgeBank.Controllers
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class ResourcesController(ResourceManager resourceManager, IAzureBlobService blobService, IBackgroundTaskQueue taskQueue, RAGManager ragManager, IServiceScopeFactory serviceScopeFactory, IVectorStore vectorStore) : ControllerBase
+    public class ResourcesController(ResourceManager resourceManager, IStorageService storageService, IBackgroundTaskQueue taskQueue, RAGManager ragManager, IServiceScopeFactory serviceScopeFactory, IVectorStore vectorStore) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<ResourcesController>();
 
@@ -105,7 +106,7 @@ namespace KnowledgeBank.Controllers
                     if (!ValidityUtil.IsValidId(_fDto.Id))
                         return BadRequest(new ApiResponse(false, "Invalid ID given."));
 
-                    IDictionary<string, string>? metadata = await blobService.GetBlobMetadataAsync("files", _fDto.Id);
+                    IDictionary<string, string>? metadata = await storageService.GetObjectMetadataAsync("files", _fDto.Id);
 
                     if (metadata == null)
                         return BadRequest(new ApiResponse(false, $"There is no file for the given ID '{_fDto.Id}'"));
@@ -253,18 +254,18 @@ namespace KnowledgeBank.Controllers
                         {
                             using var scope = serviceScopeFactory.CreateScope();
                             RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                            IAzureBlobService blob = scope.ServiceProvider.GetRequiredService<IAzureBlobService>();
+                            IStorageService storage = scope.ServiceProvider.GetRequiredService<IStorageService>();
 
-                            BlobDownloadResponse? downloadResponse = await blob.DownloadBlobAsync("files", id.ToString());
+                            ObjectDownloadResponse? downloadResponse = await storage.DownloadObjectAsync("files", id.ToString());
 
-                            if (downloadResponse?.FileStream == null) 
+                            if (downloadResponse?.Stream == null) 
                             {
                                 var logger = scope.ServiceProvider.GetRequiredService<ILogger<ResourcesController>>();
                                 logger.LogError("Failed to download file for document {Id} from blob storage", id);
                                 return;
                             }
                                 
-                            await rag.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: "document", fileStream: downloadResponse?.FileStream);
+                            await rag.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: "document", fileStream: downloadResponse?.Stream);
                         });
                         break;
                     
@@ -417,25 +418,10 @@ namespace KnowledgeBank.Controllers
                 string filetype = await resourceManager.GetResourcePropertyAsync(id, "FileType");
 
                 // Delete the file from storage
-                BLOB_STATUSCODE result = await blobService.DeleteBlobAsync(filetype, id);
-
-                switch (result)
+                try 
                 {
-                    // If result was OK, then it was a file which is now deleted
-                    case BLOB_STATUSCODE.OK:
-                        logger.Information("Resource was a file and file is now deleted.");
-                        break;
-
-                    // If result was NOTFOUND, then it was not a file, just continue
-                    case BLOB_STATUSCODE.NOTFOUND:
-                        logger.Information("Resource was not found in storage, only deleting in database.");
-                        break;
-
-                    // All other cases means an error
-                    default:
-                        logger.Error("Error deleting file '{ID}' in storage", id);
-                        return StatusCode(500, new ApiResponse(false, "Error deleting file in storage."));
-                }
+                    await storageService.DeleteObjectAsync(filetype, id);
+                }catch {}
 
                 // Delete the resource from the database
                 await resourceManager.DeleteResourceAsync(Guid.Parse(id));

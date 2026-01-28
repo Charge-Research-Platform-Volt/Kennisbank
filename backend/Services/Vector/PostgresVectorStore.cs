@@ -8,7 +8,7 @@ namespace KnowledgeBank.Services.Vector;
 
 public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, RAGSystem ragSystem) : IVectorStore
 {
-    /// <inherit/>
+    /// <inheritdoc />
     public async Task CreatePointsAsync(Guid resourceId, List<(string Text, ChunkType Type, int Part)> chunks)
     {
         await using var database = await dbFactory.CreateDbContextAsync();
@@ -33,7 +33,7 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, R
         await database.SaveChangesAsync();
     }
 
-    /// <inherit/>
+    /// <inheritdoc />
     public async Task<bool> DeletePointsByResourceIdAsync(Guid resourceId)
     {
         await using var database = await dbFactory.CreateDbContextAsync();
@@ -44,7 +44,7 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, R
         return deleted > 0;
     }
 
-    /// <inherit/>
+    /// <inheritdoc />
     public async Task<bool> UpdateMetadataPointAsync(Guid resourceId, string newChunkText)
     {
         await using var database = await dbFactory.CreateDbContextAsync();
@@ -63,7 +63,7 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, R
         return true;
     }
 
-    /// <inherit/>
+    /// <inheritdoc />
     public async Task<List<VectorSearchResult>> SemanticSearchAsync(float[] queryEmbedding, int limit, float scoreThreshold)
     {
         await using var database = await dbFactory.CreateDbContextAsync();
@@ -98,7 +98,7 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, R
         }).ToList();
     }
 
-    /// <inherit/>
+    /// <inheritdoc />
     public async Task<List<VectorSearchResult>> TextSearchAsync(string query, int limit)
     {
         await using var database = await dbFactory.CreateDbContextAsync();
@@ -119,7 +119,7 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, R
         ").ToListAsync();
     }
 
-    /// <inherit/>
+    /// <inheritdoc />
     public async Task<List<VectorSearchResult>> GetChunksByResourceIdAsync(Guid resourceId)
     {
         await using var database = await dbFactory.CreateDbContextAsync();
@@ -138,7 +138,7 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, R
             }).ToListAsync();
     }
 
-    /// <inherit/>
+    /// <inheritdoc />
     public async Task<List<VectorSearchResult>> RecommendSimilarAsync(Guid resourceId, int limit, float scoreThreshold)
     {
         await using var database = await dbFactory.CreateDbContextAsync();

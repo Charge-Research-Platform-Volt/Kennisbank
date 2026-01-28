@@ -156,13 +156,7 @@ public class FileUploadInitDto
 
 public class FileUploadFinalizeDto
 {
-    public required string Guid { get; set; }
-    public required string FileName { get; set; }
-    public List<string> BlockIds { get; set; } = new();
+    public required string ObjectName { get; set; }
+    public required string UploadId { get; set; }
+    public required IDictionary<int, string> PartETags { get; set; }
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

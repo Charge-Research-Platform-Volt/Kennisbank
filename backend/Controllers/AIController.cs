@@ -9,11 +9,8 @@ using KnowledgeBank.Utils;
 using KnowledgeBank.Data;
 using System.Security.Claims;
 using Swashbuckle.AspNetCore.Annotations;
-using System.Net.Http;
-using SmartReader;
-using HandlebarsDotNet.Helpers.BlockHelpers;
-using PuppeteerSharp;
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.Storage;
 
 namespace KnowledgeBank.Controllers;
 
@@ -249,7 +246,7 @@ public class AIController(ResourceManager resourceManager, IServiceScopeFactory 
         // Create a new scope for this background task
         using var scope = _serviceScopeFactory.CreateScope();
         var jobService = scope.ServiceProvider.GetRequiredService<MetadataExtractionJobService>();
-        var blobServiceScoped = scope.ServiceProvider.GetRequiredService<IAzureBlobService>();
+        var storageServiceScoped = scope.ServiceProvider.GetRequiredService<IStorageService>();
         var textExtractionServiceScoped = scope.ServiceProvider.GetRequiredService<TextExtractionService>();
         var ragManagerScoped = scope.ServiceProvider.GetRequiredService<RAGManager>();
 
@@ -265,18 +262,11 @@ public class AIController(ResourceManager resourceManager, IServiceScopeFactory 
                 jobService.UpdateJobStatus(jobId, JobStatus.Processing, "Retrieving file...", 20);
 
                 // Retrieve blob from Azure Storage
-                BlobDownloadResponse? response = await blobServiceScoped.DownloadBlobAsync("files", value);
-
-                // Check if response is not empty, if so no file exists with this ID
-                if (response == null)
-                {
-                    jobService.SetJobError(jobId, $"File not found with ID '{value}'");
-                    return;
-                }
+                ObjectDownloadResponse response = await storageServiceScoped.DownloadObjectAsync("files", value);
 
                 // Extract extension from metadata
-                string extension = ((BlobDownloadResponse)response).Metadata["extension"];
-                string fileName = ((BlobDownloadResponse)response).Metadata["originalFileName"];
+                string extension = response.Metadata["extension"];
+                string fileName = response.Metadata["originalFileName"];
 
                 // Verify that extension is supported
                 if (!Filetype.SupportedText(extension))
@@ -289,7 +279,7 @@ public class AIController(ResourceManager resourceManager, IServiceScopeFactory 
                 jobService.UpdateJobStatus(jobId, JobStatus.Processing, "Extracting text from document...", 30);
 
                 // Copy blob stream to MemoryStream (Azure stream is not seekable)
-                using Stream blobStream = ((BlobDownloadResponse)response).FileStream;
+                using Stream blobStream = response.Stream;
                 using MemoryStream memoryStream = new();
                 await blobStream.CopyToAsync(memoryStream);
                 memoryStream.Position = 0;
