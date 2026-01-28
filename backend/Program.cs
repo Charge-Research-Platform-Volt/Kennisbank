@@ -190,6 +190,7 @@ namespace KnowledgeBank
 
             builder.Services.AddHostedService<TrashbinCleanupService>(); // Add the background service for cleaning up the trashbin
             builder.Services.AddHostedService<InvitationsCleanupService>(); // Add the background service for cleaning up invitations
+            builder.Services.AddHostedService<StorageCleanupService>();
             //builder.Services.AddHostedService<BlobCleanupService>(); // Add the background service for cleaning up orphaned blobs
 
             // Headless browser service

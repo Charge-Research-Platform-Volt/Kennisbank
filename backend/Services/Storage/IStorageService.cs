@@ -43,6 +43,11 @@ public interface IStorageService
     /// <summary>Gets object metadata without downloading content.</summary>
     Task<IDictionary<string, string>> GetObjectMetadataAsync(string bucketName, string objectName);
 
+    // ==================== Listing ====================
+
+    /// <summary>Lists all object keys in a bucket, optionally filtered by prefix.</summary>
+    Task<string[]> ListObjectsAsync(string bucketName, string? prefix = null);
+
     // ==================== Multipart Uploads ====================
 
     /// <summary>Starts a multipart upload. Returns uploadId for subsequent calls.</summary>
