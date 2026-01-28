@@ -235,7 +235,7 @@ namespace KnowledgeBank.Controllers
                 logger.Information("Downloading file with ID: {ID}", id);
 
                 ObjectDownloadResponse response = await storageService.DownloadObjectAsync("files", id);
-                
+                await using var stream = response.Stream;
 
                 // Get the extension from metadata
                 string extension = response.Metadata["extension"];
@@ -281,7 +281,7 @@ namespace KnowledgeBank.Controllers
                 Response.Headers.Append("Content-Disposition", contentDisposition);
 
                 // Stream the file directly to the response body (no buffering)
-                await response.Stream.CopyToAsync(Response.Body);
+                await stream.CopyToAsync(Response.Body);
 
                 logger.Information("File with ID '{ID}' downloaded successfully.", id);
                 return new EmptyResult();

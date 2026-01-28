@@ -256,16 +256,10 @@ namespace KnowledgeBank.Controllers
                             RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
                             IStorageService storage = scope.ServiceProvider.GetRequiredService<IStorageService>();
 
-                            ObjectDownloadResponse? downloadResponse = await storage.DownloadObjectAsync("files", id.ToString());
+                            ObjectDownloadResponse downloadResponse = await storage.DownloadObjectAsync("files", id.ToString());
+                            await using var fileStream = downloadResponse.Stream;
 
-                            if (downloadResponse?.Stream == null) 
-                            {
-                                var logger = scope.ServiceProvider.GetRequiredService<ILogger<ResourcesController>>();
-                                logger.LogError("Failed to download file for document {Id} from blob storage", id);
-                                return;
-                            }
-                                
-                            await rag.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: "document", fileStream: downloadResponse?.Stream);
+                            await rag.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: "document", fileStream: fileStream);
                         });
                         break;
                     
@@ -417,11 +411,15 @@ namespace KnowledgeBank.Controllers
                 // Get the filetype of the resource
                 string filetype = await resourceManager.GetResourcePropertyAsync(id, "FileType");
 
-                // Delete the file from storage
-                try 
+                // Delete the file from storage (ignore if not found - might be a website or already deleted)
+                try
                 {
                     await storageService.DeleteObjectAsync(filetype, id);
-                }catch {}
+                }
+                catch (Amazon.S3.AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    logger.Information("File {Id} not in storage, continuing with database deletion", id);
+                }
 
                 // Delete the resource from the database
                 await resourceManager.DeleteResourceAsync(Guid.Parse(id));
