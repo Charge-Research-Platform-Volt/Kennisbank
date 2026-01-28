@@ -72,7 +72,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         {
             foreach (string tagId in dto.Tags)
             {
-                if (!await resourceManager.TagExistsAsync(tagId))
+                if (!await resourceManager.TagExistsAsync(Guid.Parse(tagId)))
                 {
                     Log.Error("One or more tags do not exist");
                     return BadRequest(new ApiResponse(false, "One or more tags do not exist"));
@@ -618,7 +618,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                 return NotFound(new ApiResponse(false, "Project not found."));
             }
 
-            if (!await resourceManager.ResourceExistsAsync(resourceId))
+            if (!await resourceManager.ResourceExistsAsync(Guid.Parse(resourceId)))
             {
                 Log.Error("Resource not found.");
                 return NotFound(new ApiResponse(false, "Resource not found."));
@@ -704,7 +704,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                 return NotFound(new ApiResponse(false, "Project not found."));
             }
 
-            if (!await resourceManager.ResourceExistsAsync(resourceId))
+            if (!await resourceManager.ResourceExistsAsync(Guid.Parse(resourceId)))
             {
                 Log.Error("Resource not found.");
                 return NotFound(new ApiResponse(false, "Resource not found."));

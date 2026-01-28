@@ -43,9 +43,6 @@ namespace KnowledgeBank.Data
         public async Task<bool> UpdateResourceAsync<T>(Guid id, Expression<Func<Resource, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.Resources, resource => resource.Id == id, propertySelector, newValue) > 0; }
 
-        public async Task<bool> UpdateResourceAsync<T>(string id, Expression<Func<Resource, T>> propertySelector, T newValue)
-        { return await UpdateResourceAsync(Guid.Parse(id), propertySelector, newValue); }
-
         public async Task<bool> UpdateResourceAsync<T>(Expression<Func<Resource, bool>> predicate, Expression<Func<Resource, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.Resources, predicate, propertySelector, newValue) > 0; }
 
@@ -55,9 +52,6 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> UpdateOrganisationAsync<T>(Guid id, Expression<Func<Organisation, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.Organisations, organisation => organisation.Id == id, propertySelector, newValue) > 0; }
-
-        public async Task<bool> UpdateOrganisationAsync<T>(string id, Expression<Func<Organisation, T>> propertySelector, T newValue)
-        { return await UpdateOrganisationAsync(Guid.Parse(id), propertySelector, newValue); }
 
         public async Task<bool> UpdateOrganisationAsync<T>(Expression<Func<Organisation, bool>> predicate, Expression<Func<Organisation, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.Organisations, predicate, propertySelector, newValue) > 0; }
@@ -69,9 +63,6 @@ namespace KnowledgeBank.Data
         public async Task<bool> UpdatePersonAsync<T>(Guid id, Expression<Func<Person, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.Persons, person => person.Id == id, propertySelector, newValue) > 0; }
 
-        public async Task<bool> UpdatePersonAsync<T>(string id, Expression<Func<Person, T>> propertySelector, T newValue)
-        { return await UpdatePersonAsync(Guid.Parse(id), propertySelector, newValue); }
-
         public async Task<bool> UpdatePersonAsync<T>(Expression<Func<Person, bool>> predicate, Expression<Func<Person, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.Persons, predicate, propertySelector, newValue) > 0; }
 
@@ -81,9 +72,6 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> UpdateRegionAsync<T>(Guid id, Expression<Func<Region, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.Regions, region => region.Id == id, propertySelector, newValue) > 0; }
-
-        public async Task<bool> UpdateRegionAsync<T>(string id, Expression<Func<Region, T>> propertySelector, T newValue)
-        { return await UpdateRegionAsync(Guid.Parse(id), propertySelector, newValue); }
 
         public async Task<bool> UpdateRegionAsync<T>(Expression<Func<Region, bool>> predicate, Expression<Func<Region, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.Regions, predicate, propertySelector, newValue) > 0; }
@@ -95,9 +83,6 @@ namespace KnowledgeBank.Data
         public async Task<bool> UpdateAudioMetadataAsync<T>(Guid resourceId, Expression<Func<AudioMetadata, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.AudioMetadata, metadata => metadata.ResourceId == resourceId, propertySelector, newValue) > 0; }
 
-        public async Task<bool> UpdateAudioMetadataAsync<T>(string id, Expression<Func<AudioMetadata, T>> propertySelector, T newValue)
-        { return await UpdateAudioMetadataAsync(Guid.Parse(id), propertySelector, newValue); }
-
         public async Task<bool> UpdateAudioMetadataAsync<T>(Expression<Func<AudioMetadata, bool>> predicate, Expression<Func<AudioMetadata, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.AudioMetadata, predicate, propertySelector, newValue) > 0; }
 
@@ -107,9 +92,6 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> UpdateVideoMetadataAsync<T>(Guid resourceId, Expression<Func<VideoMetadata, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.VideoMetadata, metadata => metadata.ResourceId == resourceId, propertySelector, newValue) > 0; }
-
-        public async Task<bool> UpdateVideoMetadataAsync<T>(string id, Expression<Func<VideoMetadata, T>> propertySelector, T newValue)
-        { return await UpdateVideoMetadataAsync(Guid.Parse(id), propertySelector, newValue); }
 
         public async Task<bool> UpdateVideoMetadataAsync<T>(Expression<Func<VideoMetadata, bool>> predicate, Expression<Func<VideoMetadata, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.VideoMetadata, predicate, propertySelector, newValue) > 0; }
@@ -121,9 +103,6 @@ namespace KnowledgeBank.Data
         public async Task<bool> UpdateDocumentMetadataAsync<T>(Guid resourceId, Expression<Func<DocumentMetadata, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.DocumentMetadata, metadata => metadata.ResourceId == resourceId, propertySelector, newValue) > 0; }
 
-        public async Task<bool> UpdateDocumentMetadataAsync<T>(string id, Expression<Func<DocumentMetadata, T>> propertySelector, T newValue)
-        { return await UpdateDocumentMetadataAsync(Guid.Parse(id), propertySelector, newValue); }
-
         public async Task<bool> UpdateDocumentMetadataAsync<T>(Expression<Func<DocumentMetadata, bool>> predicate, Expression<Func<DocumentMetadata, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.DocumentMetadata, predicate, propertySelector, newValue) > 0; }
 
@@ -133,9 +112,6 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> UpdateWebsiteMetadataAsync<T>(Guid resourceId, Expression<Func<WebsiteMetadata, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.WebsiteMetadata, metadata => metadata.ResourceId == resourceId, propertySelector, newValue) > 0; }
-
-        public async Task<bool> UpdateWebsiteMetadataAsync<T>(string id, Expression<Func<WebsiteMetadata, T>> propertySelector, T newValue)
-        { return await UpdateWebsiteMetadataAsync(Guid.Parse(id), propertySelector, newValue); }
 
         public async Task<bool> UpdateWebsiteMetadataAsync<T>(Expression<Func<WebsiteMetadata, bool>> predicate, Expression<Func<WebsiteMetadata, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.WebsiteMetadata, predicate, propertySelector, newValue) > 0; }
@@ -147,9 +123,6 @@ namespace KnowledgeBank.Data
         public async Task<bool> UpdateTagAsync<T>(Guid id, Expression<Func<Tag, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.Tags, tag => tag.Id == id, propertySelector, newValue) > 0; }
 
-        public async Task<bool> UpdateTagAsync<T>(string id, Expression<Func<Tag, T>> propertySelector, T newValue)
-        { return await UpdateTagAsync(Guid.Parse(id), propertySelector, newValue); }
-
         public async Task<bool> UpdateTagAsync<T>(Expression<Func<Tag, bool>> predicate, Expression<Func<Tag, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.Tags, predicate, propertySelector, newValue) > 0; }
 
@@ -159,9 +132,6 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> UpdateResourceTypeAsync<T>(Guid id, Expression<Func<ResourceType, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.ResourceTypes, resourceType => resourceType.Id == id, propertySelector, newValue) > 0; }
-
-        public async Task<bool> UpdateResourceTypeAsync<T>(string id, Expression<Func<ResourceType, T>> propertySelector, T newValue)
-        { return await UpdateResourceTypeAsync(Guid.Parse(id), propertySelector, newValue); }
 
         public async Task<bool> UpdateResourceTypeAsync<T>(Expression<Func<ResourceType, bool>> predicate, Expression<Func<ResourceType, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.ResourceTypes, predicate, propertySelector, newValue) > 0; }
@@ -175,15 +145,6 @@ namespace KnowledgeBank.Data
         public async Task<bool> UpdateRelationInOrganisationRelationshipAsync(Guid sourceOrganisationId, string newRelation, Guid targetOrganisationId)
         { return await UpdatePropertyAsync(database.OrganisationRelationships, relation => relation.SourceOrganisationId == sourceOrganisationId && relation.TargetOrganisationId == targetOrganisationId, relationship => relationship.Relation, newRelation) > 0; }
 
-        public async Task<bool> UpdateRelationInOrganisationRelationshipAsync(Guid sourceOrganisationId, string newRelation, string targetOrganisationId)
-        { return await UpdateRelationInOrganisationRelationshipAsync(sourceOrganisationId, newRelation, Guid.Parse(targetOrganisationId)); }
-
-        public async Task<bool> UpdateRelationInOrganisationRelationshipAsync(string sourceOrganisationId, string newRelation, Guid targetOrganisationId)
-        { return await UpdateRelationInOrganisationRelationshipAsync(Guid.Parse(sourceOrganisationId), newRelation, targetOrganisationId); }
-
-        public async Task<bool> UpdateRelationInOrganisationRelationshipAsync(string sourceOrganisationId, string newRelation, string targetOrganisationId)
-        { return await UpdateRelationInOrganisationRelationshipAsync(Guid.Parse(sourceOrganisationId), newRelation, Guid.Parse(targetOrganisationId)); }
-
         #endregion
 
         #region Person Organisation
@@ -192,14 +153,6 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> UpdateRoleInPersonOrganisationRelationAsync(Guid personId, string newRole, Guid organisationId)
         { return await UpdatePropertyAsync(database.PersonOrganisationRelations, relation => relation.PersonId == personId && relation.OrganisationId == organisationId, relation => relation.Role, newRole) > 0; }
-
-        public async Task<bool> UpdateRoleInPersonOrganisationRelationAsync(Guid personId, string newRole, string organisationId)
-        { return await UpdateRoleInPersonOrganisationRelationAsync(personId, newRole, Guid.Parse(organisationId)); }
-        public async Task<bool> UpdateRoleInPersonOrganisationRelationAsync(string personId, string newRole, Guid organisationId)
-        { return await UpdateRoleInPersonOrganisationRelationAsync(Guid.Parse(personId), newRole, organisationId); }
-
-        public async Task<bool> UpdateRoleInPersonOrganisationRelationAsync(string personId, string newRole, string organisationId)
-        { return await UpdateRoleInPersonOrganisationRelationAsync(Guid.Parse(personId), newRole, Guid.Parse(organisationId)); }
 
         #endregion
 
@@ -211,15 +164,6 @@ namespace KnowledgeBank.Data
         public async Task<bool> UpdateRelationInPersonRelationshipAsync(Guid sourcePersonId, string newRelation, Guid targetPersonId)
         { return await UpdatePropertyAsync(database.PersonRelationships, relation => relation.SourcePersonId == sourcePersonId && relation.TargetPersonId == targetPersonId, relationship => relationship.Relation, newRelation) > 0; }
 
-        public async Task<bool> UpdateRelationInPersonRelationshipAsync(Guid sourcePersonId, string newRelation, string targetPersonId)
-        { return await UpdateRelationInPersonRelationshipAsync(sourcePersonId, newRelation, Guid.Parse(targetPersonId)); }
-
-        public async Task<bool> UpdateRelationInPersonRelationshipAsync(string sourcePersonId, string newRelation, Guid targetPersonId)
-        { return await UpdateRelationInPersonRelationshipAsync(Guid.Parse(sourcePersonId), newRelation, targetPersonId); }
-
-        public async Task<bool> UpdateRelationInPersonRelationshipAsync(string sourcePersonId, string newRelation, string targetPersonId)
-        { return await UpdateRelationInPersonRelationshipAsync(Guid.Parse(sourcePersonId), newRelation, Guid.Parse(targetPersonId)); }
-
         #endregion
 
         #region Resource Organisation
@@ -228,15 +172,6 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> UpdateRoleInResourceOrganisationRelationAsync(Guid resourceId, Guid organisationId, string newRole)
         { return await UpdatePropertyAsync(database.ResourceOrganisationRelations, relation => relation.ResourceId == resourceId && relation.OrganisationId == organisationId, relation => relation.Role, newRole) > 0; }
-
-        public async Task<bool> UpdateRoleInResourceOrganisationRelationAsync(Guid resourceId, string organisationId, string newRole)
-        { return await UpdateRoleInResourceOrganisationRelationAsync(resourceId, Guid.Parse(organisationId), newRole); }
-
-        public async Task<bool> UpdateRoleInResourceOrganisationRelationAsync(string resourceId, Guid organisationId, string newRole)
-        { return await UpdateRoleInResourceOrganisationRelationAsync(Guid.Parse(resourceId), organisationId, newRole); }
-
-        public async Task<bool> UpdateRoleInResourceOrganisationRelationAsync(string resourceId, string organisationId, string newRole)
-        { return await UpdateRoleInResourceOrganisationRelationAsync(Guid.Parse(resourceId), Guid.Parse(organisationId), newRole); }
 
         #endregion
 
@@ -247,22 +182,6 @@ namespace KnowledgeBank.Data
         public async Task<bool> UpdateRoleInResourceRelatedPersonRelationAsync(Guid resourceId, Guid personId, string newRole)
         { return await UpdatePropertyAsync(database.ResourceRelatedPersonRelations, relation => relation.ResourceId == resourceId && relation.PersonId == personId, relation => relation.Role, newRole) > 0; }
 
-        public async Task<bool> UpdateRoleInResourceRelatedPersonRelationAsync(Guid resourceId, string personId, string newRole)
-        { return await UpdateRoleInResourceRelatedPersonRelationAsync(resourceId, Guid.Parse(personId), newRole); }
-
-        public async Task<bool> UpdateRoleInResourceRelatedPersonRelationAsync(string resourceId, Guid personId, string newRole)
-        { return await UpdateRoleInResourceRelatedPersonRelationAsync(Guid.Parse(resourceId), personId, newRole); }
-
-        public async Task<bool> UpdateRoleInResourceRelatedPersonRelationAsync(string resourceId, string personId, string newRole)
-        { return await UpdateRoleInResourceRelatedPersonRelationAsync(Guid.Parse(resourceId), Guid.Parse(personId), newRole); }
-
         #endregion
     }
 }
-
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

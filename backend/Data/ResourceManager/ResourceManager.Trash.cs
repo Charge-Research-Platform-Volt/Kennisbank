@@ -27,10 +27,6 @@ namespace KnowledgeBank.Data
             return updatedTrashDateRows && updatedTrashedRows;
         }
 
-        public async Task<bool> TrashResourceAsync(string resourceId)
-        { return await TrashResourceAsync(Guid.Parse(resourceId)); }
-
-
         public async Task<bool> UntrashResourceAsync(Guid resourceId)
         { 
             bool startedTransaction = await BeginTransaction();
@@ -44,11 +40,8 @@ namespace KnowledgeBank.Data
             return updatedTrashDateRows && updatedTrashedRows; 
         }
 
-        public async Task<bool> UntrashResourceAsync(string resourceId)
-        { return await UntrashResourceAsync(Guid.Parse(resourceId)); }
-        
         #endregion
-        
+
         #region Person Trash
         public async Task<bool> TrashPersonAsync(Guid Id)
         { 
@@ -63,10 +56,6 @@ namespace KnowledgeBank.Data
             return updatedTrashDateRows && updatedTrashedRows;
         }
 
-        public async Task<bool> TrashPersonAsync(string Id)
-        { return await TrashPersonAsync(Guid.Parse(Id)); }
-
-
         public async Task<bool> UntrashPersonAsync(Guid Id)
         { 
             bool startedTransaction = await BeginTransaction();
@@ -80,11 +69,8 @@ namespace KnowledgeBank.Data
             return updatedTrashDateRows && updatedTrashedRows; 
         }
 
-        public async Task<bool> UntrashPersonAsync(string Id)
-        { return await UntrashPersonAsync(Guid.Parse(Id)); }
-        
         #endregion
-        
+
         #region Organisation Trash
         public async Task<bool> TrashOrganisationAsync(Guid Id)
         { 
@@ -99,10 +85,6 @@ namespace KnowledgeBank.Data
             return updatedTrashDateRows && updatedTrashedRows;
         }
 
-        public async Task<bool> TrashOrganisationAsync(string Id)
-        { return await TrashOrganisationAsync(Guid.Parse(Id)); }
-
-
         public async Task<bool> UntrashOrganisationAsync(Guid Id)
         { 
             bool startedTransaction = await BeginTransaction();
@@ -116,16 +98,6 @@ namespace KnowledgeBank.Data
             return updatedTrashDateRows && updatedTrashedRows; 
         }
 
-        public async Task<bool> UntrashOrganisationAsync(string Id)
-        { return await UntrashOrganisationAsync(Guid.Parse(Id)); }
-        
         #endregion
     }
 }
-
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

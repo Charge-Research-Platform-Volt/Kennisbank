@@ -334,7 +334,7 @@ public class TagsController(ResourceManager resourceManager, ProjectManager proj
                 return StatusCode(403, new ApiResponse(false, "User cannot delete this tag." ));
             }
             
-            if (await resourceManager.DeleteTagAsync(id))
+            if (await resourceManager.DeleteTagAsync(Guid.Parse(id)))
                 return Ok(new ApiResponse(true, "Tag deleted."));
                 
             Log.Error("Failed to delete tag.");
@@ -416,7 +416,7 @@ public class TagsController(ResourceManager resourceManager, ProjectManager proj
                 return Conflict(new ApiResponse(false, "Tag already exists."));
             }
 
-            if (!await resourceManager.UpdateTagAsync(id, t => t.Name, newName))
+            if (!await resourceManager.UpdateTagAsync(Guid.Parse(id), t => t.Name, newName))
             {
                 Log.Error("Tag not found.");
                 return NotFound(new ApiResponse(false, "Tag not found." ));
@@ -446,15 +446,15 @@ public class TagsController(ResourceManager resourceManager, ProjectManager proj
         try
         {
             // Check if tag exists
-            if (!await resourceManager.TagExistsAsync(id))
+            if (!await resourceManager.TagExistsAsync(Guid.Parse(id)))
                 return NotFound(new ApiResponse(false, "Tag was not found." ));
 
-            await resourceManager.UpdateTagAsync(id, t => t.IsApproved, true);
-            await resourceManager.UpdateTagAsync(id, t => t.ApprovedOn, DateTime.UtcNow);
+            await resourceManager.UpdateTagAsync(Guid.Parse(id), t => t.IsApproved, true);
+            await resourceManager.UpdateTagAsync(Guid.Parse(id), t => t.ApprovedOn, DateTime.UtcNow);
 
             string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId != null)
-                await resourceManager.UpdateTagAsync(id, t => t.ApprovedBy, Guid.Parse(userId));
+                await resourceManager.UpdateTagAsync(Guid.Parse(id), t => t.ApprovedBy, Guid.Parse(userId));
 
             return Ok(new ApiResponse(true, "Tag was approved"));
         }
@@ -479,10 +479,10 @@ public class TagsController(ResourceManager resourceManager, ProjectManager proj
         try
         {
             // Check if tag exists
-            if (!await resourceManager.TagExistsAsync(id))
+            if (!await resourceManager.TagExistsAsync(Guid.Parse(id)))
                 return NotFound(new ApiResponse(false, "Tag was not found." ));
 
-            await resourceManager.UpdateTagAsync(id, t => t.IsStandardized, true);
+            await resourceManager.UpdateTagAsync(Guid.Parse(id), t => t.IsStandardized, true);
 
             return Ok(new ApiResponse(true, "Tag was standardized"));
         }
@@ -525,7 +525,7 @@ public class TagsController(ResourceManager resourceManager, ProjectManager proj
         try 
         {
             // Check if both tags exist
-            if (!await resourceManager.TagExistsAsync(id1) || !await resourceManager.TagExistsAsync(id2)) 
+            if (!await resourceManager.TagExistsAsync(Guid.Parse(id1)) || !await resourceManager.TagExistsAsync(Guid.Parse(id2)))
                 return NotFound(new ApiResponse(false, "One or both tags were not found." ));
 
             await resourceManager.BeginTransaction();
@@ -568,7 +568,7 @@ public class TagsController(ResourceManager resourceManager, ProjectManager proj
             }
             
             // Delete the second tag from both the resources and projects
-            if (!await resourceManager.DeleteTagAsync(id2) || !await projectManager.RemoveTagFromAllProjects(Guid.Parse(id2)))
+            if (!await resourceManager.DeleteTagAsync(Guid.Parse(id2)) || !await projectManager.RemoveTagFromAllProjects(Guid.Parse(id2)))
             {
                 await resourceManager.Rollback();
                 Log.Error("Failed to delete tag {TagId2} during merge", id2);

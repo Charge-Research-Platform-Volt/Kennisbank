@@ -102,13 +102,13 @@ namespace KnowledgeBank.Controllers
             try 
             {
                 // Check if the organisation exists
-                if (!await resourceManager.OrganisationExistsAsync(id))
+                if (!await resourceManager.OrganisationExistsAsync(Guid.Parse(id)))
                     return NotFound(new ApiResponse(false, $"Organisation with ID '{id}' does not exist."));
 
                 logger.Information("Trashing organisation with ID: {ID}", id);
-                    
+
                 // Trash the organisation
-                await resourceManager.TrashOrganisationAsync(id);
+                await resourceManager.TrashOrganisationAsync(Guid.Parse(id));
 
                 logger.Information("Trashed organisation with ID '{ID}' successfully.", id);
                 return Ok(new ApiResponse(true, "Organisation trashed successfully."));
@@ -142,13 +142,13 @@ namespace KnowledgeBank.Controllers
             try 
             {
                 // Check if the organisation exists
-                if (!await resourceManager.OrganisationExistsAsync(id))
+                if (!await resourceManager.OrganisationExistsAsync(Guid.Parse(id)))
                     return NotFound(new ApiResponse(false, $"Organisation with ID '{id}' does not exist."));
 
                 logger.Information("Untrashing organisation with ID: {ID}", id);
-                    
+
                 // Untrash the organisation
-                await resourceManager.UntrashOrganisationAsync(id);
+                await resourceManager.UntrashOrganisationAsync(Guid.Parse(id));
 
                 logger.Information("Untrashed organisation with ID '{ID}' successfully.", id);
                 return Ok(new ApiResponse(true, "Organisation untrashed successfully."));
@@ -184,7 +184,7 @@ namespace KnowledgeBank.Controllers
                 logger.Information("Deleting organisation with ID: {ID}", id);
 
                 // Delete organisation from database
-                bool organisationFound = await resourceManager.DeleteOrganisationAsync(id);
+                bool organisationFound = await resourceManager.DeleteOrganisationAsync(Guid.Parse(id));
 
                 if (!organisationFound)
                 {
@@ -240,7 +240,7 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Check if organisation exsists
-                if (!await resourceManager.OrganisationExistsAsync(id))
+                if (!await resourceManager.OrganisationExistsAsync(Guid.Parse(id)))
                     return NotFound(new ApiResponse(false, "The organisation does not exist"));
 
                 // Start a database transaction, since we could be doing multiple updates
@@ -538,7 +538,7 @@ namespace KnowledgeBank.Controllers
 
                     // Organisations
                     case "related-organisations":
-                        await resourceManager.AddOrganisationRelationshipAsync(id, relationInfo, targetId);
+                        await resourceManager.AddOrganisationRelationshipAsync(Guid.Parse(id), relationInfo, Guid.Parse(targetId));
                         break;
 
                     // Persons
@@ -683,7 +683,7 @@ namespace KnowledgeBank.Controllers
         // Helper method to update a property
         private async Task UpdateProperty<TSet, TProperty>(string id, string propertyName, TProperty newValue) where TSet : class
         {
-            await resourceManager.UpdateOrganisationAsync(id, PropertyUpdateUtil.CreatePropertySelector<Organisation, TProperty>(propertyName), newValue);
+            await resourceManager.UpdateOrganisationAsync(Guid.Parse(id), PropertyUpdateUtil.CreatePropertySelector<Organisation, TProperty>(propertyName), newValue);
         }
         #endregion
     }

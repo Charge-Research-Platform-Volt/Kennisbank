@@ -328,13 +328,13 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Check if the resource exists
-                if (!await resourceManager.ResourceExistsAsync(id))
+                if (!await resourceManager.ResourceExistsAsync(Guid.Parse(id)))
                     return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
 
                 logger.Information("Trashing resource with ID: {ID}", id);
-                    
+
                 // Trash the resource
-                await resourceManager.TrashResourceAsync(id);
+                await resourceManager.TrashResourceAsync(Guid.Parse(id));
 
                 logger.Information("Trashed resource with ID '{ID}' successfully.", id);
                 return Ok(new ApiResponse(true, "Resource trashed successfully."));
@@ -368,13 +368,13 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Check if the resource exists
-                if (!await resourceManager.ResourceExistsAsync(id))
+                if (!await resourceManager.ResourceExistsAsync(Guid.Parse(id)))
                     return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
 
                 logger.Information("Untrashing resource with ID: {ID}", id);
-                    
+
                 // Untrash the resource
-                await resourceManager.UntrashResourceAsync(id);
+                await resourceManager.UntrashResourceAsync(Guid.Parse(id));
 
                 logger.Information("Untrashed resource with ID '{ID}' successfully.", id);
                 return Ok(new ApiResponse(true, "Resource untrashed successfully."));
@@ -408,7 +408,7 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Check if the resource exists
-                if (!await resourceManager.ResourceExistsAsync(id))
+                if (!await resourceManager.ResourceExistsAsync(Guid.Parse(id)))
                     return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
 
                 logger.Information("Deleting resource with ID: {ID}", id);
@@ -438,7 +438,7 @@ namespace KnowledgeBank.Controllers
                 }
 
                 // Delete the resource from the database
-                await resourceManager.DeleteResourceAsync(id);
+                await resourceManager.DeleteResourceAsync(Guid.Parse(id));
 
                 // Delete the chunks from the vector database
                 bool chunkDeleted = await vectorStore.DeletePointsByResourceIdAsync(Guid.Parse(id));
@@ -488,7 +488,7 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Check if resource exists
-                if (!await resourceManager.ResourceExistsAsync(id))
+                if (!await resourceManager.ResourceExistsAsync(Guid.Parse(id)))
                     return NotFound(new ApiResponse(false, "The resource does not exist"));
 
                 // Start a database transaction, since we could have multiple updates
@@ -1172,19 +1172,19 @@ namespace KnowledgeBank.Controllers
             await (setType switch
             {
                 // If type is Resource
-                Type t when t == typeof(Resource) => resourceManager.UpdateResourceAsync(id, PropertyUpdateUtil.CreatePropertySelector<Resource, TProperty>(propertyName), newValue),
+                Type t when t == typeof(Resource) => resourceManager.UpdateResourceAsync(Guid.Parse(id), PropertyUpdateUtil.CreatePropertySelector<Resource, TProperty>(propertyName), newValue),
 
                 // If type is WebsiteMetadata
-                Type t when t == typeof(WebsiteMetadata) => resourceManager.UpdateWebsiteMetadataAsync(id, PropertyUpdateUtil.CreatePropertySelector<WebsiteMetadata, TProperty>(propertyName), newValue),
+                Type t when t == typeof(WebsiteMetadata) => resourceManager.UpdateWebsiteMetadataAsync(Guid.Parse(id), PropertyUpdateUtil.CreatePropertySelector<WebsiteMetadata, TProperty>(propertyName), newValue),
 
                 // If type is DocumentMetadata
-                Type t when t == typeof(DocumentMetadata) => resourceManager.UpdateDocumentMetadataAsync(id, PropertyUpdateUtil.CreatePropertySelector<DocumentMetadata, TProperty>(propertyName), newValue),
+                Type t when t == typeof(DocumentMetadata) => resourceManager.UpdateDocumentMetadataAsync(Guid.Parse(id), PropertyUpdateUtil.CreatePropertySelector<DocumentMetadata, TProperty>(propertyName), newValue),
 
                 // If type is VideoMetadata
-                Type t when t == typeof(VideoMetadata) => resourceManager.UpdateVideoMetadataAsync(id, PropertyUpdateUtil.CreatePropertySelector<VideoMetadata, TProperty>(propertyName), newValue),
+                Type t when t == typeof(VideoMetadata) => resourceManager.UpdateVideoMetadataAsync(Guid.Parse(id), PropertyUpdateUtil.CreatePropertySelector<VideoMetadata, TProperty>(propertyName), newValue),
 
                 // If type is AudioMetadata
-                Type t when t == typeof(AudioMetadata) => resourceManager.UpdateAudioMetadataAsync(id, PropertyUpdateUtil.CreatePropertySelector<AudioMetadata, TProperty>(propertyName), newValue),
+                Type t when t == typeof(AudioMetadata) => resourceManager.UpdateAudioMetadataAsync(Guid.Parse(id), PropertyUpdateUtil.CreatePropertySelector<AudioMetadata, TProperty>(propertyName), newValue),
 
                 // Default
                 _ => throw new ArgumentException($"Unsupported type: {setType.Name}")
@@ -1200,7 +1200,7 @@ namespace KnowledgeBank.Controllers
                 const float similarityThreshold = 0.6f;
 
                 // Check if the resource exists
-                if (!await resourceManager.ResourceExistsAsync(id))
+                if (!await resourceManager.ResourceExistsAsync(Guid.Parse(id)))
                     return NotFound(new ApiResponse(false, $"Resource with ID '{id}' does not exist."));
 
                 // Get vector points for the current resource

@@ -23,49 +23,78 @@ namespace KnowledgeBank.Data
     public partial class ResourceManager(IDbContextFactory<DatabaseContext> dbFactory, RAGSystem ragSystem, HybridSearchService hybridSearchService)
     {
         private readonly Serilog.ILogger _logger = Log.ForContext<ResourceManager>();
+        private readonly IDbContextFactory<DatabaseContext> _dbFactory = dbFactory;
         private readonly RAGSystem _ragSystem = ragSystem;
         private readonly HybridSearchService _hybridSearchService = hybridSearchService;
 
+        // Shared context - lazily created and reused for all operations
+        private DatabaseContext? _database;
+        protected DatabaseContext database => _database ??= _dbFactory.CreateDbContext();
+
+        /// <summary>
+        /// Creates a new database context for operations that need their own context lifecycle
+        /// </summary>
+        protected async Task<DatabaseContext> CreateContextAsync() => await _dbFactory.CreateDbContextAsync();
 
         #region Transaction functions
 
         /// <summary>
-        /// Starts a database transaction
+        /// Starts a database transaction on the shared context
         /// </summary>
         /// <returns>If the transaction was started or not (if false, there was already a transaction running)</returns>
-        public async Task<bool> BeginTransaction(DatabaseContext database)
+        public async Task<bool> BeginTransaction()
         {
-            // Begin a transaction that can be committed or rolled back later
-            if (database.Database.CurrentTransaction == null)
+            return await BeginTransaction(database);
+        }
+
+        /// <summary>
+        /// Starts a database transaction on a specific context
+        /// </summary>
+        public async Task<bool> BeginTransaction(DatabaseContext db)
+        {
+            if (db.Database.CurrentTransaction == null)
             {
-                await database.Database.BeginTransactionAsync();
+                await db.Database.BeginTransactionAsync();
                 return true;
             }
-
             return false;
         }
 
         /// <summary>
-        /// Commits the current database transaction
+        /// Commits the current database transaction on the shared context
         /// </summary>
-        public async Task Commit(DatabaseContext database)
+        public async Task Commit()
         {
-            // Commit changes from transaction to database
-            if (database.Database.CurrentTransaction != null)
+            await Commit(database);
+        }
+
+        /// <summary>
+        /// Commits the current database transaction on a specific context
+        /// </summary>
+        public async Task Commit(DatabaseContext db)
+        {
+            if (db.Database.CurrentTransaction != null)
             {
-                await database.SaveChangesAsync();
-                await database.Database.CurrentTransaction.CommitAsync();
+                await db.SaveChangesAsync();
+                await db.Database.CurrentTransaction.CommitAsync();
             }
         }
 
         /// <summary>
-        /// Rolls back the current database transaction
+        /// Rolls back the current database transaction on the shared context
         /// </summary>
-        public async Task Rollback(DatabaseContext database)
+        public async Task Rollback()
         {
-            // Roll back the transaction if one exists
-            if (database.Database.CurrentTransaction != null)
-                await database.Database.CurrentTransaction.RollbackAsync();
+            await Rollback(database);
+        }
+
+        /// <summary>
+        /// Rolls back the current database transaction on a specific context
+        /// </summary>
+        public async Task Rollback(DatabaseContext db)
+        {
+            if (db.Database.CurrentTransaction != null)
+                await db.Database.CurrentTransaction.RollbackAsync();
         }
 
         #endregion
@@ -88,10 +117,3 @@ namespace KnowledgeBank.Data
         #endregion
     }
 }
-
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

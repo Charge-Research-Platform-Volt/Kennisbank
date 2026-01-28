@@ -240,7 +240,7 @@ namespace KnowledgeBank.Data
             await database.Organisations.AddAsync(organisation);
 
             // Add organisation relations if present
-            await AddOrganisationRelationshipRangeAsync(organisationId, dto.OrganisationRelations.Select((entry) => entry.Relation).ToArray(), dto.OrganisationRelations.Select((entry) => entry.Id).ToArray());
+            await AddOrganisationRelationshipRangeAsync(organisationId, dto.OrganisationRelations.Select((entry) => entry.Relation).ToArray(), dto.OrganisationRelations.Select((entry) => Guid.Parse(entry.Id)).ToArray());
 
             if (startedTransaction) await Commit();
 

@@ -48,13 +48,13 @@ public class TrashbinCleanupService : BackgroundService
 
                     // Delete all found IDs through resourcemanager to delete all relations as well
                     foreach (string id in resources)
-                        await resourceManager.DeleteResourceAsync(id);
-                    
+                        await resourceManager.DeleteResourceAsync(Guid.Parse(id));
+
                     foreach (string id in persons)
-                        await resourceManager.DeletePersonAsync(id);
-                    
+                        await resourceManager.DeletePersonAsync(Guid.Parse(id));
+
                     foreach (string id in organisations)
-                        await resourceManager.DeleteOrganisationAsync(id);
+                        await resourceManager.DeleteOrganisationAsync(Guid.Parse(id));
 
                     // Commit transaction
                     await resourceManager.Commit();

@@ -37,7 +37,7 @@ public class AIController(ResourceManager resourceManager, IServiceScopeFactory 
         try
         {
             // Check if resource exists
-            if (!await resourceManager.ResourceExistsAsync(id))
+            if (!await resourceManager.ResourceExistsAsync(Guid.Parse(id)))
                 return NotFound(new ApiResponse(false, "Resource not found."));
 
 

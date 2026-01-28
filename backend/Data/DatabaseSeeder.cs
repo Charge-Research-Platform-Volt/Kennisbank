@@ -31,7 +31,7 @@ namespace KnowledgeBank.Data
             // Seed data (this part is common between both Seed and SeedTemplate methods)
 
             // Add the unknown resource type if it doesn't exist
-            if (!await resourceManager.ResourceTypeExistsAsync(UnknownResourceTypeId))
+            if (!await resourceManager.ResourceTypeExistsAsync(Guid.Parse(UnknownResourceTypeId)))
                 await database.ResourceTypes.AddAsync(new() { Id = new Guid(UnknownResourceTypeId), Name = "Unknown" });
 
             // Create Scientific Article resource type

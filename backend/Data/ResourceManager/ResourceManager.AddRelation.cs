@@ -15,13 +15,13 @@ namespace KnowledgeBank.Data
         #region Organisation-Organisation
 
         // Range
-        public async Task AddOrganisationRelationshipRangeAsync(DatabaseContext database, Guid sourceOrganisationId, string?[] relations, Guid[] targetOrganisationIds)
+        public async Task AddOrganisationRelationshipRangeAsync(Guid sourceOrganisationId, string?[] relations, Guid[] targetOrganisationIds)
         {
             if (targetOrganisationIds.Length == 0) return;
 
             if (relations.Length != targetOrganisationIds.Length) throw new Exception("Relations and target organisation IDs array should be the same size");
 
-            bool startedTransaction = await BeginTransaction(database);
+            bool startedTransaction = await BeginTransaction();
 
             // Create entries
             OrganisationRelationship[] relationships = new OrganisationRelationship[targetOrganisationIds.Length];
@@ -39,54 +39,18 @@ namespace KnowledgeBank.Data
             // Add to database
             await database.OrganisationRelationships.AddRangeAsync(relationships);
 
-            if (startedTransaction) await Commit(database);
+            if (startedTransaction) await Commit();
         }
 
-        public async Task AddOrganisationRelationshipRangeAsync(DatabaseContext database, string sourceOrganisationId, string?[] relations, Guid[] targetOrganisationIds)
-        { await AddOrganisationRelationshipRangeAsync(database, Guid.Parse(sourceOrganisationId), relations, targetOrganisationIds); }
-
-        public async Task AddOrganisationRelationshipRangeAsync(DatabaseContext database, Guid sourceOrganisationId, string?[] relations, string[] targetOrganisationIds)
-        { await AddOrganisationRelationshipRangeAsync(database, sourceOrganisationId, relations, StringToGuidArray(targetOrganisationIds)); }
-
-        public async Task AddOrganisationRelationshipRangeAsync(DatabaseContext database, string sourceOrganisationId, string?[] relations, string[] targetOrganisationIds)
-        { await AddOrganisationRelationshipRangeAsync(Guid.Parse(sourceOrganisationId), relations, StringToGuidArray(targetOrganisationIds)); }
-
-        public async Task AddOrganisationRelationshipRangeAsync(DatabaseContext database, Guid sourceOrganisationId, Guid[] targetOrganisationIds)
-        { await AddOrganisationRelationshipRangeAsync(sourceOrganisationId, new string[targetOrganisationIds.Length], targetOrganisationIds); }
-
-        public async Task AddOrganisationRelationshipAsync(DatabaseContext database, string sourceOrganisationId, Guid[] targetOrganisationIds)
-        { await AddOrganisationRelationshipRangeAsync(Guid.Parse(sourceOrganisationId), new string[targetOrganisationIds.Length], targetOrganisationIds); }
-
-        public async Task AddOrganisationRelationshipAsync(DatabaseContext database, Guid sourceOrganisationId, string[] targetOrganisationIds)
-        { await AddOrganisationRelationshipRangeAsync(sourceOrganisationId, new string[targetOrganisationIds.Length], StringToGuidArray(targetOrganisationIds)); }
-
-        public async Task AddOrganisationRelationshipAsync(DatabaseContext database, string sourceOrganisationId, string[] targetOrganisationIds)
-        { await AddOrganisationRelationshipRangeAsync(Guid.Parse(sourceOrganisationId), new string[targetOrganisationIds.Length], StringToGuidArray(targetOrganisationIds)); }
+        public async Task AddOrganisationRelationshipRangeAsync(Guid sourceOrganisationId, Guid[] targetOrganisationIds)
+        { await AddOrganisationRelationshipRangeAsync(sourceOrganisationId, new string?[targetOrganisationIds.Length], targetOrganisationIds); }
 
         // Single
-        public async Task AddOrganisationRelationshipAsync(DatabaseContext database, Guid sourceOrganisationId, string? relation, Guid targetOrganisationId)
+        public async Task AddOrganisationRelationshipAsync(Guid sourceOrganisationId, string? relation, Guid targetOrganisationId)
         { await AddOrganisationRelationshipRangeAsync(sourceOrganisationId, [relation], [targetOrganisationId]); }
 
-        public async Task AddOrganisationRelationshipAsync(DatabaseContext database, string sourceOrganisationId, string? relation, Guid targetOrganisationId)
-        { await AddOrganisationRelationshipAsync(Guid.Parse(sourceOrganisationId), relation, targetOrganisationId); }
-
-        public async Task AddOrganisationRelationshipAsync(DatabaseContext database, Guid sourceOrganisationId, string? relation, string targetOrganistationId)
-        { await AddOrganisationRelationshipAsync(sourceOrganisationId, relation, Guid.Parse(targetOrganistationId)); }
-
-        public async Task AddOrganisationRelationshipAsync(DatabaseContext database, string sourceOrganisationId, string? relation, string targetOrganisationId)
-        { await AddOrganisationRelationshipAsync(Guid.Parse(sourceOrganisationId), relation, Guid.Parse(targetOrganisationId)); }
-
-        public async Task AddOrganisationRelationshipAsync(DatabaseContext database, Guid sourceOrganisationId, Guid targetOrganisationId)
+        public async Task AddOrganisationRelationshipAsync(Guid sourceOrganisationId, Guid targetOrganisationId)
         { await AddOrganisationRelationshipRangeAsync(sourceOrganisationId, [targetOrganisationId]); }
-
-        public async Task AddOrganisationRelationshipAsync(DatabaseContext database, string sourceOrganisationId, Guid targetOrganisationId)
-        { await AddOrganisationRelationshipAsync(Guid.Parse(sourceOrganisationId), targetOrganisationId); }
-
-        public async Task AddOrganisationRelationshipAsync(DatabaseContext database, Guid sourceOrganisationId, string targetOrganistationId)
-        { await AddOrganisationRelationshipAsync(sourceOrganisationId, Guid.Parse(targetOrganistationId)); }
-
-        public async Task AddOrganisationRelationshipAsync(DatabaseContext database, string sourceOrganisationId, string targetOrganisationId)
-        { await AddOrganisationRelationshipAsync(Guid.Parse(sourceOrganisationId), Guid.Parse(targetOrganisationId)); }
 
         #endregion
 

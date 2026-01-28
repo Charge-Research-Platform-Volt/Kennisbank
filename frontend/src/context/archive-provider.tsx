@@ -92,6 +92,12 @@ export const ArchiveProvider = ({ children }: { children: React.ReactNode }) => 
   const router = useRouter();
   const pathname = usePathname();
 
+  // Use ref to store searchParams to avoid circular dependencies with URL sync
+  const searchParamsRef = React.useRef(searchParams);
+  React.useEffect(() => {
+    searchParamsRef.current = searchParams;
+  }, [searchParams]);
+
     // Filters
     const [tagFilter, setTagFilter] = React.useState<string[]>(() => searchParams.getAll('tagFilter'));
     const [typeFilter, setTypeFilter] = React.useState<string[]>(() => 
@@ -134,15 +140,16 @@ export const ArchiveProvider = ({ children }: { children: React.ReactNode }) => 
     const [mode, setMode] = React.useState<"search-results" | "general-results">("general-results");
     
     // URL Management
-    const syncToUrl = React.useCallback((updates: Record<string, string | string[] | undefined>) => 
+    const syncToUrl = React.useCallback((updates: Record<string, string | string[] | undefined>) =>
     {
-        const params = new URLSearchParams(searchParams.toString());
-        
-        Object.entries(updates).forEach(([key, value]) => 
+        // Use ref to avoid circular dependency - searchParams changes shouldn't recreate this callback
+        const params = new URLSearchParams(searchParamsRef.current.toString());
+
+        Object.entries(updates).forEach(([key, value]) =>
         {
             params.delete(key);
-            
-            if (value !== undefined && value !== '' && !(Array.isArray(value) && value.length === 0)) 
+
+            if (value !== undefined && value !== '' && !(Array.isArray(value) && value.length === 0))
             {
                 if (Array.isArray(value))
                     value.forEach(item => params.append(key, item));
@@ -150,9 +157,9 @@ export const ArchiveProvider = ({ children }: { children: React.ReactNode }) => 
                     params.set(key, String(value));
             }
         });
-        
+
         router.replace(`${pathname}?${params.toString()}`);
-    }, [searchParams, router, pathname])
+    }, [router, pathname])
     
     // Filter management
     const resetFilters = React.useCallback(() => 
@@ -364,7 +371,6 @@ export const ArchiveProvider = ({ children }: { children: React.ReactNode }) => 
         sortDirection,
         tagFilter,
         regionFilter,
-        setTotalItems,
         trashOpen,
         pathname
     ]);

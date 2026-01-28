@@ -90,7 +90,7 @@ namespace KnowledgeBank.Controllers
             {
                 // Delete person
                 logger.Information("Deleting region with ID: {ID}", id);
-                bool found = await resourceManager.DeleteRegionAsync(id);
+                bool found = await resourceManager.DeleteRegionAsync(Guid.Parse(id));
 
                 if (found)
                 {
@@ -138,7 +138,7 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Check if region exists
-                if (!await resourceManager.RegionExistsAsync(id))
+                if (!await resourceManager.RegionExistsAsync(Guid.Parse(id)))
                     return NotFound(new ApiResponse(false, "The region does not exist"));
 
                 // Start a database transaction, since we could be doing multiple updates
@@ -333,7 +333,7 @@ namespace KnowledgeBank.Controllers
         // Helper method to update a property
         private async Task UpdateProperty<TSet, TProperty>(string id, string propertyName, TProperty newValue) where TSet : class
         {
-            await resourceManager.UpdateRegionAsync(id, PropertyUpdateUtil.CreatePropertySelector<Region, TProperty>(propertyName), newValue);
+            await resourceManager.UpdateRegionAsync(Guid.Parse(id), PropertyUpdateUtil.CreatePropertySelector<Region, TProperty>(propertyName), newValue);
         }
         #endregion
     }

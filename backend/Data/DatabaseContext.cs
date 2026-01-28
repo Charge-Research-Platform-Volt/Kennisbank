@@ -127,6 +127,10 @@ namespace KnowledgeBank.Data
                 entity.Property(e => e.ChunkType)
                     .HasConversion<string>();
 
+                // Configure vector column with proper pgvector type
+                entity.Property(e => e.Embedding)
+                    .HasColumnType("vector(1536)");
+
                 // Index on resource-id for fast lookups
                 entity.HasIndex(e => e.ResourceId)
                     .HasDatabaseName("idx_resource_chunks_resource_id");

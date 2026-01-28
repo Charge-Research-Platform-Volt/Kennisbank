@@ -104,13 +104,13 @@ namespace KnowledgeBank.Controllers
             try 
             {
                 // Check if the person exists
-                if (!await resourceManager.PersonExistsAsync(id))
+                if (!await resourceManager.PersonExistsAsync(Guid.Parse(id)))
                     return NotFound(new ApiResponse(false, $"Person with ID '{id}' does not exist."));
 
                 logger.Information("Trashing person with ID: {ID}", id);
-                    
+
                 // Trash the person
-                await resourceManager.TrashPersonAsync(id);
+                await resourceManager.TrashPersonAsync(Guid.Parse(id));
 
                 logger.Information("Trashed person with ID '{ID}' successfully.", id);
                 return Ok(new ApiResponse(true, "Person trashed successfully."));
@@ -144,13 +144,13 @@ namespace KnowledgeBank.Controllers
             try 
             {
                 // Check if the person exists
-                if (!await resourceManager.PersonExistsAsync(id))
+                if (!await resourceManager.PersonExistsAsync(Guid.Parse(id)))
                     return NotFound(new ApiResponse(false, $"Person with ID '{id}' does not exist."));
 
                 logger.Information("Untrashing person with ID: {ID}", id);
-                    
+
                 // Untrash the person
-                await resourceManager.UntrashPersonAsync(id);
+                await resourceManager.UntrashPersonAsync(Guid.Parse(id));
 
                 logger.Information("Untrashed person with ID '{ID}' successfully.", id);
                 return Ok(new ApiResponse(true, "Person untrashed successfully."));
@@ -185,7 +185,7 @@ namespace KnowledgeBank.Controllers
             {
                 // Delete person
                 logger.Information("Deleting person with ID: {ID}", id);
-                bool found = await resourceManager.DeletePersonAsync(id);
+                bool found = await resourceManager.DeletePersonAsync(Guid.Parse(id));
 
                 if (!found)
                 {
@@ -241,7 +241,7 @@ namespace KnowledgeBank.Controllers
             try
             {
                 // Check if person exists
-                if (!await resourceManager.PersonExistsAsync(id))
+                if (!await resourceManager.PersonExistsAsync(Guid.Parse(id)))
                     return NotFound(new ApiResponse(false, "The person does not exist"));
 
                 // Start a database transaction, since we could be doing multiple updates
@@ -689,7 +689,7 @@ namespace KnowledgeBank.Controllers
         // Helper method to update a property
         private async Task UpdateProperty<TSet, TProperty>(string id, string propertyName, TProperty newValue) where TSet : class
         {
-            await resourceManager.UpdatePersonAsync(id, PropertyUpdateUtil.CreatePropertySelector<Person, TProperty>(propertyName), newValue);
+            await resourceManager.UpdatePersonAsync(Guid.Parse(id), PropertyUpdateUtil.CreatePropertySelector<Person, TProperty>(propertyName), newValue);
         }
         #endregion
     }

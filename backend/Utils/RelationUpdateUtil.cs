@@ -31,35 +31,35 @@ namespace KnowledgeBank.Utils
             {
                 // Resource -> Organisation
                 ("resources", "organisations") =>
-                    await resourceManager.UpdateRoleInResourceOrganisationRelationAsync(sourceId, targetId, newValue),
+                    await resourceManager.UpdateRoleInResourceOrganisationRelationAsync(Guid.Parse(sourceId), Guid.Parse(targetId), newValue),
 
                 // Resource -> Related Person
                 ("resources", "related-persons") =>
-                    await resourceManager.UpdateRoleInResourceRelatedPersonRelationAsync(sourceId, targetId, newValue),
+                    await resourceManager.UpdateRoleInResourceRelatedPersonRelationAsync(Guid.Parse(sourceId), Guid.Parse(targetId), newValue),
 
                 // Person -> Related Resource (reverse: the resource relation seen from person's side)
                 ("persons", "related-resources") =>
-                    await resourceManager.UpdateRoleInResourceRelatedPersonRelationAsync(targetId, sourceId, newValue),
+                    await resourceManager.UpdateRoleInResourceRelatedPersonRelationAsync(Guid.Parse(targetId), Guid.Parse(sourceId), newValue),
 
                 // Person -> Organisation
                 ("persons", "organisations") or ("persons", "related-organisations") =>
-                    await resourceManager.UpdateRoleInPersonOrganisationRelationAsync(sourceId, newValue, targetId),
+                    await resourceManager.UpdateRoleInPersonOrganisationRelationAsync(Guid.Parse(sourceId), newValue, Guid.Parse(targetId)),
 
                 // Person -> Person (interpersonal relationships)
                 ("persons", "related-persons") =>
-                    await resourceManager.UpdateRelationInPersonRelationshipAsync(sourceId, newValue, targetId),
+                    await resourceManager.UpdateRelationInPersonRelationshipAsync(Guid.Parse(sourceId), newValue, Guid.Parse(targetId)),
 
                 // Organisation -> Related Resource (reverse: the resource relation seen from organisation's side)
                 ("organisations", "related-resources") =>
-                    await resourceManager.UpdateRoleInResourceOrganisationRelationAsync(targetId, sourceId, newValue),
+                    await resourceManager.UpdateRoleInResourceOrganisationRelationAsync(Guid.Parse(targetId), Guid.Parse(sourceId), newValue),
 
                 // Organisation -> Person
                 ("organisations", "related-persons") =>
-                    await resourceManager.UpdateRoleInPersonOrganisationRelationAsync(targetId, newValue, sourceId),
+                    await resourceManager.UpdateRoleInPersonOrganisationRelationAsync(Guid.Parse(targetId), newValue, Guid.Parse(sourceId)),
 
                 // Organisation -> Organisation (interorganisational relationships)
                 ("organisations", "related-organisations") =>
-                    await resourceManager.UpdateRelationInOrganisationRelationshipAsync(sourceId, newValue, targetId),
+                    await resourceManager.UpdateRelationInOrganisationRelationshipAsync(Guid.Parse(sourceId), newValue, Guid.Parse(targetId)),
 
                 // Default - invalid combination
                 _ => false

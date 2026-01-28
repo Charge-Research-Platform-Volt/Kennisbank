@@ -62,9 +62,6 @@ namespace KnowledgeBank.Data
             return count > 0;
         }
 
-        public async Task<bool> DeleteResourceAsync(string id)
-        { return await DeleteResourceAsync(Guid.Parse(id)); }
-
         // --- Person
 
         public async Task<bool> DeletePersonAsync(Guid id)
@@ -91,9 +88,6 @@ namespace KnowledgeBank.Data
             return count > 0;
         }
 
-        public async Task<bool> DeletePersonAsync(string id)
-        { return await DeletePersonAsync(Guid.Parse(id)); }
-
         // --- Organisation
 
         public async Task<bool> DeleteOrganisationAsync(Guid id)
@@ -117,9 +111,6 @@ namespace KnowledgeBank.Data
             return count > 0;
         }
 
-        public async Task<bool> DeleteOrganisationAsync(string id)
-        { return await DeleteOrganisationAsync(Guid.Parse(id)); }
-
         // --- Region
 
         public async Task<bool> DeleteRegionAsync(Guid id)
@@ -137,9 +128,6 @@ namespace KnowledgeBank.Data
             return count > 0;
         }
 
-        public async Task<bool> DeleteRegionAsync(string id)
-        { return await DeleteRegionAsync(Guid.Parse(id)); }
-
         // --- Audio Metadata
 
         public async Task<bool> DeleteAudioMetadataAsync(Guid resourceId)
@@ -154,9 +142,6 @@ namespace KnowledgeBank.Data
             return count > 0;
         }
 
-        public async Task<bool> DeleteAudioMetadataAsync(string resourceId)
-        { return await DeleteAudioMetadataAsync(Guid.Parse(resourceId)); }
-
         // --- Video Metadata
 
         public async Task<bool> DeleteVideoMetadataAsync(Guid resourceId)
@@ -169,9 +154,6 @@ namespace KnowledgeBank.Data
 
             return count > 0;
         }
-
-        public async Task<bool> DeleteVideoMetadataAsync(string resourceId)
-        { return await DeleteVideoMetadataAsync(Guid.Parse(resourceId)); }
 
         // --- Website Metadata
 
@@ -186,9 +168,6 @@ namespace KnowledgeBank.Data
             return count > 0;
         }
 
-        public async Task<bool> DeleteWebsiteMetadataAsync(string resourceId)
-        { return await DeleteWebsiteMetadataAsync(Guid.Parse(resourceId)); }
-
         // --- Document Metadata
 
         public async Task<bool> DeleteDocumentMetadataAsync(Guid resourceId)
@@ -201,9 +180,6 @@ namespace KnowledgeBank.Data
 
             return count > 0;
         }
-
-        public async Task<bool> DeleteDocumentMetadataAsync(string resourceId)
-        { return await DeleteDocumentMetadataAsync(Guid.Parse(resourceId)); }
 
         // --- Tag
 
@@ -221,9 +197,6 @@ namespace KnowledgeBank.Data
             return count > 0;
         }
 
-        public async Task<bool> DeleteTagAsync(string id)
-        { return await DeleteTagAsync(Guid.Parse(id)); }
-
         // --- Resource type
 
         public async Task<bool> DeleteResourceTypeAsync(Guid id)
@@ -240,10 +213,6 @@ namespace KnowledgeBank.Data
             return count > 0;
         }
 
-        public async Task<bool> DeleteResourceTypeAsync(string id)
-        { return await DeleteResourceTypeAsync(Guid.Parse(id)); }
-
-
         // --- Chat
         public async Task<bool> DeleteChatAsync(Guid id, Guid userId)
         {
@@ -257,14 +226,5 @@ namespace KnowledgeBank.Data
 
             return count > 0;
         }
-
-
     }
 }
-
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-
