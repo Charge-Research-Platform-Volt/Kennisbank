@@ -7,17 +7,21 @@ namespace KnowledgeBank.Services.Storage;
 
 /// <summary>
 /// Background service that cleans up orphaned objects from storage.
-/// Runs daily and deletes objects older than 24 hours with no database entry.
+/// Runs daily and deletes objects older than 24 hours that are neither:
+/// - A resource file (ID exists in Resources table)
+/// - A user avatar (ID exists in Users table)
 /// </summary>
 public class StorageCleanupService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly Serilog.ILogger _logger;
+    private readonly string _bucketName;
 
-    public StorageCleanupService(IServiceProvider serviceProvider)
+    public StorageCleanupService(IServiceProvider serviceProvider, EnvironmentConfig environmentConfig)
     {
         _serviceProvider = serviceProvider;
         _logger = Log.ForContext<StorageCleanupService>();
+        _bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -62,16 +66,16 @@ public class StorageCleanupService : BackgroundService
         int skippedCount = 0;
         int errorCount = 0;
 
-        // List all objects in the files bucket
-        string[] objects = await storageService.ListObjectsAsync("files");
+        // List all objects in the bucket
+        string[] objects = await storageService.ListObjectsAsync(_bucketName);
 
         if (objects.Length == 0)
         {
-            _logger.Information("No objects found in files bucket");
+            _logger.Information("No objects found in bucket {BucketName}", _bucketName);
             return;
         }
 
-        _logger.Information("Found {Count} objects in files bucket", objects.Length);
+        _logger.Information("Found {Count} objects in bucket {BucketName}", objects.Length, _bucketName);
 
         await using var context = await dbFactory.CreateDbContextAsync(stoppingToken);
 
@@ -91,7 +95,7 @@ public class StorageCleanupService : BackgroundService
                 }
 
                 // Check upload timestamp from metadata
-                var metadata = await storageService.GetObjectMetadataAsync("files", objectName);
+                var metadata = await storageService.GetObjectMetadataAsync(_bucketName, objectName);
 
                 if (metadata.TryGetValue("uploadTimestamp", out string? timestampStr) &&
                     DateTime.TryParse(timestampStr, out DateTime uploadTime))
@@ -105,9 +109,16 @@ public class StorageCleanupService : BackgroundService
                 }
 
                 // Check if resource exists in database
-                bool existsInDatabase = await context.Resources.AnyAsync(r => r.Id == objectId, stoppingToken);
+                bool isResource = await context.Resources.AnyAsync(r => r.Id == objectId, stoppingToken);
+                if (isResource)
+                {
+                    skippedCount++;
+                    continue;
+                }
 
-                if (existsInDatabase)
+                // Check if this is a user avatar (user ID matches object name)
+                bool isUserAvatar = await context.Users.AnyAsync(u => u.Id == objectName, stoppingToken);
+                if (isUserAvatar)
                 {
                     skippedCount++;
                     continue;
@@ -115,7 +126,7 @@ public class StorageCleanupService : BackgroundService
 
                 // Object is orphaned - delete it
                 _logger.Information("Deleting orphaned object {ObjectName}", objectName);
-                await storageService.DeleteObjectAsync("files", objectName);
+                await storageService.DeleteObjectAsync(_bucketName, objectName);
                 deletedCount++;
             }
             catch (Exception ex)

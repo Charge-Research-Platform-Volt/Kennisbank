@@ -12,8 +12,9 @@ ENV PORT=3000
 # -- Install dependencies
 FROM base AS deps
 WORKDIR /app
+# Install build dependencies for sharp on Alpine
+RUN apk add --no-cache libc6-compat
 COPY package.json package-lock.json* ./
-RUN npm install
 RUN npm ci
 
 # -- Development
@@ -48,6 +49,9 @@ RUN npm run build
 FROM base AS production
 ENV NODE_ENV=production
 WORKDIR /app
+
+# Install runtime dependencies for sharp
+RUN apk add --no-cache libc6-compat
 
 # Create a non-root user
 RUN addgroup --system --gid 1001 nodejs

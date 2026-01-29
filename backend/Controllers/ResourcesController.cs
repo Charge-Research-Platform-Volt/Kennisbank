@@ -43,9 +43,10 @@ namespace KnowledgeBank.Controllers
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class ResourcesController(ResourceManager resourceManager, IStorageService storageService, IBackgroundTaskQueue taskQueue, RAGManager ragManager, IServiceScopeFactory serviceScopeFactory, IVectorStore vectorStore) : ControllerBase
+    public class ResourcesController(ResourceManager resourceManager, IStorageService storageService, IBackgroundTaskQueue taskQueue, RAGManager ragManager, IServiceScopeFactory serviceScopeFactory, IVectorStore vectorStore, EnvironmentConfig environmentConfig) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<ResourcesController>();
+        private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
 
         #region New
         [HttpPut("new")]
@@ -106,7 +107,7 @@ namespace KnowledgeBank.Controllers
                     if (!ValidityUtil.IsValidId(_fDto.Id))
                         return BadRequest(new ApiResponse(false, "Invalid ID given."));
 
-                    IDictionary<string, string>? metadata = await storageService.GetObjectMetadataAsync("files", _fDto.Id);
+                    IDictionary<string, string>? metadata = await storageService.GetObjectMetadataAsync(bucketName, _fDto.Id);
 
                     if (metadata == null)
                         return BadRequest(new ApiResponse(false, $"There is no file for the given ID '{_fDto.Id}'"));
@@ -256,7 +257,7 @@ namespace KnowledgeBank.Controllers
                             RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
                             IStorageService storage = scope.ServiceProvider.GetRequiredService<IStorageService>();
 
-                            ObjectDownloadResponse downloadResponse = await storage.DownloadObjectAsync("files", id.ToString());
+                            ObjectDownloadResponse downloadResponse = await storage.DownloadObjectAsync(bucketName, id.ToString());
                             await using var fileStream = downloadResponse.Stream;
 
                             await rag.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: "document", fileStream: fileStream);

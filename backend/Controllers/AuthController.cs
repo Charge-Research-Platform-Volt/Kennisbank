@@ -22,6 +22,7 @@ namespace KnowledgeBank.Controllers
     public class AuthController (SignInManager<User> signInManager, IDbContextFactory<DatabaseContext> dbFactory, EnvironmentConfig _environmentConfig, MailUtils _mailUtils, IStorageService storageService) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<AuthController>();
+        private readonly string bucketName = _environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
 
         [HttpPost]
         [Authorize]
@@ -153,7 +154,7 @@ namespace KnowledgeBank.Controllers
                         if (signUpDto.Avatar.Length > Constants.MaxAvatarSize)
                             return BadRequest(new { message = $"Avatar file is too large (max {Constants.MaxAvatarSizeInMb}MB)" });
 
-                        await storageService.UploadObjectAsync("avatar", user.Id, signUpDto.Avatar.OpenReadStream(), new Dictionary<string, string>());
+                        await storageService.UploadObjectAsync(bucketName, user.Id, signUpDto.Avatar.OpenReadStream(), new Dictionary<string, string>());
 
                         user.CustomAvatarVersion++;
                         user.HasCustom = true;

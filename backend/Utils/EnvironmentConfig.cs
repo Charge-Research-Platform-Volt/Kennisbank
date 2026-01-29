@@ -17,6 +17,8 @@ public enum EnvironmentVariable
     S3_ACCESS_KEY,
     S3_SECRET_KEY,
     S3_USE_SSL,
+    S3_REGION,
+    S3_BUCKET_NAME,
 
     // Client URL
     HOST_URL,
@@ -66,6 +68,8 @@ public class EnvironmentConfig
         _variableNames.Add(EnvironmentVariable.S3_ACCESS_KEY, "S3_ACCESS_KEY");
         _variableNames.Add(EnvironmentVariable.S3_SECRET_KEY, "S3_SECRET_KEY");
         _variableNames.Add(EnvironmentVariable.S3_USE_SSL, "S3_USE_SSL");
+        _variableNames.Add(EnvironmentVariable.S3_REGION, "S3_REGION");
+        _variableNames.Add(EnvironmentVariable.S3_BUCKET_NAME, "S3_BUCKET_NAME");
 
         // Client URL
         _variableNames.Add(EnvironmentVariable.HOST_URL, "HOST_URL");

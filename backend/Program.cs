@@ -19,6 +19,7 @@ using KnowledgeBank.Utils;
 using DotNetEnv;
 using KnowledgeBank.Services.Storage;
 using KnowledgeBank.Services.Search;
+using Npgsql;
 
 namespace KnowledgeBank
 {
@@ -125,12 +126,26 @@ namespace KnowledgeBank
             builder.Services.AddScoped<RoleInitializer>();
 
 
-            // # Database context
+            // # Database context - use NpgsqlDataSourceBuilder to register pgvector types
+            // This is required for Npgsql 7.0+ to properly handle vector types
+
+            // IMPORTANT: Create the vector extension BEFORE building the NpgsqlDataSource
+            // The datasource caches type info on first connection, so the extension must exist first
+            string connectionString = environmentConfig.GetVariableValue(EnvironmentVariable.DATABASE_CONNECTION_STRING);
+            using (var conn = new NpgsqlConnection(connectionString))
+            {
+                conn.Open();
+                using var cmd = new NpgsqlCommand("CREATE EXTENSION IF NOT EXISTS vector", conn);
+                cmd.ExecuteNonQuery();
+                Log.Information("Vector extension created/verified before datasource initialization");
+            }
+
+            var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+            dataSourceBuilder.UseVector();
+            var dataSource = dataSourceBuilder.Build();
+
             builder.Services.AddDbContextFactory<DatabaseContext>(options =>
-                options.UseNpgsql(
-                    environmentConfig.GetVariableValue(EnvironmentVariable.DATABASE_CONNECTION_STRING),
-                    o => o.UseVector()
-                )
+                options.UseNpgsql(dataSource, o => o.UseVector())
             );
 
 
@@ -211,7 +226,7 @@ namespace KnowledgeBank
                 var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
                 try
                 {
-                    await db.Database.ExecuteSqlRawAsync("CREATE EXTENSION IF NOT EXISTS vector;");
+                    // Note: Vector extension was already created before datasource initialization
                     await db.Database.MigrateAsync();
                     Log.Information("Database migrations applied successfully");
                 }
@@ -228,15 +243,15 @@ namespace KnowledgeBank
                 }
             }
             
-            // Set up buckets
-            using (var scope = app.Services.CreateScope()) 
+            // Set up bucket (only in development - production buckets must be pre-created)
+            if (app.Environment.IsDevelopment())
             {
+                using var scope = app.Services.CreateScope();
                 IStorageService storageService = scope.ServiceProvider.GetRequiredService<IStorageService>();
+                string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
 
-                Log.Information("Creating buckets in object storage...");
-                
-                await storageService.CreateBucketAsync("files");
-                await storageService.CreateBucketAsync("avatar");
+                Log.Information("Creating bucket '{BucketName}' in object storage...", bucketName);
+                await storageService.CreateBucketAsync(bucketName);
             }
             
             // # Middleware

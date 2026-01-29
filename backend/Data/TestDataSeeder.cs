@@ -1,4 +1,5 @@
 ﻿using KnowledgeBank.Models;
+using KnowledgeBank.Utils;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using CsvHelper;
@@ -13,6 +14,7 @@ namespace KnowledgeBank.Data
 #pragma warning disable CS8618, CS0649 // Test data seeding is disabled - fields are intentionally unassigned
         private static IStorageService storageService;
         private static ResourceManager resourceManager;
+        private static string bucketName;
 #pragma warning restore CS8618, CS0649
         private static readonly string testDataPath = Path.Combine("/app", "testdata") + "/";
         private static readonly string systemAdminId = "00000000-0000-0000-0000-000000000001";
@@ -31,6 +33,8 @@ namespace KnowledgeBank.Data
             using IServiceScope scope = serviceProvider.CreateScope();
             storageService = scope.ServiceProvider.GetRequiredService<IStorageService>();
             resourceManager = scope.ServiceProvider.GetRequiredService<ResourceManager>();
+            var environmentConfig = scope.ServiceProvider.GetRequiredService<EnvironmentConfig>();
+            bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
 
             await SeedOrganisations();
             await SeedPersons();
@@ -160,7 +164,7 @@ namespace KnowledgeBank.Data
 
                         // Then upload to blob storage
                         Dictionary<string, string> metadata = new Dictionary<string, string> { { "extension", extension } };
-                        await storageService.UploadObjectAsync("files", resourceId.ToString(), File.OpenRead(filePath), metadata);
+                        await storageService.UploadObjectAsync(bucketName, resourceId.ToString(), File.OpenRead(filePath), metadata);
 
 
                         // If the resource has tags, add them

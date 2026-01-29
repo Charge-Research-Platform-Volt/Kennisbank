@@ -20,10 +20,11 @@ namespace KnowledgeBank.Controllers;
 /// </summary>
 [ApiController]
 [Route("[controller]")]
-public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStorageService storageService, UserManager<User> userManager, IOptions<OwnerUserConfig> ownerConfig) : ControllerBase
+public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStorageService storageService, UserManager<User> userManager, IOptions<OwnerUserConfig> ownerConfig, EnvironmentConfig environmentConfig) : ControllerBase
 {
     private readonly Serilog.ILogger logger = Log.ForContext<UserController>();
     private readonly OwnerUserConfig ownerConfig = ownerConfig.Value;
+    private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
 
     /// <summary>
     /// Gets the current user's account info.
@@ -68,7 +69,7 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
     {
         try
         {
-            ObjectDownloadResponse response = await storageService.DownloadObjectAsync("avatar", userId);
+            ObjectDownloadResponse response = await storageService.DownloadObjectAsync(bucketName, userId);
 
 
             Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -282,14 +283,14 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
             if (newAvatar.ContentType != "image/png")
                 return BadRequest("Invalid image type. Png expected");
 
-            await storageService.UploadObjectAsync("avatar", userId, newAvatar.OpenReadStream());
+            await storageService.UploadObjectAsync(bucketName, userId, newAvatar.OpenReadStream());
 
             user.CustomAvatarVersion++;
             user.HasCustom = true;
         }
         else if (user.HasCustom)
         {
-            await storageService.DeleteObjectAsync("avatar", userId);
+            await storageService.DeleteObjectAsync(bucketName, userId);
 
             user.HasCustom = false;
         }

@@ -12,6 +12,7 @@ export default async function LoginLayout({ children }: { children: React.ReactN
                     height={56.49}
                     alt="logo"
                     className="absolute top-4 left-4"
+                    unoptimized
                 />
 
                 {children}
@@ -24,13 +25,14 @@ export default async function LoginLayout({ children }: { children: React.ReactN
 
             {/* Image part (right part) */}
             <div className="w-11/18 flex justify-end ml-auto mr-0 rounded p-2">
-                <Image 
-                    src="/img/login-image.jpeg" 
-                    width={0} 
+                <Image
+                    src="/img/login-image.jpeg"
+                    width={0}
                     height={0}
                     sizes="100vw"
                     alt="image"
                     className="h-full w-auto object-cover rounded-2xl"
+                    unoptimized
                 />
             </div>
         </div>

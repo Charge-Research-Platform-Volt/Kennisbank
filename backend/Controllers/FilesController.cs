@@ -23,9 +23,10 @@ namespace KnowledgeBank.Controllers
     [ApiController]
     [Route("[controller]")]
     [Authorize]
-    public class FilesController(IStorageService storageService, ResourceManager resourceManager) : ControllerBase
+    public class FilesController(IStorageService storageService, ResourceManager resourceManager, EnvironmentConfig environmentConfig) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<FilesController>();
+        private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
 
         #region Upload Init
         /// <summary>
@@ -69,7 +70,7 @@ namespace KnowledgeBank.Controllers
                     { "originalFileName", Path.GetFileNameWithoutExtension(dto.FileName) }
                 };
 
-                string uploadId = await storageService.InitiateMultipartUploadAsync("files", uploadGuid.ToString(), metadata);
+                string uploadId = await storageService.InitiateMultipartUploadAsync(bucketName, uploadGuid.ToString(), metadata);
                 
                 logger.Information("Upload session initialized for file '{FileName}' with GUID {Guid}", dto.FileName, uploadGuid);
 
@@ -126,7 +127,7 @@ namespace KnowledgeBank.Controllers
                 await Request.Body.CopyToAsync(memoryStream);
                 memoryStream.Position = 0;
 
-                string ETag = await storageService.UploadPartAsync("files", objectName, uploadId, partNumber, memoryStream);
+                string ETag = await storageService.UploadPartAsync(bucketName, objectName, uploadId, partNumber, memoryStream);
 
                 logger.Information("Part {PartNumber} uploaded for object {ObjectName} ({Size} bytes)", partNumber, objectName, memoryStream.Length);
 
@@ -167,7 +168,7 @@ namespace KnowledgeBank.Controllers
             {
                 logger.Information("Finalizing file upload for object {ObjectName} with {PartCount} parts", dto.ObjectName, dto.PartETags.Count);
 
-                await storageService.CompleteMultipartUploadAsync("files", dto.ObjectName, dto.UploadId, dto.PartETags);
+                await storageService.CompleteMultipartUploadAsync(bucketName, dto.ObjectName, dto.UploadId, dto.PartETags);
 
                 return Ok(new ApiResponse(true, "File upload successful.", new { objectName = dto.ObjectName }));
             }
@@ -201,7 +202,7 @@ namespace KnowledgeBank.Controllers
             {
                 logger.Information("Cancelling upload for object {ObjectName}", objectName);
 
-                await storageService.AbortMultipartUploadAsync("files", objectName, uploadId);
+                await storageService.AbortMultipartUploadAsync(bucketName, objectName, uploadId);
 
                 return Ok(new ApiResponse(true, "Successfully aborted upload."));
             }
@@ -234,7 +235,7 @@ namespace KnowledgeBank.Controllers
             {
                 logger.Information("Downloading file with ID: {ID}", id);
 
-                ObjectDownloadResponse response = await storageService.DownloadObjectAsync("files", id);
+                ObjectDownloadResponse response = await storageService.DownloadObjectAsync(bucketName, id);
                 await using var stream = response.Stream;
 
                 // Get the extension from metadata

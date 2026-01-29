@@ -21,6 +21,7 @@ echo ""
 REPO_OWNER="charge-research-platform-volt"
 REPO_NAME="kennisbank"
 GHCR_BASE="ghcr.io/${REPO_OWNER}/${REPO_NAME}"
+CREDENTIALS_FILE="${HOME}/.ghcr-credentials"
 
 # Get version tag (current branch name or tag)
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -36,24 +37,61 @@ echo ""
 
 # Check if logged into GitHub Container Registry
 echo -e "${YELLOW}Checking GHCR authentication...${NC}"
-if ! echo "$CR_PAT" | docker login ghcr.io -u USERNAME --password-stdin 2>/dev/null; then
-    echo -e "${RED}❌ Not logged into GitHub Container Registry${NC}"
-    echo ""
-    echo -e "${YELLOW}To authenticate, create a GitHub Personal Access Token (PAT):${NC}"
-    echo "  1. Go to: https://github.com/settings/tokens?type=beta"
-    echo "  2. Click 'Generate new token' (classic)"
-    echo "  3. Give it a name: 'GHCR Deploy'"
-    echo "  4. Select scopes: 'write:packages' and 'read:packages'"
-    echo "  5. Generate token and copy it"
-    echo ""
-    echo -e "${YELLOW}Then run:${NC}"
-    echo "  export CR_PAT=YOUR_TOKEN_HERE"
-    echo "  echo \$CR_PAT | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin"
-    echo ""
-    exit 1
+
+# Check if we have stored credentials - this is the source of truth
+if [ -f "$CREDENTIALS_FILE" ]; then
+    source "$CREDENTIALS_FILE"
+    if [ -n "$GHCR_TOKEN" ] && [ -n "$GHCR_USER" ]; then
+        # Re-login to ensure Docker has current credentials
+        echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin >/dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}✓ Authenticated with GHCR (using saved credentials)${NC}"
+        else
+            echo -e "${RED}Saved credentials invalid, clearing...${NC}"
+            rm -f "$CREDENTIALS_FILE"
+            GHCR_TOKEN=""
+            GHCR_USER=""
+        fi
+    fi
 fi
 
-echo -e "${GREEN}✓ Authenticated with GHCR${NC}"
+# If no valid credentials, prompt for them
+if [ -z "$GHCR_TOKEN" ] || [ -z "$GHCR_USER" ]; then
+    echo -e "${YELLOW}Not logged into GHCR. Starting one-time setup...${NC}"
+    echo ""
+    echo -e "${YELLOW}To authenticate, you need a GitHub Personal Access Token (PAT):${NC}"
+    echo "  1. Go to: https://github.com/settings/tokens (classic token)"
+    echo "  2. Give it a name: 'GHCR Deploy'"
+    echo "  3. Select scopes: 'write:packages' and 'read:packages'"
+    echo "  4. Set expiration to 'No expiration' (or your preference)"
+    echo "  5. Generate token and copy it"
+    echo "  6. If using an org repo: Configure SSO → Authorize for the org"
+    echo ""
+
+    read -p "Enter your GitHub username: " GHCR_USER
+    read -sp "Enter your GitHub PAT token: " GHCR_TOKEN
+    echo ""
+
+    # Save credentials locally (not in repo)
+    echo "# GHCR credentials - DO NOT COMMIT THIS FILE" > "$CREDENTIALS_FILE"
+    echo "GHCR_USER=\"$GHCR_USER\"" >> "$CREDENTIALS_FILE"
+    echo "GHCR_TOKEN=\"$GHCR_TOKEN\"" >> "$CREDENTIALS_FILE"
+    chmod 600 "$CREDENTIALS_FILE"
+
+    echo -e "${GREEN}✓ Credentials saved to ${CREDENTIALS_FILE}${NC}"
+
+    # Login to GHCR
+    echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✓ Authenticated with GHCR${NC}"
+    else
+        echo -e "${RED}❌ Authentication failed${NC}"
+        rm -f "$CREDENTIALS_FILE"
+        exit 1
+    fi
+fi
+
 echo ""
 
 # Build and push backend
@@ -72,8 +110,13 @@ echo -e "${GREEN}✓ Backend image built${NC}"
 echo ""
 
 echo -e "${YELLOW}Pushing backend to GHCR...${NC}"
-docker push ${GHCR_BASE}-backend:latest
-docker push ${GHCR_BASE}-backend:${VERSION}
+if ! docker push ${GHCR_BASE}-backend:latest || ! docker push ${GHCR_BASE}-backend:${VERSION}; then
+    echo -e "${RED}❌ Push failed. Clearing credentials for next run.${NC}"
+    rm -f "$CREDENTIALS_FILE"
+    docker logout ghcr.io 2>/dev/null || true
+    echo -e "${YELLOW}Run the script again to re-authenticate.${NC}"
+    exit 1
+fi
 echo -e "${GREEN}✓ Backend pushed to GHCR${NC}"
 echo ""
 
@@ -93,8 +136,13 @@ echo -e "${GREEN}✓ Frontend image built${NC}"
 echo ""
 
 echo -e "${YELLOW}Pushing frontend to GHCR...${NC}"
-docker push ${GHCR_BASE}-frontend:latest
-docker push ${GHCR_BASE}-frontend:${VERSION}
+if ! docker push ${GHCR_BASE}-frontend:latest || ! docker push ${GHCR_BASE}-frontend:${VERSION}; then
+    echo -e "${RED}❌ Push failed. Clearing credentials for next run.${NC}"
+    rm -f "$CREDENTIALS_FILE"
+    docker logout ghcr.io 2>/dev/null || true
+    echo -e "${YELLOW}Run the script again to re-authenticate.${NC}"
+    exit 1
+fi
 echo -e "${GREEN}✓ Frontend pushed to GHCR${NC}"
 echo ""
 
@@ -110,11 +158,8 @@ echo "  Frontend: ${GHCR_BASE}-frontend:latest"
 echo "            ${GHCR_BASE}-frontend:${VERSION}"
 echo ""
 echo -e "${YELLOW}Next steps:${NC}"
-echo "  1. Make images public (if needed):"
-echo "     - Go to: https://github.com/orgs/${REPO_OWNER}/packages"
-echo "     - Find each package → Package settings → Change visibility to Public"
-echo ""
-echo "  2. Deploy to Azure Container Apps using these images"
+echo "  1. On your server, pull and restart in Dockge"
+echo "  2. Or run: docker pull ${GHCR_BASE}-backend:latest"
 echo ""
 
 # This program has been developed by students from the bachelor Computer Science at Utrecht

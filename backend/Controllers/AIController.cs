@@ -18,10 +18,11 @@ namespace KnowledgeBank.Controllers;
 [Authorize]
 [Route("[controller]")]
 [Produces("application/json")]
-public class AIController(ResourceManager resourceManager, IServiceScopeFactory serviceScopeFactory) : ControllerBase
+public class AIController(ResourceManager resourceManager, IServiceScopeFactory serviceScopeFactory, EnvironmentConfig environmentConfig) : ControllerBase
 {
     private readonly Serilog.ILogger logger = Log.ForContext<AIController>();
     private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
+    private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
 
     #region Generate Tags
     [HttpPost("generate-tags")]
@@ -262,7 +263,7 @@ public class AIController(ResourceManager resourceManager, IServiceScopeFactory 
                 jobService.UpdateJobStatus(jobId, JobStatus.Processing, "Retrieving file...", 20);
 
                 // Retrieve blob from Azure Storage
-                ObjectDownloadResponse response = await storageServiceScoped.DownloadObjectAsync("files", value);
+                ObjectDownloadResponse response = await storageServiceScoped.DownloadObjectAsync(bucketName, value);
 
                 // Extract extension from metadata
                 string extension = response.Metadata["extension"];

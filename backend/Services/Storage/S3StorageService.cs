@@ -16,7 +16,8 @@ public class S3StorageService : IStorageService
         AmazonS3Config config = new AmazonS3Config
         {
             ServiceURL = environmentConfig.GetVariableValue(EnvironmentVariable.S3_ENDPOINT),
-            ForcePathStyle = true
+            ForcePathStyle = true,
+            AuthenticationRegion = environmentConfig.GetVariableValue(EnvironmentVariable.S3_REGION)
         };
 
         client = new AmazonS3Client(
