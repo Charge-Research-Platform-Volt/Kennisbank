@@ -36,12 +36,15 @@ public class VPNService
         return json.GetProperty("user").GetProperty("id").GetString()!;
     }
 
-    public async Task<string> GetUserId(string name)
+    public async Task<string?> GetUserId(string name)
     {
         var response = await httpClient.GetAsync($"user?name={name}");
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
-        return json.GetProperty("user").GetProperty("id").GetString()!;
+        var users = json.GetProperty("users").EnumerateArray();
+        if (!users.Any())
+            return null;
+        return users.First().GetProperty("id").GetString()!;
     }
 
     public async Task<string> GetPreAuthKey(string userId)
@@ -79,11 +82,9 @@ public class VPNService
     public async Task DeleteUserWithNodes(string name)
     {
         // Check if user exists, silently return if not
-        var response = await httpClient.GetAsync($"user?name={name}");
-        if (!response.IsSuccessStatusCode)
+        string? userId = await GetUserId(name);
+        if (userId == null)
             return;
-        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
-        string userId = json.GetProperty("user").GetProperty("id").GetString()!;
 
         // Delete nodes
         string[] nodeIds = await GetUserNodes(name);
