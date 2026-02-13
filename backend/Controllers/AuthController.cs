@@ -124,7 +124,8 @@ namespace KnowledgeBank.Controllers
                 }
 
                 // send the email
-                _mailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: {_environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL)}/signup?token={token} \n\n Preauthkey: {preAuthKey}");
+                //S_mailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: {_environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL)}/signup?token={token} \n\n Preauthkey: {preAuthKey}");
+                _mailUtils.SendInviteMail(email, preAuthKey, $"{_environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL)}/signup?token={token}");
             }
             catch (Exception e)
             {

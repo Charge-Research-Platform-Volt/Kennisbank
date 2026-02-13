@@ -81,4 +81,8 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Templates/**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

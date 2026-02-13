@@ -1,5 +1,6 @@
 using MailKit.Net.Smtp;
 using MimeKit;
+using System.IO;
 
 namespace KnowledgeBank.Utils
 {
@@ -25,6 +26,26 @@ namespace KnowledgeBank.Utils
                 client.Send(message);
                 client.Disconnect(true);
             }
+        }
+
+        public void SendInviteMail(string to, string authKey, string signupUrl)
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(fromName, address));
+            message.To.Add(new MailboxAddress(to, to));
+            message.Subject = "Welcome to Charge Kennisbank";
+
+            var htmlBody = File.ReadAllText("Templates/invite-email.html")
+                .Replace("{{AUTHKEY}}", authKey)
+                .Replace("{{SIGNUP_URL}}", signupUrl);
+
+            message.Body = new TextPart("html") { Text = htmlBody };
+
+            using var client = new SmtpClient();
+            client.Connect(smtpHost, tlsPort, MailKit.Security.SecureSocketOptions.StartTls);
+            client.Authenticate(address, password);
+            client.Send(message);
+            client.Disconnect(true);
         }
     }
 }
