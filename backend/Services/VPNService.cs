@@ -78,20 +78,18 @@ public class VPNService
 
     public async Task DeleteUserWithNodes(string name)
     {
-        // Check if user exists, silently return if not
-        var response = await httpClient.GetAsync($"user/{name}");
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        // Check if user exists via list endpoint, silently return if not
+        var allUsers = await GetAllUsers();
+        var match = allUsers.FirstOrDefault(u => u.name == name);
+        if (match == default)
             return;
-        response.EnsureSuccessStatusCode();
-        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
-        string userId = json.GetProperty("user").GetProperty("id").GetString()!;
 
         // Delete nodes
         string[] nodeIds = await GetUserNodes(name);
         await DeleteNodes(nodeIds);
 
         // Delete user
-        await DeleteUser(userId);
+        await DeleteUser(match.id);
     }
 
     public async Task RenameUser(string userId, string newName)
