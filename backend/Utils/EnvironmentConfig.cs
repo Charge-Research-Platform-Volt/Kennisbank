@@ -37,6 +37,10 @@ public enum EnvironmentVariable
     // Document Intelligence
     DOCUMENT_INTELLIGENCE_CLIENT_ENDPOINT,
     DOCUMENT_INTELLIGENCE_CLIENT_API_KEY,
+    
+    // Headscale
+    HEADSCALE_URL,
+    HEADSCALE_API_KEY
 }
 
 
@@ -87,6 +91,10 @@ public class EnvironmentConfig
         // Document Intelligence
         _variableNames.Add(EnvironmentVariable.DOCUMENT_INTELLIGENCE_CLIENT_ENDPOINT, "DOCUMENT_INTELLIGENCE_CLIENT_ENDPOINT");
         _variableNames.Add(EnvironmentVariable.DOCUMENT_INTELLIGENCE_CLIENT_API_KEY, "DOCUMENT_INTELLIGENCE_CLIENT_API_KEY");
+
+        // Headscale
+        _variableNames.Add(EnvironmentVariable.HEADSCALE_URL, "HEADSCALE_URL");
+        _variableNames.Add(EnvironmentVariable.HEADSCALE_API_KEY, "HEADSCALE_API_KEY");
     }
 
 

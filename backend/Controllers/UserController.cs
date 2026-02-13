@@ -11,6 +11,7 @@ using System.Security.Claims;
 using KnowledgeBank.Utils;
 using Microsoft.Extensions.Options;
 using KnowledgeBank.Services.Storage;
+using KnowledgeBank.Services;
 
 namespace KnowledgeBank.Controllers;
 
@@ -20,7 +21,7 @@ namespace KnowledgeBank.Controllers;
 /// </summary>
 [ApiController]
 [Route("[controller]")]
-public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStorageService storageService, UserManager<User> userManager, IOptions<OwnerUserConfig> ownerConfig, EnvironmentConfig environmentConfig) : ControllerBase
+public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStorageService storageService, UserManager<User> userManager, IOptions<OwnerUserConfig> ownerConfig, EnvironmentConfig environmentConfig, VPNService vpnService) : ControllerBase
 {
     private readonly Serilog.ILogger logger = Log.ForContext<UserController>();
     private readonly OwnerUserConfig ownerConfig = ownerConfig.Value;
@@ -75,7 +76,7 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
             Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
             Response.Headers.Append("Pragma", "no-cache");
             Response.Headers.Append("Expires", "0");
-            return File(response.Stream, response.ContentType);
+            return File(response.Stream, response.ContentType!);
         }
         catch (Exception e)
         {
@@ -454,6 +455,17 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
                 
             if (user.Email == ownerConfig.Email)
                 return StatusCode(403, "Owner user cannot be deleted");
+
+            // Delete user from VPN first (can be retried if app deletion fails)
+            try
+            {
+                await vpnService.DeleteUserWithNodes(user.Id);
+            }
+            catch (Exception vpnEx)
+            {
+                logger.Error(vpnEx, "Failed to delete VPN user {UserId}", user.Id);
+                return StatusCode(500, new { message = "Failed to delete VPN user" });
+            }
 
             IdentityResult response = await userManager.DeleteAsync(user);
 

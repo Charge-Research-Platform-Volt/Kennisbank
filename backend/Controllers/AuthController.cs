@@ -10,6 +10,7 @@ using KnowledgeBank.Utils;
 using KnowledgeBank.Responses;
 using Microsoft.EntityFrameworkCore;
 using KnowledgeBank.Services.Storage;
+using KnowledgeBank.Services;
 
 namespace KnowledgeBank.Controllers
 {
@@ -19,7 +20,7 @@ namespace KnowledgeBank.Controllers
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
-    public class AuthController (SignInManager<User> signInManager, IDbContextFactory<DatabaseContext> dbFactory, EnvironmentConfig _environmentConfig, MailUtils _mailUtils, IStorageService storageService) : ControllerBase
+    public class AuthController (SignInManager<User> signInManager, IDbContextFactory<DatabaseContext> dbFactory, EnvironmentConfig _environmentConfig, MailUtils _mailUtils, IStorageService storageService, VPNService vpnService) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<AuthController>();
         private readonly string bucketName = _environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
@@ -91,13 +92,14 @@ namespace KnowledgeBank.Controllers
             {
                 // generate a token
                 Guid token = Guid.NewGuid();
+                Guid invitationId = Guid.NewGuid();
 
                 await using var database = await dbFactory.CreateDbContextAsync();
 
                 // save the invitation
                 database.Invitations.Add(new Invitation
                 {
-                    Id = Guid.NewGuid(),
+                    Id = invitationId,
                     Email = ShaUtils.Sha256(email),
                     Token = ShaUtils.Sha256(token.ToString()),
                     CreatedAt = DateTime.UtcNow
@@ -105,13 +107,29 @@ namespace KnowledgeBank.Controllers
 
                 await database.SaveChangesAsync();
 
+                // Create VPN user
+                string vpnUserId;
+                string preAuthKey;
+                try
+                {
+                    vpnUserId = await vpnService.CreateUser(invitationId.ToString());
+                    preAuthKey = await vpnService.GetPreAuthKey(vpnUserId);
+                }
+                catch (Exception e)
+                {
+                    logger.Error(e, "Failed to create VPN user for invitation {InvitationId}, cleaning up", invitationId);
+                    database.Invitations.Remove(database.Invitations.First(i => i.Id == invitationId));
+                    await database.SaveChangesAsync();
+                    return BadRequest(new { message = "Failed to create VPN user" });
+                }
+
                 // send the email
-                _mailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: {_environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL)}/signup?token={token}");
+                _mailUtils.SendMail(email, "Invitation", $"You have been invited to join KnowledgeBank. Create an account: {_environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL)}/signup?token={token} \n\n Preauthkey: {preAuthKey}");
             }
             catch (Exception e)
             {
-                logger.Error(e, "Failed to send email");
-                return BadRequest(new { message = "Failed to send email" });
+                logger.Error(e, "Failed to send invitation");
+                return BadRequest(new { message = "Failed to send invitation" });
             }
 
             return Ok();
@@ -171,6 +189,18 @@ namespace KnowledgeBank.Controllers
                         return BadRequest(new { message = string.Join(" ", roleResult.Errors.Select(e => e.Description)) });
 
                     await transaction.CommitAsync();
+
+                    // Update the VPN user name from invitation ID to user ID
+                    try
+                    {
+                        string vpnUserId = await vpnService.GetUserId(invitation.Id.ToString());
+                        await vpnService.RenameUser(vpnUserId, user.Id.ToString());
+                    }
+                    catch (Exception vpnEx)
+                    {
+                        logger.Error(vpnEx, "Failed to rename VPN user from invitation {InvitationId} to user {UserId}", invitation.Id, user.Id);
+                    }
+
                     return Ok(new { message = $"User '{user.UserName}' created succesfully." });
                 }
                 catch (Exception e)

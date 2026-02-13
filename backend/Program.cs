@@ -205,11 +205,15 @@ namespace KnowledgeBank
 
             builder.Services.AddHostedService<TrashbinCleanupService>(); // Add the background service for cleaning up the trashbin
             builder.Services.AddHostedService<InvitationsCleanupService>(); // Add the background service for cleaning up invitations
+            builder.Services.AddHostedService<VPNCleanupService>(); // Add the background service for cleaning up orphaned VPN users
             builder.Services.AddHostedService<StorageCleanupService>();
             //builder.Services.AddHostedService<BlobCleanupService>(); // Add the background service for cleaning up orphaned blobs
 
             // Headless browser service
             builder.Services.AddSingleton<BrowserService>();
+
+            // VPN Service
+            builder.Services.AddSingleton<VPNService>();
 
 
             builder.WebHost.ConfigureKestrel(serverOptions =>
