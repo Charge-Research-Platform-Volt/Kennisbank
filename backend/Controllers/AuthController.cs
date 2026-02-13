@@ -193,7 +193,11 @@ namespace KnowledgeBank.Controllers
                     // Update the VPN user name from invitation ID to user ID
                     try
                     {
-                        string vpnUserId = await vpnService.GetUserId(invitation.Id.ToString());
+                        string? vpnUserId = await vpnService.GetUserId(invitation.Id.ToString());
+
+                        if (string.IsNullOrEmpty(vpnUserId))
+                            throw new Exception("User not found");
+                        
                         await vpnService.RenameUser(vpnUserId, user.Id.ToString());
                     }
                     catch (Exception vpnEx)
