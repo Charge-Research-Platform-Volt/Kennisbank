@@ -11,6 +11,9 @@
 /ollama_data/*
 /qdrant_data/*
 
+/Documentation/.obsidian
+/Documentation/.obsidian/*
+
 
 # File created using '.gitignore Generator' for Visual Studio Code: https://bit.ly/vscode-gig
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,visualstudio,react,macos,dotnetcore,csharp,aspnetcore,database

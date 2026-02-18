@@ -34,11 +34,12 @@ namespace KnowledgeBank.Controllers
     /// Author: Abel Dieterich
     /// </summary>
     /// <param name="resourceManager">The resource manager service for database interactions</param>
-    /// <param name="blobService">The Azure Blob Service for file storage</param>
+    /// <param name="storageService">The storage service for file storage</param>
     /// <param name="taskQueue">The background task queue for processing tasks asynchronously</param>
     /// <param name="ragManager">The RAG manager for metadata updates and query processing</param>
     /// <param name="serviceScopeFactory">The service scope factory for creating service scopes in background tasks</param>
     /// <param name="vectorStore">The vector store for handling vector database interactions</param>
+    /// <param name="environmentConfig">The environment configuration containing necessary settings</param>
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]

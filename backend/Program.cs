@@ -285,7 +285,6 @@ namespace KnowledgeBank
                 }
             }
 
-            app.UseHttpsRedirection();
             app.UseRouting();
             app.UseCors("AllowFrontend");
             app.UseAuthentication();
@@ -302,6 +301,10 @@ namespace KnowledgeBank
                 return await next(efiContext);
             });
 
+            app.Lifetime.ApplicationStarted.Register(() =>
+            {
+                Log.Information("Backend started successfully on {Urls}", string.Join(", ", app.Urls));
+            });
             app.Run();
         }
 

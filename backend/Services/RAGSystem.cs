@@ -40,7 +40,6 @@ public class RAGSystem
     /// Sets up all required components for the Retrieval-Augmented Generation system including vector database,
     /// document intelligence, chat completions, and embeddings services.
     /// </summary>
-    /// <param name="blobService">The Azure Blob service instance for file storage operations</param>
     /// <param name="environmentConfig">The environment configuration containing all necessary API keys, endpoints, and settings</param>
     /// <param name="documentIntelligenceClient">The Azure Document Intelligence client for document processing</param>
     /// <remarks>

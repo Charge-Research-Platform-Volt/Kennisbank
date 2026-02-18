@@ -46,7 +46,7 @@ public class VPNCleanupService : BackgroundService
 
                 foreach (var (id, name) in vpnUsers)
                 {
-                    if (userIds.Contains(name) || invitationIds.Contains(name))
+                    if (!ValidityUtil.IsValidId(name) || userIds.Contains(name) || invitationIds.Contains(name))
                         continue;
 
                     try
