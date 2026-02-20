@@ -782,9 +782,9 @@ Enhanced Query:";
     {
         // Optimized for metadata extraction (title, authors, abstract, publication info)
         // These are typically found in the first pages and last pages (references/acknowledgments)
-        const int firstChars = 150000;  // ~37.5K tokens - captures intro, abstract, authors, publication info
-        const int lastChars = 100000;   // ~25K tokens - captures references, acknowledgments
-        const int maxTotal = firstChars + lastChars;  // Total: ~62.5K tokens (~15-30 sec processing)
+        const int firstChars = 32000;  // ~8K tokens - captures intro, abstract, authors, publication info
+        const int lastChars = 8000;   // ~2K tokens - captures references, acknowledgments
+        const int maxTotal = firstChars + lastChars;  // Total: ~10K tokens
 
         // Don't trim if it fits
         if (text.Length <= maxTotal)
