@@ -600,6 +600,7 @@ Enhanced Query:";
         Only authors uses the object format with name and type fields.
 
         Rules:
+        - IMPORTANT: Only extract information that is explicitly present in the document text. Do not infer, guess, or assume values. If a field cannot be clearly found in the document, use null or an empty array.
         - If a field cannot be determined, use null or empty array
         - Language code must be 2 letters lowercase (From the ISO 639-1 list)
         - Publication date can be partial: YYYY (year only), YYYY-MM (year and month), or YYYY-MM-DD (full date). Use the most specific format you can determine from the document.
@@ -607,19 +608,16 @@ Enhanced Query:";
         - Note which type of publication code it is before the actual publication code
         - Make sure tags are capitalized, so they look good
         - **DEDUPLICATION RULE**: Each entity (person/organization) must appear ONLY ONCE per list
-            * EXAMPLES (do NOT include these fictional names): If document has ""F. Lastname"" and ""Full Lastname"", include ONLY ""Full Lastname""
-            * If the same name appears multiple times in document, include it ONLY ONCE in output
-            * EXAMPLES (fictional): If document has ""Company"" and ""Company Inc."", include ONLY ""Company Inc.""
+            * If a shortened and a full version of the same person's name appear, include only the full version
+            * If the same name appears multiple times in the document, include it ONLY ONCE in output
+            * If an abbreviated and full organization name refer to the same entity, include only the more complete version
             * Always prefer the most complete version when you encounter variations of the same entity
             * Check each name before adding - if it's already in the list (even with slight variation), don't add it again
         - **CRITICAL NAME FORMATTING RULE**: All person names MUST follow the format: Given name(s) FIRST, Family name LAST
-            * FORMATTING EXAMPLES (do NOT include these fictional names in your output):
-            - If document shows ""Lastname, A.B."" → reformat to ""A.B. Lastname""
-            - If document shows ""Doe, Jane"" → reformat to ""Jane Doe""
+            * If the document shows a name in ""Last, First"" format (common in citations or references), reorder it to ""First Last""
             * NEVER preserve comma-separated ""Last, First"" format from citations or references
             * Always reorder names from the actual document to: [Given name] [Family name]
-            * IMPORTANT: Only extract names that actually appear in the document text, not from these examples
-        - When the full name is available use that instead of just the first letters (e.g., if document has both ""F. Lastname"" and ""Full Lastname"", prefer ""Full Lastname"")
+        - When the full name is available, prefer it over initials or shortened forms
 
         Important distinctions:
         - AUTHORS: Who wrote/created this document. Can be individual persons OR organizations.
@@ -811,7 +809,7 @@ Enhanced Query:";
         // Setup options
         ChatCompletionOptions chatOptions = new()
         {
-            ResponseFormat = ChatResponseFormat.CreateJsonObjectFormat()
+            ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat("MetadataExtraction", BinaryData.FromString(Prompts.MetadataExtractionOutputJsonSchema))
         };
 
         // Run chat with retry logic for rate limits

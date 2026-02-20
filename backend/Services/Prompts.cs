@@ -196,6 +196,51 @@ Current Document Chunks:
             "required": ["Tags"]
         }
     """;
+
+    public static string MetadataExtractionOutputJsonSchema { get; } = """
+        {
+            "title": "Metadata Extraction",
+            "type": "object",
+            "properties": {
+                "title": { "anyOf": [{"type": "string"}, {"type": "null"}], "description": "The document title" },
+                "abstract": { "anyOf": [{"type": "string"}, {"type": "null"}], "description": "The abstract of the paper when scientific, otherwise null" },
+                "description": { "anyOf": [{"type": "string"}, {"type": "null"}], "description": "A concise description of the document (50-300 words)" },
+                "publicationDate": { "anyOf": [{"type": "string"}, {"type": "null"}], "description": "Publication date in YYYY, YYYY-MM, or YYYY-MM-DD format, or null" },
+                "languageCode": { "anyOf": [{"type": "string"}, {"type": "null"}], "description": "ISO 639-1 two-letter language code, or null" },
+                "authors": {
+                    "type": "array",
+                    "description": "Document authors (persons or organisations)",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": { "type": "string" },
+                            "type": { "type": "string", "enum": ["person", "organisation"] }
+                        },
+                        "required": ["name", "type"],
+                        "additionalProperties": false
+                    }
+                },
+                "organisations": {
+                    "type": "array",
+                    "description": "Organisation names associated with the document",
+                    "items": { "type": "string" }
+                },
+                "relatedPersons": {
+                    "type": "array",
+                    "description": "Person names mentioned in the document who are not authors",
+                    "items": { "type": "string" }
+                },
+                "publicationCode": { "anyOf": [{"type": "string"}, {"type": "null"}], "description": "DOI, ISBN, arXiv ID, or other identifier, or null" },
+                "tags": {
+                    "type": "array",
+                    "description": "Relevant tags for the document",
+                    "items": { "type": "string" }
+                }
+            },
+            "required": ["title", "abstract", "description", "publicationDate", "languageCode", "authors", "organisations", "relatedPersons", "publicationCode", "tags"],
+            "additionalProperties": false
+        }
+    """;
     #endregion
 
 
