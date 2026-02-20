@@ -212,9 +212,18 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Docume
     #endregion
     
     #region Web Text Extraction
-    public async Task<ReadabilityResult> ExtractTextFromWebAsync(string url) 
+    public async Task<ReadabilityResult> ExtractTextFromWebAsync(string url)
     {
         logger.LogInformation("Extracting text from webpage with url '{url}'", url);
+
+        // Handle direct document URLs - download and extract as file instead of using a headless browser
+        string[] documentExtensions = [".pdf", ".docx", ".doc", ".pptx", ".ppt", ".xlsx", ".xls"];
+        string urlPath = new Uri(url).LocalPath.TrimEnd('/');
+        if (documentExtensions.Any(ext => urlPath.EndsWith(ext, StringComparison.OrdinalIgnoreCase)))
+        {
+            logger.LogInformation("URL points to a document file, downloading and extracting directly");
+            return await ExtractFromDocumentUrlAsync(url, Path.GetExtension(urlPath));
+        }
 
         ReadabilityResult result = await ExtractWithSmartReaderAsync(url);
         
@@ -343,9 +352,48 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Docume
 
             return new ReadabilityResult();
         }
-        finally 
+        finally
         {
             await page.CloseAsync();
+        }
+    }
+
+    private async Task<ReadabilityResult> ExtractFromDocumentUrlAsync(string url, string extension)
+    {
+        try
+        {
+            using HttpClient httpClient = new();
+            httpClient.Timeout = TimeSpan.FromSeconds(60);
+            using HttpResponseMessage response = await httpClient.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+
+            using Stream stream = await response.Content.ReadAsStreamAsync();
+            using MemoryStream memoryStream = new();
+            await stream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            string text = await ExtractTextFromFileAsync(memoryStream, extension);
+
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                logger.LogWarning("No text could be extracted from document URL '{url}'", url);
+                return new ReadabilityResult();
+            }
+
+            string fileName = Path.GetFileNameWithoutExtension(new Uri(url).LocalPath);
+            string siteName = new Uri(url).Host.Replace("www.", "");
+
+            return new ReadabilityResult
+            {
+                Title = fileName,
+                TextContent = text,
+                SiteName = siteName
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to download and extract document from URL '{url}'", url);
+            return new ReadabilityResult();
         }
     }
     #endregion
