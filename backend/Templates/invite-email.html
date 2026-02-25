@@ -42,9 +42,16 @@
             </td>
           </tr>
 
-          <!-- Step 1 -->
+          <!-- Windows Section Header -->
           <tr>
             <td style="padding: 28px 40px 0;">
+              <p style="margin: 0; font-size: 13px; font-weight: 700; color: #ffffff; background-color: #1a1a2e; display: inline-block; padding: 4px 12px; border-radius: 4px;">Windows</p>
+            </td>
+          </tr>
+
+          <!-- Windows Step 1 -->
+          <tr>
+            <td style="padding: 14px 40px 0;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td width="36" valign="top">
@@ -52,28 +59,19 @@
                   </td>
                   <td style="padding-left: 14px;">
                     <h3 style="margin: 0 0 8px; font-size: 16px; color: #1a202c;">Install Tailscale</h3>
-                    <p style="margin: 0 0 14px; font-size: 14px; color: #718096; line-height: 1.5;">
-                      Tailscale is the VPN client that securely connects you to our network. Download and install it for your operating system.
-                    </p>
-                    <table role="presentation" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td>
-                          <a href="https://tailscale.com/download/windows" style="display: inline-block; padding: 10px 20px; background-color: #1a1a2e; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600;">Download for Windows</a>
-                        </td>
-                        <td style="padding-left: 10px;">
-                          <a href="https://tailscale.com/download/mac" style="display: inline-block; padding: 10px 20px; background-color: #1a1a2e; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: 600;">Download for Mac</a>
-                        </td>
-                      </tr>
-                    </table>
+                    <ol style="margin: 0; padding-left: 18px; font-size: 14px; color: #718096; line-height: 1.8;">
+                      <li>Go to the <a href="https://tailscale.com/download/windows" style="color: #2b6cb0;">Tailscale download page</a> and download the <strong>.exe</strong> installer.</li>
+                      <li>Run the installer. It will complete automatically without any prompts.</li>
+                    </ol>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- Step 2 -->
+          <!-- Windows Step 2 -->
           <tr>
-            <td style="padding: 28px 40px 0;">
+            <td style="padding: 14px 40px 0;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td width="36" valign="top">
@@ -81,52 +79,90 @@
                   </td>
                   <td style="padding-left: 14px;">
                     <h3 style="margin: 0 0 8px; font-size: 16px; color: #1a202c;">Connect to the VPN</h3>
-                    <p style="margin: 0 0 14px; font-size: 14px; color: #718096; line-height: 1.5;">
-                      After installing Tailscale, open a terminal and run the command below to connect to the Charge network. You only need to do this once — after that, Tailscale will connect automatically.
-                    </p>
-
-                    <!-- Windows instructions -->
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
+                    <p style="margin: 0 0 10px; font-size: 14px; color: #718096; line-height: 1.5;">Open <strong>PowerShell</strong> (search for it in the Start menu) and paste:</p>
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                       <tr>
-                        <td style="padding: 12px 16px; background-color: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px 8px 0 0;">
-                          <p style="margin: 0; font-size: 13px; font-weight: 700; color: #4a5568;">Windows</p>
-                          <p style="margin: 4px 0 0; font-size: 12px; color: #a0aec0;">Open <strong>PowerShell</strong> (search for it in the Start menu) and paste:</p>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 14px 16px; background-color: #1a202c; border-radius: 0 0 8px 8px;">
+                        <td style="padding: 14px 16px; background-color: #1a202c; border-radius: 8px;">
                           <code style="color: #e2e8f0; font-size: 12px; font-family: 'Courier New', monospace; word-break: break-all;">tailscale up --login-server https://vpn.charge-volt.org --authkey {{AUTHKEY}}; if ($?) { echo "Connected successfully! You may now close this window." }</code>
                         </td>
                       </tr>
                     </table>
-
-                    <!-- Mac instructions -->
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="padding: 12px 16px; background-color: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px 8px 0 0;">
-                          <p style="margin: 0; font-size: 13px; font-weight: 700; color: #4a5568;">Mac</p>
-                          <p style="margin: 4px 0 0; font-size: 12px; color: #a0aec0;">Open <strong>Terminal</strong> (search for it in Spotlight) and paste:</p>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 14px 16px; background-color: #1a202c; border-radius: 0 0 8px 8px;">
-                          <code style="color: #e2e8f0; font-size: 12px; font-family: 'Courier New', monospace; word-break: break-all;">sudo tailscale up --login-server https://vpn.charge-volt.org --authkey {{AUTHKEY}} && echo "Connected successfully! You may now close this window."</code>
-                        </td>
-                      </tr>
-                    </table>
+                    <p style="margin: 12px 0 0; font-size: 13px; color: #718096; line-height: 1.5;">Once connected, you can close all windows and continue to step 3.</p>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- Step 3 -->
+          <!-- Mac Section Header -->
+          <tr>
+            <td style="padding: 28px 40px 0;">
+              <p style="margin: 0; font-size: 13px; font-weight: 700; color: #ffffff; background-color: #1a1a2e; display: inline-block; padding: 4px 12px; border-radius: 4px;">Mac</p>
+            </td>
+          </tr>
+
+          <!-- Mac Step 1 -->
+          <tr>
+            <td style="padding: 14px 40px 0;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="36" valign="top">
+                    <div style="width: 32px; height: 32px; background-color: #1a1a2e; color: #ffffff; border-radius: 50%; text-align: center; line-height: 32px; font-size: 14px; font-weight: 700;">1</div>
+                  </td>
+                  <td style="padding-left: 14px;">
+                    <h3 style="margin: 0 0 8px; font-size: 16px; color: #1a202c;">Install Tailscale</h3>
+                    <ol style="margin: 0; padding-left: 18px; font-size: 14px; color: #718096; line-height: 1.8;">
+                      <li>Go to <a href="https://tailscale.com/download" style="color: #2b6cb0;">tailscale.com/download</a>, click <strong>Download</strong> and allow the download.</li>
+                      <li>Open the downloaded <strong>.pkg</strong> file, leave the default destination and click <strong>Install</strong>.</li>
+                      <li>Enter your Mac password when prompted.</li>
+                      <li>Tailscale opens automatically. Click <strong>Get Started</strong>.</li>
+                      <li>Follow the on-screen instructions to <strong>Allow System Extension</strong>.</li>
+                      <li>Follow the on-screen instructions to <strong>Allow VPN Configuration</strong>.</li>
+                      <li>Tailscale will now show a login prompt. Ignore it and keep this window open, you will need it in step 2.</li>
+                    </ol>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Mac Step 2 -->
+          <tr>
+            <td style="padding: 14px 40px 0;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="36" valign="top">
+                    <div style="width: 32px; height: 32px; background-color: #1a1a2e; color: #ffffff; border-radius: 50%; text-align: center; line-height: 32px; font-size: 14px; font-weight: 700;">2</div>
+                  </td>
+                  <td style="padding-left: 14px;">
+                    <h3 style="margin: 0 0 8px; font-size: 16px; color: #1a202c;">Connect to the VPN</h3>
+                    <p style="margin: 0 0 10px; font-size: 14px; color: #718096; line-height: 1.5;">Open <strong>Terminal</strong> (search for it in Spotlight) and paste:</p>
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding: 14px 16px; background-color: #1a202c; border-radius: 8px 8px 0 0;">
+                          <code style="color: #e2e8f0; font-size: 12px; font-family: 'Courier New', monospace; word-break: break-all;">/Applications/Tailscale.app/Contents/MacOS/Tailscale up --login-server https://vpn.charge-volt.org --authkey {{AUTHKEY}} && echo "Connected successfully! You may now close this window."</code>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 10px 16px; background-color: #f7fafc; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px;">
+                          <p style="margin: 0; font-size: 13px; color: #718096; line-height: 1.5;">Tailscale will recognize you are logged in and ask whether it should <strong>start with your Mac</strong>. Make sure to enable that.</p>
+                        </td>
+                      </tr>
+                    </table>
+                    <p style="margin: 12px 0 0; font-size: 13px; color: #718096; line-height: 1.5;">Once connected, you can close all windows and continue to step 3.</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Shared Step 3 -->
           <tr>
             <td style="padding: 28px 40px 0;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td width="36" valign="top">
-                    <div style="width: 32px; height: 32px; background-color: #1a1a2e; color: #ffffff; border-radius: 50%; text-align: center; line-height: 32px; font-size: 14px; font-weight: 700;">3</div>
+                    <div style="width: 32px; height: 32px; background-color: #2b6cb0; color: #ffffff; border-radius: 50%; text-align: center; line-height: 32px; font-size: 14px; font-weight: 700;">3</div>
                   </td>
                   <td style="padding-left: 14px;">
                     <h3 style="margin: 0 0 8px; font-size: 16px; color: #1a202c;">Create your account</h3>
@@ -151,7 +187,7 @@
                 <tr>
                   <td style="padding: 16px 18px;">
                     <p style="margin: 0; font-size: 13px; color: #2c5282; line-height: 1.5;">
-                      <strong>Multiple devices?</strong> You can use the same command on any device you want to connect. Just install Tailscale and run the command again — your key works on unlimited devices.
+                      <strong>Multiple devices?</strong> You can use the same command on any device you want to connect. Just install Tailscale and run the command again. Your key works on unlimited devices.
                     </p>
                   </td>
                 </tr>
