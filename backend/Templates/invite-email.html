@@ -8,7 +8,7 @@
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f5f7; padding: 40px 20px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <table role="presentation" width="750" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
 
           <!-- Header -->
           <tr>
@@ -79,15 +79,19 @@
                   </td>
                   <td style="padding-left: 14px;">
                     <h3 style="margin: 0 0 8px; font-size: 16px; color: #1a202c;">Connect to the VPN</h3>
-                    <p style="margin: 0 0 10px; font-size: 14px; color: #718096; line-height: 1.5;">Open <strong>PowerShell</strong> (search for it in the Start menu) and paste:</p>
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="padding: 14px 16px; background-color: #1a202c; border-radius: 8px;">
-                          <code style="color: #e2e8f0; font-size: 12px; font-family: 'Courier New', monospace; word-break: break-all;">tailscale up --login-server https://vpn.charge-volt.org --authkey {{AUTHKEY}}; if ($?) { echo "Connected successfully! You may now close this window." }</code>
-                        </td>
-                      </tr>
-                    </table>
-                    <p style="margin: 12px 0 0; font-size: 13px; color: #718096; line-height: 1.5;">Once connected, you can close all windows and continue to step 3.</p>
+                    <ol style="margin: 0; padding-left: 18px; font-size: 14px; color: #718096; line-height: 1.8;">
+                      <li>Press the <strong>Windows key</strong>, type "PowerShell" and press Enter to open it.</li>
+                      <li>Copy the <strong>entire</strong> command below and paste it into PowerShell:
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 8px; margin-bottom: 6px;">
+                          <tr>
+                            <td style="padding: 14px 16px; background-color: #1a202c; border-radius: 8px;">
+                              <code style="color: #e2e8f0; font-size: 12px; font-family: 'Courier New', monospace; word-break: break-all;">tailscale up --login-server <a href="https://vpn.charge-volt.org" style="color: #e2e8f0; text-decoration: none; pointer-events: none; cursor: default;">https://vpn.charge-volt.org</a> --authkey {{AUTHKEY}}; if ($?) { echo "Connected successfully! You may now close this window." }</code>
+                            </td>
+                          </tr>
+                        </table>
+                      </li>
+                      <li>Once the terminal shows "Connected successfully", close all windows and continue to step 3.</li>
+                    </ol>
                   </td>
                 </tr>
               </table>
@@ -118,7 +122,8 @@
                       <li>Tailscale opens automatically. Click <strong>Get Started</strong>.</li>
                       <li>Follow the on-screen instructions to <strong>Allow System Extension</strong>.</li>
                       <li>Follow the on-screen instructions to <strong>Allow VPN Configuration</strong>.</li>
-                      <li>Tailscale will now start the VPN and show a login prompt. Ignore it and keep this window open, you will need it in step 2.</li>
+                      <li>Tailscale will now start the VPN. Wait for it to finish — this may take a moment.</li>
+                      <li>A login prompt will appear. Skip it and keep this window open, you will need it in step 2.</li>
                     </ol>
                   </td>
                 </tr>
@@ -136,20 +141,20 @@
                   </td>
                   <td style="padding-left: 14px;">
                     <h3 style="margin: 0 0 8px; font-size: 16px; color: #1a202c;">Connect to the VPN</h3>
-                    <p style="margin: 0 0 10px; font-size: 14px; color: #718096; line-height: 1.5;">Open <strong>Terminal</strong> (search for it in Spotlight) and paste:</p>
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="padding: 14px 16px; background-color: #1a202c; border-radius: 8px 8px 0 0;">
-                          <code style="color: #e2e8f0; font-size: 12px; font-family: 'Courier New', monospace; word-break: break-all;">/Applications/Tailscale.app/Contents/MacOS/Tailscale up --login-server https://vpn.charge-volt.org --authkey {{AUTHKEY}} && echo "Connected successfully! You may now close this window."</code>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 10px 16px; background-color: #f7fafc; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px;">
-                          <p style="margin: 0; font-size: 13px; color: #718096; line-height: 1.5;">Tailscale will recognize you are logged in and ask whether it should <strong>start with your Mac</strong>. Make sure to enable that.</p>
-                        </td>
-                      </tr>
-                    </table>
-                    <p style="margin: 12px 0 0; font-size: 13px; color: #718096; line-height: 1.5;">Once connected, you can close all windows and continue to step 3.</p>
+                    <ol style="margin: 0; padding-left: 18px; font-size: 14px; color: #718096; line-height: 1.8;">
+                      <li>Open Terminal: press <strong>Cmd (⌘) + Space</strong>, type "Terminal" and press Enter.</li>
+                      <li>Copy the <strong>entire</strong> command below and paste it into Terminal:
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 8px; margin-bottom: 6px;">
+                          <tr>
+                            <td style="padding: 14px 16px; background-color: #1a202c; border-radius: 8px;">
+                              <code style="color: #e2e8f0; font-size: 12px; font-family: 'Courier New', monospace; word-break: break-all;">/Applications/Tailscale.app/Contents/MacOS/Tailscale up --login-server <a href="https://vpn.charge-volt.org" style="color: #e2e8f0; text-decoration: none; pointer-events: none; cursor: default;">https://vpn.charge-volt.org</a> --authkey {{AUTHKEY}} &amp;&amp; echo "Connected successfully! You may now close this window."</code>
+                            </td>
+                          </tr>
+                        </table>
+                      </li>
+                      <li>Once the terminal shows "Connected successfully", go back to the Tailscale window and enable <strong>start with your Mac</strong>.</li>
+                      <li>Close all windows and continue to step 3.</li>
+                    </ol>
                   </td>
                 </tr>
               </table>
