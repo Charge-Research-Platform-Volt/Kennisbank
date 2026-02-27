@@ -9,14 +9,14 @@ import Archive from "@/icons/archive";
 import Tags from "@/icons/tags-icon";
 import { MessageCircleMore, Users } from "lucide-react";
 import Projects from "@/icons/project-icons/icon-1";
-import { UserDataSchema } from "@/types/user.type";
+import { UserDataResponseSchema } from "@/types/user.type";
 
 /**
  * @summary This function does the needed fetches from a server component and gives them to the client side component for use.
  * @returns Left side bar made from server component
  */
 export default async function LeftSidebarServer() {
-  const userFetch = await FetchWithValidation(UserDataSchema, `${process.env.API_URL}/user/current/account`);
+  const userFetch = await FetchWithValidation(UserDataResponseSchema, `${process.env.API_URL}/user/current/account`);
 
   if (!userFetch.success) {
     console.log("Failed to fetch user data");
@@ -64,7 +64,7 @@ export default async function LeftSidebarServer() {
     });
   }
 
-  return <LeftSidebarClient userData={userFetch.data} menuItems={menuItems} projects={projects} bottomMenuItems={bottomMenuItems} />;
+  return <LeftSidebarClient userData={userFetch.data.body} menuItems={menuItems} projects={projects} bottomMenuItems={bottomMenuItems} />;
 }
 
 // This program has been developed by students from the bachelor Computer Science at Utrecht

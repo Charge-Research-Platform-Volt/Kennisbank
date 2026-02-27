@@ -12,6 +12,7 @@ using KnowledgeBank.Utils;
 using Microsoft.Extensions.Options;
 using KnowledgeBank.Services.Storage;
 using KnowledgeBank.Services;
+using Microsoft.AspNetCore.Hosting;
 
 namespace KnowledgeBank.Controllers;
 
@@ -21,7 +22,7 @@ namespace KnowledgeBank.Controllers;
 /// </summary>
 [ApiController]
 [Route("[controller]")]
-public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStorageService storageService, UserManager<User> userManager, IOptions<OwnerUserConfig> ownerConfig, EnvironmentConfig environmentConfig, VPNService vpnService) : ControllerBase
+public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStorageService storageService, UserManager<User> userManager, IOptions<OwnerUserConfig> ownerConfig, EnvironmentConfig environmentConfig, VPNService vpnService, IWebHostEnvironment env) : ControllerBase
 {
     private readonly Serilog.ILogger logger = Log.ForContext<UserController>();
     private readonly OwnerUserConfig ownerConfig = ownerConfig.Value;
@@ -49,12 +50,12 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
             IList<string> roles = await userManager.GetRolesAsync(user);
             UserResponse userResponse = new UserResponse(user, roles.FirstOrDefault() ?? "No Role");
 
-            return Ok(userResponse);
+            return Ok(new ApiResponse(true, "Account info found.", userResponse));
         }
         catch (Exception e)
         {
             logger.Error(e, "Error getting the current user's account info.");
-            return StatusCode(500, new { message = "Internal server error." });
+            return StatusCode(500, new ApiResponse(false, "Internal server error."));
         }
     }
 
@@ -281,8 +282,9 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
             if (newAvatar.Length > Constants.MaxAvatarSize)
                 return BadRequest($"Avatar file is too large (max {Constants.MaxAvatarSizeInMb}MB)");
 
-            if (newAvatar.ContentType != "image/png")
-                return BadRequest("Invalid image type. Png expected");
+            string[] allowedTypes = ["image/png", "image/jpeg", "image/webp"];
+            if (!allowedTypes.Contains(newAvatar.ContentType))
+                return BadRequest("Invalid image type. PNG, JPEG or WebP expected");
 
             await storageService.UploadObjectAsync(bucketName, userId, newAvatar.OpenReadStream());
 
@@ -457,14 +459,17 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
                 return StatusCode(403, "Owner user cannot be deleted");
 
             // Delete user from VPN first (can be retried if app deletion fails)
-            try
+            if (!env.IsDevelopment())
             {
-                await vpnService.DeleteUserWithNodes(user.Id);
-            }
-            catch (Exception vpnEx)
-            {
-                logger.Error(vpnEx, "Failed to delete VPN user {UserId}", user.Id);
-                return StatusCode(500, new { message = "Failed to delete VPN user" });
+                try
+                {
+                    await vpnService.DeleteUserWithNodes(user.Id);
+                }
+                catch (Exception vpnEx)
+                {
+                    logger.Error(vpnEx, "Failed to delete VPN user {UserId}", user.Id);
+                    return StatusCode(500, new { message = "Failed to delete VPN user" });
+                }
             }
 
             IdentityResult response = await userManager.DeleteAsync(user);

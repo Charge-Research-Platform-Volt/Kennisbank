@@ -22,6 +22,13 @@ export const UserDataSchema = z.object({
   customAvatarVersion: z.number().int().positive().nullable(),
 });
 
+// Wrapped in ApiResponse for endpoints that return { success, message, body: UserData }
+export const UserDataResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  body: UserDataSchema,
+});
+
 export const UsersArraySchema = z.array(UserSchema);
 
 // Type definitions derived from the schemas

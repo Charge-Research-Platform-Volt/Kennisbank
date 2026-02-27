@@ -6,7 +6,7 @@ import GetFileIcon from "@/components/getFileIcon";
 import OpenFileButton from "@/components/open-file-button";
 import SearchButton from "../_components/search-button";
 import { ApiResponseSchema } from "@/types/apiResponse.type";
-import { UserDataSchema } from "@/types/user.type";
+import { UserDataResponseSchema } from "@/types/user.type";
 import ProjectIcon1 from "@/icons/project-icons/icon-1";
 
 export default async function Home() {
@@ -29,12 +29,12 @@ export default async function Home() {
   const currentHour: number = parseInt(timeString, 10);
 
   // load first name for the greeting
-  const userFetch = (await FetchWithValidation(UserDataSchema, `${process.env.API_URL}/user/current/account`));
+  const userFetch = (await FetchWithValidation(UserDataResponseSchema, `${process.env.API_URL}/user/current/account`));
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-6">
       <div className="w-full max-w-4xl text-center">
-        <Greeting firstName={userFetch.success ? userFetch.data.firstName : ""} initialHour={currentHour} />
+        <Greeting firstName={userFetch.success ? userFetch.data.body.firstName : ""} initialHour={currentHour} />
         <p className="mb-10 text-lg text-gray-500">Where do you want to go?</p>
 
         {/* Main buttons */}

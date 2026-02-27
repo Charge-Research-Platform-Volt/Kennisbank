@@ -11,6 +11,7 @@ using KnowledgeBank.Responses;
 using Microsoft.EntityFrameworkCore;
 using KnowledgeBank.Services.Storage;
 using KnowledgeBank.Services;
+using Microsoft.AspNetCore.Hosting;
 
 namespace KnowledgeBank.Controllers
 {
@@ -20,7 +21,7 @@ namespace KnowledgeBank.Controllers
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
-    public class AuthController (SignInManager<User> signInManager, IDbContextFactory<DatabaseContext> dbFactory, EnvironmentConfig _environmentConfig, MailUtils _mailUtils, IStorageService storageService, VPNService vpnService) : ControllerBase
+    public class AuthController (SignInManager<User> signInManager, IDbContextFactory<DatabaseContext> dbFactory, EnvironmentConfig _environmentConfig, MailUtils _mailUtils, IStorageService storageService, VPNService vpnService, IWebHostEnvironment env) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<AuthController>();
         private readonly string bucketName = _environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
@@ -108,19 +109,23 @@ namespace KnowledgeBank.Controllers
                 await database.SaveChangesAsync();
 
                 // Create VPN user
-                string vpnUserId;
-                string preAuthKey;
-                try
+                string vpnUserId = string.Empty;
+                string preAuthKey = string.Empty;
+
+                if (!env.IsDevelopment())
                 {
-                    vpnUserId = await vpnService.CreateUser(invitationId.ToString());
-                    preAuthKey = await vpnService.GetPreAuthKey(vpnUserId);
-                }
-                catch (Exception e)
-                {
-                    logger.Error(e, "Failed to create VPN user for invitation {InvitationId}, cleaning up", invitationId);
-                    database.Invitations.Remove(database.Invitations.First(i => i.Id == invitationId));
-                    await database.SaveChangesAsync();
-                    return BadRequest(new { message = "Failed to create VPN user" });
+                    try
+                    {
+                        vpnUserId = await vpnService.CreateUser(invitationId.ToString());
+                        preAuthKey = await vpnService.GetPreAuthKey(vpnUserId);
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Error(e, "Failed to create VPN user for invitation {InvitationId}, cleaning up", invitationId);
+                        database.Invitations.Remove(database.Invitations.First(i => i.Id == invitationId));
+                        await database.SaveChangesAsync();
+                        return BadRequest(new { message = "Failed to create VPN user" });
+                    }
                 }
 
                 // send the email
@@ -154,7 +159,7 @@ namespace KnowledgeBank.Controllers
                                                                             && i.CreatedAt > DateTime.UtcNow.AddHours(-168));
                     if (invitation == null)
                     {
-                        return BadRequest(new { message = "Invalid invitation" });
+                        return BadRequest(new ApiResponse(false, "Invalid invitation"));
                     }
 
                     // Remove the user's invitation
@@ -167,11 +172,12 @@ namespace KnowledgeBank.Controllers
                     // Upload avatar if provided
                     if (signUpDto.Avatar != null && signUpDto.Avatar.Length > 0)
                     {
-                        if (signUpDto.Avatar.ContentType != "image/png")
-                            return BadRequest(new { message = "Invalid image type. Png expected" });
+                        string[] allowedTypes = ["image/png", "image/jpeg", "image/webp"];
+                        if (!allowedTypes.Contains(signUpDto.Avatar.ContentType))
+                            return BadRequest(new ApiResponse(false, "Invalid image type. PNG, JPEG or WebP expected"));
 
                         if (signUpDto.Avatar.Length > Constants.MaxAvatarSize)
-                            return BadRequest(new { message = $"Avatar file is too large (max {Constants.MaxAvatarSizeInMb}MB)" });
+                            return BadRequest(new ApiResponse(false, $"Avatar file is too large (max {Constants.MaxAvatarSizeInMb}MB)"));
 
                         await storageService.UploadObjectAsync(bucketName, user.Id, signUpDto.Avatar.OpenReadStream(), new Dictionary<string, string>());
 
@@ -182,12 +188,12 @@ namespace KnowledgeBank.Controllers
                     // save the user
                     IdentityResult result = await signInManager.UserManager.CreateAsync(user, signUpDto.Password);
                     if (!result.Succeeded)
-                        return BadRequest(new { message = string.Join(" ", result.Errors.Select(e => e.Description)) });
+                        return BadRequest(new ApiResponse(false, string.Join(" ", result.Errors.Select(e => e.Description))));
 
                     IdentityResult roleResult = await signInManager.UserManager.AddToRoleAsync(user, "user");
 
                     if (!roleResult.Succeeded)
-                        return BadRequest(new { message = string.Join(" ", roleResult.Errors.Select(e => e.Description)) });
+                        return BadRequest(new ApiResponse(false, string.Join(" ", roleResult.Errors.Select(e => e.Description))));
 
                     await transaction.CommitAsync();
 
@@ -206,13 +212,13 @@ namespace KnowledgeBank.Controllers
                         logger.Error(vpnEx, "Failed to rename VPN user from invitation {InvitationId} to user {UserId}", invitation.Id, user.Id);
                     }
 
-                    return Ok(new { message = $"User '{user.UserName}' created succesfully." });
+                    return Ok(new ApiResponse(true, $"User '{user.UserName}' created successfully."));
                 }
                 catch (Exception e)
                 {
                     await transaction.RollbackAsync();
                     logger.Error(e, "Error creating user");
-                    return BadRequest(new { message = "Error creating user" });
+                    return BadRequest(new ApiResponse(false, "Error creating user"));
                 }
             }
         }
