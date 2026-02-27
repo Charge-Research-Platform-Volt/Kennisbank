@@ -120,7 +120,11 @@ namespace KnowledgeBank.Controllers
                 }
 
                 logger.Information("Creating resource '{Title}'...", dto.Title);
-                
+
+                List<Func<CancellationToken, Task>> backgroundTasks = [];
+                // Track entities created in this request to avoid duplicates within the same transaction
+                Dictionary<string, Guid> createdOrganisations = [];
+                Dictionary<string, Guid> createdPersons = [];
                 // Start transaction on the database
                 await resourceManager.BeginTransaction();
                 
@@ -138,26 +142,45 @@ namespace KnowledgeBank.Controllers
 
                     if (type == "organisation")
                     {
-                        // Create organisation
-                        entityId = await resourceManager.CreateOrganisationAsync(new OrganisationCreateDto { Name = name });
-                        logger.Information("Created new organisation '{Name}' with ID {Id}", name, entityId);
+                        if (createdOrganisations.TryGetValue(name, out Guid cachedOrgId))
+                        {
+                            entityId = cachedOrgId;
+                        }
+                        else
+                        {
+                            entityId = await resourceManager.CreateOrganisationAsync(new OrganisationCreateDto { Name = name });
+                            createdOrganisations[name] = entityId;
+                            logger.Information("Created new organisation '{Name}' with ID {Id}", name, entityId);
+                            backgroundTasks.Add(async token =>
+                            {
+                                using var scope = serviceScopeFactory.CreateScope();
+                                RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                                await rag.EntityPipeline(id: entityId, chunk: $"{name}");
+                            });
+                        }
                     }
                     else
                     {
                         // Default to person (includes when type is null, "person", or any other value)
-                        entityId = await resourceManager.CreatePersonAsync(new PersonCreateDto { Name = name });
-                        logger.Information("Created new person '{Name}' with ID {Id}", name, entityId);
+                        if (createdPersons.TryGetValue(name, out Guid cachedPersonId))
+                        {
+                            entityId = cachedPersonId;
+                        }
+                        else
+                        {
+                            entityId = await resourceManager.CreatePersonAsync(new PersonCreateDto { Name = name });
+                            createdPersons[name] = entityId;
+                            logger.Information("Created new person '{Name}' with ID {Id}", name, entityId);
+                            backgroundTasks.Add(async token =>
+                            {
+                                using var scope = serviceScopeFactory.CreateScope();
+                                RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                                await rag.EntityPipeline(id: entityId, chunk: $"{name}");
+                            });
+                        }
                     }
 
                     dto.Authors[i].Value = entityId.ToString();
-
-                    // Also start embedding task for this new entity
-                    taskQueue.QueueBackgroundWorkItem(async token =>
-                    {
-                        using var scope = serviceScopeFactory.CreateScope();
-                        RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                        await rag.MainPipeline(id: entityId, chunk: $"{name}");
-                    });
                 }
                 
                 // Check if we need to create any organisations that don't exist yet
@@ -167,18 +190,24 @@ namespace KnowledgeBank.Controllers
                     if (ValidityUtil.IsValidId(dto.Organisations[i]))
                         continue;
 
-                    // Else create the organisation and store its id
                     string name = dto.Organisations[i];
-                    Guid oId = await resourceManager.CreateOrganisationAsync(new OrganisationCreateDto { Name = name });
-                    dto.Organisations[i] = oId.ToString();
-
-                    // Also start embedding task for this new organisation
-                    taskQueue.QueueBackgroundWorkItem(async token =>
+                    if (createdOrganisations.TryGetValue(name, out Guid cachedOrgId))
                     {
-                        using var scope = serviceScopeFactory.CreateScope();
-                        RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                        await rag.MainPipeline(id: oId, chunk: $"{name}");
-                    });
+                        dto.Organisations[i] = cachedOrgId.ToString();
+                    }
+                    else
+                    {
+                        Guid oId = await resourceManager.CreateOrganisationAsync(new OrganisationCreateDto { Name = name });
+                        createdOrganisations[name] = oId;
+                        dto.Organisations[i] = oId.ToString();
+
+                        backgroundTasks.Add(async token =>
+                        {
+                            using var scope = serviceScopeFactory.CreateScope();
+                            RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                            await rag.EntityPipeline(id: oId, chunk: $"{name}");
+                        });
+                    }
                 }
 
                 // Check if we need to create any related persons that don't exist yet
@@ -188,18 +217,24 @@ namespace KnowledgeBank.Controllers
                     if (ValidityUtil.IsValidId(dto.RelatedPersons[i]))
                         continue;
 
-                    // Else create the person an store its id
                     string name = dto.RelatedPersons[i];
-                    Guid pId = await resourceManager.CreatePersonAsync(new PersonCreateDto { Name = name });
-                    dto.RelatedPersons[i] = pId.ToString();
-
-                    // Start embedding task for this new person
-                    taskQueue.QueueBackgroundWorkItem(async token =>
+                    if (createdPersons.TryGetValue(name, out Guid cachedPersonId))
                     {
-                        using var scope = serviceScopeFactory.CreateScope();
-                        RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                        await rag.MainPipeline(id: pId, chunk: $"{name}");
-                    });
+                        dto.RelatedPersons[i] = cachedPersonId.ToString();
+                    }
+                    else
+                    {
+                        Guid pId = await resourceManager.CreatePersonAsync(new PersonCreateDto { Name = name });
+                        createdPersons[name] = pId;
+                        dto.RelatedPersons[i] = pId.ToString();
+
+                        backgroundTasks.Add(async token =>
+                        {
+                            using var scope = serviceScopeFactory.CreateScope();
+                            RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                            await rag.EntityPipeline(id: pId, chunk: $"{name}");
+                        });
+                    }
                 }
 
                 // Check if we need to create any tags that don't exist yet
@@ -239,20 +274,88 @@ namespace KnowledgeBank.Controllers
                 {
                     // Website creation
                     case WebsiteCreateDto wDto:
-                        id = await resourceManager.CreateWebsiteAsync(wDto);
-                        taskQueue.QueueBackgroundWorkItem(async token =>
+                        // If the URL points directly to a supported file, download and store it as a document
+                        string wUrlPath = new Uri(wDto.Url).LocalPath.TrimEnd('/');
+                        string wUrlExt = Path.GetExtension(wUrlPath); // e.g. ".pdf"
+                        string? directFileExt = (!string.IsNullOrEmpty(wUrlExt) && Filetype.SupportedText(wUrlExt)) ? wUrlExt : null;
+
+                        if (directFileExt != null)
                         {
-                            using var scope = serviceScopeFactory.CreateScope();
-                            RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                            
-                            await rag.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}\n{wDto.Url}");
-                        });
+                            Guid fileId = Guid.NewGuid();
+                            using HttpClient httpClient = new() { Timeout = TimeSpan.FromSeconds(60) };
+                            using HttpResponseMessage httpFileResponse = await httpClient.GetAsync(wDto.Url);
+                            httpFileResponse.EnsureSuccessStatusCode();
+
+                            using MemoryStream fileMemStream = new();
+                            using Stream downloadStream = await httpFileResponse.Content.ReadAsStreamAsync();
+                            await downloadStream.CopyToAsync(fileMemStream);
+                            fileMemStream.Position = 0;
+
+                            string fileHash = Convert.ToHexString(
+                                System.Security.Cryptography.SHA256.HashData(fileMemStream.ToArray())
+                            ).ToLowerInvariant();
+                            fileMemStream.Position = 0;
+
+                            await storageService.UploadObjectAsync(
+                                bucketName,
+                                fileId.ToString(),
+                                fileMemStream,
+                                new Dictionary<string, string>
+                                {
+                                    { "extension", directFileExt },
+                                    { "originalFileName", Path.GetFileName(wUrlPath) }
+                                }
+                            );
+
+                            DocumentCreateDto docDto = new()
+                            {
+                                Id = fileId.ToString(),
+                                FileExtension = directFileExt,
+                                Hash = fileHash,
+                                Title = wDto.Title,
+                                Description = wDto.Description,
+                                TypeId = wDto.TypeId,
+                                LanguageCode = wDto.LanguageCode,
+                                PublicationCode = wDto.PublicationCode,
+                                PublicationDate = wDto.PublicationDate,
+                                PublicationDatePrecision = wDto.PublicationDatePrecision,
+                                License = wDto.License,
+                                Note = wDto.Note,
+                                SourceUrl = wDto.Url,
+                                Tags = wDto.Tags,
+                                Authors = wDto.Authors,
+                                Organisations = wDto.Organisations,
+                                Regions = wDto.Regions,
+                                RelatedPersons = wDto.RelatedPersons,
+                            };
+
+                            id = await resourceManager.CreateDocumentAsync(docDto);
+                            backgroundTasks.Add(async token =>
+                            {
+                                using var scope = serviceScopeFactory.CreateScope();
+                                RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                                IStorageService storage = scope.ServiceProvider.GetRequiredService<IStorageService>();
+                                ObjectDownloadResponse dlResponse = await storage.DownloadObjectAsync(bucketName, id.ToString());
+                                await using var dlStream = dlResponse.Stream;
+                                await rag.ResourcePipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: "document", fileStream: dlStream);
+                            });
+                        }
+                        else
+                        {
+                            id = await resourceManager.CreateWebsiteAsync(wDto);
+                            backgroundTasks.Add(async token =>
+                            {
+                                using var scope = serviceScopeFactory.CreateScope();
+                                RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                                await rag.ResourcePipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}\n{wDto.Url}");
+                            });
+                        }
                         break;
                     
                     // Document creation
                     case DocumentCreateDto dDto:
                         id = await resourceManager.CreateDocumentAsync(dDto);
-                        taskQueue.QueueBackgroundWorkItem(async token =>
+                        backgroundTasks.Add(async token =>
                         {
                             using var scope = serviceScopeFactory.CreateScope();
                             RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
@@ -261,37 +364,42 @@ namespace KnowledgeBank.Controllers
                             ObjectDownloadResponse downloadResponse = await storage.DownloadObjectAsync(bucketName, id.ToString());
                             await using var fileStream = downloadResponse.Stream;
 
-                            await rag.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: "document", fileStream: fileStream);
+                            await rag.ResourcePipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: "document", fileStream: fileStream);
                         });
                         break;
                     
                     // Audio creation
                     case AudioCreateDto aDto:
                         id = await resourceManager.CreateAudioAsync(aDto);
-                        taskQueue.QueueBackgroundWorkItem(async token =>
+                        backgroundTasks.Add(async token =>
                         {
                             using var scope = serviceScopeFactory.CreateScope();
                             RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
 
-                            await rag.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
+                            await rag.ResourcePipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
                         });
                         break;
                     
                     // Video creation
                     case VideoCreateDto vDto:
                         id = await resourceManager.CreateVideoAsync(vDto);
-                        taskQueue.QueueBackgroundWorkItem(async token =>
+                        backgroundTasks.Add(async token =>
                         {
                             using var scope = serviceScopeFactory.CreateScope();
                             RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
 
-                            await rag.MainPipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
+                            await rag.ResourcePipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
                         });
                         break;
                 }
 
                 // Commit changes to the database and return success response
                 await resourceManager.Commit();
+
+                // Start background tasks
+                foreach (var task in backgroundTasks)
+                    taskQueue.QueueBackgroundWorkItem(task);
+                
                 logger.Information("Resource '{Title}' created successfully.", dto.Title);
                 return Ok(new ApiResponse(true, "Resource created successfully", id));
             }
@@ -299,7 +407,7 @@ namespace KnowledgeBank.Controllers
             {
                 logger.Error(e, "Error creating resource '{Title}'", dto.Title);
                 await resourceManager.Rollback();
-                return StatusCode(500, new ApiResponse(false, "Error creating resource", e.Message));
+                return StatusCode(500, new ApiResponse(false, e.Message));
             }
         }
         #endregion
@@ -552,9 +660,12 @@ namespace KnowledgeBank.Controllers
                 if (!string.IsNullOrEmpty(hash))
                     resourceId = await resourceManager.GetResourcePropertyOrDefaultAsync(predicate: r => r.Hash == hash, selector: "Id");
 
-                // Handle URL for websites
+                // Handle URL — check website metadata first, then resource SourceUrl (for file-URL documents)
                 else if (!string.IsNullOrEmpty(url))
+                {
                     resourceId = await resourceManager.GetWebsiteMetadataPropertyOrDefaultAsync(predicate: m => m.Url == url, selector: "ResourceId");
+                    resourceId ??= await resourceManager.GetResourcePropertyOrDefaultAsync(predicate: r => r.SourceUrl == url, selector: "Id");
+                }
 
 
 

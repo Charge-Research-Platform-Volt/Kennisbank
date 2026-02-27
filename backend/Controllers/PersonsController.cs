@@ -69,7 +69,7 @@ namespace KnowledgeBank.Controllers
                 {
                     using var scope = HttpContext.RequestServices.CreateScope();
                     var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                    await ragManager.MainPipeline(id: id, chunk: $"{dto.Name}\n{dto.Description}", fileType: null);
+                    await ragManager.EntityPipeline(id: id, chunk: $"{dto.Name}\n{dto.Description}");
                 });
 
                 logger.Information("Person '{Name}' created successfully.", dto.Name);

@@ -153,9 +153,9 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
         }
     }
 
-    public async Task MainPipeline(Guid id, string chunk, string? fileType = null, Stream? fileStream = null)
+    public async Task ResourcePipeline(Guid id, string chunk, string? fileType = null, Stream? fileStream = null)
     {
-        logger.Information("Main RAG pipeline started for resource ID: {Id}", id);
+        logger.Information("Resource RAG pipeline started for resource ID: {Id}", id);
 
         try
         {
@@ -207,7 +207,7 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
                 Type: index == 0 ? ChunkType.MetaData : ChunkType.ContentText,
                 Part: index
             )).ToList();
-            await vectorStore.CreatePointsAsync(id, chunkData);
+            await vectorStore.CreateResourcePointsAsync(id, chunkData);
 
 
             // * STEP 5: AI Tag Generation
@@ -224,28 +224,30 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
             logger.Error(ex, "An error occurred while processing the document for resource ID: {Id}. Pipeline execution failed.", id);
             throw;
         }
+    }
+    
+    public async Task EntityPipeline(Guid id, string chunk) 
+    {
+        logger.Information("Entity RAG pipeline started for entity ID: {Id}", id);
+        
+        try 
+        {
+            var chunkData = new List<(string Text, ChunkType Type, int Part)>
+            {
+                (chunk, ChunkType.MetaData, 0)
+            };
 
-        //---------------------------------------------------------------------------------------------------
-        // LEGACY CODE: Alternative text extraction using PdfPig library
-        // Note: The following code is commented out as it uses PdfPig library which is not currently in use.
-        // This approach was replaced by Azure Document Intelligence for better accuracy and format support.
-        // Keeping this code for reference in case we need to fall back to PdfPig or support additional formats.
-        //---------------------------------------------------------------------------------------------------
-        // 
-        // -- Extract text from the document using PdfPig library (DEPRECATED)
-        // if (!string.IsNullOrWhiteSpace(fileType))
-        // {
-        //     string extractedText = await _ragSystem.Toolbox.ExtractTextAsync(fileType, id, _blobService);
-        //
-        //     if (string.IsNullOrEmpty(extractedText))
-        //     {
-        //         _logger.Warning("No text extracted from the document");
-        //         return;
-        //     }
-        //
-        //     // -- Chunk the extracted text using the legacy approach
-        //     chunks.AddRange(_ragSystem.Toolbox.SplitTextIntoChunks(extractedText, false));
-        // }
+            await vectorStore.CreateEntityPointsAsync(id, chunkData);
+
+            logger.Information("Entity RAG pipeline completed for entity ID: {Id}", id);
+        }
+        catch (Exception ex) 
+        {
+            // TODO: Add a way to notify the user that the pipeline failed, with some options to retry
+
+            logger.Error(ex, "An error occured while processing entity ID: {Id}", id);
+            throw;
+        }
     }
 
 
@@ -657,7 +659,7 @@ Enhanced Query:";
         logger.Information("Starting document metadata extraction for: {file}", fileName);
 
         // Make text fit in context window of LLM
-        string textToAnalyze = trimText(text);
+        string textToAnalyze = trimTextForFile(text);
 
         logger.Information("Analyzing {Length} characters of text", textToAnalyze.Length);
 
@@ -699,8 +701,14 @@ Enhanced Query:";
     
         logger.Information("Starting web metadata extraction for: " + readabilityResult.SiteName);
 
-        // Make text fit in context window of LLM
-        string textToAnalyze = trimText(readabilityResult.TextContent);
+        // Use more text if Readability failed to extract the key structured fields,
+        // since the LLM will have to find title, author, and date from the body text alone.
+        bool readabilitySucceeded = !string.IsNullOrWhiteSpace(readabilityResult.Title)
+            || !string.IsNullOrWhiteSpace(readabilityResult.Byline)
+            || !string.IsNullOrWhiteSpace(readabilityResult.SiteName);
+        string textToAnalyze = readabilitySucceeded
+            ? trimTextForWeb(readabilityResult.TextContent)
+            : trimTextForFile(readabilityResult.TextContent);
         
         logger.Information("Analyzing {Length} characters of text", textToAnalyze.Length);
 
@@ -774,25 +782,37 @@ Enhanced Query:";
     /// Omits the middle of very long documents to make it fit in the context of the LLM.
     /// We keep the start and end, because these often contain abstracts, authors and other metadata.
     /// </summary>
-    /// <param name="text">The text to be trimmed</param>
-    /// <returns>The trimmed text</returns>
-    private string trimText(string text)
+    private string trimTextForFile(string text)
     {
-        // Optimized for metadata extraction (title, authors, abstract, publication info)
-        // These are typically found in the first pages and last pages (references/acknowledgments)
-        const int firstChars = 32000;  // ~8K tokens - captures intro, abstract, authors, publication info
-        const int lastChars = 8000;   // ~2K tokens - captures references, acknowledgments
-        const int maxTotal = firstChars + lastChars;  // Total: ~10K tokens
+        const int firstChars = 16000;  // ~4K tokens - captures intro, abstract, authors, publication info
+        const int lastChars = 4000;    // ~1K tokens - captures references, acknowledgments
+        return trimText(text, firstChars, lastChars);
+    }
 
-        // Don't trim if it fits
+    /// <summary>
+    /// Trims web page text for metadata extraction. Uses smaller limits since Readability
+    /// already extracts title, byline, excerpt, and sitename separately.
+    /// </summary>
+    private string trimTextForWeb(string text)
+    {
+        const int firstChars = 8000;  // ~2K tokens - captures opening paragraphs and key metadata
+        const int lastChars = 0;      // Not needed - web article metadata is always near the top
+        return trimText(text, firstChars, lastChars);
+    }
+
+    private static string trimText(string text, int firstChars, int lastChars)
+    {
+        int maxTotal = firstChars + lastChars;
+
         if (text.Length <= maxTotal)
             return text;
 
-        // Extract beginning and ending
         string beginning = text.Substring(0, firstChars);
-        string ending = text.Substring(text.Length - lastChars);
 
-        // Return beginning + ending with indication that text was omitted for the LLM
+        if (lastChars == 0)
+            return beginning + "\n\n[...rest of document omitted...]";
+
+        string ending = text.Substring(text.Length - lastChars);
         return beginning + "\n\n[...middle section omitted...]\n\n" + ending;
     }
 

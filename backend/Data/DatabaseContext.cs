@@ -2,6 +2,7 @@ using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Npgsql;
+using Org.BouncyCastle.Crypto.Modes;
 
 namespace KnowledgeBank.Data
 {
@@ -11,6 +12,7 @@ namespace KnowledgeBank.Data
 
         public DbSet<Resource> Resources { get; set; }
         public DbSet<ResourceChunk> ResourceChunks { get; set; }
+        public DbSet<EntityChunk> EntityChunks { get; set; }
         public DbSet<Project> Projects { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<ResourceTagRelation> ResourceTagRelations { get; set; }
@@ -138,6 +140,26 @@ namespace KnowledgeBank.Data
                 // Composite index for common query pattern
                 entity.HasIndex(e => new { e.ResourceId, e.ChunkPart })
                     .HasDatabaseName("id_resource_chunks_resource_part");
+            });
+
+            // Entity chunks
+            modelBuilder.Entity<EntityChunk>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.HasOne(ec => ec.Entity)
+                    .WithMany()
+                    .HasForeignKey(ec => ec.EntityId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(e => e.ChunkType)
+                    .HasConversion<string>();
+
+                entity.Property(e => e.Embedding)
+                    .HasColumnType("vector(1536)");
+
+                entity.HasIndex(e => e.EntityId)
+                    .HasDatabaseName("idx_entity_chunks_entity_id");
             });
 
 

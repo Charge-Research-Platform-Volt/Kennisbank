@@ -12,7 +12,7 @@ import { EntitySelectionSection } from '@/components/new/EntitySelectionSection'
 import { getFileHasher } from '@/utils/fileHashWorker';
 import { uploadFileChunked } from '@/actions/fileUploadActions';
 import { ExtractedMetadata, EntitySelection } from '@/types/extractedMetadata.type';
-import { DocumentCreateDtoSchema, type DocumentCreateDto } from '@/types/uploadTypes';
+import { DocumentCreateDtoSchema, type DocumentCreateDto, WebsiteCreateDtoSchema, type WebsiteCreateDto } from '@/types/uploadTypes';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
@@ -820,7 +820,7 @@ export default function NewResourcePage()
     };
 
     const handleSave = async () => {
-        if (!editableMetadata || !uploadedFileId || !fileHash || !file) {
+        if (!editableMetadata || (!file && !url)) {
             toast.error("Missing required data. Please try uploading again.");
             return;
         }
@@ -829,10 +829,8 @@ export default function NewResourcePage()
         const authors: Array<{ value: string; type?: string }> = [];
         for (const [authorName, selection] of authorSelections.entries()) {
             if (selection.action === 'use_existing' && selection.existingId) {
-                // For existing entities, just send the GUID (type not needed, backend can look it up)
                 authors.push({ value: selection.existingId });
             } else {
-                // For new entities, send the name and type so backend knows what to create
                 authors.push({ value: authorName, type: selection.type });
             }
         }
@@ -841,9 +839,9 @@ export default function NewResourcePage()
         const organisations: string[] = [];
         for (const [orgName, selection] of organisationSelections.entries()) {
             if (selection.action === 'use_existing' && selection.existingId) {
-                organisations.push(selection.existingId); // Use existing GUID
+                organisations.push(selection.existingId);
             } else {
-                organisations.push(orgName); // Use name (backend will create new organisation)
+                organisations.push(orgName);
             }
         }
 
@@ -851,14 +849,11 @@ export default function NewResourcePage()
         const relatedPersons: string[] = [];
         for (const [personName, selection] of relatedPersonSelections.entries()) {
             if (selection.action === 'use_existing' && selection.existingId) {
-                relatedPersons.push(selection.existingId); // Use existing GUID
+                relatedPersons.push(selection.existingId);
             } else {
-                relatedPersons.push(personName); // Use name (backend will create new person)
+                relatedPersons.push(personName);
             }
         }
-
-        // Get file extension
-        const fileExtension = file.name.split('.').pop() || '';
 
         // Default to "Unknown" resource type (matches backend DatabaseSeeder.UnknownResourceTypeId)
         const UNKNOWN_TYPE_ID = '0cc285a8-0f07-11f0-a0a6-5600051f1387';
@@ -872,7 +867,6 @@ export default function NewResourcePage()
             if (!isNaN(dateObj.getTime())) {
                 publicationDate = dateObj.toISOString();
 
-                // Convert numeric precision to string enum
                 const p = editableMetadata.publicationDatePrecision;
                 if (p === 0 || p === 'Year') publicationDatePrecision = 'Year';
                 else if (p === 1 || p === 'Month') publicationDatePrecision = 'Month';
@@ -881,46 +875,59 @@ export default function NewResourcePage()
             }
         }
 
-        // Build the DTO
-        const dto: DocumentCreateDto = {
-            // Required fields
+        // Shared base fields for both document and website
+        const baseFields = {
             Title: editableMetadata.title || '',
-            TypeId: UNKNOWN_TYPE_ID, // Default to "Unknown" type
+            TypeId: UNKNOWN_TYPE_ID,
             LanguageCode: editableMetadata.languageCode || '',
             PublicationDate: publicationDate,
             PublicationDatePrecision: publicationDatePrecision,
-
-            // File-specific fields
-            Id: uploadedFileId,
-            Hash: fileHash,
-            FileExtension: fileExtension,
-
-            // Authors (GUIDs or names)
             Authors: authors,
-
-            // Optional metadata fields
             Description: editableMetadata.description,
             PublicationCode: editableMetadata.publicationCode,
             License: editableMetadata.license,
             SourceUrl: editableMetadata.sourceUrl,
             Tags: editableMetadata.tags || [],
             ...(editableMetadata.abstract && { Abstract: editableMetadata.abstract }),
-
-            // Optional relations
             Organisations: organisations,
             Regions: [],
             RelatedPersons: relatedPersons,
         };
 
-        // Validate with Zod
-        const result = DocumentCreateDtoSchema.safeParse(dto);
+        // Determine upload type and validate accordingly
+        let uploadType: string;
+        let validatedData: DocumentCreateDto | WebsiteCreateDto;
 
-        if (!result.success) {
-            // Show first validation error
-            const firstError = result.error.issues[0];
-            toast.error(`Validation error: ${firstError.message} (${firstError.path.join('.')})`);
-            console.error('Validation errors:', result.error.issues);
-            return;
+        if (url) {
+            // URL / website path
+            const dto = { ...baseFields, Url: url };
+            const result = WebsiteCreateDtoSchema.safeParse(dto);
+            if (!result.success) {
+                const firstError = result.error.issues[0];
+                toast.error(`Validation error: ${firstError.message} (${firstError.path.join('.')})`);
+                console.error('Validation errors:', result.error.issues);
+                return;
+            }
+            uploadType = 'website';
+            validatedData = result.data;
+        } else {
+            // File / document path
+            const fileExtension = file!.name.split('.').pop() || '';
+            const dto: DocumentCreateDto = {
+                ...baseFields,
+                Id: uploadedFileId!,
+                Hash: fileHash!,
+                FileExtension: fileExtension,
+            };
+            const result = DocumentCreateDtoSchema.safeParse(dto);
+            if (!result.success) {
+                const firstError = result.error.issues[0];
+                toast.error(`Validation error: ${firstError.message} (${firstError.path.join('.')})`);
+                console.error('Validation errors:', result.error.issues);
+                return;
+            }
+            uploadType = 'document';
+            validatedData = result.data;
         }
 
         // Send to backend
@@ -933,7 +940,7 @@ export default function NewResourcePage()
                     'Content-Type': 'application/json',
                 },
                 credentials: 'include',
-                body: JSON.stringify({ uploadType: 'document', ...result.data }),
+                body: JSON.stringify({ uploadType, ...validatedData }),
             });
 
             const responseData = await response.json();
@@ -941,7 +948,7 @@ export default function NewResourcePage()
             if (!response.ok) {
                 throw new Error(responseData.message || 'Failed to save resource');
             }
-            
+
             // Success!
             toast.success('Resource saved successfully!');
             console.log('Resource ID:', responseData.body);

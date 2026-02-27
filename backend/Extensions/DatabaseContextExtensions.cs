@@ -24,7 +24,7 @@ public static class DatabaseContextExtensions
                 CREATE EXTENSION IF NOT EXISTS pg_trgm;
             ");
 
-            // Create HNSW index for semantic search
+            // Create HNSW index for resource semantic search
             await context.Database.ExecuteSqlRawAsync(@"
                 CREATE INDEX IF NOT EXISTS idx_resource_chunks_embedding_hnsw
                 ON ""resource-chunks""
@@ -32,10 +32,25 @@ public static class DatabaseContextExtensions
                 WITH (m = 16, ef_construction = 100);
             ");
 
-            // Create trigram index for text search
+            // Create trigram index for resource text search
             await context.Database.ExecuteSqlRawAsync(@"
                 CREATE INDEX IF NOT EXISTS idx_resource_chunks_text_trgm
                 ON ""resource-chunks""
+                USING GIN (""chunk-text"" gin_trgm_ops);
+            ");
+
+            // Create HNSW index for entity semantic search
+            await context.Database.ExecuteSqlRawAsync(@"
+                CREATE INDEX IF NOT EXISTS idx_entity_chunks_embedding_hnsw
+                ON ""entity-chunks""
+                USING hnsw (embedding vector_cosine_ops)
+                WITH (m = 16, ef_construction = 100);
+            ");
+
+            // Create trigram index for entity text search
+            await context.Database.ExecuteSqlRawAsync(@"
+                CREATE INDEX IF NOT EXISTS idx_entity_chunks_text_trgm
+                ON ""entity-chunks""
                 USING GIN (""chunk-text"" gin_trgm_ops);
             ");
         }

@@ -9,7 +9,7 @@ namespace KnowledgeBank.Services.Vector;
 public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, RAGSystem ragSystem) : IVectorStore
 {
     /// <inheritdoc />
-    public async Task CreatePointsAsync(Guid resourceId, List<(string Text, ChunkType Type, int Part)> chunks)
+    public async Task CreateResourcePointsAsync(Guid resourceId, List<(string Text, ChunkType Type, int Part)> chunks)
     {
         await using var database = await dbFactory.CreateDbContextAsync();
 
@@ -32,6 +32,31 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, R
 
         await database.SaveChangesAsync();
     }
+    
+    /// <inheritdoc />
+    public async Task CreateEntityPointsAsync(Guid entityId, List<(string Text, ChunkType Type, int Part)> chunks) 
+    {
+        await using var database = await dbFactory.CreateDbContextAsync();
+        
+        foreach (var chunk in chunks) 
+        {
+            float[] embeddingArray = await ragSystem.GenerateEmbedding(chunk.Text);
+            EntityChunk entityChunk = new EntityChunk
+            {
+                Id = Guid.NewGuid(),
+                EntityId = entityId,
+                ChunkType = chunk.Type,
+                ChunkText = chunk.Text,
+                ChunkPart = chunk.Part,
+                Embedding = new PgVector(embeddingArray),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            database.EntityChunks.Add(entityChunk);
+        }
+
+        await database.SaveChangesAsync();
+    }
 
     /// <inheritdoc />
     public async Task<bool> DeletePointsByResourceIdAsync(Guid resourceId)
@@ -40,6 +65,17 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, R
 
         int deleted = await database.ResourceChunks
             .Where(c => c.ResourceId == resourceId)
+            .ExecuteDeleteAsync();
+        return deleted > 0;
+    }
+    
+    /// <inheritdoc />
+    public async Task<bool> DeletePointsByEntityIdAsync(Guid entityId) 
+    {
+        await using var database = await dbFactory.CreateDbContextAsync();
+
+        int deleted = await database.EntityChunks
+            .Where(c => c.EntityId == entityId)
             .ExecuteDeleteAsync();
         return deleted > 0;
     }
@@ -71,7 +107,7 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, R
         var queryVector = new PgVector(queryEmbedding);
 
         // Use cosine distance - score is 1 - distance (higher is better)
-        var results = await database.ResourceChunks
+        var resourceResults = await database.ResourceChunks
             .Where(c => c.Embedding != null)
             .Select(c => new
             {
@@ -87,7 +123,26 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, R
             .Take(limit)
             .ToListAsync();
 
-        return results.Select(r => new VectorSearchResult
+        var entityResults = await database.EntityChunks
+            .Where(c => c.Embedding != null)
+            .Select(c => new
+            {
+                c.Id,
+                ResourceId = c.EntityId,
+                c.ChunkText,
+                ChunkType = c.ChunkType.ToString(),
+                c.ChunkPart,
+                Distance = c.Embedding!.CosineDistance(queryVector)
+            })
+            .Where(c => 1 - c.Distance >= scoreThreshold)
+            .OrderBy(c => c.Distance)
+            .Take(limit)
+            .ToListAsync();
+
+        return resourceResults.Concat(entityResults)
+            .OrderBy(r => r.Distance)
+            .Take(limit)
+            .Select(r => new VectorSearchResult
         {
             Id = r.Id,
             ResourceId = r.ResourceId,
@@ -114,6 +169,19 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, R
                 CAST(similarity(""chunk-text"", {query}) AS real) as ""Score""
             FROM ""resource-chunks""
             WHERE ""chunk-text"" % {query} OR ""chunk-text"" ILIKE '%' || {query} || '%'
+            
+            UNION ALL
+            
+            SELECT
+                id as ""Id"",
+                ""entity-id"" as ""ResourceId"",
+                ""chunk-text"" as ""ChunkText"",
+                ""chunk-type"" as ""ChunkType"",
+                ""chunk-part"" as ""ChunkPart"",
+                CAST(similarity(""chunk-text"", {query}) AS real) as ""Score""
+            FROM ""entity-chunks""
+            WHERE ""chunk-text"" % {query} OR ""chunk-text"" ILIKE '%' || {query} || '%'
+            
             ORDER BY ""Score"" DESC
             LIMIT {limit}
         ").ToListAsync();
