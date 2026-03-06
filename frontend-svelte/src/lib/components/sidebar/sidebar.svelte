@@ -1,6 +1,6 @@
 <script lang="ts">
     import { LayoutDashboard, Search, Library, FolderOpen, PanelLeftOpen, PanelLeftClose, CirclePlus, MessageCircleQuestionMark, MessageCircleMore, Tags, Users } from "lucide-svelte";
-    import { leftSidebar } from "$lib/state/sidebar.svelte";
+    import { sidebar } from "$lib/state/sidebar.svelte";
     import { page } from "$app/state";
     import Button from "../ui/button/button.svelte";
     import * as DropdownMenu from "../ui/dropdown-menu";
@@ -11,11 +11,11 @@
     type LucideIcon = typeof LayoutDashboard;
     
     let aside = $state<HTMLElement>();
-    let collapsed = $state(!leftSidebar.open);
+    let collapsed = $state(!sidebar.open);
     
     $effect(() => 
     {
-        if (leftSidebar.open) 
+        if (sidebar.open) 
         {
             collapsed = false;
             return;
@@ -50,29 +50,29 @@
                 : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
     >
         <Icon size={18} class="shrink-0" />
-        <span class="overflow-hidden whitespace-nowrap transition-all duration-300 {leftSidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
+        <span class="overflow-hidden whitespace-nowrap transition-all duration-300 {sidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
             {label}
         </span>
     </a>
 {/snippet}
 
 {#snippet separator(title: string)}
-    <div class="flex items-center py-1 {leftSidebar.open ? 'gap-2' : ''}">
-        <span class="overflow-hidden whitespace-nowrap text-xs font-medium text-muted-foreground transition-all duration-300 {leftSidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
+    <div class="flex items-center py-1 {sidebar.open ? 'gap-2' : ''}">
+        <span class="overflow-hidden whitespace-nowrap text-xs font-medium text-muted-foreground transition-all duration-300 {sidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
             {title}
         </span>
         <hr class="flex-1 border-sidebar-border" />
     </div>
 {/snippet}
 
-<aside bind:this={aside} class="bg-sidebar border-sidebar-border flex h-full flex-col border-r transition-all duration-300 pt-5 gap-4 {leftSidebar.open ? 'w-64 px-2 pb-2' : 'w-12 px-1.5 pb-2'}">
+<aside bind:this={aside} class="bg-sidebar border-sidebar-border flex h-full flex-col border-r transition-all duration-300 pt-5 gap-4 {sidebar.open ? 'w-64 px-2 pb-2' : 'w-12 px-1.5 pb-2'}">
     <!-- Header -->
     <div class="flex w-full items-center {collapsed ? 'justify-center' : 'justify-between'} px-1">
-        <span class="overflow-hidden whitespace-nowrap font-semibold transition-all duration-300 {leftSidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
+        <span class="overflow-hidden whitespace-nowrap font-semibold transition-all duration-300 {sidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
             Knowledge Bank
         </span>
-        <button onclick={leftSidebar.toggle} class="rounded-md p-1.5 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors">
-            {#if leftSidebar.open}
+        <button onclick={sidebar.toggle} class="rounded-md p-1.5 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors">
+            {#if sidebar.open}
                 <PanelLeftClose size={20} />
             {:else}
                 <PanelLeftOpen size={20} />
@@ -84,14 +84,14 @@
     <div class="flex flex-col w-full gap-1">
         <Button href="/new" class="transition-colors items-center {collapsed ? 'w-9 px-0 justify-center gap-0' : 'w-full justify-start px-2'}">
             <CirclePlus size={18} class="shrink-0" />
-            <span class="overflow-hidden whitespace-nowrap transition-all duration-300 {leftSidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
+            <span class="overflow-hidden whitespace-nowrap transition-all duration-300 {sidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
                 New
             </span>
         </Button>
 
         <Button variant="outline" class="cursor-pointer transition-colors items-center {collapsed ? 'w-9 px-0 justify-center gap-0' : 'w-full justify-start px-2'}">
             <Search size={18} class="shrink-0" />
-            <span class="overflow-hidden whitespace-nowrap transition-all duration-300 {leftSidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
+            <span class="overflow-hidden whitespace-nowrap transition-all duration-300 {sidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
                 Quicksearch
             </span>
         </Button>
@@ -129,7 +129,7 @@
                     alt="Avatar"
                     class="w-8 h-8 rounded-full shrink-0 object-cover"
                 />
-                <div class="overflow-hidden text-left transition-all duration-300 {leftSidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
+                <div class="overflow-hidden text-left transition-all duration-300 {sidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
                     <p class="whitespace-nowrap text-sm font-medium text-sidebar-foreground leading-tight">
                         {userState.user?.firstName} {userState.user?.lastName}
                     </p>

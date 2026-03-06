@@ -13,3 +13,7 @@ export type ResourceItem = {
     description: string;
     chunks?: string[];
 };
+
+export type TrashItem = ResourceItem & {
+    trashDate: string;
+};

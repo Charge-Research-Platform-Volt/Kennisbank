@@ -20,7 +20,7 @@
 
 {#if userState.loading}
     <div class="flex h-screen w-full items-center justify-center">
-        <Spinner size={32} />
+        <Spinner class="h-10 w-10" />
     </div>
 {:else}
     <div class="flex h-screen w-full">

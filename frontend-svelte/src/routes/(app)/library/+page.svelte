@@ -2,7 +2,8 @@
 	import { api } from "$lib/api";
     import type { ResourceItem } from "$lib/types/resource";
     import Spinner from "$lib/components/ui/spinner/spinner.svelte";
-    import { Search, ListFilter, ExternalLink, Download, X, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-svelte";
+    import { Search, ListFilter, ExternalLink, Download, X, ArrowUp, ArrowDown, ArrowUpDown, Trash2 } from "lucide-svelte";
+    import { userState } from "$lib/state/user.svelte";
     import * as Table from "$lib/components/ui/table";
     import { getFileAction, getFileIcon } from "$lib/utils/icons";
     import { openFile } from "$lib/utils/openFile";
@@ -183,20 +184,27 @@
     <!-- Header -->
     <div class="flex flex-col gap-2">
         <!-- Search bar -->
-        <div class="flex items-center gap-2 border border-input rounded-md bg-background px-3 focus-within:ring-2 focus-within:ring-ring/50 focus-within:border-ring">
-            <Search size={16} class="text-muted-foreground shrink-0" />
-            <input
-                class="flex-1 py-1.5 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
-                value={searchInput}
-                oninput={(e) => onSearchInput(e.currentTarget.value)}
-                placeholder="Search..."
-            />
-            {#if searchInput}
-                <X size={16} class="shrink-0 cursor-pointer text-zinc-600" onclick={() => onSearchInput('') } />
+        <div class="flex items-center gap-2">
+            <div class="flex flex-1 items-center gap-2 border border-input rounded-md bg-background px-3 focus-within:ring-2 focus-within:ring-ring/50 focus-within:border-ring">
+                <Search size={16} class="text-muted-foreground shrink-0" />
+                <input
+                    class="flex-1 py-1.5 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
+                    value={searchInput}
+                    oninput={(e) => onSearchInput(e.currentTarget.value)}
+                    placeholder="Search..."
+                />
+                {#if searchInput}
+                    <X size={16} class="shrink-0 cursor-pointer text-zinc-600" onclick={() => onSearchInput('') } />
+                {/if}
+                <ListFilter size={16} class="shrink-0 cursor-pointer text-zinc-600" onclick={() => {filtersOpen = !filtersOpen; }} />
+            </div>
+            {#if userState.role === 'admin'}
+                <a href="/library/trash" class="text-zinc-600 hover:text-foreground transition-colors px-2" title="Trash">
+                    <Trash2 size={18} class="shrink-0" />
+                </a>
             {/if}
-            <ListFilter size={16} class="shrink-0 cursor-pointer text-zinc-600" onclick={() => {filtersOpen = !filtersOpen; }} />
         </div>
-        
+
         <!-- Filter section -->
         <div class="overflow-hidden transition-all duration-300 ease-in-out {filtersOpen ? 'max-h-[500px]' : 'max-h-0'}">
             <div class="flex flex-wrap gap-x-8 gap-y-3 px-1 py-3 border-b border-border">
@@ -243,7 +251,7 @@
     <!-- List -->
     {#if loading}
         <div class="flex w-full h-full justify-center items-center">
-            <Spinner size={32} />
+            <Spinner class="h-10 w-10" />
         </div>
     {:else}
         <Table.Root>
