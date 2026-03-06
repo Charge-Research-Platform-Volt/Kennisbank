@@ -6,7 +6,6 @@
     import { RotateCcw, ArrowLeft } from "lucide-svelte";
     import * as Table from "$lib/components/ui/table";
     import { getFileIcon } from "$lib/utils/icons";
-	import { stopPropagation } from "svelte/legacy";
 
     let items = $state<TrashItem[]>([]);
     let loading = $state(false);
