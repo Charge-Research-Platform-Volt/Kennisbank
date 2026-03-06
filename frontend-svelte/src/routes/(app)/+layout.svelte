@@ -3,6 +3,7 @@
     import { userState } from '$lib/state/user.svelte';
     import { api } from '$lib/api';
 	import { Loader } from 'lucide-svelte';
+	import Sidebar from '$lib/components/sidebar/sidebar.svelte';
     
     let { children } = $props();
     
@@ -24,6 +25,7 @@
 {:else}
     <div class="flex h-screen w-full">
         <!-- Sidebar -->
+        <Sidebar />
 
         <!-- Page content -->
         <main class="flex-1 overflow-y-auto">

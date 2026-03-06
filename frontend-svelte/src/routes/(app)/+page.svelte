@@ -19,7 +19,7 @@
             { icon: Search, label: 'Search', href: '/search' },
             { icon: Library, label: 'Library', href: '/library' },
             { icon: FolderOpen, label: 'Projects', href: '/projects' }
-        ] as btn}
+        ] as btn (btn.href)}
             <a href={btn.href} class="flex h-25 w-30 flex-col items-center justify-center rounded-xl border border-gray-300 bg-gray-100 p-3 shadow-md transition hover:bg-gray-200">
                 <btn.icon size={32} color="#4b5563" />
                 <p class="mt-2 text-lg font-medium text-gray-600">{btn.label}</p>

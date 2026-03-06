@@ -1,0 +1,151 @@
+<script lang="ts">
+    import { LayoutDashboard, Search, Library, FolderOpen, PanelLeftOpen, PanelLeftClose, CirclePlus, MessageCircleQuestionMark, MessageCircleMore, Tags, Users } from "lucide-svelte";
+    import { leftSidebar } from "$lib/state/sidebar.svelte";
+    import { page } from "$app/state";
+    import Button from "../ui/button/button.svelte";
+    import * as DropdownMenu from "../ui/dropdown-menu";
+    import { userState } from "$lib/state/user.svelte";
+    import { goto } from "$app/navigation";
+	import { api } from "$lib/api";
+
+    type LucideIcon = typeof LayoutDashboard;
+    
+    let aside = $state<HTMLElement>();
+    let collapsed = $state(!leftSidebar.open);
+    
+    $effect(() => 
+    {
+        if (leftSidebar.open) 
+        {
+            collapsed = false;
+            return;
+        }
+        
+        const onEnd = (e: TransitionEvent) => 
+        {
+            if (e.propertyName === 'width') collapsed = true;
+        };
+        
+        aside?.addEventListener('transitionend', onEnd);
+        return () => aside?.removeEventListener('transitionend', onEnd);
+    });
+    
+    async function handleLogout() 
+    {
+        try { await api.post('/api/auth/logout', {}); } catch { /* Ignore error */}
+        userState.user = null;
+        goto('/login');
+    }
+</script>
+
+{#snippet navItem(href: string, icon: LucideIcon, label: string)}
+    {@const Icon = icon}
+    {@const active = page.url.pathname === href}
+
+    <a
+        {href}
+        class="flex items-center rounded-md py-2 text-sm transition-colors {collapsed ? 'gap-0 justify-center' : 'gap-2 px-2'}
+            {active
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
+                : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'}"
+    >
+        <Icon size={18} class="shrink-0" />
+        <span class="overflow-hidden whitespace-nowrap transition-all duration-300 {leftSidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
+            {label}
+        </span>
+    </a>
+{/snippet}
+
+{#snippet separator(title: string)}
+    <div class="flex items-center py-1 {leftSidebar.open ? 'gap-2' : ''}">
+        <span class="overflow-hidden whitespace-nowrap text-xs font-medium text-muted-foreground transition-all duration-300 {leftSidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
+            {title}
+        </span>
+        <hr class="flex-1 border-sidebar-border" />
+    </div>
+{/snippet}
+
+<aside bind:this={aside} class="bg-sidebar border-sidebar-border flex h-full flex-col border-r transition-all duration-300 pt-5 gap-4 {leftSidebar.open ? 'w-64 px-2 pb-2' : 'w-12 px-1.5 pb-2'}">
+    <!-- Header -->
+    <div class="flex w-full items-center {collapsed ? 'justify-center' : 'justify-between'} px-1">
+        <span class="overflow-hidden whitespace-nowrap font-semibold transition-all duration-300 {leftSidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
+            Knowledge Bank
+        </span>
+        <button onclick={leftSidebar.toggle} class="rounded-md p-1.5 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors">
+            {#if leftSidebar.open}
+                <PanelLeftClose size={20} />
+            {:else}
+                <PanelLeftOpen size={20} />
+            {/if}
+        </button>
+    </div>
+
+    <!-- New + Quicksearch -->
+    <div class="flex flex-col w-full gap-1">
+        <Button href="/new" class="transition-colors items-center {collapsed ? 'w-9 px-0 justify-center gap-0' : 'w-full justify-start px-2'}">
+            <CirclePlus size={18} class="shrink-0" />
+            <span class="overflow-hidden whitespace-nowrap transition-all duration-300 {leftSidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
+                New
+            </span>
+        </Button>
+
+        <Button variant="outline" class="cursor-pointer transition-colors items-center {collapsed ? 'w-9 px-0 justify-center gap-0' : 'w-full justify-start px-2'}">
+            <Search size={18} class="shrink-0" />
+            <span class="overflow-hidden whitespace-nowrap transition-all duration-300 {leftSidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
+                Quicksearch
+            </span>
+        </Button>
+    </div>
+    
+    <!-- Nav items -->
+    <div class="flex flex-col w-full gap-1">
+        {@render separator("Menu")}
+        {@render navItem("/", LayoutDashboard, "Home")}
+        {@render navItem("/search", Search, "Search")}
+        {@render navItem("/library", Library, "Library")}
+        {@render navItem("/projects", FolderOpen, "Projects")}
+        {@render navItem("/chat", MessageCircleMore, "ChatBot")}
+        {@render navItem("/tags", Tags, "Tags")}
+        
+        {#if userState.role === 'admin'}
+            {@render navItem("/users", Users, "Users")}
+        {/if}
+    </div>
+    
+    <!-- Footer -->
+    <div class="flex flex-col w-full mt-auto gap-1">
+        {@render navItem('/help', MessageCircleQuestionMark, 'Help')}
+        {@render separator("")}
+
+        <!-- User profile -->
+        <DropdownMenu.Root>
+            <DropdownMenu.Trigger class="flex w-full items-center rounded-md py-2 text-sm transition-colors
+                {collapsed ? 'gap-0 justify-center' : 'gap-2 px-2'}
+                text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                <img
+                    src={userState.user?.customAvatarVersion
+                        ? `/api/user/current/avatar/${userState.user.id}?v=${userState.user.customAvatarVersion}`
+                        : '/img/default-profile-picture.svg'}
+                    alt="Avatar"
+                    class="w-8 h-8 rounded-full shrink-0 object-cover"
+                />
+                <div class="overflow-hidden text-left transition-all duration-300 {leftSidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
+                    <p class="whitespace-nowrap text-sm font-medium text-sidebar-foreground leading-tight">
+                        {userState.user?.firstName} {userState.user?.lastName}
+                    </p>
+                    <p class="whitespace-nowrap text-xs text-muted-foreground leading-tight">
+                        {userState.user?.email}
+                    </p>
+                </div>
+            </DropdownMenu.Trigger>
+
+            <DropdownMenu.Content side="top" align="start">
+                <DropdownMenu.Group>
+                    <DropdownMenu.Item onclick={() => goto('/account')}>Account Settings</DropdownMenu.Item>
+                    <DropdownMenu.Separator />
+                    <DropdownMenu.Item onclick={handleLogout}>Log Out</DropdownMenu.Item>
+                </DropdownMenu.Group>
+            </DropdownMenu.Content>
+        </DropdownMenu.Root>
+    </div>
+</aside>
