@@ -2,7 +2,7 @@
     import type { User } from '$lib/state/user.svelte';
     import { userState } from '$lib/state/user.svelte';
     import { api } from '$lib/api';
-	import { Loader } from 'lucide-svelte';
+    import Spinner from '$lib/components/ui/spinner/spinner.svelte';
 	import Sidebar from '$lib/components/sidebar/sidebar.svelte';
     
     let { children } = $props();
@@ -20,7 +20,7 @@
 
 {#if userState.loading}
     <div class="flex h-screen w-full items-center justify-center">
-        <Loader class="animate-spin text-gray-400" size={32} />
+        <Spinner size={32} />
     </div>
 {:else}
     <div class="flex h-screen w-full">
