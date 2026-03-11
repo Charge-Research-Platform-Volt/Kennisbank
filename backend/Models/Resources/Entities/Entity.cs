@@ -31,6 +31,9 @@ public abstract class Entity
     [Column("trash-date")]
     public DateTime? TrashDate { get; set; } = null;
 
+    [NotMapped]
+    public string EntityType => GetType().Name.ToLower();
+
     // Navigation property for the Author Resource Relation (1:m)
     [JsonIgnore] public ICollection<ResourceAuthorRelation>? ResourceAuthorRelations { get; set; }
 }

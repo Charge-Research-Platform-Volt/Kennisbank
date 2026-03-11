@@ -8,10 +8,13 @@
     import { getFileAction, getFileIcon } from "$lib/utils/icons";
     import { openFile } from "$lib/utils/openFile";
     import * as Pagination from "$lib/components/ui/pagination";
+    import type { PageItem } from "bits-ui";
     import { getParam, getParamInt, getParamArray, setParams } from "$lib/utils/urlState";
     import * as ToggleGroup from "$lib/components/ui/toggle-group";
     import Input from "$lib/components/ui/input/input.svelte";
     import AsyncMultiSelect from "$lib/components/ui/async-multi-select.svelte";
+    import Inspector from "$lib/components/inspector/inspector.svelte";
+    import { formatDate } from "$lib/utils/date";
 
     // Search
     let searchInput = $state(getParam('q'));
@@ -39,6 +42,8 @@
     let loading = $state(false);
     
     let debounceTimer: ReturnType<typeof setTimeout>;
+    
+    let selectedItem = $state<ResourceItem | null>(null);
     
     async function fetchItems()
     {
@@ -141,17 +146,6 @@
         fetchItems();
     }
     
-    function formatDate(dateString: string, precision: 'Year' | 'Month' | 'Day'): string 
-    {
-        if (!dateString) return '-';
-        
-        const date = new Date(dateString);
-        
-        if (precision === 'Year') return date.getFullYear().toString();
-        if (precision === 'Month') return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-        return date.toLocaleDateString();
-    }
-    
     function handleSort(column: string) 
     {
         if (sortBy === column) 
@@ -180,172 +174,177 @@
     fetchItems();
 </script>
 
-<div class="flex flex-col h-full p-4 gap-4">
-    <!-- Header -->
-    <div class="flex flex-col gap-2">
-        <!-- Search bar -->
-        <div class="flex items-center gap-2">
-            <div class="flex flex-1 items-center gap-2 border border-input rounded-md bg-background px-3 focus-within:ring-2 focus-within:ring-ring/50 focus-within:border-ring">
-                <Search size={16} class="text-muted-foreground shrink-0" />
-                <input
-                    class="flex-1 py-1.5 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
-                    value={searchInput}
-                    oninput={(e) => onSearchInput(e.currentTarget.value)}
-                    placeholder="Search..."
-                />
-                {#if searchInput}
-                    <X size={16} class="shrink-0 cursor-pointer text-zinc-600" onclick={() => onSearchInput('') } />
+<div class="flex h-full overflow-hidden">
+
+    <div class="flex flex-col flex-1 h-full p-4 gap-4 overflow-hidden">
+        <!-- Header -->
+        <div class="flex flex-col gap-2">
+            <!-- Search bar -->
+            <div class="flex items-center gap-2">
+                <div class="flex flex-1 items-center gap-2 border border-input rounded-md bg-background px-3 focus-within:ring-2 focus-within:ring-ring/50 focus-within:border-ring">
+                    <Search size={16} class="text-muted-foreground shrink-0" />
+                    <input
+                        class="flex-1 py-1.5 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
+                        value={searchInput}
+                        oninput={(e) => onSearchInput(e.currentTarget.value)}
+                        placeholder="Search..."
+                    />
+                    {#if searchInput}
+                        <X size={16} class="shrink-0 cursor-pointer text-zinc-600" onclick={() => onSearchInput('') } />
+                    {/if}
+                    <ListFilter size={16} class="shrink-0 cursor-pointer text-zinc-600" onclick={() => {filtersOpen = !filtersOpen; }} />
+                </div>
+                {#if userState.role === 'admin'}
+                    <a href="/library/trash" class="text-zinc-600 hover:text-foreground transition-colors px-2" title="Trash">
+                        <Trash2 size={18} class="shrink-0" />
+                    </a>
                 {/if}
-                <ListFilter size={16} class="shrink-0 cursor-pointer text-zinc-600" onclick={() => {filtersOpen = !filtersOpen; }} />
             </div>
-            {#if userState.role === 'admin'}
-                <a href="/library/trash" class="text-zinc-600 hover:text-foreground transition-colors px-2" title="Trash">
-                    <Trash2 size={18} class="shrink-0" />
-                </a>
-            {/if}
-        </div>
 
-        <!-- Filter section -->
-        <div class="overflow-hidden transition-all duration-300 ease-in-out {filtersOpen ? 'max-h-[500px]' : 'max-h-0'}">
-            <div class="flex flex-wrap gap-x-8 gap-y-3 px-1 py-3 border-b border-border">
-                <!-- Type filter -->
-                <div class="flex items-center gap-3">
-                    <span class="text-sm font-medium text-muted-foreground w-20 shrink-0">Types</span>
-                    <ToggleGroup.Root variant="outline" class="flex-wrap" type="multiple" value={typeFilter} onValueChange={handleTypeFilterChange}>
-                        <ToggleGroup.Item value="resource" class="text-xs">Resources</ToggleGroup.Item>
-                        <ToggleGroup.Item value="person" class="text-xs">Persons</ToggleGroup.Item>
-                        <ToggleGroup.Item value="organisation" class="text-xs">Organisations</ToggleGroup.Item>
-                    </ToggleGroup.Root>
-                </div>
-                
-                <!-- Date filter -->
-                <div class="flex items-center gap-3">
-                    <span class="text-sm font-medium text-muted-foreground w-20 shrink-0">Published</span>
-                    <div class="flex items-center gap-2">
-                        <Input type="number" placeholder="From" class="w-24 text-xs" bind:value={dateMin} oninput={handleDateChange} min={1500} max={dateMax || 3000} />
-                        <span class="text-muted-foreground text-xs">-</span>
-                        <Input type="number" placeholder="To" class="w-24 text-xs" bind:value={dateMax} oninput={handleDateChange} min={dateMin || 1500} max={3000} />
+            <!-- Filter section -->
+            <div class="overflow-hidden transition-all duration-300 ease-in-out {filtersOpen ? 'max-h-[500px]' : 'max-h-0'}">
+                <div class="flex flex-wrap gap-x-8 gap-y-3 px-1 py-3 border-b border-border">
+                    <!-- Type filter -->
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-medium text-muted-foreground w-20 shrink-0">Types</span>
+                        <ToggleGroup.Root variant="outline" class="flex-wrap" type="multiple" value={typeFilter} onValueChange={handleTypeFilterChange}>
+                            <ToggleGroup.Item value="resource" class="text-xs">Resources</ToggleGroup.Item>
+                            <ToggleGroup.Item value="person" class="text-xs">Persons</ToggleGroup.Item>
+                            <ToggleGroup.Item value="organisation" class="text-xs">Organisations</ToggleGroup.Item>
+                        </ToggleGroup.Root>
                     </div>
-                </div>
+                    
+                    <!-- Date filter -->
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-medium text-muted-foreground w-20 shrink-0">Published</span>
+                        <div class="flex items-center gap-2">
+                            <Input type="number" placeholder="From" class="w-24 text-xs" bind:value={dateMin} oninput={handleDateChange} min={1500} max={dateMax || 3000} />
+                            <span class="text-muted-foreground text-xs">-</span>
+                            <Input type="number" placeholder="To" class="w-24 text-xs" bind:value={dateMax} oninput={handleDateChange} min={dateMin || 1500} max={3000} />
+                        </div>
+                    </div>
 
-                <!-- Tag filter -->
-                <div class="flex items-center gap-3">
-                    <span class="text-sm font-medium text-muted-foreground w-20 shrink-0">Tags</span>
-                    <AsyncMultiSelect class="w-50" bind:value={tagFilter} search={searchTags} placeholder="Tags" onchange={handleTagFilterChange} />
-                </div>
+                    <!-- Tag filter -->
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-medium text-muted-foreground w-20 shrink-0">Tags</span>
+                        <AsyncMultiSelect class="w-50" bind:value={tagFilter} search={searchTags} placeholder="Tags" onchange={handleTagFilterChange} />
+                    </div>
 
-                <!-- Region filter -->
-                <div class="flex items-center gap-3">
-                    <span class="text-sm font-medium text-muted-foreground w-20 shrink-0">Regions</span>
-                    <AsyncMultiSelect class="w-50" bind:value={regionFilter} search={searchRegions} placeholder="Regions" onchange={handleRegionFilterChange} />
-                </div>
+                    <!-- Region filter -->
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-medium text-muted-foreground w-20 shrink-0">Regions</span>
+                        <AsyncMultiSelect class="w-50" bind:value={regionFilter} search={searchRegions} placeholder="Regions" onchange={handleRegionFilterChange} />
+                    </div>
 
-                <!-- Reset -->
-                <button class="text-xs text-muted-foreground hover:text-foreground cursor-pointer underline underline-offset-2 self-center" onclick={resetFilters}>
-                    Reset filters
-                </button>
+                    <!-- Reset -->
+                    <button class="text-xs text-muted-foreground hover:text-foreground cursor-pointer underline underline-offset-2 self-center" onclick={resetFilters}>
+                        Reset filters
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
-    
-    <!-- List -->
-    {#if loading}
-        <div class="flex w-full h-full justify-center items-center">
-            <Spinner class="h-10 w-10" />
-        </div>
-    {:else}
-        <Table.Root>
-            <Table.Caption>
-                <Pagination.Root count={totalItems} perPage={PAGE_SIZE} bind:page={currentPage} onPageChange={handlePageChange}>
-                    {#snippet children({ pages, currentPage }: { pages: { type: string; value: number; key: string }[]; currentPage: number})}
-                        <Pagination.Content>
-                            <Pagination.Item>
-                                <Pagination.Previous class="cursor-pointer" />
-                            </Pagination.Item>
-                            
-                            {#each pages as page (page.key)}
-                                {#if page.type === 'ellipsis'}
-                                    <Pagination.Item>
-                                        <Pagination.Ellipsis />
-                                    </Pagination.Item>
-                                {:else}
-                                    <Pagination.Item>
-                                        <Pagination.Link class="cursor-pointer" {page} isActive={currentPage === page.value}>
-                                            {page.value}
-                                        </Pagination.Link>
-                                    </Pagination.Item>
-                                {/if}
-                            {/each}
-                            
-                            <Pagination.Item>
-                                <Pagination.Next class="cursor-pointer" />
-                            </Pagination.Item>
-                        </Pagination.Content>
-                    {/snippet}
-                </Pagination.Root>
-            </Table.Caption>
-            
-            <Table.Header>
-                <tr class="border-b">
-                    <Table.Head class="w-full cursor-pointer select-none" onclick={() => handleSort('name')}>
-                        <div class="flex items-center gap-1">
-                            Name
-                        
-                            {#if sortBy === 'name'}
-                                {#if sortDirection === 'asc'}
-                                    <ArrowUp size={12} />
-                                {:else}
-                                    <ArrowDown size={12} />
-                                {/if}
-                            {:else}
-                                <ArrowUpDown size={12} class="text-muted-foreground/50" />
-                            {/if}
-                        </div>
-                    </Table.Head>
-                    <Table.Head class="w-px whitespace-nowrap text-center cursor-pointer select-none" onclick={() => handleSort('publicationDate')}>
-                        <div class="flex items-center gap-1">
-                            Published
-                        
-                            {#if sortBy === 'publicationDate'}
-                                {#if sortDirection === 'asc'}
-                                    <ArrowUp size={12} />
-                                {:else}
-                                    <ArrowDown size={12} />
-                                {/if}
-                            {:else}
-                                <ArrowUpDown size={12} class="text-muted-foreground/50" />
-                            {/if}
-                        </div>
-                    </Table.Head>
-                    <Table.Head class="w-px whitespace-nowrap"></Table.Head>
-                </tr>
-            </Table.Header>
-            
-            <Table.Body>
-                {#each items as item (item.id)}
-                    {@const Icon = getFileIcon(item.fileType)}
-                    {@const action = getFileAction(item.fileType)}
+        
+        <!-- List -->
+        {#if loading}
+            <div class="flex w-full h-full justify-center items-center">
+                <Spinner class="h-10 w-10" />
+            </div>
+        {:else}
+            <Table.Root>
+                <Table.Caption>
+                    <Pagination.Root count={totalItems} perPage={PAGE_SIZE} bind:page={currentPage} onPageChange={handlePageChange}>
+                        {#snippet children({ pages, currentPage }: { pages: PageItem[]; currentPage: number })}
+                            <Pagination.Content>
+                                <Pagination.Item>
+                                    <Pagination.Previous class="cursor-pointer" />
+                                </Pagination.Item>
+                                
+                                {#each pages as page (page.key)}
+                                    {#if page.type === 'ellipsis'}
+                                        <Pagination.Item>
+                                            <Pagination.Ellipsis />
+                                        </Pagination.Item>
+                                    {:else}
+                                        <Pagination.Item>
+                                            <Pagination.Link class="cursor-pointer" {page} isActive={currentPage === page.value}>
+                                                {page.value}
+                                            </Pagination.Link>
+                                        </Pagination.Item>
+                                    {/if}
+                                {/each}
+                                
+                                <Pagination.Item>
+                                    <Pagination.Next class="cursor-pointer" />
+                                </Pagination.Item>
+                            </Pagination.Content>
+                        {/snippet}
+                    </Pagination.Root>
+                </Table.Caption>
                 
-                    <Table.Row class="cursor-pointer" onclick={() => console.log(item.id)}>
-                        <Table.Cell class="py-3 flex gap-3">
-                            <Icon size={16} class="text-muted-foreground shrink-0" />
-                            {item.name}
-                        </Table.Cell>
-                        <Table.Cell class="whitespace-nowrap text-center px-5 py-3">{formatDate(item.publicationDate, item.publicationDatePrecision)}</Table.Cell>
-                        <Table.Cell class="p-3 text-center flex items-center">
-                            {#if action === 'open'}
-                                <button class="cursor-pointer" onclick={(e) => { e.stopPropagation(); openFile(item.id, item.fileType); }}>
-                                    <ExternalLink size={14} />
-                                </button>
-                            {:else if action === 'download'}
-                                <button class="cursor-pointer" onclick={(e) => { e.stopPropagation(); openFile(item.id, item.fileType); }}>
-                                    <Download size={14} />
-                                </button>
-                            {/if}
-                        </Table.Cell>
-                    </Table.Row>
-                {/each}
-            </Table.Body>
-        </Table.Root>
-    {/if}
+                <Table.Header>
+                    <tr class="border-b">
+                        <Table.Head class="w-full cursor-pointer select-none" onclick={() => handleSort('name')}>
+                            <div class="flex items-center gap-1">
+                                Name
+                            
+                                {#if sortBy === 'name'}
+                                    {#if sortDirection === 'asc'}
+                                        <ArrowUp size={12} />
+                                    {:else}
+                                        <ArrowDown size={12} />
+                                    {/if}
+                                {:else}
+                                    <ArrowUpDown size={12} class="text-muted-foreground/50" />
+                                {/if}
+                            </div>
+                        </Table.Head>
+                        <Table.Head class="w-px whitespace-nowrap cursor-pointer select-none" onclick={() => handleSort('publicationDate')}>
+                            <div class="flex items-center justify-center gap-1">
+                                Published
+                            
+                                {#if sortBy === 'publicationDate'}
+                                    {#if sortDirection === 'asc'}
+                                        <ArrowUp size={12} />
+                                    {:else}
+                                        <ArrowDown size={12} />
+                                    {/if}
+                                {:else}
+                                    <ArrowUpDown size={12} class="text-muted-foreground/50" />
+                                {/if}
+                            </div>
+                        </Table.Head>
+                        <Table.Head class="w-px whitespace-nowrap"></Table.Head>
+                    </tr>
+                </Table.Header>
+                
+                <Table.Body>
+                    {#each items as item (item.id)}
+                        {@const Icon = getFileIcon(item.fileType)}
+                        {@const action = getFileAction(item.fileType)}
+                    
+                        <Table.Row class="cursor-pointer" onclick={() => selectedItem = item}>
+                            <Table.Cell class="py-3 flex gap-3">
+                                <Icon size={16} class="text-muted-foreground shrink-0" />
+                                {item.name}
+                            </Table.Cell>
+                            <Table.Cell class="whitespace-nowrap text-center px-5 py-3">{formatDate(item.publicationDate, item.publicationDatePrecision)}</Table.Cell>
+                            <Table.Cell class="p-3 text-center flex items-center">
+                                {#if action === 'open'}
+                                    <button class="cursor-pointer" onclick={(e) => { e.stopPropagation(); openFile(item.id, item.fileType); }}>
+                                        <ExternalLink size={14} />
+                                    </button>
+                                {:else if action === 'download'}
+                                    <button class="cursor-pointer" onclick={(e) => { e.stopPropagation(); openFile(item.id, item.fileType); }}>
+                                        <Download size={14} />
+                                    </button>
+                                {/if}
+                            </Table.Cell>
+                        </Table.Row>
+                    {/each}
+                </Table.Body>
+            </Table.Root>
+        {/if}
+    </div>
+
+    <Inspector bind:item={selectedItem} />
 </div>

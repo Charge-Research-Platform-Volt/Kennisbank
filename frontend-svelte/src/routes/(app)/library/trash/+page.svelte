@@ -6,6 +6,7 @@
     import { RotateCcw, ArrowLeft } from "lucide-svelte";
     import * as Table from "$lib/components/ui/table";
     import { getFileIcon } from "$lib/utils/icons";
+    import { formatDate } from "$lib/utils/date";
 
     let items = $state<TrashItem[]>([]);
     let loading = $state(false);
@@ -31,13 +32,7 @@
         items = items.filter(i => i.id !== item.id);
     }
     
-    function formatDate(dateString: string): string 
-    {
-        if (!dateString) return '-';
-        return new Date(dateString).toLocaleDateString();
-    }
-    
-    // Fetch items on page load
+// Fetch items on page load
     fetchItems();
 </script>
 
