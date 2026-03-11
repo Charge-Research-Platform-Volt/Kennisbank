@@ -26,7 +26,7 @@
         {/each}
 
         {#if items.length > LIMIT}
-            <button onclick={() => expanded = !expanded} class="mt-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors text-left">
+            <button onclick={() => expanded = !expanded} class="cursor-pointer mt-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors text-left">
                 {expanded ? 'Show less' : `Show ${items.length - LIMIT} more`}
             </button>
         {/if}
