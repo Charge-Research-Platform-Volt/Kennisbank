@@ -1,5 +1,5 @@
 <script lang="ts">
-    let { label, value }: { label: string; value: string } = $props();
+    let { label, value }: { label: string; value?: string } = $props();
 
     let expanded = $state(false);
     let element: HTMLParagraphElement | null = $state(null);

@@ -67,7 +67,8 @@ export type OrganisationDetail = {
     creationDate?: string;
     email?: string;
     trashed?: boolean;
-    resources: RelationItem[];
+    authored: RelationItem[];
+    relatedResources: RelationItem[];
     targetOrganisations: RelationItem[];
     sourceOrganisations: RelationItem[];
     persons: RelationItem[];

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { ResourceItem, NavigationTarget } from "$lib/types/resource";
     import { ArrowLeft, ArrowRight, Download, X, Pencil, PencilOff } from "lucide-svelte";
-    import { getFileIcon } from "$lib/utils/icons";
+    import { getFileAction, getFileIcon } from "$lib/utils/icons";
     import { untrack, setContext } from "svelte";
 	import { formatDate } from "$lib/utils/date";
     import ResourceInspector from "./resource-inspector.svelte";
@@ -9,6 +9,7 @@
     import OrganistationInspector from "./organistation-inspector.svelte";
 	import TooltipProvider from "../ui/tooltip/tooltip-provider.svelte";
 	import { api } from "$lib/api";
+	import { openFile } from "$lib/utils/openFile";
 
     let {
         item = $bindable<ResourceItem | null>(null),
@@ -22,6 +23,8 @@
     let canGoForward = $derived(historyIndex < history.length - 1);
 
     let Icon = $derived(getFileIcon(item?.fileType ?? item?.type ?? ''));
+    
+    const action = $derived(getFileAction(item?.fileType ?? ''));
 
     // Called when item is set from outside (e.g., row click)
     $effect(() => {
@@ -89,8 +92,8 @@
 
                 <!-- Download, edit, close buttons -->
                 <div class="flex items-center gap-1">
-                    {#if item?.type === 'resource'}
-                        <button onclick={() => console.log('download')} class="p-1 cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
+                    {#if action && item.fileType !== 'website'}
+                        <button onclick={() => item && openFile(item.id, item.fileType)} class="p-1 cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
                             <Download size={16} />
                         </button>
                     {/if}

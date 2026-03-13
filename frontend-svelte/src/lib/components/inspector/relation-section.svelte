@@ -16,7 +16,7 @@
 
         {#each expanded ? items : items.slice(0, LIMIT) as item (item.id)}
             {@const Icon = getFileIcon(item.fileType ?? item.authorType ?? itemType ?? '')}
-            <button onclick={() => navigate({ id: item.id, name: item.name, type: (itemType ?? item.authorType as ResourceType) })} class="flex w-full text-left items-center gap-2 text-sm py-0.5 cursor-pointer hover:text-foreground text-muted-foreground">
+            <button onclick={() => navigate({ id: item.id, name: item.name, type: (itemType ?? item.authorType as ResourceType) })} title={item.name} class="flex w-full text-left items-center gap-2 text-sm py-0.5 cursor-pointer hover:text-foreground text-muted-foreground">
                 <Icon size={13} class="shrink-0" />
                 <span class="flex-1 truncate">{item.name}</span>
                 {#if item.role}

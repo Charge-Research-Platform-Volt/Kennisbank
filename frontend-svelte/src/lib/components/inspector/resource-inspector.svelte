@@ -2,15 +2,14 @@
     import type { ResourceItem, ResourceDetail, RelationItem } from "$lib/types/resource";
     import { api } from "$lib/api";
     import Spinner from "../ui/spinner/spinner.svelte";
-    import * as Tooltip from "$lib/components/ui/tooltip";
     import { Layers, Languages, Scale, FingerprintPattern, Link } from "lucide-svelte";
     import { formatLanguage } from "$lib/utils/locale";
     import BadgeSection from "./badge-section.svelte";
     import RelationSection from "./relation-section.svelte";
     import TextSection from "./text-section.svelte";
+    import CharacteristicRow from "./characteristic-row.svelte";
 
     const PROPERTIES = 'Description,LanguageCode,PublicationCode,License,Note,Trashed,SourceUrl,WebsiteMetadata.Url as Url,DocumentMetadata.Abstract as Abstract,ResourceAuthorRelations.Select(new(Author.Id, Author.Name, Author.EntityType as AuthorType)) as Authors,ResourceOrganisationRelations.Select(new(Organisation.Id, Organisation.Name, Role)) as Organisations,ResourceRegionRelations.Select(new(Region.Id, Region.Name)) as Regions,ResourceRelatedPersonRelations.Select(new(Person.Id, Person.Name, Role)) as RelatedPersons,ResourceTagRelations.Select(new(Tag.Id, Tag.Name)) as Tags,ResourceType.Id as ResourceTypeId,ResourceType.Name as ResourceTypeName';
-    type LucideIcon = typeof Layers;
 
     let { item }: { item: ResourceItem } = $props();
 
@@ -22,23 +21,6 @@
     );
 </script>
 
-{#snippet characteristic(icon: LucideIcon, label: string, value: string, isUrl: boolean = false)}
-    {@const Icon = icon}
-    <div class="flex items-center gap-2 overflow-hidden">
-        <Tooltip.Root>
-            <Tooltip.Trigger>
-                <Icon size={14} class="text-muted-foreground shrink-0" />
-            </Tooltip.Trigger>
-            <Tooltip.Content>{label}</Tooltip.Content>
-        </Tooltip.Root>
-        {#if isUrl}
-            <a href={value} target="_blank" class="text-sm truncate hover:underline min-w-0">{value}</a>
-        {:else}
-            <span class="text-sm truncate min-w-0">{value}</span>
-        {/if}
-    </div>
-{/snippet}
-
 {#await detailPromise}
     <div class="flex justify-center py-8">
         <Spinner class="h-6 w-6" />
@@ -49,11 +31,11 @@
 
     <!-- Characteristics -->
     <div class="flex flex-col gap-2 px-3 py-3 border-b text-sm">
-        {#if detail.resourceTypeName}{@render characteristic(Layers, 'Resource Type', detail.resourceTypeName)}{/if}
-        {#if detail.languageCode}{@render characteristic(Languages, 'Language', formatLanguage(detail.languageCode))}{/if}
-        {#if detail.license}{@render characteristic(Scale, 'License', detail.license)}{/if}
-        {#if detail.publicationCode}{@render characteristic(FingerprintPattern, 'Publication Code', detail.publicationCode)}{/if}
-        {#if sourceUrl}{@render characteristic(Link, 'Source URL', sourceUrl, true)}{/if}
+        <CharacteristicRow icon={Layers} label="Resource Type" value={detail.resourceTypeName !== 'Unknown' ? detail.resourceTypeName : undefined} />
+        <CharacteristicRow icon={Languages} label="Language" value={detail.languageCode ? formatLanguage(detail.languageCode) : undefined} />
+        <CharacteristicRow icon={Scale} label="License" value={detail.license} />
+        <CharacteristicRow icon={FingerprintPattern} label="Publication Code" value={detail.publicationCode} />
+        <CharacteristicRow icon={Link} label="Source URL" value={sourceUrl || undefined} href={sourceUrl || undefined} />
     </div>
 
     <!-- Tags + Regions -->
@@ -66,9 +48,9 @@
     <RelationSection label="Organisations" items={detail.organisations} itemType="organisation" />
 
     <!-- Text sections -->
-    <TextSection label="Description" value={detail.description ?? ''} />
-    <TextSection label="Abstract" value={detail.abstract ?? ''} />
-    <TextSection label="Note" value={detail.note ?? ''} />
+    <TextSection label="Description" value={detail.description} />
+    <TextSection label="Abstract" value={detail.abstract} />
+    <TextSection label="Note" value={detail.note} />
 
     <!-- Similar Resources -->
     {#await similarPromise then result}
