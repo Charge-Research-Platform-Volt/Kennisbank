@@ -11,6 +11,7 @@ export type ResourceItem = {
     publicationDatePrecision: DatePrecision;
     creationDate: string;
     description: string;
+    trashed?: boolean;
     chunks?: string[];
 };
 
@@ -32,7 +33,6 @@ export type ResourceDetail = {
     note?: string;
     fileType?: string;
     fileExt?: string;
-    trashed?: boolean;
     sourceUrl?: string;
     url?: string;
     abstract?: string;
@@ -52,7 +52,6 @@ export type PersonDetail = {
     creationDate?: string;
     email?: string;
     linkedin?: string;
-    trashed?: boolean;
     authored: RelationItem[];
     relatedResources: RelationItem[];
     targetPersons: RelationItem[];
@@ -66,7 +65,6 @@ export type OrganisationDetail = {
     description?: string;
     creationDate?: string;
     email?: string;
-    trashed?: boolean;
     authored: RelationItem[];
     relatedResources: RelationItem[];
     targetOrganisations: RelationItem[];

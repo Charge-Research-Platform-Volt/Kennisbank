@@ -585,6 +585,10 @@ namespace KnowledgeBank.Controllers
                 if (!await resourceManager.ResourceExistsAsync(Guid.Parse(id)))
                     return NotFound(new ApiResponse(false, "The resource does not exist"));
 
+                // Replace null/empty typeId with the Unknown resource type
+                if (updates.TryGetValue("typeId", out var typeIdValue) && (typeIdValue == null || string.IsNullOrWhiteSpace(typeIdValue.ToString())))
+                    updates["typeId"] = DatabaseSeeder.UnknownResourceTypeId;
+
                 // Start a database transaction, since we could have multiple updates
                 await resourceManager.BeginTransaction();
 
@@ -838,12 +842,14 @@ namespace KnowledgeBank.Controllers
         [SwaggerOperation(Summary = "Retrieves a list of all resource types")]
         [SwaggerResponse(200, "A list of all the resource types", typeof(ApiResponse))]
         [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> TypesFetch()
+        public async Task<IActionResult> TypesFetch([FromQuery] string? search = null)
         {
             try
             {
-                // Fetch the resource types
-                ResourceType[] types = await resourceManager.GetAllResourceTypesAsync();
+                // Fetch the resource types, optionally filtered by name
+                ResourceType[] types = string.IsNullOrWhiteSpace(search)
+                    ? await resourceManager.GetAllResourceTypesAsync()
+                    : await resourceManager.GetAllResourceTypesAsync(predicate: t => EF.Functions.ILike(t.Name, $"%{search}%"));
 
                 // Return the resource types
                 return Ok(new ApiResponse(true, $"Found {types.Length} resource types", types));
