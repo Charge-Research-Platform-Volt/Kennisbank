@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { RelationItem, NavigationTarget, ResourceType } from "$lib/types/resource";
+    import type { RelationItem, NavigationTarget, EntityType } from "$lib/types/resource";
     import { getFileIcon } from "$lib/utils/icons";
     import { getContext, untrack } from "svelte";
     import { X } from "lucide-svelte";
@@ -7,7 +7,7 @@
     let { label, items, itemType, search, onadd, oncreate, onremove, hasRole = false, onupdaterole }: {
         label: string;
         items: RelationItem[];
-        itemType?: ResourceType;
+        itemType?: EntityType;
         search?: (q: string) => Promise<{ id: string; name: string }[]>;
         onadd?: (id: string, name: string) => Promise<void>;
         oncreate?: (name: string) => Promise<{ id: string; name: string } | null>;
@@ -84,7 +84,7 @@
                 {/if}
                 <div class="flex-1 min-w-0">
                     <button
-                        onclick={() => !editMode && navigate({ id: relItem.id, name: relItem.name, type: (itemType ?? relItem.authorType as ResourceType) })}
+                        onclick={() => !editMode && navigate({ id: relItem.id, name: relItem.name, type: (itemType ?? relItem.authorType as EntityType) })}
                         title={relItem.name}
                         class="flex w-full min-w-0 items-center gap-2 text-muted-foreground text-left {editMode ? 'cursor-default' : 'cursor-pointer hover:text-foreground'}"
                     >

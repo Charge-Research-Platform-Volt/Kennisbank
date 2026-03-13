@@ -184,22 +184,22 @@ namespace KnowledgeBank.Controllers
                 }
                 
                 // Check if we need to create any organisations that don't exist yet
-                for (int i = 0; i < dto.Organisations.Length; i++) 
-                {   
+                for (int i = 0; i < dto.Organisations.Length; i++)
+                {
                     // If valid ID nothing needs to be done.
-                    if (ValidityUtil.IsValidId(dto.Organisations[i]))
+                    if (ValidityUtil.IsValidId(dto.Organisations[i].Id))
                         continue;
 
-                    string name = dto.Organisations[i];
+                    string name = dto.Organisations[i].Id;
                     if (createdOrganisations.TryGetValue(name, out Guid cachedOrgId))
                     {
-                        dto.Organisations[i] = cachedOrgId.ToString();
+                        dto.Organisations[i].Id = cachedOrgId.ToString();
                     }
                     else
                     {
                         Guid oId = await resourceManager.CreateOrganisationAsync(new OrganisationCreateDto { Name = name });
                         createdOrganisations[name] = oId;
-                        dto.Organisations[i] = oId.ToString();
+                        dto.Organisations[i].Id = oId.ToString();
 
                         backgroundTasks.Add(async token =>
                         {
@@ -211,22 +211,22 @@ namespace KnowledgeBank.Controllers
                 }
 
                 // Check if we need to create any related persons that don't exist yet
-                for (int i = 0; i < dto.RelatedPersons.Length; i++) 
+                for (int i = 0; i < dto.RelatedPersons.Length; i++)
                 {
                     // If valid ID nothing needs to be done.
-                    if (ValidityUtil.IsValidId(dto.RelatedPersons[i]))
+                    if (ValidityUtil.IsValidId(dto.RelatedPersons[i].Id))
                         continue;
 
-                    string name = dto.RelatedPersons[i];
+                    string name = dto.RelatedPersons[i].Id;
                     if (createdPersons.TryGetValue(name, out Guid cachedPersonId))
                     {
-                        dto.RelatedPersons[i] = cachedPersonId.ToString();
+                        dto.RelatedPersons[i].Id = cachedPersonId.ToString();
                     }
                     else
                     {
                         Guid pId = await resourceManager.CreatePersonAsync(new PersonCreateDto { Name = name });
                         createdPersons[name] = pId;
-                        dto.RelatedPersons[i] = pId.ToString();
+                        dto.RelatedPersons[i].Id = pId.ToString();
 
                         backgroundTasks.Add(async token =>
                         {

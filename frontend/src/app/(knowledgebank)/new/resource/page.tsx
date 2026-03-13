@@ -836,22 +836,22 @@ export default function NewResourcePage()
         }
 
         // Convert organisation selections to Organisations array (GUIDs or names)
-        const organisations: string[] = [];
+        const organisations: { Id: string; Relation?: string }[] = [];
         for (const [orgName, selection] of organisationSelections.entries()) {
             if (selection.action === 'use_existing' && selection.existingId) {
-                organisations.push(selection.existingId);
+                organisations.push({ Id: selection.existingId });
             } else {
-                organisations.push(orgName);
+                organisations.push({ Id: orgName });
             }
         }
 
         // Convert related person selections to RelatedPersons array (GUIDs or names)
-        const relatedPersons: string[] = [];
+        const relatedPersons: { Id: string; Relation?: string }[] = [];
         for (const [personName, selection] of relatedPersonSelections.entries()) {
             if (selection.action === 'use_existing' && selection.existingId) {
-                relatedPersons.push(selection.existingId);
+                relatedPersons.push({ Id: selection.existingId });
             } else {
-                relatedPersons.push(personName);
+                relatedPersons.push({ Id: personName });
             }
         }
 

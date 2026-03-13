@@ -37,10 +37,10 @@ export const ResourceCreateDtoSchema = z.object(
        type: z.string().optional() // "person" or "organisation" - needed when creating new entities
    })).default([]),
    // Organisations can be either GUIDs (existing) or names (new to be created)
-   Organisations: z.string().array().default([]),
+   Organisations: z.array(z.object({ Id: z.string(), Relation: z.string().optional() })).default([]),
    Regions: z.string().array().default([]),
    // RelatedPersons can be either GUIDs (existing) or names (new to be created)
-   RelatedPersons: z.string().array().default([]),
+   RelatedPersons: z.array(z.object({ Id: z.string(), Relation: z.string().optional() })).default([]),
 });
 
 /**

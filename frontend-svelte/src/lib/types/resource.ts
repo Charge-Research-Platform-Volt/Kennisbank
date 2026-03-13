@@ -1,11 +1,11 @@
-export type ResourceType = 'resource' | 'person' | 'organisation';
+export type EntityType = 'resource' | 'person' | 'organisation';
 
 export type DatePrecision = 'Year' | 'Month' | 'Day';
 
 export type ResourceItem = {
     id: string;
     name: string;
-    type: ResourceType;
+    type: EntityType;
     fileType: string;
     publicationDate: string;
     publicationDatePrecision: DatePrecision;
@@ -75,5 +75,24 @@ export type OrganisationDetail = {
 export type NavigationTarget = {
     id: string;
     name: string;
-    type: ResourceType;
+    type: EntityType;
+}
+
+export type ExtractedMetadata = {
+    title: string | null;
+    abstract: string | null;
+    description: string | null;
+    publicationDate: string | null;
+    publicationDatePrecision: 'Exact' | 'Year' | 'YearMonth' | null;
+    languageCode: string | null;
+    authors: { name: string; type: string; similars: { id: string; name: string; score: number; type: string; }[] }[];
+    organisations: { name: string; type: string; similars: { id: string; name: string; score: number; type: string }[] }[];
+    relatedPersons: { name: string; type: string; similars: { id: string; name: string; score: number; type: string }[] }[];
+    publicationCode: string | null;
+    tags: string[];
+}
+
+export type ResourceType = {
+    id: string;
+    name: string;
 }

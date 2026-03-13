@@ -7,6 +7,7 @@
 using KnowledgeBank.Models;
 using Org.BouncyCastle.Tls;
 using Serilog;
+using System.Linq;
 
 namespace KnowledgeBank.Data
 {
@@ -63,13 +64,13 @@ namespace KnowledgeBank.Data
             await AddAuthorToResourceRangeAsync(resourceId, dto.Authors.Select(a => a.Value).ToArray());
 
             // Add organisation relations to database
-            await AddOrganisationToResourceRangeAsync(resourceId, dto.Organisations);
+            await AddOrganisationToResourceRangeAsync(resourceId, dto.Organisations.Select(o => o.Id).ToArray(), dto.Organisations.Select(o => o.Relation).ToArray());
 
             // Add region relations to database
             await AddRegionToResourceRangeAsync(resourceId, dto.Regions);
 
             // Add non-author related person relations to database
-            await AddRelatedPersonToResourceRangeAsync(resourceId, dto.RelatedPersons);
+            await AddRelatedPersonToResourceRangeAsync(resourceId, dto.RelatedPersons.Select(p => p.Id).ToArray(), dto.RelatedPersons.Select(p => p.Relation).ToArray());
 
             if (startedTransaction) await Commit();
 

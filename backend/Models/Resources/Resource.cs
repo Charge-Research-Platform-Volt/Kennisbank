@@ -129,9 +129,9 @@ public class ResourceCreateDto // Data Transfer Object (DTO)
     public string? Note { get; set; }
     public string[] Tags { get; set; } = [];
     public AuthorEntry[] Authors { get; set; } = [];
-    public string[] Organisations { get; set; } = [];
+    public RelatedEntry[] Organisations { get; set; } = [];
     public string[] Regions { get; set; } = [];
-    public string[] RelatedPersons { get; set; } = [];
+    public RelatedEntry[] RelatedPersons { get; set; } = [];
 }
 
 public class FileResourceCreateDto : ResourceCreateDto

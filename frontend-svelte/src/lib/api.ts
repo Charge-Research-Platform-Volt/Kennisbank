@@ -40,5 +40,7 @@ export const api = {
 	delete: <T>(path: string) => 
 		request<T>(path, { method: 'DELETE' }),
 	form: <T>(path:string, body: FormData) => 
-		request<T>(path, { method: 'POST', body })
+		request<T>(path, { method: 'POST', body }),
+	postBinary: <T>(path: string, body: Blob) =>
+		request<T>(path, { method: 'POST', body, headers: { 'Content-Type': 'application/octet-stream' }}),
 };

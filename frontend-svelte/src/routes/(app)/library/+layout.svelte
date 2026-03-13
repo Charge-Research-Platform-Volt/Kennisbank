@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { afterNavigate } from "$app/navigation";
     import Inspector from "$lib/components/inspector/inspector.svelte";
-    import type { ResourceItem, ResourceType } from "$lib/types/resource";
+    import type { ResourceItem, EntityType } from "$lib/types/resource";
 	import { getParam, setParams } from "$lib/utils/urlState";
 	import { onMount, setContext } from "svelte";
 
@@ -32,7 +32,7 @@
     {
         const id = getParam('inspectorId');
         const rawType = getParam('inspectorType');
-        const urlType = ['resource', 'person', 'organisation'].includes(rawType) ? rawType as ResourceType : null;
+        const urlType = ['resource', 'person', 'organisation'].includes(rawType) ? rawType as EntityType : null;
         
         if (id && urlType)
             inspector.navigate({ id, type: urlType, name: ''})

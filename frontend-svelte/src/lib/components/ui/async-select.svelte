@@ -9,6 +9,7 @@
         placeholder = 'Select...',
         class: className = '',
         onchange,
+        oncreate,
     }: {
         value: string | null;
         displayValue: string | null;
@@ -16,6 +17,7 @@
         placeholder?: string;
         class?: string;
         onchange?: (id: string | null, name: string | null) => void;
+        oncreate?: (name: string) => Promise<{ id: string; name: string } | null>;
     } = $props();
 
     let open = $state(false);
@@ -43,6 +45,17 @@
         onchange?.(option.id, option.name);
     }
 
+    async function create() {
+        if (!oncreate || !searchQuery.trim()) return;
+        const result = await oncreate(searchQuery.trim());
+        if (result) {
+            value = result.id;
+            displayValue = result.name;
+            open = false;
+            onchange?.(result.id, result.name);
+        }
+    }
+
     function clear(e: MouseEvent) {
         e.stopPropagation();
         value = null;
@@ -52,7 +65,7 @@
 </script>
 
 <Popover.Root bind:open>
-    <Popover.Trigger class="flex items-center gap-1.5 h-6 text-sm border-b border-input bg-transparent px-0 cursor-pointer min-w-0 flex-1 {className}">
+    <Popover.Trigger class="flex items-center gap-1.5 h-9 text-sm border border-input rounded-md px-3 bg-background hover:bg-accent transition-colors cursor-pointer w-full {className}">
         <span class="flex-1 truncate min-w-0 text-left {displayValue ? '' : 'text-muted-foreground'}">{displayValue ?? placeholder}</span>
         {#if displayValue}
             <button onclick={clear} class="text-muted-foreground hover:text-foreground transition-colors shrink-0">
@@ -73,7 +86,7 @@
                     placeholder="Search..."
                 />
             </div>
-            <div class="max-h-48 overflow-y-auto">
+            <div class="max-h-64 overflow-y-auto">
                 {#each options as option (option.id)}
                     <button
                         class="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-sm hover:bg-accent text-left cursor-pointer"
@@ -89,6 +102,14 @@
                 {:else}
                     <p class="text-xs text-muted-foreground px-2 py-1.5">No results.</p>
                 {/each}
+                {#if oncreate && searchQuery.trim()}
+                    <button
+                        class="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-sm hover:bg-accent text-left cursor-pointer text-muted-foreground"
+                        onclick={create}
+                    >
+                        + Create "{searchQuery.trim()}"
+                    </button>
+                {/if}
             </div>
         </Popover.Content>
     </Popover.Portal>
