@@ -206,7 +206,7 @@ namespace KnowledgeBank.Controllers
 
                 // Handle name
                 if (!string.IsNullOrEmpty(name))
-                    regionId = await resourceManager.GetRegionPropertyOrDefaultAsync(predicate: r => r.Name == name, selector: "Id");
+                    regionId = await resourceManager.GetRegionPropertyOrDefaultAsync(predicate: r => EF.Functions.ILike(r.Name, name), selector: "Id");
 
 
 

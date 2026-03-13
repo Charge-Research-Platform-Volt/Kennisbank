@@ -311,7 +311,7 @@ namespace KnowledgeBank.Controllers
 
                 // Handle name
                 if (!string.IsNullOrEmpty(name))
-                    personId = await resourceManager.GetPersonPropertyOrDefaultAsync(predicate: p => p.Name == name, selector: "Id");
+                    personId = await resourceManager.GetPersonPropertyOrDefaultAsync(predicate: p => EF.Functions.ILike(p.Name, name), selector: "Id");
 
 
 

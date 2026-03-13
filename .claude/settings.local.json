@@ -5,7 +5,12 @@
       "Bash(dotnet ef migrations add:*)",
       "Bash(dotnet ef migrations:*)",
       "Bash(dotnet ef dbcontext:*)",
-      "Bash(dotnet build:*)"
+      "Bash(dotnet build:*)",
+      "Bash(ls -la /home/ablos/Coding/knowledgebank/frontend-svelte/src/routes/\\\\\\(app\\\\\\)/new/)",
+      "Bash(ls -la /home/ablos/Coding/knowledgebank/frontend/src/app/\\\\\\(knowledgebank\\\\\\)/new/person/)",
+      "Bash(ls -la /home/ablos/Coding/knowledgebank/frontend/src/app/\\\\\\(knowledgebank\\\\\\)/new/organisation/)",
+      "Bash(ls -la /home/ablos/Coding/knowledgebank/frontend/src/app/\\\\\\(knowledgebank\\\\\\)/new/resource/)",
+      "Bash(wc -l /home/ablos/Coding/knowledgebank/frontend/src/app/\\\\\\(knowledgebank\\\\\\)/new/resource/page.tsx)"
     ],
     "deny": [],
     "ask": []

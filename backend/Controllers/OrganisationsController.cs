@@ -310,7 +310,7 @@ namespace KnowledgeBank.Controllers
 
                 // Handle name
                 if (!string.IsNullOrEmpty(name))
-                    organisationId = await resourceManager.GetOrganisationPropertyOrDefaultAsync(predicate: p => p.Name == name, selector: "Id");
+                    organisationId = await resourceManager.GetOrganisationPropertyOrDefaultAsync(predicate: p => EF.Functions.ILike(p.Name, name), selector: "Id");
 
 
                 // ID is empty, so no person was found
