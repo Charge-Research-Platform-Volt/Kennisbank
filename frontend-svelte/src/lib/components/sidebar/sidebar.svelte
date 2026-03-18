@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { LayoutDashboard, Search, Library, BookMarked, PanelLeftOpen, PanelLeftClose, CirclePlus, MessageCircleQuestionMark, MessageCircleMore, Tags, Users } from "lucide-svelte";
+    import { Landmark, LayoutDashboard, Search, Library, BookMarked, PanelLeftOpen, PanelLeftClose, CirclePlus, MessageCircleQuestionMark, MessageCircleMore, Tags, Users } from "lucide-svelte";
     import Avatar from "$lib/components/ui/avatar/avatar.svelte";
     import { sidebar } from "$lib/state/sidebar.svelte";
     import { page } from "$app/state";
@@ -69,9 +69,10 @@
 <aside bind:this={aside} class="bg-sidebar border-sidebar-border flex h-full flex-col border-r transition-all duration-300 pt-5 gap-4 {sidebar.open ? 'w-64 px-2 pb-2' : 'w-12 px-1.5 pb-2'}">
     <!-- Header -->
     <div class="flex w-full items-center {collapsed ? 'justify-center' : 'justify-between'} px-1">
-        <span class="overflow-hidden whitespace-nowrap font-semibold transition-all duration-300 {sidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
-            Knowledge Bank
-        </span>
+        <div class="overflow-hidden transition-all duration-300 {sidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'} flex items-center gap-2">
+            <Landmark size={20} class="shrink-0 text-muted-foreground" />
+            <span class="whitespace-nowrap font-semibold">Knowledge Bank</span>
+        </div>
         <button onclick={sidebar.toggle} class="rounded-md p-1.5 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors">
             {#if sidebar.open}
                 <PanelLeftClose size={20} />
