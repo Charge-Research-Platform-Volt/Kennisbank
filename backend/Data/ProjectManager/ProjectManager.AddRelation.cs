@@ -311,127 +311,33 @@ namespace KnowledgeBank.Data
 
         #endregion
 
-        #region project-resource
-
-        // Range
+        #region project-item
 
         /// <summary>
-        /// Adds resources to a project.
-        ///
-        /// Author: Justin Liem
+        /// Adds a library item (resource, person, or organisation) to a project or folder.
         /// </summary>
-        /// <param name="projectId">Project / folder id of the project to add the resources to.</param>
-        /// <param name="resourceIds">Ids of the resources to add to the project.</param>
-        /// <param name="addedBy">Id of the user that has added the resources to this project / folder.</param>
-        /// <returns>Nothing, just updates the database.</returns>
-        public async Task AddResourceToProjectRangeAsync(Guid projectId, Guid[] resourceIds, Guid addedBy)
+        /// <param name="projectId">Id of the project or folder.</param>
+        /// <param name="itemId">Id of the item to add.</param>
+        /// <param name="addedBy">Id of the user adding the item.</param>
+        public async Task AddItemToProjectAsync(Guid projectId, Guid itemId, Guid addedBy)
         {
-            if (resourceIds.Length == 0) return;
-
             bool startedTransaction = await BeginTransaction();
 
-            ProjectResourceRelation[] resourceRelations = new ProjectResourceRelation[resourceIds.Length];
-
-            for (int i = 0; i < resourceIds.Length; i++)
+            await database.ProjectItemRelations.AddAsync(new ProjectItemRelation
             {
-                resourceRelations[i] = new()
-                {
-                    ProjectId = projectId,
-                    ResourceId = resourceIds[i],
-                    AddedBy = addedBy.ToString()
-                };
-            }
-
-            await database.ProjectResourceRelations.AddRangeAsync(resourceRelations);
+                ProjectId = projectId,
+                ItemId = itemId,
+                AddedBy = addedBy.ToString()
+            });
 
             if (startedTransaction) await Commit();
         }
 
         /// <summary>
-        /// Adds resources to a project.
-        ///
-        /// Author: Justin Liem
+        /// Adds a library item (resource, person, or organisation) to a project or folder.
         /// </summary>
-        /// <param name="projectId">Project / folder id of the project to add the resources to.</param>
-        /// <param name="resourceIds">Ids of the resources to add to the project.</param>
-        /// <param name="addedBy">Id of the user that has added the resources to this project / folder.</param>
-        /// <returns>Nothing, just updates the database.</returns>
-        public async Task AddResourceToProjectRangeAsync(Guid projectId, string[] resourceIds, Guid addedBy)
-        { await AddResourceToProjectRangeAsync(projectId, StringToGuidArray(resourceIds), addedBy); }
-
-        /// <summary>
-        /// Adds resources to a project.
-        ///
-        /// Author: Justin Liem
-        /// </summary>
-        /// <param name="projectId">Project / folder id of the project to add the resources to.</param>
-        /// <param name="resourceIds">Ids of the resources to add to the project.</param>
-        /// <param name="addedBy">Id of the user that has added the resources to this project / folder.</param>
-        /// <returns>Nothing, just updates the database.</returns>
-        public async Task AddResourceToProjectRangeAsync(string projectId, Guid[] resourceIds, Guid addedBy)
-        { await AddResourceToProjectRangeAsync(Guid.Parse(projectId), resourceIds, addedBy); }
-
-        /// <summary>
-        /// Adds resources to a project.
-        ///
-        /// Author: Justin Liem
-        /// </summary>
-        /// <param name="projectId">Project / folder id of the project to add the resources to.</param>
-        /// <param name="resourceIds">Ids of the resources to add to the project.</param>
-        /// <param name="addedBy">Id of the user that has added the resources to this project / folder.</param>
-        /// <returns>Nothing, just updates the database.</returns>
-        public async Task AddResourceToProjectRangeAsync(string projectId, string[] resourceIds, Guid addedBy)
-        { await AddResourceToProjectRangeAsync(Guid.Parse(projectId), StringToGuidArray(resourceIds), addedBy); }
-
-        // Single
-
-        /// <summary>
-        /// Adds a resource to a project.
-        ///
-        /// Author: Justin Liem
-        /// </summary>
-        /// <param name="projectId">Project / folder id of the project to add the resource to.</param>
-        /// <param name="resourceId">Id of the resource to add to the project.</param>
-        /// <param name="addedBy">Id of the user that has added the resource to this project / folder.</param>
-        /// <returns>Nothing, just updates the database.</returns>
-        public async Task AddResourceToProjectAsync(Guid projectId, Guid resourceId, Guid addedBy)
-        { await AddResourceToProjectRangeAsync(projectId, [resourceId], addedBy); }
-
-        /// <summary>
-        /// Adds a resource to a project.
-        ///
-        /// Author: Justin Liem
-        /// </summary>
-        /// <param name="projectId">Project / folder id of the project to add the resource to.</param>
-        /// <param name="resourceId">Id of the resource to add to the project.</param>
-        /// <param name="addedBy">Id of the user that has added the resource to this project / folder.</param>
-        /// <returns>Nothing, just updates the database.</returns>
-        public async Task AddResourceToProjectAsync(string projectId, Guid resourceId, Guid addedBy)
-        { await AddResourceToProjectAsync(Guid.Parse(projectId), resourceId, addedBy); }
-
-        /// <summary>
-        /// Adds a resource to a project.
-        ///
-        /// Author: Justin Liem
-        /// </summary>
-        /// <param name="projectId">Project / folder id of the project to add the resource to.</param>
-        /// <param name="resourceId">Id of the resource to add to the project.</param>
-        /// <param name="addedBy">Id of the user that has added the resource to this project / folder.</param>
-        /// <returns>Nothing, just updates the database.</returns>
-        public async Task AddResourceToProjectAsync(Guid projectId, string resourceId, Guid addedBy)
-        { await AddResourceToProjectAsync(projectId, Guid.Parse(resourceId), addedBy); }
-
-        /// <summary>
-        /// Adds a resource to a project.
-        ///
-        /// Author: Justin Liem
-        /// </summary>
-        /// <param name="projectId">Project / folder id of the project to add the resource to.</param>
-        /// <param name="resourceId">Id of the resource to add to the project.</param>
-        /// <param name="addedBy">Id of the user that has added the resource to this project / folder.</param>
-        /// <returns>Nothing, just updates the database.</returns>
-        public async Task AddResourceToProjectAsync(string projectId, string resourceId, Guid addedBy)
-        { await AddResourceToProjectAsync(Guid.Parse(projectId), Guid.Parse(resourceId), addedBy); }
+        public async Task AddItemToProjectAsync(string projectId, string itemId, Guid addedBy)
+        { await AddItemToProjectAsync(Guid.Parse(projectId), Guid.Parse(itemId), addedBy); }
 
         #endregion
     }

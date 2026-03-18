@@ -516,24 +516,32 @@ namespace KnowledgeBank.Data
         #region Get Project Children
 
         /// <summary>
-        /// Gets the contents of a specific project. This includes the resources, folders, tags, and creators.
-        /// 
-        /// Author: Jelle v.h. Schut
+        /// Gets the structural contents of a project: folders, tags, and creators.
+        /// Items (resources, persons, organisations) are fetched separately via GetProjectItemsAsync.
         /// </summary>
-        /// <param name="id">Id of project to fetch contents of</param>
-        /// <returns>Project with contents included.</returns>
         public async Task<Project?> GetProjectChildrenAsync(Guid id)
-        { return await GetProjectAsync(id, includeProperties: ["ProjectResourcesRelations.Resource", "ChildFolders.ChildFolder", "ProjectTagRelations.Tag", "ProjectCreatorRelations.Creator"]); }
+        { return await GetProjectAsync(id, includeProperties: ["ChildFolders.ChildFolder", "ProjectTagRelations.Tag", "ProjectCreatorRelations.Creator"]); }
 
         /// <summary>
-        /// Gets the contents of a specific project. This includes the resources, folders, tags, and creators.
-        /// 
-        /// Author: Jelle v.h. Schut
+        /// Gets the structural contents of a project: folders, tags, and creators.
         /// </summary>
-        /// <param name="id">Id of project to fetch contents of</param>
-        /// <returns>Project with contents included.</returns>
         public async Task<Project?> GetProjectChildrenAsync(string id)
         { return await GetProjectChildrenAsync(Guid.Parse(id)); }
+
+        /// <summary>
+        /// Gets all items (resources, persons, organisations) linked to a project,
+        /// resolved via ResourceGridView.
+        /// </summary>
+        public async Task<List<ResourceGridItemWithAddedBy>> GetProjectItemsAsync(Guid projectId)
+        {
+            return await database.ProjectItemRelations
+                .Where(r => r.ProjectId == projectId)
+                .Join(database.ResourceGridItems,
+                    r => r.ItemId,
+                    g => g.Id,
+                    (r, g) => new ResourceGridItemWithAddedBy(g, r.AddedBy ?? "Unknown"))
+                .ToListAsync();
+        }
 
         #endregion
 

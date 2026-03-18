@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { ResourceItem, ResourceDetail, RelationItem } from "$lib/types/resource";
+    import type { ResourceItem, ResourceDetail } from "$lib/types/resource";
     import { api } from "$lib/api";
     import Spinner from "../ui/spinner/spinner.svelte";
     import { Layers, Languages, Scale, FingerprintPattern, Link } from "lucide-svelte";
@@ -87,7 +87,7 @@
         api.get<ResourceDetail>(`/api/resources/info/${item.id}?properties=${encodeURIComponent(PROPERTIES)}`)
     );
     let similarPromise = $derived(
-        api.get<RelationItem[]>(`/api/resources/${item.id}/relations/resource-similar-resources?properties=${encodeURIComponent('Id as id, Title as name, FileType as fileType')}`)
+        api.get<{ id: string; title: string; fileType: string }[]>(`/api/resources/${item.id}/relations/resource-similar-resources`)
     );
 </script>
 
@@ -188,7 +188,7 @@
     <!-- Similar Resources -->
     {#if !editMode}
         {#await similarPromise then result}
-            <RelationSection label="Similar Resources" items={result.body} itemType="resource" />
+            <RelationSection label="Similar Resources" items={result.body.map(i => ({ id: i.id, name: i.title, fileType: i.fileType }))} itemType="resource" />
         {/await}
     {/if}
 {/await}

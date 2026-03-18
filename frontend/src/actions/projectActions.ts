@@ -57,7 +57,7 @@ export const getProjectContentById = async (projectId: string): Promise<{ resour
         const cookieHeader = await cookies();
         const response = await fetch(`${process.env.API_URL}/Project/info/${projectId}`, {
             method: 'GET',
-            credentials: 'include', // Assuming cookies are needed for this endpoint
+            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
                 Cookie: cookieHeader.toString() || "",
@@ -71,10 +71,25 @@ export const getProjectContentById = async (projectId: string): Promise<{ resour
         }
 
         const data: ApiResponse = await response.json();
-      
+
         if (data.success && data.body) {
+            // Map ResourceGridItemWithAddedBy[] back to ResourceProject[] for compatibility
+            const resources: ResourceProject[] = (data.body.items || []).map((entry: any) => ({
+                resource: {
+                    id: entry.item.id,
+                    title: entry.item.name,
+                    description: entry.item.description ?? null,
+                    fileType: entry.item.fileType,
+                    typeId: entry.item.type,
+                    languageCode: "",
+                    publicationDate: entry.item.publicationDate ?? "",
+                    creationDate: entry.item.creationDate,
+                },
+                addedBy: entry.addedBy ?? "",
+            }));
+
             return {
-                resources: data.body.resources || [],
+                resources,
                 projects: data.body.folders || [],
                 creators: data.body.creators || [],
                 tags: data.body.tags || []
@@ -86,7 +101,7 @@ export const getProjectContentById = async (projectId: string): Promise<{ resour
 
     } catch (error) {
         console.error("Error in getProjectContentById action:", error);
-        throw error; 
+        throw error;
     }
 };
 
@@ -137,12 +152,13 @@ export async function createFolder(folderName: string, parentId: string): Promis
   const cookieHeader = await cookies();
   try {
     // Call the backend PUT endpoint to create a folder
-    const response = await fetch(`${process.env.API_URL}/Project/add-folder/${encodeURIComponent(folderName)}/${encodeURIComponent(parentId)}`, {
+    const response = await fetch(`${process.env.API_URL}/Project/add-folder/${encodeURIComponent(parentId)}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Cookie: cookieHeader.toString() || "" 
+        Cookie: cookieHeader.toString() || ""
       },
+      body: JSON.stringify({ name: folderName }),
     });
 
     const data = await response.json();
@@ -222,7 +238,7 @@ export async function fetchAllResources(): Promise<Resource[]> {
 export async function addResourceToProject(projectId: string, resourceId: string): Promise<ApiResponse> {
   const cookieHeader = await cookies();
   try {
-    const response = await fetch(`${process.env.API_URL}/Project/add-resource/${projectId}/${resourceId}`, {
+    const response = await fetch(`${process.env.API_URL}/Project/add-item/${projectId}/${resourceId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -260,7 +276,7 @@ export async function addResourceToProject(projectId: string, resourceId: string
 export async function removeResourceFromProject(projectId: string, resourceId: string): Promise<ApiResponse> {
   const cookieHeader = await cookies();
   try {
-    const response = await fetch(`${process.env.API_URL}/Project/remove-resource/${projectId}/${resourceId}`, {
+    const response = await fetch(`${process.env.API_URL}/Project/remove-item/${projectId}/${resourceId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

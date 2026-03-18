@@ -63,23 +63,17 @@ namespace KnowledgeBank.Data
             return await GetAllAsync(database.ProjectCreatorRelations, orderBy, orderDescending, predicate);
         }
 
-        private readonly Expression<Func<ProjectResourceRelation, object>> projectResourceRelationDefaultOrderBy = relation => relation.ResourceId;
-        private const bool projectResourceRelationDefaultOrderDescending = true;
+        private readonly Expression<Func<ProjectItemRelation, object>> projectItemRelationDefaultOrderBy = relation => relation.ItemId;
+        private const bool projectItemRelationDefaultOrderDescending = true;
 
         /// <summary>
-        /// Gets all resources of a project given a predicate.
-        /// 
-        /// Author: Justin Liem
+        /// Gets all item relations of a project given a predicate.
         /// </summary>
-        /// <param name="orderBy">What to oder resources by.</param>
-        /// <param name="orderDescending">Whether to order descending or not.</param>
-        /// <param name="predicate">Predicate used to filter all project-resource relations.</param>
-        /// <returns>All project-resource relations satisfying the predicate.</returns>
-        public async Task<ProjectResourceRelation[]> GetAllResources(Expression<Func<ProjectResourceRelation, object>>? orderBy = null, bool orderDescending = projectResourceRelationDefaultOrderDescending, Expression<Func<ProjectResourceRelation, bool>>? predicate = null)
+        public async Task<ProjectItemRelation[]> GetAllItems(Expression<Func<ProjectItemRelation, object>>? orderBy = null, bool orderDescending = projectItemRelationDefaultOrderDescending, Expression<Func<ProjectItemRelation, bool>>? predicate = null)
         {
-            orderBy ??= projectResourceRelationDefaultOrderBy;
+            orderBy ??= projectItemRelationDefaultOrderBy;
 
-            return await GetAllAsync(database.ProjectResourceRelations, orderBy, orderDescending, predicate);
+            return await GetAllAsync(database.ProjectItemRelations, orderBy, orderDescending, predicate);
         }
 
     }

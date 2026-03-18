@@ -6,43 +6,26 @@ namespace KnowledgeBank.Data
     public partial class ProjectManager
     {
         /// <summary>
-        /// Removes a resource from the project or folder.
-        /// 
-        /// Author: Justin Liem
+        /// Removes a single item (resource, person, or organisation) from a project or folder.
         /// </summary>
-        /// <param name="projectId">Project id to remove the resource from</param>
-        /// <param name="resourceId">Resource id to remove from the project</param>
-        /// <returns>Boolean indicating whether or not deletion was successful.</returns>
-        public async Task<bool> RemoveResourceFromProject(Guid projectId, Guid resourceId)
+        public async Task<bool> RemoveItemFromProject(Guid projectId, Guid itemId)
         {
-            await DeleteAsync(database.ProjectResourceRelations, relation => relation.ProjectId == projectId && relation.ResourceId == resourceId);
+            await DeleteAsync(database.ProjectItemRelations, relation => relation.ProjectId == projectId && relation.ItemId == itemId);
             return true;
         }
 
         /// <summary>
-        /// Removes a resource from the project or folder.
-        /// 
-        /// Author: Justin Liem
+        /// Removes a single item (resource, person, or organisation) from a project or folder.
         /// </summary>
-        /// <param name="projectId">Project id to remove the resource from</param>
-        /// <param name="resourceId">Resource id to remove from the project</param>
-        /// <returns>Boolean indicating whether or not deletion was successful.</returns>
-        public async Task<bool> RemoveResourceFromProject(string projectId, string resourceId)
-        {
-            return await RemoveResourceFromProject(Guid.Parse(projectId), Guid.Parse(resourceId));
-        }
+        public async Task<bool> RemoveItemFromProject(string projectId, string itemId)
+            => await RemoveItemFromProject(Guid.Parse(projectId), Guid.Parse(itemId));
 
         /// <summary>
-        /// Removes all resources from the project or folder.
-        /// THIS IS FOR SPECIFICALLY DELETING RESOURCES, NOT FOLDERS, AND THUS IT DOES NOT DO A CASCADING DELETE.
-        ///
-        /// Author: Justin Liem
+        /// Removes all items from a project or folder.
         /// </summary>
-        /// <param name="projectId">Project id to remove all resources from</param>
-        /// <returns>Boolean indicating whether or not deletion was successful.</returns>
-        public async Task<bool> RemoveAllResourcesFromProject(Guid projectId)
+        public async Task<bool> RemoveAllItemsFromProject(Guid projectId)
         {
-            await DeleteAllWhereAsync(database.ProjectResourceRelations, relation => relation.ProjectId == projectId);
+            await DeleteAllWhereAsync(database.ProjectItemRelations, relation => relation.ProjectId == projectId);
             return true;
         }
 
@@ -64,8 +47,8 @@ namespace KnowledgeBank.Data
 
                 if (currentFolder != null)
                 {
-                    // Delete all resources in this folder
-                    await RemoveAllResourcesFromProject(currentFolder.Id);
+                    // Delete all items in this folder
+                    await RemoveAllItemsFromProject(currentFolder.Id);
 
                     // Delete the folder itself
                     await DeleteAsync(database.Projects, project => project.Id == currentFolder.Id);

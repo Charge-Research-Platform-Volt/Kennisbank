@@ -78,6 +78,12 @@ namespace KnowledgeBank.Data
         public async Task<int> ProjectCount(Expression<Func<Project, bool>>? predicate = null)
         { return await GetCount(database.Projects, predicate); }
 
+        /// <summary>
+        /// Checks if a library item (resource, person, or organisation) exists in the grid view.
+        /// </summary>
+        public async Task<bool> ItemExistsInGridAsync(Guid itemId)
+        { return await ExistsAsync(database.ResourceGridItems, item => item.Id == itemId); }
+
         #region project-tags
         /// <summary>
         /// Checks if some project-tag relation exists given a predicate

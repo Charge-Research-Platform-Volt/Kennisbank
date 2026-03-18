@@ -42,7 +42,7 @@ namespace KnowledgeBank.Data
             bool startedTransaction = await BeginTransaction();
 
             // Delete all relations of the project
-            await RemoveAllResourcesFromProject(id);
+            await RemoveAllItemsFromProject(id);
             await RemoveAllFoldersFromProject(id);
             await RemoveAllCreatorsFromProject(id);
             await RemoveAllTagsFromProject(id);

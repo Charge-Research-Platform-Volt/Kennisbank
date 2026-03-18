@@ -40,7 +40,7 @@ namespace KnowledgeBank.Data
         public DbSet<ResourceSourceRelation> ResourceSourceRelations { get; set; }
         public DbSet<ProjectFolderRelation> ProjectFolderRelations { get; set; }
         public DbSet<ProjectTagRelation> ProjectTagRelations { get; set; }
-        public DbSet<ProjectResourceRelation> ProjectResourceRelations { get; set; }
+        public DbSet<ProjectItemRelation> ProjectItemRelations { get; set; }
         public DbSet<ProjectCreatorRelation> ProjectCreatorRelations { get; set; }
         
         
@@ -202,8 +202,8 @@ namespace KnowledgeBank.Data
                 .HasIndex(rr => rr.RegionId)
                 .HasDatabaseName("idx_resource_region_region_id");
             // Projects
-            modelBuilder.Entity<ProjectResourceRelation>()
-                .HasKey(prr => new { prr.ProjectId, prr.ResourceId });
+            modelBuilder.Entity<ProjectItemRelation>()
+                .HasKey(pir => new { pir.ProjectId, pir.ItemId });
 
             modelBuilder.Entity<ProjectCreatorRelation>()
                 .HasKey(pcr => new { pcr.ProjectId, pcr.CreatorId });

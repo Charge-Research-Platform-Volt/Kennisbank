@@ -39,7 +39,7 @@ public class Project
     // Navigation properties for the relations a object can have (1:m)
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public ICollection<ProjectTagRelation>? ProjectTagRelations { get; set; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public ICollection<ProjectCreatorRelation>? ProjectCreatorRelations { get; set; }
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public ICollection<ProjectResourceRelation>? ProjectResourcesRelations { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public ICollection<ProjectItemRelation>? ProjectItemRelations { get; set; }
 
     #endregion
 
@@ -109,23 +109,41 @@ public class ProjectPageResponse
 public class ProjectInfoDto
 {
     public Project? Project { get; set; } = null;
-    public List<FolderWithAddedBy?> Folders { get; set; } = [];
-    public List<ResourceWithAddedBy?> Resources { get; set; } = [];
+    public List<FolderWithAddedBy> Folders { get; set; } = [];
+    public List<ResourceGridItemWithAddedBy> Items { get; set; } = [];
     public List<UserResponse> Creators { get; set; } = [];
     public List<Tag?> Tags { get; set; } = [];
 }
 
 /// <summary>
-/// Wrapper for resources containing an Added By property
-///
-/// Author: Justin Liem
+/// Wrapper for a library item (resource, person, or organisation grid entry) with an Added By property.
 /// </summary>
-/// <param name="resource">Resource in the wrapper.</param>
-/// <param name="addedBy">Guid of the user that added the resource to a folder/project.</param>
-public class ResourceWithAddedBy(Resource resource, string addedBy)
+/// <param name="item">The grid item.</param>
+/// <param name="addedBy">Name of the user that added the item to the project/folder.</param>
+public class ResourceGridItemWithAddedBy(ResourceGridItem item, string addedBy)
 {
-    public Resource? Resource { get; set; } = resource;
-    public string? AddedBy { get; set; } = addedBy;
+    public ResourceGridItem Item { get; set; } = item;
+    public string AddedBy { get; set; } = addedBy;
+}
+
+/// <summary>
+/// DTO for updating project properties.
+/// Only non-null fields are applied.
+/// </summary>
+public class UpdateProjectDto
+{
+    public string? Title { get; set; }
+    public string? Description { get; set; }
+    public List<string>? Tags { get; set; }
+    public List<string>? Creators { get; set; }
+}
+
+/// <summary>
+/// DTO for creating a folder inside a project or folder.
+/// </summary>
+public class AddFolderDto
+{
+    public required string Name { get; set; }
 }
 
 /// <summary>

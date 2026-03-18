@@ -9,7 +9,6 @@ using System.Security.Claims;
 using System.Linq.Expressions;
 using KnowledgeBank.Utils;
 using KnowledgeBank.Responses;
-using System.Text.Json;
 
 namespace KnowledgeBank.Controllers;
 
@@ -273,8 +272,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     /// 
     /// Author: Justin Liem
     /// </summary>
-    /// <param name="projectId">The ID of the project or folder to delete.</param>
-    /// <param name="updates">The properties to update with the new values. </param>
+    /// <param name="projectId">The ID of the project or folder to update.</param>
+    /// <param name="dto">DTO containing the properties to update.</param>
     /// <returns>
     /// Returns a 200 OK response if all went well.
     /// </returns>
@@ -289,71 +288,75 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     [SwaggerResponse(403, "Forbidden - User cannot update this project")]
     [SwaggerResponse(404, "Project not found")]
     [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> Update(string projectId, [FromBody] Dictionary<string, object> updates)
+    public async Task<IActionResult> Update(string projectId, [FromBody] UpdateProjectDto dto)
     {
         try
         {
             Log.Information("Updating project.");
-            // Make sure we have the required fields
-            if (!ValidityUtil.IsValidId(projectId))
-            {
-                Log.Error("Id is required");
-                return BadRequest(new ApiResponse(false, "Id is required"));
-            }
 
-            if (updates == null || updates.Count == 0)
+            if (!ValidityUtil.IsValidId(projectId))
+                return BadRequest(new ApiResponse(false, "Id is required"));
+
+            if (dto == null || (dto.Title == null && dto.Description == null && dto.Tags == null && dto.Creators == null))
                 return BadRequest(new ApiResponse(false, "No updates were provided."));
 
-            // Fetch project, if there is no project, throw an error
             Project? project = await projectManager.GetProjectAsync(projectId, includeProperties: ["ProjectCreatorRelations"]);
-
             if (project == null)
-            {
-                Log.Error("Project not found.");
                 return NotFound(new ApiResponse(false, "Project not found."));
+
+            Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
+            bool userIsAdmin = User.IsInRole("admin");
+
+            if (!userIsAdmin && ProjectAuthorizationLevel(userId, project) == "unauthorized")
+            {
+                Log.Warning("User {UserId} attempted to update project {id} without permissions.", userId, projectId);
+                return StatusCode(403, new ApiResponse(false, "User cannot update this project."));
             }
 
-            // Then we begin a transaction as we might need to do a rollback
             await projectManager.BeginTransaction();
 
-            foreach (KeyValuePair<string, object> update in updates)
+            if (dto.Title != null)
             {
-                string property = update.Key;
-                object newValue = update.Value;
-
-                List<string> Ids = new List<string>();
-
-                if (property == "creators" || property == "tags")
-                {
-                    JsonElement JsonArray = (JsonElement)newValue;
-                    Ids = JsonArray.Deserialize<List<string>>() ?? throw new Exception("Could not parse JSONArray to strings");
-                    newValue = Ids;
-                }
-
-                // If the new value is empty, throw an error
-                if (string.IsNullOrEmpty(property) || newValue == null || !ValidUpdate(property, newValue))
+                if (string.IsNullOrWhiteSpace(dto.Title))
                 {
                     await projectManager.Rollback();
-                    Log.Error("Property empty");
-                    return BadRequest(new ApiResponse(false, "Property empty"));
+                    return BadRequest(new ApiResponse(false, "Title cannot be empty."));
                 }
-
-                // Check if user is authorized to edit property
-                Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
-                bool userIsAdmin = User.IsInRole("admin");
-
-                // If user is NOT an admin AND if he is NOT the creator of the folder where the property is updated, then throw an error
-                if (!userIsAdmin && ProjectAuthorizationLevel(userId, project) == "unauthorized")
-                {
-                    await projectManager.Rollback();
-                    Log.Warning("User {UserId} attempted to update property {property} of {id} without permissions.", userId, property, projectId);
-                    return StatusCode(403, new ApiResponse(false, "User cannot update this property."));
-                }
-
-                await UpdateProperty(project, property, newValue);
+                await projectManager.UpdateProjectAsync(project.Id, p => p.Title, dto.Title);
             }
+
+            if (dto.Description != null)
+            {
+                if (project.ProjectType != "root")
+                {
+                    await projectManager.Rollback();
+                    return BadRequest(new ApiResponse(false, "Description can only be set on root projects."));
+                }
+                await projectManager.UpdateProjectAsync(project.Id, p => p.Description, dto.Description);
+            }
+
+            if (dto.Tags != null)
+            {
+                if (project.ProjectType != "root")
+                {
+                    await projectManager.Rollback();
+                    return BadRequest(new ApiResponse(false, "Tags can only be set on root projects."));
+                }
+                await projectManager.UpdateProjectTagsAsync(project.Id, dto.Tags.ToArray());
+            }
+
+            if (dto.Creators != null)
+            {
+                if (dto.Creators.Count == 0)
+                {
+                    await projectManager.Rollback();
+                    return BadRequest(new ApiResponse(false, "Creators cannot be empty."));
+                }
+                await projectManager.UpdateProjectCreatorsAsync(project.Id, dto.Creators.ToArray());
+            }
+
             await projectManager.Commit();
-            return Ok(new ApiResponse(true, "property successfully updated"));
+            return Ok(new ApiResponse(true, "Project updated successfully."));
         }
         catch (Exception e)
         {
@@ -391,89 +394,42 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         {
             Project? project = await projectManager.GetProjectChildrenAsync(id);
 
-            // Check if the project was found
             if (project == null)
                 return NotFound(new ApiResponse(false, "Project not found."));
 
-            // Get all userIds we need
-            HashSet<string> userIds = [];
-            if (project.ProjectResourcesRelations != null)
-                foreach (ProjectResourceRelation prr in project.ProjectResourcesRelations)
-                {
-                    if (prr.AddedBy != null)
-                        userIds.Add(prr.AddedBy);
-                }
+            // Resolve folder AddedBy user names
+            HashSet<string> folderUserIds = project.ChildFolders?
+                .Where(pfr => pfr.AddedBy != null)
+                .Select(pfr => pfr.AddedBy!)
+                .ToHashSet() ?? [];
 
-            if (project.ChildFolders != null)
-                foreach (ProjectFolderRelation pfr in project.ChildFolders)
-                {
-                    if (pfr.AddedBy != null)
-                        userIds.Add(pfr.AddedBy);
-                }
+            Dictionary<string, string> userNames = await projectManager.GetUserNamesByIds(folderUserIds);
 
-            // Then fetch the corresponding user names in one go
-            Dictionary<string, string> userNames = await projectManager.GetUserNamesByIds(userIds);
+            List<FolderWithAddedBy> folders = project.ChildFolders?
+                .Where(r => r?.ChildFolder != null)
+                .Select(r => new FolderWithAddedBy(
+                    r.ChildFolder!,
+                    r.AddedBy != null && userNames.TryGetValue(r.AddedBy, out string? name) ? name ?? "Unknown" : "Unknown"))
+                .ToList() ?? [];
 
-            // Extract the resources and folders from the project
-            // Get the resources from the relation and use the dictionary user id -> user name to add the addedby property
-            List<ResourceWithAddedBy?> resources = [];
-            if (project.ProjectResourcesRelations != null)
-            {
-                foreach (var relation in project.ProjectResourcesRelations)
-                {
-                    // Skip if relation or resource is somehow null
-                    if (relation != null && relation.Resource != null)
-                    {
-                        string addedByProp = "Unknown";
-                        // If there is no added by property, keep it on unknown, if the user cannot be found, also keep it on unknown
-                        if (relation.AddedBy != null && userNames.TryGetValue(relation.AddedBy, out string? name))
-                            addedByProp = name ?? "Unknown";
+            // Items are resolved via ResourceGridView (covers resources, persons, organisations)
+            List<ResourceGridItemWithAddedBy> items = await projectManager.GetProjectItemsAsync(Guid.Parse(id));
 
-                        resources.Add(new ResourceWithAddedBy(relation.Resource, addedByProp));
-                    }
-                }
-            }
+            List<UserResponse> creators = project.ProjectCreatorRelations?
+                .Select(r => new UserResponse(r.Creator!, "No Role")).ToList() ?? [];
 
-            // Get child folders from the relation, and get the corresponding username by using the dictionary of user id => user name
-            List<FolderWithAddedBy?> folders = [];
-            if (project.ChildFolders != null)
-            {
-                foreach (var relation in project.ChildFolders)
-                {
-                    // Skip if relation or folder is somehow null
-                    if (relation != null && relation.ChildFolder != null)
-                    {
-                        string addedByName = "Unknown";
-                        // If there is no added by property, keep it on unknown, if the user cannot be found, also keep it on unknown
-                        if (relation.AddedBy != null && userNames.TryGetValue(relation.AddedBy, out string? name))
-                            addedByName = name ?? "Unknown";
+            List<Tag?> tags = project.ProjectTagRelations?
+                .Select(r => r.Tag).ToList() ?? [];
 
-                        folders.Add(new FolderWithAddedBy(relation.ChildFolder, addedByName));
-                    }
-                }
-            }
-
-            // Names of creators
-            List<UserResponse>? creatorNames = project.ProjectCreatorRelations?.Select(r => new UserResponse(
-                r.Creator!,
-                "No Role")).ToList() ?? [];
-            List<Tag?>? tags = project.ProjectTagRelations?.Select(r => r.Tag).ToList() ?? [];
-
-            // Create the DTO
             ProjectInfoDto projectInfo = new()
             {
                 Project = project,
-                Resources = resources,
+                Items = items,
                 Folders = folders,
-                Creators = creatorNames,
+                Creators = creators,
                 Tags = tags
             };
 
-            // If null, the project was not found
-            if (project == null)
-                return NotFound(new ApiResponse(false, "Project not found."));
-
-            // Return the project and its children
             return Ok(new ApiResponse(true, "Project found.", projectInfo));
         }
         catch (Exception e)
@@ -492,38 +448,29 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     /// 
     /// Author: Justin Liem
     /// </summary>
-    /// <param name="folderName">Name of the new folder.</param>
-    /// <param name="parentId">ID of parent component.</param>
+    /// <param name="parentId">ID of the parent project or folder.</param>
+    /// <param name="dto">DTO containing the folder name.</param>
     /// <returns>
-    /// Returns a 200 OK response containing an ID of the added folder.
+    /// Returns a 200 OK response containing the ID of the added folder.
     /// </returns>
-    [HttpPut("add-folder/{folderName}/{parentId}")]
+    [HttpPut("add-folder/{parentId}")]
     [SwaggerOperation(
         Summary = "Adds a folder to a parent project or folder.",
-        Description = "Creates an empty folder to a root folder or project. Does not contain tags. Creators are the creators of the parent component + whoever created this"
+        Description = "Creates an empty folder inside a project or folder. Creators are inherited from the parent plus whoever created this."
     )]
     [SwaggerResponse(200, "Folder created")]
     [SwaggerResponse(400, "Bad request")]
     [SwaggerResponse(404, "Project not found")]
     [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> AddFolder(string folderName, string parentId)
+    public async Task<IActionResult> AddFolder(string parentId, [FromBody] AddFolderDto dto)
     {
         Log.Information("Creating a new folder");
 
         // Make sure we have the required fields
-        if (string.IsNullOrEmpty(folderName) || !ValidityUtil.IsValidId(parentId))
+        if (string.IsNullOrEmpty(dto.Name) || !ValidityUtil.IsValidId(parentId))
         {
-            Log.Error("Title is required");
-            return BadRequest(new ApiResponse(false, "Title is required"));
-        }
-
-        // If the parent does not exist, we cannot create a folder
-        bool parentExists = await projectManager.ProjectExistsAsync(parentId);
-
-        if (!parentExists)
-        {
-            Log.Error("Parent component does not exist.");
-            return NotFound(new ApiResponse(false, "Parent component does not exist"));
+            Log.Error("Folder name and valid parent id are required");
+            return BadRequest(new ApiResponse(false, "Folder name and valid parent id are required"));
         }
 
         // Get parent project and user ID
@@ -548,10 +495,10 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         HashSet<string> creators = parent.ProjectCreatorRelations?.Select(relation => relation.CreatorId).ToHashSet() ?? [];
         creators.Add(userId.ToString() ?? throw new Exception("User ID is null"));
 
-        // Folders don't have descriptions (for now)
+        // Folders don't have descriptions
         ProjectCreateDto newFolder = new()
         {
-            Title = folderName,
+            Title = dto.Name,
             ProjectType = "folder",
             Creators = creators.ToArray()
         };
@@ -576,160 +523,101 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
     #endregion
 
-    #region Add Resource
+    #region Add Item
 
     /// <summary>
-    /// Adds a resource to a project / folder.
-    /// 
-    /// Author: Justin Liem
+    /// Adds a library item (resource, person, or organisation) to a project or folder.
     /// </summary>
-    /// <param name="projectId">The ID of the project</param>
-    /// <param name="resourceId">The ID of the resource</param>
-    /// <returns>
-    /// Returns a 200 OK response.
-    /// </returns>
-    [HttpPut("add-resource/{projectId}/{resourceId}")]
+    [HttpPut("add-item/{projectId}/{itemId}")]
     [SwaggerOperation(
-        Summary = "Adds a resource to a parent project or folder.",
-        Description = "Takes a resource id and project id and links both"
+        Summary = "Adds a library item to a project or folder.",
+        Description = "Links a resource, person, or organisation to a project/folder by ID."
     )]
-    [SwaggerResponse(200, "Resource added")]
+    [SwaggerResponse(200, "Item added")]
     [SwaggerResponse(400, "Bad request")]
-    [SwaggerResponse(404, "Project / Resource not found")]
-    [SwaggerResponse(409, "Resource already linked")]
+    [SwaggerResponse(404, "Project or item not found")]
+    [SwaggerResponse(409, "Item already linked")]
     [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> AddResource(string projectId, string resourceId)
+    public async Task<IActionResult> AddItem(string projectId, string itemId)
     {
-        Log.Information("Adding resource to project");
-
-        // If the project or resource id is invalid, abort
-        if (!ValidityUtil.IsValidId(projectId) || !ValidityUtil.IsValidId(resourceId))
-        {
-            Log.Error("Id of either project or resource invalid");
-            return BadRequest(new ApiResponse(false, "Id missing."));
-        }
+        if (!ValidityUtil.IsValidId(projectId) || !ValidityUtil.IsValidId(itemId))
+            return BadRequest(new ApiResponse(false, "Invalid id."));
 
         try
         {
-            // Abort if no project or resource is found with those id's
             if (!await projectManager.ProjectExistsAsync(projectId))
-            {
-                Log.Error("Project not found.");
                 return NotFound(new ApiResponse(false, "Project not found."));
-            }
 
-            if (!await resourceManager.ResourceExistsAsync(Guid.Parse(resourceId)))
-            {
-                Log.Error("Resource not found.");
-                return NotFound(new ApiResponse(false, "Resource not found."));
-            }
+            // Validate item exists in the grid view (covers resources, persons, organisations)
+            bool itemExists = await projectManager.ItemExistsInGridAsync(Guid.Parse(itemId));
+            if (!itemExists)
+                return NotFound(new ApiResponse(false, "Item not found."));
 
             Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
-
-            // If there is somehow no user found calling this action, abort
             if (userId == null)
-            {
-                Log.Error("Failed to add folder.");
                 return StatusCode(500, new ApiResponse(false, "Internal server error"));
-            }
 
-            // Also abort if the link already exists
-            if ((await projectManager.GetAllResources(predicate: relation => relation.ProjectId == Guid.Parse(projectId) && relation.ResourceId == Guid.Parse(resourceId))).Length != 0)
-            {
-                Log.Error("Resource-project link already exists.");
-                return Conflict(new ApiResponse(false, "Resource already in project / folder."));
-            }
+            if ((await projectManager.GetAllItems(predicate: r => r.ProjectId == Guid.Parse(projectId) && r.ItemId == Guid.Parse(itemId))).Length != 0)
+                return Conflict(new ApiResponse(false, "Item already in project / folder."));
 
-            // Now userId always has a value so we can safely take it
-            await projectManager.AddResourceToProjectAsync(projectId, resourceId, userId.Value);
-            return Ok(new ApiResponse(true, "Successfully added resource to project"));
+            await projectManager.AddItemToProjectAsync(projectId, itemId, userId.Value);
+            return Ok(new ApiResponse(true, "Item added to project."));
         }
-
         catch (Exception e)
         {
-            // Something else went wrong
-            Log.Error(e, "Failed to add resource.");
+            Log.Error(e, "Failed to add item {itemId} to project {projectId}.", itemId, projectId);
             return StatusCode(500, new ApiResponse(false, "Internal server error"));
         }
     }
 
     #endregion
 
-    #region Remove Resource
+    #region Remove Item
 
     /// <summary>
-    /// Removes a resource from a project / folder.
-    /// 
-    /// Author: Justin Liem
+    /// Removes a library item (resource, person, or organisation) from a project or folder.
     /// </summary>
-    /// <param name="projectId">The ID of the project</param>
-    /// <param name="resourceId">The ID of the resource</param>
-    /// <returns>
-    /// Returns a 200 OK response.
-    /// </returns>
-    [HttpDelete("remove-resource/{projectId}/{resourceId}")]
-    [Authorize]
+    [HttpDelete("remove-item/{projectId}/{itemId}")]
     [SwaggerOperation(
-            Summary = "Removes a resource from a project / folder.",
-            Description = "Only people who added the resource to the folder / project OR admins are able to remove it."
-        )]
-    [SwaggerResponse(200, "Resource removed")]
+        Summary = "Removes a library item from a project or folder.",
+        Description = "Only the user who added the item or a project creator or admin can remove it."
+    )]
+    [SwaggerResponse(200, "Item removed")]
     [SwaggerResponse(400, "Bad request")]
-    [SwaggerResponse(403, "Forbidden - User cannot remove this resource")]
-    [SwaggerResponse(404, "Project / resource not found")]
+    [SwaggerResponse(403, "Forbidden")]
+    [SwaggerResponse(404, "Project or item not found")]
     [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> RemoveResource(string projectId, string resourceId)
+    public async Task<IActionResult> RemoveItem(string projectId, string itemId)
     {
+        if (!ValidityUtil.IsValidId(projectId) || !ValidityUtil.IsValidId(itemId))
+            return BadRequest(new ApiResponse(false, "Invalid id."));
+
         try
         {
-            Log.Information("Deleting resource from project.");
-
-            // Make sure we have the required fields
-            if (!ValidityUtil.IsValidId(projectId) || !ValidityUtil.IsValidId(resourceId))
-            {
-                Log.Error("Id is required");
-                return BadRequest(new ApiResponse(false, "Id is required"));
-            }
-
-            // Get the GUID of the user
             Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
             bool userIsAdmin = User.IsInRole("admin");
 
-            // Check if project and resource exist
-            Project? project = await projectManager.GetProjectAsync(projectId, includeProperties: ["ProjectResourcesRelations", "ProjectCreatorRelations"]);
-
+            Project? project = await projectManager.GetProjectAsync(projectId, includeProperties: ["ProjectItemRelations", "ProjectCreatorRelations"]);
             if (project == null)
-            {
-                Log.Error("Project not found.");
                 return NotFound(new ApiResponse(false, "Project not found."));
-            }
 
-            if (!await resourceManager.ResourceExistsAsync(Guid.Parse(resourceId)))
+            bool userAddedItem = project.ProjectItemRelations?.Any(r => r.ItemId == Guid.Parse(itemId) && r.AddedBy == userId.ToString()) ?? false;
+            bool userIsAuthorized = ProjectAuthorizationLevel(userId, project) != "unauthorized";
+
+            if (!userIsAdmin && !userAddedItem && !userIsAuthorized)
             {
-                Log.Error("Resource not found.");
-                return NotFound(new ApiResponse(false, "Resource not found."));
+                Log.Warning("User {UserId} attempted to remove item {itemId} from {projectId} without permissions.", userId, itemId, projectId);
+                return StatusCode(403, new ApiResponse(false, "User cannot remove this item."));
             }
 
-            // Check if user is creator of relation or creator of folder where the resource is in
-            bool userValidation = (project.ProjectResourcesRelations?.Any(relation => relation.AddedBy == userId.ToString()) ?? false) || !(ProjectAuthorizationLevel(userId, project) == "unauthorized");
+            if (await projectManager.RemoveItemFromProject(projectId, itemId))
+                return Ok(new ApiResponse(true, "Item removed from project."));
 
-            // Check if the user has permission to delete this project
-            if (!userIsAdmin && !userValidation)
-            {
-                Log.Warning("User {UserId} attempted to delete resource {id} from folder {id2} without permissions.", userId, resourceId, projectId);
-                return StatusCode(403, new ApiResponse(false, "User cannot delete resource from this project or folder."));
-            }
-
-            // Remove link from project-folder
-            if (await projectManager.RemoveResourceFromProject(projectId, resourceId))
-                return Ok(new ApiResponse(true, "Resource deleted from project."));
-
-            Log.Error("Failed to delete resource from project.");
             return StatusCode(500, new ApiResponse(false, "Internal server error."));
         }
         catch (Exception e)
         {
-            Log.Error(e, "Error deleting resource {id} from project {id}", resourceId, projectId);
+            Log.Error(e, "Error removing item {itemId} from project {projectId}.", itemId, projectId);
             return StatusCode(500, new ApiResponse(false, "Internal server error."));
         }
     }
@@ -739,47 +627,8 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     #region Helper Methods
 
     /// <summary>
-    /// Helper method used to update properties using a switch statement.
-    /// Keep in mind, updates to tags are done by just supplying the new tags, 
-    /// so just delete the old ones and make new links. Creators are only ever added to.
-    /// 
-    /// Author: Justin Liem
+    /// Gets the user authorization level for a project, given the project and the user.
     /// </summary>
-    /// <param name="project">Project to update a property of.</param>
-    /// <param name="property">Property to update.</param>
-    /// <param name="newValue">New value of the property.</param>
-    /// <returns>Nothing, it just updates the property in the database or throws an exception.</returns>
-    /// <exception cref="UnauthorizedAccessException">Exception thrown if the user has no permission to update the project.</exception>
-    /// <exception cref="ArgumentException">Exception thrown if the property to update does not exist.</exception>
-    private async Task UpdateProperty(Project project, string property, object newValue)
-    {
-        // Update the appropiate property based on the type
-        await (property switch
-        {
-            // Updating general properties
-            // Title can only be updated if the user is authorized, can be changed in both folders and projects
-            "title" => projectManager.UpdateProjectAsync(project.Id, p => p.Title, newValue.ToString()),
-            // Description and tags can only be changed from the root project, and fail if applied to folder
-            "description" => project.ProjectType == "root" ? projectManager.UpdateProjectAsync(project.Id, p => p.Description, newValue.ToString()) : throw new UnauthorizedAccessException("User cannot update property used in folder."),
-
-            // Updating relations
-            "tags" => project.ProjectType == "root" ? projectManager.UpdateProjectTagsAsync(project.Id, ((List<string>)newValue).ToArray()) : throw new UnauthorizedAccessException("User cannot update property used in folder."),
-            // Creators need to updated with a cascading update to make sure permissions are okay
-            "creators" => projectManager.UpdateProjectCreatorsAsync(project.Id, ((List<string>)newValue).ToArray()),
-
-            // Default
-            _ => throw new ArgumentException($"Cannot update property: {property}")
-        });
-    }
-
-    /// <summary>
-    /// Gets the user authorization level for a project, given the project and the user
-    /// 
-    /// Author: Justin Liem
-    /// </summary>
-    /// <param name="user">The user id to verify the authorization level</param>
-    /// <param name="project">The project id to verify the authorization level</param>
-    /// <returns>authorization level</returns>
     private string ProjectAuthorizationLevel(Guid? user, Project project)
     {
         if (user == null)
@@ -790,31 +639,6 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
         if (project.ProjectCreatorRelations?.Any(r => r.CreatorId == user.ToString()) ?? false)
             level = "creator";
         return level;
-    }
-
-    /// <summary>
-    /// Checks if update is valid or not
-    ///
-    /// Author: Justin Liem
-    /// </summary>
-    /// <param name="prop">Property of update</param>
-    /// <param name="val">Value of update</param>
-    /// <returns>Boolean indicating whether or not the update is valid</returns>
-    /// <exception cref="ArgumentException">Thrown if the property itself is invalid</exception>
-    private bool ValidUpdate(string prop, object val)
-    {
-        switch (prop)
-        {
-            case "title":
-            case "description":
-                return !string.IsNullOrEmpty(val?.ToString());
-            case "creators":
-                return ((List<string>)val).Count > 0;
-            case "tags":
-                return ((List<string>)val).Count >= 0;
-            default:
-                throw new ArgumentException($"Cannot update property: {prop}");
-        }
     }
 
     /// <summary>
