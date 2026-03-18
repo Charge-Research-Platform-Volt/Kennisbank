@@ -529,6 +529,33 @@ namespace KnowledgeBank.Data
         { return await GetProjectChildrenAsync(Guid.Parse(id)); }
 
         /// <summary>
+        /// Walks up the project-folder relation tree and returns the ancestor chain,
+        /// ordered from root to immediate parent.
+        /// </summary>
+        public async Task<List<ProjectAncestor>> GetAncestorsAsync(Guid id)
+        {
+            var ancestors = new List<ProjectAncestor>();
+            Guid current = id;
+
+            while (true)
+            {
+                var parent = await database.ProjectFolderRelations
+                    .AsNoTracking()
+                    .Where(r => r.ChildId == current)
+                    .Join(database.Projects, r => r.ParentId, p => p.Id, (r, p) => new { p.Id, p.Title })
+                    .FirstOrDefaultAsync();
+
+                if (parent == null) break;
+
+                ancestors.Add(new ProjectAncestor(parent.Id, parent.Title));
+                current = parent.Id;
+            }
+
+            ancestors.Reverse();
+            return ancestors;
+        }
+
+        /// <summary>
         /// Gets all items (resources, persons, organisations) linked to a project,
         /// resolved via ResourceGridView.
         /// </summary>
@@ -557,8 +584,8 @@ namespace KnowledgeBank.Data
         public async Task<Dictionary<string, string>> GetUserNamesByIds(HashSet<string> ids)
         {
             Dictionary<string, string> dict = new();
-            foreach (IdentityUser u in await GetAllAsync(dbSet: database.Users, predicate: user => ids.Contains(user.Id)))
-                dict.Add(u.Id, u.UserName ?? "Unknown");
+            foreach (User u in await GetAllAsync(dbSet: database.Users, predicate: user => ids.Contains(user.Id)))
+                dict.Add(u.Id, $"{u.FirstName} {u.LastName}");
             return dict;
         }
         #endregion

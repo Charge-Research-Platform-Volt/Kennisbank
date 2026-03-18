@@ -1,7 +1,7 @@
 <script lang="ts">
     import { userState } from '$lib/state/user.svelte';
     import { getGreeting } from '$lib/greetings';
-    import { Search, Library, FolderOpen } from 'lucide-svelte';
+    import { Search, Library, BookMarked } from 'lucide-svelte';
     
     const greeting = $derived(getGreeting(userState.user?.firstName ?? ''));
 </script>
@@ -18,7 +18,7 @@
         {#each [
             { icon: Search, label: 'Search', href: '/search' },
             { icon: Library, label: 'Library', href: '/library' },
-            { icon: FolderOpen, label: 'Projects', href: '/projects' }
+            { icon: BookMarked, label: 'Projects', href: '/projects' }
         ] as btn (btn.href)}
             <a href={btn.href} class="flex h-25 w-30 flex-col items-center justify-center rounded-xl border border-gray-300 bg-gray-100 p-3 shadow-md transition hover:bg-gray-200">
                 <btn.icon size={32} color="#4b5563" />

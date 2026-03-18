@@ -250,7 +250,7 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                 // Calculate the total number of projects and return a ProjectPageResponse
                 int totalCount = await projectManager.ProjectCount(predicate);
                 int pageCount = (int)Math.Ceiling((double)totalCount / dto.PageSize);
-                return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", new ProjectPageResponse(projects, dto.PageIndex, dto.PageSize, pageCount)));
+                return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", new ProjectPageResponse(projects, dto.PageIndex, dto.PageSize, pageCount, totalCount)));
             }
 
             return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", new ProjectPageResponse(projects)));
@@ -415,19 +415,40 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
             // Items are resolved via ResourceGridView (covers resources, persons, organisations)
             List<ResourceGridItemWithAddedBy> items = await projectManager.GetProjectItemsAsync(Guid.Parse(id));
 
-            List<UserResponse> creators = project.ProjectCreatorRelations?
+            // Resolve item AddedBy user IDs to display names
+            HashSet<string> itemUserIds = items
+                .Where(i => i.AddedBy != null && i.AddedBy != "Unknown")
+                .Select(i => i.AddedBy)
+                .ToHashSet();
+            Dictionary<string, string> itemUserNames = await projectManager.GetUserNamesByIds(itemUserIds);
+            items = items.Select(i => new ResourceGridItemWithAddedBy(
+                i.Item,
+                itemUserNames.TryGetValue(i.AddedBy, out string? name) ? name : "Unknown"
+            )).ToList();
+
+            List<ProjectAncestor> ancestors = await projectManager.GetAncestorsAsync(Guid.Parse(id));
+
+            // If we're at root level, root is the current project (already loaded with full relations).
+            // If we're in a subfolder, fetch the root project with its tags and creators.
+            Project rootProject = ancestors.Count == 0
+                ? project
+                : await projectManager.GetProjectAsync(ancestors[0].Id, includeProperties: ["ProjectTagRelations.Tag", "ProjectCreatorRelations.Creator"]) ?? project;
+
+            List<UserResponse> creators = rootProject.ProjectCreatorRelations?
                 .Select(r => new UserResponse(r.Creator!, "No Role")).ToList() ?? [];
 
-            List<Tag?> tags = project.ProjectTagRelations?
+            List<Tag?> tags = rootProject.ProjectTagRelations?
                 .Select(r => r.Tag).ToList() ?? [];
 
             ProjectInfoDto projectInfo = new()
             {
                 Project = project,
+                RootProject = rootProject,
                 Items = items,
                 Folders = folders,
                 Creators = creators,
-                Tags = tags
+                Tags = tags,
+                Ancestors = ancestors
             };
 
             return Ok(new ApiResponse(true, "Project found.", projectInfo));

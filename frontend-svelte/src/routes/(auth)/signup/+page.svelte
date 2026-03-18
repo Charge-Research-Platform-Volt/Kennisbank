@@ -5,6 +5,7 @@
     import { page } from "$app/state";
 	import { api } from "$lib/api";
 	import { Pencil } from "lucide-svelte";
+    import Avatar from "$lib/components/ui/avatar/avatar.svelte";
     
     const token = page.url.searchParams.get('token');
     
@@ -16,7 +17,7 @@
     
     let avatarInputElement: HTMLInputElement | null = $state(null);
     let avatarFile: File | null = $state(null);
-    let avatarPreviewUrl = $derived(avatarFile ? URL.createObjectURL(avatarFile) : '/img/default-profile-picture.svg');
+    let avatarPreviewUrl = $derived(avatarFile ? URL.createObjectURL(avatarFile) : null);
     
     let loading = $state(false);
     let error = $state();
@@ -90,11 +91,11 @@
         <div class="flex gap-10">
             <!-- Avatar -->
             <div class="flex w-1/3 flex-col gap-1 justify-center items-center">
-                <button type="button" onclick={() => avatarInputElement?.click()} class="m-0 p-0 w-35 h-35 bg-transparent border-none group relative cursor-pointer">
-                    <img
+                <button type="button" onclick={() => avatarInputElement?.click()} class="m-0 p-0 bg-transparent border-none group relative cursor-pointer">
+                    <Avatar
+                        name="{firstName} {lastName}"
                         src={avatarPreviewUrl}
-                        alt="Avatar preview"
-                        class="avatar w-full h-full rounded-full object-cover"
+                        size={140}
                     />
                     <div class="absolute inset-0 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
                         <Pencil class="text-white" size={20} />

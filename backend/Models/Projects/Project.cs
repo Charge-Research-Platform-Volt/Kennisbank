@@ -92,12 +92,14 @@ public class ProjectPageResponse
     public int? PageIndex { get; set; }
     public int? PageSize { get; set; }
     public int? PageCount { get; set; }
-    public ProjectPageResponse(Project[] projects, int? pageIndex = null, int? pageSize = null, int? pageCount = null)
+    public int? TotalCount { get; set; }
+    public ProjectPageResponse(Project[] projects, int? pageIndex = null, int? pageSize = null, int? pageCount = null, int? totalCount = null)
     {
         this.PageIndex = pageIndex;
         this.PageSize = pageSize;
         this.Projects = projects;
         this.PageCount = pageCount;
+        this.TotalCount = totalCount;
     }
 }
 
@@ -109,11 +111,18 @@ public class ProjectPageResponse
 public class ProjectInfoDto
 {
     public Project? Project { get; set; } = null;
+    public Project? RootProject { get; set; } = null;
     public List<FolderWithAddedBy> Folders { get; set; } = [];
     public List<ResourceGridItemWithAddedBy> Items { get; set; } = [];
     public List<UserResponse> Creators { get; set; } = [];
     public List<Tag?> Tags { get; set; } = [];
+    public List<ProjectAncestor> Ancestors { get; set; } = [];
 }
+
+/// <summary>
+/// Represents a single ancestor in a project/folder hierarchy, ordered from root to immediate parent.
+/// </summary>
+public record ProjectAncestor(Guid Id, string Title);
 
 /// <summary>
 /// Wrapper for a library item (resource, person, or organisation grid entry) with an Added By property.

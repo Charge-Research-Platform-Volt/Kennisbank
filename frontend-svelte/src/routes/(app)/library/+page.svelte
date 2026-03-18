@@ -82,7 +82,7 @@
         currentPage = 1;
         // Cancel previous timer and start a new one
         clearTimeout(debounceTimer);
-        setParams({ q: searchInput || null, page: currentPage })
+        setParams({ q: searchInput || null, page: currentPage });
         debounceTimer = setTimeout(fetchItems, 300);
     }
     
@@ -335,12 +335,19 @@
             </Table.Header>
             
             <Table.Body>
+                {#if items.length === 0}
+                    <Table.Row class="hover:[&,&>svelte-css-wrapper]:[&>th,td]:bg-transparent">
+                        <Table.Cell colspan={3} class="py-12 text-center text-sm text-muted-foreground">
+                            {searchInput ? 'No results found.' : 'Nothing here yet.'}
+                        </Table.Cell>
+                    </Table.Row>
+                {/if}
                 {#each items as item (item.id)}
                     {@const Icon = getFileIcon(item.fileType)}
                     {@const action = getFileAction(item.fileType)}
                 
                     <Table.Row class="cursor-pointer" onclick={() => openInspector(item)}>
-                        <Table.Cell class="py-3 flex gap-3">
+                        <Table.Cell class="py-3 flex gap-3 items-center">
                             <Icon size={16} class="text-muted-foreground shrink-0" />
                             {item.name}
                         </Table.Cell>

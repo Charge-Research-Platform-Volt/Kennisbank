@@ -130,27 +130,27 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
     )]
     [SwaggerResponse(200, "Users are loaded succesfully")]
     [SwaggerResponse(500, "Server error")]
-    public async Task<IActionResult> GetUsersPaged(int pageIndex = 1, int pageSize = 100, string? searchQuery = null)
+    public async Task<IActionResult> GetUsersPaged(int pageIndex = 1, int pageSize = 100, string? searchQuery = null, string? excludeId = null)
     {
         if (pageIndex < 1)
                 return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1."));
 
         if (pageSize < 1)
             return BadRequest(new ApiResponse(false, "Page size cannot be lower than 1."));
-        
+
         try
         {
             await using var database = await dbFactory.CreateDbContextAsync();
-        
+
             // Calculate how many records we need to skip
             int skip = (pageIndex - 1) * pageSize;
 
             // filter based on the search query
-            IQueryable<User> filteredUsers;
+            IQueryable<User> filteredUsers = database.Users;
             if (!string.IsNullOrEmpty(searchQuery))
-                filteredUsers = database.Users.Where(u => EF.Functions.ILike(u.Email ?? "", $"%{searchQuery}%"));
-            else
-                filteredUsers = database.Users;
+                filteredUsers = filteredUsers.Where(u => EF.Functions.ILike(u.FirstName + " " + u.LastName, $"%{searchQuery}%"));
+            if (!string.IsNullOrEmpty(excludeId))
+                filteredUsers = filteredUsers.Where(u => u.Id != excludeId);
 
             // Get the users for the current page
             User[]? users = await filteredUsers.OrderBy(u => u.Email).Skip(skip).Take(pageSize).ToArrayAsync();
@@ -170,9 +170,9 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
 
             // Check if there are no users on this page
             if (users == null)
-                return Ok(new UserPageResponse("No users on this page.", pageIndex, pageSize, pageCount, Array.Empty<UserResponse>()));
+                return Ok(new ApiResponse(true, "No users on this page.", new UserPageResponse("No users on this page.", pageIndex, pageSize, pageCount, Array.Empty<UserResponse>())));
 
-            return Ok(new UserPageResponse($"{users.Length} users found.", pageIndex, pageSize, pageCount, userResponses));
+            return Ok(new ApiResponse(true, $"{users.Length} users found.", new UserPageResponse($"{users.Length} users found.", pageIndex, pageSize, pageCount, userResponses)));
         }
         catch (Exception e)
         {

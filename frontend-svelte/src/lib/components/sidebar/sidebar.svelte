@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { LayoutDashboard, Search, Library, FolderOpen, PanelLeftOpen, PanelLeftClose, CirclePlus, MessageCircleQuestionMark, MessageCircleMore, Tags, Users } from "lucide-svelte";
+    import { LayoutDashboard, Search, Library, BookMarked, PanelLeftOpen, PanelLeftClose, CirclePlus, MessageCircleQuestionMark, MessageCircleMore, Tags, Users } from "lucide-svelte";
+    import Avatar from "$lib/components/ui/avatar/avatar.svelte";
     import { sidebar } from "$lib/state/sidebar.svelte";
     import { page } from "$app/state";
     import Button from "../ui/button/button.svelte";
@@ -40,7 +41,7 @@
 
 {#snippet navItem(href: string, icon: LucideIcon, label: string)}
     {@const Icon = icon}
-    {@const active = page.url.pathname === href}
+    {@const active = href === '/' ? page.url.pathname === href : page.url.pathname.startsWith(href)}
 
     <a
         {href}
@@ -103,8 +104,8 @@
         {@render navItem("/", LayoutDashboard, "Home")}
         {@render navItem("/search", Search, "Search")}
         {@render navItem("/library", Library, "Library")}
-        {@render navItem("/projects", FolderOpen, "Projects")}
-        {@render navItem("/chat", MessageCircleMore, "ChatBot")}
+        {@render navItem("/projects", BookMarked, "Projects")}
+        {@render navItem("/chatbot", MessageCircleMore, "ChatBot")}
         {@render navItem("/tags", Tags, "Tags")}
         
         {#if userState.role === 'admin'}
@@ -122,13 +123,14 @@
             <DropdownMenu.Trigger class="flex w-full items-center rounded-md py-2 text-sm transition-colors
                 {collapsed ? 'gap-0 justify-center' : 'gap-2 px-2'}
                 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-                <img
-                    src={userState.user?.customAvatarVersion
-                        ? `/api/user/current/avatar/${userState.user.id}?v=${userState.user.customAvatarVersion}`
-                        : '/img/default-profile-picture.svg'}
-                    alt="Avatar"
-                    class="w-8 h-8 rounded-full shrink-0 object-cover"
-                />
+                {#if userState.user}
+                    <Avatar
+                        userId={userState.user.id}
+                        name="{userState.user.firstName} {userState.user.lastName}"
+                        customAvatarVersion={userState.user.customAvatarVersion}
+                        size={32}
+                    />
+                {/if}
                 <div class="overflow-hidden text-left transition-all duration-300 {sidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'}">
                     <p class="whitespace-nowrap text-sm font-medium text-sidebar-foreground leading-tight">
                         {userState.user?.firstName} {userState.user?.lastName}

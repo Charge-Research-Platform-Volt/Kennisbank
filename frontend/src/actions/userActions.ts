@@ -265,7 +265,7 @@ export const ListUsersPaged = async (pageIndex: number, query: string ): Promise
     }
 
     //validate the users array
-    const users = data.users;
+    const users = data.body?.users ?? data.users;
     const validatedUsers = UsersArraySchema.safeParse(users);
     if (!validatedUsers.success) {
         return {

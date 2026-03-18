@@ -47,29 +47,22 @@ namespace KnowledgeBank.Data
 
                 if (currentFolder != null)
                 {
+                    // Get subfolders BEFORE deleting, as deletion cascades project-folder relations
+                    List<Guid> subfolderIds = (await GetAllFolders(project => project.ParentId == currentFolder.Id))
+                        .Select(relation => relation.ChildId)
+                        .ToList();
+
+                    foreach (Guid subfolderId in subfolderIds)
+                        foldersToRemove.Push(subfolderId);
+
                     // Delete all items in this folder
                     await RemoveAllItemsFromProject(currentFolder.Id);
 
-                    // Delete the folder itself
-                    await DeleteAsync(database.Projects, project => project.Id == currentFolder.Id);
-
-                    // Delete all references to this folder in the project folder relations
+                    // Delete all references to this folder as a child
                     await DeleteAsync(database.ProjectFolderRelations, relation => relation.ChildId == currentFolder.Id);
 
-                    // Get potential subfolders and add them to the remove list
-                    List<Project?> newFolders = (await GetAllFolders(project => project.ParentId == currentFolder.Id)).Select(relation => relation.ChildFolder).ToList();
-
-                    if (newFolders != null)
-                    {
-                        // Add new subfolders to the remove list
-                        foreach (Project? folder in newFolders)
-                        {
-                            if (folder != null)
-                            {
-                                foldersToRemove.Push(folder.Id);
-                            }
-                        }
-                    }
+                    // Delete the folder itself (cascades project-folder relations where ParentId == currentFolder.Id)
+                    await DeleteAsync(database.Projects, project => project.Id == currentFolder.Id);
                 }
             }
 
