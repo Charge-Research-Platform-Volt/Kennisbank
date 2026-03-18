@@ -39,12 +39,13 @@
     }
 </script>
 
-{#snippet navItem(href: string, icon: LucideIcon, label: string)}
+{#snippet navItem(href: string, icon: LucideIcon, label: string, target?: string)}
     {@const Icon = icon}
     {@const active = href === '/' ? page.url.pathname === href : page.url.pathname.startsWith(href)}
 
     <a
         {href}
+        target={target ?? undefined}
         class="flex items-center rounded-md py-2 text-sm transition-colors {collapsed ? 'gap-0 justify-center' : 'gap-2 px-2'}
             {active
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
@@ -116,7 +117,7 @@
     
     <!-- Footer -->
     <div class="flex flex-col w-full mt-auto gap-1">
-        {@render navItem('/help', MessageCircleQuestionMark, 'Help')}
+        {@render navItem('/help', MessageCircleQuestionMark, 'Help', '_blank')}
         {@render separator("")}
 
         <!-- User profile -->
