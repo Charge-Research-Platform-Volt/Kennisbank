@@ -148,15 +148,24 @@ namespace KnowledgeBank.Controllers
                         }
                         else
                         {
-                            entityId = await resourceManager.CreateOrganisationAsync(new OrganisationCreateDto { Name = name });
-                            createdOrganisations[name] = entityId;
-                            logger.Information("Created new organisation '{Name}' with ID {Id}", name, entityId);
-                            backgroundTasks.Add(async token =>
+                            Organisation? existingOrg = await resourceManager.GetOrganisationAsync(o => o.Name == name);
+                            if (existingOrg != null)
                             {
-                                using var scope = serviceScopeFactory.CreateScope();
-                                RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                                await rag.EntityPipeline(id: entityId, chunk: $"{name}");
-                            });
+                                entityId = existingOrg.Id;
+                                logger.Information("Reusing existing organisation '{Name}' with ID {Id}", name, entityId);
+                            }
+                            else
+                            {
+                                entityId = await resourceManager.CreateOrganisationAsync(new OrganisationCreateDto { Name = name });
+                                logger.Information("Created new organisation '{Name}' with ID {Id}", name, entityId);
+                                backgroundTasks.Add(async token =>
+                                {
+                                    using var scope = serviceScopeFactory.CreateScope();
+                                    RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                                    await rag.EntityPipeline(id: entityId, chunk: $"{name}");
+                                });
+                            }
+                            createdOrganisations[name] = entityId;
                         }
                     }
                     else
@@ -168,15 +177,24 @@ namespace KnowledgeBank.Controllers
                         }
                         else
                         {
-                            entityId = await resourceManager.CreatePersonAsync(new PersonCreateDto { Name = name });
-                            createdPersons[name] = entityId;
-                            logger.Information("Created new person '{Name}' with ID {Id}", name, entityId);
-                            backgroundTasks.Add(async token =>
+                            Person? existingPerson = await resourceManager.GetPersonAsync(p => p.Name == name);
+                            if (existingPerson != null)
                             {
-                                using var scope = serviceScopeFactory.CreateScope();
-                                RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                                await rag.EntityPipeline(id: entityId, chunk: $"{name}");
-                            });
+                                entityId = existingPerson.Id;
+                                logger.Information("Reusing existing person '{Name}' with ID {Id}", name, entityId);
+                            }
+                            else
+                            {
+                                entityId = await resourceManager.CreatePersonAsync(new PersonCreateDto { Name = name });
+                                logger.Information("Created new person '{Name}' with ID {Id}", name, entityId);
+                                backgroundTasks.Add(async token =>
+                                {
+                                    using var scope = serviceScopeFactory.CreateScope();
+                                    RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                                    await rag.EntityPipeline(id: entityId, chunk: $"{name}");
+                                });
+                            }
+                            createdPersons[name] = entityId;
                         }
                     }
 
@@ -197,16 +215,26 @@ namespace KnowledgeBank.Controllers
                     }
                     else
                     {
-                        Guid oId = await resourceManager.CreateOrganisationAsync(new OrganisationCreateDto { Name = name });
+                        Organisation? existingOrg = await resourceManager.GetOrganisationAsync(o => o.Name == name);
+                        Guid oId;
+                        if (existingOrg != null)
+                        {
+                            oId = existingOrg.Id;
+                            logger.Information("Reusing existing organisation '{Name}' with ID {Id}", name, oId);
+                        }
+                        else
+                        {
+                            oId = await resourceManager.CreateOrganisationAsync(new OrganisationCreateDto { Name = name });
+                            logger.Information("Created new organisation '{Name}' with ID {Id}", name, oId);
+                            backgroundTasks.Add(async token =>
+                            {
+                                using var scope = serviceScopeFactory.CreateScope();
+                                RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                                await rag.EntityPipeline(id: oId, chunk: $"{name}");
+                            });
+                        }
                         createdOrganisations[name] = oId;
                         dto.Organisations[i].Id = oId.ToString();
-
-                        backgroundTasks.Add(async token =>
-                        {
-                            using var scope = serviceScopeFactory.CreateScope();
-                            RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                            await rag.EntityPipeline(id: oId, chunk: $"{name}");
-                        });
                     }
                 }
 
@@ -224,16 +252,26 @@ namespace KnowledgeBank.Controllers
                     }
                     else
                     {
-                        Guid pId = await resourceManager.CreatePersonAsync(new PersonCreateDto { Name = name });
+                        Person? existingPerson = await resourceManager.GetPersonAsync(p => p.Name == name);
+                        Guid pId;
+                        if (existingPerson != null)
+                        {
+                            pId = existingPerson.Id;
+                            logger.Information("Reusing existing person '{Name}' with ID {Id}", name, pId);
+                        }
+                        else
+                        {
+                            pId = await resourceManager.CreatePersonAsync(new PersonCreateDto { Name = name });
+                            logger.Information("Created new person '{Name}' with ID {Id}", name, pId);
+                            backgroundTasks.Add(async token =>
+                            {
+                                using var scope = serviceScopeFactory.CreateScope();
+                                RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                                await rag.EntityPipeline(id: pId, chunk: $"{name}");
+                            });
+                        }
                         createdPersons[name] = pId;
                         dto.RelatedPersons[i].Id = pId.ToString();
-
-                        backgroundTasks.Add(async token =>
-                        {
-                            using var scope = serviceScopeFactory.CreateScope();
-                            RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                            await rag.EntityPipeline(id: pId, chunk: $"{name}");
-                        });
                     }
                 }
 
