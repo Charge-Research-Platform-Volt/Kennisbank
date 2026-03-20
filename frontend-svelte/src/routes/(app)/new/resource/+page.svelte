@@ -321,7 +321,7 @@
             {#if submitError}
                 <p class="text-sm text-destructive">{submitError}</p>
             {/if}
-            <Button onclick={handleSubmit} disabled={isSubmitting}>
+            <Button onclick={handleSubmit} disabled={isSubmitting} class="cursor-pointer">
                 {isSubmitting ? 'Saving...' : '+ Add Resource'}
             </Button>
         </div>

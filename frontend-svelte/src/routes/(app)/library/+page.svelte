@@ -347,21 +347,25 @@
                     {@const action = getFileAction(item.fileType)}
                 
                     <Table.Row class="cursor-pointer" onclick={() => openInspector(item)}>
-                        <Table.Cell class="py-3 flex gap-3 items-center">
-                            <Icon size={16} class="text-muted-foreground shrink-0" />
-                            {item.name}
+                        <Table.Cell class="py-3">
+                            <div class="flex gap-3 items-center">
+                                <Icon size={16} class="text-muted-foreground shrink-0" />
+                                {item.name}
+                            </div>
                         </Table.Cell>
                         <Table.Cell class="whitespace-nowrap text-center px-5 py-3">{formatDate(item.publicationDate, item.publicationDatePrecision)}</Table.Cell>
-                        <Table.Cell class="p-3 text-center flex items-center">
-                            {#if action === 'open'}
-                                <button class="cursor-pointer" onclick={(e) => { e.stopPropagation(); openFile(item.id, item.fileType); }}>
-                                    <ExternalLink size={14} />
-                                </button>
-                            {:else if action === 'download'}
-                                <button class="cursor-pointer" onclick={(e) => { e.stopPropagation(); openFile(item.id, item.fileType); }}>
-                                    <Download size={14} />
-                                </button>
-                            {/if}
+                        <Table.Cell class="p-3">
+                            <div class="flex items-center justify-center">
+                                {#if action === 'open'}
+                                    <button class="cursor-pointer" onclick={(e) => { e.stopPropagation(); openFile(item.id, item.fileType); }}>
+                                        <ExternalLink size={14} />
+                                    </button>
+                                {:else if action === 'download'}
+                                    <button class="cursor-pointer" onclick={(e) => { e.stopPropagation(); openFile(item.id, item.fileType); }}>
+                                        <Download size={14} />
+                                    </button>
+                                {/if}
+                            </div>
                         </Table.Cell>
                     </Table.Row>
                 {/each}

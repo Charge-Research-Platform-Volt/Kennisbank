@@ -8,6 +8,7 @@ export type Project = {
     projectType: 'root' | 'folder';
     projectCreatorRelations?: { creatorId: string }[];
     projectTagRelations?: { tag: { id: string; name: string } }[];
+    creators?: { id: string; firstName: string; lastName: string; customAvatarVersion: number }[];
 };
 
 export type ProjectListResponse = {

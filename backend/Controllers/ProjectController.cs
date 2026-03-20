@@ -225,35 +225,51 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                     pageIndex: dto.PageIndex,
                     pageSize: dto.PageSize,
                     predicate: predicate,
-                    includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations"]
+                    includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations.Creator"]
                 );
             }
             else
             {
                 projects = await projectManager.GetAllProjectsAsync(
                     predicate: predicate,
-                    includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations"]
+                    includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations.Creator"]
                 );
             }
-            if (projects.Length == 0)
+
+            var mapped = projects.Select(p => new {
+                p.Id,
+                p.Title,
+                p.Description,
+                p.CreationDate,
+                p.ProjectType,
+                p.ProjectTagRelations,
+                p.ProjectCreatorRelations,
+                Creators = p.ProjectCreatorRelations?
+                    .Where(r => r.Creator != null)
+                    .Select(r => new {
+                        r.Creator!.Id,
+                        r.Creator.FirstName,
+                        r.Creator.LastName,
+                        r.Creator.CustomAvatarVersion
+                    })
+            }).ToArray();
+
+            if (mapped.Length == 0)
             {
                 if (dto.UsePaging && dto.PageIndex > 1)
                     return BadRequest(new ApiResponse(false, "The page index is invalid"));
                 else
-                {
-                    return Ok(new ApiResponse(true, "No projects found", new ProjectPageResponse([])));
-                }
+                    return Ok(new ApiResponse(true, "No projects found", new { projects = mapped }));
             }
 
             if (dto.UsePaging)
             {
-                // Calculate the total number of projects and return a ProjectPageResponse
                 int totalCount = await projectManager.ProjectCount(predicate);
                 int pageCount = (int)Math.Ceiling((double)totalCount / dto.PageSize);
-                return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", new ProjectPageResponse(projects, dto.PageIndex, dto.PageSize, pageCount, totalCount)));
+                return Ok(new ApiResponse(true, $"{mapped.Length} project(s) found.", new { projects = mapped, pageIndex = dto.PageIndex, pageSize = dto.PageSize, pageCount, totalCount }));
             }
 
-            return Ok(new ApiResponse(true, $"{projects.Length} project(s) found.", new ProjectPageResponse(projects)));
+            return Ok(new ApiResponse(true, $"{mapped.Length} project(s) found.", new { projects = mapped }));
         }
 
         catch (Exception e)

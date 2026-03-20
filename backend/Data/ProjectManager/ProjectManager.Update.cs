@@ -105,8 +105,22 @@ namespace KnowledgeBank.Data
         /// <returns>Boolean indicating whether or not update was successful.</returns>
         public async Task<bool> UpdateProjectTagsAsync(Guid id, Guid[] newValue)
         {
-            await RemoveAllTagsFromProject(id);
-            await AddTagToProjectRangeAsync(id, newValue);
+            Guid[] existing = await database.ProjectTagRelations
+                .Where(r => r.ProjectId == id)
+                .Select(r => r.TagId)
+                .ToArrayAsync();
+
+            Guid[] toRemove = existing.Except(newValue).ToArray();
+            Guid[] toAdd = newValue.Except(existing).ToArray();
+
+            if (toRemove.Length > 0)
+                await database.ProjectTagRelations
+                    .Where(r => r.ProjectId == id && toRemove.Contains(r.TagId))
+                    .ExecuteDeleteAsync();
+
+            if (toAdd.Length > 0)
+                await AddTagToProjectRangeAsync(id, toAdd);
+
             return true;
         }
 
@@ -164,8 +178,34 @@ namespace KnowledgeBank.Data
         /// <returns>Boolean indicating whether or not update was successful.</returns>
         public async Task<bool> UpdateProjectCreatorsAsync(Guid id, Guid[] newValue)
         {
-            //await RemoveAllCreatorsFromProject(id);
-            await AddCreatorToProjectRangeAsync(id, newValue);
+            Guid[] existing = await database.ProjectCreatorRelations
+                .Where(r => r.ProjectId == id)
+                .Select(r => Guid.Parse(r.CreatorId))
+                .ToArrayAsync();
+
+            Guid[] toRemove = existing.Except(newValue).ToArray();
+            Guid[] toAdd = newValue.Except(existing).ToArray();
+
+            if (toRemove.Length > 0)
+            {
+                // Cascade removal to all subfolders, mirroring AddCreatorToProjectRangeAsync
+                string[] toRemoveStrings = toRemove.Select(g => g.ToString()).ToArray();
+                Queue<Guid> projectsToUpdate = new();
+                projectsToUpdate.Enqueue(id);
+                while (projectsToUpdate.Count > 0)
+                {
+                    Guid currentId = projectsToUpdate.Dequeue();
+                    (await GetAllFolders(predicate: p => p.ParentId == currentId))
+                        .Select(r => r.ChildId).ToList().ForEach(projectsToUpdate.Enqueue);
+                    await database.ProjectCreatorRelations
+                        .Where(r => r.ProjectId == currentId && toRemoveStrings.Contains(r.CreatorId))
+                        .ExecuteDeleteAsync();
+                }
+            }
+
+            if (toAdd.Length > 0)
+                await AddCreatorToProjectRangeAsync(id, toAdd);
+
             return true;
         }
 

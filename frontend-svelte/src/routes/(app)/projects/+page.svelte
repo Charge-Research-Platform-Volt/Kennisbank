@@ -17,6 +17,7 @@
     import Textarea from '$lib/components/ui/textarea/textarea.svelte';
     import Input from '$lib/components/ui/input/input.svelte';
     import Label from '$lib/components/ui/label/label.svelte';
+	import Avatar from "$lib/components/ui/avatar/avatar.svelte";
 
     // Search
     let searchInput = $state('');
@@ -184,6 +185,7 @@
             <Table.Header>
                 <tr class="border-b">
                     <Table.Head class="w-full">Name</Table.Head>
+                    <Table.Head class="w-px whitespace-nowrap">Creators</Table.Head>
                     <Table.Head class="w-px whitespace-nowrap text-center">Created</Table.Head>
                 </tr>
             </Table.Header>
@@ -198,10 +200,32 @@
                 {/if}
                 {#each items as item (item.id)}
                     <Table.Row class="cursor-pointer" onclick={() => goto(`/projects/${item.id}`)}>
-                        <Table.Cell class="py-3 flex gap-3 items-center">
-                            <BookMarked size={16} class="text-muted-foreground shrink-0" />
-                            {item.title}
+                        <Table.Cell class="py-3">
+                            <div class="flex gap-3 items-center">
+                                <BookMarked size={16} class="text-muted-foreground shrink-0" />
+                                <div class="flex flex-col">
+                                    <span>{item.title}</span>
+                                    {#if item.description}
+                                        <span class="text-xs text-muted-foreground truncate max-w-sm">{item.description}</span>
+                                    {/if}
+                                </div>
+                            </div>
                         </Table.Cell>
+
+                        <Table.Cell class="py-3">
+                            <div class="flex items-center">
+                                {#each (item.creators ?? []) as creator (creator.id)}
+                                    <Avatar
+                                        userId={creator.id.toString()}
+                                        name="{creator.firstName} {creator.lastName}"
+                                        customAvatarVersion={creator.customAvatarVersion ?? null}
+                                        size={24}
+                                        class="-ml-2 first:ml-0"
+                                    />
+                                {/each}
+                            </div>
+                        </Table.Cell>
+
                         <Table.Cell class="whitespace-nowrap text-center px-5 py-3">{formatDate(item.creationDate)}</Table.Cell>
                     </Table.Row>
                 {/each}
@@ -240,8 +264,8 @@
         </div>
 
         <Dialog.Footer>
-            <Button variant="outline" onclick={() => dialogOpen = false}>Cancel</Button>
-            <Button onclick={createProject} disabled={!newTitle.trim() || submitting}>
+            <Button class="cursor-pointer" variant="outline" onclick={() => dialogOpen = false}>Cancel</Button>
+            <Button class="cursor-pointer" onclick={createProject} disabled={!newTitle.trim() || submitting}>
                 {submitting ? 'Creating...' : 'Create'}
             </Button>
         </Dialog.Footer>

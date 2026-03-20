@@ -9,7 +9,7 @@
     } = $props();
 
     let resolvedSrc = $derived(
-        src ?? (customAvatarVersion != null ? `/api/user/current/avatar/${userId}?v=${customAvatarVersion}` : null)
+        src ?? (customAvatarVersion != null && customAvatarVersion > 0 ? `/api/user/current/avatar/${userId}?v=${customAvatarVersion}` : null)
     );
 
     let initials = $derived(

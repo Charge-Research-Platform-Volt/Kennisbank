@@ -79,15 +79,19 @@
                 {#each items as item (item.id)}
                     {@const Icon = getFileIcon(item.fileType)}
                     <Table.Row class="cursor-pointer" onclick={() => openInspector({ ...item, trashed: true }) }>
-                        <Table.Cell class="py-3 flex gap-3">
-                            <Icon size={16} class="text-muted-foreground shrink-0" />
-                            {item.name}
+                        <Table.Cell class="py-3">
+                            <div class="flex gap-3 items-center">
+                                <Icon size={16} class="text-muted-foreground shrink-0" />
+                                {item.name}
+                            </div>
                         </Table.Cell>
                         <Table.Cell class="whitespace-nowrap text-center px-5 py-3">{formatDate(item.trashDate)}</Table.Cell>
-                        <Table.Cell class="p-3 text-center flex items-center">
-                            <button class="cursor-pointer text-muted-foreground hover:text-foreground transition-colors" title="Restore" onclick={(e) => { e.stopPropagation(); restore(item); }}>
-                                <RotateCcw size={16} />
-                            </button>
+                        <Table.Cell class="p-3">
+                            <div class="flex items-center justify-center">
+                                <button class="cursor-pointer text-muted-foreground hover:text-foreground transition-colors" title="Restore" onclick={(e) => { e.stopPropagation(); restore(item); }}>
+                                    <RotateCcw size={16} />
+                                </button>
+                            </div>
                         </Table.Cell>
                     </Table.Row>
                 {/each}
