@@ -128,6 +128,13 @@ namespace KnowledgeBank.Data
 
         #endregion
 
+        #region Chat
+
+        public async Task<bool> UpdateChatAsync<T>(Guid id, Expression<Func<Chats, T>> propertySelector, T newValue)
+        { return await UpdatePropertyAsync(database.Chats, chat => chat.Id == id, propertySelector, newValue) > 0; }
+
+        #endregion
+
         #region Resource Type
 
         public async Task<bool> UpdateResourceTypeAsync<T>(Guid id, Expression<Func<ResourceType, T>> propertySelector, T newValue)

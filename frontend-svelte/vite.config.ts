@@ -10,8 +10,8 @@ export default defineConfig({
 				target: 'http://localhost:8080',
 				rewrite: (path) => path.replace(/^\/api/, '')
 			},
-			'/chat': {
-				target: 'ws://localhost:8080',
+			'^/chat(/|$)': {
+				target: 'http://localhost:8080',
 				ws: true
 			}
 		}

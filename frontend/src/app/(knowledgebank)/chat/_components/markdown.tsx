@@ -66,7 +66,7 @@ MemoizedMarkdownBlock.displayName = "MemoizedMarkdownBlock";
  * @returns {React.ReactNode} An array of MemoizedMarkdownBlock components
  */
 export const MemoizedMarkdown = memo(({ content, id }: { content: string; id: string }) => {
-  const blocks = useMemo(() => parseMarkdownIntoBlocks(content), [content]);
+  const blocks = useMemo(() => parseMarkdownIntoBlocks(content.replaceAll("/archive", "/library")), [content]);
 
   return blocks.map((block, index) => <MemoizedMarkdownBlock content={block} key={`${id}-block_${index}`} />);
 });

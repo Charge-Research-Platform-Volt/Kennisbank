@@ -103,6 +103,38 @@ public class AIController(ResourceManager resourceManager, IServiceScopeFactory 
     }
     #endregion
 
+    #region Rename Chat
+    [HttpPatch("rename-chat/{chatId}")]
+    public async Task<IActionResult> RenameChat(Guid chatId, [FromBody] string title)
+    {
+        if (!ValidityUtil.IsValidId(chatId.ToString()))
+            return BadRequest(new ApiResponse(false, "Invalid chat ID."));
+
+        if (string.IsNullOrWhiteSpace(title))
+            return BadRequest(new ApiResponse(false, "Title cannot be empty."));
+
+        try
+        {
+            string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return BadRequest(new ApiResponse(false, "User ID not found."));
+
+            // Verify ownership
+            var chat = await resourceManager.GetChatAsync(c => c.Id == chatId && c.UserId == Guid.Parse(userId));
+            if (chat == null)
+                return NotFound(new ApiResponse(false, "Chat not found or you are not authorized."));
+
+            await resourceManager.UpdateChatAsync(chatId, c => c.Title, title.Trim());
+            return Ok(new ApiResponse(true, "Chat renamed successfully."));
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "An error occurred while renaming chat {ChatId}.", chatId);
+            return StatusCode(500, new ApiResponse(false, "An error occurred while renaming the chat."));
+        }
+    }
+    #endregion
+
     #region Delete Chat
     // Delete chat by ID
     [HttpDelete("delete-chat/{chatId}")]
@@ -173,13 +205,7 @@ public class AIController(ResourceManager resourceManager, IServiceScopeFactory 
 
             var messages = await resourceManager.GetMessagesByChatIdAsync(chatId);
 
-            if (messages == null || !messages.Any())
-            {
-                logger.Warning("No messages found for chat ID {ChatId}", chatId);
-                return NotFound(new ApiResponse(false, "No messages found for this chat."));
-            }
-
-            return Ok(new ApiResponse(true, "Messages retrieved successfully", new { Messages = messages }));
+            return Ok(new ApiResponse(true, "Messages retrieved successfully", new { Messages = messages ?? [] }));
         }
         catch (Exception ex)
         {

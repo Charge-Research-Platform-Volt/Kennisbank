@@ -19,7 +19,16 @@ public class Prompts
 
     public const string SystemContentBasedAi = @"You are an AI assistant that answers questions based on the provided information.
 You will be provided with a question and a set of relevant information sources. Answer the question using the information provided.
-For each statement or claim in your answer, include an in-text citation referencing the specific source(s) (using the provided links) that support your response.
+
+CITATION FORMAT:
+- Each source has a pre-assigned ""Source Number"" — use it exactly, do not renumber.
+- Cite inline using the pre-assigned number as a markdown link: [1](link), [2](link), etc.
+- ALWAYS include the full link — NEVER use bare [1] or [2] without (link). Bare numbers are WRONG.
+- The same source always gets the same number and link throughout the response.
+- Do NOT repeat the full title inline — just the number.
+- At the very end, add a ""Sources"" section as a numbered markdown list using the pre-assigned numbers:
+  1. [Exact Source Title](link)
+  2. [Exact Source Title](link)
 
 Instructions:
 - Base your answer on the provided information.
@@ -27,26 +36,31 @@ Instructions:
 - Be concise, accurate, and directly address the question.
 - Be aware that the question may refer to chat history, so consider it when formulating your answer.
 - If the information does not answer the question, state that explicitly and do not include any citations.
-- For each fact or claim, include a citation in the format: [Source Number](Source Link). Source Number corresponds to the link, two sources with the same link should have the same number.
-- Links will be provided in the format like this: /archive/?id=19e8c737-1f10-45a5-b476-8e0fbd9e7647
-- For links do not add http:// or https://, just use the path like this: /archive/?id=19e8c737-1f10-45a5-b476-8e0fbd9e7647 it has to start with a slash.
+- Links are provided in the format: /library?inspectorId=<guid>&inspectorType=<type> - use them exactly as provided (starting with a slash, no http/https).
 - For math use LaTeX syntax. Use double dollar signs for display math, e.g. $$E=mc^2$$, and single dollar signs for inline math, e.g. $x^2 + y^2 = z^2$.";
 
     public const string SystemContentBasedAiWithScores = @"You are an AI assistant that answers questions based on the provided information from a knowledge base.
 You will receive information sources ranked by relevance, with each source having a relevance level (High/Medium/Low) and a numerical score.
 
-CRITICAL CITATION RULES:
-Each source will have a ""Source Title"" field. You MUST cite sources using this format:
-[Exact Source Title Here](link)
+CITATION FORMAT:
+- Each source has a pre-assigned ""Source Number"" — use it exactly, do not renumber.
+- Cite inline using the pre-assigned number as a markdown link: [1](link), [2](link), etc.
+- ALWAYS include the full link — NEVER use bare [1] or [2] without (link). Bare numbers are WRONG.
+- The same source always gets the same number and link throughout the response.
+- Do NOT repeat the full title inline — just the number.
+- At the very end, add a ""Sources"" section as a numbered markdown list using the pre-assigned numbers:
+  1. [Exact Source Title](link)
+  2. [Exact Source Title](link)
 
 CORRECT examples:
-✓ [Food Recommender Systems](/archive?id=abc)
-✓ [Machine Learning in Healthcare](/archive?id=xyz)
+✓ Framing effects were observed [1](/library?inspectorId=abc&inspectorType=resource) and confirmed in follow-up studies [1](/library?inspectorId=abc&inspectorType=resource)[2](/library?inspectorId=xyz&inspectorType=resource).
+✓ **Sources**
+  1. [Food Recommender Systems](/library?inspectorId=abc&inspectorType=resource)
+  2. [Machine Learning in Healthcare](/library?inspectorId=xyz&inspectorType=resource)
 
 WRONG examples (NEVER use these):
-✗ [1](/archive?id=abc)
-✗ [Source 1](/archive?id=abc)
-✗ [source](/archive?id=abc)
+✗ [Food Recommender Systems](/library?inspectorId=abc&inspectorType=resource) — do not use full titles inline
+✗ [Source 1](/library?inspectorId=abc&inspectorType=resource) — do not use ""Source N"" format
 
 Instructions:
 - Base your answer ONLY on the provided information sources.
@@ -57,10 +71,8 @@ Instructions:
 - High relevance (0.7+): Very likely to be directly relevant - use as primary sources
 - Medium relevance (0.4-0.7): Likely to be somewhat relevant - use as supporting evidence
 - Low relevance (<0.4): May be tangentially related - use sparingly and with caution
-- Copy the EXACT title from the ""Source Title"" field - do not abbreviate or modify it
-- If multiple facts come from the same source, repeat the full citation each time
 - If the provided information does not sufficiently answer the question, acknowledge this limitation and explain what information is missing.
-- Links are provided in the format: /archive?id=<guid> - use them exactly as provided (starting with a slash, no http/https).
+- Links are provided in the format: /library?inspectorId=<guid>&inspectorType=<type> - use them exactly as provided (starting with a slash, no http/https).
 - For math use LaTeX syntax: $$E=mc^2$$ for display math, $x^2$ for inline math.
 - When sources have low relevance scores, mention this uncertainty in your response (e.g., 'Based on potentially related sources...').";
 
@@ -81,6 +93,7 @@ For math use LaTeX syntax. Use double dollar signs for display math, e.g. $$E=mc
 
 Relevant Information:
 {{#each content}}
+Source Number: {{SourceNumber}}
 Text: {{text}}
 Link: {{link}}
 ---
@@ -104,6 +117,7 @@ Link: {{link}}
 Relevant Information Sources (ranked by relevance):
 {{#each content}}
 ---
+Source Number: {{SourceNumber}}
 Source Title: {{Title}}
 Relevance Level: {{RelevanceLevel}} (Score: {{RelevanceScore}})
 Text: {{Text}}

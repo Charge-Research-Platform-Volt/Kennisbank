@@ -60,17 +60,19 @@ public class Chat : Hub
 
         try
         {
-            string title = await _ragManager.GenerateChatTitleAsync(message);
-
             ChatsCreateDto chat = new ChatsCreateDto
             {
                 UserId = Guid.Parse(Context.UserIdentifier),
-                Title = title,
+                Title = "New Chat",
             };
 
             Guid chatSessionId = await _resourceManager.CreateChatAsync(chat);
 
-            _logger.Information("Chat created successfully with ID {ChatId} for user {UserIdentifier}", chatSessionId, Context.UserIdentifier);
+            _logger.Information("Chat created with ID {ChatId}, generating title in background", chatSessionId);
+
+            // Generate title in the background — capture caller proxy before returning
+            var caller = Clients.Caller;
+            _ = GenerateTitleAsync(chatSessionId, message, caller);
 
             return chatSessionId;
         }
@@ -78,6 +80,21 @@ public class Chat : Hub
         {
             _logger.Error(ex, "Failed to create chat for user {UserIdentifier}", Context.UserIdentifier);
             throw;
+        }
+    }
+
+    private async Task GenerateTitleAsync(Guid chatId, string message, IClientProxy caller)
+    {
+        try
+        {
+            string title = await _ragManager.GenerateChatTitleAsync(message);
+            await _resourceManager.UpdateChatAsync(chatId, c => c.Title, title);
+            await caller.SendAsync("ChatTitleUpdated", chatId.ToString());
+            _logger.Information("Title updated for chat {ChatId}", chatId);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to generate title for chat {ChatId}", chatId);
         }
     }
 
@@ -408,13 +425,14 @@ public class Chat : Hub
 
         // Prepare content with relevance scores and chunks
         var contentWithScores = searchResult.Items
-            .Select(item => new
+            .Where(item => item.MatchedChunks != null && item.MatchedChunks.Any(c => !string.IsNullOrWhiteSpace(c)))
+            .Select((item, index) => new
             {
+                SourceNumber = index + 1,
                 Text = string.Join("\n", item.MatchedChunks ?? []),
-                Link = "/archive?id=" + item.Id,
+                Link = $"/library?inspectorId={item.Id}&inspectorType={item.Type}",
                 item.RelevanceScore,
                 Title = item.Name,
-                // Categorize relevance for AI understanding
                 RelevanceLevel = item.RelevanceScore switch
                 {
                     >= 0.7f => "High",
@@ -422,7 +440,6 @@ public class Chat : Hub
                     _ => "Low"
                 }
             })
-            .Where(item => !string.IsNullOrWhiteSpace(item.Text)) // Only include items with actual content
             .ToList();
 
         if (contentWithScores.Count == 0)

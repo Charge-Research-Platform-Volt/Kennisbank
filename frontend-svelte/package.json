@@ -50,6 +50,8 @@
 		]
 	},
 	"dependencies": {
-		"lucide-svelte": "^0.575.0"
+		"@microsoft/signalr": "^10.0.0",
+		"lucide-svelte": "^0.575.0",
+		"marked": "^17.0.4"
 	}
 }
