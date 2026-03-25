@@ -1,10 +1,7 @@
 using System.ClientModel;
 using Azure;
-using Azure.AI.DocumentIntelligence;
 using Azure.AI.Inference;
-using Azure.AI.OpenAI;
-using KnowledgeBank.Data;
-using KnowledgeBank.Services.Storage;
+using OpenAI;
 using KnowledgeBank.Utils;
 using OpenAI.Chat;
 using Serilog;
@@ -29,7 +26,6 @@ public class RAGSystem
 
     // RAG System components:
     public Tools Toolbox { get; private set; }
-    public DocumentIntelligenceClient DocumentIntelligenceClient { get; private set; }
     public EmbeddingsClient EmbeddingsClient { get; private set; }
     public ChatClient ChatClient { get; private set; }
 
@@ -41,7 +37,6 @@ public class RAGSystem
     /// document intelligence, chat completions, and embeddings services.
     /// </summary>
     /// <param name="environmentConfig">The environment configuration containing all necessary API keys, endpoints, and settings</param>
-    /// <param name="documentIntelligenceClient">The Azure Document Intelligence client for document processing</param>
     /// <remarks>
     /// This constructor performs the following initialization steps:
     /// <list type="bullet">
@@ -57,7 +52,7 @@ public class RAGSystem
     /// </remarks>
     /// <exception cref="ArgumentException">Thrown when environment configuration values are invalid or missing</exception>
     /// <exception cref="HttpRequestException">Thrown when API endpoints are unreachable during initialization</exception>
-    public RAGSystem(EnvironmentConfig environmentConfig, DocumentIntelligenceClient documentIntelligenceClient)
+    public RAGSystem(EnvironmentConfig environmentConfig)
     {
         _logger = Log.ForContext<RAGSystem>();
         Toolbox = new Tools();
@@ -67,19 +62,16 @@ public class RAGSystem
         // * RAG System Initialization
         _logger.Information("Initializing RAG system with embedding cache enabled");
 
-        // * Document Intelligence
-        DocumentIntelligenceClient = documentIntelligenceClient;
-        _logger.Information("Azure Document Intelligence client initialized");
-
-
-        // * Chat Completions - Azure OpenAI
-        Uri azureOpenAiEndpoint = new Uri(_environmentConfig.GetVariableValue(EnvironmentVariable.AZURE_OPENAI_CLIENT_ENDPOINT));
-        ApiKeyCredential azureOpenAiApiKeyCredential = new ApiKeyCredential(_environmentConfig.GetVariableValue(EnvironmentVariable.AZURE_OPENAI_CLIENT_API_KEY));
-        AzureOpenAIClient AzureOpenAIClient = new AzureOpenAIClient(azureOpenAiEndpoint, azureOpenAiApiKeyCredential);
-        string chatDeploymentName = _environmentConfig.GetVariableValue(EnvironmentVariable.CHAT_DEPLOYMENT_NAME);
-        ChatClient = AzureOpenAIClient.GetChatClient(chatDeploymentName);
-        _logger.Information("Azure OpenAI client successfully initialized with deployment: {DeploymentName} at endpoint: {Endpoint}", chatDeploymentName, azureOpenAiEndpoint);
-
+        // * Chat Completions - Mistral
+        OpenAIClientOptions mistralClientOptions = new OpenAIClientOptions
+        {
+            Endpoint = new Uri("https://api.mistral.ai/v1")
+        };
+        ApiKeyCredential mistralApiKeyCredential = new ApiKeyCredential(_environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_API_KEY));
+        OpenAIClient mistralClient = new OpenAIClient(mistralApiKeyCredential, mistralClientOptions);
+        string chatModelName = _environmentConfig.GetVariableValue(EnvironmentVariable.CHAT_MODEL_NAME);
+        ChatClient = mistralClient.GetChatClient(chatModelName);
+        _logger.Information("Mistral chat client initialized with model: {ModelName}", chatModelName);
 
         // * Embeddings
         Uri embeddingsEndpoint = new Uri(_environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_CLIENT_ENDPOINT));
@@ -204,9 +196,3 @@ public class RAGSystem
         return responses;
     }
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

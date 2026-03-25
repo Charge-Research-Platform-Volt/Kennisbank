@@ -25,18 +25,12 @@ public enum EnvironmentVariable
 
     // Embeddings
     EMBEDDINGS_MODEL_NAME,
-    EMBEDDINGS_CLIENT_ENDPOINT,
-    EMBEDDINGS_CLIENT_API_KEY,
+    EMBEDDINGS_ENDPOINT,
+    EMBEDDINGS_API_KEY,
 
     // Chat Completions
-    CHAT_DEPLOYMENT_NAME,
-    AZURE_OPENAI_CLIENT_ENDPOINT,
-    AZURE_OPENAI_CLIENT_API_KEY,
-
-
-    // Document Intelligence
-    DOCUMENT_INTELLIGENCE_CLIENT_ENDPOINT,
-    DOCUMENT_INTELLIGENCE_CLIENT_API_KEY,
+    MISTRAL_API_KEY,
+    CHAT_MODEL_NAME,
     
     // Headscale
     HEADSCALE_URL,
@@ -80,17 +74,12 @@ public class EnvironmentConfig
 
         // Embeddings
         _variableNames.Add(EnvironmentVariable.EMBEDDINGS_MODEL_NAME, "EMBEDDINGS_MODEL_NAME");
-        _variableNames.Add(EnvironmentVariable.EMBEDDINGS_CLIENT_ENDPOINT, "EMBEDDINGS_CLIENT_ENDPOINT");
-        _variableNames.Add(EnvironmentVariable.EMBEDDINGS_CLIENT_API_KEY, "EMBEDDINGS_CLIENT_API_KEY");
+        _variableNames.Add(EnvironmentVariable.EMBEDDINGS_ENDPOINT, "EMBEDDINGS_ENDPOINT");
+        _variableNames.Add(EnvironmentVariable.EMBEDDINGS_API_KEY, "EMBEDDINGS_API_KEY");
 
         // Chat Completions
-        _variableNames.Add(EnvironmentVariable.CHAT_DEPLOYMENT_NAME, "CHAT_DEPLOYMENT_NAME");
-        _variableNames.Add(EnvironmentVariable.AZURE_OPENAI_CLIENT_ENDPOINT, "AZURE_OPENAI_CLIENT_ENDPOINT");
-        _variableNames.Add(EnvironmentVariable.AZURE_OPENAI_CLIENT_API_KEY, "AZURE_OPENAI_CLIENT_API_KEY");
-
-        // Document Intelligence
-        _variableNames.Add(EnvironmentVariable.DOCUMENT_INTELLIGENCE_CLIENT_ENDPOINT, "DOCUMENT_INTELLIGENCE_CLIENT_ENDPOINT");
-        _variableNames.Add(EnvironmentVariable.DOCUMENT_INTELLIGENCE_CLIENT_API_KEY, "DOCUMENT_INTELLIGENCE_CLIENT_API_KEY");
+        _variableNames.Add(EnvironmentVariable.MISTRAL_API_KEY, "MISTRAL_API_KEY");
+        _variableNames.Add(EnvironmentVariable.CHAT_MODEL_NAME, "CHAT_MODEL_NAME");
 
         // Headscale
         _variableNames.Add(EnvironmentVariable.HEADSCALE_URL, "HEADSCALE_URL");

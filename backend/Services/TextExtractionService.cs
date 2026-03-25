@@ -1,17 +1,21 @@
-using Azure.AI.DocumentIntelligence;
-using Azure;
 using UglyToad.PdfPig;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml.Presentation;
+using ClosedXML.Excel;
 using System.Text;
 using SmartReader;
 using PuppeteerSharp;
+using KnowledgeBank.Utils;
+using System.Text.Json;
 
 namespace KnowledgeBank.Services;
 
 /// <summary>
 /// Service for extracting text from various document formats
-/// Uses free methods (PdfPig) when possible, falls back to Azure Document Intelligence (read)
+/// Uses free methods (PdfPig) when possible, falls back to OCR
 /// </summary>
-public class TextExtractionService(ILogger<TextExtractionService> logger, DocumentIntelligenceClient docIntelligenceClient, BrowserService browserService)
+public class TextExtractionService(ILogger<TextExtractionService> logger, EnvironmentConfig environmentConfig, BrowserService browserService)
 {
     #region File Text Extraction
     
@@ -33,7 +37,10 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Docume
             {
                 ".pdf" => await ExtractFromPdf(stream),
                 ".txt" => await ExtractFromPlainText(stream),
-                _      => await ExtractWithAzureDI(stream, fileExtension),
+                ".docx" => ExtractWithOpenXmlDocx(stream),
+                ".pptx" => ExtractWithOpenXmlPptx(stream),
+                ".xlsx" => ExtractWithClosedXmlXlsx(stream),
+                _ => throw new NotSupportedException($"Unsupported file type: {fileExtension}")
             };
         }
         catch (Exception e)
@@ -44,7 +51,7 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Docume
     }
     
     /// <summary>
-    /// Extracts text from PDF using free PdfPig. Falls back to Azure DI Read if needed.
+    /// Extracts text from PDF using free PdfPig. Falls back to OCR
     /// </summary>
     /// <param name="stream">The document stream</param>
     /// <returns>Document content</returns>
@@ -63,12 +70,12 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Docume
             // Validate extraction quality
             if (!string.IsNullOrWhiteSpace(text) && text.Length > 50)
             {
-                // Check for proper spacing - if text has poor spacing, fallback to Azure DI
+                // Check for proper spacing - if text has poor spacing, fallback to OCR
                 if (HasPoorSpacing(text))
                 {
-                    logger.LogWarning("PdfPig extracted text has poor spacing quality, falling back to Azure DI Read");
+                    logger.LogWarning("PdfPig extracted text has poor spacing quality, falling back to OCR");
                     stream.Position = 0;
-                    return await ExtractWithAzureDI(stream, ".pdf");
+                    return await ExtractWithMistralOCR(stream, ".pdf");
                 }
 
                 logger.LogInformation("PdfPig extraction successful: {Length} characters", text.Length);
@@ -76,18 +83,18 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Docume
             }
 
             // If extraction resulted in very little text, might be scanned/image PDF
-            logger.LogWarning("PdfPig extracted minimal text ({Length} chars), falling back to Azure DI Read (OCR)", text?.Length ?? 0);
+            logger.LogWarning("PdfPig extracted minimal text ({Length} chars), falling back to OCR", text?.Length ?? 0);
 
             stream.Position = 0;
-            return await ExtractWithAzureDI(stream, ".pdf");
+            return await ExtractWithMistralOCR(stream, ".pdf");
         }
         catch (Exception e) 
         {
-            // PdfPig failed (corrupted PDF, encrypted, etc.) - fallback to Azure DI
-            logger.LogWarning(e, "PdfPig extraction failed, falling back to Azure DI Read");
+            // PdfPig failed (corrupted PDF, encrypted, etc.) - fallback to OCR
+            logger.LogWarning(e, "PdfPig extraction failed, falling back to OCR");
 
             stream.Position = 0;
-            return await ExtractWithAzureDI(stream, ".pdf");
+            return await ExtractWithMistralOCR(stream, ".pdf");
         }
         finally 
         {
@@ -138,31 +145,52 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Docume
     }
     
     /// <summary>
-    /// Extracts text using Azure Document Intelligence "prebuilt-read" model
-    /// Supports PDF, DOCX, XLSX, PPTX, images (with OCR), and more
+    /// Extracts text using Mistral OCR Latest
+    /// Supports PDF and Images
     /// </summary>
     /// <param name="stream">The document stream</param>
     /// <param name="fileExtension">The document file extension</param>
     /// <returns>Document content</returns>
-    private async Task<string> ExtractWithAzureDI(Stream stream, string fileExtension)
+    private async Task<string> ExtractWithMistralOCR(Stream stream, string fileExtension)
     {
-        logger.LogInformation("Using Azure DI Read model for {FileType}", fileExtension);
+        logger.LogInformation("Using Mistral OCR for {FileType}", fileExtension);
 
         stream.Position = 0;
-        var binaryData = await BinaryData.FromStreamAsync(stream);
+        using MemoryStream ms = new();
+        await stream.CopyToAsync(ms);
+        string base64 = Convert.ToBase64String(ms.ToArray());
+        string dataUri = $"data:application/pdf;base64,{base64}";
 
-        var operation = await docIntelligenceClient.AnalyzeDocumentAsync(
-            WaitUntil.Completed,
-            "prebuilt-read",
-            binaryData);
+        string apiKey = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_API_KEY);
 
-        var extractedText = operation.Value.Content ?? string.Empty;
+        var requestBody = new
+        {
+            model = "mistral-ocr-latest",
+            document = new { type = "document_url", document_url = dataUri }
+        };
 
-        logger.LogInformation("Azure DI extracted {Length} characters from {FileType}", extractedText.Length, fileExtension);
+        string json = JsonSerializer.Serialize(requestBody);
 
-        return extractedText;
+        using HttpClient httpClient = new();
+        using HttpRequestMessage request = new(HttpMethod.Post, "https://api.mistral.ai/v1/ocr");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+        request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        using HttpResponseMessage response = await httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+
+        string responseBody = await response.Content.ReadAsStringAsync();
+        using JsonDocument doc = JsonDocument.Parse(responseBody);
+
+        StringBuilder sb = new();
+        foreach (JsonElement page in doc.RootElement.GetProperty("pages").EnumerateArray())
+            sb.AppendLine(page.GetProperty("markdown").GetString());
+
+        string result = sb.ToString();
+        logger.LogInformation("Mistral OCR extracted {Length} characters.", result.Length);
+        return result;
     }
-    
+
     private async Task<string> ExtractFromPlainText(Stream stream)
     {
         logger.LogInformation("Extracting from plain text document");
@@ -170,6 +198,74 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Docume
         stream.Position = 0;
         using var reader = new StreamReader(stream, leaveOpen: true);
         return await reader.ReadToEndAsync();
+    }
+
+    private static string ExtractWithOpenXmlDocx(Stream stream)
+    {
+        stream.Position = 0;
+        using WordprocessingDocument doc = WordprocessingDocument.Open(stream, false);
+        var body = doc.MainDocumentPart?.Document?.Body;
+
+        if (body == null) return string.Empty;
+
+        StringBuilder sb = new();
+
+        foreach (var para in body.Descendants<Paragraph>())
+        {
+            string text = para.InnerText;
+
+            if (!string.IsNullOrWhiteSpace(text))
+                sb.AppendLine(text);
+        }
+
+        return sb.ToString();
+    }
+
+    private static string ExtractWithOpenXmlPptx(Stream stream)
+    {
+        stream.Position = 0;
+        using PresentationDocument pres = PresentationDocument.Open(stream, false);
+        var slideIds = pres.PresentationPart?.Presentation?.SlideIdList?.ChildElements;
+
+        if (slideIds == null) return string.Empty;
+
+        StringBuilder sb = new();
+
+        foreach (SlideId slideId in slideIds.Cast<SlideId>())
+        {
+            var slidePart = (SlidePart?)pres.PresentationPart?.GetPartById(slideId.RelationshipId!);
+
+            if (slidePart == null || slidePart.Slide == null) continue;
+
+            foreach (var text in slidePart.Slide.Descendants<DocumentFormat.OpenXml.Drawing.Text>())
+                if (!string.IsNullOrWhiteSpace(text.Text))
+                    sb.AppendLine(text.Text);
+        }
+
+        return sb.ToString();
+    }
+    
+    private static string ExtractWithClosedXmlXlsx(Stream stream)
+    {
+        stream.Position = 0;
+        using XLWorkbook wb = new(stream);
+
+        StringBuilder sb = new();
+
+        foreach (var sheet in wb.Worksheets)
+        {
+            sb.AppendLine($"Sheet: {sheet.Name}");
+
+            foreach (var row in sheet.RowsUsed())
+            {
+                string line = string.Join("\t", row.CellsUsed().Select(c => c.Value.ToString()).Where(v => !string.IsNullOrWhiteSpace(v)));
+
+                if (!string.IsNullOrWhiteSpace(line))
+                    sb.AppendLine(line);
+            }
+        }
+
+        return sb.ToString();
     }
 
     /// <summary>

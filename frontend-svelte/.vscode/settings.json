@@ -3,10 +3,7 @@
 		"*.css": "tailwindcss"
 	},
 	"[svelte]": {
-		"editor.autoIndent": "brackets",
-		"editor.defaultFormatter": "esbenp.prettier-vscode",
-		"editor.formatOnSave": true,
-		"editor.detectIndentation": false,
-		"editor.insertSpaces": false
+		"editor.defaultFormatter": "svelte.svelte-vscode",
+		"editor.formatOnSave": true
 	}
 }

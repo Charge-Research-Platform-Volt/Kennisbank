@@ -7,8 +7,6 @@ using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using OpenAI.Chat;
 using Serilog;
-using Azure.AI.DocumentIntelligence;
-using Azure;
 using System.ClientModel;
 using KnowledgeBank.Services.Search.Models;
 using KnowledgeBank.Services.Search;
@@ -17,7 +15,7 @@ using KnowledgeBank.Services.Vector;
 
 namespace KnowledgeBank.Services;
 
-public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, HybridSearchService searchService, IVectorStore vectorStore)
+public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, HybridSearchService searchService, IVectorStore vectorStore, TextExtractionService textExtractionService)
 {
     private readonly Serilog.ILogger logger = Log.ForContext<RAGManager>();
 
@@ -171,18 +169,8 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
 
             if (fileStream != null)
             {
-                // Configure Azure Document Intelligence options
-                AnalyzeDocumentOptions options = new AnalyzeDocumentOptions(
-                    modelId: "prebuilt-layout",
-                    bytesSource: BinaryData.FromStream(fileStream))
-                {
-                    OutputContentFormat = DocumentContentFormat.Text
-                };
-
-                // Analyze the document and wait for completion
-                Operation<AnalyzeResult> operation = await ragSystem.DocumentIntelligenceClient.AnalyzeDocumentAsync(WaitUntil.Completed, options);
-
-                string extractedText = operation.Value.Content;
+                // Extract text
+                string extractedText = await textExtractionService.ExtractTextFromFileAsync(fileStream, fileType ?? ".pdf");
 
                 // Validate that text extraction was successful
                 if (string.IsNullOrEmpty(extractedText))
@@ -193,7 +181,7 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
 
                 // * STEP 2: Text Chunking
                 // Split the extracted text into smaller chunks suitable for embedding generation
-                chunks.AddRange(ragSystem.Toolbox.SplitTextIntoChunks(extractedText, logChunks: false, markdownSplit: false));
+                chunks.AddRange(ragSystem.Toolbox.SplitTextIntoChunks(extractedText, logChunks: false, markdownSplit: true));
 
                 logger.Information("Successfully extracted and chunked text into {ChunkCount} segments for resource ID: {Id}", chunks.Count, id);
             }
@@ -1124,9 +1112,3 @@ internal class TempAuthor
     public string Name { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty; // "person" or "organisation"
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-
