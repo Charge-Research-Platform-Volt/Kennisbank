@@ -1,22 +1,15 @@
-﻿// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-//
+﻿//
 
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.StaticFiles;
 using Swashbuckle.AspNetCore.Annotations;
 using Serilog;
-using KnowledgeBank.Responses;
-using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Data;
 using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
-using System.Reflection;
-using KnowledgeBank.BackgroundServices;
+using KnowledgeBank.Services.Background;
 using KnowledgeBank.Services;
-using KnowledgeBank.Services.Vector;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,16 +20,14 @@ namespace KnowledgeBank.Controllers
     /// </summary>
     /// <param name="resourceManager">The resource manager service for database interactions</param>
     /// <param name="taskQueue">The background task queue for handling long-running tasks</param>
-    /// <param name="vectorStore">The vector store for handling vector database interactions</param>
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class OrganisationsController(ResourceManager resourceManager, IBackgroundTaskQueue taskQueue, IVectorStore vectorStore) : ControllerBase
+    public class OrganisationsController(ResourceManager resourceManager, IBackgroundTaskQueue taskQueue) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<OrganisationsController>();
         private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
-
 
         #region New
         /// <summary>
@@ -192,14 +183,6 @@ namespace KnowledgeBank.Controllers
                     return NotFound(new ApiResponse(false, "Organisation does not exist"));
                 }
 
-                // Delete the organisation chunks from the vector database
-                bool chunkDeleted = await vectorStore.DeletePointsByResourceIdAsync(Guid.Parse(id));
-                if (!chunkDeleted)
-                {
-                    logger.Warning("Something went wrong while deleting the organisation chunks from the vector database for ID: {ID}", id);
-                    return StatusCode(500, new ApiResponse(false, "Error deleting organisation chunks from vector database"));
-                }
-
                 logger.Information("Organisation with ID '{ID}' deleted successfully", id);
                 return Ok(new ApiResponse(true, "Organisation deleted successfully"));
             }
@@ -320,7 +303,6 @@ namespace KnowledgeBank.Controllers
                 // Handle name
                 if (!string.IsNullOrEmpty(name))
                     organisationId = await resourceManager.GetOrganisationPropertyOrDefaultAsync(predicate: p => EF.Functions.ILike(p.Name, name), selector: "Id");
-
 
                 // ID is empty, so no person was found
                 if (organisationId == null)

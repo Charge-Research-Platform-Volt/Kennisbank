@@ -38,14 +38,11 @@ public enum EnvironmentVariable
     HEADSCALE_API_KEY
 }
 
-
 public class EnvironmentConfig
 {
     private readonly IConfiguration _configuration;
     private readonly ConcurrentDictionary<EnvironmentVariable, string> _variableValues = new();
     private readonly Dictionary<EnvironmentVariable, string> _variableNames = new();
-
-
 
     /// <summary>
     /// Initializes a new instance of the EnvironmentConfig class with the specified configuration.
@@ -88,7 +85,6 @@ public class EnvironmentConfig
         _variableNames.Add(EnvironmentVariable.HEADSCALE_API_KEY, "HEADSCALE_API_KEY");
     }
 
-
     /// <summary>
     /// Gets the value of the specified environment variable.
     /// </summary>
@@ -112,7 +108,6 @@ public class EnvironmentConfig
         throw new ArgumentException($"Tried to access environment variable {variable}, but it is not defined. Check the .env file and EnvironmentConfig.cs.");
     }
 
-
     /// <summary>
     /// Validates that all required environment variables are present and have non-empty values.
     /// Populates the internal variable values dictionary with the retrieved configuration values.
@@ -135,9 +130,3 @@ public class EnvironmentConfig
         }
     }
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

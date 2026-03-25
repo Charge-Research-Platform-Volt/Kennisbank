@@ -12,14 +12,11 @@ using KnowledgeBank.Services.Search.Models;
 using KnowledgeBank.Services.Search;
 using KnowledgeBank.Services.Vector;
 
-
 namespace KnowledgeBank.Services;
 
 public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, HybridSearchService searchService, IVectorStore vectorStore, TextExtractionService textExtractionService)
 {
     private readonly Serilog.ILogger logger = Log.ForContext<RAGManager>();
-
-
 
     /// <summary>
     /// Processes a document through the RAG (Retrieval-Augmented Generation) pipeline.
@@ -43,9 +40,8 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
     /// Builds a rich metadata chunk that combines structured metadata fields for better retrieval.
     /// </summary>
     /// <param name="id">The resource ID</param>
-    /// <param name="basicMetadata">Basic metadata string (title, description, etc.)</param>
-    /// <returns>An enhanced metadata string optimized for semantic search</returns>
-    private async Task<string> BuildRichMetadataChunk(Guid id, string basicMetadata)
+    /// <returns>A tuple of the enhanced metadata string and the resource object</returns>
+    private async Task<(string Metadata, Resource? Resource)> BuildRichMetadataChunk(Guid id)
     {
         try
         {
@@ -61,8 +57,8 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
 
             if (resource == null)
             {
-                logger.Warning("Resource {Id} not found for metadata enrichment. Using basic metadata.", id);
-                return basicMetadata;
+                logger.Warning("Resource {Id} not found for metadata enrichment, returning empty metadata.", id);
+                return (string.Empty, null);
             }
 
             var metadataBuilder = new StringBuilder();
@@ -129,66 +125,76 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
             }
 
             logger.Information("Built rich metadata chunk for resource {Id}", id);
-            return metadataBuilder.ToString();
+            return (metadataBuilder.ToString(), resource);
         }
         catch (Exception ex)
         {
-            logger.Warning(ex, "Failed to build rich metadata for resource {Id}. Using basic metadata.", id);
-            return basicMetadata;
+            logger.Warning(ex, "Failed to build rich metadata for resource {Id}, returning empty metadata.", id);
+            return (string.Empty, null);
         }
     }
 
-    public async Task ResourcePipeline(Guid id, string chunk, string? fileType = null, Stream? fileStream = null)
+    public async Task ResourcePipeline(Guid id, string? fileType = null, Stream? fileStream = null)
     {
         logger.Information("Resource RAG pipeline started for resource ID: {Id}", id);
 
         try
         {
             // Build a rich metadata chunk for better retrieval
-            string richMetadata = await BuildRichMetadataChunk(id, chunk);
+            var (richMetadata, resource) = await BuildRichMetadataChunk(id);
 
             // Initialize chunks collection with the enhanced metadata chunk
             List<string> chunks = [richMetadata];
 
-            // * STEP 1: Document Text Extraction
-            // Extract text from the document using Azure Document Intelligence service
-            logger.Information("Extracting text from the document for resource ID: {Id}", id);
+            // * STEP 1: Content Extraction
+            logger.Information("Extracting content for resource ID: {Id}", id);
 
             if (fileStream != null)
             {
-                // Extract text
-                string extractedText = await textExtractionService.ExtractTextFromFileAsync(fileStream, fileType ?? ".pdf");
+                // Normalize extension to include leading dot
+                string ext = fileType != null
+                    ? (fileType.StartsWith('.') ? fileType : $".{fileType}")
+                    : ".pdf";
 
-                // Validate that text extraction was successful
+                // Extract text from file
+                string extractedText = await textExtractionService.ExtractTextFromFileAsync(fileStream, ext);
+
                 if (string.IsNullOrEmpty(extractedText))
                 {
                     logger.Warning("No text extracted from the document");
                     return;
                 }
 
-                // * STEP 2: Text Chunking
-                // Split the extracted text into smaller chunks suitable for embedding generation
                 chunks.AddRange(ragSystem.Toolbox.SplitTextIntoChunks(extractedText, logChunks: false, markdownSplit: true));
-
                 logger.Information("Successfully extracted and chunked text into {ChunkCount} segments for resource ID: {Id}", chunks.Count, id);
             }
+            else if (resource?.FileType == "website" && !string.IsNullOrEmpty(resource.SourceUrl))
+            {
+                // Scrape website content
+                logger.Information("Scraping website content for resource ID: {Id}", id);
+                ReadabilityResult readabilityResult = await textExtractionService.ExtractTextFromWebAsync(resource.SourceUrl);
 
+                if (!string.IsNullOrWhiteSpace(readabilityResult.TextContent))
+                {
+                    chunks.AddRange(ragSystem.Toolbox.SplitTextIntoChunks(readabilityResult.TextContent, logChunks: false, markdownSplit: false));
+                    logger.Information("Successfully scraped and chunked website into {ChunkCount} segments for resource ID: {Id}", chunks.Count, id);
+                }
+                else
+                {
+                    logger.Warning("No text extracted from website for resource ID: {Id}", id);
+                }
+            }
 
             // * STEP 3 & 4: Vector Embedding Generation and Storage
             // Generate embeddings for each chunk and store them in the vector database
             logger.Information("Generating vector embeddings and storing {ChunkCount} chunks for resource ID: {Id}", chunks.Count, id);
+            await vectorStore.DeletePointsByResourceIdAsync(id);
             var chunkData = chunks.Select((text, index) => (
                 Text: text,
                 Type: index == 0 ? ChunkType.MetaData : ChunkType.ContentText,
                 Part: index
             )).ToList();
             await vectorStore.CreateResourcePointsAsync(id, chunkData);
-
-
-            // * STEP 5: AI Tag Generation
-            // Generate contextual tags based on the processed document content
-            //logger.Information("Initiating AI tag generation for resource ID: {Id}", id);
-            //await GenerateTagsAsync(id.ToString());
 
             logger.Information("RAG pipeline completed successfully for resource ID: {Id}", id);
         }
@@ -207,6 +213,7 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
 
         try
         {
+            await vectorStore.DeletePointsByEntityIdAsync(id);
             var chunkData = new List<(string Text, ChunkType Type, int Part)>
             {
                 (chunk, ChunkType.MetaData, 0)
@@ -261,163 +268,6 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
         await EntityPipeline(organisation!);
     }
 
-
-
-    #region GenerateTagsAsync
-
-    /// <summary>
-    /// Generates AI-powered tags for a resource by analyzing its content chunks using vector search and natural language processing.
-    /// </summary>
-    /// <param name="id">The unique identifier of the resource for which to generate tags.</param>
-    /// <returns>A task that represents the asynchronous operation. The task result contains a list of generated tags in lowercase format.</returns>
-    /// <remarks>
-    /// This method performs the following operations:
-    /// 1. Queries the vector database in batches to retrieve content chunks associated with the resource
-    /// 2. Uses AI chat completion with structured JSON output to extract relevant tags from the content
-    /// 3. Accumulates unique tags across all content chunks, normalizing them to lowercase
-    /// 4. Persists the generated tags to the database within a transaction
-    /// 5. Returns the complete list of generated tags
-    /// 
-    /// The method uses pagination to process large datasets efficiently and ensures data consistency
-    /// through database transactions with proper rollback handling on errors.
-    /// </remarks>
-    /// <exception cref="Exception">Thrown when an error occurs during database operations while saving the generated tags.</exception>
-    public async Task<List<string>> GenerateTagsAsync(string id)
-    {
-        logger.Information("Generating new AI tags for resource {ResourceId}", id);
-
-        HashSet<string> uniqueTags = new HashSet<string>();
-        ChatCompletionOptions options = new ChatCompletionOptions()
-        {
-            ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat("TagsExtraction", BinaryData.FromString(Prompts.TagsOutputJsonSchema))
-        };
-
-        await ProcessDocumentChunksAsync(id, uniqueTags, options);
-        List<string> generatedTags = uniqueTags.ToList();
-
-        if (generatedTags.Count > 0) await SaveTagsToResourceAsync(id, generatedTags);
-
-        logger.Information("Tags generated successfully for resource {ResourceId}. Total tags: {TagCount}", id, generatedTags.Count);
-        return generatedTags;
-    }
-
-
-
-    /// <summary>
-    /// Processes document chunks in batches to extract and collect unique tags from a specific document resource.
-    /// </summary>
-    /// <param name="id">The resource identifier used to filter document chunks in the collection.</param>
-    /// <param name="uniqueTags">A collection of unique tags that will be populated with extracted tags from the document chunks.</param>
-    /// <param name="options">Chat completion options used for tag extraction processing.</param>
-    /// <returns>A task representing the asynchronous operation of processing all document chunks for the specified resource.</returns>
-    private async Task ProcessDocumentChunksAsync(string id, HashSet<string> uniqueTags, ChatCompletionOptions options)
-    {
-        // Get all chunks for this resource using IVectorStore
-        var results = await vectorStore.GetChunksByResourceIdAsync(Guid.Parse(id));
-
-        if (results.Count == 0) return;
-
-        TagsExtraction? extractedTags = await ExtractTagsFromChunksAsync(results, uniqueTags, options);
-        if (extractedTags != null) AddTagsToCollection(extractedTags, uniqueTags);
-    }
-
-
-
-    /// <summary>
-    /// Extracts tags from document chunks using AI completion and returns them as a structured object.
-    /// </summary>
-    /// <param name="results">A read-only list of scored points containing document chunks from vector search results.</param>
-    /// <param name="existingTags">A set of tags that have already been generated to provide context to the AI model.</param>
-    /// <param name="options">Configuration options for the chat completion request.</param>
-    /// <returns>
-    /// A task that represents the asynchronous operation. The task result contains a <see cref="TagsExtraction"/> object
-    /// with extracted tags, or null if deserialization fails.
-    /// </returns>
-    private async Task<TagsExtraction?> ExtractTagsFromChunksAsync(List<VectorSearchResult> results, HashSet<string> existingTags, ChatCompletionOptions options)
-    {
-        try
-        {
-            var templateData = new
-            {
-                tags = existingTags.Count == 0 ? "No tags generated yet." : string.Join(", ", existingTags),
-                content = results.Select(item => new { text = item.ChunkText }).ToList()
-            };
-            string prompt = Prompts.TagsTemplate(templateData);
-
-            // Prepare chat messages with the system prompt and user query
-            List<ChatMessage> messages = new List<ChatMessage>
-                {
-                    new SystemChatMessage(Prompts.SystemPromptGenerateTags),
-                    new UserChatMessage(prompt)
-                };
-
-            // Get a completion with structured output
-            ClientResult<ChatCompletion> response = await ragSystem.ChatClient.CompleteChatAsync(messages, options);
-            string jsonOutput = response.Value.Content[0].Text;
-
-            return JsonSerializer.Deserialize<TagsExtraction>(jsonOutput);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Failed to extract tags from chunks");
-            return null;
-        }
-    }
-
-
-
-    /// <summary>
-    /// Adds tags from a TagsExtraction object to a collection of unique tags.
-    /// </summary>
-    /// <param name="tagsExtraction">The TagsExtraction object containing tags to be added. Can be null.</param>
-    /// <param name="uniqueTags">The HashSet collection to store unique tags. Tags are normalized to lowercase and trimmed.</param>
-    private void AddTagsToCollection(TagsExtraction? tagsExtraction, HashSet<string> uniqueTags)
-    {
-        if (tagsExtraction?.Tags == null) return;
-
-        // Add each tag to the unique set.
-        foreach (string tag in tagsExtraction.Tags)
-        {
-            if (!string.IsNullOrWhiteSpace(tag))
-            {
-                // Normalize the tag by trimming whitespace and converting to lowercase 
-                uniqueTags.Add(tag.Trim().ToLowerInvariant());
-            }
-        }
-    }
-
-
-
-    /// <summary>
-    /// Saves AI-generated tags to a resource in the database within a transaction.
-    /// </summary>
-    /// <param name="id">The unique identifier of the resource to update.</param>
-    /// <param name="tags">The list of AI-generated tags to save to the resource.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    /// <exception cref="Exception">Thrown when an error occurs during the database transaction or update operation.</exception>
-    private async Task SaveTagsToResourceAsync(string id, List<string> tags)
-    {
-        try
-        {
-            await resourceManager.BeginTransaction();
-
-            string tagsJson = JsonSerializer.Serialize(tags);
-            await resourceManager.UpdateResourceAsync(Guid.Parse(id), r => r.AiGeneratedTags, tagsJson);
-            await resourceManager.Commit();
-
-            logger.Information("AI-generated tags saved to resource {ResourceId}", id);
-        }
-        catch (Exception ex)
-        {
-            await resourceManager.Rollback();
-            logger.Error(ex, "An error occurred while saving AI-generated tags to resource {ResourceId}", id);
-            throw;
-        }
-    }
-
-    #endregion
-
-
     #region Metadata Updates
 
     /// <summary>
@@ -433,7 +283,7 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
             logger.Information("Updating metadata for resource {ResourceId}", id);
 
             // Build fresh rich metadata from current database state
-            string richMetadata = await BuildRichMetadataChunk(id, string.Empty);
+            var (richMetadata, _) = await BuildRichMetadataChunk(id);
 
             // Update the vector database
             bool success = await vectorStore.UpdateMetadataPointAsync(id, richMetadata);
@@ -457,7 +307,6 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
     }
 
     #endregion
-
 
     #region Query Enhancement
 
@@ -529,7 +378,6 @@ Enhanced Query:";
     }
 
     #endregion
-
 
     #region GenerateChatTitleAsync
 

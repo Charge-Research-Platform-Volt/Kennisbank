@@ -217,17 +217,10 @@ namespace KnowledgeBank.Data
 
             bool startedTransaction = await BeginTransaction();
 
-            // Create entry
-            ResourceAuthorRelation[] relations = new ResourceAuthorRelation[authorIds.Length];
-
-            for (int i = 0; i < authorIds.Length; i++)
-            {
-                relations[i] = new()
-                {
-                    ResourceId = resourceId,
-                    AuthorId = authorIds[i],
-                };
-            }
+            // Deduplicate by authorId (keep first occurrence)
+            var relations = authorIds.Distinct()
+                .Select(id => new ResourceAuthorRelation { ResourceId = resourceId, AuthorId = id })
+                .ToArray();
 
             // Add to database
             await database.ResourceAuthorRelations.AddRangeAsync(relations);
@@ -529,17 +522,13 @@ namespace KnowledgeBank.Data
 
             bool startedTransaction = await BeginTransaction();
 
-            // Create entry
-            ResourceRelatedPersonRelation[] relations = new ResourceRelatedPersonRelation[personIds.Length];
-
+            // Deduplicate by personId (keep first occurrence)
+            var seen = new HashSet<Guid>();
+            var relations = new List<ResourceRelatedPersonRelation>();
             for (int i = 0; i < personIds.Length; i++)
             {
-                relations[i] = new()
-                {
-                    ResourceId = resourceId,
-                    PersonId = personIds[i],
-                    Role = roles[i],
-                };
+                if (seen.Add(personIds[i]))
+                    relations.Add(new() { ResourceId = resourceId, PersonId = personIds[i], Role = roles[i] });
             }
 
             // Add to database

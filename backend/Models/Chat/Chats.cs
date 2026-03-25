@@ -22,10 +22,8 @@ public class Chats
     [Column("user-id")]
     public required Guid UserId { get; set; }
 
-
     [Column("title")]
     public required string Title { get; set; }
-
 
     [Column("creation-date")]
     public required DateTime CreationDate { get; set; }
@@ -33,7 +31,6 @@ public class Chats
     // Navigation property
     public virtual ICollection<Messages> Messages { get; set; } = new List<Messages>();
 }
-
 
 /// <summary>
 /// Data transfer object for creating a new chat.
@@ -47,9 +44,3 @@ public class ChatsCreateDto
     public Guid UserId { get; set; }
     public string Title { get; set; } = string.Empty;
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

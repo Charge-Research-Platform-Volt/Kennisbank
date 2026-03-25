@@ -30,7 +30,6 @@ public class GridFilterOptions
     public string? RegionFilterMode { get; set; } = "any";
 }
 
-
 public class GridSearchTemplate
 {
     public int TotalCount { get; set; }
@@ -53,7 +52,6 @@ public class GridSearchResultWithChunks : GridSearchTemplate
 {
     public required ResourceGridItemWithChunks[] Items { get; set; }
 }
-
 
 public partial class ResourceManager
 {
@@ -100,8 +98,6 @@ public partial class ResourceManager
             return await ExecuteRegularQuery(request.PageIndex, request.PageSize, request.SortBy, request.SortDirection, filters);
     }
 
-
-
     /// <summary>
     /// This function executes a search query using the hybrid search system.
     /// </summary>
@@ -147,8 +143,6 @@ public partial class ResourceManager
 
         return result;
     }
-
-
 
     /// <summary>
     /// This function executes a regular query, without search.
@@ -560,9 +554,3 @@ public partial class ResourceManager
         }
     }
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

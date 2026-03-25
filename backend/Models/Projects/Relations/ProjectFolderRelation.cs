@@ -6,8 +6,6 @@ namespace KnowledgeBank.Models;
 /// Relation describing that of 2 projects, with the parent being either a root project or a folder,
 /// while the child can only be a folder. Has navigation properties to the parent/child "folder". This
 /// is a many-to-many relationship.
-/// 
-/// Author: Justin Liem
 /// </summary>
 [Table("project-folder")]
 public class ProjectFolderRelation
@@ -30,7 +28,3 @@ public class ProjectFolderRelation
     [JsonIgnore]
     public Project? ChildFolder { get; set; }
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)

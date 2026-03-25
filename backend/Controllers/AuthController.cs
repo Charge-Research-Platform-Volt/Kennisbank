@@ -7,11 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
 using KnowledgeBank.Utils;
-using KnowledgeBank.Responses;
 using Microsoft.EntityFrameworkCore;
 using KnowledgeBank.Services.Storage;
 using KnowledgeBank.Services;
-using Microsoft.AspNetCore.Hosting;
 
 namespace KnowledgeBank.Controllers
 {

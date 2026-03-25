@@ -20,8 +20,6 @@ public class Tools
         _logger.Information("Tools successfully initialized");
     }
 
-
-
     /// <summary>
     /// Splits a large text into smaller chunks for processing with overlap for better context preservation.
     /// </summary>

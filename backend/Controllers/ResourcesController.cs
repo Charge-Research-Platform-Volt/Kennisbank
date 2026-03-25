@@ -7,14 +7,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using Serilog;
-using KnowledgeBank.Responses;
-using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Data;
 using KnowledgeBank.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
-using KnowledgeBank.BackgroundServices;
+using KnowledgeBank.Services.Background;
 using KnowledgeBank.Services;
 using System.Linq.Expressions;
 using Microsoft.Extensions.AI;
@@ -375,7 +374,7 @@ namespace KnowledgeBank.Controllers
                                 IStorageService storage = scope.ServiceProvider.GetRequiredService<IStorageService>();
                                 ObjectDownloadResponse dlResponse = await storage.DownloadObjectAsync(bucketName, id.ToString());
                                 await using var dlStream = dlResponse.Stream;
-                                await rag.ResourcePipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: "document", fileStream: dlStream);
+                                await rag.ResourcePipeline(id: id, fileType: docDto.FileExtension, fileStream: dlStream);
                             });
                         }
                         else
@@ -385,7 +384,7 @@ namespace KnowledgeBank.Controllers
                             {
                                 using var scope = serviceScopeFactory.CreateScope();
                                 RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                                await rag.ResourcePipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}\n{wDto.Url}");
+                                await rag.ResourcePipeline(id: id);
                             });
                         }
                         break;
@@ -402,7 +401,7 @@ namespace KnowledgeBank.Controllers
                             ObjectDownloadResponse downloadResponse = await storage.DownloadObjectAsync(bucketName, id.ToString());
                             await using var fileStream = downloadResponse.Stream;
 
-                            await rag.ResourcePipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}", fileType: "document", fileStream: fileStream);
+                            await rag.ResourcePipeline(id: id, fileType: dDto.FileExtension, fileStream: fileStream);
                         });
                         break;
                     
@@ -414,7 +413,7 @@ namespace KnowledgeBank.Controllers
                             using var scope = serviceScopeFactory.CreateScope();
                             RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
 
-                            await rag.ResourcePipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
+                            await rag.ResourcePipeline(id: id);
                         });
                         break;
                     
@@ -426,7 +425,7 @@ namespace KnowledgeBank.Controllers
                             using var scope = serviceScopeFactory.CreateScope();
                             RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
 
-                            await rag.ResourcePipeline(id: id, chunk: $"{dto.Title}\n{dto.Description}");
+                            await rag.ResourcePipeline(id: id);
                         });
                         break;
                 }
@@ -625,7 +624,7 @@ namespace KnowledgeBank.Controllers
 
                 // Replace null/empty typeId with the Unknown resource type
                 if (updates.TryGetValue("typeId", out var typeIdValue) && (typeIdValue == null || string.IsNullOrWhiteSpace(typeIdValue.ToString())))
-                    updates["typeId"] = DatabaseSeeder.UnknownResourceTypeId;
+                    updates["typeId"] = DatabaseContext.UnknownResourceTypeId;
 
                 // Start a database transaction, since we could have multiple updates
                 await resourceManager.BeginTransaction();

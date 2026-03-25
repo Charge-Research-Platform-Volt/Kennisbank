@@ -1,6 +1,5 @@
 namespace KnowledgeBank.Services.Storage;
 
-
 /// <summary>Downloaded object with stream, metadata, and content info.</summary>
 public record ObjectDownloadResponse(
     Stream Stream,

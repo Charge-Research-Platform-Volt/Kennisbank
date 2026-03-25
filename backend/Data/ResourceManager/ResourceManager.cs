@@ -7,6 +7,7 @@
 using KnowledgeBank.Services;
 using KnowledgeBank.Services.Search;
 using KnowledgeBank.Services.Search.Models;
+using KnowledgeBank.Services.Vector;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -20,12 +21,13 @@ namespace KnowledgeBank.Data
     /// <param name="dbFactory">The database context variable</param>
     /// <param name="ragSystem">The RAG system variable</param>
     /// <param name="hybridSearchService">The hybrid search service variable</param>
-    public partial class ResourceManager(IDbContextFactory<DatabaseContext> dbFactory, RAGSystem ragSystem, HybridSearchService hybridSearchService)
+    public partial class ResourceManager(IDbContextFactory<DatabaseContext> dbFactory, RAGSystem ragSystem, HybridSearchService hybridSearchService, IVectorStore vectorStore)
     {
         private readonly Serilog.ILogger _logger = Log.ForContext<ResourceManager>();
         private readonly IDbContextFactory<DatabaseContext> _dbFactory = dbFactory;
         private readonly RAGSystem _ragSystem = ragSystem;
         private readonly HybridSearchService _hybridSearchService = hybridSearchService;
+        private readonly IVectorStore _vectorStore = vectorStore;
 
         // Shared context - lazily created and reused for all operations
         private DatabaseContext? _database;

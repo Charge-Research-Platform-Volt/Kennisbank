@@ -1,9 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using Serilog;
-using KnowledgeBank.Responses;
-using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
@@ -48,9 +47,16 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
             User user = await userManager.FindByIdAsync(userId) ?? throw new Exception("User authenticated yet not found, probably a concurrency fault");
 
             IList<string> roles = await userManager.GetRolesAsync(user);
-            UserResponse userResponse = new UserResponse(user, roles.FirstOrDefault() ?? "No Role");
 
-            return Ok(new ApiResponse(true, "Account info found.", userResponse));
+            return Ok(new ApiResponse(true, "Account info found.", new {
+                Id = new Guid(user.Id),
+                user.FirstName,
+                user.LastName,
+                user.Email,
+                CustomAvatarVersion = user.HasCustom ? user.CustomAvatarVersion : (int?)null,
+                user.EmailConfirmed,
+                Role = roles.FirstOrDefault() ?? "No Role"
+            }));
         }
         catch (Exception e)
         {
@@ -72,7 +78,6 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
         try
         {
             ObjectDownloadResponse response = await storageService.DownloadObjectAsync(bucketName, userId);
-
 
             Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
             Response.Headers.Append("Pragma", "no-cache");
@@ -103,17 +108,24 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
             User[]? users = await database.Users.OrderBy(u => u.Email).ToArrayAsync();
 
             if (users == null)
-                return Ok(Array.Empty<UserResponse>());
+                return Ok(new ApiResponse(true, "No users found.", Array.Empty<object>()));
 
-            UserResponse[]? userResponses = new UserResponse[users.Length];
-            for (int i = 0; i < users.Length; i++)
+            var userResponses = new List<object>();
+            foreach (var user in users)
             {
-                User user = users[i];
                 IList<string> roles = await userManager.GetRolesAsync(user);
-                userResponses[i] = new UserResponse(user, roles.FirstOrDefault() ?? "No Role");
+                userResponses.Add(new {
+                    Id = new Guid(user.Id),
+                    user.FirstName,
+                    user.LastName,
+                    user.Email,
+                    CustomAvatarVersion = user.HasCustom ? user.CustomAvatarVersion : (int?)null,
+                    user.EmailConfirmed,
+                    Role = roles.FirstOrDefault() ?? "No Role"
+                });
             }
 
-            return Ok(userResponses);
+            return Ok(new ApiResponse(true, $"{userResponses.Count} users found.", userResponses));
         }
         catch (Exception e)
         {
@@ -160,19 +172,22 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
             int pageCount = (int)Math.Ceiling((double)totalUsers / pageSize);
 
             // Create the response
-            UserResponse[]? userResponses = new UserResponse[users.Length];
-            for (int i = 0; i < users.Length; i++)
+            var userResponses = new List<object>();
+            foreach (var user in users)
             {
-                User user = users[i];
                 IList<string> roles = await userManager.GetRolesAsync(user);
-                userResponses[i] = new UserResponse(user, roles[0].ToString());
+                userResponses.Add(new {
+                    Id = new Guid(user.Id),
+                    user.FirstName,
+                    user.LastName,
+                    user.Email,
+                    CustomAvatarVersion = user.HasCustom ? user.CustomAvatarVersion : (int?)null,
+                    user.EmailConfirmed,
+                    Role = roles.FirstOrDefault() ?? "No Role"
+                });
             }
 
-            // Check if there are no users on this page
-            if (users == null)
-                return Ok(new ApiResponse(true, "No users on this page.", new UserPageResponse("No users on this page.", pageIndex, pageSize, pageCount, Array.Empty<UserResponse>())));
-
-            return Ok(new ApiResponse(true, $"{users.Length} users found.", new UserPageResponse($"{users.Length} users found.", pageIndex, pageSize, pageCount, userResponses)));
+            return Ok(new ApiResponse(true, $"{users.Length} users found.", new { Users = userResponses, PageIndex = pageIndex, PageSize = pageSize, PageCount = pageCount }));
         }
         catch (Exception e)
         {
@@ -305,8 +320,6 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
 
         return Ok("Avatar updated successfully.");
     }
-
-
 
     /// <summary>
     /// Updates the current user.
@@ -486,10 +499,3 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
         }
     }
 }
-
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

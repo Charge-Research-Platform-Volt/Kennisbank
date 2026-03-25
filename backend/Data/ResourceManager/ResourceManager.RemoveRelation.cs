@@ -462,7 +462,7 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> RemoveResourceTypeFromResourceAsync(Guid resourceId)
         {
-            await AddResourceTypeToResourceAsync(resourceId, DatabaseSeeder.UnknownResourceTypeId);
+            await AddResourceTypeToResourceAsync(resourceId, DatabaseContext.UnknownResourceTypeId);
             return true;
         }
 

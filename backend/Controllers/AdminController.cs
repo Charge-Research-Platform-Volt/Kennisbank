@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
-using KnowledgeBank.Responses;
+using KnowledgeBank.Models;
 using KnowledgeBank.Data;
 using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
-using KnowledgeBank.BackgroundServices;
+using KnowledgeBank.Services.Background;
 using KnowledgeBank.Services;
 using KnowledgeBank.Services.Storage;
 
@@ -45,16 +45,14 @@ namespace KnowledgeBank.Controllers
                         if (resource.FileType == "document" && resource.FileExt != null)
                         {
                             var dlResponse = await storage.DownloadObjectAsync(bucketName, resource.Id.ToString());
-                            await using var dlStream = dlResponse.Stream;
-                            await ragManager.ResourcePipeline(resource.Id, $"{resource.Title}\n{resource.Description}", resource.FileExt, dlStream);
-                        }
-                        else if (resource.FileType == "website")
-                        {
-                            await ragManager.ResourcePipeline(resource.Id, $"{resource.Title}\n{resource.Description}\n{resource.SourceUrl}");
+                            using var dlMemStream = new MemoryStream();
+                            await dlResponse.Stream.CopyToAsync(dlMemStream, token);
+                            dlMemStream.Position = 0;
+                            await ragManager.ResourcePipeline(resource.Id, resource.FileExt, dlMemStream);
                         }
                         else
                         {
-                            await ragManager.ResourcePipeline(resource.Id, $"{resource.Title}\n{resource.Description}");
+                            await ragManager.ResourcePipeline(resource.Id);
                         }
                     }
                     catch (Exception ex)

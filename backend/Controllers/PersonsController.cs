@@ -6,17 +6,14 @@
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using Serilog;
-using KnowledgeBank.Responses;
-using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Data;
 using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
-using System.Reflection;
-using KnowledgeBank.BackgroundServices;
+using KnowledgeBank.Services.Background;
 using KnowledgeBank.Services;
 using KnowledgeBank.Services.Vector;
-using Org.BouncyCastle.Asn1.X509;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 

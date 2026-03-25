@@ -4,8 +4,6 @@ using System.Text.Json.Serialization;
 
 namespace KnowledgeBank.Models;
 
-
-
 /// <summary>
 /// Represents a message entity in the chat system, stored in the "messages" table.
 /// Contains message content, role information, and metadata for chat conversations.
@@ -20,7 +18,6 @@ public class Messages
     [Column("id")]
     [Key]
     public required Guid Id { get; set; }
-
 
     [Column("chat-id")]
     public required Guid ChatId { get; set; }
@@ -39,8 +36,6 @@ public class Messages
     [JsonIgnore] public virtual Chats Chat { get; set; } = null!;
 }
 
-
-
 /// <summary>
 /// Data Transfer Object for creating new chat messages.
 /// Contains the essential information required to create a message within a chat conversation.
@@ -57,17 +52,9 @@ public class MessagesCreateDto
     public string Content { get; set; } = string.Empty;
 }
 
-
-
 // Message role enum
 public enum MessageRole
 {
     User,
     Assistant
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

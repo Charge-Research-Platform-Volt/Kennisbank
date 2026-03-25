@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using System.Linq.Expressions;
 using KnowledgeBank.Utils;
-using KnowledgeBank.Responses;
 
 namespace KnowledgeBank.Controllers;
 
@@ -450,8 +449,16 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
                 ? project
                 : await projectManager.GetProjectAsync(ancestors[0].Id, includeProperties: ["ProjectTagRelations.Tag", "ProjectCreatorRelations.Creator"]) ?? project;
 
-            List<UserResponse> creators = rootProject.ProjectCreatorRelations?
-                .Select(r => new UserResponse(r.Creator!, "No Role")).ToList() ?? [];
+            List<object> creators = rootProject.ProjectCreatorRelations?
+                .Select(r => (object)new {
+                    Id = new Guid(r.Creator!.Id),
+                    r.Creator.FirstName,
+                    r.Creator.LastName,
+                    r.Creator.Email,
+                    CustomAvatarVersion = r.Creator.HasCustom ? r.Creator.CustomAvatarVersion : (int?)null,
+                    r.Creator.EmailConfirmed,
+                    Role = "No Role"
+                }).ToList() ?? [];
 
             List<Tag?> tags = rootProject.ProjectTagRelations?
                 .Select(r => r.Tag).ToList() ?? [];

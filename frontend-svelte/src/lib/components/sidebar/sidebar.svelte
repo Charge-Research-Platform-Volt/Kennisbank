@@ -122,7 +122,7 @@
 
         <!-- User profile -->
         <DropdownMenu.Root>
-            <DropdownMenu.Trigger class="flex w-full items-center rounded-md py-2 text-sm transition-colors
+            <DropdownMenu.Trigger class="cursor-pointer flex w-full items-center rounded-md py-2 text-sm transition-colors
                 {collapsed ? 'gap-0 justify-center' : 'gap-2 px-2'}
                 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                 {#if userState.user}
@@ -145,9 +145,9 @@
 
             <DropdownMenu.Content side="top" align="start">
                 <DropdownMenu.Group>
-                    <DropdownMenu.Item onclick={() => goto('/account')}>Account Settings</DropdownMenu.Item>
+                    <DropdownMenu.Item class="cursor-pointer" onclick={() => goto('/account')}>Account Settings</DropdownMenu.Item>
                     <DropdownMenu.Separator />
-                    <DropdownMenu.Item onclick={handleLogout}>Log Out</DropdownMenu.Item>
+                    <DropdownMenu.Item class="cursor-pointer" onclick={handleLogout}>Log Out</DropdownMenu.Item>
                 </DropdownMenu.Group>
             </DropdownMenu.Content>
         </DropdownMenu.Root>

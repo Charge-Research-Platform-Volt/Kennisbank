@@ -57,6 +57,9 @@ namespace KnowledgeBank.Data
             // Remove document metadata for this resource
             await DeleteDocumentMetadataAsync(id);
 
+            // Delete vector embeddings for this resource
+            await _vectorStore.DeletePointsByResourceIdAsync(id);
+
             if (startedTransaction) await Commit();
 
             return count > 0;
@@ -83,6 +86,9 @@ namespace KnowledgeBank.Data
             // Delete all resource-related_person relations containing this person
             await RemoveRelatedPersonFromAllResourcesAsync(id);
 
+            // Delete vector embeddings for this person
+            await _vectorStore.DeletePointsByEntityIdAsync(id);
+
             if (startedTransaction) await Commit();
 
             return count > 0;
@@ -105,6 +111,9 @@ namespace KnowledgeBank.Data
 
             // Delete all person-organisation relations containing this organisation
             await RemoveAllPersonOrganisationRelationsWithOrganisationIdAsync(id);
+
+            // Delete vector embeddings for this organisation
+            await _vectorStore.DeletePointsByEntityIdAsync(id);
 
             if (startedTransaction) await Commit();
 
@@ -206,7 +215,7 @@ namespace KnowledgeBank.Data
             int count = await DeleteAsync(database.ResourceTypes, type => type.Id == id);
 
             // Set the type of all resources with this type to unknown
-            count += await UpdatePropertyAsync(database.Resources, i => i.TypeId == id, i => i.TypeId, Guid.Parse(DatabaseSeeder.UnknownResourceTypeId));
+            count += await UpdatePropertyAsync(database.Resources, i => i.TypeId == id, i => i.TypeId, Guid.Parse(DatabaseContext.UnknownResourceTypeId));
 
             if (startedTransaction) await Commit();
 

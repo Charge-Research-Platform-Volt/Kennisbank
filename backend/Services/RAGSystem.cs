@@ -5,12 +5,10 @@ using KnowledgeBank.Utils;
 using OpenAI.Chat;
 using Serilog;
 
-
 namespace KnowledgeBank.Services;
 
 // enum for resource types
 public enum ChunkType { ContentText, MetaData }
-
 
 public class RAGSystem
 {
@@ -27,8 +25,6 @@ public class RAGSystem
     public Tools Toolbox { get; private set; }
     public EmbeddingClient EmbeddingClient { get; private set; }
     public ChatClient ChatClient { get; private set; }
-
-
 
     /// <summary>
     /// Initializes a new instance of the RAGSystem class with the specified blob service and environment configuration.

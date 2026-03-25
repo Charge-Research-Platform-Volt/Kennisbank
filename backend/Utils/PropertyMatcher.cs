@@ -3,7 +3,6 @@ using System.Reflection;
 
 namespace KnowledgeBank.Utils;
 
-
 /// <summary>
 /// A utility class that provides dynamic property matching and sorting functionality for any object type.
 /// It allows searching for properties by name, including case-insensitive and partial matches, 
@@ -228,9 +227,3 @@ public static class PropertyMatcher
         return score;
     }
 }
-
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-

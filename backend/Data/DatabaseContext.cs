@@ -8,6 +8,8 @@ namespace KnowledgeBank.Data
 {
     public class DatabaseContext : IdentityDbContext<User>
     {
+        public const string UnknownResourceTypeId = "0cc285a8-0f07-11f0-a0a6-5600051f1387";
+
         public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options) { }
 
         public DbSet<Resource> Resources { get; set; }
@@ -28,7 +30,6 @@ namespace KnowledgeBank.Data
         public DbSet<ResourceType> ResourceTypes { get; set; }
         public DbSet<Chats> Chats { get; set; }
         public DbSet<Messages> Messages { get; set; }
-
 
         public DbSet<ResourceAuthorRelation> ResourceAuthorRelations { get; set; }
         public DbSet<ResourceRelatedPersonRelation> ResourceRelatedPersonRelations { get; set; }
@@ -162,7 +163,6 @@ namespace KnowledgeBank.Data
                     .HasDatabaseName("idx_entity_chunks_entity_id");
             });
 
-
             // Configure Chat entity
             modelBuilder.Entity<Chats>()
                 .HasKey(c => c.Id);
@@ -178,7 +178,6 @@ namespace KnowledgeBank.Data
                        .HasForeignKey(m => m.ChatId)
                        .OnDelete(DeleteBehavior.Cascade);
              });
-
 
             // Resource grid view
             modelBuilder.Entity<ResourceGridItem>(entity =>
@@ -257,9 +256,3 @@ namespace KnowledgeBank.Data
         }
     }
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

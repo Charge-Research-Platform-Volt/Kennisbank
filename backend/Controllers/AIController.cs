@@ -4,12 +4,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using System.Text.Json;
-using KnowledgeBank.Responses;
+using KnowledgeBank.Models;
 using KnowledgeBank.Utils;
 using KnowledgeBank.Data;
 using System.Security.Claims;
 using Swashbuckle.AspNetCore.Annotations;
-using KnowledgeBank.Models;
 using KnowledgeBank.Services.Storage;
 
 namespace KnowledgeBank.Controllers;
@@ -37,7 +36,6 @@ public class AIController(ResourceManager resourceManager, IServiceScopeFactory 
             // Check if resource exists
             if (!await resourceManager.ResourceExistsAsync(Guid.Parse(id)))
                 return NotFound(new ApiResponse(false, "Resource not found."));
-
 
             // Get the existing AI-generated tags from the resource
             var existingAiTags = await resourceManager.GetResourcePropertyOrDefaultAsync(Guid.Parse(id), "AiGeneratedTags");
@@ -376,10 +374,3 @@ public class AIController(ResourceManager resourceManager, IServiceScopeFactory 
     }
     #endregion
 }
-
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

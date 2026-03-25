@@ -33,8 +33,6 @@ public class Chat : Hub
         _hybridSearchService = hybridSearchService;
     }
 
-
-
     /// <summary>
     /// Creates a new chat session with an AI-generated title based on the initial message.
     /// </summary>
@@ -98,8 +96,6 @@ public class Chat : Hub
         }
     }
 
-
-
     /// <summary>
     /// Streams an AI response asynchronously for a given message within a chat session.
     /// </summary>
@@ -130,7 +126,6 @@ public class Chat : Hub
     {
         _logger.Information("Streaming AI response for {UserIdentifier}", Context.UserIdentifier);
 
-
         // Validate the inputs
         if (string.IsNullOrWhiteSpace(message))
         {
@@ -144,7 +139,6 @@ public class Chat : Hub
             yield break;
         }
 
-
         // Load the chat history
         List<ChatMessage>? chatHistory = await LoadChatHistoryAsync(chatId);
         if (chatHistory == null) yield break;
@@ -153,9 +147,7 @@ public class Chat : Hub
         bool savedMessage = await SaveUserMessageAsync(message, chatId);
         if (!savedMessage) yield break;
 
-
         var response = new StringBuilder();
-
 
         // Generate the AI response
         await foreach (var content in GetAiResponseStream(message, contentBased, chatHistory, cancellationToken))
@@ -164,14 +156,12 @@ public class Chat : Hub
             yield return content;
         }
 
-
         // Save the AI response to the database
         bool savedResponse = await SaveAiResponseAsync(response.ToString(), chatId);
         if (!savedResponse) yield break;
 
         _logger.Information("Finished streaming AI response to {UserIdentifier}", Context.UserIdentifier);
     }
-
 
     /// <summary>
     /// Asynchronously loads the chat history for a specific chat by its ID.
@@ -206,7 +196,6 @@ public class Chat : Hub
             return null;
         }
     }
-
 
     /// <summary>
     /// Builds a list of chat messages from a collection of dynamic message objects.
@@ -243,8 +232,6 @@ public class Chat : Hub
 
         return chatHistory;
     }
-
-
 
     /// <summary>
     /// Asynchronously saves a user message to the specified chat.
@@ -283,8 +270,6 @@ public class Chat : Hub
         }
     }
 
-
-
     /// <summary>
     /// Asynchronously streams AI response content based on the specified mode.
     /// </summary>
@@ -314,8 +299,6 @@ public class Chat : Hub
             }
         }
     }
-
-
 
     /// <summary>
     /// Saves an AI assistant response message to the specified chat asynchronously.
@@ -350,8 +333,6 @@ public class Chat : Hub
             return false;
         }
     }
-
-
 
     /// <summary>
     /// Streams a response based on hybrid search results for a given query.
@@ -486,8 +467,6 @@ public class Chat : Hub
         }
     }
 
-
-
     /// <summary>
     /// Streams a standard AI response for the provided message.
     /// </summary>
@@ -543,8 +522,6 @@ public class Chat : Hub
         }
     }
 
-
-
     /// <summary>
     /// Handles client connection to the SignalR hub.
     /// </summary>
@@ -554,8 +531,6 @@ public class Chat : Hub
         _logger.Information("Client connected: {ConnectionId}", Context.ConnectionId);
         await base.OnConnectedAsync();
     }
-
-
 
     /// <summary>
     /// Handles client disconnection from the SignalR hub.
@@ -568,10 +543,3 @@ public class Chat : Hub
         await base.OnDisconnectedAsync(exception);
     }
 }
-
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

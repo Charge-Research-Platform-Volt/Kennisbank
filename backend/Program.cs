@@ -9,7 +9,7 @@ using Microsoft.OpenApi.Models;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
-using KnowledgeBank.BackgroundServices;
+using KnowledgeBank.Services.Background;
 using KnowledgeBank.Services;
 using KnowledgeBank.Services.Vector;
 using Hubs;
@@ -93,7 +93,6 @@ namespace KnowledgeBank
             // Add this line after the code below to enable authentication with JWT tokens: .AddBearerToken(IdentityConstants.BearerScheme);
             builder.Services.AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme);
 
-
             builder.Services.AddIdentityCore<User>()
                             .AddRoles<IdentityRole>()
                             .AddEntityFrameworkStores<DatabaseContext>()
@@ -110,11 +109,9 @@ namespace KnowledgeBank
                 options.User.RequireUniqueEmail = true;
             });
 
-
             builder.Services.AddOpenApi();
             builder.Services.AddSwaggerGen(ConfigureSwagger);
             builder.Services.AddScoped<RoleInitializer>();
-
 
             // # Database context - use NpgsqlDataSourceBuilder to register pgvector types
             // This is required for Npgsql 7.0+ to properly handle vector types
@@ -138,11 +135,9 @@ namespace KnowledgeBank
                 options.UseNpgsql(dataSource, o => o.UseVector())
             );
 
-
             // Resource management
             builder.Services.AddScoped<ResourceManager>();
             builder.Services.AddScoped<ProjectManager>();
-
 
             // Retrieval Augmented Generation system
             builder.Services.AddSingleton<RAGSystem, RAGSystem>();
@@ -161,7 +156,6 @@ namespace KnowledgeBank
             // Background services
             builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
             builder.Services.AddHostedService<QueuedHostedService>();
-
 
             // # Mailer;
             builder.Services.AddSingleton(new MailUtils(
@@ -184,7 +178,6 @@ namespace KnowledgeBank
                 });
             });
 
-
             builder.Services.Configure<FormOptions>(options =>
             {
                 // Set the limit to 100 MB
@@ -197,14 +190,12 @@ namespace KnowledgeBank
             builder.Services.AddHostedService<InvitationsCleanupService>(); // Add the background service for cleaning up invitations
             builder.Services.AddHostedService<VPNCleanupService>(); // Add the background service for cleaning up orphaned VPN users
             builder.Services.AddHostedService<StorageCleanupService>();
-            //builder.Services.AddHostedService<BlobCleanupService>(); // Add the background service for cleaning up orphaned blobs
 
             // Headless browser service
             builder.Services.AddSingleton<BrowserService>();
 
             // VPN Service
             builder.Services.AddSingleton<VPNService>();
-
 
             builder.WebHost.ConfigureKestrel(serverOptions =>
             {
@@ -264,15 +255,14 @@ namespace KnowledgeBank
                 RoleInitializer roleInitializer = scope.ServiceProvider.GetRequiredService<RoleInitializer>();
                 await roleInitializer.InitializeAsync();
                 
-                await DatabaseSeeder.Seed(app.Services);
-                await scope.ServiceProvider.GetRequiredService<DatabaseContext>().EnsureDatabaseSetupAsync();
+                // Ensure the "Unknown" resource type exists (used as fallback when a resource type is deleted)
+                var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+                var unknownTypeId = Guid.Parse(DatabaseContext.UnknownResourceTypeId);
+                if (!await db.ResourceTypes.AnyAsync(t => t.Id == unknownTypeId))
+                    await db.ResourceTypes.AddAsync(new() { Id = unknownTypeId, Name = "Unknown" });
+                await db.SaveChangesAsync();
 
-
-                if (app.Environment.IsDevelopment())
-                {
-                    // Seed test data only in development environment:
-                    await TestDataSeeder.Seed(app.Services);
-                }
+                await db.EnsureDatabaseSetupAsync();
             }
 
             app.UseRouting();
@@ -298,7 +288,6 @@ namespace KnowledgeBank
             app.Run();
         }
 
-
         /// <summary>
         /// Configures Swagger documentation settings.
         /// </summary>
@@ -313,7 +302,6 @@ namespace KnowledgeBank
             c.DocumentFilter<HideEndpointFilter>();
             c.AddSignalRSwaggerGen(); // Add SignalR support for Swagger
         }
-
 
         /// <summary>
         /// Configures the Swagger UI settings.
@@ -330,7 +318,6 @@ namespace KnowledgeBank
             c.DocumentTitle = "KnowledgeBank API";
             c.DocExpansion(DocExpansion.None);
         }
-
 
         /// <summary>
         /// Configures the application logging system using Serilog.
@@ -353,7 +340,6 @@ namespace KnowledgeBank
                                 .CreateLogger();
         }
 
-
         /// <summary>
         /// Configures the OpenAPI operation metadata for identity API endpoints.
         /// </summary>
@@ -369,9 +355,3 @@ namespace KnowledgeBank
         }
     }
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

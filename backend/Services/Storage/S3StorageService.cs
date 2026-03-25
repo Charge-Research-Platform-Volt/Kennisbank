@@ -29,7 +29,6 @@ public class S3StorageService : IStorageService
         logger = Log.ForContext<S3StorageService>();
     }
 
-
     // ==================== Bucket Operations ====================
 
     /// <inheritdoc />
@@ -52,8 +51,6 @@ public class S3StorageService : IStorageService
         logger.Information("Deleting bucket {BucketName}", bucketName);
         await client.DeleteBucketAsync(new DeleteBucketRequest { BucketName = bucketName });
     }
-
-
 
     // ==================== Object CRUD ====================
 
@@ -148,7 +145,6 @@ public class S3StorageService : IStorageService
         return metadata;
     }
 
-
     // ==================== Listing ====================
 
     /// <inheritdoc />
@@ -174,7 +170,6 @@ public class S3StorageService : IStorageService
 
         return keys.ToArray();
     }
-
 
     // ==================== Multipart Uploads ====================
     

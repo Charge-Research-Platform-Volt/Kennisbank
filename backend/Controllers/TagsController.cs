@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using System.Linq.Expressions;
 using KnowledgeBank.Utils;
-using KnowledgeBank.Responses;
 
 namespace KnowledgeBank.Controllers;
 
@@ -80,7 +79,7 @@ public class TagsController(ResourceManager resourceManager, ProjectManager proj
                 if(filterOptions.UsePaging && filterOptions.PageIndex > 1)
                     return BadRequest(new ApiResponse(false, "The page index is invalid"));
                 else{
-                    return Ok(new ApiResponse(true, "No tags found", new TagPageResponse([])));            }
+                    return Ok(new ApiResponse(true, "No tags found", new { Tags = Array.Empty<Tag>() }));            }
                 }
 
             // Set the UsageCount property for each tag if IncludeUsageCount is true
@@ -125,9 +124,9 @@ public class TagsController(ResourceManager resourceManager, ProjectManager proj
                 // calculate the total number of tags
                 int totalCount = await resourceManager.TagCountAsync(predicate);
                 int pageCount = (int)Math.Ceiling((double)totalCount/filterOptions.PageSize);
-                return Ok(new ApiResponse(true, $"{tags.Length} tags found.", new TagPageResponse(tags, filterOptions.PageIndex, filterOptions.PageSize, pageCount)));
+                return Ok(new ApiResponse(true, $"{tags.Length} tags found.", new { Tags = tags, PageIndex = filterOptions.PageIndex, PageSize = filterOptions.PageSize, PageCount = pageCount }));
             }
-            return Ok(new ApiResponse(true, $"{tags.Length} tags found.", new TagPageResponse(tags)));
+            return Ok(new ApiResponse(true, $"{tags.Length} tags found.", new { Tags = tags }));
 
         }
         catch (Exception e)
@@ -738,9 +737,9 @@ public class TagsController(ResourceManager resourceManager, ProjectManager proj
             
             // If no tags are returned, put in the message that no tags are found
             if(tags == null)
-                return Ok(new ApiResponse(true, "no tags found", new TagPageResponse(Array.Empty<Tag>(), pageIndex, pageSize, pageCount)));
-            
-            return Ok(new ApiResponse(true, "Tags found", new TagPageResponse(tags, pageIndex, pageSize, pageCount)));
+                return Ok(new ApiResponse(true, "no tags found", new { Tags = Array.Empty<Tag>(), PageIndex = pageIndex, PageSize = pageSize, PageCount = pageCount }));
+
+            return Ok(new ApiResponse(true, "Tags found", new { Tags = tags, PageIndex = pageIndex, PageSize = pageSize, PageCount = pageCount }));
         }
         catch (Exception e)
         {
@@ -847,11 +846,4 @@ public class TagsController(ResourceManager resourceManager, ProjectManager proj
         }
     }
     #endregion
-} 
-
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-
+}
