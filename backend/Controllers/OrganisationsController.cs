@@ -1,5 +1,3 @@
-﻿//
-
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using Serilog;

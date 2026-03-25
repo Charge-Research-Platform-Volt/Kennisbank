@@ -12,7 +12,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets all folders given a predicate.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="orderBy">What to oder folders by.</param>
         /// <param name="orderDescending">Whether to order descending or not.</param>
@@ -31,7 +30,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets all tags of a project given a predicate.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="orderBy">What to oder tags by.</param>
         /// <param name="orderDescending">Whether to order descending or not.</param>
@@ -50,7 +48,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets all creators of a project given a predicate.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="orderBy">What to oder creators by.</param>
         /// <param name="orderDescending">Whether to order descending or not.</param>
@@ -78,7 +75,3 @@ namespace KnowledgeBank.Data
 
     }
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)

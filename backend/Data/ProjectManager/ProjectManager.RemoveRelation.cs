@@ -33,7 +33,6 @@ namespace KnowledgeBank.Data
         /// Removes a folder from the project or folder.
         /// This deletes all resources and folders inside the folder associated with that id.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="folderId">Folder id to remove from the project or folder</param>
         /// <returns>Boolean indicating whether or not deletion was successful.</returns>
@@ -72,7 +71,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Method for deleting all folders in a project. This is a cascading delete.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project to remove all folders from.</param>
         /// <returns>Boolean indicating whether or not deletion was successful.</returns>
@@ -89,7 +87,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Deletes a tag from a project.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Id of the project to remove the tag from.</param>
         /// <param name="tagId">Tag id of the tag to remove.</param>
@@ -104,7 +101,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Deletes all project-tag relations containing the tag.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="tagId">Id of the tag to delete</param>
         /// <returns>Boolean indicating whether or not the deletion was successful</returns>
@@ -118,7 +114,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Deletes all tags from a project.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Id of the project to remove the tags from.</param>
         /// <returns>Boolean indicating whether or not deletion was successful.</returns>
@@ -132,7 +127,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Deletes a creator from a project.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Id of the project to remove the creator from.</param>
         /// <param name="creatorId">Creator id of the creator to remove.</param>
@@ -146,7 +140,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Deletes all creators from a project.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Id of the project to remove all creators from.</param>
         /// <returns>Boolean indicating whether or not deletion was successful.</returns>
@@ -167,7 +160,3 @@ namespace KnowledgeBank.Data
 
     }
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)

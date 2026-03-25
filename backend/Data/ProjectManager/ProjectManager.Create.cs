@@ -7,7 +7,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Creates a project given a dto with initial values.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="dto">Dto to create the project with.</param>
         /// <returns>The guid of the created project.</returns>
@@ -48,7 +47,3 @@ namespace KnowledgeBank.Data
         }
     }
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)

@@ -11,7 +11,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Updates property of a project.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <typeparam name="T">Type of entity to be updated.</typeparam>
         /// <typeparam name="TProperty">Type of property to be updated</typeparam>
@@ -31,7 +30,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets property name.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <typeparam name="T">Type of entity to be updated</typeparam>
         /// <typeparam name="TProperty">Type of property to be updated</typeparam>
@@ -55,7 +53,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Updates a project.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <typeparam name="T">Value type to update</typeparam>
         /// <param name="id">Id of project to update</param>
@@ -68,7 +65,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Updates a project.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <typeparam name="T">Value type to update</typeparam>
         /// <param name="id">Id of project to update</param>
@@ -81,7 +77,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Updates a project.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <typeparam name="T">Value type to update</typeparam>
         /// <param name="predicate">Predicate to select project to update</param>
@@ -98,7 +93,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Updates tags of project, to do this we remove all previous tags.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="id">Id of the project to alter tags of</param>
         /// <param name="newValue">Ids of new tags</param>
@@ -127,7 +121,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Updates tags of project, to do this we remove all previous tags.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="id">Id of the project to alter tags of</param>
         /// <param name="newValue">Ids of new tags</param>
@@ -140,7 +133,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Updates tags of project, to do this we remove all previous tags.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="id">Id of the project to alter tags of</param>
         /// <param name="newValue">Ids of new tags</param>
@@ -153,7 +145,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Updates tags of project, to do this we remove all previous tags.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="id">Id of the project to alter tags of</param>
         /// <param name="newValue">Ids of new tags</param>
@@ -171,7 +162,6 @@ namespace KnowledgeBank.Data
         /// Updates creators of project, keep in mind we can only ever add to the creators list as we never
         /// want to remove access by updating.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="id">Id of the project to alter creators of</param>
         /// <param name="newValue">Ids of new creators</param>
@@ -213,7 +203,6 @@ namespace KnowledgeBank.Data
         /// Updates creators of project, keep in mind we can only ever add to the creators list as we never
         /// want to remove access by updating.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="id">Id of the project to alter creators of</param>
         /// <param name="newValue">Ids of new creators</param>
@@ -227,7 +216,6 @@ namespace KnowledgeBank.Data
         /// Updates creators of project, keep in mind we can only ever add to the creators list as we never
         /// want to remove access by updating.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="id">Id of the project to alter creators of</param>
         /// <param name="newValue">Ids of new creators</param>
@@ -241,7 +229,6 @@ namespace KnowledgeBank.Data
         /// Updates creators of project, keep in mind we can only ever add to the creators list as we never
         /// want to remove access by updating.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="id">Id of the project to alter creators of</param>
         /// <param name="newValue">Ids of new creators</param>
@@ -254,7 +241,3 @@ namespace KnowledgeBank.Data
         #endregion
     }
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)

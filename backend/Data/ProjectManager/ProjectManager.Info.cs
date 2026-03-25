@@ -11,7 +11,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Checks if something exists in the table using a predicate.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <typeparam name="T">Type of the thing to check.</typeparam>
         /// <param name="dbSet">Table to check in.</param>
@@ -23,7 +22,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets the count of an entity given a predicate.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <typeparam name="T">Type of the thing to count.</typeparam>
         /// <param name="dbSet">Table to count in.</param>
@@ -39,7 +37,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Checks if a project exists using an id.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id in question.</param>
         /// <returns>Boolean indicating whether or not the project exists.</returns>
@@ -49,7 +46,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Checks if a project exists using an id.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id in question.</param>
         /// <returns>Boolean indicating whether or not the project exists.</returns>
@@ -59,7 +55,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Checks if a project exists using a predicate.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="predicate">Predicate in question.</param>
         /// <returns>Boolean indicating whether or not the project exists.</returns>
@@ -71,7 +66,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Checks the count of projects using a predicate.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="predicate">Predicate used to calculate the count.</param>
         /// <returns>Count of projects.</returns>
@@ -88,7 +82,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Checks if some project-tag relation exists given a predicate
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="predicate">Predicate to filter on</param>
         /// <returns>Boolean indicating whether or not some tag relation exists or not.</returns>
@@ -98,7 +91,3 @@ namespace KnowledgeBank.Data
         #endregion
     }
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)

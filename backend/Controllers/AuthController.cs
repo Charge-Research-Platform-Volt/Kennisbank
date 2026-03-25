@@ -44,7 +44,6 @@ namespace KnowledgeBank.Controllers
         /// <summary>
         /// Gets the id of the current user.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <returns>User id of the current user</returns>
         [HttpGet("get-user-id")]
@@ -258,10 +257,3 @@ namespace KnowledgeBank.Controllers
         }
     }
 }
-
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

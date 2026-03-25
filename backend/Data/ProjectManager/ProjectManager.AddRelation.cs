@@ -11,7 +11,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds a range of tags to the project.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the tags to.</param>
         /// <param name="tagIds">Ids of the tags to add to the project.</param>
@@ -41,7 +40,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds a range of tags to the project.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the tags to.</param>
         /// <param name="tagIds">Ids of the tags to add to the project.</param>
@@ -52,7 +50,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds a range of tags to the project.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the tags to.</param>
         /// <param name="tagIds">Ids of the tags to add to the project.</param>
@@ -63,7 +60,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds a range of tags to the project.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the tags to.</param>
         /// <param name="tagIds">Ids of the tags to add to the project.</param>
@@ -76,7 +72,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds a single tag to the project.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the tag to.</param>
         /// <param name="tagId">Id of the tag to add to the project.</param>
@@ -87,7 +82,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds a single tag to the project.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the tag to.</param>
         /// <param name="tagId">Id of the tag to add to the project.</param>
@@ -98,7 +92,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds a single tag to the project.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the tag to.</param>
         /// <param name="tagId">Id of the tag to add to the project.</param>
@@ -109,7 +102,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds a single tag to the project.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the tag to.</param>
         /// <param name="tagId">Id of the tag to add to the project.</param>
@@ -126,7 +118,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds multiple creators to a project.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the creators to.</param>
         /// <param name="userIds">Ids of the creators to add to the project.</param>
@@ -164,7 +155,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds multiple creators to a project.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the creators to.</param>
         /// <param name="userIds">Ids of the creators to add to the project.</param>
@@ -175,7 +165,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds multiple creators to a project.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the creators to.</param>
         /// <param name="userIds">Ids of the creators to add to the project.</param>
@@ -186,7 +175,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds multiple creators to a project.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the creators to.</param>
         /// <param name="userIds">Ids of the creators to add to the project.</param>
@@ -199,7 +187,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds a creator to a project.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the creator to.</param>
         /// <param name="userId">Id of the creator to add to the project.</param>
@@ -210,7 +197,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds a creator to a project.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the creator to.</param>
         /// <param name="userId">Id of the creator to add to the project.</param>
@@ -221,7 +207,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds a creator to a project.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the creator to.</param>
         /// <param name="userId">Id of the creator to add to the project.</param>
@@ -232,7 +217,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds a creator to a project.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the creator to.</param>
         /// <param name="userId">Id of the creator to add to the project.</param>
@@ -249,7 +233,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds a folder to a project.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the folder to.</param>
         /// <param name="folderId">Id of the folder to add to the project.</param>
@@ -276,7 +259,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds a folder to a project.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the folder to.</param>
         /// <param name="folderId">Id of the folder to add to the project.</param>
@@ -288,7 +270,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds a folder to a project.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the folder to.</param>
         /// <param name="folderId">Id of the folder to add to the project.</param>
@@ -300,7 +281,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Adds a folder to a project.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projectId">Project id of the project to add the folder to.</param>
         /// <param name="folderId">Id of the folder to add to the project.</param>
@@ -342,7 +322,3 @@ namespace KnowledgeBank.Data
         #endregion
     }
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)

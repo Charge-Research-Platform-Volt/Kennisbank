@@ -12,7 +12,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets some entity given options.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <typeparam name="T">Type of entity to retrieve.</typeparam>
         /// <param name="dbSet">Table to fetch in.</param>
@@ -44,7 +43,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets some entity given options.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <typeparam name="T">Type of entity to retrieve.</typeparam>
         /// <param name="dbSet">Table to fetch in.</param>
@@ -57,7 +55,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Constructs a query used to get all entities.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <typeparam name="T">Type of entity.</typeparam>
         /// <param name="dbSet">Table in question.</param>
@@ -92,7 +89,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets all entities given options.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <typeparam name="T">Type of entity to retrieve.</typeparam>
         /// <param name="dbSet">Table to fetch in.</param>
@@ -107,7 +103,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets all entities given options.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="dbSet">Table to fetch in.</param>
         /// <param name="projection">Which column to fetch</param>
@@ -135,7 +130,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets paged results of a specific entity.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <typeparam name="TSet">Input type</typeparam>
         /// <typeparam name="TResult">Output type</typeparam>
@@ -171,7 +165,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Retrieves project given an id.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="id">Project id.</param>
         /// <returns>Project retrieved.</returns>
@@ -181,7 +174,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Retrieves project given an id.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="id">Project id.</param>
         /// <returns>Project retrieved.</returns>
@@ -207,7 +199,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Retrieves a single project with navigation properties.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="id">Id of the project to retrieve</param>
         /// <param name="orderBy">unused</param>
@@ -222,7 +213,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Retrieves a single project with navigation properties.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="id">Id of the project to retrieve</param>
         /// <param name="orderBy">unused</param>
@@ -237,7 +227,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets a project given a predicate and extra navigation properties.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="predicate">Predicate to fetch project with.</param>
         /// <param name="includeProperties">Extra navigation properties</param>
@@ -248,7 +237,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets a project given an id and extra navigation properties.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="id">Id to fetch project with.</param>
         /// <param name="includeProperties">Extra navigation properties</param>
@@ -259,7 +247,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets a project given an id and extra navigation properties.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="id">Id to fetch project with.</param>
         /// <param name="includeProperties">Extra navigation properties</param>
@@ -273,7 +260,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Fetches all projects using a predicate and optional ordering.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="orderBy">What to order the projects by.</param>
         /// <param name="orderDescending">Whether to order descending or not.</param>
@@ -289,7 +275,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Fetches all projects using a predicate with extra navigation properties.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="predicate">Predicate used to fetch the projects the user wants to fetch.</param>
         /// <param name="includeProperties">Extra navigation properties</param>
@@ -300,7 +285,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Fetches all projects using with optional ordering and extra navigation properties.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="orderBy">What to order the projects by.</param>
         /// <param name="orderDescending">Whether to order descending or not.</param>
@@ -312,7 +296,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Fetches all projects with extra navigation properties.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="includeProperties">Extra navigation properties</param>
         /// <returns>All projects with navigation properties.</returns>
@@ -326,7 +309,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets a page of projects.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="pageIndex">Index of the page to fetch.</param>
         /// <param name="pageSize">Size of pages.</param>
@@ -344,7 +326,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets a page of projects using predicate and with properties.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="pageIndex">Index of the page to fetch.</param>
         /// <param name="pageSize">Size of pages.</param>
@@ -357,7 +338,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets a page of projects, including some navigation properties.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="pageIndex">Index of the page to fetch.</param>
         /// <param name="pageSize">Size of pages.</param>
@@ -375,7 +355,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets a page of projects.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="pageIndex">Index of the page to fetch.</param>
         /// <param name="pageSize">Size of pages.</param>
@@ -391,7 +370,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Fetches all projects using a predicate and optional ordering and projection of a column.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projection">Which column to display.</param>
         /// <param name="orderBy">What to order the projects by.</param>
@@ -407,7 +385,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Fetches all projects using a predicate with extra navigation properties and projection of a column.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projection">Which column to display.</param>
         /// <param name="predicate">Predicate used to fetch the projects the user wants to fetch.</param>
@@ -419,7 +396,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Fetches all projects using with optional ordering and extra navigation properties and projection of a column.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projection">Which column to display.</param>
         /// <param name="orderBy">What to order the projects by.</param>
@@ -435,7 +411,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Fetches all projects with extra navigation properties and projection of a column.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projection">Which column to display.</param>
         /// <param name="includeProperties">Extra navigation properties</param>
@@ -450,7 +425,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets a page of projects and projection of a column.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projection">Which column to display.</param>
         /// <param name="pageIndex">Index of the page to fetch.</param>
@@ -468,7 +442,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets a page of projects using predicate and with properties and projection of a column.
         ///
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projection">Which column to display.</param>
         /// <param name="pageIndex">Index of the page to fetch.</param>
@@ -482,7 +455,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets a page of projects, including some navigation properties and projection of a column.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projection">Which column to display.</param>
         /// <param name="pageIndex">Index of the page to fetch.</param>
@@ -500,7 +472,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets a page of projects and projection of a column.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="projection">Which column to display.</param>
         /// <param name="pageIndex">Index of the page to fetch.</param>
@@ -577,7 +548,6 @@ namespace KnowledgeBank.Data
         /// <summary>
         /// Gets the user names given a list of ids.
         /// 
-        /// Author: Justin Liem
         /// </summary>
         /// <param name="ids">Ids to fetch usernames of.</param>
         /// <returns>Usernames corresponding to the ids given.</returns>
@@ -592,7 +562,3 @@ namespace KnowledgeBank.Data
 
     }
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)

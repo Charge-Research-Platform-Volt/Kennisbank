@@ -24,7 +24,6 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     /// <summary>
     /// Adds a new project given a dto.
     /// 
-    /// Author: Justin Liem
     /// </summary>
     /// <param name="dto">The DTO for project creation.</param>
     /// <returns>
@@ -115,7 +114,6 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     /// <summary>
     /// Deletes a project or folder from the database.
     /// 
-    /// Author: Justin Liem
     /// </summary>
     /// <param name="projectId">The id of the project or folder to delete.</param>
     /// <returns>
@@ -185,7 +183,6 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     /// Retrieves projects, given a dto to filter on.
     /// The query is a string that is used to search for projects by title.
     ///
-    /// Author: Justin Liem
     /// </summary>
     /// <param name="dto"></param>
     /// <returns>
@@ -285,7 +282,6 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     /// <summary>
     /// Updates a property of the project itself.
     /// 
-    /// Author: Justin Liem
     /// </summary>
     /// <param name="projectId">The ID of the project or folder to update.</param>
     /// <param name="dto">DTO containing the properties to update.</param>
@@ -387,7 +383,6 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     /// <summary>
     /// Gets the project and its direct children (resources and folders).
     /// 
-    /// Author: Jelle v.h. Schut
     /// </summary>
     /// <param name="id">The ID of the project / folder</param>
     /// <returns>
@@ -490,7 +485,6 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     /// <summary>
     /// Adds a new folder given a name and parent.
     /// 
-    /// Author: Justin Liem
     /// </summary>
     /// <param name="parentId">ID of the parent project or folder.</param>
     /// <param name="dto">DTO containing the folder name.</param>
@@ -688,7 +682,6 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     /// <summary>
     /// Builds a predicate using a FilterProjectDto, similar to the function of the same name in TagsController.
     /// 
-    /// Author: Justin Liem
     /// </summary>
     /// <param name="dto">Dto used for constructing the predicate</param>
     /// <returns>Predicate built from the dto</returns>
@@ -724,9 +717,3 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
     #endregion
 
 }
-
-// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-
-

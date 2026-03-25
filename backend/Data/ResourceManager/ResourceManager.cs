@@ -1,12 +1,5 @@
-﻿// This program has been developed by students from the bachelor Computer Science at Utrecht
-// University within the Software Project course.
-// © Copyright Utrecht University (Department of Information and Computing Sciences)
-//
-// Authors: Abel Dieterich, Elia Jabbour (AI parts and RAG system)
-
 using KnowledgeBank.Services;
 using KnowledgeBank.Services.Search;
-using KnowledgeBank.Services.Search.Models;
 using KnowledgeBank.Services.Vector;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -16,11 +9,11 @@ namespace KnowledgeBank.Data
     /// <summary>
     /// This class is responsible for all database interactions regarding resources and their metadata.
     ///
-    /// Author: Abel Dieterich
     /// </summary>
     /// <param name="dbFactory">The database context variable</param>
     /// <param name="ragSystem">The RAG system variable</param>
     /// <param name="hybridSearchService">The hybrid search service variable</param>
+    /// <param name="vectorStore">The vector store object</param>-
     public partial class ResourceManager(IDbContextFactory<DatabaseContext> dbFactory, RAGSystem ragSystem, HybridSearchService hybridSearchService, IVectorStore vectorStore)
     {
         private readonly Serilog.ILogger _logger = Log.ForContext<ResourceManager>();
