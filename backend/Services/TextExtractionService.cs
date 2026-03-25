@@ -172,7 +172,7 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         string json = JsonSerializer.Serialize(requestBody);
 
         using HttpClient httpClient = new();
-        using HttpRequestMessage request = new(HttpMethod.Post, "https://api.mistral.ai/v1/ocr");
+        using HttpRequestMessage request = new(HttpMethod.Post, environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_ENDPOINT) + "/ocr");
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
         request.Content = new StringContent(json, Encoding.UTF8, "application/json");
 

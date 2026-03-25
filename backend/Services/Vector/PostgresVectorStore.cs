@@ -214,7 +214,7 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, R
         // Get the average embedding for the resource's chunks using raw SQL
         // since EF Core doesn't support AVG on vector types directly
         var avgEmbeddingResult = await database.Database.SqlQuery<VectorResult>($@"
-            SELECT AVG(embedding)::vector(1536) as ""Value""
+            SELECT AVG(embedding)::vector(1024) as ""Value""
             FROM ""resource-chunks""
             WHERE ""resource-id"" = {resourceId}
                 AND embedding IS NOT NULL

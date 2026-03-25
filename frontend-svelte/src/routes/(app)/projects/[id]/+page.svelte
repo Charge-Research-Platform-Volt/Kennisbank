@@ -417,6 +417,7 @@
                                         </div>
                                     </Table.Cell>
                                     <Table.Cell class="whitespace-nowrap text-muted-foreground text-xs">{entry.addedBy}</Table.Cell>
+                                    <Table.Cell></Table.Cell>
                                 </Table.Row>
                             {/snippet}
                         </ContextMenu.Trigger>

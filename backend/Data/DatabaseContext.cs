@@ -131,7 +131,7 @@ namespace KnowledgeBank.Data
 
                 // Configure vector column with proper pgvector type
                 entity.Property(e => e.Embedding)
-                    .HasColumnType("vector(1536)");
+                    .HasColumnType("vector(1024)");
 
                 // Index on resource-id for fast lookups
                 entity.HasIndex(e => e.ResourceId)
@@ -156,7 +156,7 @@ namespace KnowledgeBank.Data
                     .HasConversion<string>();
 
                 entity.Property(e => e.Embedding)
-                    .HasColumnType("vector(1536)");
+                    .HasColumnType("vector(1024)");
 
                 entity.HasIndex(e => e.EntityId)
                     .HasDatabaseName("idx_entity_chunks_entity_id");

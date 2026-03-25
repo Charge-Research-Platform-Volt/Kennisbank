@@ -162,7 +162,7 @@ namespace KnowledgeBank.Controllers
                                 {
                                     using var scope = serviceScopeFactory.CreateScope();
                                     RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                                    await rag.EntityPipeline(id: entityId, chunk: $"{name}");
+                                    await rag.OrganisationEntityPipeline(entityId);
                                 });
                             }
                             createdOrganisations[name] = entityId;
@@ -191,7 +191,7 @@ namespace KnowledgeBank.Controllers
                                 {
                                     using var scope = serviceScopeFactory.CreateScope();
                                     RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                                    await rag.EntityPipeline(id: entityId, chunk: $"{name}");
+                                    await rag.PersonEntityPipeline(entityId);
                                 });
                             }
                             createdPersons[name] = entityId;
@@ -230,7 +230,7 @@ namespace KnowledgeBank.Controllers
                             {
                                 using var scope = serviceScopeFactory.CreateScope();
                                 RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                                await rag.EntityPipeline(id: oId, chunk: $"{name}");
+                                await rag.OrganisationEntityPipeline(oId);
                             });
                         }
                         createdOrganisations[name] = oId;
@@ -267,7 +267,7 @@ namespace KnowledgeBank.Controllers
                             {
                                 using var scope = serviceScopeFactory.CreateScope();
                                 RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                                await rag.EntityPipeline(id: pId, chunk: $"{name}");
+                                await rag.PersonEntityPipeline(pId);
                             });
                         }
                         createdPersons[name] = pId;

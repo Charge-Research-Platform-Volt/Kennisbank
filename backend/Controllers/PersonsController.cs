@@ -69,7 +69,7 @@ namespace KnowledgeBank.Controllers
                 {
                     using var scope = HttpContext.RequestServices.CreateScope();
                     var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                    await ragManager.EntityPipeline(id: id, chunk: $"{dto.Name}\n{dto.Description}");
+                    await ragManager.PersonEntityPipeline(id);
                 });
 
                 logger.Information("Person '{Name}' created successfully.", dto.Name);
@@ -261,6 +261,15 @@ namespace KnowledgeBank.Controllers
 
                 // Commit changes to database
                 await resourceManager.Commit();
+
+                // Update embeddings
+                Guid personGuid = Guid.Parse(id);
+                _taskQueue.QueueBackgroundWorkItem(async token =>
+                {
+                    using var scope = HttpContext.RequestServices.CreateScope();
+                    var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                    await ragManager.PersonEntityPipeline(personGuid);
+                });
 
                 // Join all updated properties
                 string updatedPropertiesString = string.Join(", ", updatedProperties);

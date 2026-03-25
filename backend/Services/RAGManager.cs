@@ -55,7 +55,8 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
                 "ResourceAuthorRelations.Author",
                 "ResourceTagRelations.Tag",
                 "ResourceOrganisationRelations.Organisation",
-                "ResourceRegionRelations.Region"
+                "ResourceRegionRelations.Region",
+                "ResourceType"
             });
 
             if (resource == null)
@@ -65,16 +66,15 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
             }
 
             var metadataBuilder = new StringBuilder();
-            metadataBuilder.AppendLine("=== DOCUMENT METADATA ===");
-            metadataBuilder.AppendLine(basicMetadata);
-            metadataBuilder.AppendLine();
 
-            // Add structured fields that help with retrieval
             if (!string.IsNullOrEmpty(resource.Title))
                 metadataBuilder.AppendLine($"Title: {resource.Title}");
 
             if (!string.IsNullOrEmpty(resource.Description))
                 metadataBuilder.AppendLine($"Description: {resource.Description}");
+
+            if (resource.ResourceType != null)
+                metadataBuilder.AppendLine($"Type: {resource.ResourceType.Name}");
 
             if (resource.PublicationDate.HasValue)
                 metadataBuilder.AppendLine($"Publication Date: {resource.PublicationDate.Value:yyyy-MM-dd}");
@@ -85,7 +85,9 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
             if (!string.IsNullOrEmpty(resource.License))
                 metadataBuilder.AppendLine($"License: {resource.License}");
 
-            // Add authors
+            if (!string.IsNullOrEmpty(resource.Note))
+                metadataBuilder.AppendLine($"Note: {resource.Note}");
+
             if (resource.ResourceAuthorRelations?.Any() == true)
             {
                 var authorNames = resource.ResourceAuthorRelations
@@ -96,7 +98,6 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
                     metadataBuilder.AppendLine($"Authors: {string.Join(", ", authorNames)}");
             }
 
-            // Add tags
             if (resource.ResourceTagRelations?.Any() == true)
             {
                 var tagNames = resource.ResourceTagRelations
@@ -107,7 +108,6 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
                     metadataBuilder.AppendLine($"Tags: {string.Join(", ", tagNames)}");
             }
 
-            // Add organizations
             if (resource.ResourceOrganisationRelations?.Any() == true)
             {
                 var orgNames = resource.ResourceOrganisationRelations
@@ -118,7 +118,6 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
                     metadataBuilder.AppendLine($"Organizations: {string.Join(", ", orgNames)}");
             }
 
-            // Add regions
             if (resource.ResourceRegionRelations?.Any() == true)
             {
                 var regionNames = resource.ResourceRegionRelations
@@ -128,18 +127,6 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
                 if (regionNames.Any())
                     metadataBuilder.AppendLine($"Regions: {string.Join(", ", regionNames)}");
             }
-
-            // Add semantic context
-            metadataBuilder.AppendLine();
-            metadataBuilder.AppendLine("=== SEMANTIC CONTEXT ===");
-            metadataBuilder.AppendLine($"Resource Type: {resource.TypeId}");
-            metadataBuilder.AppendLine($"This document is about: {resource.Title}");
-
-            if (!string.IsNullOrEmpty(resource.Description))
-                metadataBuilder.AppendLine($"Summary: {resource.Description}");
-
-            if (!string.IsNullOrEmpty(resource.Note))
-                metadataBuilder.AppendLine($"Note: {resource.Note}");
 
             logger.Information("Built rich metadata chunk for resource {Id}", id);
             return metadataBuilder.ToString();
@@ -213,12 +200,12 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
             throw;
         }
     }
-    
-    public async Task EntityPipeline(Guid id, string chunk) 
+
+    public async Task EntityPipeline(Guid id, string chunk)
     {
         logger.Information("Entity RAG pipeline started for entity ID: {Id}", id);
-        
-        try 
+
+        try
         {
             var chunkData = new List<(string Text, ChunkType Type, int Part)>
             {
@@ -229,13 +216,49 @@ public class RAGManager(ResourceManager resourceManager, RAGSystem ragSystem, Hy
 
             logger.Information("Entity RAG pipeline completed for entity ID: {Id}", id);
         }
-        catch (Exception ex) 
+        catch (Exception ex)
         {
             // TODO: Add a way to notify the user that the pipeline failed, with some options to retry
 
             logger.Error(ex, "An error occured while processing entity ID: {Id}", id);
             throw;
         }
+    }
+
+    public Task EntityPipeline(Person person)
+    {
+        StringBuilder sb = new();
+
+        sb.AppendLine($"Person: {person.Name}");
+        if (!string.IsNullOrWhiteSpace(person.Occupation)) sb.AppendLine($"Occupation: {person.Occupation}");
+        if (!string.IsNullOrWhiteSpace(person.EmailAddress)) sb.AppendLine($"Email: {person.EmailAddress}");
+        if (!string.IsNullOrWhiteSpace(person.Description)) sb.AppendLine($"Description: {person.Description}");
+
+        return EntityPipeline(person.Id, sb.ToString());
+    }
+
+    public async Task PersonEntityPipeline(Guid id)
+    {
+        Person? person = await resourceManager.GetPersonAsync(id);
+        await EntityPipeline(person!);
+    }
+
+    public Task EntityPipeline(Organisation organisation)
+    {
+        StringBuilder sb = new();
+
+        sb.AppendLine($"Organisation: {organisation.Name}");
+        if (!string.IsNullOrWhiteSpace(organisation.Website)) sb.AppendLine($"Website: {organisation.Website}");
+        if (!string.IsNullOrWhiteSpace(organisation.EmailAddress)) sb.AppendLine($"Email: {organisation.EmailAddress}");
+        if (!string.IsNullOrWhiteSpace(organisation.Description)) sb.AppendLine($"Description: {organisation.Description}");
+
+        return EntityPipeline(organisation.Id, sb.ToString());
+    }
+
+    public async Task OrganisationEntityPipeline(Guid id)
+    {
+        Organisation? organisation = await resourceManager.GetOrganisationAsync(id);
+        await EntityPipeline(organisation!);
     }
 
 

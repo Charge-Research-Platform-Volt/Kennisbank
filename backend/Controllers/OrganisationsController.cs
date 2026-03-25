@@ -67,7 +67,7 @@ namespace KnowledgeBank.Controllers
                 {
                     using var scope = HttpContext.RequestServices.CreateScope();
                     var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                    await ragManager.EntityPipeline(id: id, chunk: $"{dto.Name}\n{dto.Description}");
+                    await ragManager.OrganisationEntityPipeline(id);
                 });
 
                 logger.Information("Organisation '{Name}' created successfully.", dto.Name);
@@ -260,6 +260,15 @@ namespace KnowledgeBank.Controllers
 
                 // Commit changes to database
                 await resourceManager.Commit();
+
+                // Update embeddings
+                Guid organisationGuid = Guid.Parse(id);
+                _taskQueue.QueueBackgroundWorkItem(async token =>
+                {
+                    using var scope = HttpContext.RequestServices.CreateScope();
+                    var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                    await ragManager.OrganisationEntityPipeline(organisationGuid);
+                });
 
                 // Join all updated properties
                 string updatedPropertiesString = string.Join(", ", updatedProperties);

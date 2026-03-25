@@ -1,7 +1,6 @@
 using System.ClientModel;
-using Azure;
-using Azure.AI.Inference;
 using OpenAI;
+using OpenAI.Embeddings;
 using KnowledgeBank.Utils;
 using OpenAI.Chat;
 using Serilog;
@@ -26,7 +25,7 @@ public class RAGSystem
 
     // RAG System components:
     public Tools Toolbox { get; private set; }
-    public EmbeddingsClient EmbeddingsClient { get; private set; }
+    public EmbeddingClient EmbeddingClient { get; private set; }
     public ChatClient ChatClient { get; private set; }
 
 
@@ -63,21 +62,17 @@ public class RAGSystem
         _logger.Information("Initializing RAG system with embedding cache enabled");
 
         // * Chat Completions - Mistral
-        OpenAIClientOptions mistralClientOptions = new OpenAIClientOptions
-        {
-            Endpoint = new Uri("https://api.mistral.ai/v1")
-        };
-        ApiKeyCredential mistralApiKeyCredential = new ApiKeyCredential(_environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_API_KEY));
+        OpenAIClientOptions mistralClientOptions = new() { Endpoint = new Uri(_environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_ENDPOINT)) };
+        ApiKeyCredential mistralApiKeyCredential = new(_environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_API_KEY));
         OpenAIClient mistralClient = new OpenAIClient(mistralApiKeyCredential, mistralClientOptions);
         string chatModelName = _environmentConfig.GetVariableValue(EnvironmentVariable.CHAT_MODEL_NAME);
         ChatClient = mistralClient.GetChatClient(chatModelName);
         _logger.Information("Mistral chat client initialized with model: {ModelName}", chatModelName);
 
         // * Embeddings
-        Uri embeddingsEndpoint = new Uri(_environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_CLIENT_ENDPOINT));
-        AzureKeyCredential embeddingsKeyCredential = new AzureKeyCredential(_environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_CLIENT_API_KEY));
-        string embeddingsModelName = _environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_MODEL_NAME);
-        EmbeddingsClient = new EmbeddingsClient(embeddingsEndpoint, embeddingsKeyCredential);
+        OpenAIClientOptions scalewayOptions = new() { Endpoint = new Uri(_environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_ENDPOINT)) };
+        OpenAIClient scalewayClient = new OpenAIClient(new ApiKeyCredential(_environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_API_KEY)), scalewayOptions);
+        EmbeddingClient = scalewayClient.GetEmbeddingClient(_environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_MODEL_NAME));
 
         _logger.Information("RAG system successfully initialized");
     }
@@ -128,19 +123,8 @@ public class RAGSystem
         }
 
         // Generate new embedding
-        EmbeddingsOptions requestOptions = new EmbeddingsOptions([query])
-        {
-            Model = _environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_MODEL_NAME),
-        };
-
-        Response<EmbeddingsResult> response = await EmbeddingsClient.EmbedAsync(requestOptions);
-
-        float[]? embeddingData = response.Value.Data[0].Embedding.ToObjectFromJson<float[]>();
-        if (embeddingData == null || embeddingData.Length == 0)
-        {
-            _logger.Warning("Generated embedding is null or empty.");
-            throw new InvalidOperationException("Generated embedding is null or empty.");
-        }
+        var result = await EmbeddingClient.GenerateEmbeddingAsync(query, new EmbeddingGenerationOptions { Dimensions = 1024 });
+        float[] embeddingData = result.Value.ToFloats().ToArray();
 
         // Store in cache
         lock (_cacheLock)
@@ -162,37 +146,5 @@ public class RAGSystem
 
         _logger.Information("Successfully generated embedding");
         return embeddingData;
-    }
-
-
-
-    /// <summary>
-    /// Generates embeddings for a collection of text chunks using the configured embeddings model.
-    /// </summary>
-    /// <param name="chunks">A list of text strings to generate embeddings for. Cannot be null or empty.</param>
-    /// <returns>A <see cref="Response{EmbeddingsResult}"/> containing the generated embeddings for all input chunks.</returns>
-    /// <exception cref="ArgumentException">Thrown when the chunks parameter is null or contains no elements.</exception>
-    /// <remarks>
-    /// This method uses the embeddings model specified in the environment configuration.
-    /// The embedding generation is performed asynchronously and includes logging for both
-    /// error conditions and successful operations.
-    /// </remarks>
-    public async Task<Response<EmbeddingsResult>> GenerateEmbeddings(List<string> chunks)
-    {
-        if (chunks == null || chunks.Count == 0)
-        {
-            _logger.Warning("Chunks list is null or empty. Cannot generate embeddings.");
-            throw new ArgumentException("Chunks list cannot be null or empty.", nameof(chunks));
-        }
-
-        EmbeddingsOptions requestOptions = new EmbeddingsOptions(chunks)
-        {
-            Model = _environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_MODEL_NAME),
-        };
-
-        Response<EmbeddingsResult> responses = await EmbeddingsClient.EmbedAsync(requestOptions);
-        _logger.Information("Successfully generated embeddings");
-
-        return responses;
     }
 }

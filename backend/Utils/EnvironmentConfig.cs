@@ -29,9 +29,10 @@ public enum EnvironmentVariable
     EMBEDDINGS_API_KEY,
 
     // Chat Completions
+    MISTRAL_ENDPOINT,
     MISTRAL_API_KEY,
     CHAT_MODEL_NAME,
-    
+
     // Headscale
     HEADSCALE_URL,
     HEADSCALE_API_KEY
@@ -78,6 +79,7 @@ public class EnvironmentConfig
         _variableNames.Add(EnvironmentVariable.EMBEDDINGS_API_KEY, "EMBEDDINGS_API_KEY");
 
         // Chat Completions
+        _variableNames.Add(EnvironmentVariable.MISTRAL_ENDPOINT, "MISTRAL_ENDPOINT");
         _variableNames.Add(EnvironmentVariable.MISTRAL_API_KEY, "MISTRAL_API_KEY");
         _variableNames.Add(EnvironmentVariable.CHAT_MODEL_NAME, "CHAT_MODEL_NAME");
 
