@@ -1,4 +1,5 @@
-export function debounce<T extends (...args: unknown[]) => void>(fn: T, delay: number = 300) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function debounce<T extends (...args: any[]) => void>(fn: T, delay: number = 300) {
     let timer: ReturnType<typeof setTimeout>;
 
     return (...args: Parameters<T>) => {

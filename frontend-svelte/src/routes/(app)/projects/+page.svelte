@@ -1,5 +1,6 @@
 <script lang="ts">
     import * as Pagination from "$lib/components/ui/pagination";
+    import { debounce } from '$lib/utils/debounce';
     import type { PageItem } from "bits-ui";
     import { getParam, getParamInt, setParams } from "$lib/utils/urlState";
     import { onMount } from "svelte";
@@ -40,7 +41,7 @@
     let submitting = $state(false);
     let createError = $state('');
 
-    let debounceTimer: ReturnType<typeof setTimeout>;
+    const debouncedFetchProjects = debounce(fetchProjects);
 
     async function fetchProjects() {
         loading = true;
@@ -112,10 +113,8 @@
     function onSearchInput(value: string) {
         searchInput = value;
         currentPage = 1;
-        
-        clearTimeout(debounceTimer);
         setParams({ q: searchInput || null, page: currentPage });
-        debounceTimer = setTimeout(fetchProjects, 300);
+        debouncedFetchProjects();
     }
 
     function handlePageChange() {

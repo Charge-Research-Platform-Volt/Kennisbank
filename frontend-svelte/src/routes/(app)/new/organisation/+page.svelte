@@ -1,5 +1,6 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
+    import { debounce } from '$lib/utils/debounce';
     import { api } from '$lib/api';
     import Input from '$lib/components/ui/input/input.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
@@ -17,14 +18,13 @@
     let similar = $state<{ id: string; name: string; }[]>([]);
     let error = $state<string | null>(null);
 
-    let debounceTimer: ReturnType<typeof setTimeout>;
+    const debouncedCheckDuplicate = debounce(checkDuplicate, 500);
 
     function onNameInput() {
-        clearTimeout(debounceTimer);
         duplicate = null;
         similar = [];
         if (!name.trim()) return;
-        debounceTimer = setTimeout(checkDuplicate, 500);
+        debouncedCheckDuplicate();
     }
 
     async function checkDuplicate() {

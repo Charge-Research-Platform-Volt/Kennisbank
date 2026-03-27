@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Popover } from "bits-ui";
+    import { debounce } from '$lib/utils/debounce';
     import { Check, ChevronDown, Search } from "lucide-svelte";
 
     let {
@@ -19,16 +20,15 @@
     let open = $state(false);
     let options = $state<{ id: string; name: string }[]>([]);
     let searchQuery = $state('');
-    let debounceTimer: ReturnType<typeof setTimeout>;
-
     async function doSearch(q: string) {
         options = await search(q);
     }
 
+    const debouncedSearch = debounce((q: string) => doSearch(q));
+
     function onSearchInput(q: string) {
         searchQuery = q;
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => doSearch(q), 300);
+        debouncedSearch(q);
     }
 
     function toggle(id: string) {

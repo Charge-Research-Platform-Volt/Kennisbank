@@ -3,6 +3,7 @@
     import { getFileIcon } from "$lib/utils/icons";
     import { getContext, untrack } from "svelte";
     import { X } from "lucide-svelte";
+    import { debounce } from '$lib/utils/debounce';
 
     let { label, items, itemType, search, onadd, oncreate, onremove, hasRole = false, onupdaterole }: {
         label: string;
@@ -29,14 +30,13 @@
     let searchQuery = $state('');
     let searchResults = $state<{ id: string; name: string }[]>([]);
     let searchOpen = $state(false);
-    let debounceTimer: ReturnType<typeof setTimeout>;
+    const debouncedSearch = debounce((q: string) => {
+        search?.(q).then(r => { searchResults = r; searchOpen = true; });
+    }, 200);
 
     function onSearchInput(q: string) {
         searchQuery = q;
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            search?.(q).then(r => { searchResults = r; searchOpen = true; });
-        }, 200);
+        debouncedSearch(q);
     }
 
     function addItem(id: string, name: string) {

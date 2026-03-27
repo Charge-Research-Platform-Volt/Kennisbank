@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { api } from "$lib/api";
+    import { debounce } from '$lib/utils/debounce';
     import type { ResourceItem } from "$lib/types/resource";
     import Spinner from "$lib/components/ui/spinner/spinner.svelte";
     import { Search, ListFilter, ExternalLink, Download, X, ArrowUp, ArrowDown, ArrowUpDown, Trash2 } from "lucide-svelte";
@@ -42,7 +43,7 @@
     let items = $state<ResourceItem[]>([]);
     let loading = $state(false);
     
-    let debounceTimer: ReturnType<typeof setTimeout>;
+    const debouncedFetchItems = debounce(fetchItems);
     
     const openInspector: (item: ResourceItem) => void = getContext('openInspector');
     const registerTableRefresh: (fn: () => void) => void = getContext('registerTableRefresh');
@@ -81,9 +82,8 @@
         searchInput = value;
         currentPage = 1;
         // Cancel previous timer and start a new one
-        clearTimeout(debounceTimer);
         setParams({ q: searchInput || null, page: currentPage });
-        debounceTimer = setTimeout(fetchItems, 300);
+        debouncedFetchItems();
     }
     
     function handlePageChange() 
@@ -96,8 +96,7 @@
     {
         currentPage = 1;
         setParams({ dateMin: dateMin || null, dateMax: dateMax || null, page: null });
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(fetchItems, 300);
+        debouncedFetchItems();
     }
 
     async function searchTags(q: string) {

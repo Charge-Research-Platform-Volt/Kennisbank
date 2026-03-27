@@ -1,5 +1,6 @@
 <script lang="ts">
     import { getContext, onMount, tick } from 'svelte';
+    import { debounce } from '$lib/utils/debounce';
     import { afterNavigate, goto } from "$app/navigation";
     import type { ProjectInfo } from "$lib/types/project"
     import { api } from "$lib/api";
@@ -89,8 +90,6 @@
     let itemSearchLoading = $state(false);
     let addedItemIds = $derived(new Set(projectInfo?.items.map(e => e.item.id) ?? []));
 
-    let debounceTimer: ReturnType<typeof setTimeout>;
-
     async function searchItems() {
         itemSearchLoading = true;
         
@@ -113,10 +112,7 @@
         await fetchProject();
     }
 
-    function onItemSearchInput() {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(searchItems, 300);
-    }
+    const onItemSearchInput = debounce(searchItems);
 
     async function removeItem(itemId: string) {
         await api.delete(`/api/project/remove-item/${page.params.id}/${itemId}`);
