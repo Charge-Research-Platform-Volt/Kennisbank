@@ -560,5 +560,34 @@ namespace KnowledgeBank.Data
         }
         #endregion
 
+        #region Folder Tree
+
+        public async Task<List<(Guid Id, string Title, int Depth)>> GetAllFoldersAsync(Guid rootId)
+        {
+            var result = new List<(Guid Id, string Title, int Depth)>();
+            var stack = new Stack<(Guid Id, int Depth)>();
+            stack.Push((rootId, 0));
+
+            while (stack.Count > 0)
+            {
+                var (currentId, depth) = stack.Pop();
+
+                var children = await database.ProjectFolderRelations
+                    .AsNoTracking()
+                    .Where(r => r.ParentId == currentId)
+                    .Join(database.Projects, r => r.ChildId, p => p.Id, (r, p) => new { p.Id, p.Title })
+                    .ToListAsync();
+
+                foreach (var child in children)
+                {
+                    result.Add((child.Id, child.Title, depth + 1));
+                    stack.Push((child.Id, depth + 1));
+                }
+            }
+
+            return result;
+        }
+
+        #endregion
     }
 }

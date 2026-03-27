@@ -15,6 +15,7 @@
     import * as Popover from "$lib/components/ui/popover";
 	import Label from '$lib/components/ui/label/label.svelte';
     import { userState } from '$lib/state/user.svelte';
+    import { confirm } from '$lib/state/confirm.svelte';
     import * as Command from "$lib/components/ui/command";
     import * as ContextMenu from "$lib/components/ui/context-menu";
     import * as Dialog from "$lib/components/ui/dialog";
@@ -115,17 +116,6 @@
     function onItemSearchInput() {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(searchItems, 300);
-    }
-
-    // Confirm dialog
-    let confirmOpen = $state(false);
-    let confirmMessage = $state('');
-    let pendingAction = $state<(() => Promise<void>) | null>(null);
-
-    function askConfirm(message: string, action: () => Promise<void>) {
-        confirmMessage = message;
-        pendingAction = action;
-        confirmOpen = true;
     }
 
     async function removeItem(itemId: string) {
@@ -425,7 +415,7 @@
                         <ContextMenu.Content>
                             <ContextMenu.Item onclick={() => { renamingFolderId = entry.folder.id; renameFolderName = entry.folder.title; }}>Rename</ContextMenu.Item>
                             <ContextMenu.Separator />
-                            <ContextMenu.Item class="text-destructive focus:text-destructive" onclick={() => askConfirm(`Delete folder <strong>${entry.folder.title}</strong>? This cannot be undone.`, () => deleteFolder(entry.folder.id))}>Delete</ContextMenu.Item>
+                            <ContextMenu.Item class="text-destructive focus:text-destructive" onclick={async () => { if (await confirm(`Delete folder "${entry.folder.title}"? This cannot be undone.`)) await deleteFolder(entry.folder.id); }}>Delete</ContextMenu.Item>
                         </ContextMenu.Content>
                     </ContextMenu.Root>
                 {/each}
@@ -464,7 +454,7 @@
                         </ContextMenu.Trigger>
 
                         <ContextMenu.Content>
-                            <ContextMenu.Item class="cursor-pointer text-destructive focus:text-destructive" onclick={() => askConfirm(`Remove <strong>${entry.item.name}</strong>? This will not delete it from the library.`, () => removeItem(entry.item.id))}>
+                            <ContextMenu.Item class="cursor-pointer text-destructive focus:text-destructive" onclick={async () => { if (await confirm(`Remove "${entry.item.name}"? This will not delete it from the library.`)) await removeItem(entry.item.id); }}>
                                 Remove
                             </ContextMenu.Item>
                         </ContextMenu.Content>
@@ -504,22 +494,6 @@
     </Command.Dialog>
 {/key}
 
-<!-- Confirm dialog -->
-<Dialog.Root bind:open={confirmOpen}>
-    <Dialog.Content>
-        <Dialog.Header>
-            <Dialog.Title>Are you sure?</Dialog.Title>
-            <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-            <Dialog.Description>{@html confirmMessage}</Dialog.Description>
-        </Dialog.Header>
-
-        <Dialog.Footer>
-            <Button variant="outline" class="cursor-pointer" onclick={() => confirmOpen = false}>Cancel</Button>
-            <Button variant="destructive" class="cursor-pointer" onclick={async () => { await pendingAction?.(); confirmOpen = false; }}>Confirm</Button>
-        </Dialog.Footer>
-    </Dialog.Content>
-</Dialog.Root>
-
 <!-- Edit project dialog -->
 <Dialog.Root bind:open={editOpen}>
     <Dialog.Content>
@@ -551,7 +525,7 @@
 
         <Dialog.Footer>
             <div class="flex w-full justify-between">
-                <Button variant="outline" class="cursor-pointer border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive" onclick={() => { editOpen = false; askConfirm(`Delete project <strong>${projectInfo?.project.title || 'Unknown'}</strong>? This cannot be undone.`, deleteProject)}}>
+                <Button variant="outline" class="cursor-pointer border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive" onclick={async () => { editOpen = false; if (await confirm(`Delete project "${projectInfo?.project.title || 'Unknown'}"? This cannot be undone.`)) await deleteProject(); }}>
                     Delete project
                 </Button>
 

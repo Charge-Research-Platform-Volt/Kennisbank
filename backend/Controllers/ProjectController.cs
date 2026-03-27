@@ -561,6 +561,37 @@ public class ProjectController(ProjectManager projectManager, ResourceManager re
 
     #endregion
 
+    #region Get Folders
+
+    [HttpGet("all-folders/{rootId}")]
+    [SwaggerOperation(Summary = "Retrieves all subfolders of the given project/folder ID")]
+    [SwaggerResponse(200, "Retrieved subfolders")]
+    [SwaggerResponse(400, "Bad Request")]
+    [SwaggerResponse(404, "Root project not found.")]
+    [SwaggerResponse(500, "Internal Server Error")]
+    public async Task<IActionResult> GetAllFolders(string rootId)
+    {
+        if (!ValidityUtil.IsValidId(rootId))
+            return BadRequest(new ApiResponse(false, "Invalid ID."));
+        
+        try
+        {
+            if (!await projectManager.ProjectExistsAsync(rootId))
+                return NotFound(new ApiResponse(false, "Project not found."));
+
+            var folders = await projectManager.GetAllFoldersAsync(Guid.Parse(rootId));
+            return Ok(new ApiResponse(true, "Successfully retrieved folders.", folders.Select(f => new { f.Id, f.Title, f.Depth })));
+        }
+
+        catch (Exception e)
+        {
+            Log.Error(e, "Failed to retrieve subfolders.");
+            return StatusCode(500, new ApiResponse(false, "Internal server error"));
+        }
+    }
+
+    #endregion
+
     #region Add Item
 
     /// <summary>
