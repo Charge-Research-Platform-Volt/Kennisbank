@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using KnowledgeBank.Services;
+using KnowledgeBank.Services.AI;
 
 namespace KnowledgeBank.Utils
 {
@@ -209,7 +210,7 @@ namespace KnowledgeBank.Utils
         /// <param name="type">The type of the database entry</param>
         /// <param name="id">The ID of the database entry</param>
         /// <param name="updates">A dictionary of parameter names and their new values</param>
-        /// <param name="ragManager">The RAG manager to update rich metadata (optional)</param>
+        /// <param name="ingestionService">The ingestion service to update rich metadata (optional)</param>
         /// <returns>A list of successfully updated parameters</returns>
         public static async Task<List<string>> UpdateProperties(
             object instance,
@@ -217,7 +218,7 @@ namespace KnowledgeBank.Utils
             Type type,
             string id,
             Dictionary<string, object> updates,
-            RAGManager? ragManager = null)
+            IngestionService? ingestionService = null)
         {
             // Get the properties of the type
             PropertyInfo[] props = type.GetProperties();
@@ -247,7 +248,7 @@ namespace KnowledgeBank.Utils
             }
 
 
-            if (updatedProperties.Count != 0 && ragManager != null)
+            if (updatedProperties.Count != 0 && ingestionService != null)
             {
                 // Define fields that should trigger metadata updates
                 var metadataFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -261,7 +262,7 @@ namespace KnowledgeBank.Utils
 
                 if (metadataChanged)
                 {
-                    await ragManager.UpdateResourceMetadataAsync(Guid.Parse(id));
+                    await ingestionService.UpdateResourceMetadataAsync(Guid.Parse(id));
                 }
             }
 

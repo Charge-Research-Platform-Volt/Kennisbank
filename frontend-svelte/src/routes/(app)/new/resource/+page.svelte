@@ -159,7 +159,7 @@
             let result: { body: string };
 
             if (mode === 'url') {
-                result = await api.put<string>('/api/resources/new', { uploadType: 'website', ...baseDto });
+                result = await api.put<string>('/api/resources/new', { uploadType: 'website', url, ...baseDto });
             } else {
                 const ext = selectedFile!.name.split('.').pop()?.toLowerCase() ?? '';
                 const uploadType = getUploadType(ext);
@@ -268,6 +268,7 @@
                     
                     // Fill in extracted metadata
                     if (extractedMetadata) {
+                        if (mode === 'url') resourceInfo.sourceUrl = url;
                         resourceInfo.title = extractedMetadata.title ?? '';
                         resourceInfo.languageCode = extractedMetadata.languageCode ?? '';
                         languageDisplay = LanguageCodes.find((l) => l.value === resourceInfo.languageCode)?.label ?? null;
@@ -697,15 +698,24 @@
                 </div>
             {:else if phase === 'processing'}
                 <div class="flex flex-col items-center gap-4 py-8">
-                    <Spinner class="h-8 w-8" />
-                    <p class="text-sm font-medium">{statusMessage || 'Processing...'}</p>
-                    <p class="text-muted-foreground text-xs">{progressPercentage}%</p>
+                    
                     {#if processingError}
                         <p class="text-destructive text-xs">{processingError}</p>
+
+                    {:else}
+                        <Spinner class="h-8 w-8" />
+                        <p class="text-sm font-medium">{statusMessage || 'Processing...'}</p>
+                        <p class="text-muted-foreground text-xs">{progressPercentage}%</p>
                     {/if}
                 </div>
 
-                <div class="flex justify-center">
+                <div class="flex justify-center gap-5">
+                    {#if processingError}
+                        <Button class="cursor-pointer" onclick={() => location.reload()}>
+                            Go back
+                        </Button>
+                    {/if}
+
                     <Button variant="ghost" class="cursor-pointer" onclick={() => { phase = 'review'; extractedMetadata = null; }}>
                         Skip to manual entry
                     </Button>

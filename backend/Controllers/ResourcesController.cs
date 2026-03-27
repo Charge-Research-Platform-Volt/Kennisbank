@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using KnowledgeBank.Services.Background;
 using KnowledgeBank.Services;
+using KnowledgeBank.Services.AI;
 using System.Linq.Expressions;
 using Microsoft.Extensions.AI;
 using System.Security.Claims;
@@ -28,7 +29,7 @@ namespace KnowledgeBank.Controllers
     /// <param name="resourceManager">The resource manager service for database interactions</param>
     /// <param name="storageService">The storage service for file storage</param>
     /// <param name="taskQueue">The background task queue for processing tasks asynchronously</param>
-    /// <param name="ragManager">The RAG manager for metadata updates and query processing</param>
+    /// <param name="ingestionService">The RAG manager for metadata updates and query processing</param>
     /// <param name="serviceScopeFactory">The service scope factory for creating service scopes in background tasks</param>
     /// <param name="vectorStore">The vector store for handling vector database interactions</param>
     /// <param name="environmentConfig">The environment configuration containing necessary settings</param>
@@ -36,7 +37,7 @@ namespace KnowledgeBank.Controllers
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class ResourcesController(ResourceManager resourceManager, IStorageService storageService, IBackgroundTaskQueue taskQueue, RAGManager ragManager, IServiceScopeFactory serviceScopeFactory, IVectorStore vectorStore, EnvironmentConfig environmentConfig) : ControllerBase
+    public class ResourcesController(ResourceManager resourceManager, IStorageService storageService, IBackgroundTaskQueue taskQueue, IngestionService ingestionService, IServiceScopeFactory serviceScopeFactory, IVectorStore vectorStore, EnvironmentConfig environmentConfig) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<ResourcesController>();
         private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
@@ -153,8 +154,8 @@ namespace KnowledgeBank.Controllers
                                 backgroundTasks.Add(async token =>
                                 {
                                     using var scope = serviceScopeFactory.CreateScope();
-                                    RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                                    await rag.OrganisationEntityPipeline(entityId);
+                                    IngestionService rag = scope.ServiceProvider.GetRequiredService<IngestionService>();
+                                    await rag.RunOrganisationEntityPipelineAsync(entityId);
                                 });
                             }
                             createdOrganisations[name] = entityId;
@@ -182,8 +183,8 @@ namespace KnowledgeBank.Controllers
                                 backgroundTasks.Add(async token =>
                                 {
                                     using var scope = serviceScopeFactory.CreateScope();
-                                    RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                                    await rag.PersonEntityPipeline(entityId);
+                                    IngestionService rag = scope.ServiceProvider.GetRequiredService<IngestionService>();
+                                    await rag.RunPersonEntityPipelineAsync(entityId);
                                 });
                             }
                             createdPersons[name] = entityId;
@@ -221,8 +222,8 @@ namespace KnowledgeBank.Controllers
                             backgroundTasks.Add(async token =>
                             {
                                 using var scope = serviceScopeFactory.CreateScope();
-                                RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                                await rag.OrganisationEntityPipeline(oId);
+                                IngestionService rag = scope.ServiceProvider.GetRequiredService<IngestionService>();
+                                await rag.RunOrganisationEntityPipelineAsync(oId);
                             });
                         }
                         createdOrganisations[name] = oId;
@@ -258,8 +259,8 @@ namespace KnowledgeBank.Controllers
                             backgroundTasks.Add(async token =>
                             {
                                 using var scope = serviceScopeFactory.CreateScope();
-                                RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                                await rag.PersonEntityPipeline(pId);
+                                IngestionService rag = scope.ServiceProvider.GetRequiredService<IngestionService>();
+                                await rag.RunPersonEntityPipelineAsync(pId);
                             });
                         }
                         createdPersons[name] = pId;
@@ -363,11 +364,11 @@ namespace KnowledgeBank.Controllers
                             backgroundTasks.Add(async token =>
                             {
                                 using var scope = serviceScopeFactory.CreateScope();
-                                RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                                IngestionService rag = scope.ServiceProvider.GetRequiredService<IngestionService>();
                                 IStorageService storage = scope.ServiceProvider.GetRequiredService<IStorageService>();
                                 ObjectDownloadResponse dlResponse = await storage.DownloadObjectAsync(bucketName, id.ToString());
                                 await using var dlStream = dlResponse.Stream;
-                                await rag.ResourcePipeline(id: id, fileType: docDto.FileExtension, fileStream: dlStream);
+                                await rag.RunResourcePipelineAsync(id: id, fileType: docDto.FileExtension, fileStream: dlStream);
                             });
                         }
                         else
@@ -376,8 +377,8 @@ namespace KnowledgeBank.Controllers
                             backgroundTasks.Add(async token =>
                             {
                                 using var scope = serviceScopeFactory.CreateScope();
-                                RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                                await rag.ResourcePipeline(id: id);
+                                IngestionService rag = scope.ServiceProvider.GetRequiredService<IngestionService>();
+                                await rag.RunResourcePipelineAsync(id: id);
                             });
                         }
                         break;
@@ -388,13 +389,13 @@ namespace KnowledgeBank.Controllers
                         backgroundTasks.Add(async token =>
                         {
                             using var scope = serviceScopeFactory.CreateScope();
-                            RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                            IngestionService rag = scope.ServiceProvider.GetRequiredService<IngestionService>();
                             IStorageService storage = scope.ServiceProvider.GetRequiredService<IStorageService>();
 
                             ObjectDownloadResponse downloadResponse = await storage.DownloadObjectAsync(bucketName, id.ToString());
                             await using var fileStream = downloadResponse.Stream;
 
-                            await rag.ResourcePipeline(id: id, fileType: dDto.FileExtension, fileStream: fileStream);
+                            await rag.RunResourcePipelineAsync(id: id, fileType: dDto.FileExtension, fileStream: fileStream);
                         });
                         break;
                     
@@ -404,9 +405,9 @@ namespace KnowledgeBank.Controllers
                         backgroundTasks.Add(async token =>
                         {
                             using var scope = serviceScopeFactory.CreateScope();
-                            RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                            IngestionService rag = scope.ServiceProvider.GetRequiredService<IngestionService>();
 
-                            await rag.ResourcePipeline(id: id);
+                            await rag.RunResourcePipelineAsync(id: id);
                         });
                         break;
                     
@@ -416,9 +417,9 @@ namespace KnowledgeBank.Controllers
                         backgroundTasks.Add(async token =>
                         {
                             using var scope = serviceScopeFactory.CreateScope();
-                            RAGManager rag = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                            IngestionService rag = scope.ServiceProvider.GetRequiredService<IngestionService>();
 
-                            await rag.ResourcePipeline(id: id);
+                            await rag.RunResourcePipelineAsync(id: id);
                         });
                         break;
                 }
@@ -624,12 +625,12 @@ namespace KnowledgeBank.Controllers
 
                 List<string> updatedProperties = [];
 
-                // Update the properties (pass ragManager for rich metadata updates)
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Resource), id, updates, ragManager));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(WebsiteMetadata), id, updates, ragManager));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(DocumentMetadata), id, updates, ragManager));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(AudioMetadata), id, updates, ragManager));
-                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(VideoMetadata), id, updates, ragManager));
+                // Update the properties (pass ingestionService for rich metadata updates)
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Resource), id, updates, ingestionService));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(WebsiteMetadata), id, updates, ingestionService));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(DocumentMetadata), id, updates, ingestionService));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(AudioMetadata), id, updates, ingestionService));
+                updatedProperties.AddRange(await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(VideoMetadata), id, updates, ingestionService));
 
                 // No props were found
                 if (updatedProperties.Count == 0)

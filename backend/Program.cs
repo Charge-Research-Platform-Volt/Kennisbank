@@ -11,6 +11,7 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using KnowledgeBank.Services.Background;
 using KnowledgeBank.Services;
+using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Vector;
 using Hubs;
 
@@ -140,8 +141,10 @@ namespace KnowledgeBank
             builder.Services.AddScoped<ProjectManager>();
 
             // Retrieval Augmented Generation system
-            builder.Services.AddSingleton<RAGSystem, RAGSystem>();
-            builder.Services.AddScoped<RAGManager>();
+            builder.Services.AddSingleton<AiClientProvider, AiClientProvider>();
+            builder.Services.AddScoped<IngestionService>();
+            builder.Services.AddScoped<MetadataExtractionService>();
+            builder.Services.AddScoped<ChatService>();
             builder.Services.AddScoped<IVectorStore, PostgresVectorStore>();
 
             // Hybrid Search System

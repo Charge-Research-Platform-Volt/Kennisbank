@@ -1,3 +1,5 @@
+using KnowledgeBank.Services.AI;
+
 namespace KnowledgeBank.Services.Vector;
 
 public class VectorSearchResult 

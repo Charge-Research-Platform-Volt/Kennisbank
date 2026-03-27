@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
-using KnowledgeBank.Services;
+using KnowledgeBank.Services.AI;
 using PgVector = Pgvector.Vector;
 
 namespace KnowledgeBank.Models;

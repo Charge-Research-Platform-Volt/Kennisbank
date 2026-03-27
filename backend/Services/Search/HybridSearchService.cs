@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Search.Models;
 using KnowledgeBank.Services.Vector;
 using Microsoft.EntityFrameworkCore;
@@ -15,7 +16,7 @@ namespace KnowledgeBank.Services.Search;
 public class HybridSearchService
 {
     private readonly Serilog.ILogger _logger;
-    private readonly RAGSystem _ragSystem;
+    private readonly AiClientProvider _aiClientProvider;
     private readonly IDbContextFactory<DatabaseContext> _dbFactory;
     private readonly HybridSearchConfig _config;
     private readonly SearchFusionEngine _fusionEngine;
@@ -23,12 +24,12 @@ public class HybridSearchService
     private readonly IVectorStore _vectorStore;
 
     public HybridSearchService(
-        RAGSystem ragSystem,
+        AiClientProvider aiClientProvider,
         IDbContextFactory<DatabaseContext> dbFactory,
         HybridSearchConfig config,
         IVectorStore vectorStore)
     {
-        _ragSystem = ragSystem;
+        _aiClientProvider = aiClientProvider;
         _dbFactory = dbFactory;
         _config = config;
         _fusionEngine = new SearchFusionEngine(config);
@@ -205,7 +206,7 @@ public class HybridSearchService
             _logger.Debug("Executing semantic search");
 
             // Generate embedding for the search query
-            float[] embeddingData = await _ragSystem.GenerateEmbedding(searchQuery);
+            float[] embeddingData = await _aiClientProvider.GenerateEmbedding(searchQuery);
 
             // Perform vector search using pgvector
             var searchResults = await _vectorStore.SemanticSearchAsync(embeddingData, limit, _config.SemanticScoreThreshold);

@@ -1,7 +1,7 @@
-﻿namespace KnowledgeBank.Data
+namespace KnowledgeBank.Data
 {
     /// <summary>
-    /// The filetype class specifies which filetypes are supported by the application in the extToType and is able to convert extensions to their full names.
+    /// Single source of truth for supported file types and their properties.
     /// </summary>
     public static class Filetype
     {
@@ -12,21 +12,22 @@
             public const string Video = "video";
         }
 
-        private static readonly Dictionary<string, string> supportedText = new()
+        private static readonly Dictionary<string, string> supportedDocuments = new()
         {
-            // Document
-            { "pdf", UploadType.Document }, 
+            { "pdf",  UploadType.Document },
             { "docx", UploadType.Document },
             { "pptx", UploadType.Document },
             { "xlsx", UploadType.Document },
             { "html", UploadType.Document },
-            { "txt", UploadType.Document }, 
-            
-            // Images (OCR supported)
-            { "jpg", UploadType.Document }, 
+            { "txt",  UploadType.Document },
+        };
+
+        private static readonly Dictionary<string, string> supportedImages = new()
+        {
+            { "jpg",  UploadType.Document },
             { "jpeg", UploadType.Document },
-            { "png", UploadType.Document }, 
-            { "bmp", UploadType.Document }, 
+            { "png",  UploadType.Document },
+            { "bmp",  UploadType.Document },
             { "tiff", UploadType.Document },
             { "heif", UploadType.Document },
         };
@@ -46,82 +47,77 @@
             { "mov", UploadType.Video },
         };
 
-        // Combine all supported extensions into one dictionary
+        private static readonly Dictionary<string, string> supportedText =
+            supportedDocuments
+                .Concat(supportedImages)
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
         private static readonly Dictionary<string, string> extToType =
             supportedText
                 .Concat(supportedAudio)
                 .Concat(supportedVideo)
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
-        /// <summary>
-        /// Trims the extension
-        /// </summary>
-        /// <param name="extension">The full extension (.pdf for example)</param>
-        /// <returns></returns>
-        public static string TrimExtension(string extension)
+        private static readonly Dictionary<string, string> mimeTypes = new()
         {
-            return extension.Replace(".", "").Trim();
+            { "pdf",  "application/pdf" },
+            { "docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+            { "pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation" },
+            { "xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+            { "html", "text/html" },
+            { "txt",  "text/plain" },
+            { "jpg",  "image/jpeg" },
+            { "jpeg", "image/jpeg" },
+            { "png",  "image/png" },
+            { "bmp",  "image/bmp" },
+            { "tiff", "image/tiff" },
+            { "heif", "image/heif" },
+            { "mp3",  "audio/mpeg" },
+            { "wav",  "audio/wav" },
+            { "ogg",  "audio/ogg" },
+            { "mp4",  "video/mp4" },
+            { "avi",  "video/x-msvideo" },
+            { "mkv",  "video/x-matroska" },
+            { "mov",  "video/quicktime" },
+        };
+
+        public static string TrimExtension(string extension) =>
+            extension.Replace(".", "").Trim().ToLowerInvariant();
+
+        public static string ConvertExtensionToFiletype(string extension) =>
+            extToType[TrimExtension(extension)];
+
+        public static bool Supported(string extension) =>
+            extToType.ContainsKey(TrimExtension(extension));
+
+        public static bool SupportedText(string extension) =>
+            supportedText.ContainsKey(TrimExtension(extension));
+
+        public static bool SupportedDocument(string extension) =>
+            supportedDocuments.ContainsKey(TrimExtension(extension));
+
+        public static bool SupportedImage(string extension) =>
+            supportedImages.ContainsKey(TrimExtension(extension));
+
+        public static bool SupportedAudio(string extension) =>
+            supportedAudio.ContainsKey(TrimExtension(extension));
+
+        public static bool SupportedVideo(string extension) =>
+            supportedVideo.ContainsKey(TrimExtension(extension));
+
+        public static string GetMimeType(string extension) =>
+            mimeTypes.TryGetValue(TrimExtension(extension), out var mime) ? mime : "application/octet-stream";
+
+        public static bool IsDocumentUrl(string url)
+        {
+            string ext = Path.GetExtension(new Uri(url).LocalPath);
+            return SupportedText(ext);
         }
 
-        /// <summary>
-        /// Use the ConvertExtensionToFiletype function to display the full name of the extension.
-        /// </summary>
-        /// <param name="extension">The full extension (.pdf for example)</param>
-        /// <returns></returns>
-        public static string ConvertExtensionToFiletype(string extension)
-        {
-            return extToType[TrimExtension(extension)];
-        }
+        public static string GetDocumentUrlExtension(string url) =>
+            Path.GetExtension(new Uri(url).LocalPath);
 
-        /// <summary>
-        /// Use the Supported function to check if a filetype is supported.
-        /// </summary>
-        /// <param name="extension">The full extension (.pdf for example)</param>
-        /// <returns></returns>
-        public static bool Supported(string extension)
-        {
-            return extToType.ContainsKey(TrimExtension(extension));
-        }
-
-        /// <summary>
-        /// Check if a text/document extension is supported
-        /// </summary>
-        /// <param name="extension">The full extension (.pdf for example)</param>
-        /// <returns></returns>
-        public static bool SupportedText(string extension)
-        {
-            return supportedText.ContainsKey(TrimExtension(extension));
-        }
-
-        /// <summary>
-        /// Check if an audio extension is supported
-        /// </summary>
-        /// <param name="extension">The full extension (.mp3 for example)</param>
-        /// <returns></returns>
-        public static bool SupportedAudio(string extension)
-        {
-            return supportedAudio.ContainsKey(TrimExtension(extension));
-        }
-
-        /// <summary>
-        /// Check if a video extension is supported
-        /// </summary>
-        /// <param name="extension">The full extension (.mp4 for example)</param>
-        /// <returns></returns>
-        public static bool SupportedVideo(string extension)
-        {
-            return supportedVideo.ContainsKey(TrimExtension(extension));
-        }
-
-        /// <summary>
-        /// Retrieve all supported extensions grouped by type
-        /// </summary>
-        public static Dictionary<string, string[]> SupportedExtensions
-        {
-            get
-            {
-                return extToType.GroupBy(pair => pair.Value).ToDictionary(group => group.Key, group => group.Select(pair => pair.Key).ToArray());
-            }
-        }
+        public static Dictionary<string, string[]> SupportedExtensions =>
+            extToType.GroupBy(pair => pair.Value).ToDictionary(group => group.Key, group => group.Select(pair => pair.Key).ToArray());
     }
 }

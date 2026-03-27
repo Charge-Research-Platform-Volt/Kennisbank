@@ -6,6 +6,7 @@ using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using KnowledgeBank.Services.Background;
 using KnowledgeBank.Services;
+using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Storage;
 
 namespace KnowledgeBank.Controllers
@@ -30,7 +31,7 @@ namespace KnowledgeBank.Controllers
             taskQueue.QueueBackgroundWorkItem(async token =>
             {
                 using var scope = serviceScopeFactory.CreateScope();
-                var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
+                var ragManager = scope.ServiceProvider.GetRequiredService<IngestionService>();
                 var rm = scope.ServiceProvider.GetRequiredService<ResourceManager>();
                 var storage = scope.ServiceProvider.GetRequiredService<IStorageService>();
 
@@ -48,11 +49,11 @@ namespace KnowledgeBank.Controllers
                             using var dlMemStream = new MemoryStream();
                             await dlResponse.Stream.CopyToAsync(dlMemStream, token);
                             dlMemStream.Position = 0;
-                            await ragManager.ResourcePipeline(resource.Id, resource.FileExt, dlMemStream);
+                            await ragManager.RunResourcePipelineAsync(resource.Id, resource.FileExt, dlMemStream);
                         }
                         else
                         {
-                            await ragManager.ResourcePipeline(resource.Id);
+                            await ragManager.RunResourcePipelineAsync(resource.Id);
                         }
                     }
                     catch (Exception ex)
@@ -67,7 +68,7 @@ namespace KnowledgeBank.Controllers
 
                 foreach (var person in persons)
                 {
-                    try { await ragManager.PersonEntityPipeline(person.Id); }
+                    try { await ragManager.RunPersonEntityPipelineAsync(person.Id); }
                     catch (Exception ex) { logger.Error(ex, "Failed to re-embed person {Id}", person.Id); }
                 }
 
@@ -77,7 +78,7 @@ namespace KnowledgeBank.Controllers
 
                 foreach (var organisation in organisations)
                 {
-                    try { await ragManager.OrganisationEntityPipeline(organisation.Id); }
+                    try { await ragManager.RunOrganisationEntityPipelineAsync(organisation.Id); }
                     catch (Exception ex) { logger.Error(ex, "Failed to re-embed organisation {Id}", organisation.Id); }
                 }
 

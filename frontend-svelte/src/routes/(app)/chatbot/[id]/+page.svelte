@@ -3,13 +3,22 @@
 
     const renderer = new Renderer();
     renderer.link = ({ href, text }) => {
+        // Normalize library links — strip any origin the LLM may have prepended
+        let normalizedHref = href ?? '';
+        try {
+            const url = new URL(normalizedHref);
+            if (url.pathname.startsWith('/library')) {
+                normalizedHref = url.pathname + url.search;
+            }
+        } catch { /* already a relative URL */ }
+
         if (/^\d+$/.test(text)) {
-            return `<a href="${href}" class="chat-cite-num" target="_blank" rel="noopener noreferrer">${text}</a>`;
+            return `<a href="${normalizedHref}" class="chat-cite-num" target="_blank" rel="noopener noreferrer">${text}</a>`;
         }
-        if (href?.startsWith('/library')) {
-            return `<a href="${href}" class="chat-cite-source" title="${text}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+        if (normalizedHref.startsWith('/library')) {
+            return `<a href="${normalizedHref}" class="chat-cite-source" title="${text}" target="_blank" rel="noopener noreferrer">${text}</a>`;
         }
-        return `<a href="${href}" class="chat-link" target="_blank" rel="noopener noreferrer">${text}</a>`;
+        return `<a href="${normalizedHref}" class="chat-link" target="_blank" rel="noopener noreferrer">${text}</a>`;
     };
     marked.use({ renderer });
 

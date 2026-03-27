@@ -23,9 +23,8 @@ namespace KnowledgeBank.Utils
         /// <returns>A boolean representing if the URL was valid.</returns>
         public static bool IsValidUrl(string url)
         {
-            // a.io is just about the shortest url there is
-            // every URL needs at least 1 dot to be valid
-            return url.Length > 3 && url.Contains('.');
+            return Uri.TryCreate(url, UriKind.Absolute, out Uri? result)
+                && (result.Scheme == Uri.UriSchemeHttp || result.Scheme == Uri.UriSchemeHttps);
         }
     }
 }

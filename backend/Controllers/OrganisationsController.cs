@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using KnowledgeBank.Services.Background;
 using KnowledgeBank.Services;
+using KnowledgeBank.Services.AI;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 
@@ -55,8 +56,8 @@ namespace KnowledgeBank.Controllers
                 _taskQueue.QueueBackgroundWorkItem(async token =>
                 {
                     using var scope = HttpContext.RequestServices.CreateScope();
-                    var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                    await ragManager.OrganisationEntityPipeline(id);
+                    var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
+                    await ingestionService.RunOrganisationEntityPipelineAsync(id);
                 });
 
                 logger.Information("Organisation '{Name}' created successfully.", dto.Name);
@@ -227,10 +228,10 @@ namespace KnowledgeBank.Controllers
                 // Start a database transaction, since we could be doing multiple updates
                 await resourceManager.BeginTransaction();
 
-                // Update the properties (get RAGManager from DI for metadata updates)
+                // Update the properties (get IngestionService from DI for metadata updates)
                 using var scope = HttpContext.RequestServices.CreateScope();
-                var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                List<string> updatedProperties = await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Organisation), id, updates, ragManager);
+                var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
+                List<string> updatedProperties = await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Organisation), id, updates, ingestionService);
 
                 // No props were found
                 if (updatedProperties.Count == 0)
@@ -247,8 +248,8 @@ namespace KnowledgeBank.Controllers
                 _taskQueue.QueueBackgroundWorkItem(async token =>
                 {
                     using var scope = HttpContext.RequestServices.CreateScope();
-                    var ragManager = scope.ServiceProvider.GetRequiredService<RAGManager>();
-                    await ragManager.OrganisationEntityPipeline(organisationGuid);
+                    var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
+                    await ingestionService.RunOrganisationEntityPipelineAsync(organisationGuid);
                 });
 
                 // Join all updated properties

@@ -1,4 +1,5 @@
 using KnowledgeBank.Data;
+using KnowledgeBank.Services.AI;
 using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using Pgvector.EntityFrameworkCore;
@@ -6,7 +7,7 @@ using PgVector = Pgvector.Vector;
 
 namespace KnowledgeBank.Services.Vector;
 
-public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, RAGSystem ragSystem) : IVectorStore
+public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, AiClientProvider aiClientProvider) : IVectorStore
 {
     /// <inheritdoc />
     public async Task CreateResourcePointsAsync(Guid resourceId, List<(string Text, ChunkType Type, int Part)> chunks)
@@ -15,7 +16,7 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, R
 
         foreach (var chunk in chunks)
         {
-            float[] embeddingArray = await ragSystem.GenerateEmbedding(chunk.Text);
+            float[] embeddingArray = await aiClientProvider.GenerateEmbedding(chunk.Text);
             ResourceChunk resourceChunk = new ResourceChunk
             {
                 Id = Guid.NewGuid(),
@@ -40,7 +41,7 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, R
         
         foreach (var chunk in chunks) 
         {
-            float[] embeddingArray = await ragSystem.GenerateEmbedding(chunk.Text);
+            float[] embeddingArray = await aiClientProvider.GenerateEmbedding(chunk.Text);
             EntityChunk entityChunk = new EntityChunk
             {
                 Id = Guid.NewGuid(),
@@ -92,7 +93,7 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, R
             return false;
 
         metadataChunk.ChunkText = newChunkText;
-        float[] embeddingArray = await ragSystem.GenerateEmbedding(newChunkText);
+        float[] embeddingArray = await aiClientProvider.GenerateEmbedding(newChunkText);
         metadataChunk.Embedding = new PgVector(embeddingArray);
 
         await database.SaveChangesAsync();

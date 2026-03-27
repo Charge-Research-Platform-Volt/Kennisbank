@@ -7,6 +7,7 @@ using System.Text;
 using SmartReader;
 using PuppeteerSharp;
 using KnowledgeBank.Utils;
+using KnowledgeBank.Data;
 using System.Text.Json;
 
 namespace KnowledgeBank.Services;
@@ -25,13 +26,22 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
     /// <param name="stream">Document file stream</param>
     /// <param name="fileExtension">File extension (e.g. ".pdf", ".docx")</param>
     /// <returns>Extracted text content</returns>
-    public async Task<string> ExtractTextFromFileAsync(Stream stream, string fileExtension) 
+    public async Task<string> ExtractTextFromFileAsync(Stream stream, string fileExtension)
     {
         fileExtension = fileExtension.ToLowerInvariant();
 
         logger.LogInformation("Extracting text from {FileType} document", fileExtension);
-        
-        try 
+
+        // Ensure stream is seekable — HTTP streams are not
+        if (!stream.CanSeek)
+        {
+            MemoryStream ms = new();
+            await stream.CopyToAsync(ms);
+            ms.Position = 0;
+            stream = ms;
+        }
+
+        try
         {
             return fileExtension switch
             {
@@ -40,8 +50,14 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
                 ".docx" => ExtractWithOpenXmlDocx(stream),
                 ".pptx" => ExtractWithOpenXmlPptx(stream),
                 ".xlsx" => ExtractWithClosedXmlXlsx(stream),
+                _ when Filetype.SupportedImage(fileExtension) => await ExtractWithMistralOCR(stream, fileExtension),
                 _ => throw new NotSupportedException($"Unsupported file type: {fileExtension}")
             };
+        }
+        catch (FileFormatException e)
+        {
+            logger.LogWarning(e, "File is corrupted or not a valid {FileType} document", fileExtension);
+            throw new InvalidOperationException($"The file appears to be corrupted or is not a valid {fileExtension} document.", e);
         }
         catch (Exception e)
         {
@@ -144,13 +160,6 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         return textBuilder.ToString();
     }
     
-    /// <summary>
-    /// Extracts text using Mistral OCR Latest
-    /// Supports PDF and Images
-    /// </summary>
-    /// <param name="stream">The document stream</param>
-    /// <param name="fileExtension">The document file extension</param>
-    /// <returns>Document content</returns>
     private async Task<string> ExtractWithMistralOCR(Stream stream, string fileExtension)
     {
         logger.LogInformation("Using Mistral OCR for {FileType}", fileExtension);
@@ -159,15 +168,16 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         using MemoryStream ms = new();
         await stream.CopyToAsync(ms);
         string base64 = Convert.ToBase64String(ms.ToArray());
-        string dataUri = $"data:application/pdf;base64,{base64}";
+        string mimeType = Filetype.GetMimeType(fileExtension);
+        string dataUri = $"data:{mimeType};base64,{base64}";
+
+        bool isPdf = string.Equals(fileExtension, ".pdf", StringComparison.OrdinalIgnoreCase);
 
         string apiKey = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_API_KEY);
 
-        var requestBody = new
-        {
-            model = "mistral-ocr-latest",
-            document = new { type = "document_url", document_url = dataUri }
-        };
+        var requestBody = isPdf
+            ? (object)new { model = "mistral-ocr-latest", document = new { type = "document_url", document_url = dataUri } }
+            : new { model = "mistral-ocr-latest", document = new { type = "image_url", image_url = dataUri } };
 
         string json = JsonSerializer.Serialize(requestBody);
 
@@ -308,17 +318,16 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
     #endregion
     
     #region Web Text Extraction
+
     public async Task<ReadabilityResult> ExtractTextFromWebAsync(string url)
     {
         logger.LogInformation("Extracting text from webpage with url '{url}'", url);
 
         // Handle direct document URLs - download and extract as file instead of using a headless browser
-        string[] documentExtensions = [".pdf", ".docx", ".doc", ".pptx", ".ppt", ".xlsx", ".xls"];
-        string urlPath = new Uri(url).LocalPath.TrimEnd('/');
-        if (documentExtensions.Any(ext => urlPath.EndsWith(ext, StringComparison.OrdinalIgnoreCase)))
+        if (Filetype.IsDocumentUrl(url))
         {
             logger.LogInformation("URL points to a document file, downloading and extracting directly");
-            return await ExtractFromDocumentUrlAsync(url, Path.GetExtension(urlPath));
+            return await ExtractFromDocumentUrlAsync(url, Filetype.GetDocumentUrlExtension(url));
         }
 
         ReadabilityResult result = await ExtractWithSmartReaderAsync(url);
