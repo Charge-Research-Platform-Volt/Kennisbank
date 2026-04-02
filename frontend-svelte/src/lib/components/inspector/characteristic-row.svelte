@@ -32,7 +32,7 @@
         {#if editContent}
             {@render editContent()}
         {:else}
-            <input bind:value={inputValue} onblur={() => { if (onsave) registerSave?.(onsave(inputValue)); }} placeholder={label} class="text-sm bg-transparent border-b border-input focus:outline-none focus:border-ring min-w-0 flex-1 py-0.5" />
+            <input bind:value={inputValue} onblur={() => { if (onsave) registerSave?.(onsave(inputValue)); }} placeholder={label} class="text-sm bg-transparent border-b border-transparent focus:border-border focus:outline-none transition-colors min-w-0 flex-1 py-0.5" />
         {/if}
     {:else if href}
         <a {href} title={value} target="_blank" class="text-sm truncate hover:underline min-w-0">{value}</a>

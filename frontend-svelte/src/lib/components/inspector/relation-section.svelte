@@ -125,7 +125,7 @@
                     oninput={(e) => onSearchInput(e.currentTarget.value)}
                     onfocus={() => search?.(searchQuery).then(r => { searchResults = r; searchOpen = true; })}
                     onblur={() => setTimeout(() => { searchOpen = false; }, 150)}
-                    placeholder="Search to add..."
+                    placeholder={oncreate ? 'Search or create...' : 'Search to add...'}
                     class="w-full text-xs bg-transparent border border-input rounded-sm px-2 py-1 focus:outline-none focus:border-ring placeholder:text-muted-foreground"
                 />
                 {#if searchOpen}

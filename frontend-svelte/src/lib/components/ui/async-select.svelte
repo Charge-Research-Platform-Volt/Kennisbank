@@ -9,6 +9,7 @@
         search,
         placeholder = 'Select...',
         class: className = '',
+        variant = 'default' as 'default' | 'ghost',
         onchange,
         oncreate,
     }: {
@@ -17,6 +18,7 @@
         search: (q: string) => Promise<{ id: string; name: string }[]>;
         placeholder?: string;
         class?: string;
+        variant?: 'default' | 'ghost';
         onchange?: (id: string | null, name: string | null) => void;
         oncreate?: (name: string) => Promise<{ id: string; name: string } | null>;
     } = $props();
@@ -65,7 +67,7 @@
 </script>
 
 <Popover.Root bind:open>
-    <Popover.Trigger class="flex items-center gap-1.5 h-9 text-sm border border-input rounded-md px-3 bg-background hover:bg-accent transition-colors cursor-pointer w-full {className}">
+    <Popover.Trigger class="{variant === 'ghost' ? 'flex items-center gap-1.5 h-9 text-sm bg-transparent cursor-pointer w-full' : 'flex items-center gap-1.5 h-9 text-sm border border-input rounded-md px-3 bg-background hover:bg-accent transition-colors cursor-pointer w-full'} {className}">
         <span class="flex-1 truncate min-w-0 text-left {displayValue ? '' : 'text-muted-foreground'}">{displayValue ?? placeholder}</span>
         {#if displayValue}
             <button onclick={clear} class="text-muted-foreground hover:text-foreground transition-colors shrink-0">

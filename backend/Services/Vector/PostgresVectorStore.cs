@@ -214,19 +214,21 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, A
 
         // Get the average embedding for the resource's chunks using raw SQL
         // since EF Core doesn't support AVG on vector types directly
-        var avgEmbeddingResult = await database.Database.SqlQuery<VectorResult>($@"
+        var avgEmbeddingResult = (await database.Database.SqlQuery<VectorResult>($@"
             SELECT AVG(embedding)::vector(1024) as ""Value""
             FROM ""resource-chunks""
             WHERE ""resource-id"" = {resourceId}
                 AND embedding IS NOT NULL
-        ").FirstOrDefaultAsync();
+        ").ToListAsync()).FirstOrDefault();
 
         if (avgEmbeddingResult?.Value == null) return [];
 
         var avgVector = avgEmbeddingResult.Value;
 
         // Search for similar chunks excluding the source resource
-        var results = await database.ResourceChunks
+        // CosineDistance can't be used in a Where clause (EF Core limitation),
+        // so filter by threshold client-side after fetching top results by distance.
+        var rawResults = await database.ResourceChunks
             .Where(c => c.Embedding != null && c.ResourceId != resourceId)
             .Select(c => new
             {
@@ -237,20 +239,21 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, A
                 c.ChunkPart,
                 Distance = c.Embedding!.CosineDistance(avgVector)
             })
-            .Where(c => 1 - c.Distance >= scoreThreshold)
             .OrderBy(c => c.Distance)
             .Take(limit)
             .ToListAsync();
 
-        return results.Select(r => new VectorSearchResult
-        {
-            Id = r.Id,
-            ResourceId = r.ResourceId,
-            ChunkText = r.ChunkText,
-            ChunkType = r.ChunkType,
-            ChunkPart = r.ChunkPart,
-            Score = 1 - (float)r.Distance
-        }).ToList();
+        return rawResults
+            .Where(r => 1 - r.Distance >= scoreThreshold)
+            .Select(r => new VectorSearchResult
+            {
+                Id = r.Id,
+                ResourceId = r.ResourceId,
+                ChunkText = r.ChunkText,
+                ChunkType = r.ChunkType,
+                ChunkPart = r.ChunkPart,
+                Score = 1 - (float)r.Distance
+            }).ToList();
     }
 }
 

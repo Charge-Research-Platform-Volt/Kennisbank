@@ -39,7 +39,8 @@
                 bind:value={inputValue}
                 onblur={() => { if (onsave) registerSave?.(onsave(inputValue)); }}
                 placeholder={label}
-                class="text-sm bg-transparent border border-input rounded-sm px-2 py-1.5 focus:outline-none focus:border-ring resize-none overflow-hidden"
+                rows={1}
+                class="text-sm bg-transparent border-b border-transparent focus:border-border focus:outline-none transition-colors resize-none overflow-hidden w-full py-0.5"
             ></textarea>
         {:else}
             <p bind:this={element} class="text-sm text-muted-foreground {expanded ? '' : 'line-clamp-4'}">{value}</p>

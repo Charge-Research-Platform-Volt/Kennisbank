@@ -247,7 +247,7 @@
                 </div>
 
                 <!-- Footer -->
-                <div class="flex px-3 py-2 border-t text-xs text-muted-foreground shrink-0 {editMode ? 'flex-col gap-2' : 'flex-row justify-center gap-4'}">
+                <div class="flex px-3 py-2 text-xs text-muted-foreground shrink-0 {editMode ? '' : 'flex-row justify-center gap-4'}">
                     {#if item.type === 'resource'}
                         <EditableDate
                             date={item.publicationDate}
@@ -260,7 +260,9 @@
                             }}
                         />
                     {/if}
-                    <span>Added: {formatDate(item.creationDate) ?? '-'}</span>
+                    {#if !editMode}
+                        <span>Added: {formatDate(item.creationDate) ?? '-'}</span>
+                    {/if}
                 </div>
 
             </div>

@@ -13,102 +13,63 @@
     let editMode = $derived(getEditMode());
     const registerSave = getContext<(p: Promise<void>) => void>('registerSave');
 
-    let localPrecision = $state<DatePrecision>(untrack(() => precision ?? 'Day'));
-    let inputState = $state(untrack(() => getInputStr()));
-
-    function getInputStr(): string {
-        if (!date) return '';
+    function initFromDate() {
+        if (!date) return;
         const d = new Date(date);
-        if (localPrecision === 'Year') return String(d.getFullYear());
-        if (localPrecision === 'Month') return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        return date.split('T')[0];
+        dateYear = String(d.getFullYear());
+        dateMonth = (precision !== 'Year') ? String(d.getMonth() + 1) : '';
+        dateDay = (precision === 'Day') ? String(d.getDate()) : '';
     }
 
-    function toIsoDate(val: string, prec: DatePrecision): string | null {
-        if (!val) return null;
-        if (prec === 'Year') return `${val}-01-01`;
-        if (prec === 'Month') return `${val}-01`;
-        return val;
-    }
+    let dateDay = $state('');
+    let dateMonth = $state('');
+    let dateYear = $state('');
 
-    function setPrecision(p: DatePrecision) {
-        localPrecision = p;
-        inputState = getInputStr();
-        registerSave?.(onsave(toIsoDate(inputState, p), p));
-    }
+    untrack(() => initFromDate());
 
-    function handleBlur() {
-        registerSave?.(onsave(toIsoDate(inputState, localPrecision), localPrecision));
+    function updateDate() {
+        let isoDate: string | null;
+        let prec: DatePrecision;
+        if (dateYear && dateMonth && dateDay) {
+            prec = 'Day';
+            isoDate = `${dateYear}-${dateMonth.padStart(2, '0')}-${dateDay.padStart(2, '0')}`;
+        } else if (dateYear && dateMonth) {
+            prec = 'Month';
+            isoDate = `${dateYear}-${dateMonth.padStart(2, '0')}-01`;
+        } else if (dateYear) {
+            prec = 'Year';
+            isoDate = `${dateYear}-01-01`;
+        } else {
+            prec = 'Year';
+            isoDate = null;
+        }
+        registerSave?.(onsave(isoDate, prec));
     }
 </script>
 
+<style>
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        appearance: none;
+        margin: 0;
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+        appearance: textfield;
+    }
+</style>
+
 {#if editMode}
-    <div class="flex flex-col gap-1.5">
-        <div class="flex items-center gap-1">
-            <span class="mr-1">Published</span>
-            {#each (['Year', 'Month', 'Day'] as DatePrecision[]) as p}
-                <button
-                    onclick={() => setPrecision(p)}
-                    class="px-1.5 py-0.5 rounded {localPrecision === p ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80'}"
-                >
-                    {p}
-                </button>
-            {/each}
-            {#if inputState}
-                <button
-                    onclick={() => { inputState = ''; registerSave?.(onsave(null, localPrecision)); }}
-                    class="px-1.5 py-0.5 rounded text-destructive hover:bg-destructive/10 ml-auto"
-                >
-                    Clear
-                </button>
-            {/if}
+    <div class="flex flex-col gap-0.5 border-b border-transparent focus-within:border-border transition-colors pb-0.5">
+        <span class="text-xs text-muted-foreground">Publish Date</span>
+        <div class="flex items-center gap-1 text-sm">
+        <input type="number" bind:value={dateDay} onblur={updateDate} min="1" max="31" placeholder="DD" class="bg-transparent outline-none w-8 placeholder:text-muted-foreground/50" />
+        <span class="text-muted-foreground/30">/</span>
+        <input type="number" bind:value={dateMonth} onblur={updateDate} min="1" max="12" placeholder="MM" class="bg-transparent outline-none w-8 placeholder:text-muted-foreground/50" />
+        <span class="text-muted-foreground/30">/</span>
+        <input type="number" bind:value={dateYear} onblur={updateDate} min="1000" max="2100" placeholder="YYYY" class="bg-transparent outline-none w-14 placeholder:text-muted-foreground/50" />
         </div>
-        {#if localPrecision === 'Year'}
-            <input
-                type="number"
-                bind:value={inputState}
-                onblur={handleBlur}
-                min="1900" max="2100"
-                placeholder="YYYY"
-                class="bg-transparent border-b border-input focus:outline-none focus:border-ring py-0.5 w-20"
-            />
-        {:else if localPrecision === 'Month'}
-            <div class="flex gap-2">
-                <select
-                    value={inputState.split('-')[1] ?? '01'}
-                    onchange={(e) => {
-                        const year = inputState.split('-')[0] || String(new Date().getFullYear());
-                        inputState = `${year}-${(e.target as HTMLSelectElement).value}`;
-                        handleBlur();
-                    }}
-                    class="bg-transparent border-b border-input focus:outline-none focus:border-ring py-0.5"
-                >
-                    <option value="">Month</option>
-                    {#each [['01','January'],['02','February'],['03','March'],['04','April'],['05','May'],['06','June'],['07','July'],['08','August'],['09','September'],['10','October'],['11','November'],['12','December']] as [val, label]}
-                        <option value={val}>{label}</option>
-                    {/each}
-                </select>
-                <input
-                    type="number"
-                    value={inputState.split('-')[0] ?? ''}
-                    onblur={(e) => {
-                        const month = inputState.split('-')[1] || '01';
-                        inputState = `${(e.target as HTMLInputElement).value}-${month}`;
-                        handleBlur();
-                    }}
-                    min="1900" max="2100"
-                    placeholder="YYYY"
-                    class="bg-transparent border-b border-input focus:outline-none focus:border-ring py-0.5 w-16"
-                />
-            </div>
-        {:else}
-            <input
-                type="date"
-                bind:value={inputState}
-                onblur={handleBlur}
-                class="bg-transparent border-b border-input focus:outline-none focus:border-ring py-0.5"
-            />
-        {/if}
     </div>
 {:else}
     <span>Published: {formatDate(date ?? '', precision) ?? '-'}</span>

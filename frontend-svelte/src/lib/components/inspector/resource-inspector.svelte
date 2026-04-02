@@ -108,6 +108,7 @@
                     displayValue={detail.resourceTypeName !== 'Unknown' ? (detail.resourceTypeName ?? null) : null}
                     search={searchResourceTypes}
                     placeholder="Resource Type"
+                    variant="ghost"
                     onchange={(id) => api.patch(`/api/resources/update/${item.id}`, { typeId: id })}
                 />
             {/snippet}
@@ -119,6 +120,7 @@
                     displayValue={detail.languageCode ? formatLanguage(detail.languageCode) : null}
                     search={searchLanguages}
                     placeholder="Language"
+                    variant="ghost"
                     onchange={(id) => api.patch(`/api/resources/update/${item.id}`, { languageCode: id })}
                 />
             {/snippet}

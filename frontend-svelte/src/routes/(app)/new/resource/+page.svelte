@@ -6,7 +6,17 @@
 	import Input from '$lib/components/ui/input/input.svelte';
 	import Label from '$lib/components/ui/label/label.svelte';
 	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
-	import { Textarea } from '$lib/components/ui/textarea';
+	import { fly } from 'svelte/transition';
+
+	function autoresize(node: HTMLTextAreaElement) {
+		function resize() {
+			node.style.height = 'auto';
+			node.style.height = node.scrollHeight + 'px';
+		}
+		node.addEventListener('input', resize);
+		resize();
+		return { destroy: () => node.removeEventListener('input', resize) };
+	}
 	import { LanguageCodes } from '$lib/lists/languageCodes';
 	import type { DatePrecision, ExtractedMetadata } from '$lib/types/resource';
 	import { hashFile, uploadFile } from '$lib/upload';
@@ -103,26 +113,31 @@
     let authors = $state<EntityEntry[]>([]);
     let organisations = $state<EntityEntry[]>([]);
     let relatedPersons = $state<EntityEntry[]>([]);
-    let dateInputStr = $state('');
+    let dateDay = $state('');
+    let dateMonth = $state('');
+    let dateYear = $state('');
 
-    function getDateInputStr(date: string, precision: DatePrecision): string {
-        if (!date) return '';
+    function updateDate() {
+        if (dateYear && dateMonth && dateDay) {
+            resourceInfo.publicationDatePrecision = 'Day';
+            resourceInfo.publicationDate = `${dateYear}-${dateMonth.padStart(2, '0')}-${dateDay.padStart(2, '0')}`;
+        } else if (dateYear && dateMonth) {
+            resourceInfo.publicationDatePrecision = 'Month';
+            resourceInfo.publicationDate = `${dateYear}-${dateMonth.padStart(2, '0')}-01`;
+        } else if (dateYear) {
+            resourceInfo.publicationDatePrecision = 'Year';
+            resourceInfo.publicationDate = `${dateYear}-01-01`;
+        } else {
+            resourceInfo.publicationDate = '';
+        }
+    }
+
+    function setDateFromIso(date: string, precision: DatePrecision) {
+        if (!date) return;
         const d = new Date(date);
-        if (precision === 'Year') return String(d.getFullYear());
-        if (precision === 'Month') return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        return date.split('T')[0];
-    }
-
-    function toIsoDate(val: string, prec: DatePrecision): string {
-        if (!val) return '';
-        if (prec === 'Year') return `${val}-01-01`;
-        if (prec === 'Month') return `${val}-01`;
-        return val;
-    }
-
-    function setDatePrecision(p: DatePrecision) {
-        resourceInfo.publicationDatePrecision = p;
-        dateInputStr = getDateInputStr(resourceInfo.publicationDate, p);
+        dateYear = String(d.getFullYear());
+        dateMonth = precision !== 'Year' ? String(d.getMonth() + 1) : '';
+        dateDay = precision === 'Day' ? String(d.getDate()) : '';
     }
 
     function getUploadType(ext: string): 'audio' | 'video' | 'document' {
@@ -277,9 +292,7 @@
                             extractedMetadata.publicationDatePrecision === 'Exact' ? 'Day'
                             : extractedMetadata.publicationDatePrecision === 'YearMonth' ? 'Month'
                             : 'Year';
-                        dateInputStr = resourceInfo.publicationDatePrecision
-                            ? getDateInputStr(resourceInfo.publicationDate, resourceInfo.publicationDatePrecision)
-                            : '';
+                        setDateFromIso(resourceInfo.publicationDate, resourceInfo.publicationDatePrecision);
                         resourceInfo.abstract = extractedMetadata.abstract ?? '';
                         resourceInfo.description = extractedMetadata.description ?? '';
                         resourceInfo.publicationCode = extractedMetadata.publicationCode ?? '';
@@ -330,104 +343,81 @@
         <!-- Grid -->
         <div class="flex-1 min-h-0 grid grid-cols-2 divide-x divide-border">
             <!-- Resource information -->
-            <div class="flex flex-col gap-4 overflow-y-auto px-4 py-2">
-                <!-- Heading -->
-                <h2 class="text-sm font-semibold">Resource Information</h2>
+            <div class="flex flex-col gap-6 overflow-y-auto px-6 py-4">
 
-                <!-- Type -->
-                <div class="flex flex-col gap-1.5">
-                    <Label>Type</Label>
-                    <AsyncSelect
-                        bind:value={resourceInfo.typeId}
-                        bind:displayValue={resourceTypeDisplay}
-                        search={searchResourceTypes}
-                        oncreate={createResourceType}
-                        placeholder="Select type..."
+                <!-- Title -->
+                <div class="flex flex-col gap-0.5 border-b border-transparent focus-within:border-border transition-colors pb-1">
+                    {#if resourceInfo.title}
+                        <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground">Title</span>
+                    {/if}
+                    <input
+                        bind:value={resourceInfo.title}
+                        placeholder="Title"
+                        class="text-xl font-semibold bg-transparent outline-none w-full placeholder:text-muted-foreground/50"
                     />
                 </div>
 
-                <!-- Title -->
-                <div class="flex flex-col gap-1.5">
-                    <Label>Title</Label>
-                    <Input bind:value={resourceInfo.title} />
-                </div>
-
-                <div class="flex gap-5">
-                    <!-- Language -->
-                    <div class="flex flex-1 flex-col gap-1.5 pt-2">
-                        <Label class="mb-1">Language</Label>
+                <!-- Type + Language -->
+                <div class="flex gap-4">
+                    <div class="flex flex-col gap-0.5 flex-1 min-w-0 border-b border-transparent focus-within:border-border transition-colors">
+                        <span class="text-xs text-muted-foreground">Type</span>
+                        <AsyncSelect
+                            bind:value={resourceInfo.typeId}
+                            bind:displayValue={resourceTypeDisplay}
+                            search={searchResourceTypes}
+                            oncreate={createResourceType}
+                            placeholder="Select type..."
+                            variant="ghost"
+                        />
+                    </div>
+                    <div class="flex flex-col gap-0.5 flex-1 min-w-0 border-b border-transparent focus-within:border-border transition-colors">
+                        <span class="text-xs text-muted-foreground">Language</span>
                         <AsyncSelect
                             bind:value={resourceInfo.languageCode}
                             bind:displayValue={languageDisplay}
                             search={searchLanguages}
                             placeholder="Select language..."
+                            variant="ghost"
                         />
-                    </div>
-
-                    <!-- Publication Date -->
-                    <div class="flex flex-1 flex-col gap-1.5">
-                        <div class="flex justify-between items-center">
-                            <Label>Publication Date</Label>
-                            <div class="flex gap-2 items-center">
-                                <div class="flex rounded-md border border-input text-xs overflow-hidden">
-                                    <button type="button" onclick={() => setDatePrecision('Year')} class="px-2 py-1 {resourceInfo.publicationDatePrecision === 'Year' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}">Year</button>
-                                    <button type="button" onclick={() => setDatePrecision('Month')} class="px-2 py-1 border-x border-input {resourceInfo.publicationDatePrecision === 'Month' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}">Month</button>
-                                    <button type="button" onclick={() => setDatePrecision('Day')} class="px-2 py-1 {resourceInfo.publicationDatePrecision === 'Day' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}">Day</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        {#if resourceInfo.publicationDatePrecision === 'Year'}
-                            <input type="number" bind:value={dateInputStr} onblur={() => resourceInfo.publicationDate = toIsoDate(dateInputStr, 'Year')} min="1900" max="2100" placeholder="YYYY" class="h-9 w-24 rounded-md border border-input bg-transparent px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
-                        {:else if resourceInfo.publicationDatePrecision === 'Month'}
-                            <div class="flex gap-2">
-                                <select
-                                    value={dateInputStr.split('-')[1] ?? ''}
-                                    onchange={(e) => { const yr = dateInputStr.split('-')[0] || String(new Date().getFullYear()); dateInputStr = `${yr}-${(e.target as HTMLSelectElement).value}`; resourceInfo.publicationDate = toIsoDate(dateInputStr, 'Month'); }}
-                                    class="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                                >
-                                    <option value="">Month</option>
-                                    {#each [['01','January'],['02','February'],['03','March'],['04','April'],['05','May'],['06','June'],['07','July'],['08','August'],['09','September'],['10','October'],['11','November'],['12','December']] as [val, lbl] (val)}
-                                        <option value={val}>{lbl}</option>
-                                    {/each}
-                                </select>
-                                <input type="number" value={dateInputStr.split('-')[0] ?? ''} onblur={(e) => { const mo = dateInputStr.split('-')[1] || '01'; dateInputStr = `${(e.target as HTMLInputElement).value}-${mo}`; resourceInfo.publicationDate = toIsoDate(dateInputStr, 'Month'); }} min="1900" max="2100" placeholder="YYYY" class="h-9 w-24 rounded-md border border-input bg-transparent px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
-                            </div>
-                        {:else if resourceInfo.publicationDatePrecision === 'Day'}
-                            <input type="date" bind:value={dateInputStr} onblur={() => resourceInfo.publicationDate = toIsoDate(dateInputStr, 'Day')} class="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
-                        {/if}
                     </div>
                 </div>
 
                 <!-- Abstract -->
                 {#if mode === 'file'}
-                    <div class="flex flex-col gap-1.5">
-                        <Label>Abstract</Label>
-                        <Textarea bind:value={resourceInfo.abstract} rows={3} />
+                    <div class="flex flex-col gap-0.5 border-b border-transparent focus-within:border-border transition-colors pb-1">
+                        {#if resourceInfo.abstract}
+                            <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground">Abstract</span>
+                        {/if}
+                        <textarea
+                            bind:value={resourceInfo.abstract}
+                            placeholder="Abstract"
+                            rows={1}
+                            use:autoresize
+                            class="bg-transparent outline-none w-full resize-none overflow-hidden text-sm placeholder:text-muted-foreground/50"
+                        ></textarea>
                     </div>
                 {/if}
 
                 <!-- Description -->
-                <div class="flex flex-col gap-1.5">
-                    <Label>Description</Label>
-                    <Textarea bind:value={resourceInfo.description} rows={3} />
+                <div class="flex flex-col gap-0.5 border-b border-transparent focus-within:border-border transition-colors pb-1">
+                    {#if resourceInfo.description}
+                        <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground">Description</span>
+                    {/if}
+                    <textarea
+                        bind:value={resourceInfo.description}
+                        placeholder="Description"
+                        rows={1}
+                        use:autoresize
+                        class="bg-transparent outline-none w-full resize-none overflow-hidden text-sm placeholder:text-muted-foreground/50"
+                    ></textarea>
                 </div>
 
                 <!-- Tags -->
-                <div class="flex flex-col gap-1.5">
-                    <Label>Tags</Label>
-                    {#if tags.length > 0}
-                        <div class="flex flex-wrap gap-1.5 py-2">
-                            {#each tags as tag, i (tag)}
-                                <span class="flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-xs">
-                                    {tag}
-                                    <button onclick={() => tags = tags.filter((_, j) => j !== i)} class="cursor-pointer text-muted-foreground hover:text-foreground px-0.5 -mr-1">×</button>
-                                </span>
-                            {/each}
-                        </div>
-                    {/if}
-                    <Input
-                        placeholder="Add tag..."
+                <div class="flex flex-col gap-2">
+                    <span class="text-xs text-muted-foreground">Tags</span>
+                    <input
+                        placeholder="Add tag and press Enter..."
+                        class="bg-transparent outline-none w-full text-sm placeholder:text-muted-foreground/50 border-b border-transparent focus:border-border transition-colors pb-1"
                         onkeydown={(e) => {
                             if (e.key === 'Enter') {
                                 e.preventDefault();
@@ -437,36 +427,86 @@
                             }
                         }}
                     />
+                    {#if tags.length > 0}
+                        <div class="flex flex-wrap gap-1.5">
+                            {#each tags as tag, i (tag)}
+                                <span class="flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-xs">
+                                    {tag}
+                                    <button onclick={() => tags = tags.filter((_, j) => j !== i)} class="cursor-pointer text-muted-foreground hover:text-foreground px-0.5 -mr-1">×</button>
+                                </span>
+                            {/each}
+                        </div>
+                    {/if}
                 </div>
 
-                <!-- Publication Code -->
-                <div class="flex flex-col gap-1.5">
-                    <Label>Publication Code</Label>
-                    <Input bind:value={resourceInfo.publicationCode} />
+                <!-- Publication Date + Publication Code -->
+                <div class="flex gap-4 items-end">
+                    <div class="flex flex-col gap-0.5 flex-1 min-w-0 border-b border-transparent focus-within:border-border transition-colors pb-1">
+                        <span class="text-xs text-muted-foreground">Publication Date</span>
+                        <div class="flex items-center gap-1 text-sm">
+                            <input type="number" bind:value={dateDay} onblur={updateDate} min="1" max="31" placeholder="DD" class="bg-transparent outline-none w-8 placeholder:text-muted-foreground/50" />
+                            <span class="text-muted-foreground/30">/</span>
+                            <input type="number" bind:value={dateMonth} onblur={updateDate} min="1" max="12" placeholder="MM" class="bg-transparent outline-none w-8 placeholder:text-muted-foreground/50" />
+                            <span class="text-muted-foreground/30">/</span>
+                            <input type="number" bind:value={dateYear} onblur={updateDate} min="1000" max="2100" placeholder="YYYY" class="bg-transparent outline-none w-14 placeholder:text-muted-foreground/50" />
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-0.5 flex-1 min-w-0 border-b border-transparent focus-within:border-border transition-colors pb-1">
+                        {#if resourceInfo.publicationCode}
+                            <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground">Publication Code</span>
+                        {/if}
+                        <input
+                            bind:value={resourceInfo.publicationCode}
+                            placeholder="Publication Code"
+                            class="bg-transparent outline-none w-full text-sm placeholder:text-muted-foreground/50"
+                        />
+                    </div>
                 </div>
 
-                <!-- License -->
-                <div class="flex flex-col gap-1.5">
-                    <Label>License</Label>
-                    <Input bind:value={resourceInfo.license} />
-                </div>
-
-                <!-- Source URL -->
-                <div class="flex flex-col gap-1.5">
-                    <Label>Source URL</Label>
-                    <Input type="url" bind:value={resourceInfo.sourceUrl} />
+                <!-- License + Source URL -->
+                <div class="flex gap-4">
+                    <div class="flex flex-col gap-0.5 flex-1 min-w-0 border-b border-transparent focus-within:border-border transition-colors pb-1">
+                        {#if resourceInfo.license}
+                            <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground">License</span>
+                        {/if}
+                        <input
+                            bind:value={resourceInfo.license}
+                            placeholder="License"
+                            class="bg-transparent outline-none w-full text-sm placeholder:text-muted-foreground/50"
+                        />
+                    </div>
+                    <div class="flex flex-col gap-0.5 flex-1 min-w-0 border-b border-transparent focus-within:border-border transition-colors pb-1">
+                        {#if resourceInfo.sourceUrl}
+                            <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground">Source URL</span>
+                        {/if}
+                        <input
+                            type="url"
+                            bind:value={resourceInfo.sourceUrl}
+                            placeholder="Source URL"
+                            class="bg-transparent outline-none w-full text-sm placeholder:text-muted-foreground/50"
+                        />
+                    </div>
                 </div>
 
                 <!-- Note -->
-                <div class="flex flex-col gap-1.5">
-                    <Label>Note</Label>
-                    <Textarea bind:value={resourceInfo.note} rows={3} />
+                <div class="flex flex-col gap-0.5 border-b border-transparent focus-within:border-border transition-colors pb-1">
+                    {#if resourceInfo.note}
+                        <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground">Note</span>
+                    {/if}
+                    <textarea
+                        bind:value={resourceInfo.note}
+                        placeholder="Notes"
+                        rows={1}
+                        use:autoresize
+                        class="bg-transparent outline-none w-full resize-none overflow-hidden text-sm placeholder:text-muted-foreground/50"
+                    ></textarea>
                 </div>
+
             </div>
 
             <!-- Connections -->
             <div class="flex flex-col gap-4 overflow-y-auto px-4 py-2">
-                <h2 class="text-sm font-semibold">Connections</h2>
+                <h1 class="text-xl font-semibold">Connections</h1>
 
                 <!-- Authors -->
                 <div class="flex flex-col gap-2">
@@ -738,3 +778,16 @@
         </div>
     </div>
 {/if}
+
+<style>
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        appearance: none;
+        margin: 0;
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+        appearance: textfield;
+    }
+</style>
