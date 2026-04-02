@@ -334,7 +334,7 @@ namespace KnowledgeBank.Controllers
                                 new Dictionary<string, string>
                                 {
                                     { "extension", directFileExt },
-                                    { "originalFileName", Path.GetFileName(wUrlPath) }
+                                    { "originalFileName", Uri.EscapeDataString(Path.GetFileName(wUrlPath)) }
                                 }
                             );
 

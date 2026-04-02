@@ -62,7 +62,7 @@ namespace KnowledgeBank.Controllers
                 Dictionary<string, string> metadata = new()
                 {
                     { "extension", extension },
-                    { "originalFileName", Path.GetFileNameWithoutExtension(dto.FileName) }
+                    { "originalFileName", Uri.EscapeDataString(Path.GetFileNameWithoutExtension(dto.FileName)) }
                 };
 
                 string uploadId = await storageService.InitiateMultipartUploadAsync(bucketName, uploadGuid.ToString(), metadata);
@@ -243,7 +243,7 @@ namespace KnowledgeBank.Controllers
                 {
                     // Fallback to original filename if resource not found in database
                     title = response.Metadata.TryGetValue("originalFileName", out string? origName)
-                        ? Path.GetFileNameWithoutExtension(origName)
+                        ? Uri.UnescapeDataString(Path.GetFileNameWithoutExtension(origName))
                         : "download";
                 }
                 string fileName = $"{SanitizeFileName(title)}{extension}";

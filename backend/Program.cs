@@ -202,7 +202,7 @@ namespace KnowledgeBank
 
             builder.WebHost.ConfigureKestrel(serverOptions =>
             {
-                serverOptions.Limits.MaxRequestBodySize = 110100480; // 105 MB in bytes
+                serverOptions.Limits.MaxRequestBodySize = 10485760; // 10 MB in bytes
             });
 
             // # Application

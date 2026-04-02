@@ -220,7 +220,7 @@ public class AIController(ResourceManager resourceManager, IServiceScopeFactory 
 
                 ObjectDownloadResponse response = await storageServiceScoped.DownloadObjectAsync(bucketName, value);
                 string extension = response.Metadata["extension"];
-                string fileName = response.Metadata["originalFileName"];
+                string fileName = Uri.UnescapeDataString(response.Metadata["originalFileName"]);
 
                 if (!Filetype.SupportedText(extension))
                 {
