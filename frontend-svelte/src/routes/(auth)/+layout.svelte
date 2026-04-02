@@ -6,11 +6,11 @@
     <!-- Form side (left) -->
     <div class="w-2/5 flex flex-col justify-center items-center p-4">
         <!-- Logo -->
-        <img class="absolute top-4 left-4" src="/img/Charge-logo-NL-purple.png" width={142} height="56.49" alt="logo" />
-        
+        <img class="absolute top-4 left-4" src="/img/charge-logo.avif" width={142} height="56.49" alt="logo" />
+
         {@render children()}
     </div>
-    
+
     <!-- Image side (right) -->
-    <img class="w-3/5 p-2 rounded-2xl object-cover" src="/img/login-image.jpeg" alt="" />
+    <img class="w-3/5 p-2 rounded-2xl object-cover" src="/img/login-image.avif" alt="" />
 </div>
