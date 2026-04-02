@@ -22,7 +22,7 @@
         authorType?: string;
     };
 
-	let phase = $state<Phase>('select');
+	let phase = $state<Phase>('review');
 	let mode = $state<Mode>('file');
 
 	// File mode
@@ -352,49 +352,51 @@
                     <Input bind:value={resourceInfo.title} />
                 </div>
 
-                <!-- Language -->
-                <div class="flex flex-col gap-1.5">
-                    <Label>Language</Label>
-                    <AsyncSelect
-                        bind:value={resourceInfo.languageCode}
-                        bind:displayValue={languageDisplay}
-                        search={searchLanguages}
-                        placeholder="Select language..."
-                    />
-                </div>
-
-                <!-- Publication Date -->
-                <div class="flex flex-col gap-1.5">
-                    <div class="flex justify-between items-center">
-                        <Label>Publication Date</Label>
-                        <div class="flex gap-2 items-center">
-                            <div class="flex rounded-md border border-input text-xs overflow-hidden">
-                                <button type="button" onclick={() => setDatePrecision('Year')} class="px-2 py-1 {resourceInfo.publicationDatePrecision === 'Year' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}">Year</button>
-                                <button type="button" onclick={() => setDatePrecision('Month')} class="px-2 py-1 border-x border-input {resourceInfo.publicationDatePrecision === 'Month' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}">Month</button>
-                                <button type="button" onclick={() => setDatePrecision('Day')} class="px-2 py-1 {resourceInfo.publicationDatePrecision === 'Day' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}">Day</button>
-                            </div>
-                        </div>
+                <div class="flex gap-5">
+                    <!-- Language -->
+                    <div class="flex flex-1 flex-col gap-1.5 pt-2">
+                        <Label class="mb-1">Language</Label>
+                        <AsyncSelect
+                            bind:value={resourceInfo.languageCode}
+                            bind:displayValue={languageDisplay}
+                            search={searchLanguages}
+                            placeholder="Select language..."
+                        />
                     </div>
 
-                    {#if resourceInfo.publicationDatePrecision === 'Year'}
-                        <input type="number" bind:value={dateInputStr} onblur={() => resourceInfo.publicationDate = toIsoDate(dateInputStr, 'Year')} min="1900" max="2100" placeholder="YYYY" class="h-9 w-24 rounded-md border border-input bg-transparent px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
-                    {:else if resourceInfo.publicationDatePrecision === 'Month'}
-                        <div class="flex gap-2">
-                            <select
-                                value={dateInputStr.split('-')[1] ?? ''}
-                                onchange={(e) => { const yr = dateInputStr.split('-')[0] || String(new Date().getFullYear()); dateInputStr = `${yr}-${(e.target as HTMLSelectElement).value}`; resourceInfo.publicationDate = toIsoDate(dateInputStr, 'Month'); }}
-                                class="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                            >
-                                <option value="">Month</option>
-                                {#each [['01','January'],['02','February'],['03','March'],['04','April'],['05','May'],['06','June'],['07','July'],['08','August'],['09','September'],['10','October'],['11','November'],['12','December']] as [val, lbl] (val)}
-                                    <option value={val}>{lbl}</option>
-                                {/each}
-                            </select>
-                            <input type="number" value={dateInputStr.split('-')[0] ?? ''} onblur={(e) => { const mo = dateInputStr.split('-')[1] || '01'; dateInputStr = `${(e.target as HTMLInputElement).value}-${mo}`; resourceInfo.publicationDate = toIsoDate(dateInputStr, 'Month'); }} min="1900" max="2100" placeholder="YYYY" class="h-9 w-24 rounded-md border border-input bg-transparent px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                    <!-- Publication Date -->
+                    <div class="flex flex-1 flex-col gap-1.5">
+                        <div class="flex justify-between items-center">
+                            <Label>Publication Date</Label>
+                            <div class="flex gap-2 items-center">
+                                <div class="flex rounded-md border border-input text-xs overflow-hidden">
+                                    <button type="button" onclick={() => setDatePrecision('Year')} class="px-2 py-1 {resourceInfo.publicationDatePrecision === 'Year' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}">Year</button>
+                                    <button type="button" onclick={() => setDatePrecision('Month')} class="px-2 py-1 border-x border-input {resourceInfo.publicationDatePrecision === 'Month' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}">Month</button>
+                                    <button type="button" onclick={() => setDatePrecision('Day')} class="px-2 py-1 {resourceInfo.publicationDatePrecision === 'Day' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}">Day</button>
+                                </div>
+                            </div>
                         </div>
-                    {:else if resourceInfo.publicationDatePrecision === 'Day'}
-                        <input type="date" bind:value={dateInputStr} onblur={() => resourceInfo.publicationDate = toIsoDate(dateInputStr, 'Day')} class="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
-                    {/if}
+
+                        {#if resourceInfo.publicationDatePrecision === 'Year'}
+                            <input type="number" bind:value={dateInputStr} onblur={() => resourceInfo.publicationDate = toIsoDate(dateInputStr, 'Year')} min="1900" max="2100" placeholder="YYYY" class="h-9 w-24 rounded-md border border-input bg-transparent px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                        {:else if resourceInfo.publicationDatePrecision === 'Month'}
+                            <div class="flex gap-2">
+                                <select
+                                    value={dateInputStr.split('-')[1] ?? ''}
+                                    onchange={(e) => { const yr = dateInputStr.split('-')[0] || String(new Date().getFullYear()); dateInputStr = `${yr}-${(e.target as HTMLSelectElement).value}`; resourceInfo.publicationDate = toIsoDate(dateInputStr, 'Month'); }}
+                                    class="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                                >
+                                    <option value="">Month</option>
+                                    {#each [['01','January'],['02','February'],['03','March'],['04','April'],['05','May'],['06','June'],['07','July'],['08','August'],['09','September'],['10','October'],['11','November'],['12','December']] as [val, lbl] (val)}
+                                        <option value={val}>{lbl}</option>
+                                    {/each}
+                                </select>
+                                <input type="number" value={dateInputStr.split('-')[0] ?? ''} onblur={(e) => { const mo = dateInputStr.split('-')[1] || '01'; dateInputStr = `${(e.target as HTMLInputElement).value}-${mo}`; resourceInfo.publicationDate = toIsoDate(dateInputStr, 'Month'); }} min="1900" max="2100" placeholder="YYYY" class="h-9 w-24 rounded-md border border-input bg-transparent px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                            </div>
+                        {:else if resourceInfo.publicationDatePrecision === 'Day'}
+                            <input type="date" bind:value={dateInputStr} onblur={() => resourceInfo.publicationDate = toIsoDate(dateInputStr, 'Day')} class="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                        {/if}
+                    </div>
                 </div>
 
                 <!-- Abstract -->
@@ -469,7 +471,7 @@
                 <!-- Authors -->
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Authors</h3>
+                        <h3 class="text-xs font-medium text-foreground uppercase tracking-wide">Authors</h3>
                         <button onclick={() => authors = [...authors, { extracted: '', value: '', displayValue: '', authorType: 'Person' }]} class="text-xs text-muted-foreground hover:text-foreground cursor-pointer">+ Add</button>
                     </div>
                     {#each authors as entry, i (i)}
@@ -513,7 +515,7 @@
                 <!-- Related Persons -->
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Related Persons</h3>
+                        <h3 class="text-xs font-medium text-foreground uppercase tracking-wide">Related Persons</h3>
                         <button onclick={() => relatedPersons = [...relatedPersons, { extracted: '', value: '', displayValue: '' }]} class="text-xs text-muted-foreground hover:text-foreground cursor-pointer">+ Add</button>
                     </div>
                     {#each relatedPersons as entry, i (i)}
@@ -550,7 +552,7 @@
                 <!-- Related Organisations -->
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Related Organisations</h3>
+                        <h3 class="text-xs font-medium text-foreground uppercase tracking-wide">Related Organisations</h3>
                         <button onclick={() => organisations = [...organisations, { extracted: '', value: '', displayValue: '' }]} class="text-xs text-muted-foreground hover:text-foreground cursor-pointer">+ Add</button>
                     </div>
                     {#each organisations as entry, i (i)}

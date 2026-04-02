@@ -83,7 +83,7 @@
                     class="flex-1 py-1 text-xs bg-transparent outline-none placeholder:text-muted-foreground"
                     value={searchQuery}
                     oninput={(e) => onSearchInput(e.currentTarget.value)}
-                    placeholder="Search..."
+                    placeholder={oncreate ? 'Search or type to create...' : 'Search...'}
                 />
             </div>
             <div class="max-h-64 overflow-y-auto">
