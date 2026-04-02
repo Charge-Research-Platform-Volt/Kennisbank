@@ -4,17 +4,16 @@
 	import AsyncSelect from '$lib/components/ui/async-select.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Input from '$lib/components/ui/input/input.svelte';
-	import Label from '$lib/components/ui/label/label.svelte';
-	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
-	import { fly } from 'svelte/transition';
+    import { fly } from 'svelte/transition';
 	import { LanguageCodes } from '$lib/lists/languageCodes';
 	import type { DatePrecision, ExtractedMetadata } from '$lib/types/resource';
-	import { hashFile, uploadFile } from '$lib/upload';
-	import { Upload, FileText, User, Building2, X } from 'lucide-svelte';
+	import { User, Building2, X } from 'lucide-svelte';
 	import BadgeInput from '$lib/components/ui/badge-input.svelte';
+    import ProcessingPhase from './processing-phase.svelte';
+    import SelectPhase from './select-phase.svelte';
+    import DuplicatePhase from './duplicate-phase.svelte';
 
 	type Phase = 'select' | 'processing' | 'review' | 'duplicate';
-	type Mode = 'file' | 'url';
     type EntityEntry = {
         extracted: string;
         value: string;
@@ -24,35 +23,16 @@
     };
 
 	let phase = $state<Phase>('review');
-	let mode = $state<Mode>('file');
-
-	// File mode
-	let selectedFile = $state<File | null>(null);
-	let isDragging = $state(false);
-	let supportedExtensions = $state<string[]>([]);
-
-	let fileInput = $state<HTMLInputElement | null>(null);
-	let fileError = $state<string | null>(null);
+	let mode = $state<'file' | 'url'>('file');
 
 	// URL mode
 	let url = $state('');
 
-	const canProceed = $derived(mode === 'file' ? selectedFile !== null : url.trim().length > 0);
-
-	// Upload
-	let uploadStep = $state<'hashing' | 'uploading' | 'starting' | null>(null);
-	let isStarting = $state(false);
-	let startError = $state<string | null>(null);
 	let jobId = $state<string | null>(null);
 	let duplicateId = $state<string | null>(null);
 	let fileId = $state<string | null>(null);
 	let fileHash = $state<string | null>(null);
-
-	// Processing phase
-    let statusMessage = $state('');
-    let progressPercentage = $state(0);
-    let processingError = $state<string | null>(null);
-    let extractedMetadata = $state<ExtractedMetadata | null>(null);
+	let fileExtension = $state('');
 
     // Review phase
     let submitError = $state<string | null>(null);
@@ -207,14 +187,13 @@
             if (mode === 'url') {
                 result = await api.put<string>('/api/resources/new', { uploadType: 'website', url, ...baseDto });
             } else {
-                const ext = selectedFile!.name.split('.').pop()?.toLowerCase() ?? '';
-                const uploadType = getUploadType(ext);
+                const uploadType = getUploadType(fileExtension);
                 result = await api.put<string>('/api/resources/new', {
                     uploadType,
                     ...baseDto,
                     Id: fileId,
                     Hash: fileHash,
-                    FileExtension: ext,
+                    FileExtension: fileExtension,
                     ...(uploadType === 'document' ? { Abstract: resourceInfo.abstract } : {}),
                 });
             }
@@ -227,138 +206,62 @@
         }
     }
 
-	function selectFile(file: File | undefined) {
-		fileError = null;
+    function onSelectComplete(result: { mode: 'file' | 'url'; url: string; jobId: string; fileId: string | null; fileHash: string | null; fileExtension: string }) {
+        mode = result.mode;
+        url = result.url;
+        jobId = result.jobId;
+        fileId = result.fileId;
+        fileHash = result.fileHash;
+        fileExtension = result.fileExtension;
+        phase = 'processing';
+    }
 
-		if (!file) return;
+    function onDuplicate(id: string) {
+        duplicateId = id;
+        phase = 'duplicate';
+    }
 
-		const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+    async function onProcessingComplete(metadata: ExtractedMetadata | null) {
+        if (metadata) {
+            if (mode === 'url') resourceInfo.sourceUrl = url;
+            resourceInfo.title = metadata.title ?? '';
+            resourceInfo.languageCode = metadata.languageCode ?? '';
+            languageDisplay = LanguageCodes.find((l) => l.value === resourceInfo.languageCode)?.label ?? null;
+            resourceInfo.publicationDate = metadata.publicationDate ?? '';
+            resourceInfo.publicationDatePrecision =
+                metadata.publicationDatePrecision === 'Exact' ? 'Day'
+                : metadata.publicationDatePrecision === 'YearMonth' ? 'Month'
+                : 'Year';
+            setDateFromIso(resourceInfo.publicationDate, resourceInfo.publicationDatePrecision);
+            resourceInfo.abstract = metadata.abstract ?? '';
+            resourceInfo.description = metadata.description ?? '';
+            resourceInfo.publicationCode = metadata.publicationCode ?? '';
 
-		if (supportedExtensions.length > 0 && !supportedExtensions.includes(ext)) {
-			fileError = 'This file is not supported.';
-			return;
-		}
+            tags = await Promise.all(metadata.tags.map(async (name: string) => {
+                const results = await searchTags(name);
+                const exact = results.find(r => r.name.toLowerCase() === name.toLowerCase());
+                return exact ?? { id: name, name };
+            }));
 
-		selectedFile = file;
-	}
+            const toEntry = (e: { name: string; type: string; similars: { id: string; name: string; score: number }[] }): EntityEntry => {
+                const top = e.similars[0];
+                return top && top.score >= 0.8
+                    ? { extracted: e.name, value: top.id, displayValue: top.name, authorType: e.type }
+                    : { extracted: e.name, value: e.name, displayValue: e.name, authorType: e.type };
+            };
 
-	async function handleNext() {
-		isStarting = true;
-		startError = null;
+            authors = metadata.authors.map(toEntry);
+            organisations = metadata.organisations.map(toEntry);
+            relatedPersons = metadata.relatedPersons.map(toEntry);
+        }
 
-		try {
-			let extractType: 'file' | 'web';
-			let extractValue: string;
+        phase = 'review';
+    }
 
-			if (mode === 'file') {
-				uploadStep = 'hashing';
-				const hash = await hashFile(selectedFile!);
-				const dup = await api.get<{ exists: boolean; id: string }>(
-					`/api/resources/exists?hash=${encodeURIComponent(hash)}`
-				);
+    function onProcessingSkip() {
+        phase = 'review';
+    }
 
-				if (dup.body.exists) {
-					duplicateId = dup.body.id;
-					phase = 'duplicate';
-					return;
-				}
-
-				uploadStep = 'uploading';
-				const objectName = await uploadFile(selectedFile!);
-				fileId = objectName;
-				fileHash = hash;
-				extractValue = objectName;
-				extractType = 'file';
-			} else {
-				const dup = await api.get<{ exists: boolean; id: string }>(
-					`/api/resources/exists?url=${encodeURIComponent(url)}`
-				);
-
-				if (dup.body.exists) {
-					duplicateId = dup.body.id;
-					phase = 'duplicate';
-					return;
-				}
-
-				extractType = 'web';
-				extractValue = url;
-			}
-
-			uploadStep = 'starting';
-			const result = await api.post<{ jobId: string }>(
-				`/api/ai/extract-metadata/start?type=${extractType}&value=${encodeURIComponent(extractValue)}`
-			);
-
-			jobId = result.body.jobId;
-			phase = 'processing';
-		} catch (e) {
-			startError = e instanceof Error ? e.message : 'Something went wrong';
-		} finally {
-			isStarting = false;
-			uploadStep = null;
-		}
-	}
-
-    $effect(() => {
-        if (phase !== 'processing' || !jobId) return;
-
-        const interval = setInterval(async () => {
-            try {
-                const res = await api.get<{ status: string; statusMessage: string; progressPercentage: number; result: ExtractedMetadata | null; errorMessage: string | null; }>(`/api/ai/extract-metadata/status/${jobId}`);
-
-                statusMessage = res.body.statusMessage;
-                progressPercentage = res.body.progressPercentage;
-
-                if (res.body.status === 'Completed') {
-                    extractedMetadata = res.body.result;
-                    
-                    // Fill in extracted metadata
-                    if (extractedMetadata) {
-                        if (mode === 'url') resourceInfo.sourceUrl = url;
-                        resourceInfo.title = extractedMetadata.title ?? '';
-                        resourceInfo.languageCode = extractedMetadata.languageCode ?? '';
-                        languageDisplay = LanguageCodes.find((l) => l.value === resourceInfo.languageCode)?.label ?? null;
-                        resourceInfo.publicationDate = extractedMetadata.publicationDate ?? '';
-                        resourceInfo.publicationDatePrecision =
-                            extractedMetadata.publicationDatePrecision === 'Exact' ? 'Day'
-                            : extractedMetadata.publicationDatePrecision === 'YearMonth' ? 'Month'
-                            : 'Year';
-                        setDateFromIso(resourceInfo.publicationDate, resourceInfo.publicationDatePrecision);
-                        resourceInfo.abstract = extractedMetadata.abstract ?? '';
-                        resourceInfo.description = extractedMetadata.description ?? '';
-                        resourceInfo.publicationCode = extractedMetadata.publicationCode ?? '';
-
-                        tags = await Promise.all(extractedMetadata.tags.map(async (name) => {
-                            const results = await searchTags(name);
-                            const exact = results.find(r => r.name.toLowerCase() === name.toLowerCase());
-                            return exact ?? { id: name, name };
-                        }));
-
-                        const toEntry = (e: { name: string; type: string; similars: { id: string; name: string; score: number }[] }): EntityEntry => {
-                            const top = e.similars[0];
-                            return top && top.score >= 0.8
-                                ? { extracted: e.name, value: top.id, displayValue: top.name, authorType: e.type }
-                                : { extracted: e.name, value: e.name, displayValue: e.name, authorType: e.type };
-                        };
-
-                        authors = extractedMetadata.authors.map(toEntry);
-                        organisations = extractedMetadata.organisations.map(toEntry);
-                        relatedPersons = extractedMetadata.relatedPersons.map(toEntry);
-                    }
-
-                    phase = 'review';
-                } else if (res.body.status === 'Failed') {
-                    processingError = res.body.errorMessage ?? 'Processing Failed'
-                }
-            } catch { /* Ignore errors */ }
-        }, 2000);
-
-        return () => clearInterval(interval);
-    });
-
-	api.get<{ document: string[] }>('/api/resources/supported_extensions')
-		.then((r) => (supportedExtensions = r.body.document))
-		.catch(() => {});
 
 </script>
 
@@ -661,139 +564,11 @@
             </div>
 
             {#if phase === 'select'}
-                <!-- Mode toggle -->
-                <div class="flex rounded-lg bg-muted p-1">
-                    <button
-                        type="button"
-                        onclick={() => (mode = 'file')}
-                        class="transistion-colors flex-1 cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium {mode ===
-                        'file'
-                            ? 'bg-backround shadow-sm'
-                            : 'text-muted-foreground hover:text-foreground'}"
-                    >
-                        File
-                    </button>
-                    <button
-                        type="button"
-                        onclick={() => (mode = 'url')}
-                        class="transistion-colors flex-1 cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium {mode ===
-                        'url'
-                            ? 'bg-backround shadow-sm'
-                            : 'text-muted-foreground hover:text-foreground'}"
-                    >
-                        URL
-                    </button>
-                </div>
-
-                {#if mode === 'file'}
-                    <!-- Drop zone -->
-                    <div
-                        role="button"
-                        tabindex="0"
-                        onclick={() => fileInput?.click()}
-                        onkeydown={(e) => e.key === 'Enter' && fileInput?.click()}
-                        ondragover={(e) => {
-                            e.preventDefault();
-                            isDragging = true;
-                        }}
-                        ondragleave={() => (isDragging = false)}
-                        ondrop={(e) => {
-                            e.preventDefault();
-                            isDragging = false;
-                            selectFile(e.dataTransfer?.files[0]);
-                        }}
-                        class="flex min-h-48 cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border p-8 transition-colors {isDragging
-                            ? 'border-primary bg-accent'
-                            : 'hover:bg-accent/50'}"
-                    >
-                        {#if selectedFile}
-                            <FileText class="h-8 w-8 text-primary" />
-                            <p class="text-sm font-medium">{selectedFile.name}</p>
-                            <p class="text-xs text-muted-foreground">
-                                {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                            </p>
-                            <button
-                                onclick={(e) => {
-                                    e.stopPropagation();
-                                    selectedFile = null;
-                                }}
-                                class="text-xs text-muted-foreground underline hover:text-foreground">Remove</button
-                            >
-                        {:else}
-                            <Upload class="h-8 w-8 text-muted-foreground" />
-                            <p class="text-sm font-medium">Drop a file or click to browse</p>
-                            <p class="text-xs text-muted-foreground">{supportedExtensions.join(', ')}</p>
-                        {/if}
-                    </div>
-
-                    {#if fileError}
-                        <p class="text-xs text-destructive">{fileError}</p>
-                    {/if}
-
-                    <input
-                        bind:this={fileInput}
-                        type="file"
-                        class="hidden"
-                        accept={supportedExtensions.map((ext) => `.${ext}`).join(',')}
-                        onchange={() => selectFile(fileInput?.files?.[0])}
-                    />
-                {:else}
-                    <!-- URL input -->
-                    <div class="flex flex-col gap-1.5">
-                        <Label for="url">URL</Label>
-                        <Input id="url" type="url" bind:value={url} placeholder="https://example.com/article" />
-                    </div>
-                {/if}
-
-                {#if startError}
-                    <p class="text-xs text-destructive">{startError}</p>
-                {/if}
-
-                <!-- Next -->
-                <div class="flex justify-end">
-                    <Button disabled={!canProceed || isStarting} onclick={handleNext} class="cursor-pointer">
-                        {#if uploadStep === 'hashing'}Hashing...
-                        {:else if uploadStep === 'uploading'}Uploading...
-                        {:else if uploadStep === 'starting'}Starting...
-                        {:else}Next{/if}
-                    </Button>
-                </div>
+                <SelectPhase oncomplete={onSelectComplete} onduplicate={onDuplicate} />
             {:else if phase === 'processing'}
-                <div class="flex flex-col items-center gap-4 py-8">
-                    
-                    {#if processingError}
-                        <p class="text-destructive text-xs">{processingError}</p>
-
-                    {:else}
-                        <Spinner class="h-8 w-8" />
-                        <p class="text-sm font-medium">{statusMessage || 'Processing...'}</p>
-                        <p class="text-muted-foreground text-xs">{progressPercentage}%</p>
-                    {/if}
-                </div>
-
-                <div class="flex justify-center gap-5">
-                    {#if processingError}
-                        <Button class="cursor-pointer" onclick={() => location.reload()}>
-                            Go back
-                        </Button>
-                    {/if}
-
-                    <Button variant="ghost" class="cursor-pointer" onclick={() => { phase = 'review'; extractedMetadata = null; }}>
-                        Skip to manual entry
-                    </Button>
-                </div>
+                <ProcessingPhase jobId={jobId!} oncomplete={onProcessingComplete} onskip={onProcessingSkip} />
             {:else if phase === 'duplicate'}
-                <div class="flex flex-col gap-4 border-border rounded-lg border p-6">
-                    <div class="flex flex-col gap-1.5">
-                        <p class="text-sm font-medium">This resource already exists in the library.</p>
-                        <p class="text-muted-foreground text-xs">You can view the existing resource or go back to upload a different file.</p>
-                    </div>
-
-                    <div class="flex gap-3">
-                        <Button variant="outline" onclick={() => phase = 'select'}>Go back</Button>
-                        <Button href="/library?inspectorId={duplicateId}&inspectorType=resource">View Resource</Button>
-                    </div>
-                </div>
+                <DuplicatePhase duplicateId={duplicateId!} onback={() => phase = 'select'} />
             {/if}
         </div>
     </div>
