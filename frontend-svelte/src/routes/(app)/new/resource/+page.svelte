@@ -7,20 +7,11 @@
 	import Label from '$lib/components/ui/label/label.svelte';
 	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
 	import { fly } from 'svelte/transition';
-
-	function autoresize(node: HTMLTextAreaElement) {
-		function resize() {
-			node.style.height = 'auto';
-			node.style.height = node.scrollHeight + 'px';
-		}
-		node.addEventListener('input', resize);
-		resize();
-		return { destroy: () => node.removeEventListener('input', resize) };
-	}
 	import { LanguageCodes } from '$lib/lists/languageCodes';
 	import type { DatePrecision, ExtractedMetadata } from '$lib/types/resource';
 	import { hashFile, uploadFile } from '$lib/upload';
 	import { Upload, FileText, User, Building2, X } from 'lucide-svelte';
+	import BadgeInput from '$lib/components/ui/badge-input.svelte';
 
 	type Phase = 'select' | 'processing' | 'review' | 'duplicate';
 	type Mode = 'file' | 'url';
@@ -95,6 +86,35 @@
         return result.body;
     }
 
+    const searchTags = async (q: string) => {
+        const url = q ? `/api/tags/tag-page?pageIndex=1&pageSize=20&searchQuery=${encodeURIComponent(q)}` : '/api/tags/tag-page?pageIndex=1&pageSize=20';
+        const r = await api.get<{ tags: { id: string; name: string }[] }>(url);
+        return r.body?.tags ?? [];
+    }
+
+    const createTag = async (name: string): Promise<{ id: string; name: string } | null> => {
+        const response = await fetch('/api/tags/add-user-tag', {
+            method: 'PUT',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+        });
+        const data = await response.json();
+        if (response.ok || response.status === 409) return { id: data.body as string, name };
+        return null;
+    }
+
+    const searchRegions = async (q: string) => {
+        const url = q ? `/api/regions/list?pageIndex=1&pageSize=20&searchQuery=${encodeURIComponent(q)}&properties=Id,Name` : '/api/regions/list?pageIndex=1&pageSize=20&properties=Id,Name';
+        const r = await api.get<{ id: string; name: string }[]>(url);
+        return r.body ?? [];
+    }
+
+    const createRegion = async (name: string): Promise<{ id: string; name: string } | null> => {
+        const r = await api.put<string>('/api/regions/new', { name });
+        return { id: r.body, name };
+    }
+
     let resourceInfo = $state({
         typeId: '',
         title: '',
@@ -109,13 +129,24 @@
         note: '',
     });
 
-    let tags = $state<string[]>([]);
+    let tags = $state<{ id: string; name: string }[]>([]);
+    let regions = $state<{ id: string; name: string }[]>([]);
     let authors = $state<EntityEntry[]>([]);
     let organisations = $state<EntityEntry[]>([]);
     let relatedPersons = $state<EntityEntry[]>([]);
     let dateDay = $state('');
     let dateMonth = $state('');
     let dateYear = $state('');
+
+    function autoresize(node: HTMLTextAreaElement) {
+		function resize() {
+			node.style.height = 'auto';
+			node.style.height = node.scrollHeight + 'px';
+		}
+		node.addEventListener('input', resize);
+		resize();
+		return { destroy: () => node.removeEventListener('input', resize) };
+	}
 
     function updateDate() {
         if (dateYear && dateMonth && dateDay) {
@@ -164,11 +195,11 @@
                 License: resourceInfo.license || null,
                 SourceUrl: resourceInfo.sourceUrl || null,
                 Note: resourceInfo.note || null,
-                Tags: tags,
+                Tags: tags.map(t => t.id),
                 Authors: authors.map(a => ({ value: a.value, type: a.authorType?.toLowerCase() ?? 'person' })),
                 Organisations: organisations.map(o => ({ Id: o.value, Relation: o.role || null })),
                 RelatedPersons: relatedPersons.map(p => ({ Id: p.value, Relation: p.role || null })),
-                Regions: [],
+                Regions: regions.map(r => r.id),
             };
 
             let result: { body: string };
@@ -297,7 +328,11 @@
                         resourceInfo.description = extractedMetadata.description ?? '';
                         resourceInfo.publicationCode = extractedMetadata.publicationCode ?? '';
 
-                        tags = [...extractedMetadata.tags];
+                        tags = await Promise.all(extractedMetadata.tags.map(async (name) => {
+                            const results = await searchTags(name);
+                            const exact = results.find(r => r.name.toLowerCase() === name.toLowerCase());
+                            return exact ?? { id: name, name };
+                        }));
 
                         const toEntry = (e: { name: string; type: string; similars: { id: string; name: string; score: number }[] }): EntityEntry => {
                             const top = e.similars[0];
@@ -343,7 +378,7 @@
         <!-- Grid -->
         <div class="flex-1 min-h-0 grid grid-cols-2 divide-x divide-border">
             <!-- Resource information -->
-            <div class="flex flex-col gap-6 overflow-y-auto px-6 py-4">
+            <div class="flex flex-col gap-6 overflow-y-auto px-6 py-4 pb-10">
 
                 <!-- Title -->
                 <div class="flex flex-col gap-0.5 border-b border-transparent focus-within:border-border transition-colors pb-1">
@@ -366,7 +401,7 @@
                             bind:displayValue={resourceTypeDisplay}
                             search={searchResourceTypes}
                             oncreate={createResourceType}
-                            placeholder="Select type..."
+                            placeholder="Select or create type..."
                             variant="ghost"
                         />
                     </div>
@@ -415,28 +450,13 @@
                 <!-- Tags -->
                 <div class="flex flex-col gap-2">
                     <span class="text-xs text-muted-foreground">Tags</span>
-                    <input
-                        placeholder="Add tag and press Enter..."
-                        class="bg-transparent outline-none w-full text-sm placeholder:text-muted-foreground/50 border-b border-transparent focus:border-border transition-colors pb-1"
-                        onkeydown={(e) => {
-                            if (e.key === 'Enter') {
-                                e.preventDefault();
-                                const val = (e.currentTarget as HTMLInputElement).value.trim();
-                                if (val && !tags.includes(val)) tags = [...tags, val];
-                                (e.currentTarget as HTMLInputElement).value = '';
-                            }
-                        }}
-                    />
-                    {#if tags.length > 0}
-                        <div class="flex flex-wrap gap-1.5">
-                            {#each tags as tag, i (tag)}
-                                <span class="flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-xs">
-                                    {tag}
-                                    <button onclick={() => tags = tags.filter((_, j) => j !== i)} class="cursor-pointer text-muted-foreground hover:text-foreground px-0.5 -mr-1">×</button>
-                                </span>
-                            {/each}
-                        </div>
-                    {/if}
+                    <BadgeInput bind:items={tags} search={searchTags} oncreate={createTag} placeholder="Search or create tag..." />
+                </div>
+
+                <!-- Regions -->
+                <div class="flex flex-col gap-2">
+                    <span class="text-xs text-muted-foreground">Regions</span>
+                    <BadgeInput bind:items={regions} search={searchRegions} oncreate={createRegion} placeholder="Search or create region..." />
                 </div>
 
                 <!-- Publication Date + Publication Code -->
@@ -505,7 +525,7 @@
             </div>
 
             <!-- Connections -->
-            <div class="flex flex-col gap-4 overflow-y-auto px-4 py-2">
+            <div class="flex flex-col gap-4 overflow-y-auto px-4 py-2 pb-10">
                 <h1 class="text-xl font-semibold">Connections</h1>
 
                 <!-- Authors -->
