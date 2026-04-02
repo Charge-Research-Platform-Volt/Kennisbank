@@ -14,21 +14,22 @@
 	theme={mode.current}
 	class="toaster group"
 	style="--normal-bg: var(--color-popover); --normal-text: var(--color-popover-foreground); --normal-border: var(--color-border);"
+	toastOptions={{ classes: { error: '!border-destructive' } }}
 	{...restProps}
 >
 	{#snippet loadingIcon()}
 		<Loader2Icon class="size-4 animate-spin" />
 	{/snippet}
 	{#snippet successIcon()}
-		<CircleCheckIcon class="size-4" />
+		<CircleCheckIcon class="size-4 text-emerald-500" />
 	{/snippet}
 	{#snippet errorIcon()}
-		<OctagonXIcon class="size-4" />
+		<OctagonXIcon class="size-4 text-destructive" />
 	{/snippet}
 	{#snippet infoIcon()}
 		<InfoIcon class="size-4" />
 	{/snippet}
 	{#snippet warningIcon()}
-		<TriangleAlertIcon class="size-4" />
+		<TriangleAlertIcon class="size-4 text-amber-400" />
 	{/snippet}
 </Sonner>

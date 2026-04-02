@@ -12,6 +12,15 @@
     let searchQuery = $state('');
     let searchResults = $state<{ id: string; name: string }[]>([]);
     let searchOpen = $state(false);
+    let highlightedIndex = $state(-1);
+
+    let filtered = $derived(searchResults.filter(r => !items.some(i => i.id === r.id)));
+
+    // Reset highlight when results change
+    $effect(() => {
+        filtered;
+        highlightedIndex = -1;
+    });
 
     const debouncedSearch = debounce((q: string) => {
         search(q).then(r => { searchResults = r; searchOpen = true; });
@@ -28,6 +37,7 @@
         searchQuery = '';
         searchResults = [];
         searchOpen = false;
+        highlightedIndex = -1;
     }
 
     async function createItem() {
@@ -40,6 +50,7 @@
         searchQuery = '';
         searchResults = [];
         searchOpen = false;
+        highlightedIndex = -1;
     }
 </script>
 
@@ -49,18 +60,32 @@
             type="text"
             value={searchQuery}
             oninput={(e) => onSearchInput(e.currentTarget.value)}
+            onkeydown={(e) => {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    searchOpen = true;
+                    highlightedIndex = Math.min(highlightedIndex + 1, filtered.length - 1);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    highlightedIndex = Math.max(highlightedIndex - 1, -1);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (highlightedIndex >= 0 && highlightedIndex < filtered.length) addItem(filtered[highlightedIndex].id, filtered[highlightedIndex].name);
+                    else if (filtered.length > 0) addItem(filtered[0].id, filtered[0].name);
+                    else if (searchQuery.trim()) createItem();
+                }
+            }}
             onfocus={() => search(searchQuery).then(r => { searchResults = r; searchOpen = true; })}
-            onblur={() => setTimeout(() => { searchOpen = false; }, 150)}
+            onblur={() => setTimeout(() => { searchOpen = false; highlightedIndex = -1; }, 150)}
             {placeholder}
             class="w-full text-sm bg-transparent outline-none placeholder:text-muted-foreground/50"
         />
         {#if searchOpen}
-            {@const filtered = searchResults.filter(r => !items.some(i => i.id === r.id))}
             {@const showCreate = !!oncreate && !!searchQuery.trim() && !searchResults.some(r => r.name.toLowerCase() === searchQuery.trim().toLowerCase())}
             {#if filtered.length || showCreate}
                 <div class="absolute top-full left-0 right-0 mt-0.5 z-10 bg-popover border border-border rounded-sm shadow-md max-h-40 overflow-y-auto">
-                    {#each filtered as result (result.id)}
-                        <button onmousedown={() => addItem(result.id, result.name)} class="w-full text-left text-xs px-2 py-1.5 hover:bg-accent cursor-pointer">
+                    {#each filtered as result, idx (result.id)}
+                        <button onmousedown={() => addItem(result.id, result.name)} class="w-full text-left text-xs px-2 py-1.5 cursor-pointer {idx === highlightedIndex ? 'bg-accent' : 'hover:bg-accent'}">
                             {result.name}
                         </button>
                     {:else}

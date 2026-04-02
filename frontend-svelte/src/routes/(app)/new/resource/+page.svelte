@@ -2,13 +2,14 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import AsyncSelect from '$lib/components/ui/async-select.svelte';
+	import InlineSelect from '$lib/components/ui/inline-select.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
-	import Input from '$lib/components/ui/input/input.svelte';
     import { fly } from 'svelte/transition';
 	import { LanguageCodes } from '$lib/lists/languageCodes';
 	import type { DatePrecision, ExtractedMetadata } from '$lib/types/resource';
-	import { User, Building2, X } from 'lucide-svelte';
+	import { User, Building2, X, CircleCheck, Sparkles } from 'lucide-svelte';
 	import BadgeInput from '$lib/components/ui/badge-input.svelte';
+	import { toast } from 'svelte-sonner';
     import ProcessingPhase from './processing-phase.svelte';
     import SelectPhase from './select-phase.svelte';
     import DuplicatePhase from './duplicate-phase.svelte';
@@ -18,6 +19,7 @@
         extracted: string;
         value: string;
         displayValue: string;
+        score?: number | null;
         role?: string;
         authorType?: string;
     };
@@ -35,7 +37,6 @@
 	let fileExtension = $state('');
 
     // Review phase
-    let submitError = $state<string | null>(null);
     let resourceTypeDisplay = $state<string | null>(null);
     let languageDisplay = $state<string | null>(null);
 
@@ -160,7 +161,6 @@
     let isSubmitting = $state(false);
 
     async function handleSubmit() {
-        submitError = null;
         isSubmitting = true;
 
         try {
@@ -200,7 +200,7 @@
 
             goto(`/library?inspectorId=${result.body}&inspectorType=resource`);
         } catch (e) {
-            submitError = e instanceof Error ? e.message : 'Something went wrong';
+            toast.error(e instanceof Error ? e.message : 'Something went wrong');
         } finally {
             isSubmitting = false;
         }
@@ -246,8 +246,8 @@
             const toEntry = (e: { name: string; type: string; similars: { id: string; name: string; score: number }[] }): EntityEntry => {
                 const top = e.similars[0];
                 return top && top.score >= 0.8
-                    ? { extracted: e.name, value: top.id, displayValue: top.name, authorType: e.type }
-                    : { extracted: e.name, value: e.name, displayValue: e.name, authorType: e.type };
+                    ? { extracted: e.name, value: top.id, displayValue: top.name, authorType: e.type, score: top.score }
+                    : { extracted: e.name, value: e.name, displayValue: e.name, authorType: e.type, score: top?.score ?? null };
             };
 
             authors = metadata.authors.map(toEntry);
@@ -270,16 +270,13 @@
         <!-- Header -->
         <div class="flex items-center justify-between border-b border-border pb-4">
             <h1 class="text-2xl font-semibold">Review Resource</h1>
-            {#if submitError}
-                <p class="text-sm text-destructive">{submitError}</p>
-            {/if}
-            <Button onclick={handleSubmit} disabled={isSubmitting} class="cursor-pointer">
+<Button onclick={handleSubmit} disabled={isSubmitting} class="cursor-pointer">
                 {isSubmitting ? 'Saving...' : '+ Add Resource'}
             </Button>
         </div>
 
         <!-- Grid -->
-        <div class="flex-1 min-h-0 grid grid-cols-2 divide-x divide-border">
+        <div class="flex-1 min-h-0 grid grid-cols-[3fr_2fr] divide-x divide-border">
             <!-- Resource information -->
             <div class="flex flex-col gap-6 overflow-y-auto px-6 py-4 pb-10">
 
@@ -429,32 +426,43 @@
 
             <!-- Connections -->
             <div class="flex flex-col gap-4 overflow-y-auto px-4 py-2 pb-10">
-                <h1 class="text-xl font-semibold">Connections</h1>
 
                 <!-- Authors -->
                 <div class="flex flex-col gap-2">
-                    <div class="flex items-center justify-between">
+                    <div>
                         <h3 class="text-xs font-medium text-foreground uppercase tracking-wide">Authors</h3>
-                        <button onclick={() => authors = [...authors, { extracted: '', value: '', displayValue: '', authorType: 'Person' }]} class="text-xs text-muted-foreground hover:text-foreground cursor-pointer">+ Add</button>
+                        <p class="text-xs text-muted-foreground">Wrote or contributed to this resource</p>
                     </div>
                     {#each authors as entry, i (i)}
-                        <div class="flex flex-col gap-0.5">
+                        {#if i > 0}<div class="border-t border-border/50"></div>{/if}
+                        <div class="flex flex-col gap-1">
                             {#if entry.extracted}
-                                <span class="text-xs text-muted-foreground">{entry.extracted}</span>
+                                <div class="flex items-center gap-1 text-xs text-muted-foreground">
+                                    <span class="shrink-0">Found:</span>
+                                    <span class="font-mono truncate" title={entry.extracted}>"{entry.extracted}"</span>
+                                    {#if entry.score != null && entry.score >= 0.8}
+                                        <span title="Matched to existing entity with {Math.min(100, Math.round(entry.score * 100))}% confidence" class="flex items-center gap-0.5 text-emerald-500 font-medium ml-auto shrink-0">
+                                            <CircleCheck size={11} />{Math.min(100, Math.round(entry.score * 100))}%
+                                        </span>
+                                    {:else}
+                                        <span title="No confident match found — will be created as a new entity" class="flex items-center gap-0.5 text-amber-400 font-medium ml-auto shrink-0">
+                                            <Sparkles size={11} />New
+                                        </span>
+                                    {/if}
+                                </div>
                             {/if}
                             <div class="flex gap-1.5 items-center">
                                 <button
                                     onclick={() => { entry.authorType = entry.authorType === 'Organisation' ? 'Person' : 'Organisation'; entry.value = ''; entry.displayValue = ''; }}
-                                    title={entry.authorType === 'Organisation' ? 'Organisation' : 'Person'}
-                                    class="text-muted-foreground hover:text-foreground shrink-0 cursor-pointer">
+                                    class="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground shrink-0 cursor-pointer border border-border/50 rounded px-1.5 py-0.5 hover:border-border transition-colors">
                                     {#if entry.authorType === 'Organisation'}
-                                        <Building2 size={16} />
+                                        <Building2 size={13} />Org
                                     {:else}
-                                        <User size={16} />
+                                        <User size={13} />Person
                                     {/if}
                                 </button>
-                                <div class="flex-1">
-                                    <AsyncSelect
+                                <div class="flex-1 min-w-0">
+                                    <InlineSelect
                                         bind:value={entry.value}
                                         bind:displayValue={entry.displayValue}
                                         search={entry.authorType === 'Organisation' ? searchOrganisations : searchPersons}
@@ -462,8 +470,10 @@
                                         placeholder="Search or create..."
                                     />
                                 </div>
-                                {#if entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
-                                    <span class="text-xs text-muted-foreground bg-secondary rounded px-1.5 py-0.5 shrink-0">New</span>
+                                {#if !entry.extracted && entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
+                                    <span title="Will be created as a new entity" class="flex items-center gap-0.5 text-xs text-amber-400 font-medium shrink-0">
+                                        <Sparkles size={11} />New
+                                    </span>
                                 {/if}
                                 <button onclick={() => authors = authors.filter((_, j) => j !== i)} class="text-muted-foreground hover:text-foreground shrink-0 cursor-pointer">
                                     <X size={14} />
@@ -471,24 +481,38 @@
                             </div>
                         </div>
                     {/each}
+                    <button onclick={() => authors = [...authors, { extracted: '', value: '', displayValue: '', authorType: 'Person' }]} class="w-full border border-dashed border-border rounded text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40 cursor-pointer py-1.5 transition-colors">+ Add</button>
                 </div>
 
                 <div class="border-t border-border"></div>
 
                 <!-- Related Persons -->
                 <div class="flex flex-col gap-2">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-xs font-medium text-foreground uppercase tracking-wide">Related Persons</h3>
-                        <button onclick={() => relatedPersons = [...relatedPersons, { extracted: '', value: '', displayValue: '' }]} class="text-xs text-muted-foreground hover:text-foreground cursor-pointer">+ Add</button>
+                    <div>
+                        <h3 class="text-xs font-medium text-foreground uppercase tracking-wide">People</h3>
+                        <p class="text-xs text-muted-foreground">Mentioned or otherwise connected</p>
                     </div>
                     {#each relatedPersons as entry, i (i)}
-                        <div class="flex flex-col gap-0.5">
+                        {#if i > 0}<div class="border-t border-border/50"></div>{/if}
+                        <div class="flex flex-col gap-1">
                             {#if entry.extracted}
-                                <span class="text-xs text-muted-foreground">{entry.extracted}</span>
+                                <div class="flex items-center gap-1 text-xs text-muted-foreground">
+                                    <span class="shrink-0">Found:</span>
+                                    <span class="font-mono truncate" title={entry.extracted}>"{entry.extracted}"</span>
+                                    {#if entry.score != null && entry.score >= 0.8}
+                                        <span title="Matched to existing entity with {Math.min(100, Math.round(entry.score * 100))}% confidence" class="flex items-center gap-0.5 text-emerald-500 font-medium ml-auto shrink-0">
+                                            <CircleCheck size={11} />{Math.min(100, Math.round(entry.score * 100))}%
+                                        </span>
+                                    {:else}
+                                        <span title="No confident match found — will be created as a new entity" class="flex items-center gap-0.5 text-amber-400 font-medium ml-auto shrink-0">
+                                            <Sparkles size={11} />New
+                                        </span>
+                                    {/if}
+                                </div>
                             {/if}
                             <div class="flex gap-1.5 items-center">
-                                <div class="flex-1">
-                                    <AsyncSelect
+                                <div class="flex-1 min-w-0">
+                                    <InlineSelect
                                         bind:value={entry.value}
                                         bind:displayValue={entry.displayValue}
                                         search={searchPersons}
@@ -496,36 +520,52 @@
                                         placeholder="Search or create..."
                                     />
                                 </div>
-                                {#if entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
-                                    <span class="text-xs text-muted-foreground bg-secondary rounded px-1.5 py-0.5 shrink-0">New</span>
+                                {#if !entry.extracted && entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
+                                    <span title="Will be created as a new entity" class="flex items-center gap-0.5 text-xs text-amber-400 font-medium shrink-0">
+                                        <Sparkles size={11} />New
+                                    </span>
                                 {/if}
                                 <button onclick={() => relatedPersons = relatedPersons.filter((_, j) => j !== i)} class="text-muted-foreground hover:text-foreground shrink-0 cursor-pointer">
                                     <X size={14} />
                                 </button>
                             </div>
-                            {#if entry.value}
-                                <Input bind:value={entry.role} placeholder="Role (optional)..." class="h-7 text-xs" />
-                            {/if}
+                            <div class="border-b border-transparent focus-within:border-border transition-colors pb-0.5">
+                                <input bind:value={entry.role} placeholder="Role..." class="bg-transparent outline-none w-full text-xs placeholder:text-muted-foreground/50" />
+                            </div>
                         </div>
                     {/each}
+                    <button onclick={() => relatedPersons = [...relatedPersons, { extracted: '', value: '', displayValue: '' }]} class="w-full border border-dashed border-border rounded text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40 cursor-pointer py-1.5 transition-colors">+ Add</button>
                 </div>
 
                 <div class="border-t border-border"></div>
 
                 <!-- Related Organisations -->
                 <div class="flex flex-col gap-2">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-xs font-medium text-foreground uppercase tracking-wide">Related Organisations</h3>
-                        <button onclick={() => organisations = [...organisations, { extracted: '', value: '', displayValue: '' }]} class="text-xs text-muted-foreground hover:text-foreground cursor-pointer">+ Add</button>
+                    <div>
+                        <h3 class="text-xs font-medium text-foreground uppercase tracking-wide">Organisations</h3>
+                        <p class="text-xs text-muted-foreground">Mentioned or otherwise connected</p>
                     </div>
                     {#each organisations as entry, i (i)}
-                        <div class="flex flex-col gap-0.5">
+                        {#if i > 0}<div class="border-t border-border/50"></div>{/if}
+                        <div class="flex flex-col gap-1">
                             {#if entry.extracted}
-                                <span class="text-xs text-muted-foreground">{entry.extracted}</span>
+                                <div class="flex items-center gap-1 text-xs text-muted-foreground">
+                                    <span class="shrink-0">Found:</span>
+                                    <span class="font-mono truncate" title={entry.extracted}>"{entry.extracted}"</span>
+                                    {#if entry.score != null && entry.score >= 0.8}
+                                        <span title="Matched to existing entity with {Math.min(100, Math.round(entry.score * 100))}% confidence" class="flex items-center gap-0.5 text-emerald-500 font-medium ml-auto shrink-0">
+                                            <CircleCheck size={11} />{Math.min(100, Math.round(entry.score * 100))}%
+                                        </span>
+                                    {:else}
+                                        <span title="No confident match found — will be created as a new entity" class="flex items-center gap-0.5 text-amber-400 font-medium ml-auto shrink-0">
+                                            <Sparkles size={11} />New
+                                        </span>
+                                    {/if}
+                                </div>
                             {/if}
                             <div class="flex gap-1.5 items-center">
-                                <div class="flex-1">
-                                    <AsyncSelect
+                                <div class="flex-1 min-w-0">
+                                    <InlineSelect
                                         bind:value={entry.value}
                                         bind:displayValue={entry.displayValue}
                                         search={searchOrganisations}
@@ -533,18 +573,21 @@
                                         placeholder="Search or create..."
                                     />
                                 </div>
-                                {#if entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
-                                    <span class="text-xs text-muted-foreground bg-secondary rounded px-1.5 py-0.5 shrink-0">New</span>
+                                {#if !entry.extracted && entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
+                                    <span title="Will be created as a new entity" class="flex items-center gap-0.5 text-xs text-amber-400 font-medium shrink-0">
+                                        <Sparkles size={11} />New
+                                    </span>
                                 {/if}
                                 <button onclick={() => organisations = organisations.filter((_, j) => j !== i)} class="text-muted-foreground hover:text-foreground shrink-0 cursor-pointer">
                                     <X size={14} />
                                 </button>
                             </div>
-                            {#if entry.value}
-                                <Input bind:value={entry.role} placeholder="Role (optional)..." class="h-7 text-xs" />
-                            {/if}
+                            <div class="border-b border-transparent focus-within:border-border transition-colors pb-0.5">
+                                <input bind:value={entry.role} placeholder="Role..." class="bg-transparent outline-none w-full text-xs placeholder:text-muted-foreground/50" />
+                            </div>
                         </div>
                     {/each}
+                    <button onclick={() => organisations = [...organisations, { extracted: '', value: '', displayValue: '' }]} class="w-full border border-dashed border-border rounded text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40 cursor-pointer py-1.5 transition-colors">+ Add</button>
                 </div>
             </div>
         </div>

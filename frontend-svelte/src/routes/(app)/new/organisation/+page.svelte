@@ -6,6 +6,7 @@
     import Button from '$lib/components/ui/button/button.svelte';
     import Textarea from '$lib/components/ui/textarea/textarea.svelte';
     import Label from '$lib/components/ui/label/label.svelte';
+    import { toast } from 'svelte-sonner';
 
     let name = $state('');
     let description = $state('');
@@ -16,7 +17,6 @@
     let isCheckingDuplicate = $state(false);
     let duplicate = $state<{ exists: boolean; id: string; } | null>(null);
     let similar = $state<{ id: string; name: string; }[]>([]);
-    let error = $state<string | null>(null);
 
     const debouncedCheckDuplicate = debounce(checkDuplicate, 500);
 
@@ -49,8 +49,6 @@
         if (!name.trim()) return;
 
         isSubmitting = true;
-        error = null;
-
         try {
             const result = await api.put<string>('/api/organisations/new', {
                 Name: name,
@@ -61,7 +59,7 @@
 
             goto(`/library?inspectorId=${result.body}&inspectorType=organisation`);
         } catch (e) {
-            error = e instanceof Error ? e.message : 'Failed to create organisation';
+            toast.error(e instanceof Error ? e.message : 'Failed to create organisation');
         } finally {
             isSubmitting = false;
         }
@@ -121,10 +119,6 @@
             </div>
         </div>
 
-        <!-- Error -->
-        {#if error}
-            <p class="text-destructive text-sm">{error}</p>
-        {/if}
 
         <!-- Actions -->
         <div class="flex justify-end gap-3">
