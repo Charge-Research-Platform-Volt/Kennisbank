@@ -109,7 +109,7 @@
     }
 </script>
 
-<div class="relative border-b border-transparent focus-within:border-border transition-colors">
+<div class="relative border-b border-border/60 focus-within:border-border transition-colors">
     <input
         type="text"
         value={searchQuery}
