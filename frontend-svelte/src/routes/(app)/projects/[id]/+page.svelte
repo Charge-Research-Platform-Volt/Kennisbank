@@ -26,7 +26,7 @@
     import AsyncMultiSelect from '$lib/components/ui/async-multi-select.svelte';
 
     const openInspector: (item: ResourceItem) => void = getContext('openInspector');
-    const registerTableRefresh: (fn: () => void) => void = getContext('registerTableRefresh');
+    const registerRefresh: (fn: () => void) => void = getContext('registerRefresh');
 
     const MAX_VISIBLE_TAGS = 5;
 
@@ -208,7 +208,7 @@
     }
 
     // Run on page load
-    registerTableRefresh(fetchProject);
+    registerRefresh(fetchProject);
     onMount(() => fetchProject());
     afterNavigate(() => fetchProject());
 </script>

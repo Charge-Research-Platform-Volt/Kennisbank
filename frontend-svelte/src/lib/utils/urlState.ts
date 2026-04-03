@@ -1,3 +1,5 @@
+import { replaceState } from '$app/navigation';
+
 export function getParam(key: string, fallback = ''): string {
     return new URLSearchParams(window.location.search).get(key) ?? fallback;
 }
@@ -28,5 +30,5 @@ export function setParams(params: Record<string, string | number | null>): void 
         }
     }
     const qs = current.toString();
-    history.replaceState({}, '', qs ? `?${qs}` : window.location.pathname);
+    replaceState(qs ? `?${qs}` : window.location.pathname, {});
 }

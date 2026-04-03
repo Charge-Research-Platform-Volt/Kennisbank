@@ -46,7 +46,7 @@
     const debouncedFetchItems = debounce(fetchItems);
     
     const openInspector: (item: ResourceItem) => void = getContext('openInspector');
-    const registerTableRefresh: (fn: () => void) => void = getContext('registerTableRefresh');
+    const registerRefresh: (fn: () => void) => void = getContext('registerRefresh');
     
     async function fetchItems()
     {
@@ -186,7 +186,7 @@
         fetchItems();
     }
 
-    registerTableRefresh(fetchItems);
+    registerRefresh(fetchItems);
 
     onMount(() => syncFromUrl());
     afterNavigate(() => syncFromUrl());

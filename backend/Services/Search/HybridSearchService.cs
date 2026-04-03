@@ -217,7 +217,7 @@ public class HybridSearchService
             int rank = 1;
             foreach (var group in grouped)
             {
-                var chunks = group.OrderByDescending(r => r.Score).Take(_config.MaxChunksPerResource).Select(r => r.ChunkText).ToList();
+                var chunks = group.Where(r => r.ChunkType != "MetaData").OrderByDescending(r => r.Score).Take(_config.MaxChunksPerResource).Select(r => r.ChunkText).ToList();
 
                 float score = group.Max(r => r.Score);
 
@@ -269,7 +269,7 @@ public class HybridSearchService
             int rank = 1;
             foreach (var group in grouped)
             {
-                var chunks = group.OrderByDescending(r => r.Score).Take(_config.MaxChunksPerResource).Select(r => r.ChunkText).ToList();
+                var chunks = group.Where(r => r.ChunkType != "MetaData").OrderByDescending(r => r.Score).Take(_config.MaxChunksPerResource).Select(r => r.ChunkText).ToList();
 
                 float score = group.Max(r => r.Score);
 
