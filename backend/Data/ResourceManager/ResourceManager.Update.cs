@@ -137,6 +137,21 @@ namespace KnowledgeBank.Data
         public async Task<bool> UpdateResourceTypeAsync<T>(Expression<Func<ResourceType, bool>> predicate, Expression<Func<ResourceType, T>> propertySelector, T newValue)
         { return await UpdatePropertyAsync(database.ResourceTypes, predicate, propertySelector, newValue) > 0; }
 
+        public async Task<bool> MergeResourceTypeAsync(Guid id1, Guid id2)
+        {
+            bool startedTransaction = await BeginTransaction();
+
+            // Reassign all resources from id2 to id1
+            await UpdatePropertyAsync(database.Resources, r => r.TypeId == id2, r => r.TypeId, id1);
+
+            // Delete the source resource type directly (no "set to unknown" fallback needed)
+            int count = await DeleteAsync(database.ResourceTypes, t => t.Id == id2);
+
+            if (startedTransaction) await Commit();
+
+            return count > 0;
+        }
+
         #endregion
 
         #region Organisation Relationship

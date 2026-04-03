@@ -26,7 +26,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<ApiR
 		throw new Error(body?.message ?? `${response.status} ${response.statusText}`);
 	}
 
-	return response.json();
+	const text = await response.text();
+	return text ? JSON.parse(text) : {} as ApiResponse<T>;
 }
 
 export const api = {

@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using KnowledgeBank.Services.Background;
-using KnowledgeBank.Services;
 using KnowledgeBank.Services.AI;
 using System.Linq.Expressions;
 using Microsoft.Extensions.AI;
@@ -889,6 +888,171 @@ namespace KnowledgeBank.Controllers
             {
                 logger.Error(e, "Error listing resource types");
                 return StatusCode(500, new ApiResponse(false, "Error listing resource types", e.Message));
+            }
+        }
+        #endregion
+
+        #region Types Delete
+        /// <summary>
+        /// Deletes a resource type. All resources of this type will be reassigned to the unknown type.
+        /// </summary>
+        /// <param name="id">The ID of the resource type to delete</param>
+        [HttpDelete("types/delete/{id}")]
+        [Authorize(Policy = "RequireAdminRole")]
+        [SwaggerOperation(Summary = "Deletes a resource type")]
+        [SwaggerResponse(200, "Resource type deleted successfully", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Resource type not found", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> TypesDelete(string id)
+        {
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID"));
+
+            if (!Guid.TryParse(id, out Guid typeId))
+                return BadRequest(new ApiResponse(false, "Invalid ID format."));
+
+            try
+            {
+                if (!await resourceManager.ResourceTypeExistsAsync(typeId))
+                    return NotFound(new ApiResponse(false, "Resource type not found."));
+
+                logger.Information("Deleting resource type with ID '{ID}'", id);
+
+                bool deleted = await resourceManager.DeleteResourceTypeAsync(typeId);
+
+                if (!deleted)
+                    return NotFound(new ApiResponse(false, "Resource type not found."));
+
+                logger.Information("Resource type with ID '{ID}' deleted successfully", id);
+                return Ok(new ApiResponse(true, "Resource type deleted successfully."));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error deleting resource type with ID '{ID}'", id);
+                return StatusCode(500, new ApiResponse(false, "Error deleting resource type.", e.Message));
+            }
+        }
+        #endregion
+
+        #region Types Rename
+        /// <summary>
+        /// Renames a resource type
+        /// </summary>
+        /// <param name="id">The ID of the resource type to rename</param>
+        /// <param name="dto">DTO containing the new name</param>
+        [HttpPatch("types/rename/{id}")]
+        [Authorize(Policy = "RequireAdminRole")]
+        [SwaggerOperation(Summary = "Renames a resource type")]
+        [SwaggerResponse(200, "Resource type renamed successfully", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Resource type not found", typeof(ApiResponse))]
+        [SwaggerResponse(409, "Name already in use", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> TypesRename(string id, [FromBody] ResourceTypeCreateDto dto)
+        {
+            if (!ValidityUtil.IsValidId(id))
+                return BadRequest(new ApiResponse(false, "Invalid ID"));
+
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                return BadRequest(new ApiResponse(false, "Name is required."));
+
+            if (!Guid.TryParse(id, out Guid typeId))
+                return BadRequest(new ApiResponse(false, "Invalid ID format."));
+
+            try
+            {
+                if (!await resourceManager.ResourceTypeExistsAsync(typeId))
+                    return NotFound(new ApiResponse(false, "Resource type not found."));
+
+                if (await resourceManager.ResourceTypeExistsAsync(rt => rt.Name == dto.Name && rt.Id != typeId))
+                    return Conflict(new ApiResponse(false, "A resource type with that name already exists."));
+
+                logger.Information("Renaming resource type '{ID}' to '{Name}'", id, dto.Name);
+
+                await resourceManager.UpdateResourceTypeAsync(typeId, rt => rt.Name, dto.Name);
+
+                logger.Information("Resource type '{ID}' renamed to '{Name}' successfully", id, dto.Name);
+                return Ok(new ApiResponse(true, "Resource type renamed successfully."));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error renaming resource type '{ID}'", id);
+                return StatusCode(500, new ApiResponse(false, "Error renaming resource type.", e.Message));
+            }
+        }
+        #endregion
+
+        #region Types Merge
+        /// <summary>
+        /// Merges the second resource type into the first. All resources of the second type are
+        /// reassigned to the first, and the second type is deleted.
+        /// </summary>
+        /// <param name="id1">The ID of the resource type to merge into</param>
+        /// <param name="id2">The ID of the resource type to merge from (will be deleted)</param>
+        [HttpPatch("types/merge/{id1}/{id2}")]
+        [Authorize(Policy = "RequireAdminRole")]
+        [SwaggerOperation(Summary = "Merges the second resource type into the first")]
+        [SwaggerResponse(200, "Resource types merged successfully", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad request", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Resource type(s) not found", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> TypesMerge(string id1, string id2)
+        {
+            if (string.IsNullOrEmpty(id1) || string.IsNullOrEmpty(id2))
+                return BadRequest(new ApiResponse(false, "IDs are required."));
+
+            if (id1 == id2)
+                return BadRequest(new ApiResponse(false, "Cannot merge a resource type with itself."));
+
+            if (!Guid.TryParse(id1, out Guid typeId1) || !Guid.TryParse(id2, out Guid typeId2))
+                return BadRequest(new ApiResponse(false, "Invalid resource type ID format."));
+
+            try
+            {
+                if (!await resourceManager.ResourceTypeExistsAsync(typeId1) || !await resourceManager.ResourceTypeExistsAsync(typeId2))
+                    return NotFound(new ApiResponse(false, "One or both resource types were not found."));
+
+                logger.Information("Merging resource type '{ID2}' into '{ID1}'", id2, id1);
+
+                bool merged = await resourceManager.MergeResourceTypeAsync(typeId1, typeId2);
+
+                if (!merged)
+                    return StatusCode(500, new ApiResponse(false, "Failed to merge resource types."));
+
+                logger.Information("Resource type '{ID2}' merged into '{ID1}' successfully", id2, id1);
+                return Ok(new ApiResponse(true, "Resource types merged successfully."));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error merging resource types '{ID1}' and '{ID2}'", id1, id2);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error"));
+            }
+        }
+        #endregion
+
+        #region Types Suggestions
+        /// <summary>
+        /// Returns pairs of resource types with similar names that may be candidates for merging.
+        /// </summary>
+        /// <param name="threshold">Trigram similarity threshold (0–1, default 0.6)</param>
+        /// <param name="limit">Maximum number of suggestions to return (default 20)</param>
+        [HttpGet("types/suggestions")]
+        [Authorize(Policy = "RequireAdminRole")]
+        [SwaggerOperation(Summary = "Returns resource type pairs that are candidates for merging based on name similarity")]
+        [SwaggerResponse(200, "List of merge suggestions", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> TypesSuggestions([FromQuery] float threshold = 0.6f, [FromQuery] int limit = 20)
+        {
+            try
+            {
+                var suggestions = await resourceManager.GetResourceTypeMergeSuggestionsAsync(threshold, limit);
+                return Ok(new ApiResponse(true, $"Found {suggestions.Count} suggestion(s)", suggestions));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error fetching resource type merge suggestions");
+                return StatusCode(500, new ApiResponse(false, "Error fetching resource type merge suggestions", e.Message));
             }
         }
         #endregion

@@ -196,6 +196,65 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
         }
     }
 
+    [HttpGet("list-combined")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerOperation(Summary = "Gets a paged, searchable list of both registered users and pending invitations")]
+    [SwaggerResponse(200, "Combined list loaded successfully")]
+    [SwaggerResponse(500, "Server error")]
+    public async Task<IActionResult> GetUsersCombined(int pageIndex = 1, int pageSize = 50, string? searchQuery = null)
+    {
+        if (pageIndex < 1)
+            return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1."));
+
+        if (pageSize < 1)
+            return BadRequest(new ApiResponse(false, "Page size cannot be lower than 1."));
+
+        try
+        {
+            await using var database = await dbFactory.CreateDbContextAsync();
+
+            // Query matching users
+            IQueryable<User> userQuery = database.Users;
+            if (!string.IsNullOrEmpty(searchQuery))
+                userQuery = userQuery.Where(u =>
+                    EF.Functions.ILike(u.Email, $"%{searchQuery}%") ||
+                    EF.Functions.ILike(u.FirstName + " " + u.LastName, $"%{searchQuery}%"));
+
+            User[] matchedUsers = await userQuery.OrderBy(u => u.Email).ToArrayAsync();
+
+            // Query matching pending invitations
+            IQueryable<Invitation> inviteQuery = database.Invitations
+                .Where(i => i.CreatedAt > DateTime.UtcNow.AddHours(-168));
+            if (!string.IsNullOrEmpty(searchQuery))
+                inviteQuery = inviteQuery.Where(i => EF.Functions.ILike(i.Email, $"%{searchQuery}%"));
+
+            Invitation[] matchedInvites = await inviteQuery.OrderBy(i => i.Email).ToArrayAsync();
+
+            // Build unified entries — invitations first so pending actions are visible at the top
+            var combined = new List<object>();
+
+            foreach (var invite in matchedInvites)
+                combined.Add(new { type = "invited", id = invite.Id, email = invite.Email, role = invite.Role, createdAt = invite.CreatedAt, firstName = (string?)null, lastName = (string?)null, emailConfirmed = false, customAvatarVersion = (int?)null });
+
+            foreach (var user in matchedUsers)
+            {
+                IList<string> roles = await userManager.GetRolesAsync(user);
+                combined.Add(new { type = "user", id = new Guid(user.Id), email = user.Email, role = roles.FirstOrDefault() ?? "user", createdAt = (DateTime?)null, firstName = user.FirstName, lastName = user.LastName, emailConfirmed = user.EmailConfirmed, customAvatarVersion = user.HasCustom ? user.CustomAvatarVersion : (int?)null });
+            }
+
+            int totalCount = combined.Count;
+            int pageCount = (int)Math.Ceiling((double)totalCount / pageSize);
+            var page = combined.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
+
+            return Ok(new ApiResponse(true, $"{totalCount} entries found.", new { Items = page, PageIndex = pageIndex, PageSize = pageSize, PageCount = pageCount, TotalCount = totalCount }));
+        }
+        catch (Exception e)
+        {
+            logger.Error(e, "Error listing combined users and invitations");
+            return StatusCode(500, new ApiResponse(false, "Error listing users."));
+        }
+    }
+
     [HttpPatch("update-mail")]
     [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(

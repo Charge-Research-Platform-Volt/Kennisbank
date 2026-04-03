@@ -317,6 +317,97 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
 
+        #region Merge
+        /// <summary>
+        /// Merges the second region into the first. All resources associated with the second region
+        /// are reassigned to the first, and the second region is deleted.
+        /// </summary>
+        /// <param name="id1">The ID of the region to merge into</param>
+        /// <param name="id2">The ID of the region to merge from (will be deleted)</param>
+        [HttpPatch("merge/{id1}/{id2}")]
+        [Authorize(Policy = "RequireAdminRole")]
+        [SwaggerOperation(Summary = "Merges the second region into the first")]
+        [SwaggerResponse(200, "Regions merged successfully", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad request", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Region(s) not found", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Merge(string id1, string id2)
+        {
+            if (string.IsNullOrEmpty(id1) || string.IsNullOrEmpty(id2))
+                return BadRequest(new ApiResponse(false, "IDs are required."));
+
+            if (id1 == id2)
+                return BadRequest(new ApiResponse(false, "Cannot merge a region with itself."));
+
+            if (!Guid.TryParse(id1, out Guid regionId1) || !Guid.TryParse(id2, out Guid regionId2))
+                return BadRequest(new ApiResponse(false, "Invalid region ID format."));
+
+            try
+            {
+                if (!await resourceManager.RegionExistsAsync(regionId1) || !await resourceManager.RegionExistsAsync(regionId2))
+                    return NotFound(new ApiResponse(false, "One or both regions were not found."));
+
+                await resourceManager.BeginTransaction();
+
+                // Transfer all resource-region relations from id2 to id1
+                ResourceRegionRelation[] relations = await resourceManager
+                    .GetAllResourceRegionRelationsAsync(predicate: r => r.RegionId == regionId2);
+
+                foreach (ResourceRegionRelation relation in relations)
+                {
+                    bool hasFirstRegion = await resourceManager.ResourceRegionRelationExistsAsync(
+                        r => r.ResourceId == relation.ResourceId && r.RegionId == regionId1);
+
+                    if (!hasFirstRegion)
+                        await resourceManager.AddRegionToResourceAsync(relation.ResourceId, regionId1);
+                }
+
+                // DeleteRegionAsync also cleans up all remaining relations for id2
+                if (!await resourceManager.DeleteRegionAsync(regionId2))
+                {
+                    await resourceManager.Rollback();
+                    logger.Error("Failed to delete region {RegionId2} during merge", id2);
+                    return StatusCode(500, new ApiResponse(false, "Failed to delete source region during merge."));
+                }
+
+                await resourceManager.Commit();
+                return Ok(new ApiResponse(true, "Regions merged successfully."));
+            }
+            catch (Exception e)
+            {
+                await resourceManager.Rollback();
+                logger.Error(e, "Error merging regions {RegionId1} and {RegionId2}", id1, id2);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error"));
+            }
+        }
+        #endregion
+
+        #region Suggestions
+        /// <summary>
+        /// Returns pairs of regions with similar names that may be candidates for merging.
+        /// </summary>
+        /// <param name="threshold">Trigram similarity threshold (0–1, default 0.6)</param>
+        /// <param name="limit">Maximum number of suggestions to return (default 20)</param>
+        [HttpGet("suggestions")]
+        [Authorize(Policy = "RequireAdminRole")]
+        [SwaggerOperation(Summary = "Returns region pairs that are candidates for merging based on name similarity")]
+        [SwaggerResponse(200, "List of merge suggestions", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Suggestions([FromQuery] float threshold = 0.6f, [FromQuery] int limit = 20)
+        {
+            try
+            {
+                var suggestions = await resourceManager.GetRegionMergeSuggestionsAsync(threshold, limit);
+                return Ok(new ApiResponse(true, $"Found {suggestions.Count} suggestion(s)", suggestions));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error fetching region merge suggestions");
+                return StatusCode(500, new ApiResponse(false, "Error fetching region merge suggestions", e.Message));
+            }
+        }
+        #endregion
+
         #region Helper Functions
         // ---------------------------
         // Helper functions

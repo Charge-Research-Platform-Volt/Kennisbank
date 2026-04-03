@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { LayoutDashboard, Search, Library, BookMarked, PanelLeftOpen, PanelLeftClose, CirclePlus, MessageCircleQuestionMark, MessageCircleMore, Tags, Users } from "lucide-svelte";
+    import { LayoutDashboard, Search, Library, BookMarked, PanelLeftOpen, PanelLeftClose, CirclePlus, MessageCircleQuestionMark, MessageCircleMore, Wrench, Settings, LogOut } from "lucide-svelte";
     import Avatar from "$lib/components/ui/avatar/avatar.svelte";
     import { sidebar } from "$lib/state/sidebar.svelte";
     import { page } from "$app/state";
@@ -109,10 +109,9 @@
         {@render navItem("/library", Library, "Library")}
         {@render navItem("/projects", BookMarked, "Projects")}
         {@render navItem("/chatbot", MessageCircleMore, "ChatBot")}
-        {@render navItem("/tags", Tags, "Tags")}
         
         {#if userState.role === 'admin'}
-            {@render navItem("/users", Users, "Users")}
+            {@render navItem("/manage", Wrench, "Manage")}
         {/if}
     </div>
     
@@ -146,9 +145,15 @@
 
             <DropdownMenu.Content side="top" align="start">
                 <DropdownMenu.Group>
-                    <DropdownMenu.Item class="cursor-pointer" onclick={() => goto('/account')}>Account Settings</DropdownMenu.Item>
+                    <DropdownMenu.Item class="cursor-pointer flex items-center gap-2" onclick={() => goto('/account')}>
+                        <Settings size={10} class="text-muted-foreground shrink-0" />
+                        Account Settings
+                    </DropdownMenu.Item>
                     <DropdownMenu.Separator />
-                    <DropdownMenu.Item class="cursor-pointer" onclick={handleLogout}>Log Out</DropdownMenu.Item>
+                    <DropdownMenu.Item class="cursor-pointer flext items-center gap-2" onclick={handleLogout}>
+                        <LogOut size={10} class="text-muted-foreground shrink-0" />
+                        Log Out
+                    </DropdownMenu.Item>
                 </DropdownMenu.Group>
             </DropdownMenu.Content>
         </DropdownMenu.Root>

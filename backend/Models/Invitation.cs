@@ -17,4 +17,7 @@ public class Invitation
 
     [Column("created_at")]
     public required DateTime CreatedAt { get; set; }
+
+    [Column("role")]
+    public string Role { get; set; } = "user";
 }

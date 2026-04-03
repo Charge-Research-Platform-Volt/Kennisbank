@@ -50,6 +50,13 @@ public class SignUpDto
     public IFormFile? Avatar { get; set; }
 }
 
+public class InviteDto
+{
+    [RegularExpression(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", ErrorMessage = "Incorrect email format.")]
+    public required string Email { get; set; }
+    public string Role { get; set; } = "user";
+}
+
 public class UpdateUserDto
 {
     public string? NewFirstName { get; set; }

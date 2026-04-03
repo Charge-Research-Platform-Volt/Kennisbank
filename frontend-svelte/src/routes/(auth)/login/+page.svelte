@@ -50,7 +50,7 @@
 </script>
 
 <!-- Form -->
-<div class="mx-auto w-3/4 p-4">
+<div class="w-full max-w-lg px-8 py-4">
     <form class="flex flex-col gap-4" onsubmit={handleSubmit}>
         
         <div class="flex flex-col gap-1">

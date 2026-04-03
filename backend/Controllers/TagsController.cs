@@ -588,6 +588,31 @@ public class TagsController(ResourceManager resourceManager, ProjectManager proj
         }
     }
     
+    #region Suggestions
+    /// <summary>
+    /// Returns pairs of tags with similar names that may be candidates for merging.
+    /// </summary>
+    /// <param name="threshold">Trigram similarity threshold (0–1, default 0.6)</param>
+    /// <param name="limit">Maximum number of suggestions to return (default 20)</param>
+    [HttpGet("suggestions")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerResponse(200, "List of merge suggestions", typeof(ApiResponse))]
+    [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+    public async Task<IActionResult> Suggestions([FromQuery] float threshold = 0.6f, [FromQuery] int limit = 20)
+    {
+        try
+        {
+            var suggestions = await resourceManager.GetTagMergeSuggestionsAsync(threshold, limit);
+            return Ok(new ApiResponse(true, $"Found {suggestions.Count} suggestion(s)", suggestions));
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Error fetching tag merge suggestions");
+            return StatusCode(500, new ApiResponse(false, "Error fetching tag merge suggestions", e.Message));
+        }
+    }
+    #endregion
+
     #region Helper Methods
     
     /// <summary>

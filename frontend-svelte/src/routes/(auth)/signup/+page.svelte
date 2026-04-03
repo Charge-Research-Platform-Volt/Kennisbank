@@ -79,7 +79,7 @@
     }
 </script>
 
-<div class="mx-auto w-3/4 p-4">
+<div class="w-full max-w-lg px-8 py-4">
     <form class="flex flex-col gap-4" onsubmit={handleSubmit}>
     
         <div class="flex flex-col gap-1">
@@ -88,9 +88,9 @@
         </div>
         
         <!-- Avatar + Name -->
-        <div class="flex gap-10">
+        <div class="flex gap-4">
             <!-- Avatar -->
-            <div class="flex w-1/3 flex-col gap-1 justify-center items-center">
+            <div class="flex shrink-0 flex-col gap-1 justify-center items-center">
                 <button type="button" onclick={() => avatarInputElement?.click()} class="m-0 p-0 bg-transparent border-none group relative cursor-pointer">
                     <Avatar
                         name="{firstName} {lastName}"
@@ -111,7 +111,7 @@
             </div>
             
             <!-- Name fields -->
-            <div class="flex flex-1 flex-col gap-1">
+            <div class="flex flex-1 flex-col gap-1 min-w-0">
                 <div class="flex flex-1 flex-col gap-1">
                     <label for="firstName" class="font-bold">First Name</label>
                     <Input bind:value={firstName} type="text" id="firstName" required />
