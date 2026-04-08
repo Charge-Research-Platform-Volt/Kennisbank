@@ -876,10 +876,11 @@ namespace KnowledgeBank.Controllers
         {
             try
             {
-                // Fetch the resource types, optionally filtered by name
+                // Fetch the resource types, optionally filtered by name (exclude the Unknown fallback type)
+                var unknownTypeId = Guid.Parse(DatabaseContext.UnknownResourceTypeId);
                 ResourceType[] types = string.IsNullOrWhiteSpace(search)
-                    ? await resourceManager.GetAllResourceTypesAsync()
-                    : await resourceManager.GetAllResourceTypesAsync(predicate: t => EF.Functions.ILike(t.Name, $"%{search}%"));
+                    ? await resourceManager.GetAllResourceTypesAsync(predicate: t => t.Id != unknownTypeId)
+                    : await resourceManager.GetAllResourceTypesAsync(predicate: t => t.Id != unknownTypeId && EF.Functions.ILike(t.Name, $"%{search}%"));
 
                 // Return the resource types
                 return Ok(new ApiResponse(true, $"Found {types.Length} resource types", types));

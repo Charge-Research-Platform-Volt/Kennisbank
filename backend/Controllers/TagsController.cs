@@ -762,9 +762,9 @@ public class TagsController(ResourceManager resourceManager, ProjectManager proj
             
             // If no tags are returned, put in the message that no tags are found
             if(tags == null)
-                return Ok(new ApiResponse(true, "no tags found", new { Tags = Array.Empty<Tag>(), PageIndex = pageIndex, PageSize = pageSize, PageCount = pageCount }));
+                return Ok(new ApiResponse(true, "no tags found", new { Tags = Array.Empty<Tag>(), PageIndex = pageIndex, PageSize = pageSize, PageCount = pageCount, TotalCount = 0 }));
 
-            return Ok(new ApiResponse(true, "Tags found", new { Tags = tags, PageIndex = pageIndex, PageSize = pageSize, PageCount = pageCount }));
+            return Ok(new ApiResponse(true, "Tags found", new { Tags = tags, PageIndex = pageIndex, PageSize = pageSize, PageCount = pageCount, TotalCount = totalTags }));
         }
         catch (Exception e)
         {
