@@ -71,9 +71,8 @@
     <!-- Header -->
     <div class="flex w-full items-center {collapsed ? 'justify-center' : 'justify-between'} px-1">
         <div class="overflow-hidden transition-all duration-300 {sidebar.open ? 'max-w-full opacity-100' : 'max-w-0 opacity-0'} flex items-center gap-1">
-            <!-- <Landmark size={20} class="shrink-0 text-muted-foreground" /> -->
             <img src="/img/charge-icon.webp" alt="Charge Icon" class="w-5 h-5" />
-            <span class="whitespace-nowrap font-medium text-lg">Knowledge Bank</span>
+            <span class="whitespace-nowrap font-medium text-lg">Charge PowerGrid</span>
         </div>
         <button onclick={sidebar.toggle} class="rounded-md p-1.5 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer">
             {#if sidebar.open}

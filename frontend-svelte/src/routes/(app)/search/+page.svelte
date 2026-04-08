@@ -110,10 +110,10 @@
                 <!-- Logo + Tagline -->
                 <div class="flex flex-col items-center gap-2">
                     <div class="flex items-center gap-2">
-                        <img src="/img/charge-icon.webp" alt="Charge Icon" class="w-10 h-10" />
-                        <span class="text-4xl font-medium">Knowledge Bank</span>
+                        <img src="/img/charge-icon.webp" alt="Charge Icon" class="w-8 h-8" />
+                        <span class="text-4xl font-medium">Grid Search</span>
                     </div>
-                    <p class="text-base text-muted-foreground">Search across resources, people, and organisations</p>
+                    <p class="text-base text-muted-foreground">Search the grid for resources, people, and organisations</p>
                 </div>
             </div>
         {/if}

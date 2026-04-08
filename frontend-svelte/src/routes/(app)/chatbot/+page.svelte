@@ -26,7 +26,10 @@
 
 <div class="flex flex-col flex-1 items-center justify-center p-8 gap-6">
     <div class="text-center">
-        <h1 class="text-2xl font-semibold">Knowledge Bank Assistant</h1>
+        <div class="flex items-center gap-2">
+            <img src="/img/charge-icon.webp" alt="Charge Icon" class="w-8 h-8" />
+            <span class="text-4xl font-medium">GridAI</span>
+        </div>
         <p class="text-muted-foreground text-sm mt-1">Ask me anything!</p>
     </div>
 

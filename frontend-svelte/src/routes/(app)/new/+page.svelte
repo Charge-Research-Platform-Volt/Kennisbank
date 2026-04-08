@@ -15,7 +15,7 @@
 <div class="flex flex-col gap-8 p-8 mx-auto max-w-2xl h-full justify-center">
     <div>
         <h1 class="text-2xl font-semibold">Add New</h1>
-        <p class="text-muted-foreground mt-1 text-sm">Choose what you want to add to the knowledge bank.</p>
+        <p class="text-muted-foreground mt-1 text-sm">Choose what you want to add to the PowerGrid.</p>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
