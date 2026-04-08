@@ -213,10 +213,23 @@ public class MetadataExtractionService(AiClientProvider aiClientProvider, Hybrid
             // Publication date: parse partial dates (YYYY / YYYY-MM / YYYY-MM-DD)
             (metadata.PublicationDate, metadata.PublicationDatePrecision) = ParsePublicationDate(temp.PublicationDate);
 
-            // Entity processing
+            // Entity processing — deduplicate orgs/persons that already appear as authors
+            var authorOrgNames = (temp.Authors ?? [])
+                .Where(a => a.Type.Equals("organisation", StringComparison.OrdinalIgnoreCase))
+                .Select(a => a.Name.Trim().ToLowerInvariant())
+                .ToHashSet();
+            var authorPersonNames = (temp.Authors ?? [])
+                .Where(a => a.Type.Equals("person", StringComparison.OrdinalIgnoreCase))
+                .Select(a => a.Name.Trim().ToLowerInvariant())
+                .ToHashSet();
+
             metadata.Authors = await ProcessAuthorsAsync(temp.Authors ?? []);
-            metadata.Organisations = await ProcessEntitiesAsync(temp.Organisations ?? [], ["organisation"]);
-            metadata.RelatedPersons = await ProcessEntitiesAsync(temp.RelatedPersons ?? [], ["person"]);
+            metadata.Organisations = await ProcessEntitiesAsync(
+                (temp.Organisations ?? []).Where(o => !authorOrgNames.Contains(o.Trim().ToLowerInvariant())).ToList(),
+                ["organisation"]);
+            metadata.RelatedPersons = await ProcessEntitiesAsync(
+                (temp.RelatedPersons ?? []).Where(p => !authorPersonNames.Contains(p.Trim().ToLowerInvariant())).ToList(),
+                ["person"]);
 
             return metadata;
         }

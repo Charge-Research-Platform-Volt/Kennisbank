@@ -75,7 +75,7 @@
             <img src="/img/charge-icon.webp" alt="Charge Icon" class="w-5 h-5" />
             <span class="whitespace-nowrap font-medium text-lg">Knowledge Bank</span>
         </div>
-        <button onclick={sidebar.toggle} class="rounded-md p-1.5 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors">
+        <button onclick={sidebar.toggle} class="rounded-md p-1.5 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors cursor-pointer">
             {#if sidebar.open}
                 <PanelLeftClose size={20} />
             {:else}

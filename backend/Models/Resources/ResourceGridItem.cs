@@ -12,6 +12,7 @@ public class ResourceGridItem
     public string Type { get; set; } = string.Empty;
     public string FileType { get; set; } = string.Empty;
     public DateTime CreationDate { get; set; }
+    public Guid? TypeId { get; set; }
 }
 
 public class ResourceGridItemWithChunks : ResourceGridItem

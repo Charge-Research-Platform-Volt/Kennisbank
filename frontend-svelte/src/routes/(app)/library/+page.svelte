@@ -29,6 +29,7 @@
     let dateMax = $state('');
     let tagFilter = $state<string[]>([]);
     let regionFilter = $state<string[]>([]);
+    let resourceTypeFilter = $state<string[]>([]);
 
     // Sorting
     let sortBy = $state('');
@@ -64,6 +65,7 @@
                     pubdateMax: dateMax ? `${dateMax}-12-31` : undefined,
                     tagFilter: tagFilter.length ? tagFilter : undefined,
                     regionFilter: regionFilter.length ? regionFilter : undefined,
+                    resourceTypeFilter: resourceTypeFilter.length ? resourceTypeFilter : undefined,
                 },
                 sortBy: sortBy || undefined,
                 sortDirection
@@ -126,6 +128,19 @@
         fetchItems();
     }
 
+    async function searchResourceTypes(q: string) {
+        const result = await api.get<{ id: string; name: string }[]>(
+            `/api/resources/types/list${q ? `?search=${encodeURIComponent(q)}` : ''}`
+        );
+        return result.body.map(t => ({ id: t.id, name: t.name }));
+    }
+
+    function handleResourceTypeFilterChange() {
+        currentPage = 1;
+        setParams({ resourceTypes: resourceTypeFilter.length ? resourceTypeFilter.join(',') : null, page: null });
+        fetchItems();
+    }
+
     function resetFilters()
     {
         typeFilter = ALL_TYPES;
@@ -133,8 +148,9 @@
         dateMax = '';
         tagFilter = [];
         regionFilter = [];
+        resourceTypeFilter = [];
         currentPage = 1;
-        setParams({ type: null, dateMin: null, dateMax: null, tags: null, regions: null, page: null });
+        setParams({ type: null, dateMin: null, dateMax: null, tags: null, regions: null, resourceTypes: null, page: null });
         fetchItems();
     }
 
@@ -179,6 +195,7 @@
         dateMax = getParam('dateMax');
         tagFilter = getParamArray('tags');
         regionFilter = getParamArray('regions');
+        resourceTypeFilter = getParamArray('resourceTypes');
         sortBy = getParam('sort');
         sortDirection = getParam('sortDir') as 'asc' | 'desc' || 'asc';
         currentPage = getParamInt('page');
@@ -222,7 +239,7 @@
             <div class="flex flex-wrap gap-x-8 gap-y-3 px-1 py-3 border-b border-border">
                 <!-- Type filter -->
                 <div class="flex items-center gap-3">
-                    <span class="text-sm font-medium text-muted-foreground w-20 shrink-0">Types</span>
+                    <span class="text-sm font-medium text-muted-foreground w-20 shrink-0">Category</span>
                     <ToggleGroup.Root variant="outline" class="flex-wrap" type="multiple" value={typeFilter} onValueChange={handleTypeFilterChange}>
                         <ToggleGroup.Item value="resource" class="text-xs">Resources</ToggleGroup.Item>
                         <ToggleGroup.Item value="person" class="text-xs">Persons</ToggleGroup.Item>
@@ -251,6 +268,14 @@
                     <span class="text-sm font-medium text-muted-foreground w-20 shrink-0">Regions</span>
                     <AsyncMultiSelect class="w-50" bind:value={regionFilter} search={searchRegions} placeholder="Regions" onchange={handleRegionFilterChange} />
                 </div>
+
+                <!-- Resource type filter -->
+                {#if typeFilter.includes('resource')}
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-medium text-muted-foreground w-20 shrink-0">Types</span>
+                        <AsyncMultiSelect class="w-50" bind:value={resourceTypeFilter} search={searchResourceTypes} placeholder="Resource types" onchange={handleResourceTypeFilterChange} />
+                    </div>
+                {/if}
 
                 <!-- Reset -->
                 <button class="text-xs text-muted-foreground hover:text-foreground cursor-pointer underline underline-offset-2 self-center" onclick={resetFilters}>

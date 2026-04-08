@@ -453,9 +453,9 @@
                             {/if}
                             <div class="flex gap-1.5 items-center">
                                 <button
-                                    onclick={() => { entry.authorType = entry.authorType === 'Organisation' ? 'Person' : 'Organisation'; entry.value = ''; entry.displayValue = ''; }}
+                                    onclick={() => { entry.authorType = entry.authorType === 'organisation' ? 'person' : 'organisation'; entry.value = ''; entry.displayValue = ''; }}
                                     class="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground shrink-0 cursor-pointer border border-border/50 rounded px-1.5 py-0.5 hover:border-border transition-colors">
-                                    {#if entry.authorType === 'Organisation'}
+                                    {#if entry.authorType === 'organisation'}
                                         <Building2 size={13} />Org
                                     {:else}
                                         <User size={13} />Person
@@ -465,7 +465,7 @@
                                     <InlineSelect
                                         bind:value={entry.value}
                                         bind:displayValue={entry.displayValue}
-                                        search={entry.authorType === 'Organisation' ? searchOrganisations : searchPersons}
+                                        search={entry.authorType === 'organisation' ? searchOrganisations : searchPersons}
                                         oncreate={async (name) => ({ id: name, name })}
                                         placeholder="Search or create..."
                                     />
@@ -481,7 +481,7 @@
                             </div>
                         </div>
                     {/each}
-                    <button onclick={() => authors = [...authors, { extracted: '', value: '', displayValue: '', authorType: 'Person' }]} class="w-full border border-dashed border-border rounded text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40 cursor-pointer py-1.5 transition-colors">+ Add</button>
+                    <button onclick={() => authors = [...authors, { extracted: '', value: '', displayValue: '', authorType: 'person' }]} class="w-full border border-dashed border-border rounded text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40 cursor-pointer py-1.5 transition-colors">+ Add</button>
                 </div>
 
                 <div class="border-t border-border"></div>

@@ -28,6 +28,7 @@ public class GridFilterOptions
     public string? TagFilterMode { get; set; } = "any";
     public string[]? RegionFilter { get; set; }
     public string? RegionFilterMode { get; set; } = "any";
+    public string[]? ResourceTypeFilter { get; set; }
 }
 
 public class GridSearchTemplate
@@ -75,6 +76,7 @@ public partial class ResourceManager
         // Parse GUID filters
         Guid[] tagGuids = StringToGuidArray(request.FilterOptions?.TagFilter);
         Guid[] regionGuids = StringToGuidArray(request.FilterOptions?.RegionFilter);
+        Guid[] resourceTypeGuids = StringToGuidArray(request.FilterOptions?.ResourceTypeFilter);
 
         // Store filters in dictionary
         // Add the filter here and add functionality both in ApplyFilters (EF Core) and AddFilters (Raw SQL)
@@ -87,6 +89,7 @@ public partial class ResourceManager
                 { "tag_filter_mode", request.FilterOptions?.TagFilterMode },
                 { "region_ids", regionGuids },
                 { "region_filter_mode", request.FilterOptions?.RegionFilterMode },
+                { "resource_type_ids", resourceTypeGuids },
             };
 
         // If there is a search query, execute search
@@ -191,6 +194,10 @@ public partial class ResourceManager
 
         // Apply region filter
         query = ApplyRelationFilter(query, filters, "region_ids", "region_filter_mode", "region");
+
+        // Apply resource type filter
+        if (filters.TryGetValue("resource_type_ids", out var resourceTypeFilter) && resourceTypeFilter is Guid[] typeIds && typeIds.Length > 0)
+            query = query.Where(x => x.Type != "resource" || (x.TypeId != null && typeIds.Contains(x.TypeId.Value)));
 
         return query;
     }
@@ -415,6 +422,20 @@ public partial class ResourceManager
 
                     case "region_ids":
                         AddRelationFilter(value, filters, "region_filter_mode", "resource-region", "region-id");
+                        break;
+
+                    case "resource_type_ids":
+                        if (value is Guid[] typeIds && typeIds.Length > 0)
+                        {
+                            List<string> typeIdParams = new List<string>();
+                            foreach (Guid id in typeIds)
+                            {
+                                typeIdParams.Add($"{{{paramIndex}}}");
+                                parameters.Add(id);
+                                paramIndex++;
+                            }
+                            whereConditions.Add($@"(""Type"" != 'resource' OR ""TypeId"" IN ({string.Join(", ", typeIdParams)}))");
+                        }
                         break;
                 }
             }
