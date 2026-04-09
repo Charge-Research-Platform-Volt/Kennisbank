@@ -6,6 +6,9 @@
 	import { api } from "$lib/api";
 	import { Pencil } from "lucide-svelte";
     import Avatar from "$lib/components/ui/avatar/avatar.svelte";
+    import PasswordRequirements from "$lib/components/ui/password-requirements.svelte";
+    import { isPasswordValid } from "$lib/utils/password";
+	import { toast } from "svelte-sonner";
     
     const token = page.url.searchParams.get('token');
     
@@ -14,13 +17,13 @@
     let email = $state('');
     let password = $state('');
     let passwordRepeat = $state('');
+    let passwordValid = $derived(isPasswordValid(password));
     
     let avatarInputElement: HTMLInputElement | null = $state(null);
     let avatarFile: File | null = $state(null);
     let avatarPreviewUrl = $derived(avatarFile ? URL.createObjectURL(avatarFile) : null);
     
     let loading = $state(false);
-    let error = $state();
     
     async function handleSubmit(e: SubmitEvent) 
     {
@@ -29,12 +32,11 @@
         
         if (password != passwordRepeat) 
         {
-            error = 'Passwords don\'t match';
+            toast.error("Passwords don't match.");
             return;
         }
         
         loading = true;
-        error = '';
         
         try 
         {
@@ -50,13 +52,7 @@
             if (avatarFile)
                 formData.append('avatar', avatarFile);
                 
-            const signupResponse = await api.form('/api/auth/signup', formData);
-            
-            if (!signupResponse.success) 
-            {
-                error = signupResponse.message;
-                return;
-            }
+            await api.form('/api/auth/signup', formData);
             
             // Log in on backend
             const loginResponse = await fetch('/api/auth/login?useCookies=true&useSessionCookies=true', 
@@ -68,9 +64,9 @@
             
             goto(loginResponse.ok ? '/' : '/login');
         }
-        catch 
+        catch (e)
         {
-            error = 'Something went wrong, please try again';
+            toast.error(e instanceof Error ? e.message : 'Something went wrong, please try again');
         }
         finally 
         {
@@ -134,6 +130,7 @@
         <div class="flex flex-col gap-1">
             <label for="password" class="font-bold">Password</label>
             <Input bind:value={password} type="password" name="password" id="password" required />
+            <PasswordRequirements password={password} />
         </div>
         
         <div class="flex flex-col gap-1">
@@ -141,17 +138,13 @@
             <Input bind:value={passwordRepeat} type="password" name="passwordRepeat" id="passwordRepeat" required />
         </div>
         
-        <Button type="submit" class="w-full" disabled={!firstName || !lastName || !email || !password || !passwordRepeat || loading}>
+        <Button type="submit" class="w-full cursor-pointer" disabled={!firstName || !lastName || !email || !passwordValid || !passwordRepeat || loading}>
             {#if loading}
                 Signing up...
             {:else}
                 Sign up
             {/if}
         </Button>
-        
-        {#if error}
-            <p class="pl-2 text-sm text-destructive">{error}</p>
-        {/if}
         
         <p class="text-center text-muted-foreground">Already have an account? <a href='/login' class="text-blue-500">Log in</a>.</p>
     

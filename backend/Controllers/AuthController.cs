@@ -235,9 +235,8 @@ namespace KnowledgeBank.Controllers
             {
                 try
                 {
-                    // check if there is a recent invitation for the email and token
-                    Invitation? invitation = context.Invitations.FirstOrDefault(i => i.Email == signUpDto.Email
-                                                                            && i.Token == ShaUtils.Sha256(signUpDto.Token)
+                    // check if there is a recent invitation for the token
+                    Invitation? invitation = context.Invitations.FirstOrDefault(i => i.Token == ShaUtils.Sha256(signUpDto.Token)
                                                                             && i.CreatedAt > DateTime.UtcNow.AddHours(-168));
                     if (invitation == null)
                     {
@@ -333,7 +332,7 @@ namespace KnowledgeBank.Controllers
                 );
 
                 if (!updateResponse.Succeeded)
-                    return Ok(new ApiResponse(false, string.Join(" ", updateResponse.Errors.Select(e => e.Description))));
+                    return BadRequest(new ApiResponse(false, string.Join(" ", updateResponse.Errors.Select(e => e.Description))));
 
                 return Ok(new ApiResponse(true, "Password updated successfully"));
             }

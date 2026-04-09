@@ -8,6 +8,7 @@
     import { getFileIcon } from "$lib/utils/icons";
     import { formatDate } from "$lib/utils/date";
 	import { getContext } from "svelte";
+	import { toast } from "svelte-sonner";
 
     let items = $state<TrashItem[]>([]);
     let loading = $state(false);
@@ -32,9 +33,14 @@
     
     async function restore(item: TrashItem) 
     {
-        await api.patch(`/api/${item.type}s/untrash/${encodeURIComponent(item.id)}`);
-        items = items.filter(i => i.id !== item.id);
-        closeInspector();
+        try {
+            await api.patch(`/api/${item.type}s/untrash/${encodeURIComponent(item.id)}`);
+            items = items.filter(i => i.id !== item.id);
+            closeInspector();
+            toast.success("Successfully restored item.");
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Failed to restore item.");
+        }
     }
     
     // Fetch items on page load

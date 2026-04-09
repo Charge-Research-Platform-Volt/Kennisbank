@@ -13,12 +13,14 @@
     let statusMessage = $state('');
     let progressPercentage = $state(0);
     let processingError = $state<string | null>(null);
+    let errorCount = 0;
 
     $effect(() => {
         const interval = setInterval(async () => {
             try {
                 const res = await api.get<{ status: string; statusMessage: string; progressPercentage: number; result: ExtractedMetadata | null; errorMessage: string | null; }>(`/api/ai/extract-metadata/status/${jobId}`);
 
+                errorCount = 0;
                 statusMessage = res.body.statusMessage;
                 progressPercentage = res.body.progressPercentage;
 
@@ -26,9 +28,16 @@
                     clearInterval(interval);
                     oncomplete(res.body.result);
                 } else if (res.body.status === 'Failed') {
-                    processingError = res.body.errorMessage ?? 'Processing Failed';
+                    processingError = res.body.errorMessage ?? 'Processing failed';
+                    clearInterval(interval);
                 }
-            } catch { /* Ignore errors */ }
+            } catch {
+                errorCount++;
+                if (errorCount >= 3) {
+                    processingError = 'Lost connection to server';
+                    clearInterval(interval);
+                }
+            }
         }, 2000);
 
         return () => clearInterval(interval);
@@ -37,7 +46,9 @@
 
 <div class="flex flex-col items-center gap-4 py-8">
     {#if processingError}
-        <p class="text-destructive text-xs">{processingError}</p>
+        <div class="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {processingError}
+        </div>
     {:else}
         <Spinner class="h-8 w-8" />
         <p class="text-sm font-medium">{statusMessage || 'Processing...'}</p>

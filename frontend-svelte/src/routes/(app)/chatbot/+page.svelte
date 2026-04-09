@@ -4,6 +4,7 @@
     import { goto } from '$app/navigation';
     import ChatInput from '$lib/components/chatbot/chat-input.svelte';
     import { chatRefresh } from '$lib/state/chat-refresh.svelte';
+	import { toast } from 'svelte-sonner';
 
     const ctx = getContext<{ connection: HubConnection | null }>('chatConnection');
 
@@ -18,7 +19,10 @@
             const chatId: string = await ctx.connection.invoke('CreateChat', message);
             goto(`/chatbot/${chatId}`, { state: { initialMessage: message, contentBased }});
             chatRefresh.trigger();
-        } finally {
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Failed to create chat.");
+        } 
+        finally {
             submitting = false;
         }
     }

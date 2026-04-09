@@ -19,6 +19,7 @@
     import Input from '$lib/components/ui/input/input.svelte';
     import Label from '$lib/components/ui/label/label.svelte';
 	import Avatar from "$lib/components/ui/avatar/avatar.svelte";
+    import { toast } from "svelte-sonner";
 
     // Search
     let searchInput = $state('');
@@ -39,7 +40,6 @@
     let newTags = $state<string[]>([]);
     let newCreators = $state<string[]>([]);
     let submitting = $state(false);
-    let createError = $state('');
 
     const debouncedFetchProjects = debounce(fetchProjects);
 
@@ -81,11 +81,10 @@
     async function createProject() {
         if (!newTitle.trim()) return;
 
-        createError = '';
         submitting = true;
 
         try {
-            const result = await api.put('/api/project/create', {
+            await api.put('/api/project/create', {
                 title: newTitle.trim(),
                 description: newDescription.trim() || null,
                 projectType: 'root',
@@ -93,18 +92,14 @@
                 creators: newCreators
             });
 
-            if (result.success) {
-                dialogOpen = false;
-                newTitle = '';
-                newDescription = '';
-                newTags = [];
-                newCreators = [];
-                await fetchProjects();
-            } else {
-                createError = result.message ?? 'Failed to create project.';
-            }
+            dialogOpen = false;
+            newTitle = '';
+            newDescription = '';
+            newTags = [];
+            newCreators = [];
+            await fetchProjects();
         } catch (e) {
-            createError = e instanceof Error ? e.message : 'Failed to create project.'
+            toast.error(e instanceof Error ? e.message : 'Failed to create project.');
         } finally {
             submitting = false;
         }
@@ -233,7 +228,7 @@
     {/if}
 </div>
 
-<Dialog.Root bind:open={dialogOpen} onOpenChange={() => createError = ''}>
+<Dialog.Root bind:open={dialogOpen}>
     <Dialog.Content>
         <Dialog.Header>
             <Dialog.Title>New Project</Dialog.Title>
@@ -256,10 +251,6 @@
                 <Label for="newCreators">Co-Creators</Label>
                 <AsyncMultiSelect bind:value={newCreators} search={searchUsers} placeholder="Search by name..." />
             </div>
-
-            {#if createError}
-                <p class="text-sm text-destructive">{createError}</p>
-            {/if}
         </div>
 
         <Dialog.Footer>

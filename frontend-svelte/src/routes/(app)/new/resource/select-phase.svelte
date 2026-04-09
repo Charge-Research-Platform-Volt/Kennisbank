@@ -5,6 +5,7 @@
     import Label from '$lib/components/ui/label/label.svelte';
     import { Upload, FileText } from 'lucide-svelte';
     import { hashFile, uploadFile } from '$lib/upload';
+    import { toast } from 'svelte-sonner';
 
     type Mode = 'file' | 'url';
     type SelectResult = { mode: Mode; url: string; jobId: string; fileId: string | null; fileHash: string | null; fileExtension: string };
@@ -23,15 +24,8 @@
     let url = $state('');
     let uploadStep = $state<'hashing' | 'uploading' | 'starting' | null>(null);
     let isStarting = $state(false);
-    let startError = $state<string | null>(null);
 
     const canProceed = $derived(mode === 'file' ? selectedFile !== null : url.trim().length > 0);
-
-    function getUploadType(ext: string): 'audio' | 'video' | 'document' {
-        if (['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac'].includes(ext)) return 'audio';
-        if (['mp4', 'mov', 'avi', 'mkv', 'webm', 'wmv'].includes(ext)) return 'video';
-        return 'document';
-    }
 
     function selectFile(file: File | undefined) {
         fileError = null;
@@ -46,7 +40,6 @@
 
     async function handleNext() {
         isStarting = true;
-        startError = null;
 
         try {
             let extractType: 'file' | 'web';
@@ -95,7 +88,7 @@
 
             oncomplete({ mode, url, jobId: result.body.jobId, fileId, fileHash, fileExtension });
         } catch (e) {
-            startError = e instanceof Error ? e.message : 'Something went wrong';
+            toast.error(e instanceof Error ? e.message : 'Something went wrong');
         } finally {
             isStarting = false;
             uploadStep = null;
@@ -168,10 +161,6 @@
         <Label for="url">URL</Label>
         <Input id="url" type="url" bind:value={url} placeholder="https://example.com/article" />
     </div>
-{/if}
-
-{#if startError}
-    <p class="text-xs text-destructive">{startError}</p>
 {/if}
 
 <!-- Next -->

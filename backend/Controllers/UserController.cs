@@ -65,7 +65,7 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
         }
     }
 
-    [HttpGet("current/avatar/{userId}")]
+    [HttpGet("avatar/{userId}")]
     [SwaggerOperation(
         Summary = "Get the current user's profile avatar.",
         Description = "Gets the current user's profile avatar."
@@ -77,6 +77,10 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
     {
         try
         {
+            User? user = await userManager.FindByIdAsync(userId);
+            if (user == null || !user.HasCustom)
+                return NotFound();
+
             ObjectDownloadResponse response = await storageService.DownloadObjectAsync(bucketName, userId);
 
             Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -448,21 +452,21 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
 
                         // Check if the email update was successful
                         if (!emailResponse.Succeeded)
-                            return Ok(new ApiResponse(false, "User email already exists."));
+                            return BadRequest(new ApiResponse(false, "User email already exists."));
 
                         // Update the username
                         IdentityResult usernameResponse = await userManager.SetUserNameAsync(user, dto.NewEmail);
 
                         // Check if the username update was successful
                         if (!usernameResponse.Succeeded)
-                            return Ok(new ApiResponse(false, "Email format is not supported in our database."));
+                            return BadRequest(new ApiResponse(false, "Email format is not supported in our database."));
                     }
 
                     IdentityResult updateResponse = await userManager.UpdateAsync(user);
 
                     // Check if the update was successful
                     if (!updateResponse.Succeeded)
-                        return Ok(new ApiResponse(false, "Failed to update the data."));
+                        return BadRequest(new ApiResponse(false, "Failed to update the data."));
 
                     // Save the changes to the database
                     await database.SaveChangesAsync();

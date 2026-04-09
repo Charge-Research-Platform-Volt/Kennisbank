@@ -3,13 +3,13 @@
     import Button from "$lib/components/ui/button/button.svelte";
 	import { goto } from "$app/navigation";
 	import { page } from "$app/state";
+    import { toast } from "svelte-sonner";
 
     const redirect = page.url.searchParams.get('redirect');
 
     let email = $state('');
     let password = $state('');
     let loading = $state(false);
-    let error = $state('');
     
     async function handleSubmit(e: SubmitEvent) 
     {
@@ -17,7 +17,6 @@
         e.preventDefault();
     
         loading = true;
-        error = '';
     
         try 
         {
@@ -36,11 +35,11 @@
             }
             
             password = '';
-            error = "Invalid credentials";
+            toast.error("Incorrect credentials.")
         }
-        catch 
+        catch (e)
         {
-            error = 'Something went wrong, please try again';
+            toast.error(e instanceof Error ? e.message : "Something went wrong, try again.");
         }
         finally 
         {
@@ -68,16 +67,12 @@
             <Input bind:value={password} type="password" name="password" id="password" required />
         </div>
         
-        <Button type="submit" class="w-full" disabled={!email || !password || loading}>
+        <Button type="submit" class="w-full cursor-pointer" disabled={!email || !password || loading}>
             {#if loading}
                 Signing in...
             {:else}
                 Sign in
             {/if}
         </Button>
-        
-        {#if error}
-            <p class="pl-2 text-sm text-destructive">{error}</p>
-        {/if}
     </form>
 </div>

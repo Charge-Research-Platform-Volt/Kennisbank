@@ -24,6 +24,7 @@
     import Input from '$lib/components/ui/input/input.svelte';
     import Textarea from '$lib/components/ui/textarea/textarea.svelte';
     import AsyncMultiSelect from '$lib/components/ui/async-multi-select.svelte';
+    import { toast } from 'svelte-sonner';
 
     const openInspector: (item: ResourceItem) => void = getContext('openInspector');
     const registerRefresh: (fn: () => void) => void = getContext('registerRefresh');
@@ -108,20 +109,34 @@
     }
 
     async function addItem(itemId: string) {
-        await api.put(`/api/project/add-item/${page.params.id}/${itemId}`, {});
-        await fetchProject();
+        try {
+            await api.put(`/api/project/add-item/${page.params.id}/${itemId}`, {});
+            await fetchProject();
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Failed to add item.");
+        }
     }
 
     const onItemSearchInput = debounce(searchItems);
 
     async function removeItem(itemId: string) {
-        await api.delete(`/api/project/remove-item/${page.params.id}/${itemId}`);
-        await fetchProject();
+        try {
+            await api.delete(`/api/project/remove-item/${page.params.id}/${itemId}`);
+            await fetchProject();
+            toast.success("Successfully removed item.");
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Failed to remove item.");
+        }
     }
 
     async function deleteFolder(folderId: string) {
-        await api.delete(`/api/project/delete/${folderId}`);
-        await fetchProject();
+        try {
+            await api.delete(`/api/project/delete/${folderId}`);
+            await fetchProject();
+            toast.success("Successfully deleted folder.");
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Failed to delete folder.");
+        }
     }
 
     // Rename
@@ -134,10 +149,14 @@
             return;
         }
 
-        await api.patch(`/api/project/update/${renamingFolderId}`, { title: renameFolderName.trim() });
-        await fetchProject();
+        try {
+            await api.patch(`/api/project/update/${renamingFolderId}`, { title: renameFolderName.trim() });
+            await fetchProject();
 
-        cancelRename();
+            cancelRename();
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Failed to rename folder.");
+        }
     }
 
     function cancelRename() {
@@ -152,7 +171,6 @@
     let editTags = $state<string[]>([]);
     let editCreators = $state<string[]>([]);
     let editSubmitting = $state(false);
-    let editError = $state('');
 
     function openEditDialog() {
         editTitle = projectInfo!.rootProject.title;
@@ -166,7 +184,6 @@
         if (!editTitle.trim()) return;
 
         editSubmitting = true;
-        editError = '';
 
         try {
             await api.patch(`/api/project/update/${projectInfo!.rootProject.id}`, {
@@ -177,17 +194,23 @@
             });
 
             editOpen = false;
+            toast.success('Project updated.');
             await fetchProject();
         } catch (e) {
-            editError = e instanceof Error ? e.message : 'Failed to update project.';
+            toast.error(e instanceof Error ? e.message : 'Failed to update project.');
         } finally {
             editSubmitting = false;
         }
     }
 
     async function deleteProject() {
-        await api.delete(`/api/project/delete/${projectInfo!.rootProject.id}`);
-        goto('/projects');
+        try {
+            await api.delete(`/api/project/delete/${projectInfo!.rootProject.id}`);
+            toast.success("Successfully deleted project.");
+            goto('/projects');
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Failed to delete the project.');
+        }
     }
 
     async function searchTags(q: string) {
@@ -514,9 +537,6 @@
                 <Label>Co-creators</Label>
                 <AsyncMultiSelect bind:value={editCreators} search={searchUsers} placeholder="Co-creators" class="w-full" />
             </div>
-            {#if editError}
-                <p class="text-sm text-destructive">{editError}</p>
-            {/if}
         </div>
 
         <Dialog.Footer>

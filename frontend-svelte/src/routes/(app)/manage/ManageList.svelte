@@ -68,8 +68,8 @@
             label: 'Person',
             icon: User,
             listUrl: (search: string, page: number) => `/api/persons/list?pageIndex=${page}&pageSize=50&searchQuery=${encodeURIComponent(search)}`,
-            createUrl: '/api/persons/new',
-            createBody: (name: string) => ({ name }),
+            createUrl: '',
+            createBody: () => null,
             renameUrl: (id: string) => `/api/persons/update/${id}`,
             renameBody: (name: string) => ({ name }),
             deleteUrl: (id: string) => `/api/persons/delete/${id}`,
@@ -81,8 +81,8 @@
             label: 'Organisation',
             icon: Building2,
             listUrl: (search: string, page: number) => `/api/organisations/list?pageIndex=${page}&pageSize=50&searchQuery=${encodeURIComponent(search)}`,
-            createUrl: '/api/organisations/new',
-            createBody: (name: string) => ({ name }),
+            createUrl: '',
+            createBody: () => null,
             renameUrl: (id: string) => `/api/organisations/update/${id}`,
             renameBody: (name: string) => ({ name }),
             deleteUrl: (id: string) => `/api/organisations/delete/${id}`,
@@ -165,7 +165,7 @@
     }
 
     async function createItem() {
-        if (!creatingName.trim()) return;
+        if (!creatingName.trim() || !cfg.createUrl.trim()) return;
         submitting = true;
         try {
             await api.put(cfg.createUrl, cfg.createBody(creatingName.trim()));
@@ -173,7 +173,6 @@
             creating = false;
             await fetchItems();
             await fetchSuggestions();
-            toast.success(`${cfg.label} created.`);
         } catch (e) {
             toast.error(e instanceof Error ? e.message : `Failed to create ${cfg.label}.`);
         } finally {
@@ -303,9 +302,11 @@
                     />
                 </div>
 
-                <Button onclick={() => creating = true} class="cursor-pointer">
-                    <Plus size={14} class="shrink-0" /> New {cfg.label}
-                </Button>
+                {#if (cfg.createUrl.trim())}
+                    <Button onclick={() => creating = true} class="cursor-pointer">
+                        <Plus size={14} class="shrink-0" /> New {cfg.label}
+                    </Button>
+                {/if}
             </div>
             <span class="pl-3 text-sm text-muted-foreground">{totalCount} entries</span>
         </div>
