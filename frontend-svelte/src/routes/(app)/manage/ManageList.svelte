@@ -127,6 +127,7 @@
     let mergeNameEditedManually = $state(false);
     let mergeConfirmText = $state('');
 
+
     async function fetchItems(page = currentPage) {
         loading = true;
         selectedIds.clear();
@@ -276,6 +277,9 @@
             currentPage = 1;
             search = '';
             selectedIds.clear();
+            suggestions = [];
+            editingId = null;
+            creating = false;
         });
     });
 
