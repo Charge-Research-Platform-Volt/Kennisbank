@@ -31,18 +31,18 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<ApiR
 }
 
 export const api = {
-	get: <T>(path: string) => 
-		request<T>(path),
-	post: <T>(path: string, body?: unknown) =>
-		request<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
-	put: <T>(path: string, body?: unknown) =>
-		request<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
-	patch: <T>(path: string, body?: unknown) =>
-		request<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined }),
-	delete: <T>(path: string) => 
-		request<T>(path, { method: 'DELETE' }),
-	form: <T>(path:string, body: FormData) => 
-		request<T>(path, { method: 'POST', body }),
-	postBinary: <T>(path: string, body: Blob) =>
-		request<T>(path, { method: 'POST', body, headers: { 'Content-Type': 'application/octet-stream' }}),
+	get: <T>(path: string, options?: RequestInit) =>
+		request<T>(path, options),
+	post: <T>(path: string, body?: unknown, options?: RequestInit) =>
+		request<T>(path, { ...options, method: 'POST', body: body ? JSON.stringify(body) : undefined }),
+	put: <T>(path: string, body?: unknown, options?: RequestInit) =>
+		request<T>(path, { ...options, method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
+	patch: <T>(path: string, body?: unknown, options?: RequestInit) =>
+		request<T>(path, { ...options, method: 'PATCH', body: body ? JSON.stringify(body) : undefined }),
+	delete: <T>(path: string, options?: RequestInit) =>
+		request<T>(path, { ...options, method: 'DELETE' }),
+	form: <T>(path: string, body: FormData, options?: RequestInit) =>
+		request<T>(path, { ...options, method: 'POST', body }),
+	postBinary: <T>(path: string, body: Blob, options?: RequestInit) =>
+		request<T>(path, { ...options, method: 'POST', body, headers: { 'Content-Type': 'application/octet-stream' }}),
 };

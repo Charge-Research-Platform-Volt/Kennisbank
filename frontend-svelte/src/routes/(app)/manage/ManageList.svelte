@@ -128,32 +128,46 @@
     let mergeConfirmText = $state('');
 
 
+    let fetchItemsController: AbortController | null = null;
+    let fetchSuggestionsController: AbortController | null = null;
+
     async function fetchItems(page = currentPage) {
+        fetchItemsController?.abort();
+        fetchItemsController = new AbortController();
+        const signal = fetchItemsController.signal;
+
         loading = true;
         selectedIds.clear();
 
         try {
-            const result = await api.get(cfg.listUrl(search, page));
+            const result = await api.get(cfg.listUrl(search, page), { signal });
             const { items: fetched, pageCount: pc, totalCount: tc } = cfg.extractItems(result.body);
 
             items = fetched;
             pageCount = pc;
             totalCount = tc;
+        } catch (e) {
+            if (!(e instanceof DOMException && e.name === 'AbortError')) throw e;
         } finally {
-            loading = false;
+            if (!signal.aborted) loading = false;
         }
     }
 
     async function fetchSuggestions() {
+        fetchSuggestionsController?.abort();
+        fetchSuggestionsController = new AbortController();
+        const signal = fetchSuggestionsController.signal;
+
         suggestionsLoading = true;
         suggestions = [];
 
         try {
-            const result = await api.get<MergeSuggestion[]>(cfg.suggestionsUrl);
-
+            const result = await api.get<MergeSuggestion[]>(cfg.suggestionsUrl, { signal });
             suggestions = result.body;
+        } catch (e) {
+            if (!(e instanceof DOMException && e.name === 'AbortError')) throw e;
         } finally {
-            suggestionsLoading = false;
+            if (!signal.aborted) suggestionsLoading = false;
         }
     }
 
