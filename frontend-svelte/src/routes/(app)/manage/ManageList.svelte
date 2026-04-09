@@ -295,11 +295,11 @@
             editingId = null;
             creating = false;
         });
+        fetchSuggestions();
     });
 
     $effect(() => {
         fetchItems(currentPage);
-        fetchSuggestions();
     });
 </script>
 
@@ -433,10 +433,9 @@
                     </Table.Body>
                 </Table.Root>
             {/if}
-        </div>
 
-        {#if pageCount > 1}
-            <Pagination.Root bind:page={currentPage} count={totalCount} perPage={50} class="shrink-0">
+            {#if pageCount > 1}
+            <Pagination.Root bind:page={currentPage} count={totalCount} perPage={50} class="py-2">
                 {#snippet children({ pages, currentPage: cp })}
                     <Pagination.Content>
                         <Pagination.Item><Pagination.PrevButton class="cursor-pointer" /></Pagination.Item>
@@ -453,7 +452,8 @@
                     </Pagination.Content>
                 {/snippet}
             </Pagination.Root>
-        {/if}
+            {/if}
+        </div>
 
         <!-- Bulk action pill -->
         <div class="absolute bottom-4 left-1/2 -translate-x-1/2 transition-all duration-200 {selectedIds.size > 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3 pointer-events-none'}">
