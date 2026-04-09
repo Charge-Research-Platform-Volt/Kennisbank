@@ -68,5 +68,50 @@ namespace KnowledgeBank.Data
                 LIMIT {limit}
                 """).ToListAsync();
         }
+        /// <summary>
+        /// Returns pairs of persons whose names are similar above the given threshold,
+        /// ordered by similarity score descending.
+        /// </summary>
+        public async Task<List<MergeSuggestion>> GetPersonMergeSuggestionsAsync(float threshold = 0.6f, int limit = 20)
+        {
+            return await database.Database.SqlQuery<MergeSuggestion>($"""
+                SELECT
+                    a.id              AS "Id1",
+                    ea.name           AS "Name1",
+                    b.id              AS "Id2",
+                    eb.name           AS "Name2",
+                    word_similarity(ea.name, eb.name) AS "Score"
+                FROM persons a
+                JOIN persons b ON a.id < b.id
+                JOIN entities ea ON ea.id = a.id
+                JOIN entities eb ON eb.id = b.id
+                WHERE word_similarity(ea.name, eb.name) > {threshold}
+                ORDER BY "Score" DESC
+                LIMIT {limit}
+                """).ToListAsync();
+        }
+
+        /// <summary>
+        /// Returns pairs of organisations whose names are similar above the given threshold,
+        /// ordered by similarity score descending.
+        /// </summary>
+        public async Task<List<MergeSuggestion>> GetOrganisationMergeSuggestionsAsync(float threshold = 0.6f, int limit = 20)
+        {
+            return await database.Database.SqlQuery<MergeSuggestion>($"""
+                SELECT
+                    a.id              AS "Id1",
+                    ea.name           AS "Name1",
+                    b.id              AS "Id2",
+                    eb.name           AS "Name2",
+                    word_similarity(ea.name, eb.name) AS "Score"
+                FROM organisations a
+                JOIN organisations b ON a.id < b.id
+                JOIN entities ea ON ea.id = a.id
+                JOIN entities eb ON eb.id = b.id
+                WHERE word_similarity(ea.name, eb.name) > {threshold}
+                ORDER BY "Score" DESC
+                LIMIT {limit}
+                """).ToListAsync();
+        }
     }
 }

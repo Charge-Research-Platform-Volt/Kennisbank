@@ -193,6 +193,47 @@ namespace KnowledgeBank.Controllers
         }
         #endregion
 
+        #region Merge
+        /// <summary>
+        /// Merges the second organisation into the first. All relations are transferred to the first organisation and the second is deleted.
+        /// </summary>
+        /// <param name="id1">The ID of the organisation to merge into (survivor)</param>
+        /// <param name="id2">The ID of the organisation to merge from (will be deleted)</param>
+        [HttpPatch("merge/{id1}/{id2}")]
+        [Authorize(Policy = "RequireAdminRole")]
+        [SwaggerOperation(Summary = "Merges the second organisation into the first")]
+        [SwaggerResponse(200, "Organisations merged successfully", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad request", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Organisation(s) not found", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Merge(string id1, string id2)
+        {
+            if (string.IsNullOrEmpty(id1) || string.IsNullOrEmpty(id2))
+                return BadRequest(new ApiResponse(false, "IDs are required."));
+
+            if (id1 == id2)
+                return BadRequest(new ApiResponse(false, "Cannot merge an organisation with itself."));
+
+            if (!Guid.TryParse(id1, out Guid orgId1) || !Guid.TryParse(id2, out Guid orgId2))
+                return BadRequest(new ApiResponse(false, "Invalid organisation ID format."));
+
+            try
+            {
+                if (!await resourceManager.OrganisationExistsAsync(orgId1) || !await resourceManager.OrganisationExistsAsync(orgId2))
+                    return NotFound(new ApiResponse(false, "One or both organisations were not found."));
+
+                await resourceManager.MergeOrganisationsAsync(orgId1, orgId2);
+                return Ok(new ApiResponse(true, "Organisations merged successfully."));
+            }
+            catch (Exception e)
+            {
+                await resourceManager.Rollback();
+                logger.Error(e, "Error merging organisations {OrgId1} and {OrgId2}", id1, id2);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        #endregion
+
         #region Update
         /// <summary>
         /// Updates a organistation
@@ -403,18 +444,23 @@ namespace KnowledgeBank.Controllers
 
                 // No paging requested, list all organisations
                 if (pageIndex == null || pageSize == null)
+                {
                     organisations = string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllOrganisationsAsync(predicate: predicate) :
                         await resourceManager.GetAllOrganisationsAsync(projection: projectionString, predicate: predicate);
 
-                // Paging requested, retrieve organisations on that page
-                else
-                    organisations = string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetOrganisationPageAsync((int)pageIndex, (int)pageSize, predicate: predicate) :
-                        await resourceManager.GetOrganisationPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: predicate);
+                    return Ok(new ApiResponse(true, $"Found {organisations.Length} organisations", new { Items = organisations, PageCount = 1, TotalCount = organisations.Length }));
+                }
 
-                // Return found organisations
-                return Ok(new ApiResponse(true, $"Found {organisations.Length} organisations", organisations));
+                // Paging requested, retrieve organisations on that page
+                organisations = string.IsNullOrEmpty(properties) ?
+                    await resourceManager.GetOrganisationPageAsync((int)pageIndex, (int)pageSize, predicate: predicate) :
+                    await resourceManager.GetOrganisationPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: predicate);
+
+                int totalOrganisations = (await resourceManager.GetAllOrganisationsAsync(predicate: predicate)).Length;
+                int pageCount = (int)Math.Ceiling((double)totalOrganisations / (int)pageSize);
+
+                return Ok(new ApiResponse(true, $"Found {organisations.Length} organisations", new { Items = organisations, PageCount = pageCount, TotalCount = totalOrganisations }));
             }
             catch (Exception e)
             {
@@ -661,6 +707,26 @@ namespace KnowledgeBank.Controllers
             {
                 logger.Error(e, "Error updating role in relation '{Relation}' for organisation with ID '{Id}'", relation, id);
                 return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        #endregion
+
+        #region Suggestions
+        [HttpGet("suggestions")]
+        [SwaggerOperation(Summary = "Returns pairs of organisations with similar names as merge suggestions")]
+        [SwaggerResponse(200, "List of merge suggestions", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Suggestions([FromQuery] float threshold = 0.6f, [FromQuery] int limit = 20)
+        {
+            try
+            {
+                var suggestions = await resourceManager.GetOrganisationMergeSuggestionsAsync(threshold, limit);
+                return Ok(new ApiResponse(true, $"Found {suggestions.Count} suggestion(s)", suggestions));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error fetching organisation merge suggestions");
+                return StatusCode(500, new ApiResponse(false, "Error fetching organisation merge suggestions", e.Message));
             }
         }
         #endregion

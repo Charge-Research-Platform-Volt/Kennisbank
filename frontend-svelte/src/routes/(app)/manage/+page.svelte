@@ -6,6 +6,8 @@
         { id: 'tags', label: 'Tags' },
         { id: 'regions', label: 'Regions' },
         { id: 'resourceTypes', label: 'Resource Types' },
+        { id: 'persons', label: 'Persons' },
+        { id: 'organisations', label: 'Organisations' },
         { id: 'users', label: 'Users' },
     ] as const;
 

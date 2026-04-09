@@ -49,6 +49,8 @@ namespace KnowledgeBank.Data
         public DbSet<ResourceGridSearchResult> ResourceGridSearchResults { get; set; }
         public DbSet<ResourceTrashItem> ResourceTrashItems { get; set; }
 
+        public DbSet<ChangelogEntry> Changelog { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Configure TPT inheritance for Entity hierarchy

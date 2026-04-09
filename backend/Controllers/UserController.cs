@@ -217,7 +217,7 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
             IQueryable<User> userQuery = database.Users;
             if (!string.IsNullOrEmpty(searchQuery))
                 userQuery = userQuery.Where(u =>
-                    EF.Functions.ILike(u.Email, $"%{searchQuery}%") ||
+                    EF.Functions.ILike(u.Email!, $"%{searchQuery}%") ||
                     EF.Functions.ILike(u.FirstName + " " + u.LastName, $"%{searchQuery}%"));
 
             User[] matchedUsers = await userQuery.OrderBy(u => u.Email).ToArrayAsync();
@@ -318,66 +318,69 @@ public class UserController(IDbContextFactory<DatabaseContext> dbFactory, IStora
         }
     }
 
-    /// <summary>
-    /// Updates the current user's avatar.
-    /// </summary>
-    /// <param name="newAvatar">The new avatar for the current user.</param>
-    /// <returns>A response code and text response with information about the success of the action.</returns>
-    [HttpPatch("update-avatar")]
-    [SwaggerOperation(
-        Summary = "Update the current user.",
-        Description = "Updates the current user's information."
-    )]
-    [SwaggerResponse(200, "User updated successfully.")]
-    [SwaggerResponse(400, "User email already exists.")]
+    [HttpPost("avatar")]
+    [Authorize]
+    [SwaggerOperation(Summary = "Upload or replace the current user's avatar.")]
+    [SwaggerResponse(200, "Avatar uploaded successfully.")]
+    [SwaggerResponse(400, "Invalid file.")]
     [SwaggerResponse(404, "User not found.")]
     [SwaggerResponse(500, "Internal server error.")]
-    public async Task<IActionResult> UpdateAvatar(IFormFile? newAvatar)
+    public async Task<IActionResult> UploadAvatar(IFormFile newAvatar)
     {
-        if (User.Identity == null || !User.Identity.IsAuthenticated)
-            return BadRequest("User not authenticated.");
-
-        // Get the user ID from the claims
         string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        // Check if the user ID is null or empty
         if (string.IsNullOrEmpty(userId))
             return BadRequest("User not found.");
 
-        // Find the user by ID
         User? user = await userManager.FindByIdAsync(userId);
-
-        // Check if the user exists
         if (user == null)
             return NotFound("User not found.");
 
-        if (newAvatar != null)
-        {
-            if (newAvatar.Length > Constants.MaxAvatarSize)
-                return BadRequest($"Avatar file is too large (max {Constants.MaxAvatarSizeInMb}MB)");
+        if (newAvatar.Length > Constants.MaxAvatarSize)
+            return BadRequest($"Avatar file is too large (max {Constants.MaxAvatarSizeInMb}MB)");
 
-            string[] allowedTypes = ["image/png", "image/jpeg", "image/webp"];
-            if (!allowedTypes.Contains(newAvatar.ContentType))
-                return BadRequest("Invalid image type. PNG, JPEG or WebP expected");
+        string[] allowedTypes = ["image/png", "image/jpeg", "image/webp"];
+        if (!allowedTypes.Contains(newAvatar.ContentType))
+            return BadRequest("Invalid image type. PNG, JPEG or WebP expected");
 
-            await storageService.UploadObjectAsync(bucketName, userId, newAvatar.OpenReadStream());
+        await storageService.UploadObjectAsync(bucketName, userId, newAvatar.OpenReadStream());
 
-            user.CustomAvatarVersion++;
-            user.HasCustom = true;
-        }
-        else if (user.HasCustom)
-        {
-            await storageService.DeleteObjectAsync(bucketName, userId);
+        user.CustomAvatarVersion++;
+        user.HasCustom = true;
 
-            user.HasCustom = false;
-        }
-
-        // If this fails the image and version will be misaligned, at worst slow user updates.
         var result = await userManager.UpdateAsync(user);
         if (!result.Succeeded)
             return StatusCode(500, "Failed to update user record.");
 
-        return Ok("Avatar updated successfully.");
+        return Ok(new ApiResponse(true, "Avatar uploaded successfully.", user.CustomAvatarVersion));
+    }
+
+    [HttpDelete("avatar")]
+    [Authorize]
+    [SwaggerOperation(Summary = "Remove the current user's avatar.")]
+    [SwaggerResponse(200, "Avatar removed successfully.")]
+    [SwaggerResponse(404, "User not found.")]
+    [SwaggerResponse(500, "Internal server error.")]
+    public async Task<IActionResult> DeleteAvatar()
+    {
+        string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+            return BadRequest("User not found.");
+
+        User? user = await userManager.FindByIdAsync(userId);
+        if (user == null)
+            return NotFound("User not found.");
+
+        if (user.HasCustom)
+        {
+            await storageService.DeleteObjectAsync(bucketName, userId);
+            user.HasCustom = false;
+
+            var result = await userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+                return StatusCode(500, "Failed to update user record.");
+        }
+
+        return Ok(new ApiResponse(true, "Avatar removed successfully."));
     }
 
     /// <summary>

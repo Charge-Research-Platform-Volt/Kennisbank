@@ -4,8 +4,16 @@
     import { api } from '$lib/api';
     import Spinner from '$lib/components/ui/spinner/spinner.svelte';
 	import Sidebar from '$lib/components/sidebar/sidebar.svelte';
+    import * as Dialog from '$lib/components/ui/dialog';
+	import Button from '$lib/components/ui/button/button.svelte';
+    import { Sparkles } from 'lucide-svelte';
     
+    type ChangelogEntry = { title: string; body: string; createdAt: string; };
+
     let { children } = $props();
+
+    let changelogEntries = $state<ChangelogEntry[]>([]);
+    let changelogDialogOpen = $state(false);
     
     // Fetch user role, which also automatically checks authentication
     api.get<User>('/api/user/current/account').then(res =>
@@ -15,6 +23,14 @@
     }).catch(() =>
     {
         userState.loading = false;
+    });
+
+    // Fetch changelog unseen
+    api.get<ChangelogEntry[]>('/api/changelog/unseen').then(res => {
+        changelogEntries = res.body;
+
+        if (changelogEntries.length > 0)
+            changelogDialogOpen = true;
     });
 </script>
 
@@ -33,3 +49,31 @@
         </main>
     </div>
 {/if}
+
+<Dialog.Root bind:open={changelogDialogOpen}>
+    <Dialog.Content class="!max-w-3xl max-h-[80vh] flex flex-col p-5">
+        <Dialog.Header>
+            <Dialog.Title class="flex items-center gap-2"><Sparkles size={14} class="text-amber-400" /> What's new</Dialog.Title>
+            <Dialog.Description>These are all the changes since the last time you logged in.</Dialog.Description>
+        </Dialog.Header>
+
+        <div class="flex flex-col overflow-y-auto p-2 max-h-[60vh]">
+            {#each changelogEntries as entry, i (entry.title)}
+                {#if i > 0}
+                    <hr class="my-3" />
+                {/if}
+                <div class="flex flex-col gap-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="font-medium">{entry.title}</span>
+                        <span class="text-xs text-muted-foreground">{new Date(entry.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <p class="text-sm text-muted-foreground">{entry.body}</p>
+                </div>
+            {/each}
+        </div>
+
+        <Dialog.Footer>
+            <Button class="cursor-pointer" onclick={() => changelogDialogOpen = false}>Got it</Button>
+        </Dialog.Footer>
+    </Dialog.Content>
+</Dialog.Root>

@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Cors;
 using KnowledgeBank.Services.Background;
 using KnowledgeBank.Services;
 using KnowledgeBank.Services.AI;
-using KnowledgeBank.Services.Vector;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,12 +20,11 @@ namespace KnowledgeBank.Controllers
     /// </summary>
     /// <param name="resourceManager">The resource manager service for database interactions</param>
     /// <param name="taskQueue">The background task queue for handling asynchronous tasks</param>
-    /// <param name="vectorStore">The vector store for handling vector database interactions</param>
     [ApiController]
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class PersonsController(ResourceManager resourceManager, IBackgroundTaskQueue taskQueue, IVectorStore vectorStore) : ControllerBase
+    public class PersonsController(ResourceManager resourceManager, IBackgroundTaskQueue taskQueue) : ControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<PersonsController>();
         private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
@@ -185,14 +183,6 @@ namespace KnowledgeBank.Controllers
                     return NotFound(new ApiResponse(false, "Person does not exist"));
                 }
 
-                // Delete the person chunks from the vector database
-                bool chunkDeleted = await vectorStore.DeletePointsByResourceIdAsync(Guid.Parse(id));
-                if (!chunkDeleted)
-                {
-                    logger.Warning("Failed to delete person chunks from vector database for ID: {ID}", id);
-                    return StatusCode(500, new ApiResponse(false, "Failed to delete person chunks from vector database"));
-                }
-
                 logger.Information("Person with ID '{ID}' deleted successfully", id);
                 return Ok(new ApiResponse(true, "Person deleted successfully"));
             }
@@ -200,6 +190,47 @@ namespace KnowledgeBank.Controllers
             {
                 logger.Error(e, "Error deleting person with ID {ID}", id);
                 return StatusCode(500, new ApiResponse(false, "Error deleting person"));
+            }
+        }
+        #endregion
+
+        #region Merge
+        /// <summary>
+        /// Merges the second person into the first. All relations are transferred to the first person and the second is deleted.
+        /// </summary>
+        /// <param name="id1">The ID of the person to merge into (survivor)</param>
+        /// <param name="id2">The ID of the person to merge from (will be deleted)</param>
+        [HttpPatch("merge/{id1}/{id2}")]
+        [Authorize(Policy = "RequireAdminRole")]
+        [SwaggerOperation(Summary = "Merges the second person into the first")]
+        [SwaggerResponse(200, "Persons merged successfully", typeof(ApiResponse))]
+        [SwaggerResponse(400, "Bad request", typeof(ApiResponse))]
+        [SwaggerResponse(404, "Person(s) not found", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Merge(string id1, string id2)
+        {
+            if (string.IsNullOrEmpty(id1) || string.IsNullOrEmpty(id2))
+                return BadRequest(new ApiResponse(false, "IDs are required."));
+
+            if (id1 == id2)
+                return BadRequest(new ApiResponse(false, "Cannot merge a person with itself."));
+
+            if (!Guid.TryParse(id1, out Guid personId1) || !Guid.TryParse(id2, out Guid personId2))
+                return BadRequest(new ApiResponse(false, "Invalid person ID format."));
+
+            try
+            {
+                if (!await resourceManager.PersonExistsAsync(personId1) || !await resourceManager.PersonExistsAsync(personId2))
+                    return NotFound(new ApiResponse(false, "One or both persons were not found."));
+
+                await resourceManager.MergePersonsAsync(personId1, personId2);
+                return Ok(new ApiResponse(true, "Persons merged successfully."));
+            }
+            catch (Exception e)
+            {
+                await resourceManager.Rollback();
+                logger.Error(e, "Error merging persons {PersonId1} and {PersonId2}", id1, id2);
+                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
             }
         }
         #endregion
@@ -417,19 +448,23 @@ namespace KnowledgeBank.Controllers
 
                 // No paging requested, list all persons
                 if (pageIndex == null || pageSize == null)
+                {
                     persons = string.IsNullOrEmpty(properties) ?
                         await resourceManager.GetAllPersonsAsync(predicate: predicate) :
                         await resourceManager.GetAllPersonsAsync(projection: projectionString, predicate: predicate);
 
+                    return Ok(new ApiResponse(true, $"Found {persons.Length} persons", new { Items = persons, PageCount = 1, TotalCount = persons.Length }));
+                }
+
                 // Paging requested, retrieve persons on that page
-                else
-                    persons = string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetPersonPageAsync((int)pageIndex, (int)pageSize, predicate: predicate) :
-                        await resourceManager.GetPersonPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: predicate);
+                persons = string.IsNullOrEmpty(properties) ?
+                    await resourceManager.GetPersonPageAsync((int)pageIndex, (int)pageSize, predicate: predicate) :
+                    await resourceManager.GetPersonPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: predicate);
 
+                int totalPersons = (await resourceManager.GetAllPersonsAsync(predicate: predicate)).Length;
+                int pageCount = (int)Math.Ceiling((double)totalPersons / (int)pageSize);
 
-                // Return found persons
-                return Ok(new ApiResponse(true, $"Found {persons.Length} persons", persons));
+                return Ok(new ApiResponse(true, $"Found {persons.Length} persons", new { Items = persons, PageCount = pageCount, TotalCount = totalPersons }));
             }
             catch (Exception e)
             {
@@ -678,6 +713,26 @@ namespace KnowledgeBank.Controllers
             {
                 logger.Error(e, "Error updating role in relation '{Relation}' for person with ID '{Id}'", relation, id);
                 return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
+            }
+        }
+        #endregion
+
+        #region Suggestions
+        [HttpGet("suggestions")]
+        [SwaggerOperation(Summary = "Returns pairs of persons with similar names as merge suggestions")]
+        [SwaggerResponse(200, "List of merge suggestions", typeof(ApiResponse))]
+        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
+        public async Task<IActionResult> Suggestions([FromQuery] float threshold = 0.6f, [FromQuery] int limit = 20)
+        {
+            try
+            {
+                var suggestions = await resourceManager.GetPersonMergeSuggestionsAsync(threshold, limit);
+                return Ok(new ApiResponse(true, $"Found {suggestions.Count} suggestion(s)", suggestions));
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "Error fetching person merge suggestions");
+                return StatusCode(500, new ApiResponse(false, "Error fetching person merge suggestions", e.Message));
             }
         }
         #endregion

@@ -65,9 +65,6 @@ namespace KnowledgeBank.Data
         {
             bool startedTransaction = await BeginTransaction();
 
-            // Delete the person itself
-            int count = await DeleteAsync(database.Persons, person => person.Id == id);
-
             // Delete person from all organisations
             await RemovePersonFromAllOrganisationsAsync(id);
 
@@ -79,6 +76,11 @@ namespace KnowledgeBank.Data
 
             // Delete all resource-related_person relations containing this person
             await RemoveRelatedPersonFromAllResourcesAsync(id);
+
+            // Delete the person itself (ExecuteDeleteAsync doesn't support TPT — use Find + Remove)
+            var person = await database.Persons.FindAsync(id);
+            if (person != null) database.Persons.Remove(person);
+            int count = person != null ? 1 : 0;
 
             // Delete vector embeddings for this person
             await _vectorStore.DeletePointsByEntityIdAsync(id);
@@ -94,9 +96,6 @@ namespace KnowledgeBank.Data
         {
             bool startedTransaction = await BeginTransaction();
 
-            // Delete the organisation itself
-            int count = await DeleteAsync(database.Organisations, organisation => organisation.Id == id);
-
             // Delete all organisation relationships with this organisation
             await RemoveAllOrganisationRelationshipsContainingIdAsync(id);
 
@@ -105,6 +104,11 @@ namespace KnowledgeBank.Data
 
             // Delete all person-organisation relations containing this organisation
             await RemoveAllPersonOrganisationRelationsWithOrganisationIdAsync(id);
+
+            // Delete the organisation itself (ExecuteDeleteAsync doesn't support TPT — use Find + Remove)
+            var organisation = await database.Organisations.FindAsync(id);
+            if (organisation != null) database.Organisations.Remove(organisation);
+            int count = organisation != null ? 1 : 0;
 
             // Delete vector embeddings for this organisation
             await _vectorStore.DeletePointsByEntityIdAsync(id);

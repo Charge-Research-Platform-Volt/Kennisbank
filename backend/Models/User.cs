@@ -13,11 +13,12 @@ public class User : IdentityUser
     [MaxLength(100)]
     public string LastName { get; set; } = null!;
 
-    // Technically able to hit integer limit, practically impossible.
     // Increments when the user selects a new custom avatar.
     public int CustomAvatarVersion { get; set; } = 0;
 
     public bool HasCustom { get; set; }
+
+    public int LastSeenChangelogId { get; set; } = 0;
 
     [Obsolete("Only for EF Core and Identity or testing without a real database. Use the parameterized constructor instead.")]
     public User() { } // Default constructor for EF Core

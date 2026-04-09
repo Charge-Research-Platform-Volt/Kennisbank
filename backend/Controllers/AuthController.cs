@@ -249,7 +249,10 @@ namespace KnowledgeBank.Controllers
                     await context.SaveChangesAsync();
 
                     // create the user
-                    User user = new User(signUpDto.FirstName, signUpDto.LastName, signUpDto.Email);
+                    User user = new(signUpDto.FirstName, signUpDto.LastName, signUpDto.Email)
+                    {
+                        LastSeenChangelogId = await context.Changelog.MaxAsync(c => (int?)c.Id) ?? 0
+                    };
 
                     // Upload avatar if provided
                     if (signUpDto.Avatar != null && signUpDto.Avatar.Length > 0)

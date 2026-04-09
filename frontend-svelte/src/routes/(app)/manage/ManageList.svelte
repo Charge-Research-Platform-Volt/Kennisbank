@@ -3,7 +3,7 @@
     import { debounce } from "$lib/utils/debounce";
     import { confirm } from "$lib/state/confirm.svelte";
     import { toast } from "svelte-sonner";
-	import { Plus, Search, Check, X, Pencil, Trash2, Merge, Tag, MapPin, Layers } from "lucide-svelte";
+	import { Plus, Search, Check, X, Pencil, Trash2, Merge, Tag, MapPin, Layers, User, Building2 } from "lucide-svelte";
 	import { Button } from "$lib/components/ui/button";
 	import { Input } from "$lib/components/ui/input";
 	import Spinner from "$lib/components/ui/spinner/spinner.svelte";
@@ -11,12 +11,14 @@
 	import * as Pagination from "$lib/components/ui/pagination";
     import * as Dialog from "$lib/components/ui/dialog";
     import { SvelteSet } from "svelte/reactivity";
+    import { untrack } from "svelte";
 	import Checkbox from "$lib/components/ui/checkbox/checkbox.svelte";
 
-    let { type }: { type: 'tags' | 'regions' | 'resourceTypes' } = $props();
+    let { type }: { type: 'tags' | 'regions' | 'resourceTypes' | 'persons' | 'organisations' } = $props();
 
     type ListItem = { id: string; name: string; };
     type TagsListResponse = { tags: ListItem[]; pageCount: number; totalCount: number; };
+    type PagedListResponse = { items: ListItem[]; pageCount: number; totalCount: number; };
     type FlatListResponse = ListItem[];
 
     const config = {
@@ -61,6 +63,32 @@
             mergeUrl: (id1: string, id2: string) => `/api/resources/types/merge/${id1}/${id2}`,
             suggestionsUrl: '/api/resources/types/suggestions',
             extractItems: (body: unknown) => ({ items: body as FlatListResponse, pageCount: 1, totalCount: (body as FlatListResponse).length }),
+        },
+        persons: {
+            label: 'Person',
+            icon: User,
+            listUrl: (search: string, page: number) => `/api/persons/list?pageIndex=${page}&pageSize=50&searchQuery=${encodeURIComponent(search)}`,
+            createUrl: '/api/persons/new',
+            createBody: (name: string) => ({ name }),
+            renameUrl: (id: string) => `/api/persons/update/${id}`,
+            renameBody: (name: string) => ({ name }),
+            deleteUrl: (id: string) => `/api/persons/delete/${id}`,
+            mergeUrl: (id1: string, id2: string) => `/api/persons/merge/${id1}/${id2}`,
+            suggestionsUrl: '/api/persons/suggestions',
+            extractItems: (body: unknown) => { const b = body as PagedListResponse; return { items: b.items, pageCount: b.pageCount, totalCount: b.totalCount }; },
+        },
+        organisations: {
+            label: 'Organisation',
+            icon: Building2,
+            listUrl: (search: string, page: number) => `/api/organisations/list?pageIndex=${page}&pageSize=50&searchQuery=${encodeURIComponent(search)}`,
+            createUrl: '/api/organisations/new',
+            createBody: (name: string) => ({ name }),
+            renameUrl: (id: string) => `/api/organisations/update/${id}`,
+            renameBody: (name: string) => ({ name }),
+            deleteUrl: (id: string) => `/api/organisations/delete/${id}`,
+            mergeUrl: (id1: string, id2: string) => `/api/organisations/merge/${id1}/${id2}`,
+            suggestionsUrl: '/api/organisations/suggestions',
+            extractItems: (body: unknown) => { const b = body as PagedListResponse; return { items: b.items, pageCount: b.pageCount, totalCount: b.totalCount }; },
         },
     };
 
@@ -117,6 +145,7 @@
 
     async function fetchSuggestions() {
         suggestionsLoading = true;
+        suggestions = [];
 
         try {
             const result = await api.get<MergeSuggestion[]>(cfg.suggestionsUrl);
@@ -242,6 +271,14 @@
         mergeConfirmText = '';
         mergeDialogOpen = true;
     }
+
+    $effect(() => {
+        if (type) untrack(() => {
+            currentPage = 1;
+            search = '';
+            selectedIds.clear();
+        });
+    });
 
     $effect(() => {
         fetchItems(currentPage);
