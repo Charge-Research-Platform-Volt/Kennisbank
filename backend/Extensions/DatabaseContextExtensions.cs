@@ -102,6 +102,7 @@ public static class DatabaseContextExtensions
                     END as ""FileType"",
                     ""creation-date"" as ""CreationDate"",
                     ""type-id"" as ""TypeId"",
+                    ""journal-id"" as ""JournalId"",
 
                     -- Create search vector from multiple fields
                     to_tsvector(
@@ -123,6 +124,7 @@ public static class DatabaseContextExtensions
                     'person' as ""FileType"",
                     e.""creation-date"" as ""CreationDate"",
                     NULL::uuid as ""TypeId"",
+                    NULL::uuid as ""JournalId"",
 
                     -- Create search vector from multiple fields
                     to_tsvector(
@@ -147,6 +149,7 @@ public static class DatabaseContextExtensions
                     'organisation' as ""FileType"",
                     e.""creation-date"" as ""CreationDate"",
                     NULL::uuid as ""TypeId"",
+                    NULL::uuid as ""JournalId"",
 
                     -- Create search vector from multiple fields
                     to_tsvector(

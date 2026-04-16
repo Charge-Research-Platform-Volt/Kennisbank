@@ -27,6 +27,7 @@ namespace KnowledgeBank.Data
         public DbSet<Person> Persons { get; set; }
         public DbSet<Organisation> Organisations { get; set; }
         public DbSet<Region> Regions { get; set; }
+        public DbSet<Journal> Journals { get; set; }
         public DbSet<ResourceType> ResourceTypes { get; set; }
         public DbSet<Chats> Chats { get; set; }
         public DbSet<Messages> Messages { get; set; }

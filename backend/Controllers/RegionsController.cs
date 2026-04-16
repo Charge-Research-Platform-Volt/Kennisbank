@@ -200,8 +200,6 @@ namespace KnowledgeBank.Controllers
                 if (!string.IsNullOrEmpty(name))
                     regionId = await resourceManager.GetRegionPropertyOrDefaultAsync(predicate: r => EF.Functions.ILike(r.Name, name), selector: "Id");
 
-
-
                 // ID is empty, so no region was found
                 if (regionId == null)
                     return Ok(new ApiResponse(true, "Region does not exist", new { exists = false, id = "" }));
@@ -290,7 +288,7 @@ namespace KnowledgeBank.Controllers
 
                 string projectionString = $"new({properties})";
 
-                Expression<Func<Region, bool>>? predicate = searchQuery != null ? r =>  /*EF.Functions.TrigramsAreSimilar(r.Name, searchQuery) || {NOT ALLOWED IN AZURE POSTGRES} */
+                Expression<Func<Region, bool>>? predicate = searchQuery != null ? r =>  EF.Functions.TrigramsAreSimilar(r.Name, searchQuery) ||
                                                                                         EF.Functions.ILike(r.Name, $"{searchQuery}%") ||
                                                                                         EF.Functions.ILike(r.Name, $"%{searchQuery}%") : null;
 

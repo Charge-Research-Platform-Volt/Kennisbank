@@ -28,7 +28,7 @@
         authorType?: string;
     };
 
-	let phase = $state<Phase>('select');
+	let phase = $state<Phase>('review');
 	let mode = $state<'file' | 'url'>('file');
 
 	// URL mode
@@ -43,6 +43,7 @@
     // Review phase
     let resourceTypeDisplay = $state<string | null>(null);
     let languageDisplay = $state<string | null>(null);
+    let journalDisplay = $state<string | null>(null);
 
     const searchResourceTypes = async (q: string) => {
         const url = q ? `/api/resources/types/list?search=${encodeURIComponent(q)}` : '/api/resources/types/list';
@@ -100,12 +101,24 @@
         return { id: r.body, name };
     }
 
+    const searchJournals = async (q: string) => {
+        const url = q ? `/api/journal/list?pageIndex=1&pageSize=20&searchQuery=${encodeURIComponent(q)}&properties=Id,Name` : '/api/journal/list?pageIndex=1&pageSize=20&properties=Id,Name';
+        const r = await api.get<{ id: string; name: string }[]>(url);
+        return r.body ?? [];
+    }
+
+    const createJournal = async (name: string): Promise<{ id: string; name: string } | null> => {
+        const r = await api.put<string>('/api/journal/new', { name });
+        return { id: r.body, name };
+    }
+
     let resourceInfo = $state({
         typeId: '',
         title: '',
         languageCode: '',
         publicationDate: '',
         publicationDatePrecision: 'Day' as DatePrecision,
+        journalId: '',
         abstract: '',
         description: '',
         publicationCode: '',
@@ -179,6 +192,7 @@
                 PublicationCode: resourceInfo.publicationCode || null,
                 PublicationDate: resourceInfo.publicationDate ? new Date(resourceInfo.publicationDate).toISOString() : null,
                 PublicationDatePrecision: resourceInfo.publicationDate ? resourceInfo.publicationDatePrecision : null,
+                JournalId: resourceInfo.journalId || null,
                 License: resourceInfo.license || null,
                 SourceUrl: resourceInfo.sourceUrl || null,
                 Note: resourceInfo.note || null,
@@ -326,7 +340,7 @@
                 <!-- Title -->
                 <div class="flex flex-col gap-0.5 border-b border-transparent focus-within:border-border transition-colors pb-1">
                     {#if resourceInfo.title}
-                        <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground">Title</span>
+                        <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground pb-1">Title</span>
                     {/if}
                     <input
                         bind:value={resourceInfo.title}
@@ -338,24 +352,24 @@
                 <!-- Type + Language -->
                 <div class="flex gap-4">
                     <div class="flex flex-col gap-0.5 flex-1 min-w-0 border-b border-transparent focus-within:border-border transition-colors">
-                        <span class="text-xs text-muted-foreground">Type</span>
+                        <span class="text-xs text-muted-foreground pb-1">Type</span>
                         <AsyncSelect
                             bind:value={resourceInfo.typeId}
                             bind:displayValue={resourceTypeDisplay}
                             search={searchResourceTypes}
                             oncreate={createResourceType}
                             placeholder="Select or create type..."
-                            variant="ghost"
+                            variant="flat"
                         />
                     </div>
                     <div class="flex flex-col gap-0.5 flex-1 min-w-0 border-b border-transparent focus-within:border-border transition-colors">
-                        <span class="text-xs text-muted-foreground">Language</span>
+                        <span class="text-xs text-muted-foreground pb-1">Language</span>
                         <AsyncSelect
                             bind:value={resourceInfo.languageCode}
                             bind:displayValue={languageDisplay}
                             search={searchLanguages}
                             placeholder="Select language..."
-                            variant="ghost"
+                            variant="flat"
                         />
                     </div>
                 </div>
@@ -364,7 +378,7 @@
                 {#if mode === 'file'}
                     <div class="flex flex-col gap-0.5 border-b border-transparent focus-within:border-border transition-colors pb-1">
                         {#if resourceInfo.abstract}
-                            <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground">Abstract</span>
+                            <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground pb-1">Abstract</span>
                         {/if}
                         <textarea
                             bind:value={resourceInfo.abstract}
@@ -379,7 +393,7 @@
                 <!-- Description -->
                 <div class="flex flex-col gap-0.5 border-b border-transparent focus-within:border-border transition-colors pb-1">
                     {#if resourceInfo.description}
-                        <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground">Description</span>
+                        <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground pb-1">Description</span>
                     {/if}
                     <textarea
                         bind:value={resourceInfo.description}
@@ -391,21 +405,21 @@
                 </div>
 
                 <!-- Tags -->
-                <div class="flex flex-col gap-2">
-                    <span class="text-xs text-muted-foreground">Tags</span>
+                <div class="flex flex-col gap-0.5">
+                    <span class="text-xs text-muted-foreground pb-1">Tags</span>
                     <BadgeInput bind:items={tags} search={searchTags} oncreate={createTag} placeholder="Search or create tag..." />
                 </div>
 
                 <!-- Regions -->
-                <div class="flex flex-col gap-2">
-                    <span class="text-xs text-muted-foreground">Regions</span>
+                <div class="flex flex-col gap-0.5">
+                    <span class="text-xs text-muted-foreground pb-1">Regions</span>
                     <BadgeInput bind:items={regions} search={searchRegions} oncreate={createRegion} placeholder="Search or create region..." />
                 </div>
 
                 <!-- Publication Date + Publication Code -->
                 <div class="flex gap-4 items-end">
                     <div class="flex flex-col gap-0.5 flex-1 min-w-0 border-b border-transparent focus-within:border-border transition-colors pb-1">
-                        <span class="text-xs text-muted-foreground">Publication Date</span>
+                        <span class="text-xs text-muted-foreground pb-1">Publication Date</span>
                         <div class="flex items-center gap-1 text-sm">
                             <input type="number" bind:value={dateDay} onblur={updateDate} min="1" max="31" placeholder="DD" class="bg-transparent outline-none w-8 placeholder:text-muted-foreground/50" />
                             <span class="text-muted-foreground/30">/</span>
@@ -414,9 +428,10 @@
                             <input type="number" bind:value={dateYear} onblur={updateDate} min="1000" max="2100" placeholder="YYYY" class="bg-transparent outline-none w-14 placeholder:text-muted-foreground/50" />
                         </div>
                     </div>
+
                     <div class="flex flex-col gap-0.5 flex-1 min-w-0 border-b border-transparent focus-within:border-border transition-colors pb-1">
                         {#if resourceInfo.publicationCode}
-                            <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground">Publication Code</span>
+                            <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground pb-1">Publication Code</span>
                         {/if}
                         <input
                             bind:value={resourceInfo.publicationCode}
@@ -426,11 +441,11 @@
                     </div>
                 </div>
 
-                <!-- License + Source URL -->
-                <div class="flex gap-4">
+                <!-- License + Journal -->
+                <div class="flex gap-4 items-end">
                     <div class="flex flex-col gap-0.5 flex-1 min-w-0 border-b border-transparent focus-within:border-border transition-colors pb-1">
                         {#if resourceInfo.license}
-                            <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground">License</span>
+                            <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground pb-1">License</span>
                         {/if}
                         <input
                             bind:value={resourceInfo.license}
@@ -439,22 +454,35 @@
                         />
                     </div>
                     <div class="flex flex-col gap-0.5 flex-1 min-w-0 border-b border-transparent focus-within:border-border transition-colors pb-1">
-                        {#if resourceInfo.sourceUrl}
-                            <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground">Source URL</span>
-                        {/if}
-                        <input
-                            type="url"
-                            bind:value={resourceInfo.sourceUrl}
-                            placeholder="Source URL"
-                            class="bg-transparent outline-none w-full text-sm placeholder:text-muted-foreground/50"
+                        <span class="text-xs text-muted-foreground pb-1">Journal</span>
+                        <AsyncSelect
+                            bind:value={resourceInfo.journalId}
+                            bind:displayValue={journalDisplay}
+                            search={searchJournals}
+                            oncreate={createJournal}
+                            placeholder="Select or create journal..."
+                            variant="flat"
                         />
                     </div>
+                </div>
+
+                <!-- Source URL -->
+                <div class="flex flex-col gap-0.5 border-b border-transparent focus-within:border-border transition-colors pb-1">
+                    {#if resourceInfo.sourceUrl}
+                        <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground pb-1">Source URL</span>
+                    {/if}
+                    <input
+                        type="url"
+                        bind:value={resourceInfo.sourceUrl}
+                        placeholder="Source URL"
+                        class="bg-transparent outline-none w-full text-sm placeholder:text-muted-foreground/50"
+                    />
                 </div>
 
                 <!-- Note -->
                 <div class="flex flex-col gap-0.5 border-b border-transparent focus-within:border-border transition-colors pb-1">
                     {#if resourceInfo.note}
-                        <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground">Note</span>
+                        <span transition:fly={{ y: 4, duration: 150 }} class="text-xs text-muted-foreground pb-1">Note</span>
                     {/if}
                     <textarea
                         bind:value={resourceInfo.note}

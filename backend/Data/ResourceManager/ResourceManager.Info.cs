@@ -104,6 +104,19 @@ namespace KnowledgeBank.Data
 
         #endregion
 
+        #region Journal
+
+        public async Task<bool> JournalExistsAsync(Guid journalId)
+        { return await ExistsAsync(database.Journals, j => j.Id == journalId); }
+
+        public async Task<bool> JournalExistsAsync(Expression<Func<Journal, bool>> predicate)
+        { return await ExistsAsync(database.Journals, predicate); }
+
+        public async Task<int> JournalCountAsync(Expression<Func<Journal, bool>>? predicate = null)
+        { return await GetCount(database.Journals, predicate); }
+
+        #endregion
+
         #region AudioMetadata
 
         // AudioMetadata exists

@@ -24,6 +24,7 @@ namespace KnowledgeBank.Data
                 LanguageCode = dto.LanguageCode,
                 PublicationCode = dto.PublicationCode,
                 PublicationDate = dto.PublicationDate,
+                JournalId = dto.JournalId != null ? Guid.Parse(dto.JournalId) : null,
                 PublicationDatePrecision = dto.PublicationDatePrecision,
                 License = dto.License,
                 Note = dto.Note,
@@ -326,6 +327,26 @@ namespace KnowledgeBank.Data
             if (startedTransaction) await Commit();
 
             return typeId;
+        }
+
+        // --- Journal
+
+        public async Task<Guid> CreateJournalAsync(JournalCreateDto dto)
+        {
+            bool startedTransaction = await BeginTransaction();
+
+            Guid id = Guid.NewGuid();
+            Journal journal = new()
+            {
+                Id = id,
+                Name = dto.Name
+            };
+
+            await database.Journals.AddAsync(journal);
+
+            if (startedTransaction) await Commit();
+
+            return id;
         }
 
         // --- Chat

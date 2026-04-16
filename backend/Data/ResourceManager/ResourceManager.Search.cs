@@ -29,6 +29,7 @@ public class GridFilterOptions
     public string[]? RegionFilter { get; set; }
     public string? RegionFilterMode { get; set; } = "any";
     public string[]? ResourceTypeFilter { get; set; }
+    public string[]? JournalFilter { get; set; }
 }
 
 public class GridSearchTemplate
@@ -77,6 +78,7 @@ public partial class ResourceManager
         Guid[] tagGuids = StringToGuidArray(request.FilterOptions?.TagFilter);
         Guid[] regionGuids = StringToGuidArray(request.FilterOptions?.RegionFilter);
         Guid[] resourceTypeGuids = StringToGuidArray(request.FilterOptions?.ResourceTypeFilter);
+        Guid[] journalGuids = StringToGuidArray(request.FilterOptions?.JournalFilter);
 
         // Store filters in dictionary
         // Add the filter here and add functionality both in ApplyFilters (EF Core) and AddFilters (Raw SQL)
@@ -90,6 +92,7 @@ public partial class ResourceManager
                 { "region_ids", regionGuids },
                 { "region_filter_mode", request.FilterOptions?.RegionFilterMode },
                 { "resource_type_ids", resourceTypeGuids },
+                { "journal_ids", journalGuids },
             };
 
         // If there is a search query, execute search
@@ -198,6 +201,10 @@ public partial class ResourceManager
         // Apply resource type filter
         if (filters.TryGetValue("resource_type_ids", out var resourceTypeFilter) && resourceTypeFilter is Guid[] typeIds && typeIds.Length > 0)
             query = query.Where(x => x.Type != "resource" || (x.TypeId != null && typeIds.Contains(x.TypeId.Value)));
+
+        // Apply journal filter
+        if (filters.TryGetValue("journal_ids", out var journalFilter) && journalFilter is Guid[] journalIds && journalIds.Length > 0)
+            query = query.Where(x => x.Type != "resource" || (x.JournalId != null && journalIds.Contains(x.JournalId.Value)));
 
         return query;
     }
@@ -435,6 +442,20 @@ public partial class ResourceManager
                                 paramIndex++;
                             }
                             whereConditions.Add($@"(""Type"" != 'resource' OR ""TypeId"" IN ({string.Join(", ", typeIdParams)}))");
+                        }
+                        break;
+
+                    case "journal_ids":
+                        if (value is Guid[] journalIds && journalIds.Length > 0)
+                        {
+                            List<string> journalIdParams = new List<string>();
+                            foreach (Guid id in journalIds)
+                            {
+                                journalIdParams.Add($"{{{paramIndex}}}");
+                                parameters.Add(id);
+                                paramIndex++;
+                            }
+                            whereConditions.Add($@"(""Type"" != 'resource' OR ""JournalId"" IN ({string.Join(", ", journalIdParams)}))");
                         }
                         break;
                 }

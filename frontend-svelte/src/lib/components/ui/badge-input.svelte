@@ -18,7 +18,7 @@
 
     // Reset highlight when results change
     $effect(() => {
-        filtered;
+        void filtered;
         highlightedIndex = -1;
     });
 

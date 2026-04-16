@@ -28,6 +28,8 @@ export type ResourceDetail = {
     publicationCode?: string;
     publicationDate?: string;
     publicationDatePrecision?: DatePrecision;
+    journalId?: string;
+    journalName?: string;
     license?: string;
     creationDate?: string;
     note?: string;

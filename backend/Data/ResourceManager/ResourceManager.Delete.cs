@@ -135,6 +135,16 @@ namespace KnowledgeBank.Data
             return count > 0;
         }
 
+        // --- Journal
+        public async Task<bool> DeleteJournalAsync(Guid id)
+        {
+            bool startedTransaction = await BeginTransaction();
+
+            int count = await DeleteAsync(database.Journals, journal => journal.Id == id);
+
+            return count > 0;
+        }
+
         // --- Audio Metadata
 
         public async Task<bool> DeleteAudioMetadataAsync(Guid resourceId)

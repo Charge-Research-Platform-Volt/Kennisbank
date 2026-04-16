@@ -6,6 +6,7 @@
         { id: 'tags', label: 'Tags' },
         { id: 'regions', label: 'Regions' },
         { id: 'resourceTypes', label: 'Resource Types' },
+        { id: 'journals', label: 'Journals' },
         { id: 'persons', label: 'Persons' },
         { id: 'organisations', label: 'Organisations' },
         { id: 'users', label: 'Users' },

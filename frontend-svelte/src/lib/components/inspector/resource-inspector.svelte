@@ -2,7 +2,7 @@
     import type { ResourceItem, ResourceDetail } from "$lib/types/resource";
     import { api } from "$lib/api";
     import Spinner from "../ui/spinner/spinner.svelte";
-    import { Layers, Languages, Scale, FingerprintPattern, Link } from "lucide-svelte";
+    import { Layers, Languages, Scale, FingerprintPattern, Link, Newspaper } from "lucide-svelte";
     import { formatLanguage } from "$lib/utils/locale";
     import { LanguageCodes } from "$lib/lists/languageCodes";
     import BadgeSection from "./badge-section.svelte";
@@ -15,7 +15,9 @@
     const getEditMode = getContext<() => boolean>('getEditMode');
     let editMode = $derived(getEditMode());
 
-    const PROPERTIES = 'Description,LanguageCode,PublicationCode,License,Note,SourceUrl,WebsiteMetadata.Url as Url,DocumentMetadata.Abstract as Abstract,ResourceAuthorRelations.Select(new(Author.Id, Author.Name, Author.EntityType as AuthorType)) as Authors,ResourceOrganisationRelations.Select(new(Organisation.Id, Organisation.Name, Role)) as Organisations,ResourceRegionRelations.Select(new(Region.Id, Region.Name)) as Regions,ResourceRelatedPersonRelations.Select(new(Person.Id, Person.Name, Role)) as RelatedPersons,ResourceTagRelations.Select(new(Tag.Id, Tag.Name)) as Tags,ResourceType.Id as ResourceTypeId,ResourceType.Name as ResourceTypeName';
+    const registerSave = getContext<(p: Promise<void>) => void>('registerSave');
+
+    const PROPERTIES = 'Description,LanguageCode,PublicationCode,License,Note,SourceUrl,WebsiteMetadata.Url as Url,DocumentMetadata.Abstract as Abstract,ResourceAuthorRelations.Select(new(Author.Id, Author.Name, Author.EntityType as AuthorType)) as Authors,ResourceOrganisationRelations.Select(new(Organisation.Id, Organisation.Name, Role)) as Organisations,ResourceRegionRelations.Select(new(Region.Id, Region.Name)) as Regions,ResourceRelatedPersonRelations.Select(new(Person.Id, Person.Name, Role)) as RelatedPersons,ResourceTagRelations.Select(new(Tag.Id, Tag.Name)) as Tags,ResourceType.Id as ResourceTypeId,ResourceType.Name as ResourceTypeName,JournalId,Journal.Name as JournalName';
 
     let { item }: { item: ResourceItem } = $props();
 
@@ -68,6 +70,12 @@
         return r.body ?? [];
     }
 
+    async function searchJournals(q: string) {
+        const url = q ? `/api/journal/list?pageIndex=1&pageSize=20&searchQuery=${encodeURIComponent(q)}&properties=Id,Name` : '/api/journal/list?pageIndex=1&pageSize=20&properties=Id,Name';
+        const r = await api.get<{ id: string; name: string }[]>(url);
+        return r.body ?? [];
+    }
+
     async function createPerson(name: string): Promise<{ id: string; name: string } | null> {
         const r = await api.put<string>('/api/persons/new', { name });
         return { id: r.body, name };
@@ -80,6 +88,11 @@
 
     async function createRegion(name: string): Promise<{ id: string; name: string } | null> {
         const r = await api.put<string>('/api/regions/new', { name });
+        return { id: r.body, name };
+    }
+
+    async function createJournal(name: string): Promise<{ id: string; name: string } | null> {
+        const r = await api.put<string>('/api/journal/new', { name });
         return { id: r.body, name };
     }
 
@@ -100,7 +113,7 @@
     {@const sourceUrl = detail.sourceUrl ?? detail.url ?? ''}
 
     <!-- Characteristics -->
-    <div class="flex flex-col gap-2 px-3 py-3 border-b text-sm">
+    <div class="flex flex-col gap-3 px-3 py-3 border-b text-sm">
         <CharacteristicRow icon={Layers} label="Resource Type" value={detail.resourceTypeName !== 'Unknown' ? detail.resourceTypeName : undefined}>
             {#snippet editContent()}
                 <AsyncSelect
@@ -109,7 +122,8 @@
                     search={searchResourceTypes}
                     placeholder="Resource Type"
                     variant="ghost"
-                    onchange={(id) => api.patch(`/api/resources/update/${item.id}`, { typeId: id })}
+                    allowClear={false}
+                    onchange={(id) => registerSave(api.patch(`/api/resources/update/${item.id}`, { typeId: id }).then(() => {}))}
                 />
             {/snippet}
         </CharacteristicRow>
@@ -121,12 +135,26 @@
                     search={searchLanguages}
                     placeholder="Language"
                     variant="ghost"
-                    onchange={(id) => api.patch(`/api/resources/update/${item.id}`, { languageCode: id })}
+                    allowClear={false}
+                    onchange={(id) => registerSave(api.patch(`/api/resources/update/${item.id}`, { languageCode: id }).then(() => {}))}
                 />
             {/snippet}
         </CharacteristicRow>
         <CharacteristicRow icon={Scale} label="License" value={detail.license} onsave={async (v) => { await api.patch(`/api/resources/update/${item.id}`, { license: v }); }} />
         <CharacteristicRow icon={FingerprintPattern} label="Publication Code" value={detail.publicationCode} onsave={async (v) => { await api.patch(`/api/resources/update/${item.id}`, { publicationCode: v }); }} />
+        <CharacteristicRow icon={Newspaper} label="Journal" value={detail.journalName}>
+            {#snippet editContent()}
+                <AsyncSelect
+                    value={detail.journalId ?? null}
+                    displayValue={detail.journalName ?? null}
+                    search={searchJournals}
+                    oncreate={createJournal}
+                    placeholder="Journal"
+                    variant="ghost"
+                    onchange={(id) => registerSave(api.patch(`/api/resources/update/${item.id}`, { journalId: id }).then(() => {}))}
+                />
+            {/snippet}
+        </CharacteristicRow>
         <CharacteristicRow icon={Link} label="Source URL" value={sourceUrl || undefined} href={sourceUrl || undefined} onsave={async (v) => { await api.patch(`/api/resources/update/${item.id}`, item.fileType === 'website' ? { url: v } : { sourceUrl: v }); }} />
     </div>
 

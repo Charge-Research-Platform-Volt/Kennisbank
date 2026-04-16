@@ -30,6 +30,7 @@
     let tagFilter = $state<string[]>([]);
     let regionFilter = $state<string[]>([]);
     let resourceTypeFilter = $state<string[]>([]);
+    let journalFilter = $state<string[]>([]);
 
     // Sorting
     let sortBy = $state('');
@@ -66,6 +67,7 @@
                     tagFilter: tagFilter.length ? tagFilter : undefined,
                     regionFilter: regionFilter.length ? regionFilter : undefined,
                     resourceTypeFilter: resourceTypeFilter.length ? resourceTypeFilter : undefined,
+                    journalFilter: journalFilter.length ? journalFilter : undefined,
                 },
                 sortBy: sortBy || undefined,
                 sortDirection
@@ -118,13 +120,15 @@
 
     function handleTagFilterChange() {
         currentPage = 1;
-        setParams({ tags: tagFilter.length ? tagFilter.join(',') : null, page: null });
+        if (tagFilter.length) typeFilter = ['resource'];
+        setParams({ tags: tagFilter.length ? tagFilter.join(',') : null, type: typeFilter.length === 3 ? null : typeFilter.join(','), page: null });
         fetchItems();
     }
 
     function handleRegionFilterChange() {
         currentPage = 1;
-        setParams({ regions: regionFilter.length ? regionFilter.join(',') : null, page: null });
+        if (regionFilter.length) typeFilter = ['resource'];
+        setParams({ regions: regionFilter.length ? regionFilter.join(',') : null, type: typeFilter.length === 3 ? null : typeFilter.join(','), page: null });
         fetchItems();
     }
 
@@ -137,7 +141,22 @@
 
     function handleResourceTypeFilterChange() {
         currentPage = 1;
-        setParams({ resourceTypes: resourceTypeFilter.length ? resourceTypeFilter.join(',') : null, page: null });
+        if (resourceTypeFilter.length) typeFilter = ['resource'];
+        setParams({ resourceTypes: resourceTypeFilter.length ? resourceTypeFilter.join(',') : null, type: typeFilter.length === 3 ? null : typeFilter.join(','), page: null });
+        fetchItems();
+    }
+
+    async function searchJournals(q: string) {
+        const result = await api.get<{ value: string; label: string }[]>(
+            `/api/journal/list?pageIndex=1&pageSize=20&searchQuery=${encodeURIComponent(q)}&properties=${encodeURIComponent('Id as value,Name as label')}`
+        );
+        return result.body.map(r => ({ id: r.value, name: r.label }));
+    }
+
+    function handleJournalFilterChange() {
+        currentPage = 1;
+        if (journalFilter.length) typeFilter = ['resource'];
+        setParams({ journals: journalFilter.length ? journalFilter.join(',') : null, type: typeFilter.length === 3 ? null : typeFilter.join(','), page: null });
         fetchItems();
     }
 
@@ -149,8 +168,9 @@
         tagFilter = [];
         regionFilter = [];
         resourceTypeFilter = [];
+        journalFilter = [];
         currentPage = 1;
-        setParams({ type: null, dateMin: null, dateMax: null, tags: null, regions: null, resourceTypes: null, page: null });
+        setParams({ type: null, dateMin: null, dateMax: null, tags: null, regions: null, resourceTypes: null, journals: null, page: null });
         fetchItems();
     }
 
@@ -196,6 +216,7 @@
         tagFilter = getParamArray('tags');
         regionFilter = getParamArray('regions');
         resourceTypeFilter = getParamArray('resourceTypes');
+        journalFilter = getParamArray('journals');
         sortBy = getParam('sort');
         sortDirection = getParam('sortDir') as 'asc' | 'desc' || 'asc';
         currentPage = getParamInt('page');
@@ -274,6 +295,14 @@
                     <div class="flex items-center gap-3">
                         <span class="text-sm font-medium text-muted-foreground w-20 shrink-0">Types</span>
                         <AsyncMultiSelect class="w-50" bind:value={resourceTypeFilter} search={searchResourceTypes} placeholder="Resource types" onchange={handleResourceTypeFilterChange} />
+                    </div>
+                {/if}
+
+                <!-- Journal filter -->
+                {#if typeFilter.includes('resource')}
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-medium text-muted-foreground w-20 shrink-0">Journal</span>
+                        <AsyncMultiSelect class="w-50" bind:value={journalFilter} search={searchJournals} placeholder="Journals" onchange={handleJournalFilterChange} />
                     </div>
                 {/if}
 

@@ -9,9 +9,10 @@
         search,
         placeholder = 'Select...',
         class: className = '',
-        variant = 'default' as 'default' | 'ghost',
+        variant = 'default' as 'default' | 'ghost' | 'flat',
         onchange,
         oncreate,
+        allowClear = true,
     }: {
         value: string | null;
         displayValue: string | null;
@@ -21,6 +22,7 @@
         variant?: 'default' | 'ghost' | 'flat';
         onchange?: (id: string | null, name: string | null) => void;
         oncreate?: (name: string) => Promise<{ id: string; name: string } | null>;
+        allowClear?: boolean;
     } = $props();
 
     let open = $state(false);
@@ -35,8 +37,8 @@
 
     $effect(() => {
         if (open) {
-            searchQuery = displayValue ?? '';
-            search(displayValue ?? '').then(r => options = r);
+            searchQuery = '';
+            search('').then(r => options = r);
         }
     });
 
@@ -68,13 +70,13 @@
 
 <Popover.Root bind:open>
     <Popover.Trigger class="
-        {variant === 'ghost' ? 'flex items-center gap-1.5 h-9 text-sm bg-transparent cursor-pointer w-full'
+        {variant === 'ghost' ? 'flex items-center gap-1.5 text-sm bg-transparent cursor-pointer w-full'
         : variant === 'flat' ? 'flex items-center gap-1.5 text-sm bg-transparent cursor-pointer w-full border-b transition-colors ' + (open ? 'border-border' : 'border-transparent')
         : 'flex items-center gap-1.5 h-9 text-sm border border-input rounded-md px-3 bg-background hover:bg-accent transition-colors cursor-pointer w-full'}
         {className}">
-        <span class="flex-1 truncate min-w-0 text-left {displayValue ? '' : 'text-muted-foreground'}">{displayValue ?? placeholder}</span>
-        {#if displayValue}
-            <button onclick={clear} class="text-muted-foreground hover:text-foreground transition-colors shrink-0">
+        <span class="flex-1 truncate min-w-0 text-left {displayValue ? '' : variant === 'flat' ? 'text-muted-foreground/50' : 'text-muted-foreground'}">{displayValue ?? placeholder}</span>
+        {#if displayValue && allowClear}
+            <button onclick={clear} class="text-muted-foreground hover:text-foreground transition-colors shrink-0 cursor-pointer">
                 <X size={12} />
             </button>
         {:else}

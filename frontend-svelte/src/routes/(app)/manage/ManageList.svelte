@@ -3,7 +3,7 @@
     import { debounce } from "$lib/utils/debounce";
     import { confirm } from "$lib/state/confirm.svelte";
     import { toast } from "svelte-sonner";
-	import { Plus, Search, Check, X, Pencil, Trash2, Merge, Tag, MapPin, Layers, User, Building2 } from "lucide-svelte";
+	import { Plus, Search, Check, X, Pencil, Trash2, Merge, Tag, MapPin, Layers, User, Building2, Newspaper } from "lucide-svelte";
 	import { Button } from "$lib/components/ui/button";
 	import { Input } from "$lib/components/ui/input";
 	import Spinner from "$lib/components/ui/spinner/spinner.svelte";
@@ -14,7 +14,7 @@
     import { untrack } from "svelte";
 	import Checkbox from "$lib/components/ui/checkbox/checkbox.svelte";
 
-    let { type }: { type: 'tags' | 'regions' | 'resourceTypes' | 'persons' | 'organisations' } = $props();
+    let { type }: { type: 'tags' | 'regions' | 'resourceTypes' | 'persons' | 'organisations' | 'journals' } = $props();
 
     type ListItem = { id: string; name: string; };
     type TagsListResponse = { tags: ListItem[]; pageCount: number; totalCount: number; };
@@ -90,6 +90,19 @@
             suggestionsUrl: '/api/organisations/suggestions',
             extractItems: (body: unknown) => { const b = body as PagedListResponse; return { items: b.items, pageCount: b.pageCount, totalCount: b.totalCount }; },
         },
+        journals: {
+            label: 'Journal',
+            icon: Newspaper,
+            listUrl: (search: string) => `/api/journal/list?searchQuery=${encodeURIComponent(search)}`,
+            createUrl: '/api/journal/new',
+            createBody: (name: string) => ({ name }),
+            renameUrl: (id: string) => `/api/journal/update/${id}`,
+            renameBody: (name: string) => ({ name }),
+            deleteUrl: (id: string) => `/api/journal/delete/${id}`,
+            mergeUrl: (id1: string, id2: string) => `/api/journal/merge/${id1}/${id2}`,
+            suggestionsUrl: '/api/journal/suggestions',
+            extractItems: (body: unknown) => ({ items: body as FlatListResponse, pageCount: 1, totalCount: (body as FlatListResponse).length }),
+        }
     };
 
     const cfg = $derived(config[type]);

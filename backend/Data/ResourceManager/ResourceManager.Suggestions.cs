@@ -48,6 +48,23 @@ namespace KnowledgeBank.Data
                 """).ToListAsync();
         }
 
+        public async Task<List<MergeSuggestion>> GetJournalMergeSuggestionsAsync(float threshold = 0.6f, int limit = 20)
+        {
+            return await database.Database.SqlQuery<MergeSuggestion>($"""
+                SELECT
+                    a.id    AS "Id1",
+                    a.name  AS "Name1",
+                    b.id    AS "Id2",
+                    b.name  AS "Name2",
+                    similarity(a.name, b.name) AS "Score"
+                FROM journals a
+                JOIN journals b ON a.id < b.id
+                WHERE similarity(a.name, b.name) > {threshold}
+                ORDER BY "Score" DESC
+                LIMIT {limit}
+            """).ToListAsync();
+        }
+
         /// <summary>
         /// Returns pairs of resource types whose names are similar above the given threshold,
         /// ordered by similarity score descending.

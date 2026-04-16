@@ -13,6 +13,7 @@ public class ResourceGridItem
     public string FileType { get; set; } = string.Empty;
     public DateTime CreationDate { get; set; }
     public Guid? TypeId { get; set; }
+    public Guid? JournalId { get; set; }
 }
 
 public class ResourceGridItemWithChunks : ResourceGridItem

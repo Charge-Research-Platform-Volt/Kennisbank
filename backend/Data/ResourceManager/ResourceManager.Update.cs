@@ -72,6 +72,14 @@ namespace KnowledgeBank.Data
 
         #endregion
 
+        #region Journal
+        public async Task<bool> UpdateJournalAsync<T>(Guid id, Expression<Func<Journal, T>> propertySelector, T newValue)
+        { return await UpdatePropertyAsync(database.Journals, journal => journal.Id == id, propertySelector, newValue) > 0; }
+
+        public async Task<bool> UpdateJournalAsync<T>(Expression<Func<Journal, bool>> predicate, Expression<Func<Journal, T>> propertySelector, T newValue)
+        { return await UpdatePropertyAsync(database.Journals, predicate, propertySelector, newValue) > 0; }
+        #endregion
+
         #region AudioMetadata
 
         public async Task<bool> UpdateAudioMetadataAsync<T>(Guid resourceId, Expression<Func<AudioMetadata, T>> propertySelector, T newValue)

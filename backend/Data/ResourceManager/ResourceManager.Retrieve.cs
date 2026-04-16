@@ -697,6 +697,143 @@ namespace KnowledgeBank.Data
 
         #endregion
 
+        #region Journal
+
+        private readonly Expression<Func<Journal, dynamic>> journalDefaultOrderBy = j => j.Name;
+        private const bool journalDefaultOrderDescending = false;
+
+        // Single
+        public async Task<Journal?> GetJournalAsync(Guid id)
+        { return await GetAsync(database.Journals, j => j.Id == id); }
+
+        public async Task<Journal?> GetJournalAsync(string id)
+        { return await GetJournalAsync(Guid.Parse(id)); }
+
+        public async Task<Journal?> GetJournalAsync(Expression<Func<Journal, bool>> predicate, Expression<Func<Journal, dynamic>>? orderBy = null, bool orderDescending = journalDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= journalDefaultOrderBy;
+            return await GetAsync(database.Journals, predicate, orderBy, orderDescending, includeProperties);
+        }
+
+        public async Task<Journal?> GetJournalAsync(Guid id, Expression<Func<Journal, dynamic>>? orderBy = null, bool orderDescending = journalDefaultOrderDescending, params string[] includeProperties)
+        { return await GetJournalAsync(j => j.Id == id, orderBy, orderDescending, includeProperties); }
+
+        public async Task<Journal?> GetJournalAsync(string id, Expression<Func<Journal, dynamic>>? orderBy = null, bool orderDescending = journalDefaultOrderDescending, params string[] includeProperties)
+        { return await GetJournalAsync(Guid.Parse(id), orderBy, orderDescending, includeProperties); }
+
+        public async Task<Journal?> GetJournalAsync(Expression<Func<Journal, bool>> predicate, params string[] includeProperties)
+        { return await GetAsync(database.Journals, predicate, journalDefaultOrderBy, journalDefaultOrderDescending, includeProperties); }
+
+        public async Task<Journal?> GetJournalAsync(Guid id, params string[] includeProperties)
+        { return await GetJournalAsync(j => j.Id == id, journalDefaultOrderBy, journalDefaultOrderDescending, includeProperties); }
+
+        public async Task<Journal?> GetJournalAsync(string id, params string[] includeProperties)
+        { return await GetJournalAsync(Guid.Parse(id), journalDefaultOrderBy, journalDefaultOrderDescending, includeProperties); }
+
+        // Multiple
+        public async Task<Journal[]> GetAllJournalsAsync(Expression<Func<Journal, dynamic>>? orderBy = null, bool orderDescending = journalDefaultOrderDescending, Expression<Func<Journal, bool>>? predicate = null)
+        {
+            orderBy ??= journalDefaultOrderBy;
+            return await GetAllAsync(database.Journals, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<Journal[]> GetAllJournalsAsync(Expression<Func<Journal, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetAllAsync(database.Journals, null, false, predicate, includeProperties); }
+
+        public async Task<Journal[]> GetAllJournalsAsync(Expression<Func<Journal, dynamic>>? orderBy = null, bool orderDescending = journalDefaultOrderDescending, params string[] includeProperties)
+        { return await GetAllAsync(database.Journals, orderBy, orderDescending, null, includeProperties); }
+
+        public async Task<Journal[]> GetAllJournalsAsync(params string[] includeProperties)
+        { return await GetAllAsync(database.Journals, journalDefaultOrderBy, journalDefaultOrderDescending, null, includeProperties); }
+
+        public async Task<Journal[]> GetJournalPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<Journal, dynamic>>? orderBy = null, bool orderDescending = journalDefaultOrderDescending, Expression<Func<Journal, bool>>? predicate = null)
+        {
+            orderBy ??= journalDefaultOrderBy;
+            return await GetPageAsync(database.Journals, pageIndex, pageSize, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<Journal[]> GetJournalPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<Journal, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetPageAsync(database.Journals, pageIndex, pageSize, journalDefaultOrderBy, journalDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<Journal[]> GetJournalPageAsync(int pageIndex = 1, int pageSize = 100, Expression<Func<Journal, dynamic>>? orderBy = null, bool orderDescending = journalDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= journalDefaultOrderBy;
+            return await GetPageAsync(database.Journals, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<Journal[]> GetJournalPageAsync(int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
+        { return await GetPageAsync(database.Journals, pageIndex, pageSize, journalDefaultOrderBy, journalDefaultOrderDescending, null, includeProperties); }
+
+        // Multiple with projections
+        public async Task<dynamic> GetAllJournalsAsync(string projection, Expression<Func<Journal, dynamic>>? orderBy = null, bool orderDescending = journalDefaultOrderDescending, Expression<Func<Journal, bool>>? predicate = null)
+        {
+            orderBy ??= journalDefaultOrderBy;
+            return await GetAllAsync(database.Journals, projection, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<dynamic> GetAllJournalsAsync(string projection, Expression<Func<Journal, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetAllAsync(database.Journals, projection, journalDefaultOrderBy, journalDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<dynamic> GetAllJournalsAsync(string projection, Expression<Func<Journal, dynamic>>? orderBy = null, bool orderDescending = journalDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= journalDefaultOrderBy;
+            return await GetAllAsync(database.Journals, projection, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<dynamic> GetAllJournalsAsync(string projection, params string[] includeProperties)
+        { return await GetAllAsync(database.Journals, projection, journalDefaultOrderBy, journalDefaultOrderDescending, null, includeProperties); }
+
+        public async Task<dynamic> GetJournalPageAsync(string projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Journal, dynamic>>? orderBy = null, bool orderDescending = journalDefaultOrderDescending, Expression<Func<Journal, bool>>? predicate = null)
+        {
+            orderBy ??= journalDefaultOrderBy;
+            return await GetPageAsync(database.Journals, projection, pageIndex, pageSize, orderBy, orderDescending, predicate);
+        }
+
+        public async Task<dynamic> GetJournalPageAsync(string projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Journal, bool>>? predicate = null, params string[] includeProperties)
+        { return await GetPageAsync(database.Journals, projection, pageIndex, pageSize, journalDefaultOrderBy, journalDefaultOrderDescending, predicate, includeProperties); }
+
+        public async Task<dynamic> GetJournalPageAsync(string projection, int pageIndex = 1, int pageSize = 100, Expression<Func<Journal, dynamic>>? orderBy = null, bool orderDescending = journalDefaultOrderDescending, params string[] includeProperties)
+        {
+            orderBy ??= journalDefaultOrderBy;
+            return await GetPageAsync(database.Journals, projection, pageIndex, pageSize, orderBy, orderDescending, null, includeProperties);
+        }
+
+        public async Task<dynamic> GetJournalPageAsync(string projection, int pageIndex = 1, int pageSize = 100, params string[] includeProperties)
+        { return await GetPageAsync(database.Journals, projection, pageIndex, pageSize, journalDefaultOrderBy, journalDefaultOrderDescending, null, includeProperties); }
+
+        // Property
+        public async Task<dynamic> GetJournalPropertyAsync(Guid journalId, string selector, Expression<Func<Journal, dynamic>>? orderBy = null, bool orderDescending = journalDefaultOrderDescending)
+        {
+            orderBy ??= journalDefaultOrderBy;
+            return await GetPropertyAsync(database.Journals, j => j.Id == journalId, selector, orderBy, orderDescending);
+        }
+
+        public async Task<dynamic> GetJournalPropertyAsync(string journalId, string selector, Expression<Func<Journal, dynamic>>? orderBy = null, bool orderDescending = journalDefaultOrderDescending)
+        { return await GetJournalPropertyAsync(Guid.Parse(journalId), selector, orderBy, orderDescending); }
+
+        public async Task<dynamic> GetJournalPropertyAsync(Expression<Func<Journal, bool>> predicate, string selector, Expression<Func<Journal, dynamic>>? orderBy = null, bool orderDescending = journalDefaultOrderDescending)
+        {
+            orderBy ??= journalDefaultOrderBy;
+            return await GetPropertyAsync(database.Journals, predicate, selector, orderBy, orderDescending);
+        }
+
+        public async Task<dynamic?> GetJournalPropertyOrDefaultAsync(Guid journalId, string selector, Expression<Func<Journal, dynamic>>? orderBy = null, bool orderDescending = journalDefaultOrderDescending)
+        {
+            orderBy ??= journalDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.Journals, j => j.Id == journalId, selector, orderBy, orderDescending);
+        }
+
+        public async Task<dynamic?> GetJournalPropertyOrDefaultAsync(string journalId, string selector, Expression<Func<Journal, dynamic>>? orderBy = null, bool orderDescending = journalDefaultOrderDescending)
+        { return await GetJournalPropertyOrDefaultAsync(Guid.Parse(journalId), selector, orderBy, orderDescending); }
+
+        public async Task<dynamic?> GetJournalPropertyOrDefaultAsync(Expression<Func<Journal, bool>> predicate, string selector, Expression<Func<Journal, dynamic>>? orderBy = null, bool orderDescending = journalDefaultOrderDescending)
+        {
+            orderBy ??= journalDefaultOrderBy;
+            return await GetPropertyOrDefaultAsync(database.Journals, predicate, selector, orderBy, orderDescending);
+        }
+
+        #endregion
+
         #region Audio
 
         private readonly Expression<Func<AudioMetadata, dynamic>>? audioDefaultOrderBy = null;

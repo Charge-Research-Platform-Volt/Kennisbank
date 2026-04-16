@@ -31,6 +31,10 @@ public class Resource
     [Column("publication-date")]
     public DateTime? PublicationDate { get; set; }
 
+    [Column("journal-id")]
+    [ForeignKey("Journal")]
+    public Guid? JournalId { get; set; }
+
     [Column("publication-date-precision")]
     public PublicationDatePrecision? PublicationDatePrecision { get; set; }
 
@@ -84,6 +88,8 @@ public class Resource
 
     // Navigation property for Resource Type (1:1)
     [JsonIgnore] public ResourceType? ResourceType { get; set; }
+
+    [JsonIgnore] public Journal? Journal { get; set; }
     #endregion
 
     #region Relation navigation properties
@@ -122,6 +128,7 @@ public class ResourceCreateDto // Data Transfer Object (DTO)
     public required string LanguageCode { get; set; }
     public string? PublicationCode { get; set; }
     public DateTime? PublicationDate { get; set; }
+    public string? JournalId { get; set; }
     public PublicationDatePrecision? PublicationDatePrecision { get; set; }
     public DateTime? CreationDate { get; set; }
     public string? License { get; set; }
