@@ -1,5 +1,9 @@
 <script lang="ts">
     import { FileText, User, Building2, type Icon } from 'lucide-svelte';
+    import { page } from '$app/state';
+
+    const projectId = $derived(page.url.searchParams.get('projectId'));
+    const suffix = $derived(projectId ? `?projectId=${projectId}` : '');
 </script>
 
 {#snippet card(href: string, icon: typeof Icon, title: string, subtext: string)}
@@ -19,8 +23,8 @@
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {@render card('/new/resource', FileText, 'Resource', 'Add a document or website to the library')}
-        {@render card('/new/person', User, 'Person', 'Add a person to the library')}
-        {@render card('/new/organisation', Building2, 'Organisation', 'Add an organisation to the library')}
+        {@render card(`/new/resource${suffix}`, FileText, 'Resource', 'Add a document or website to the library')}
+        {@render card(`/new/person${suffix}`, User, 'Person', 'Add a person to the library')}
+        {@render card(`/new/organisation${suffix}`, Building2, 'Organisation', 'Add an organisation to the library')}
     </div>
 </div>

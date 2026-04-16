@@ -13,6 +13,10 @@
     import ProcessingPhase from './processing-phase.svelte';
     import SelectPhase from './select-phase.svelte';
     import DuplicatePhase from './duplicate-phase.svelte';
+    import type { ProjectListResponse } from '$lib/types/project';
+    import { onMount } from 'svelte';
+    import { page } from '$app/state';
+    import AsyncMultiSelect from '$lib/components/ui/async-multi-select.svelte';
 
 	type Phase = 'select' | 'processing' | 'review' | 'duplicate';
     type EntityEntry = {
@@ -119,6 +123,9 @@
     let dateMonth = $state('');
     let dateYear = $state('');
 
+    let sourceProjectId = $state<string | null>(null);
+    let projectIds = $state<string[]>([]);
+
     function autoresize(node: HTMLTextAreaElement) {
 		function resize() {
 			node.style.height = 'auto';
@@ -198,7 +205,21 @@
                 });
             }
 
-            goto(`/library?inspectorId=${result.body}&inspectorType=resource`);
+            // add to selected projects
+            if (projectIds.length > 0) {
+                const results = await Promise.allSettled(
+                    projectIds.map(pid => api.put(`/api/project/add-item/${pid}/${result.body}`, {}))
+                );
+
+                const failed = results.filter(r => r.status === 'rejected').length;
+                if (failed > 0) toast.error(`Added resource, but failed to link ${failed} project${failed > 1 ? 's' : ''}.`);
+                else toast.success(`Linked resource to ${results.length} project${results.length > 1 ? 's' : ''}.`);
+            }
+
+            if (sourceProjectId)
+                goto(`/projects/${sourceProjectId}?inspectorId=${result.body}&inspectorType=resource`);
+            else
+                goto(`/library?inspectorId=${result.body}&inspectorType=resource`);
         } catch (e) {
             toast.error(e instanceof Error ? e.message : 'Something went wrong');
         } finally {
@@ -262,7 +283,24 @@
         phase = 'review';
     }
 
+    async function searchProjects(q: string) {
+        const result = await api.post<ProjectListResponse>('/api/project/list', {
+            usePaging: true,
+            pageIndex: 1,
+            pageSize: 20,
+            searchQuery: q || undefined
+        });
 
+        return result.body.projects.map(p => ({ id: p.id, name: p.title }));
+    }
+
+    onMount(() => {
+        const paramId = page.url.searchParams.get('projectId');
+        if (paramId) {
+            projectIds = [paramId];
+            sourceProjectId = paramId;
+        }
+    });
 </script>
 
 {#if phase === 'review'}
@@ -270,9 +308,14 @@
         <!-- Header -->
         <div class="flex items-center justify-between border-b border-border pb-4">
             <h1 class="text-2xl font-semibold">Review Resource</h1>
-<Button onclick={handleSubmit} disabled={isSubmitting} class="cursor-pointer">
-                {isSubmitting ? 'Saving...' : '+ Add Resource'}
-            </Button>
+
+            <div class="flex items-center gap-4">
+                <AsyncMultiSelect bind:value={projectIds} search={searchProjects} placeholder="Add to projects..." />
+
+                <Button onclick={handleSubmit} disabled={isSubmitting} class="cursor-pointer">
+                    {isSubmitting ? 'Saving...' : 'Save Resource'}
+                </Button>
+            </div>
         </div>
 
         <!-- Grid -->

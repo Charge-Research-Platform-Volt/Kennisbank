@@ -7,11 +7,17 @@
     import Textarea from '$lib/components/ui/textarea/textarea.svelte';
     import Label from '$lib/components/ui/label/label.svelte';
     import { toast } from 'svelte-sonner';
+    import { onMount } from 'svelte';
+    import { page } from '$app/state';
+    import AsyncMultiSelect from '$lib/components/ui/async-multi-select.svelte';
+	import type { ProjectListResponse } from '$lib/types/project';
 
     let name = $state('');
     let description = $state('');
     let email = $state('');
     let website = $state('');
+    let sourceProjectId = $state<string | null>(null);
+    let projectIds = $state<string[]>([]);
 
     let isSubmitting = $state(false);
     let isCheckingDuplicate = $state(false);
@@ -57,7 +63,21 @@
                 Website: website || undefined
             });
 
-            goto(`/library?inspectorId=${result.body}&inspectorType=organisation`);
+            // Add to selected projects
+            if (projectIds.length > 0) {
+                const results = await Promise.allSettled(
+                    projectIds.map(pid => api.put(`/api/project/add-item/${pid}/${result.body}`, {}))
+                );
+
+                const failed = results.filter(r => r.status === 'rejected').length;
+                if (failed > 0) toast.error(`Added organisation, but failed to link ${failed} project${failed > 1 ? 's' : ''}.`);
+                else toast.success(`Linked organisation to ${results.length} project${results.length > 1 ? 's' : ''}.`);
+            }
+
+            if (sourceProjectId)
+                goto(`/projects/${sourceProjectId}?inspectorId=${result.body}&inspectorType=organisation`);
+            else
+                goto(`/library?inspectorId=${result.body}&inspectorType=organisation`);;
         } catch (e) {
             toast.error(e instanceof Error ? e.message : 'Failed to create organisation');
         } finally {
@@ -65,7 +85,26 @@
         }
     }
 
+    async function searchProjects(q: string) {
+        const result = await api.post<ProjectListResponse>('/api/project/list', {
+            usePaging: true,
+            pageIndex: 1,
+            pageSize: 20,
+            searchQuery: q || undefined
+        });
+
+        return result.body.projects.map(p => ({ id: p.id, name: p.title }));
+    }
+
     const canSubmit = $derived(name.trim().length > 0 && !isSubmitting && !duplicate?.exists);
+
+    onMount(() => {
+        const paramId = page.url.searchParams.get('projectId');
+        if (paramId) {
+            projectIds = [paramId];
+            sourceProjectId = paramId;
+        }
+    });
 </script>
 
 <div class="mx-auto flex max-w-2xl flex-col gap-6 p-8 h-full justify-center">
@@ -117,13 +156,19 @@
                 <Label for="description">Description</Label>
                 <Textarea id="description" bind:value={description} placeholder="Brief description of the organisation" rows={4} />
             </div>
+
+            <!-- Add to project -->
+            <div class="flex flex-col gap-1.5">
+                <Label>Add to projects</Label>
+                <AsyncMultiSelect bind:value={projectIds} search={searchProjects} placeholder="Add to projects..." />
+            </div>
         </div>
 
 
         <!-- Actions -->
         <div class="flex justify-end gap-3">
-            <Button variant="outline" type="button" onclick={() => history.back()}>Cancel</Button>
-            <Button type="submit" disabled={!canSubmit}>
+            <Button variant="outline" type="button" onclick={() => history.back()} class="cursor-pointer">Cancel</Button>
+            <Button type="submit" disabled={!canSubmit} class="cursor-pointer">
                 {isSubmitting ? 'Creating...' : 'Create Organisation'}
             </Button>
         </div>
