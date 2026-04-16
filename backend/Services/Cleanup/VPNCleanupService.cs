@@ -32,8 +32,6 @@ public class VPNCleanupService : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await WaitUntilUtils.WaitUntilTime(new TimeSpan(1, 0, 0), stoppingToken); // Run at 1 AM
-
             try
             {
                 var vpnUsers = await _vpnService.GetAllUsers();
@@ -66,6 +64,8 @@ public class VPNCleanupService : BackgroundService
             {
                 _logger.Error(e, "VPN cleanup service encountered an error");
             }
+
+            await WaitUntilUtils.WaitUntilTime(new TimeSpan(1, 0, 0), stoppingToken); // Next 1 AM
         }
     }
 }

@@ -30,12 +30,6 @@ public class StorageCleanupService : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            // Wait until midnight
-            await WaitUntilUtils.WaitUntilTime(new TimeSpan(0, 0, 0), stoppingToken);
-
-            if (stoppingToken.IsCancellationRequested)
-                break;
-
             _logger.Information("Starting storage cleanup");
 
             using var scope = _serviceProvider.CreateScope();
@@ -52,6 +46,8 @@ public class StorageCleanupService : BackgroundService
             }
 
             _logger.Information("Storage cleanup completed");
+
+            await WaitUntilUtils.WaitUntilTime(new TimeSpan(0, 0, 0), stoppingToken); // Next midnight
         }
 
         _logger.Information("StorageCleanupService stopped");

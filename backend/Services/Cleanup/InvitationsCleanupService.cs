@@ -32,8 +32,6 @@ public class InvitationsCleanupService : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await WaitUntilUtils.WaitUntilTime(new TimeSpan(0, 0, 0), stoppingToken); // Run at midnight
-
             using (IServiceScope scope = _serviceProvider.CreateScope())
             {
                 DatabaseContext dbContext = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
@@ -62,6 +60,8 @@ public class InvitationsCleanupService : BackgroundService
                     await dbContext.SaveChangesAsync(stoppingToken);
                 }
             }
+
+            await WaitUntilUtils.WaitUntilTime(new TimeSpan(0, 0, 0), stoppingToken); // Next midnight
         }
     }
 }

@@ -27,8 +27,6 @@ public class TrashbinCleanupService : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await WaitUntilUtils.WaitUntilTime(new TimeSpan(0, 0, 0), stoppingToken); // Run at midnight
-
             using (IServiceScope scope = _serviceProvider.CreateScope())
             {
                 ResourceManager resourceManager = scope.ServiceProvider.GetRequiredService<ResourceManager>();
@@ -59,12 +57,14 @@ public class TrashbinCleanupService : BackgroundService
                     // Commit transaction
                     await resourceManager.Commit();
                 }
-                catch 
-                {   
+                catch
+                {
                     // On fail: roll back transaction
                     await resourceManager.Rollback();
                 }
             }
+
+            await WaitUntilUtils.WaitUntilTime(new TimeSpan(0, 0, 0), stoppingToken); // Next midnight
         }
     }
 }
