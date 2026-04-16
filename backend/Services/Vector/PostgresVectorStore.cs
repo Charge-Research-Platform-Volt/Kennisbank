@@ -212,48 +212,29 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, A
     {
         await using var database = await dbFactory.CreateDbContextAsync();
 
-        // Get the average embedding for the resource's chunks using raw SQL
-        // since EF Core doesn't support AVG on vector types directly
-        var avgEmbeddingResult = (await database.Database.SqlQuery<VectorResult>($@"
-            SELECT AVG(embedding)::vector(1024) as ""Value""
-            FROM ""resource-chunks""
-            WHERE ""resource-id"" = {resourceId}
-                AND embedding IS NOT NULL
-        ").ToListAsync()).FirstOrDefault();
+        var results = await database.Database.SqlQuery<VectorSearchResult>($@"
+            WITH avg_vec AS (
+                SELECT AVG(embedding)::vector(1024) AS vec
+                FROM ""resource-chunks""
+                WHERE ""resource-id"" = {resourceId}
+                  AND embedding IS NOT NULL
+            )
+            SELECT
+                id                          AS ""Id"",
+                ""resource-id""             AS ""ResourceId"",
+                ""chunk-text""              AS ""ChunkText"",
+                ""chunk-type""              AS ""ChunkType"",
+                ""chunk-part""              AS ""ChunkPart"",
+                CAST(1 - (embedding <=> (SELECT vec FROM avg_vec)) AS real) AS ""Score""
+            FROM ""resource-chunks"", avg_vec
+            WHERE ""resource-id"" != {resourceId}
+              AND embedding IS NOT NULL
+              AND (SELECT vec FROM avg_vec) IS NOT NULL
+            ORDER BY embedding <=> (SELECT vec FROM avg_vec)
+            LIMIT {limit}
+        ").ToListAsync();
 
-        if (avgEmbeddingResult?.Value == null) return [];
-
-        var avgVector = avgEmbeddingResult.Value;
-
-        // Search for similar chunks excluding the source resource
-        // CosineDistance can't be used in a Where clause (EF Core limitation),
-        // so filter by threshold client-side after fetching top results by distance.
-        var rawResults = await database.ResourceChunks
-            .Where(c => c.Embedding != null && c.ResourceId != resourceId)
-            .Select(c => new
-            {
-                c.Id,
-                c.ResourceId,
-                c.ChunkText,
-                ChunkType = c.ChunkType.ToString(),
-                c.ChunkPart,
-                Distance = c.Embedding!.CosineDistance(avgVector)
-            })
-            .OrderBy(c => c.Distance)
-            .Take(limit)
-            .ToListAsync();
-
-        return rawResults
-            .Where(r => 1 - r.Distance >= scoreThreshold)
-            .Select(r => new VectorSearchResult
-            {
-                Id = r.Id,
-                ResourceId = r.ResourceId,
-                ChunkText = r.ChunkText,
-                ChunkType = r.ChunkType,
-                ChunkPart = r.ChunkPart,
-                Score = 1 - (float)r.Distance
-            }).ToList();
+        return results.Where(r => r.Score >= scoreThreshold).ToList();
     }
 }
 

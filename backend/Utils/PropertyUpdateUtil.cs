@@ -254,7 +254,7 @@ namespace KnowledgeBank.Utils
                 var metadataFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                 {
                     "Name", "Title", "Description", "Note", "License",
-                    "PublicationDate", "LanguageCode", "TypeId"
+                    "PublicationDate", "LanguageCode", "TypeId", "JournalId"
                 };
 
                 // Check if any metadata field was updated

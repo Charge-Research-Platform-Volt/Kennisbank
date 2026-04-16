@@ -121,7 +121,8 @@ public class IngestionService(AiClientProvider aiClientProvider, IVectorStore ve
                 "ResourceTagRelations.Tag",
                 "ResourceOrganisationRelations.Organisation",
                 "ResourceRegionRelations.Region",
-                "ResourceType"
+                "ResourceType",
+                "Journal"
             });
 
             if (resource == null)
@@ -146,6 +147,7 @@ public class IngestionService(AiClientProvider aiClientProvider, IVectorStore ve
             if (orgs?.Count > 0) sb.AppendLine($"Organizations: {string.Join(", ", orgs)}");
             if (tags?.Count > 0) sb.AppendLine($"Tags: {string.Join(", ", tags)}");
             if (regions?.Count > 0) sb.AppendLine($"Regions: {string.Join(", ", regions)}");
+            if (resource.Journal != null) sb.AppendLine($"Journal: {resource.Journal.Name}");
 
             // Supporting context
             if (resource.ResourceType != null) sb.AppendLine($"Type: {resource.ResourceType.Name}");
