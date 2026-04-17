@@ -1,7 +1,7 @@
 using System.ClientModel;
 using System.Runtime.CompilerServices;
 using System.Text;
-using HandlebarsDotNet;
+using System.Text.Json;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.AI;
@@ -20,55 +20,42 @@ namespace Hubs;
 public class Chat(AiClientProvider aiClientProvider, ChatService chatService, ResourceManager resourceManager, HybridSearchService hybridSearchService) : Hub
 {
     private const string SystemPrompt = """
-        You are an AI assistant that answers questions based on provided sources from a knowledge base.
+        You are a research assistant for a personal library. Your primary purpose is to help users explore, connect, and reason about content they have collected.
+
+        Always search the library first before answering — even for general topics, there may be relevant resources, people, or organisations stored. Only skip searching if the question is purely conversational (greetings, thanks, etc.).
+
+        You can:
+        - Answer questions grounded in library sources
+        - Find relations and connections between topics, people, and organisations
+        - Synthesize insights across multiple sources
+        - Enrich answers with your own reasoning on top of what you find
+
+        CITATION RULES:
+        - Only cite sources returned by the search_library tool.
+        - Never fabricate, invent, or recall links from memory.
+        - If you haven't searched, don't cite anything.
+        - External links you know from training are not valid sources here.
 
         CITATION FORMAT:
-        - Each source has a pre-assigned Source Number — use it exactly, do not renumber.
-        - Cite inline using the number as a markdown link: [1](link), [2](link), etc.
-        - Use the link exactly as provided. Never modify, expand, or add a domain to it. Never use bare [1] without (link).
-        - The same source always gets the same number and link throughout the response.
-        - Do not repeat the full title inline — just the number.
-        - At the very end, add a Sources section as a numbered markdown list:
-          1. [Exact Source Title](link)
-          2. [Exact Source Title](link)
+        - Cite inline as separate markdown links: [1](link) [2](link) — never grouped like [1, 2]
+        - Each citation must include the link: [N](link) — never bare [N] without a link
+        - End with a Sources section: numbered markdown list of [Title](link)
+        - Renumber sources sequentially starting from 1 using only the sources you cite.
+        - Use the same number consistently for the same source throughout the response.
 
-        CORRECT:
-        ✓ Framing effects were observed [1](https://yourdomain.com/library?inspectorId=abc&inspectorType=resource).
-        ✓ **Sources**
-          1. [Food Recommender Systems](https://yourdomain.com/library?inspectorId=abc&inspectorType=resource)
-
-        WRONG:
-        ✗ [Food Recommender Systems](https://yourdomain.com/library?inspectorId=abc&inspectorType=resource) — do not use full titles inline
-        ✗ [Source 1](https://yourdomain.com/library?inspectorId=abc&inspectorType=resource) — do not use "Source N" format
-
-        Instructions:
-        - Base your answer only on the provided sources.
-        - Be concise, accurate, and directly address the question.
-        - Consider chat history when formulating your answer.
-        - If the sources do not answer the question, say so and do not include citations.
-        - For math use LaTeX: $$E=mc^2$$ for display, $x^2$ for inline.
-        """;
-
-    private const string StandardSystemPrompt = """
-        You are an AI assistant that helps people find information.
         For math use LaTeX: $$E=mc^2$$ for display, $x^2$ for inline.
-        """;
+    """;
 
-    private static readonly HandlebarsTemplate<object, object> SourcesTemplate = Handlebars.Compile("""
-        The question:
-        {{query}}
-
-        Relevant sources (ranked by relevance):
-        {{#each content}}
-        ---
-        Source Number: {{SourceNumber}}
-        Title: {{Title}}
-        Relevance: {{RelevanceLevel}}
-        Text: {{Text}}
-        Link: {{Link}}
-        {{/each}}
-        ---
-        """);
+    private static readonly ToolDefinition SearchTool = new(
+        "search_library",
+        "Search the personal library for resources, people, or organisations",
+        new {
+            type = "object",
+            properties = new { query = new { type = "string", description = "Search query" } },
+            required = new[] { "query" },
+            additionalProperties = false
+        }
+    );
 
     private readonly Serilog.ILogger logger = Serilog.Log.ForContext<Chat>();
 
@@ -127,7 +114,6 @@ public class Chat(AiClientProvider aiClientProvider, ChatService chatService, Re
 
     public async IAsyncEnumerable<string> StreamAiResponse(
         string message,
-        bool contentBased,
         string chatId,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
@@ -153,9 +139,7 @@ public class Chat(AiClientProvider aiClientProvider, ChatService chatService, Re
 
         var response = new StringBuilder();
 
-        var stream = contentBased
-            ? StreamContentBasedAiResponse(message, chatHistory, cancellationToken)
-            : StreamStandardAiResponse(message, chatHistory, cancellationToken);
+        var stream = StreamAgenticResponse(message, chatHistory, cancellationToken);
 
         await foreach (var content in stream)
         {
@@ -166,6 +150,117 @@ public class Chat(AiClientProvider aiClientProvider, ChatService chatService, Re
         await SaveAiResponseAsync(response.ToString(), chatId);
 
         logger.Information("Finished streaming AI response to {UserIdentifier}", Context.UserIdentifier);
+    }
+
+    private async IAsyncEnumerable<string> StreamAgenticResponse(string message, List<ChatMessage> chatHistory, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        // Plain objects for tool loop (ChatService)
+        List<object> rawMessages =
+        [
+            new { role = "system", content = SystemPrompt },
+            ..chatHistory.Select(m => m switch
+            {
+                UserChatMessage u => (object)new { role = "user", content = u.Content[0].Text },
+                AssistantChatMessage a => new { role = "assistant", content = a.Content[0].Text },
+                _ => new { role = "user", content = "" }
+            }),
+            new { role = "user", content = message }
+        ];
+
+        // Typed messages for streaming final answer
+        List<ChatMessage> typedMessages = [new SystemChatMessage(SystemPrompt), .. chatHistory, new UserChatMessage(message)];
+
+        bool toolLoopError = false;
+        for (int i = 0; i < 3; i++)
+        {
+            MistralCompletion completion = await chatService.CompleteChatWithToolsAsync(rawMessages.ToArray(), [SearchTool], cancellationToken: cancellationToken);
+
+            if (completion.HasToolCalls)
+            {
+                // Add assistant tool_call message to both lists
+                rawMessages.Add(new
+                {
+                    role = "assistant",
+                    tool_calls = completion.ToolCalls!.Select(tc => new
+                    {
+                        id = tc.Id,
+                        type = "function",
+                        function = new { name = tc.Name, arguments = tc.Arguments }
+                    }).ToArray()
+                });
+
+                typedMessages.Add(new AssistantChatMessage(completion.ToolCalls!
+                    .Select(tc => ChatToolCall.CreateFunctionToolCall(tc.Id, tc.Name, BinaryData.FromString(tc.Arguments))).ToList()));
+
+                foreach (MistralToolCall toolCall in completion.ToolCalls!)
+                {
+                    using var args = JsonDocument.Parse(toolCall.Arguments);
+                    string query = args.RootElement.GetProperty("query").GetString() ?? message;
+
+                    logger.Information("LLM searching for: {Query}", query);
+                    await Clients.Caller.SendAsync("SearchStatus", query, cancellationToken);
+
+                    HybridSearchResult searchResult = await hybridSearchService.SearchAsync(query, 1, 15, [], includeMetadataChunks: true);
+                    string formatted = FormatSearchResults(searchResult);
+
+                    rawMessages.Add(new { role = "tool", tool_call_id = toolCall.Id, content = formatted });
+                    typedMessages.Add(new ToolChatMessage(toolCall.Id, formatted));
+                }
+            }
+            else { break; }
+        }
+
+        if (toolLoopError)
+        {
+            yield return "An error occurred. Please try again.";
+            yield break;
+        }
+
+        // Stream final answer
+        ChatCompletionOptions streamOptions = new() { Temperature = 0.7f };
+        AsyncCollectionResult<StreamingChatCompletionUpdate> stream;
+
+        try
+        {
+            stream = aiClientProvider.ChatClient.CompleteChatStreamingAsync(typedMessages, streamOptions, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Streaming error for {UserIdentifier}", Context.UserIdentifier);
+            yield break;
+        }
+
+        await foreach (StreamingChatCompletionUpdate update in stream)
+            foreach (ChatMessageContentPart part in update.ContentUpdate)
+                yield return part.Text;
+    }
+    
+    private string FormatSearchResults(HybridSearchResult result)
+    {
+        var relevant = result.Items.Where(i => i.RelevanceScore >= 0.25f).ToList();
+
+        if (relevant.Count == 0)
+            return "No relevant results found";
+
+        StringBuilder sb = new();
+
+        for (int i = 0; i < relevant.Count; i++)
+        {
+            var item = relevant[i];
+            sb.AppendLine($"[{i + 1}] {item.Name} ({item.Type})");
+            sb.AppendLine($"Link: {aiClientProvider.HostUrl}/library?inspectorId={item.Id}&inspectorType={item.Type}");
+            sb.AppendLine($"Relevance: {item.RelevanceScore:F2}");
+
+            if (!string.IsNullOrWhiteSpace(item.Description))
+                sb.AppendLine($"Description: {item.Description}");
+
+            if (item.MatchedChunks.Count > 0)
+                sb.AppendLine($"Content: {string.Join("\n", item.MatchedChunks)}");
+
+            sb.AppendLine();
+        }
+
+        return sb.ToString();
     }
 
     private async Task<List<ChatMessage>?> LoadChatHistoryAsync(string chatId)
@@ -252,128 +347,6 @@ public class Chat(AiClientProvider aiClientProvider, ChatService chatService, Re
         {
             logger.Error(ex, "Failed to save AI response for chat {ChatId}", chatId);
             return false;
-        }
-    }
-
-    private async IAsyncEnumerable<string> StreamContentBasedAiResponse(
-        string query,
-        List<ChatMessage> chatHistory,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
-    {
-        logger.Information("Content-based AI initiated with query: {Query}", query);
-
-        HybridSearchResult? searchResult = null;
-        try
-        {
-            searchResult = await hybridSearchService.SearchAsync(
-                searchQuery: query,
-                pageIndex: 1,
-                pageSize: 50,
-                filters: []
-            );
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error in hybrid search for query: {Query}", query);
-        }
-
-        if (searchResult == null)
-        {
-            yield return "I encountered an error while searching for information. Please try again.";
-            yield break;
-        }
-
-        if (searchResult.Items.Length == 0)
-        {
-            logger.Warning("No search results found for query: {Query}", query);
-            yield return "I couldn't find any relevant information in the knowledge base to answer your question. Please try rephrasing your question or ask about a different topic.";
-            yield break;
-        }
-
-        logger.Information("Hybrid search returned {Count} results with average score {AvgScore:F3}",
-            searchResult.Items.Length, searchResult.Metadata?.AverageScore ?? 0);
-
-        var contentWithScores = searchResult.Items
-            .Where(item => item.MatchedChunks != null && item.MatchedChunks.Any(c => !string.IsNullOrWhiteSpace(c)))
-            .Select((item, index) => new
-            {
-                SourceNumber = index + 1,
-                Text = string.Join("\n", item.MatchedChunks ?? []),
-                Link = $"{aiClientProvider.HostUrl}/library?inspectorId={item.Id}&inspectorType={item.Type}",
-                item.RelevanceScore,
-                Title = item.Name,
-                RelevanceLevel = item.RelevanceScore switch
-                {
-                    >= 0.7f => "High",
-                    >= 0.4f => "Medium",
-                    _ => "Low"
-                }
-            })
-            .ToList();
-
-        if (contentWithScores.Count == 0)
-        {
-            logger.Warning("No content chunks found in search results for query: {Query}", query);
-            yield return "I found some results but they don't contain detailed content to answer your question. Please try a more specific question.";
-            yield break;
-        }
-
-        string prompt = SourcesTemplate(new { query, content = contentWithScores });
-
-        List<ChatMessage> messages =
-        [
-            new SystemChatMessage(SystemPrompt),
-            .. chatHistory,
-            new UserChatMessage(prompt),
-        ];
-
-        AsyncCollectionResult<StreamingChatCompletionUpdate> responseStreaming;
-        try
-        {
-            responseStreaming = aiClientProvider.ChatClient.CompleteChatStreamingAsync(messages, new ChatCompletionOptions { Temperature = 0.3f }, cancellationToken: cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error while getting streaming response for {UserIdentifier}", Context.UserIdentifier);
-            yield break;
-        }
-
-        await foreach (StreamingChatCompletionUpdate update in responseStreaming)
-        {
-            foreach (ChatMessageContentPart updatePart in update.ContentUpdate)
-                yield return updatePart.Text;
-        }
-    }
-
-    private async IAsyncEnumerable<string> StreamStandardAiResponse(
-        string message,
-        List<ChatMessage> chatHistory,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
-    {
-        logger.Information("Standard AI initiated with message: {Message}", message);
-
-        List<ChatMessage> messages =
-        [
-            new SystemChatMessage(StandardSystemPrompt),
-            .. chatHistory,
-            new UserChatMessage(message)
-        ];
-
-        AsyncCollectionResult<StreamingChatCompletionUpdate> response;
-        try
-        {
-            response = aiClientProvider.ChatClient.CompleteChatStreamingAsync(messages, new ChatCompletionOptions { Temperature = 0.7f }, cancellationToken: cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error while getting streaming response for {UserIdentifier}", Context.UserIdentifier);
-            yield break;
-        }
-
-        await foreach (StreamingChatCompletionUpdate update in response)
-        {
-            foreach (ChatMessageContentPart updatePart in update.ContentUpdate)
-                yield return updatePart.Text;
         }
     }
 

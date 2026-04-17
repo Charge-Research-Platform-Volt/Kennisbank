@@ -10,14 +10,14 @@
 
     let submitting = $state(false);
 
-    async function startChat(message: string, contentBased: boolean) {
+    async function startChat(message: string) {
         if (!ctx.connection || submitting) return;
 
         submitting = true;
 
         try {
             const chatId: string = await ctx.connection.invoke('CreateChat', message);
-            goto(`/chatbot/${chatId}`, { state: { initialMessage: message, contentBased }});
+            goto(`/chatbot/${chatId}`, { state: { initialMessage: message }});
             chatRefresh.trigger();
         } catch (e) {
             toast.error(e instanceof Error ? e.message : "Failed to create chat.");

@@ -21,6 +21,7 @@ public class AiClientProvider
     public Tools Toolbox { get; private set; }
     public EmbeddingClient EmbeddingClient { get; private set; }
     public ChatClient ChatClient { get; private set; }
+    public string ChatModelName { get; private set; }
 
     public AiClientProvider(EnvironmentConfig environmentConfig)
     {
@@ -31,9 +32,9 @@ public class AiClientProvider
 
         OpenAIClientOptions mistralOptions = new() { Endpoint = new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_ENDPOINT)) };
         OpenAIClient mistralClient = new(new ApiKeyCredential(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_API_KEY)), mistralOptions);
-        string chatModelName = environmentConfig.GetVariableValue(EnvironmentVariable.CHAT_MODEL_NAME);
-        ChatClient = mistralClient.GetChatClient(chatModelName);
-        logger.Information("Chat client initialized with model: {ModelName}", chatModelName);
+        ChatModelName = environmentConfig.GetVariableValue(EnvironmentVariable.CHAT_MODEL_NAME);
+        ChatClient = mistralClient.GetChatClient(ChatModelName);
+        logger.Information("Chat client initialized with model: {ModelName}", ChatModelName);
 
         OpenAIClientOptions embeddingsOptions = new() { Endpoint = new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_ENDPOINT)) };
         OpenAIClient embeddingsClient = new(new ApiKeyCredential(environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_API_KEY)), embeddingsOptions);

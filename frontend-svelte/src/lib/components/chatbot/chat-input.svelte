@@ -1,20 +1,19 @@
 <script lang="ts">
     import { ArrowUp, CircleX } from 'lucide-svelte';
-    import Switch from '$lib/components/ui/switch/switch.svelte';
-    import Label from '../ui/label/label.svelte';
+    // import Switch from '$lib/components/ui/switch/switch.svelte';
+    // import Label from '../ui/label/label.svelte';
 
     let { onSend, onStop, loading = false }: {
-        onSend: (message: string, contentBased: boolean) => void;
+        onSend: (message: string) => void;
         onStop: () => void;
         loading?: boolean;
     } = $props();
 
     let message = $state('');
-    let contentBased = $state(true);
 
     function handleSend() {
         if (!message.trim() || loading) return;
-        onSend(message, contentBased);
+        onSend(message);
         message = '';
     }
 </script>
@@ -32,8 +31,8 @@
     <div class="flex items-center justify-between px-3 pb-2">
         <!-- Toolbar -->
         <div class="flex items-center gap-2 px-3 pb-3">
-            <Switch bind:checked={contentBased} id="kb-toggle" />
-            <Label for="kb-toggle" class="text-xs text-muted-foreground cursor-pointer">Library Only</Label>
+            <!-- <Switch bind:checked={contentBased} id="kb-toggle" />
+            <Label for="kb-toggle" class="text-xs text-muted-foreground cursor-pointer">Library Only</Label> -->
         </div>
 
         {#if loading}

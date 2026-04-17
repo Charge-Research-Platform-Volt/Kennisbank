@@ -48,12 +48,14 @@ public class HybridSearchService
     /// <param name="pageIndex">Page index (1-based)</param>
     /// <param name="pageSize">Number of results per page</param>
     /// <param name="filters">Dictionary of filters to apply</param>
+    /// <param name="includeMetadataChunks"></param>
     /// <returns>Hybrid search result with ranked items and metadata</returns>
     public async Task<HybridSearchResult> SearchAsync(
         string searchQuery,
         int pageIndex,
         int pageSize,
-        Dictionary<string, object?> filters)
+        Dictionary<string, object?> filters,
+        bool includeMetadataChunks = false)
     {
         var stopwatch = Stopwatch.StartNew();
         var metadata = new SearchMetadata();
@@ -68,7 +70,7 @@ public class HybridSearchService
                 _config.MaxCandidatesPerSource);
 
             // Execute parallel searches
-            var candidates = await ExecuteParallelSearches(searchQuery, candidateLimit, metadata);
+            var candidates = await ExecuteParallelSearches(searchQuery, candidateLimit, metadata, includeMetadataChunks);
 
             if (candidates.Count == 0)
             {
@@ -157,10 +159,7 @@ public class HybridSearchService
     /// <summary>
     /// Executes searches across multiple sources in parallel.
     /// </summary>
-    private async Task<List<SearchCandidate>> ExecuteParallelSearches(
-        string searchQuery,
-        int candidateLimit,
-        SearchMetadata metadata)
+    private async Task<List<SearchCandidate>> ExecuteParallelSearches(string searchQuery, int candidateLimit, SearchMetadata metadata, bool includeMetadataChunks)
     {
         var allCandidates = new List<SearchCandidate>();
 
@@ -168,7 +167,7 @@ public class HybridSearchService
         var tasks = new List<Task<List<SearchCandidate>>>();
 
         // Semantic search
-        tasks.Add(ExecuteSemanticSearchAsync(searchQuery, candidateLimit, metadata));
+        tasks.Add(ExecuteSemanticSearchAsync(searchQuery, candidateLimit, metadata, includeMetadataChunks));
 
         // Text-based search (pgvector trigram)
         tasks.Add(ExecuteTextSearchAsync(searchQuery, candidateLimit, metadata));
@@ -194,10 +193,7 @@ public class HybridSearchService
     /// <summary>
     /// Executes semantic (vector) search using pgvector.
     /// </summary>
-    private async Task<List<SearchCandidate>> ExecuteSemanticSearchAsync(
-        string searchQuery,
-        int limit,
-        SearchMetadata metadata)
+    private async Task<List<SearchCandidate>> ExecuteSemanticSearchAsync(string searchQuery, int limit, SearchMetadata metadata, bool includeMetadataChunks)
     {
         var candidates = new List<SearchCandidate>();
 
@@ -217,7 +213,7 @@ public class HybridSearchService
             int rank = 1;
             foreach (var group in grouped)
             {
-                var chunks = group.Where(r => r.ChunkType != "MetaData").OrderByDescending(r => r.Score).Take(_config.MaxChunksPerResource).Select(r => r.ChunkText).ToList();
+                var chunks = group.Where(r => includeMetadataChunks || r.ChunkType != "MetaData").OrderByDescending(r => r.Score).Take(_config.MaxChunksPerResource).Select(r => r.ChunkText).ToList();
 
                 float score = group.Max(r => r.Score);
 

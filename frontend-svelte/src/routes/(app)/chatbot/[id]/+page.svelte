@@ -62,6 +62,7 @@
     let bottomRef = $state<HTMLDivElement | null>(null);
     let subscription: ISubscription<string> | null = null;
     let mountedChatId: string | undefined;
+    let searchingQuery = $state<string | null>(null);
 
     function fetchMessages(id: string) {
         api.get<{ messages: Message[] }>(`/api/ai/messages/${id}`)
@@ -74,7 +75,7 @@
             });
     }
 
-    function stream(message: string, contentBased: boolean) {
+    function stream(message: string) {
         if (!ctx.connection) return;
         loading = true;
 
@@ -86,7 +87,7 @@
         ];
         tick().then(() => bottomRef?.scrollIntoView({ behavior: 'smooth' }));
 
-        subscription = ctx.connection.stream('StreamAiResponse', message, contentBased, chatId).subscribe({
+        subscription = ctx.connection.stream('StreamAiResponse', message, chatId).subscribe({
             next: (chunk) => {
                 messages = messages.map(m => m.id === assistantId ? { ...m, content: m.content + chunk } : m);
                 bottomRef?.scrollIntoView({ behavior: 'smooth' });
@@ -96,8 +97,9 @@
                 messages = messages.map(m => m.id === assistantId
                     ? { ...m, content: 'Something went wrong, please try again.' }
                     : m);
+                searchingQuery = null;
             },
-            complete: () => { loading = false; }
+            complete: () => { loading = false; searchingQuery = null; }
         });
     }
 
@@ -110,13 +112,13 @@
     onMount(() => {
         const id = chatId;
         mountedChatId = id;
-        const { initialMessage, contentBased } = page.state;
+        const { initialMessage } = page.state;
 
         if (initialMessage) {
             const key = `chat-streamed-${id}`;
             if (!sessionStorage.getItem(key)) {
                 sessionStorage.setItem(key, '1');
-                stream(initialMessage, contentBased ?? true);
+                stream(initialMessage);
             } else {
                 fetchMessages(id!);
             }
@@ -138,6 +140,14 @@
         loading = false;
         fetchMessages(id!);
     });
+
+    $effect(() => {
+        if (!ctx.connection) return;
+
+        ctx.connection.on('SearchStatus', (query: string) => {
+            searchingQuery = query;
+        });
+    });
 </script>
 
 <div class="flex flex-col h-full">
@@ -149,10 +159,14 @@
                         {msg.content}
                     </div>
                 {:else if msg.content === '' && loading}
-                    <div class="flex gap-1 items-center h-6">
-                        <span class="thinking-dot"></span>
-                        <span class="thinking-dot" style="animation-delay: 0.15s"></span>
-                        <span class="thinking-dot" style="animation-delay: 0.3s"></span>
+                    <div class="flex gap-1 items-center h-6 text-xs text-muted-foreground">
+                        {#if searchingQuery}
+                            Searching: {searchingQuery}
+                        {:else}
+                            <span class="thinking-dot"></span>
+                            <span class="thinking-dot" style="animation-delay: 0.15s"></span>
+                            <span class="thinking-dot" style="animation-delay: 0.3s"></span>
+                        {/if}
                     </div>
                 {:else}
                     <div class="text-sm prose prose-sm max-w-none">
