@@ -1,12 +1,15 @@
 using KnowledgeBank.Models;
 using KnowledgeBank.Data;
 using KnowledgeBank.Services.Vector;
+using Microsoft.SemanticKernel.Text;
 using Serilog;
 using System.Text;
 
 namespace KnowledgeBank.Services.AI;
 
-public class IngestionService(AiClientProvider aiClientProvider, IVectorStore vectorStore, TextExtractionService textExtractionService, ResourceManager resourceManager)
+#pragma warning disable SKEXP0050, SKEXP0001
+
+public class IngestionService(IVectorStore vectorStore, TextExtractionService textExtractionService, ResourceManager resourceManager)
 {
     private readonly Serilog.ILogger logger = Log.ForContext<IngestionService>();
 
@@ -31,14 +34,14 @@ public class IngestionService(AiClientProvider aiClientProvider, IVectorStore ve
                 return;
             }
 
-            chunks.AddRange(aiClientProvider.Toolbox.SplitTextIntoChunks(extracted, logChunks: false, markdownSplit: true));
+            chunks.AddRange(SplitTextIntoChunks(extracted, markdownSplit: true));
         }
         else if (resource?.FileType == "website" && !string.IsNullOrEmpty(resource.SourceUrl))
         {
             ReadabilityResult result = await textExtractionService.ExtractTextFromWebAsync(resource.SourceUrl);
 
             if (!string.IsNullOrWhiteSpace(result.TextContent))
-                chunks.AddRange(aiClientProvider.Toolbox.SplitTextIntoChunks(result.TextContent, logChunks: false, markdownSplit: false));
+                chunks.AddRange(SplitTextIntoChunks(result.TextContent, markdownSplit: false));
             else
                 logger.Warning("No text extracted from website for resource {Id}", id);
         }
@@ -111,6 +114,25 @@ public class IngestionService(AiClientProvider aiClientProvider, IVectorStore ve
         return await vectorStore.UpdateMetadataPointAsync(id, richMetadata);
     }
     
+    private static List<string> SplitTextIntoChunks(string text, bool markdownSplit = false, int chunkSize = 512, int overlapSize = 128)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return [];
+        if (overlapSize >= chunkSize) { chunkSize = 512; overlapSize = 128; }
+
+        try
+        {
+            return markdownSplit
+                ? TextChunker.SplitMarkdownParagraphs([text], maxTokensPerParagraph: chunkSize, overlapTokens: overlapSize)
+                : TextChunker.SplitPlainTextParagraphs([text], maxTokensPerParagraph: chunkSize, overlapTokens: overlapSize);
+        }
+        catch
+        {
+            return markdownSplit
+                ? TextChunker.SplitMarkDownLines(text, maxTokensPerLine: chunkSize)
+                : TextChunker.SplitPlainTextLines(text, maxTokensPerLine: chunkSize);
+        }
+    }
+
     private async Task<(string Metadata, Resource? Resource)> BuildRichMetadataChunkAsync(Guid id)
     {
         try

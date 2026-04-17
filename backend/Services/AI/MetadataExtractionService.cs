@@ -1,13 +1,11 @@
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.Search;
 using Serilog;
-using System.ClientModel;
 using System.Text.Json;
-using OpenAI.Chat;
 
 namespace KnowledgeBank.Services.AI;
 
-public class MetadataExtractionService(AiClientProvider aiClientProvider, HybridSearchService searchService)
+public class MetadataExtractionService(MistralHttpClient mistralHttpClient, HybridSearchService searchService)
 {
     private readonly Serilog.ILogger logger = Log.ForContext<MetadataExtractionService>();
 
@@ -153,18 +151,15 @@ public class MetadataExtractionService(AiClientProvider aiClientProvider, Hybrid
 
     private async Task<TempExtractedMetadata?> ExtractMetadataWithLLMAsync(string prompt)
     {
-        List<ChatMessage> messages = [
-            new SystemChatMessage(systemPrompt),
-            new UserChatMessage(prompt)
-        ];
-
-        ChatCompletionOptions options = new()
+        var request = new MistralChatRequest
         {
+            Messages = [
+                new { role = "system", content = systemPrompt },
+                new { role = "user", content = prompt }
+            ],
             Temperature = 0.1f,
-            ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
-                "MetadataExtraction",
-                BinaryData.FromString(MetadataExtractionOutputJsonSchema)
-            )
+            ResponseFormat = MistralResponseFormat.JsonSchema,
+            JsonSchema = JsonSerializer.Deserialize<object>(MetadataExtractionOutputJsonSchema)
         };
 
         const int maxRetries = 3;
@@ -172,12 +167,12 @@ public class MetadataExtractionService(AiClientProvider aiClientProvider, Hybrid
         {
             try
             {
-                ClientResult<ChatCompletion> response = await aiClientProvider.ChatClient.CompleteChatAsync(messages, options);
-                string json = response.Value.Content[0].Text;
+                MistralCompletion completion = await mistralHttpClient.CompleteAsync(request);
+                if (string.IsNullOrWhiteSpace(completion.Content)) return null;
 
-                return JsonSerializer.Deserialize<TempExtractedMetadata>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                return JsonSerializer.Deserialize<TempExtractedMetadata>(completion.Content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             }
-            catch (ClientResultException ex) when (ex.Message.Contains("429") || ex.Message.Contains("RateLimitReached"))
+            catch (HttpRequestException ex) when (ex.Message.Contains("429"))
             {
                 if (attempt == maxRetries) throw;
 

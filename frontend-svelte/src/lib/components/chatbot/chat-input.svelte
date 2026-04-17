@@ -10,6 +10,11 @@
     } = $props();
 
     let message = $state('');
+    let textarea = $state<HTMLTextAreaElement | null>(null);
+
+    export function focus() {
+        textarea?.focus();
+    }
 
     function handleSend() {
         if (!message.trim() || loading) return;
@@ -20,6 +25,7 @@
 
 <div class="border border-input rounded-lg bg-background shadow-sm">
     <textarea
+        bind:this={textarea}
         class="w-full px-4 pt-3 pb-2 text-sm bg-transparent outline-none resize-none placeholder:text-muted-foreground"
         placeholder={loading ? "Thinking..." : "I would like to know..."}
         rows={3}

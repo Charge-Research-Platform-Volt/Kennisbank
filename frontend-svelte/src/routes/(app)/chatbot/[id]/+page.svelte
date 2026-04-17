@@ -59,7 +59,9 @@
 
     let messages = $state<Message[]>([]);
     let loading = $state(false);
+    let thinking = $state(false);
     let bottomRef = $state<HTMLDivElement | null>(null);
+    let chatInput = $state<{ focus: () => void } | null>(null);
     let subscription: ISubscription<string> | null = null;
     let mountedChatId: string | undefined;
     let searchingQuery = $state<string | null>(null);
@@ -94,12 +96,13 @@
             },
             error: () => {
                 loading = false;
+                thinking = false;
                 messages = messages.map(m => m.id === assistantId
                     ? { ...m, content: 'Something went wrong, please try again.' }
                     : m);
                 searchingQuery = null;
             },
-            complete: () => { loading = false; searchingQuery = null; }
+            complete: () => { loading = false; thinking = false; searchingQuery = null; tick().then(() => chatInput?.focus()); }
         });
     }
 
@@ -144,8 +147,13 @@
     $effect(() => {
         if (!ctx.connection) return;
 
-        ctx.connection.on('SearchStatus', (query: string) => {
-            searchingQuery = query;
+        ctx.connection.on('ToolStatus', (_tool: string, label: string) => {
+            searchingQuery = label;
+            thinking = false;
+        });
+        ctx.connection.on('Thinking', () => {
+            searchingQuery = null;
+            thinking = true;
         });
     });
 </script>
@@ -161,7 +169,9 @@
                 {:else if msg.content === '' && loading}
                     <div class="flex gap-1 items-center h-6 text-xs text-muted-foreground">
                         {#if searchingQuery}
-                            Searching: {searchingQuery}
+                            <span class="status-spinner"></span>{searchingQuery}
+                        {:else if thinking}
+                            <span class="status-spinner"></span>Thinking...
                         {:else}
                             <span class="thinking-dot"></span>
                             <span class="thinking-dot" style="animation-delay: 0.15s"></span>
@@ -182,7 +192,7 @@
 
     <div class="shrink-0 pb-4">
         <div class="mx-auto max-w-2xl">
-            <ChatInput {loading} onSend={stream} onStop={stop} />
+            <ChatInput bind:this={chatInput} {loading} onSend={stream} onStop={stop} />
         </div>
     </div>
 </div>
@@ -225,6 +235,20 @@
     }
     :global(.chat-cite-source:hover) {
         color: var(--foreground);
+    }
+    :global(.status-spinner) {
+        display: inline-block;
+        width: 0.7rem;
+        height: 0.7rem;
+        border-radius: 9999px;
+        border: 1.5px solid var(--muted-foreground);
+        border-top-color: transparent;
+        animation: spin 0.6s linear infinite;
+        margin-right: 0.4rem;
+        flex-shrink: 0;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
     }
     :global(.thinking-dot) {
         display: inline-block;

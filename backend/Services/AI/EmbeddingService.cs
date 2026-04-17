@@ -9,7 +9,7 @@ namespace KnowledgeBank.Services.AI;
 
 public enum ChunkType { ContentText, MetaData }
 
-public class AiClientProvider
+public class EmbeddingService
 {
     private readonly Serilog.ILogger logger;
     private readonly Dictionary<string, (float[] Embedding, DateTime CachedAt)> embeddingCache;
@@ -17,24 +17,12 @@ public class AiClientProvider
     private readonly Lock cacheLock = new();
     private const int MaxCacheSize = 1000;
 
-    public string HostUrl { get; private set; }
-    public Tools Toolbox { get; private set; }
     public EmbeddingClient EmbeddingClient { get; private set; }
-    public ChatClient ChatClient { get; private set; }
-    public string ChatModelName { get; private set; }
 
-    public AiClientProvider(EnvironmentConfig environmentConfig)
+    public EmbeddingService(EnvironmentConfig environmentConfig)
     {
-        logger = Log.ForContext<AiClientProvider>();
-        Toolbox = new Tools();
+        logger = Log.ForContext<EmbeddingService>();
         embeddingCache = [];
-        HostUrl = environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL).TrimEnd('/');
-
-        OpenAIClientOptions mistralOptions = new() { Endpoint = new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_ENDPOINT)) };
-        OpenAIClient mistralClient = new(new ApiKeyCredential(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_API_KEY)), mistralOptions);
-        ChatModelName = environmentConfig.GetVariableValue(EnvironmentVariable.CHAT_MODEL_NAME);
-        ChatClient = mistralClient.GetChatClient(ChatModelName);
-        logger.Information("Chat client initialized with model: {ModelName}", ChatModelName);
 
         OpenAIClientOptions embeddingsOptions = new() { Endpoint = new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_ENDPOINT)) };
         OpenAIClient embeddingsClient = new(new ApiKeyCredential(environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_API_KEY)), embeddingsOptions);

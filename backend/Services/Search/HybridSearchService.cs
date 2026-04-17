@@ -16,7 +16,7 @@ namespace KnowledgeBank.Services.Search;
 public class HybridSearchService
 {
     private readonly Serilog.ILogger _logger;
-    private readonly AiClientProvider _aiClientProvider;
+    private readonly EmbeddingService _aiClientProvider;
     private readonly IDbContextFactory<DatabaseContext> _dbFactory;
     private readonly HybridSearchConfig _config;
     private readonly SearchFusionEngine _fusionEngine;
@@ -24,7 +24,7 @@ public class HybridSearchService
     private readonly IVectorStore _vectorStore;
 
     public HybridSearchService(
-        AiClientProvider aiClientProvider,
+        EmbeddingService aiClientProvider,
         IDbContextFactory<DatabaseContext> dbFactory,
         HybridSearchConfig config,
         IVectorStore vectorStore)

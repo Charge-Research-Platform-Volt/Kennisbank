@@ -141,10 +141,10 @@ namespace KnowledgeBank
             builder.Services.AddScoped<ProjectManager>();
 
             // Retrieval Augmented Generation system
-            builder.Services.AddSingleton<AiClientProvider, AiClientProvider>();
+            builder.Services.AddSingleton<MistralHttpClient>();
+            builder.Services.AddSingleton<EmbeddingService>();
             builder.Services.AddScoped<IngestionService>();
             builder.Services.AddScoped<MetadataExtractionService>();
-            builder.Services.AddScoped<ChatService>();
             builder.Services.AddScoped<IVectorStore, PostgresVectorStore>();
 
             // Hybrid Search System

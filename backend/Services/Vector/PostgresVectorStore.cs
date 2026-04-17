@@ -7,7 +7,7 @@ using PgVector = Pgvector.Vector;
 
 namespace KnowledgeBank.Services.Vector;
 
-public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, AiClientProvider aiClientProvider) : IVectorStore
+public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, EmbeddingService aiClientProvider) : IVectorStore
 {
     /// <inheritdoc />
     public async Task CreateResourcePointsAsync(Guid resourceId, List<(string Text, ChunkType Type, int Part)> chunks)

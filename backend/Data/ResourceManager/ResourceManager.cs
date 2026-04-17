@@ -15,11 +15,11 @@ namespace KnowledgeBank.Data
     /// <param name="aiClientProvider">The RAG system variable</param>
     /// <param name="hybridSearchService">The hybrid search service variable</param>
     /// <param name="vectorStore">The vector store object</param>-
-    public partial class ResourceManager(IDbContextFactory<DatabaseContext> dbFactory, AiClientProvider aiClientProvider, HybridSearchService hybridSearchService, IVectorStore vectorStore)
+    public partial class ResourceManager(IDbContextFactory<DatabaseContext> dbFactory, EmbeddingService aiClientProvider, HybridSearchService hybridSearchService, IVectorStore vectorStore)
     {
         private readonly Serilog.ILogger _logger = Log.ForContext<ResourceManager>();
         private readonly IDbContextFactory<DatabaseContext> _dbFactory = dbFactory;
-        private readonly AiClientProvider _aiClientProvider = aiClientProvider;
+        private readonly EmbeddingService _aiClientProvider = aiClientProvider;
         private readonly HybridSearchService _hybridSearchService = hybridSearchService;
         private readonly IVectorStore _vectorStore = vectorStore;
 

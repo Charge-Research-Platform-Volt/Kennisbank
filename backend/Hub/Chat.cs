@@ -1,4 +1,3 @@
-using System.ClientModel;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
@@ -10,19 +9,24 @@ using KnowledgeBank.Services.Search.Models;
 using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using OpenAI.Chat;
 using SignalRSwaggerGen.Attributes;
 
 namespace Hubs;
 
 [SignalRHub]
 [Authorize]
-public class Chat(AiClientProvider aiClientProvider, ChatService chatService, ResourceManager resourceManager, HybridSearchService hybridSearchService) : Hub
+public partial class Chat(EnvironmentConfig environmentConfig, MistralHttpClient mistralClient, ResourceManager resourceManager, HybridSearchService hybridSearchService) : Hub
 {
     private const string SystemPrompt = """
         You are a research assistant for a personal library. Your primary purpose is to help users explore, connect, and reason about content they have collected.
 
         Always search the library first before answering — even for general topics, there may be relevant resources, people, or organisations stored. Only skip searching if the question is purely conversational (greetings, thanks, etc.).
+
+        TOOL USAGE:
+        - Use search_library to find relevant resources, people, or organisations. You can filter by type and limit results.
+        - When search returns a specific person or organisation, always follow up with get_item_details to retrieve full information before answering.
+        - Use find_related_items to explore connections — e.g. resources by a person, members of an organisation, people linked to a resource.
+        - Chain tools when needed: search → get_item_details → find_related_items to build a complete picture.
 
         You can:
         - Answer questions grounded in library sources
@@ -30,32 +34,25 @@ public class Chat(AiClientProvider aiClientProvider, ChatService chatService, Re
         - Synthesize insights across multiple sources
         - Enrich answers with your own reasoning on top of what you find
 
-        CITATION RULES:
-        - Only cite sources returned by the search_library tool.
-        - Never fabricate, invent, or recall links from memory.
-        - If you haven't searched, don't cite anything.
-        - External links you know from training are not valid sources here.
+        CITATION RULES (strictly enforced):
+        - ONLY cite sources that appear in tool results. No exceptions.
+        - NEVER invent, guess, or recall source links from memory — every link must come verbatim from tool results.
+        - NEVER cite a source inline unless it also appears in the Sources section at the bottom.
+        - If you haven't used any tools, cite nothing.
 
-        CITATION FORMAT:
-        - Cite inline as separate markdown links: [1](link) [2](link) — never grouped like [1, 2]
-        - Each citation must include the link: [N](link) — never bare [N] without a link
-        - End with a Sources section: numbered markdown list of [Title](link)
-        - Renumber sources sequentially starting from 1 using only the sources you cite.
-        - Use the same number consistently for the same source throughout the response.
+        CITATION FORMAT (strictly enforced):
+        - Inline: each citation is a separate markdown link — [1](link) [2](link) — NEVER grouped as [1, 2] or [1,2]
+        - Every inline citation MUST include the link: [N](link) — bare [N] without a link is forbidden
+        - End response with a "Sources" section: numbered markdown list of [Title](link)
+        - Only list sources you actually cited inline. Renumber sequentially from 1.
+        - Use the same number for the same source throughout.
 
         For math use LaTeX: $$E=mc^2$$ for display, $x^2$ for inline.
     """;
 
-    private static readonly ToolDefinition SearchTool = new(
-        "search_library",
-        "Search the personal library for resources, people, or organisations",
-        new {
-            type = "object",
-            properties = new { query = new { type = "string", description = "Search query" } },
-            required = new[] { "query" },
-            additionalProperties = false
-        }
-    );
+    private const string TitleGenerationPrompt = """
+        Generate a concise title (max 6 words) for a chat starting with the given message. Output only the title, nothing else.
+    """;
 
     private readonly Serilog.ILogger logger = Serilog.Log.ForContext<Chat>();
 
@@ -101,10 +98,18 @@ public class Chat(AiClientProvider aiClientProvider, ChatService chatService, Re
     {
         try
         {
-            string title = await chatService.GenerateChatTitleAsync(message);
+            MistralCompletion result = await mistralClient.CompleteAsync(new MistralChatRequest
+            {
+                Messages = [
+                    new { role = "system", content = TitleGenerationPrompt },
+                    new { role = "user", content = message }
+                ],
+                Temperature = 0f
+            });
+
+            string title = string.IsNullOrWhiteSpace(result.Content) ? "Untitled Chat" : result.Content.Trim();
             await resourceManager.UpdateChatAsync(chatId, c => c.Title, title);
             await caller.SendAsync("ChatTitleUpdated", chatId.ToString());
-            logger.Information("Title updated for chat {ChatId}", chatId);
         }
         catch (Exception ex)
         {
@@ -131,7 +136,7 @@ public class Chat(AiClientProvider aiClientProvider, ChatService chatService, Re
             yield break;
         }
 
-        List<ChatMessage>? chatHistory = await LoadChatHistoryAsync(chatId);
+        List<object>? chatHistory = await LoadChatHistoryAsync(chatId);
         if (chatHistory == null) yield break;
 
         bool savedMessage = await SaveUserMessageAsync(message, chatId);
@@ -152,33 +157,24 @@ public class Chat(AiClientProvider aiClientProvider, ChatService chatService, Re
         logger.Information("Finished streaming AI response to {UserIdentifier}", Context.UserIdentifier);
     }
 
-    private async IAsyncEnumerable<string> StreamAgenticResponse(string message, List<ChatMessage> chatHistory, [EnumeratorCancellation] CancellationToken cancellationToken)
+    private async IAsyncEnumerable<string> StreamAgenticResponse(string message, List<object> chatHistory, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         // Plain objects for tool loop (ChatService)
-        List<object> rawMessages =
+        List<object> messages =
         [
             new { role = "system", content = SystemPrompt },
-            ..chatHistory.Select(m => m switch
-            {
-                UserChatMessage u => (object)new { role = "user", content = u.Content[0].Text },
-                AssistantChatMessage a => new { role = "assistant", content = a.Content[0].Text },
-                _ => new { role = "user", content = "" }
-            }),
+            ..chatHistory,
             new { role = "user", content = message }
         ];
 
-        // Typed messages for streaming final answer
-        List<ChatMessage> typedMessages = [new SystemChatMessage(SystemPrompt), .. chatHistory, new UserChatMessage(message)];
-
-        bool toolLoopError = false;
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 10; i++)
         {
-            MistralCompletion completion = await chatService.CompleteChatWithToolsAsync(rawMessages.ToArray(), [SearchTool], cancellationToken: cancellationToken);
+            MistralCompletion completion = await mistralClient.CompleteAsync(new MistralChatRequest { Messages = messages, Functions = [SearchTool, GetItemDetailsTool, FindRelatedItemsTool] }, cancellationToken);
 
             if (completion.HasToolCalls)
             {
                 // Add assistant tool_call message to both lists
-                rawMessages.Add(new
+                messages.Add(new
                 {
                     role = "assistant",
                     tool_calls = completion.ToolCalls!.Select(tc => new
@@ -189,50 +185,29 @@ public class Chat(AiClientProvider aiClientProvider, ChatService chatService, Re
                     }).ToArray()
                 });
 
-                typedMessages.Add(new AssistantChatMessage(completion.ToolCalls!
-                    .Select(tc => ChatToolCall.CreateFunctionToolCall(tc.Id, tc.Name, BinaryData.FromString(tc.Arguments))).ToList()));
-
                 foreach (MistralToolCall toolCall in completion.ToolCalls!)
                 {
                     using var args = JsonDocument.Parse(toolCall.Arguments);
-                    string query = args.RootElement.GetProperty("query").GetString() ?? message;
 
-                    logger.Information("LLM searching for: {Query}", query);
-                    await Clients.Caller.SendAsync("SearchStatus", query, cancellationToken);
+                    string formatted = toolCall.Name switch
+                    {
+                        "search_library" => await HandleSearchAsync(args, message, cancellationToken),
+                        "get_item_details" => await HandleGetItemDetailsAsync(args, cancellationToken),
+                        "find_related_items" => await HandleFindRelatedItemsAsync(args, cancellationToken),
+                        _ => "Unknown tool"
+                    };
 
-                    HybridSearchResult searchResult = await hybridSearchService.SearchAsync(query, 1, 15, [], includeMetadataChunks: true);
-                    string formatted = FormatSearchResults(searchResult);
-
-                    rawMessages.Add(new { role = "tool", tool_call_id = toolCall.Id, content = formatted });
-                    typedMessages.Add(new ToolChatMessage(toolCall.Id, formatted));
+                    messages.Add(new { role = "tool", tool_call_id = toolCall.Id, content = formatted });
                 }
             }
             else { break; }
         }
 
-        if (toolLoopError)
-        {
-            yield return "An error occurred. Please try again.";
-            yield break;
-        }
-
         // Stream final answer
-        ChatCompletionOptions streamOptions = new() { Temperature = 0.7f };
-        AsyncCollectionResult<StreamingChatCompletionUpdate> stream;
+        await Clients.Caller.SendAsync("Thinking", cancellationToken);
 
-        try
-        {
-            stream = aiClientProvider.ChatClient.CompleteChatStreamingAsync(typedMessages, streamOptions, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Streaming error for {UserIdentifier}", Context.UserIdentifier);
-            yield break;
-        }
-
-        await foreach (StreamingChatCompletionUpdate update in stream)
-            foreach (ChatMessageContentPart part in update.ContentUpdate)
-                yield return part.Text;
+        await foreach (string chunk in mistralClient.StreamAsync(new MistralChatRequest { Messages = messages }, cancellationToken))
+            yield return chunk;
     }
     
     private string FormatSearchResults(HybridSearchResult result)
@@ -248,7 +223,7 @@ public class Chat(AiClientProvider aiClientProvider, ChatService chatService, Re
         {
             var item = relevant[i];
             sb.AppendLine($"[{i + 1}] {item.Name} ({item.Type})");
-            sb.AppendLine($"Link: {aiClientProvider.HostUrl}/library?inspectorId={item.Id}&inspectorType={item.Type}");
+            sb.AppendLine($"Link: {environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL)}/library?inspectorId={item.Id}&inspectorType={item.Type}");
             sb.AppendLine($"Relevance: {item.RelevanceScore:F2}");
 
             if (!string.IsNullOrWhiteSpace(item.Description))
@@ -263,7 +238,7 @@ public class Chat(AiClientProvider aiClientProvider, ChatService chatService, Re
         return sb.ToString();
     }
 
-    private async Task<List<ChatMessage>?> LoadChatHistoryAsync(string chatId)
+    private async Task<List<object>?> LoadChatHistoryAsync(string chatId)
     {
         try
         {
@@ -284,21 +259,21 @@ public class Chat(AiClientProvider aiClientProvider, ChatService chatService, Re
         }
     }
 
-    private List<ChatMessage> BuildChatHistory(IEnumerable<dynamic> messages, string chatId)
+    private List<object> BuildChatHistory(IEnumerable<dynamic> messages, string chatId)
     {
-        var chatHistory = new List<ChatMessage>();
+        var chatHistory = new List<object>();
 
         foreach (var messageItem in messages)
         {
-            ChatMessage? chatMessage = messageItem.MessageRole switch
+            string? role = messageItem.MessageRole switch
             {
-                var role when role == MessageRole.User.ToString() => new UserChatMessage(messageItem.Content),
-                var role when role == MessageRole.Assistant.ToString() => new AssistantChatMessage(messageItem.Content),
+                var r when r == MessageRole.User.ToString() => "user",
+                var r when r == MessageRole.Assistant.ToString() => "assistant",
                 _ => null
             };
 
-            if (chatMessage != null)
-                chatHistory.Add(chatMessage);
+            if (role != null)
+                chatHistory.Add(new { role, content = (string)messageItem.Content });
             else
                 logger.Warning("Unknown message role {MessageRole} in chat {ChatId}", messageItem.MessageRole, chatId);
         }
