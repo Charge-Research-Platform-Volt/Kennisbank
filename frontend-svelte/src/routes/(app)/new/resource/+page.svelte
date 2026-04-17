@@ -28,7 +28,7 @@
         authorType?: string;
     };
 
-	let phase = $state<Phase>('review');
+	let phase = $state<Phase>('select');
 	let mode = $state<'file' | 'url'>('file');
 
 	// URL mode
