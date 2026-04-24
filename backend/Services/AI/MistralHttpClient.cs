@@ -157,7 +157,7 @@ public class MistralHttpClient
             model = modelName,
             messages = request.Messages,
             temperature = request.Temperature,
-            reasoning_effort = EffortToString(request.ReasoningEffort),
+            reasoning_effort = request.ReasoningEffort == MistralReasoningEffort.None ? null : EffortToString(request.ReasoningEffort),
             stream,
             tools = tools.Count > 0 ? tools.ToArray() : null,
             response_format = request.ResponseFormat switch

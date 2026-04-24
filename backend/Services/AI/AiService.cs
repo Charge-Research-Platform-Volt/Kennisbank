@@ -1,5 +1,3 @@
-using KnowledgeBank.Utils;
-
 namespace KnowledgeBank.Services.AI;
 
 public class AiService(MistralHttpClient mistralClient)
@@ -18,7 +16,10 @@ public class AiService(MistralHttpClient mistralClient)
             Relevant excerpts:
             {excerpts}
 
-            Extract only information directly relevant to the query context. Factual only, no inference. Max 150 words.
+            Extract only information directly stated in the excerpts that is relevant to the query context. 
+            Do not infer, paraphrase beyond what is stated, or add outside knowledge.
+            If the excerpts contain no relevant information, respond with exactly: NO_RELEVANT_CONTENT
+            Max 150 words.
         """;
 
         var request = new MistralChatRequest

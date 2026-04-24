@@ -5,6 +5,7 @@
     import Spinner from '$lib/components/ui/spinner/spinner.svelte';
 	import Sidebar from '$lib/components/sidebar/sidebar.svelte';
     import * as Dialog from '$lib/components/ui/dialog';
+    import * as Tooltip from '$lib/components/ui/tooltip';
 	import Button from '$lib/components/ui/button/button.svelte';
     import { Sparkles } from 'lucide-svelte';
     
@@ -34,6 +35,7 @@
     });
 </script>
 
+<Tooltip.Provider>
 {#if userState.loading}
     <div class="flex h-screen w-full items-center justify-center">
         <Spinner class="h-10 w-10" />
@@ -49,6 +51,7 @@
         </main>
     </div>
 {/if}
+</Tooltip.Provider>
 
 <Dialog.Root bind:open={changelogDialogOpen}>
     <Dialog.Content class="!max-w-3xl max-h-[80vh] flex flex-col p-5">

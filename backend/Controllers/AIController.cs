@@ -341,4 +341,30 @@ public class AIController(ResourceManager resourceManager, IServiceScopeFactory 
         }
     }
     #endregion
+
+    #region Batch name + type fetch
+    [HttpGet("items")]
+    [SwaggerOperation(Summary = "Fetches titles and types for GUIDs in batch")]
+    [SwaggerResponse(200, "Success", typeof(ApiResponse))]
+    [SwaggerResponse(500, "Internal server error", typeof(ApiResponse))]
+    public async Task<IActionResult> GetItemsByIds([FromQuery] string ids)
+    {
+        try
+        {
+            var guids = ids.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(id => Guid.TryParse(id.Trim(), out var g) ? g : (Guid?)null)
+                .Where(g => g.HasValue).Select(g => g!.Value).ToList();
+
+            if (guids.Count == 0) return Ok(new ApiResponse(true, "No items", Array.Empty<object>()));
+
+            var items = await resourceManager.GetResourceGridItemsByIdsAsync(guids);
+            return Ok(new ApiResponse(true, "Items retrieved", items.Select(i => new { i.Id, i.Name, i.Type })));
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Failed to fetch items by IDs");
+            return StatusCode(500, new ApiResponse(false, "Failed to fetch items"));
+        }
+    }
+    #endregion
 }

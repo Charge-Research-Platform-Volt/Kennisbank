@@ -1,5 +1,11 @@
 <script module>
     import { marked, Renderer } from 'marked';
+    import markedKatex from 'marked-katex-extension';
+    import 'katex/dist/katex.min.css';
+
+    marked.use(markedKatex({ throwOnError: false }));
+
+    type ResolvedSource = { id: string; name: string; type: string; }
 
     const renderer = new Renderer();
     renderer.link = ({ href, text }) => {
@@ -22,25 +28,39 @@
     };
     marked.use({ renderer });
 
-    function render(content: string): string {
-        // Build number → title map from "N. [Title](url)" entries (sources list)
-        const sourceMap: Record<number, string> = {};
-        for (const m of content.matchAll(/^(\d+)\.\s+\[([^\]]+)\]/gm)) {
-            sourceMap[parseInt(m[1])] = m[2];
-        }
+    function render(content: string, resolvedSources?: Map<string, ResolvedSource>): string {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity
+        const uuidOrder = new Map<string, number>();
+        let counter = 1;
 
-        const titleAttr = (n: string) => {
-            const t = sourceMap[parseInt(n)];
-            return t ? ` title="${t.replace(/"/g, '&quot;')}"` : '';
-        };
+        const uuidRe = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 
-        let html = marked(content) as string;
-        // Add title to already-linked badges from renderer.link
-        html = html.replace(/<a([^>]*class="chat-cite-num"[^>]*)>(\d+)<\/a>/g,
-            (_, attrs, n) => `<a${attrs}${titleAttr(n)}>${n}</a>`);
-        // Fallback: bare [N] the LLM forgot to linkify → non-clickable badge
-        html = html.replace(/\[(\d+)\]/g,
-            (_, n) => `<span class="chat-cite-num"${titleAttr(n)}>${n}</span>`);
+        // Replace [SRC:uuid] and [SRC:uuid,SRC:uuid,...] markers
+        let processed = content.replace(
+            /\[SRC:[^\]]+\]/gi,
+            (match) => {
+                const uuids = [...match.matchAll(uuidRe)].map(m => m[0]);
+                return uuids.map(uuid => {
+                    if (!uuidOrder.has(uuid)) uuidOrder.set(uuid, counter++);
+                    const n = uuidOrder.get(uuid);
+                    if (resolvedSources?.has(uuid)) {
+                        const { type } = resolvedSources.get(uuid)!;
+                        const url = `/library?inspectorId=${uuid}&inspectorType=${type}`;
+                        return `[${n}](${url})`;
+                    }
+                    return `[[BADGE:${n}]]`;
+                }).join('');
+            }
+        );
+
+        let html = marked(processed) as string;
+
+        // Replace [[BADGE:N]]
+        html = html.replace(/\[\[BADGE:(\d+)\]\]/g, (_, n) =>
+            `<span class="chat-cite-num">${n}</span>`);
+
+
+
         return html;
     }
 </script>
@@ -51,8 +71,10 @@
     import { api } from '$lib/api';
     import { HubConnection, type ISubscription } from '@microsoft/signalr';
     import ChatInput from '$lib/components/chatbot/chat-input.svelte';
+	import { SvelteMap } from 'svelte/reactivity';
+	import ChatMessage from '$lib/components/chatbot/ChatMessage.svelte';
 
-    type Message = { id: string; messageRole: 'User' | 'Assistant'; content: string };
+    type Message = { id: string; messageRole: 'User' | 'Assistant'; content: string; resolvedSources?: Map<string, ResolvedSource>; };
 
     const ctx = getContext<{ connection: HubConnection | null}>('chatConnection');
     const chatId = $derived(page.params.id);
@@ -66,10 +88,53 @@
     let mountedChatId: string | undefined;
     let searchingQuery = $state<string | null>(null);
 
+    function extractUuids(content: string): string[] {
+        const uuidRe = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+        return [...new Set([...content.matchAll(/\[SRC:[^\]]+\]/gi)]
+            .flatMap(m => [...m[0].matchAll(uuidRe)].map(u => u[0])))];
+    }
+
+    function fetchSources(content: string, msgId: string) {
+        const uuids = extractUuids(content);
+        if (uuids.length === 0) return;
+        api.get<ResolvedSource[]>(`/api/ai/items?ids=${uuids.join(',')}`)
+            .then(r => {
+                const map = new SvelteMap<string, ResolvedSource>();
+                r.body?.forEach((s: ResolvedSource) => map.set(s.id, s));
+                messages = messages.map(m => m.id === msgId ? { ...m, resolvedSources: map } : m);
+            });
+    }
+
+    function fetchSourcesForMessages(msgs: Message[]) {
+        const assistantMsgs = msgs.filter(m => m.messageRole === 'Assistant');
+        const allUuids = [...new Set(assistantMsgs.flatMap(m => extractUuids(m.content)))];
+
+        if (allUuids.length === 0) return;
+
+        api.get<ResolvedSource[]>(`/api/ai/items?ids=${allUuids.join(',')}`)
+            .then(r => {
+                // eslint-disable-next-line svelte/prefer-svelte-reactivity
+                const lookup = new Map<string, ResolvedSource>();
+                r.body?.forEach((s: ResolvedSource) => lookup.set(s.id, s));
+
+                messages = msgs.map(m => {
+                    if (m.messageRole !== 'Assistant') return m;
+
+                    const uuids = extractUuids(m.content);
+                    const map = new SvelteMap<string, ResolvedSource>();
+
+                    uuids.forEach(uuid => { if (lookup.has(uuid)) map.set(uuid, lookup.get(uuid)!); });
+
+                    return { ...m, resolvedSources: map };
+                });
+            });
+    }
+
     function fetchMessages(id: string) {
         api.get<{ messages: Message[] }>(`/api/ai/messages/${id}`)
             .then(result => {
                 messages = result.body?.messages ?? [];
+                fetchSourcesForMessages(messages);
                 tick().then(() => bottomRef?.scrollIntoView());
             })
             .catch(() => {
@@ -80,6 +145,8 @@
     function stream(message: string) {
         if (!ctx.connection) return;
         loading = true;
+
+        messages = messages.filter(m => !(m.messageRole === 'Assistant' && m.content === ''));
 
         const userId = `${Date.now()}-user`;
         const assistantId = `${Date.now()}-assistant`;
@@ -102,7 +169,16 @@
                     : m);
                 searchingQuery = null;
             },
-            complete: () => { loading = false; thinking = false; searchingQuery = null; tick().then(() => chatInput?.focus()); }
+            complete: () => { 
+                loading = false; 
+                thinking = false; 
+                searchingQuery = null;
+
+                const content = messages.find(m => m.id === assistantId)?.content ?? '';
+                fetchSources(content, assistantId);
+
+                tick().then(() => chatInput?.focus()); 
+            }
         });
     }
 
@@ -180,8 +256,7 @@
                     </div>
                 {:else}
                     <div class="text-sm prose prose-sm max-w-none">
-                        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                        {@html render(msg.content)}
+                        <ChatMessage content={msg.content} resolvedSources={msg.resolvedSources} {render} />
                     </div>
                 {/if}
             {/each}
@@ -266,5 +341,26 @@
         color: var(--primary);
         text-decoration: underline;
         text-underline-offset: 3px;
+    }
+    :global(.ai-knowledge-block) {
+        border-left: 2px solid oklch(0.75 0.12 85);
+        padding-left: 0.75rem;
+        margin: 0.5rem 0;
+        opacity: 0.85;
+    }
+    :global(.ai-badge) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: 700;
+        line-height: 1;
+        padding: 0.2rem 0.5rem;
+        border-radius: 9999px;
+        background-color: color-mix(in oklch, oklch(0.8 0.15 85) 20%, transparent);
+        color: oklch(0.55 0.15 85);
+        vertical-align: middle;
+        margin-right: 0.2rem;
+        cursor: default;
     }
 </style>

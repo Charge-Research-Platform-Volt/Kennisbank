@@ -3,7 +3,6 @@ using System.Text.Json;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Search.Models;
-using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Hubs;
@@ -72,7 +71,9 @@ public partial class Chat
         await Clients.Caller.SendAsync("ToolStatus", "search_library", $"Searching: {query}", ct);
 
         HybridSearchResult result = await hybridSearchService.SearchAsync(query, 1, limit, filters, includeMetadataChunks: true);
-        return await FormatSearchResultsAsync(result, query, ct);
+        string formatted = await FormatSearchResultsAsync(result, query, ct);
+        logger.Debug("Search tool result: {Result}", formatted);
+        return formatted;
     }
 
     private async Task<string> HandleGetItemDetailsAsync(JsonDocument args, CancellationToken ct = default)
@@ -81,7 +82,6 @@ public partial class Chat
             return "Invalid or missing ID";
 
         string type = args.RootElement.TryGetProperty("type", out var tp) ? tp.GetString() ?? "" : "";
-        string hostUrl = environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL).TrimEnd('/');
 
         await Clients.Caller.SendAsync("ToolStatus", "get_item_details", $"Getting details...", ct);
 
@@ -100,7 +100,7 @@ public partial class Chat
             if (r == null) return "Resource not found";
 
             sb.AppendLine($"Title: {r.Title}");
-            sb.AppendLine($"Link: {hostUrl}/library?inspectorId={r.Id}&inspectorType=resource");
+            sb.AppendLine($"Cite as: [SRC:{r.Id}]");
             if (!string.IsNullOrWhiteSpace(r.Description)) sb.AppendLine($"Description: {r.Description}");
             if (r.PublicationDate.HasValue) sb.AppendLine($"Published: {r.PublicationDate.Value:yyyy-MM-dd}");
             if (r.ResourceType != null) sb.AppendLine($"Type: {r.ResourceType.Name}");
@@ -127,7 +127,7 @@ public partial class Chat
             if (p == null) return "Person not found";
 
             sb.AppendLine($"Name: {p.Name}");
-            sb.AppendLine($"Link: {hostUrl}/library?inspectorId={p.Id}&inspectorType=person");
+            sb.AppendLine($"Cite as: [SRC:{p.Id}]");
             if (!string.IsNullOrWhiteSpace(p.Description)) sb.AppendLine($"Description: {p.Description}");
             if (!string.IsNullOrWhiteSpace(p.Occupation)) sb.AppendLine($"Occupation: {p.Occupation}");
             if (!string.IsNullOrWhiteSpace(p.EmailAddress)) sb.AppendLine($"Email: {p.EmailAddress}");
@@ -141,7 +141,7 @@ public partial class Chat
             if (o == null) return "Organisation not found";
 
             sb.AppendLine($"Name: {o.Name}");
-            sb.AppendLine($"Link: {hostUrl}/library?inspectorId={o.Id}&inspectorType=organisation");
+            sb.AppendLine($"Cite as: [SRC:{o.Id}]");
             if (!string.IsNullOrWhiteSpace(o.Description)) sb.AppendLine($"Description: {o.Description}");
             if (!string.IsNullOrWhiteSpace(o.Website)) sb.AppendLine($"Website: {o.Website}");
 
@@ -159,8 +159,6 @@ public partial class Chat
             return "Invalid or missing ID";
 
         string type = args.RootElement.TryGetProperty("type", out var tp) ? tp.GetString() ?? "" : "";
-        string hostUrl = environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL).TrimEnd('/');
-
         await Clients.Caller.SendAsync("ToolStatus", "find_related_items", "Finding related items...", ct);
 
         var sb = new StringBuilder();
@@ -176,11 +174,11 @@ public partial class Chat
 
             sb.AppendLine($"Related items for resource: {r.Title}");
             foreach (var rel in r.ResourceAuthorRelations?.Where(x => x.Author != null) ?? [])
-                sb.AppendLine($"- Author: {rel.Author!.Name} | Link: {hostUrl}/library?inspectorId={rel.Author.Id}&inspectorType=person");
+                sb.AppendLine($"- Author: {rel.Author!.Name} [SRC:{rel.Author.Id}]");
             foreach (var rel in r.ResourceOrganisationRelations?.Where(x => x.Organisation != null) ?? [])
-                sb.AppendLine($"- Organisation: {rel.Organisation!.Name} | Link: {hostUrl}/library?inspectorId={rel.Organisation.Id}&inspectorType=organisation");
+                sb.AppendLine($"- Organisation: {rel.Organisation!.Name} [SRC:{rel.Organisation.Id}]");
             foreach (var rel in r.ResourceRelatedPersonRelations?.Where(x => x.Person != null) ?? [])
-                sb.AppendLine($"- Related person: {rel.Person!.Name} | Link: {hostUrl}/library?inspectorId={rel.Person.Id}&inspectorType=person");
+                sb.AppendLine($"- Related person: {rel.Person!.Name} [SRC:{rel.Person.Id}]");
         }
         else if (type == "person")
         {
@@ -189,13 +187,12 @@ public partial class Chat
 
             sb.AppendLine($"Related items for person: {p.Name}");
             foreach (var rel in p.PersonOrganisationRelations?.Where(x => x.Organisation != null) ?? [])
-                sb.AppendLine($"- Organisation: {rel.Organisation!.Name} | Link: {hostUrl}/library?inspectorId={rel.Organisation.Id}&inspectorType=organisation");
+                sb.AppendLine($"- Organisation: {rel.Organisation!.Name} [SRC:{rel.Organisation.Id}]");
 
-            // Resources authored by this person
             var resources = await resourceManager.GetAllResourcesAsync(
                 predicate: r => r.ResourceAuthorRelations!.Any(a => a.AuthorId == guid));
             foreach (var res in resources)
-                sb.AppendLine($"- Resource: {res.Title} | Link: {hostUrl}/library?inspectorId={res.Id}&inspectorType=resource");
+                sb.AppendLine($"- Resource: {res.Title} [SRC:{res.Id}]");
         }
         else if (type == "organisation")
         {
@@ -204,12 +201,12 @@ public partial class Chat
 
             sb.AppendLine($"Related items for organisation: {o.Name}");
             foreach (var rel in o.PersonOrganisationRelations?.Where(x => x.Person != null) ?? [])
-                sb.AppendLine($"- Member: {rel.Person!.Name} | Link: {hostUrl}/library?inspectorId={rel.Person.Id}&inspectorType=person");
+                sb.AppendLine($"- Member: {rel.Person!.Name} [SRC:{rel.Person.Id}]");
 
             var resources = await resourceManager.GetAllResourcesAsync(
                 predicate: r => r.ResourceOrganisationRelations!.Any(a => a.OrganisationId == guid));
             foreach (var res in resources)
-                sb.AppendLine($"- Resource: {res.Title} | Link: {hostUrl}/library?inspectorId={res.Id}&inspectorType=resource");
+                sb.AppendLine($"- Resource: {res.Title} [SRC:{res.Id}]");
         }
         else return "Unknown type";
 

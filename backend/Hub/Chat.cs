@@ -15,12 +15,15 @@ namespace Hubs;
 
 [SignalRHub]
 [Authorize]
-public partial class Chat(EnvironmentConfig environmentConfig, MistralHttpClient mistralClient, AiService aiService, ResourceManager resourceManager, HybridSearchService hybridSearchService) : Hub
+public partial class Chat(MistralHttpClient mistralClient, AiService aiService, ResourceManager resourceManager, HybridSearchService hybridSearchService) : Hub
 {
     private const string SystemPrompt = """
         You are a research assistant for a personal library. Your primary purpose is to help users explore, connect, and reason about content they have collected.
 
         Always search the library first before answering — even for general topics, there may be relevant resources, people, or organisations stored. Only skip searching if the question is purely conversational (greetings, thanks, etc.).
+
+        Always give a response. If the library contains nothing relevant, say so clearly and briefly. Never return an empty response.
+        NEVER invent specific details like dates, roles, job titles, or relationships that are not explicitly stated in tool results. If a detail is not in the tool results, do not include it.
 
         TOOL USAGE:
         - Use search_library to find relevant resources, people, or organisations. You can filter by type and limit results.
@@ -31,27 +34,26 @@ public partial class Chat(EnvironmentConfig environmentConfig, MistralHttpClient
         You can:
         - Answer questions grounded in library sources
         - Find relations and connections between topics, people, and organisations
-        - Synthesize insights across multiple sources
-        - Enrich answers with your own reasoning on top of what you find
+        - Draw insights across multiple sources
+        - Add brief clarifying context from general knowledge when library sources are insufficient — wrap the entire block of general knowledge (including any lists or paragraphs) in a single [AI]...[/AI] tag
+        - Do NOT wrap individual sentences — wrap the whole section at once
+        - Do NOT write "(AI)" labels, headers like "General Context", or any other annotations — the [AI]...[/AI] tags handle this automatically
+        - If you are unsure whether something comes from the library or your training data, wrap it in [AI]...[/AI]
 
         CITATION RULES (strictly enforced):
         - ONLY cite sources that appear in tool results. No exceptions.
-        - NEVER invent, guess, or recall source links from memory — every link must come verbatim from tool results.
-        - NEVER cite a source inline unless it also appears in the Sources section at the bottom.
+        - Cite inline using ONLY the exact marker from tool results: [SRC:uuid]
+        - Each marker must be separate — NEVER group like [SRC:uuid,SRC:uuid]
+        - NEVER write [1], [2] or any numbered citation — ONLY [SRC:uuid] markers
+        - NEVER invent UUIDs — copy markers verbatim from "Cite as:" lines in tool results
+        - Do NOT write a Sources section — it is generated automatically
         - If you haven't used any tools, cite nothing.
-
-        CITATION FORMAT (strictly enforced):
-        - Inline: each citation is a separate markdown link — [1](link) [2](link) — NEVER grouped as [1, 2] or [1,2]
-        - Every inline citation MUST include the link: [N](link) — bare [N] without a link is forbidden
-        - End response with a "Sources" section: numbered markdown list of [Title](link)
-        - Only list sources you actually cited inline. Renumber sequentially from 1.
-        - Use the same number for the same source throughout.
 
         For math use LaTeX: $$E=mc^2$$ for display, $x^2$ for inline.
     """;
 
     private const string TitleGenerationPrompt = """
-        Generate a concise title (max 6 words) for a chat starting with the given message. Output only the title, nothing else.
+        Generate a concise title (max 6 words) for a chat starting with the given message. Output only the title, nothing else. No markdown, no quotes, no punctuation.
     """;
 
     private readonly Serilog.ILogger logger = Serilog.Log.ForContext<Chat>();
@@ -107,7 +109,7 @@ public partial class Chat(EnvironmentConfig environmentConfig, MistralHttpClient
                 Temperature = 0f
             });
 
-            string title = string.IsNullOrWhiteSpace(result.Content) ? "Untitled Chat" : result.Content.Trim();
+            string title = string.IsNullOrWhiteSpace(result.Content) ? "Untitled Chat" : result.Content.Trim().Trim('*', '_', '`', '#', '"', '\'').Trim();
             await resourceManager.UpdateChatAsync(chatId, c => c.Title, title);
             await caller.SendAsync("ChatTitleUpdated", chatId.ToString());
         }
@@ -224,16 +226,15 @@ public partial class Chat(EnvironmentConfig environmentConfig, MistralHttpClient
         string[] summaries = await Task.WhenAll(summaryTasks);
 
         StringBuilder sb = new();
-        string hostUrl = environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL).TrimEnd('/');
 
         for (int i = 0; i < relevant.Count; i++)
         {
             var item = relevant[i];
-            sb.AppendLine($"[{i + 1}] {item.Name} ({item.Type})");
-            sb.AppendLine($"Link: {hostUrl}/library?inspectorId={item.Id}&inspectorType={item.Type}");
+            sb.AppendLine($"{item.Name} ({item.Type})");
+            sb.AppendLine($"Cite as: [SRC:{item.Id}]");
             sb.AppendLine($"Relevance: {item.RelevanceScore:F2}");
 
-            if (!string.IsNullOrWhiteSpace(summaries[i]))
+            if (!string.IsNullOrWhiteSpace(summaries[i]) && summaries[i] != "NO_RELEVANT_CONTENT")
                 sb.AppendLine($"Content: {summaries[i]}");
 
             sb.AppendLine();

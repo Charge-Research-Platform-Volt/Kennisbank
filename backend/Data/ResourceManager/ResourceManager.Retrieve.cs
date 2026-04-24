@@ -112,6 +112,9 @@ namespace KnowledgeBank.Data
         private const bool resourceDefaultOrderDescending = true;
 
 
+        public async Task<ResourceGridItem[]> GetResourceGridItemsByIdsAsync(List<Guid> ids)
+            => await database.ResourceGridItems.Where(i => ids.Contains(i.Id)).ToArrayAsync();
+
         // Single
         public async Task<Resource?> GetResourceAsync(Guid id)
         { return await GetAsync(database.Resources, r => r.Id == id); }
