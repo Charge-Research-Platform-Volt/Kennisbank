@@ -18,7 +18,7 @@ public record MistralFunction(string Name, string Description, object Parameters
 public class MistralChatRequest
 {
     public required List<object> Messages { get; init; }
-    public float Temperature { get; init; } = 0.7f;
+    public float Temperature { get; init; } = 0.2f;
     public MistralReasoningEffort ReasoningEffort { get; init; }
     public MistralFunction[]? Functions { get; init; }
     public MistralCapability[]? Capabilities { get; init; }

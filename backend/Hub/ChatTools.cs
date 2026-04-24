@@ -72,7 +72,7 @@ public partial class Chat
         await Clients.Caller.SendAsync("ToolStatus", "search_library", $"Searching: {query}", ct);
 
         HybridSearchResult result = await hybridSearchService.SearchAsync(query, 1, limit, filters, includeMetadataChunks: true);
-        return FormatSearchResults(result);
+        return await FormatSearchResultsAsync(result, query, ct);
     }
 
     private async Task<string> HandleGetItemDetailsAsync(JsonDocument args, CancellationToken ct = default)

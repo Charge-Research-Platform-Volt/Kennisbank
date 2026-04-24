@@ -15,7 +15,7 @@ namespace Hubs;
 
 [SignalRHub]
 [Authorize]
-public partial class Chat(EnvironmentConfig environmentConfig, MistralHttpClient mistralClient, ResourceManager resourceManager, HybridSearchService hybridSearchService) : Hub
+public partial class Chat(EnvironmentConfig environmentConfig, MistralHttpClient mistralClient, AiService aiService, ResourceManager resourceManager, HybridSearchService hybridSearchService) : Hub
 {
     private const string SystemPrompt = """
         You are a research assistant for a personal library. Your primary purpose is to help users explore, connect, and reason about content they have collected.
@@ -210,27 +210,31 @@ public partial class Chat(EnvironmentConfig environmentConfig, MistralHttpClient
             yield return chunk;
     }
     
-    private string FormatSearchResults(HybridSearchResult result)
+    private async Task<string> FormatSearchResultsAsync(HybridSearchResult result, string queryContext, CancellationToken ct)
     {
         var relevant = result.Items.Where(i => i.RelevanceScore >= 0.25f).ToList();
 
         if (relevant.Count == 0)
             return "No relevant results found";
 
+        var summaryTasks = relevant.Select(item => item.MatchedChunks.Count > 0
+            ? aiService.SummarizeChunksAsync(queryContext, item.Name, item.MatchedChunks, ct)
+            : Task.FromResult(item.Description ?? ""));
+
+        string[] summaries = await Task.WhenAll(summaryTasks);
+
         StringBuilder sb = new();
+        string hostUrl = environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL).TrimEnd('/');
 
         for (int i = 0; i < relevant.Count; i++)
         {
             var item = relevant[i];
             sb.AppendLine($"[{i + 1}] {item.Name} ({item.Type})");
-            sb.AppendLine($"Link: {environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL)}/library?inspectorId={item.Id}&inspectorType={item.Type}");
+            sb.AppendLine($"Link: {hostUrl}/library?inspectorId={item.Id}&inspectorType={item.Type}");
             sb.AppendLine($"Relevance: {item.RelevanceScore:F2}");
 
-            if (!string.IsNullOrWhiteSpace(item.Description))
-                sb.AppendLine($"Description: {item.Description}");
-
-            if (item.MatchedChunks.Count > 0)
-                sb.AppendLine($"Content: {string.Join("\n", item.MatchedChunks)}");
+            if (!string.IsNullOrWhiteSpace(summaries[i]))
+                sb.AppendLine($"Content: {summaries[i]}");
 
             sb.AppendLine();
         }
