@@ -28,6 +28,8 @@ public class MistralChatRequest
 
 public class MistralHttpClient
 {
+    private const int MaxRetries = 3;
+
     private readonly HttpClient httpClient;
     private readonly string modelName;
 
@@ -36,7 +38,8 @@ public class MistralHttpClient
         modelName = environmentConfig.GetVariableValue(EnvironmentVariable.CHAT_MODEL_NAME);
         httpClient = new HttpClient
         {
-            BaseAddress = new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_ENDPOINT).TrimEnd('/') + "/")
+            BaseAddress = new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_ENDPOINT).TrimEnd('/') + "/"),
+            Timeout = TimeSpan.FromSeconds(120)
         };
         httpClient.DefaultRequestHeaders.Add("Authorization",
             $"Bearer {environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_API_KEY)}");
@@ -47,14 +50,14 @@ public class MistralHttpClient
         var body = JsonSerializer.Serialize(BuildBody(request));
 
         HttpResponseMessage response = null!;
-        for (int attempt = 0; attempt < 3; attempt++)
+        for (int attempt = 0; attempt < MaxRetries; attempt++)
         {
             var content = new StringContent(body, Encoding.UTF8, "application/json");
             response = await httpClient.PostAsync("chat/completions", content, ct);
 
             if (response.IsSuccessStatusCode) break;
 
-            if ((int)response.StatusCode is 503 or 529 or 429 && attempt < 2)
+            if ((int)response.StatusCode is 503 or 529 or 429 && attempt < MaxRetries - 1)
             {
                 await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
                 continue;
@@ -89,7 +92,7 @@ public class MistralHttpClient
         var body = JsonSerializer.Serialize(BuildBody(request, stream: true));
 
         HttpResponseMessage response = null!;
-        for (int attempt = 0; attempt < 3; attempt++)
+        for (int attempt = 0; attempt < MaxRetries; attempt++)
         {
             var httpRequest = new HttpRequestMessage(HttpMethod.Post, "chat/completions")
             {
@@ -99,7 +102,7 @@ public class MistralHttpClient
 
             if (response.IsSuccessStatusCode) break;
 
-            if ((int)response.StatusCode is 503 or 529 or 429 && attempt < 2)
+            if ((int)response.StatusCode is 503 or 529 or 429 && attempt < MaxRetries - 1)
             {
                 await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
                 continue;

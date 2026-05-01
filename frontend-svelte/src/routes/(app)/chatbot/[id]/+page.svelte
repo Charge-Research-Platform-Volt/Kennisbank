@@ -67,12 +67,14 @@
 
 <script lang="ts">
     import { getContext, onMount, tick } from 'svelte';
+    import { fade } from 'svelte/transition';
     import { page } from '$app/state';
     import { api } from '$lib/api';
     import { HubConnection, type ISubscription } from '@microsoft/signalr';
     import ChatInput from '$lib/components/chatbot/chat-input.svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import ChatMessage from '$lib/components/chatbot/ChatMessage.svelte';
+    import { ArrowDown } from 'lucide-svelte';
 
     type Message = { id: string; messageRole: 'User' | 'Assistant'; content: string; resolvedSources?: Map<string, ResolvedSource>; };
 
@@ -82,11 +84,50 @@
     let messages = $state<Message[]>([]);
     let loading = $state(false);
     let thinking = $state(false);
+    let showScrollButton = $state(false);
     let bottomRef = $state<HTMLDivElement | null>(null);
+    let userMessageRef = $state<HTMLDivElement | null>(null);
+    let assistantMessageRef = $state<HTMLDivElement | null>(null);
+    let scrollContainerRef = $state<HTMLDivElement | null>(null);
+    let spacerHeight = $state(0);
     let chatInput = $state<{ focus: () => void } | null>(null);
     let subscription: ISubscription<string> | null = null;
     let mountedChatId: string | undefined;
     let searchingQuery = $state<string | null>(null);
+
+    const itemGap = 16; // gap-4
+    const topPadding = 24;
+    const bottomPadding = 0;
+
+    function updateSpacer() {
+        if (!scrollContainerRef || !userMessageRef) { spacerHeight = 0; return; }
+        const containerH = scrollContainerRef.clientHeight;
+        const userH = userMessageRef.offsetHeight;
+        const assistantH = assistantMessageRef?.offsetHeight ?? 0;
+        spacerHeight = Math.max(0, containerH - topPadding - bottomPadding - userH - (itemGap * 2) - assistantH);
+    }
+
+    function scrollToLastUserMessage() {
+        if (!userMessageRef || !scrollContainerRef) return;
+        const rect = userMessageRef.getBoundingClientRect();
+        const containerRect = scrollContainerRef.getBoundingClientRect();
+        scrollContainerRef.scrollTo({ top: scrollContainerRef.scrollTop + rect.top - containerRect.top - topPadding + itemGap, behavior: 'smooth' });
+    }
+
+    $effect(() => {
+        void messages;
+        tick().then(() => setTimeout(updateSpacer, 50));
+    });
+
+    $effect(() => {
+        if (!scrollContainerRef) return;
+        const onScroll = () => {
+            const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef!;
+            showScrollButton = scrollHeight - scrollTop - clientHeight > 100;
+        };
+        scrollContainerRef.addEventListener('scroll', onScroll);
+        return () => scrollContainerRef!.removeEventListener('scroll', onScroll);
+    });
 
     function extractUuids(content: string): string[] {
         const uuidRe = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
@@ -135,7 +176,7 @@
             .then(result => {
                 messages = result.body?.messages ?? [];
                 fetchSourcesForMessages(messages);
-                tick().then(() => bottomRef?.scrollIntoView());
+                tick().then(() => setTimeout(() => userMessageRef ? scrollToLastUserMessage() : bottomRef?.scrollIntoView(), 100));
             })
             .catch(() => {
                 messages = [{ id: 'error', messageRole: 'Assistant', content: 'Failed to load messages.' }];
@@ -154,12 +195,11 @@
             { id: userId, messageRole: 'User', content: message },
             { id: assistantId, messageRole: 'Assistant', content: '' }
         ];
-        tick().then(() => bottomRef?.scrollIntoView({ behavior: 'smooth' }));
+        tick().then(() => setTimeout(scrollToLastUserMessage, 100));
 
         subscription = ctx.connection.stream('StreamAiResponse', message, chatId).subscribe({
             next: (chunk) => {
                 messages = messages.map(m => m.id === assistantId ? { ...m, content: m.content + chunk } : m);
-                bottomRef?.scrollIntoView({ behavior: 'smooth' });
             },
             error: () => {
                 loading = false;
@@ -194,13 +234,18 @@
         const { initialMessage } = page.state;
 
         if (initialMessage) {
-            const key = `chat-streamed-${id}`;
-            if (!sessionStorage.getItem(key)) {
-                sessionStorage.setItem(key, '1');
-                stream(initialMessage);
-            } else {
-                fetchMessages(id!);
-            }
+            api.get<{ messages: Message[] }>(`/api/ai/messages/${id}`)
+                .then(result => {
+                    const existing = result.body?.messages ?? [];
+                    if (existing.length === 0) {
+                        stream(initialMessage);
+                    } else {
+                        messages = existing;
+                        fetchSourcesForMessages(messages);
+                        tick().then(() => setTimeout(() => userMessageRef ? scrollToLastUserMessage() : bottomRef?.scrollIntoView(), 100));
+                    }
+                })
+                .catch(() => stream(initialMessage));
         } else {
             fetchMessages(id!);
         }
@@ -235,15 +280,15 @@
 </script>
 
 <div class="flex flex-col h-full">
-    <div class="flex-1 overflow-y-auto py-6">
+    <div bind:this={scrollContainerRef} class="flex-1 overflow-y-auto pt-6">
         <div class="mx-auto w-full max-w-2xl px-4 flex flex-col gap-4">
             {#each messages as msg (msg.id)}
                 {#if msg.messageRole === 'User'}
-                    <div class="self-end bg-accent rounded-2xl px-4 py-2 text-sm max-w-[80%]">
+                    <div bind:this={userMessageRef} class="self-end bg-accent rounded-2xl px-4 py-2 text-sm max-w-[80%]">
                         {msg.content}
                     </div>
                 {:else if msg.content === '' && loading}
-                    <div class="flex gap-1 items-center h-6 text-xs text-muted-foreground">
+                    <div bind:this={assistantMessageRef} class="flex gap-1 items-center text-xs text-muted-foreground">
                         {#if searchingQuery}
                             <span class="status-spinner"></span>{searchingQuery}
                         {:else if thinking}
@@ -255,17 +300,28 @@
                         {/if}
                     </div>
                 {:else}
-                    <div class="text-sm prose prose-sm max-w-none">
+                    <div bind:this={assistantMessageRef} class="text-sm prose prose-sm max-w-none">
                         <ChatMessage content={msg.content} resolvedSources={msg.resolvedSources} {render} />
                     </div>
                 {/if}
             {/each}
 
+            <div style="height: {spacerHeight}px"></div>
             <div bind:this={bottomRef}></div>
         </div>
     </div>
 
-    <div class="shrink-0 pb-4">
+    <div class="shrink-0 pb-4 relative">
+        {#if showScrollButton}
+            <div class="absolute -top-12 left-1/2 -translate-x-1/2" transition:fade={{ duration: 150 }}>
+                <button
+                    onclick={() => bottomRef?.scrollIntoView({ behavior: 'smooth' })}
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-background border shadow-sm text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+                    <ArrowDown size={12} />
+                    Scroll to bottom
+                </button>
+            </div>
+        {/if}
         <div class="mx-auto max-w-2xl">
             <ChatInput bind:this={chatInput} {loading} onSend={stream} onStop={stop} />
         </div>

@@ -56,6 +56,9 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         Generate a concise title (max 6 words) for a chat starting with the given message. Output only the title, nothing else. No markdown, no quotes, no punctuation.
     """;
 
+    private const float RelevanceThreshold = 0.25f;
+    private const int MaxToolIterations = 10;
+
     private readonly Serilog.ILogger logger = Serilog.Log.ForContext<Chat>();
 
     public async Task<Guid> CreateChat(string message)
@@ -169,7 +172,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
             new { role = "user", content = message }
         ];
 
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < MaxToolIterations; i++)
         {
             MistralCompletion completion = await mistralClient.CompleteAsync(new MistralChatRequest { Messages = messages, Functions = [SearchTool, GetItemDetailsTool, FindRelatedItemsTool] }, cancellationToken);
 
@@ -189,15 +192,23 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
 
                 foreach (MistralToolCall toolCall in completion.ToolCalls!)
                 {
-                    using var args = JsonDocument.Parse(toolCall.Arguments);
-
-                    string formatted = toolCall.Name switch
+                    string formatted;
+                    try
                     {
-                        "search_library" => await HandleSearchAsync(args, message, cancellationToken),
-                        "get_item_details" => await HandleGetItemDetailsAsync(args, cancellationToken),
-                        "find_related_items" => await HandleFindRelatedItemsAsync(args, cancellationToken),
-                        _ => "Unknown tool"
-                    };
+                        using var args = JsonDocument.Parse(toolCall.Arguments);
+                        formatted = toolCall.Name switch
+                        {
+                            "search_library" => await HandleSearchAsync(args, message, cancellationToken),
+                            "get_item_details" => await HandleGetItemDetailsAsync(args, cancellationToken),
+                            "find_related_items" => await HandleFindRelatedItemsAsync(args, cancellationToken),
+                            _ => "Error: unknown tool"
+                        };
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex, "Tool call failed for {ToolName} with args: {Args}", toolCall.Name, toolCall.Arguments);
+                        formatted = "Tool call failed";
+                    }
 
                     messages.Add(new { role = "tool", tool_call_id = toolCall.Id, content = formatted });
                 }
@@ -212,15 +223,15 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
             yield return chunk;
     }
     
-    private async Task<string> FormatSearchResultsAsync(HybridSearchResult result, string queryContext, CancellationToken ct)
+    private async Task<string> FormatSearchResultsAsync(HybridSearchResult result, string userQuestion, string searchQuery, CancellationToken ct)
     {
-        var relevant = result.Items.Where(i => i.RelevanceScore >= 0.25f).ToList();
+        var relevant = result.Items.Where(i => i.RelevanceScore >= RelevanceThreshold).ToList();
 
         if (relevant.Count == 0)
             return "No relevant results found";
 
         var summaryTasks = relevant.Select(item => item.MatchedChunks.Count > 0
-            ? aiService.SummarizeChunksAsync(queryContext, item.Name, item.MatchedChunks, ct)
+            ? aiService.SummarizeChunksAsync(userQuestion, searchQuery, item.Name, item.MatchedChunks, ct)
             : Task.FromResult(item.Description ?? ""));
 
         string[] summaries = await Task.WhenAll(summaryTasks);
@@ -278,7 +289,10 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
             };
 
             if (role != null)
-                chatHistory.Add(new { role, content = (string)messageItem.Content });
+            {
+                string content = messageItem.Content is string s ? s : messageItem.Content?.ToString() ?? "";
+                chatHistory.Add(new { role, content });
+            }
             else
                 logger.Warning("Unknown message role {MessageRole} in chat {ChatId}", messageItem.MessageRole, chatId);
         }

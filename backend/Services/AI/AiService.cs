@@ -6,20 +6,21 @@ public class AiService(MistralHttpClient mistralClient)
         You are a precise research summarizer. Extract only facts directly stated in the excerpts that are relevant to the query context.
     """;
 
-    public async Task<string> SummarizeChunksAsync(string queryContext, string title, List<string> chunks, CancellationToken ct = default)
+    public async Task<string> SummarizeChunksAsync(string userQuestion, string searchQuery, string title, List<string> chunks, CancellationToken ct = default)
     {
         string excerpts = string.Join("\n\n", chunks);
         string prompt = $"""
-            Query context: {queryContext}
+            User question: {userQuestion}
+            Search query used: {searchQuery}
             Source: {title}
 
             Relevant excerpts:
             {excerpts}
 
-            Extract only information directly stated in the excerpts that is relevant to the query context. 
+            Extract only information directly stated in the excerpts that is relevant to the user question and search query.
             Do not infer, paraphrase beyond what is stated, or add outside knowledge.
             If the excerpts contain no relevant information, respond with exactly: NO_RELEVANT_CONTENT
-            Max 150 words.
+            Be as concise as possible while preserving all relevant detail — do not pad, do not truncate important facts.
         """;
 
         var request = new MistralChatRequest

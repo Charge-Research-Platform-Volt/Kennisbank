@@ -58,9 +58,9 @@ public partial class Chat
         }
     );
 
-    private async Task<string> HandleSearchAsync(JsonDocument args, string fallbackQuery, CancellationToken ct)
+    private async Task<string> HandleSearchAsync(JsonDocument args, string userQuestion, CancellationToken ct)
     {
-        string query = args.RootElement.GetProperty("query").GetString() ?? fallbackQuery;
+        string query = args.RootElement.GetProperty("query").GetString() ?? userQuestion;
         string? typeFilter = args.RootElement.TryGetProperty("type", out var t) ? t.GetString() : null;
         int limit = args.RootElement.TryGetProperty("limit", out var l) ? Math.Clamp(l.GetInt32(), 1, 30) : 15;
 
@@ -71,7 +71,7 @@ public partial class Chat
         await Clients.Caller.SendAsync("ToolStatus", "search_library", $"Searching: {query}", ct);
 
         HybridSearchResult result = await hybridSearchService.SearchAsync(query, 1, limit, filters, includeMetadataChunks: true);
-        string formatted = await FormatSearchResultsAsync(result, query, ct);
+        string formatted = await FormatSearchResultsAsync(result, userQuestion, query, ct);
         logger.Debug("Search tool result: {Result}", formatted);
         return formatted;
     }
@@ -79,7 +79,7 @@ public partial class Chat
     private async Task<string> HandleGetItemDetailsAsync(JsonDocument args, CancellationToken ct = default)
     {
         if (!args.RootElement.TryGetProperty("id", out var idProp) || !Guid.TryParse(idProp.GetString(), out var guid))
-            return "Invalid or missing ID";
+            return "Error: invalid or missing ID";
 
         string type = args.RootElement.TryGetProperty("type", out var tp) ? tp.GetString() ?? "" : "";
 
@@ -97,7 +97,7 @@ public partial class Chat
                 "ResourceRelatedPersonRelations.Person",
                 "ResourceType", "Journal");
 
-            if (r == null) return "Resource not found";
+            if (r == null) return "Error: resource not found";
 
             sb.AppendLine($"Title: {r.Title}");
             sb.AppendLine($"Cite as: [SRC:{r.Id}]");
@@ -124,7 +124,7 @@ public partial class Chat
         else if (type == "person")
         {
             Person? p = await resourceManager.GetPersonAsync(guid, "PersonOrganisationRelations.Organisation");
-            if (p == null) return "Person not found";
+            if (p == null) return "Error: person not found";
 
             sb.AppendLine($"Name: {p.Name}");
             sb.AppendLine($"Cite as: [SRC:{p.Id}]");
@@ -138,7 +138,7 @@ public partial class Chat
         else if (type == "organisation")
         {
             Organisation? o = await resourceManager.GetOrganisationAsync(guid, "PersonOrganisationRelations.Person");
-            if (o == null) return "Organisation not found";
+            if (o == null) return "Error: organisation not found";
 
             sb.AppendLine($"Name: {o.Name}");
             sb.AppendLine($"Cite as: [SRC:{o.Id}]");
@@ -148,7 +148,7 @@ public partial class Chat
             var members = o.PersonOrganisationRelations?.Where(x => x.Person != null).Select(x => x.Person!.Name).ToList();
             if (members?.Count > 0) sb.AppendLine($"Members: {string.Join(", ", members)}");
         }
-        else return "Unknown type";
+        else return "Error: unknown item type";
 
         return sb.ToString();
     }
@@ -156,7 +156,7 @@ public partial class Chat
     private async Task<string> HandleFindRelatedItemsAsync(JsonDocument args, CancellationToken ct = default)
     {
         if (!args.RootElement.TryGetProperty("id", out var idProp) || !Guid.TryParse(idProp.GetString(), out var guid))
-            return "Invalid or missing ID";
+            return "Error: invalid or missing ID";
 
         string type = args.RootElement.TryGetProperty("type", out var tp) ? tp.GetString() ?? "" : "";
         await Clients.Caller.SendAsync("ToolStatus", "find_related_items", "Finding related items...", ct);
@@ -170,7 +170,7 @@ public partial class Chat
                 "ResourceOrganisationRelations.Organisation",
                 "ResourceRelatedPersonRelations.Person");
 
-            if (r == null) return "Resource not found";
+            if (r == null) return "Error: resource not found";
 
             sb.AppendLine($"Related items for resource: {r.Title}");
             foreach (var rel in r.ResourceAuthorRelations?.Where(x => x.Author != null) ?? [])
@@ -183,7 +183,7 @@ public partial class Chat
         else if (type == "person")
         {
             Person? p = await resourceManager.GetPersonAsync(guid, "PersonOrganisationRelations.Organisation");
-            if (p == null) return "Person not found";
+            if (p == null) return "Error: person not found";
 
             sb.AppendLine($"Related items for person: {p.Name}");
             foreach (var rel in p.PersonOrganisationRelations?.Where(x => x.Organisation != null) ?? [])
@@ -197,7 +197,7 @@ public partial class Chat
         else if (type == "organisation")
         {
             Organisation? o = await resourceManager.GetOrganisationAsync(guid, "PersonOrganisationRelations.Person");
-            if (o == null) return "Organisation not found";
+            if (o == null) return "Error: organisation not found";
 
             sb.AppendLine($"Related items for organisation: {o.Name}");
             foreach (var rel in o.PersonOrganisationRelations?.Where(x => x.Person != null) ?? [])
@@ -208,7 +208,7 @@ public partial class Chat
             foreach (var res in resources)
                 sb.AppendLine($"- Resource: {res.Title} [SRC:{res.Id}]");
         }
-        else return "Unknown type";
+        else return "Error: unknown item type";
 
         return sb.Length > 0 ? sb.ToString() : "No related items found";
     }
