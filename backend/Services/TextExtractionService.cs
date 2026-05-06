@@ -1,4 +1,3 @@
-using UglyToad.PdfPig;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Presentation;
@@ -14,7 +13,7 @@ namespace KnowledgeBank.Services;
 
 /// <summary>
 /// Service for extracting text from various document formats
-/// Uses free methods (PdfPig) when possible, falls back to OCR
+/// Uses free methods when possible, falls back to OCR
 /// </summary>
 public class TextExtractionService(ILogger<TextExtractionService> logger, EnvironmentConfig environmentConfig, BrowserService browserService)
 {
@@ -45,7 +44,7 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         {
             return fileExtension switch
             {
-                ".pdf" => await ExtractFromPdf(stream),
+                ".pdf" => await ExtractWithMistralOCR(stream, fileExtension),
                 ".txt" => await ExtractFromPlainText(stream),
                 ".docx" => ExtractWithOpenXmlDocx(stream),
                 ".pptx" => ExtractWithOpenXmlPptx(stream),
@@ -64,100 +63,6 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
             logger.LogError(e, "Failed to extract text from {FileType}", fileExtension);
             throw;
         }
-    }
-    
-    /// <summary>
-    /// Extracts text from PDF using free PdfPig. Falls back to OCR
-    /// </summary>
-    /// <param name="stream">The document stream</param>
-    /// <returns>Document content</returns>
-    private async Task<string> ExtractFromPdf(Stream stream) 
-    {
-        long originalPosition = stream.Position;
-        
-        try 
-        {
-            // Attempt free extraction with PdfPig
-            logger.LogInformation("Attempting free PDF text extraction with PdfPig");
-
-            stream.Position = 0;
-            var text = ExtractWithPdfPig(stream);
-
-            // Validate extraction quality
-            if (!string.IsNullOrWhiteSpace(text) && text.Length > 50)
-            {
-                // Check for proper spacing - if text has poor spacing, fallback to OCR
-                if (HasPoorSpacing(text))
-                {
-                    logger.LogWarning("PdfPig extracted text has poor spacing quality, falling back to OCR");
-                    stream.Position = 0;
-                    return await ExtractWithMistralOCR(stream, ".pdf");
-                }
-
-                logger.LogInformation("PdfPig extraction successful: {Length} characters", text.Length);
-                return text;
-            }
-
-            // If extraction resulted in very little text, might be scanned/image PDF
-            logger.LogWarning("PdfPig extracted minimal text ({Length} chars), falling back to OCR", text?.Length ?? 0);
-
-            stream.Position = 0;
-            return await ExtractWithMistralOCR(stream, ".pdf");
-        }
-        catch (Exception e) 
-        {
-            // PdfPig failed (corrupted PDF, encrypted, etc.) - fallback to OCR
-            logger.LogWarning(e, "PdfPig extraction failed, falling back to OCR");
-
-            stream.Position = 0;
-            return await ExtractWithMistralOCR(stream, ".pdf");
-        }
-        finally 
-        {
-            stream.Position = originalPosition;
-        }
-    }
-    
-    /// <summary>
-    /// Extracts text from PDF using free PdfPig Library
-    /// Uses word-based extraction for better spacing handling
-    /// </summary>
-    /// <param name="stream">The document stream</param>
-    /// <returns>Document content</returns>
-    private static string ExtractWithPdfPig(Stream stream)
-    {
-        StringBuilder textBuilder = new();
-
-        using (PdfDocument document = PdfDocument.Open(stream))
-        {
-            foreach (var page in document.GetPages())
-            {
-                try
-                {
-                    // Try word-based extraction which can handle spacing better
-                    var words = page.GetWords();
-                    var pageText = string.Join(" ", words.Select(w => w.Text));
-
-                    if (!string.IsNullOrWhiteSpace(pageText))
-                    {
-                        textBuilder.AppendLine(pageText);
-                        textBuilder.AppendLine();
-                    }
-                }
-                catch
-                {
-                    // Fallback to simple text extraction if GetWords() fails
-                    var pageText = page.Text;
-                    if (!string.IsNullOrWhiteSpace(pageText))
-                    {
-                        textBuilder.AppendLine(pageText);
-                        textBuilder.AppendLine();
-                    }
-                }
-            }
-        }
-
-        return textBuilder.ToString();
     }
     
     private async Task<string> ExtractWithMistralOCR(Stream stream, string fileExtension)
@@ -198,6 +103,7 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
 
         string result = sb.ToString();
         logger.LogInformation("Mistral OCR extracted {Length} characters.", result.Length);
+        await File.WriteAllTextAsync("/tmp/pdf_extracted.txt", result);
         return result;
     }
 

@@ -1,13 +1,23 @@
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.Search;
+using Lingua;
 using Serilog;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace KnowledgeBank.Services.AI;
 
 public class MetadataExtractionService(MistralHttpClient mistralHttpClient, HybridSearchService searchService)
 {
     private readonly Serilog.ILogger logger = Log.ForContext<MetadataExtractionService>();
+    private static readonly LanguageDetector languageDetector = LanguageDetectorBuilder.FromAllLanguages().WithPreloadedLanguageModels().Build();
+
+#pragma warning disable SYSLIB1045 // Convert to 'GeneratedRegexAttribute'.
+    private static readonly Regex DoiRegex = new(@"10\.\d{4,}/[^\s,;)""\]]+", RegexOptions.Compiled);
+    private static readonly Regex ArxivRegex = new(@"arXiv:\s*(\d{4}\.\d{4,5})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex Isbn13Regex = new(@"978[-\s]?\d[-\s]?\d{1,5}[-\s]?\d{1,7}[-\s]?\d{1,7}[-\s]?\d", RegexOptions.Compiled);
+    private static readonly Regex Isbn10Regex = new(@"\b\d{9}[\dX]\b", RegexOptions.Compiled);
+#pragma warning restore SYSLIB1045 // Convert to 'GeneratedRegexAttribute'.
 
     private static string TrimTextForFile(string text) => TrimText(text, firstChars: 16000, lastChars: 4000);
     private static string TrimTextForWeb(string text) => TrimText(text, firstChars: 8000, lastChars: 0);
@@ -17,10 +27,8 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
 
         Rules:
         - Only extract information explicitly present in the document. Do not infer, guess, or assume values. Use null or empty array when a field cannot be found.
-        - Language code must be exactly 2 lowercase letters (ISO 639-1).
         - Publication date formats: YYYY, YYYY-MM, or YYYY-MM-DD. Use the most specific format the document allows.
         - If the document uses relative dates ("today", "yesterday", "vandaag", "gisteren", etc.), calculate the absolute date using the Current date provided above.
-        - Publication code: prefix with type followed by a colon and space (e.g. "DOI: 10.1234/example", "ISBN: 978-3-16-148410-0", "arXiv: 2301.00001").
         - Tags must be capitalized, but not in full-caps (e.g. "Machine Learning", not "machine learning" or "MACHINE LEARNING").
         - Deduplication: each person or organisation must appear only once per list. When variations exist, use the most complete version.
         - Person names must follow Given name(s) FIRST, Family name LAST. Reorder any "Last, First" formatted names from citations.
@@ -44,7 +52,6 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
                 "abstract": { "anyOf": [{"type": "string"}, {"type": "null"}], "description": "The abstract of the paper when scientific, otherwise null" },
                 "description": { "anyOf": [{"type": "string"}, {"type": "null"}], "description": "A concise description of the document (50-300 words)" },
                 "publicationDate": { "anyOf": [{"type": "string"}, {"type": "null"}], "description": "Publication date in YYYY, YYYY-MM, or YYYY-MM-DD format, or null" },
-                "languageCode": { "anyOf": [{"type": "string"}, {"type": "null"}], "description": "ISO 639-1 two-letter language code, or null" },
                 "authors": {
                     "type": "array",
                     "description": "Document authors (persons or organisations)",
@@ -68,14 +75,13 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
                     "description": "Person names mentioned in the document who are not authors",
                     "items": { "type": "string" }
                 },
-                "publicationCode": { "anyOf": [{"type": "string"}, {"type": "null"}], "description": "DOI, ISBN, arXiv ID, or other identifier, or null" },
                 "tags": {
                     "type": "array",
                     "description": "Relevant tags for the document",
                     "items": { "type": "string" }
                 }
             },
-            "required": ["title", "abstract", "description", "publicationDate", "languageCode", "authors", "organisations", "relatedPersons", "publicationCode", "tags"],
+            "required": ["title", "abstract", "description", "publicationDate", "authors", "organisations", "relatedPersons", "tags"],
             "additionalProperties": false
         }
     """;
@@ -101,6 +107,10 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
             logger.Warning("Failed to extract metadata from LLM response for file: {FileName}", fileName);
             return null;
         }
+
+        // Manual extraction
+        temp.PublicationCode = ExtractPublicationCode(text);
+        temp.LanguageCode = DetectLanguage(text);
 
         progressCallback?.Invoke();
         return await ValidateAndProcessMetadataAsync(temp);
@@ -144,6 +154,10 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
             logger.Warning("Failed to extract metadata from LLM response for URL: {Url}", url);
             return null;
         }
+
+        // Manual extraction
+        temp.PublicationCode = ExtractPublicationCode(readabilityResult.TextContent);
+        temp.LanguageCode = DetectLanguage(readabilityResult.TextContent);
 
         progressCallback?.Invoke();
         return await ValidateAndProcessMetadataAsync(temp);
@@ -258,28 +272,28 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
 
     private async Task<List<EntityWithSimilars>> ProcessEntitiesAsync(List<string> names, string[] typeFilter)
     {
-        var results = new List<EntityWithSimilars>();
+        var filtered = names.Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
 
-        foreach (string name in names.Where(n => !string.IsNullOrWhiteSpace(n)))
+        var tasks = filtered.Select(async name =>
         {
             var similars = await FindSimilarsAsync(name, typeFilter);
-            results.Add(new EntityWithSimilars { Name = name.Trim(), Type = typeFilter[0], Similars = similars });
-        }
+            return new EntityWithSimilars { Name = name.Trim(), Type = typeFilter[0], Similars = similars };
+        });
 
-        return results;
+        return [.. await Task.WhenAll(tasks)];
     }
 
     private async Task<List<AuthorWithSimilars>> ProcessAuthorsAsync(List<TempAuthor> authors)
     {
-        var results = new List<AuthorWithSimilars>();
+        var filtered = authors.Where(a => !string.IsNullOrWhiteSpace(a.Name)).ToList();
 
-        foreach (var author in authors.Where(a => !string.IsNullOrWhiteSpace(a.Name)))
+        var tasks = filtered.Select(async author =>
         {
             var similars = await FindSimilarsAsync(author.Name, ["person", "organisation"]);
-            results.Add(new AuthorWithSimilars { Name = author.Name.Trim(), Type = author.Type.ToLowerInvariant().Trim(), Similars = similars });
-        }
+            return new AuthorWithSimilars { Name = author.Name.Trim(), Type = author.Type.ToLowerInvariant().Trim(), Similars = similars };
+        });
 
-        return results;
+        return [.. await Task.WhenAll(tasks)];
     }
 
     private async Task<List<SimilarEntity>> FindSimilarsAsync(string name, string[] typeFilter)
@@ -304,6 +318,31 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
 
         string ending = text[^lastChars..];
         return beginning + "\n\n[...middle section omitted...]\n\n" + ending;
+    }
+
+    private static string? ExtractPublicationCode(string text)
+    {
+        var doi = DoiRegex.Match(text);
+        if (doi.Success) return $"DOI: {doi.Value.TrimEnd('.', ',', ')', ']')}";
+
+        var arxiv = ArxivRegex.Match(text);
+        if (arxiv.Success) return $"arXiv: {arxiv.Groups[1].Value}";
+
+        var isbn13 = Isbn13Regex.Match(text);
+        if (isbn13.Success) return $"ISBN: {isbn13.Value}";
+
+        var isbn10 = Isbn10Regex.Match(text);
+        if (isbn10.Success) return $"ISBN: {isbn10.Value}";
+
+        return null;
+    }
+
+    private static string? DetectLanguage(string text)
+    {
+        string sample = text.Length > 500 ? text[..500] : text;
+        Language? lang = languageDetector.DetectLanguageOf(sample);
+
+        return lang?.IsoCode6391().ToString().ToLowerInvariant();
     }
 }
 

@@ -263,10 +263,7 @@
             resourceInfo.languageCode = metadata.languageCode ?? '';
             languageDisplay = LanguageCodes.find((l) => l.value === resourceInfo.languageCode)?.label ?? null;
             resourceInfo.publicationDate = metadata.publicationDate ?? '';
-            resourceInfo.publicationDatePrecision =
-                metadata.publicationDatePrecision === 'Exact' ? 'Day'
-                : metadata.publicationDatePrecision === 'YearMonth' ? 'Month'
-                : 'Year';
+            resourceInfo.publicationDatePrecision = metadata.publicationDatePrecision ?? "Year";
             setDateFromIso(resourceInfo.publicationDate, resourceInfo.publicationDatePrecision);
             resourceInfo.abstract = metadata.abstract ?? '';
             resourceInfo.description = metadata.description ?? '';

@@ -85,7 +85,7 @@ export type ExtractedMetadata = {
     abstract: string | null;
     description: string | null;
     publicationDate: string | null;
-    publicationDatePrecision: 'Exact' | 'Year' | 'YearMonth' | null;
+    publicationDatePrecision: 'Day' | 'Month' | 'Year' | null;
     languageCode: string | null;
     authors: { name: string; type: string; similars: { id: string; name: string; score: number; type: string; }[] }[];
     organisations: { name: string; type: string; similars: { id: string; name: string; score: number; type: string }[] }[];
