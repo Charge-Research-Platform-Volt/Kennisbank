@@ -483,6 +483,10 @@ public class HybridSearchService
         if (filters.TryGetValue("pubdate_max", out var maxDateFilter) && maxDateFilter is DateTime maxDate)
             query = query.Where(x => x.PublicationDate == null || x.PublicationDate <= maxDate);
 
+        // ID filters (which IDs are allowed, used for project scoped search for example)
+        if (filters.TryGetValue("ids", out var idsFilter) && idsFilter is Guid[] ids && ids.Length > 0)
+            query = query.Where(x => ids.Contains(x.Id));
+
         // Tag filter
         query = ApplyRelationFilter(query, db, filters, "tag_ids", "tag_filter_mode", "tag");
 

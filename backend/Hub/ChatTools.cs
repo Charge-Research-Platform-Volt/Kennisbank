@@ -58,7 +58,7 @@ public partial class Chat
         }
     );
 
-    private async Task<string> HandleSearchAsync(JsonDocument args, string userQuestion, CancellationToken ct)
+    private async Task<string> HandleSearchAsync(JsonDocument args, string userQuestion, string? projectId, CancellationToken ct)
     {
         string query = args.RootElement.GetProperty("query").GetString() ?? userQuestion;
         string? typeFilter = args.RootElement.TryGetProperty("type", out var t) ? t.GetString() : null;
@@ -66,6 +66,12 @@ public partial class Chat
 
         var filters = new Dictionary<string, object?>();
         if (typeFilter != null) filters["type"] = new[] { typeFilter };
+
+        if (projectId != null && Guid.TryParse(projectId, out var projGuid))
+        {
+            Guid[] ids = await projectManager.GetProjectItemIdsAsync(projGuid);
+            if (ids.Length > 0) filters["ids"] = ids;
+        }
 
         logger.Information("LLM searching for: {Query}", query);
         await Clients.Caller.SendAsync("ToolStatus", "search_library", $"Searching: {query}", ct);

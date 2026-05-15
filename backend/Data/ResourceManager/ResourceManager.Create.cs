@@ -363,6 +363,7 @@ namespace KnowledgeBank.Data
                 Id = chatId,
                 UserId = dto.UserId,
                 Title = dto.Title,
+                ProjectId = dto.ProjectId,
 
                 // Set the creation date to now
                 CreationDate = DateTime.UtcNow,

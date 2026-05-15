@@ -27,6 +27,9 @@ public class Chats
     [Column("creation-date")]
     public required DateTime CreationDate { get; set; }
 
+    [Column("project-id")]
+    public Guid? ProjectId { get; set; }
+
     // Navigation property
     public virtual ICollection<Messages> Messages { get; set; } = new List<Messages>();
 }
@@ -42,4 +45,5 @@ public class ChatsCreateDto
 {
     public Guid UserId { get; set; }
     public string Title { get; set; } = string.Empty;
+    public Guid? ProjectId { get; set; }
 }

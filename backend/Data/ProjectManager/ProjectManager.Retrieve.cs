@@ -589,5 +589,12 @@ namespace KnowledgeBank.Data
         }
 
         #endregion
+
+        #region Get All Project Item IDs
+        public async Task<Guid[]> GetProjectItemIdsAsync(Guid projectId)
+        {
+            return await database.ProjectItemRelations.Where(r => r.ProjectId == projectId).Select(r => r.ItemId).ToArrayAsync();
+        }
+        #endregion
     }
 }

@@ -28,7 +28,16 @@
 			last = m.index! + m[0].length;
 		}
 
-		if (last < raw.length) segments.push({ type: 'text', content: raw.slice(last) });
+		if (last < raw.length) {
+			const remaining = raw.slice(last);
+			const openTag = remaining.indexOf('[AI]');
+			if (openTag !== -1) {
+				if (openTag > 0) segments.push({ type: 'text', content: remaining.slice(0, openTag) });
+				segments.push({ type: 'ai', content: remaining.slice(openTag + 4) });
+			} else {
+				segments.push({ type: 'text', content: remaining });
+			}
+		}
 
 		return segments;
 	}

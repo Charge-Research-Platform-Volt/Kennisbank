@@ -23,7 +23,7 @@ public class AIController(ResourceManager resourceManager, IServiceScopeFactory 
 
     #region Get Chats
     [HttpGet("all-chats")]
-    public async Task<IActionResult> GetAllChats()
+    public async Task<IActionResult> GetAllChats([FromQuery] Guid? projectId)
     {
         try
         {
@@ -34,7 +34,7 @@ public class AIController(ResourceManager resourceManager, IServiceScopeFactory 
                 return BadRequest(new ApiResponse(false, "User ID not found."));
             }
 
-            var chats = await resourceManager.GetChatsGroupedByDateAsync(predicate: c => c.UserId == Guid.Parse(userId));
+            var chats = await resourceManager.GetChatsGroupedByDateAsync(predicate: c => c.UserId == Guid.Parse(userId) && c.ProjectId == projectId);
             return Ok(new ApiResponse(true, "Chats retrieved successfully", new { Chats = chats }));
         }
         catch (Exception ex)

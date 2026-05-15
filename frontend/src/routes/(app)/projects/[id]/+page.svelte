@@ -17,7 +17,8 @@
 		Plus,
 		Check,
 		Pencil,
-		CirclePlus
+		CirclePlus,
+		MessageSquare
 	} from '@lucide/svelte';
 	import type { ResourceItem } from '$lib/types/resource';
 	import * as Breadcrumb from '$lib/components/ui/breadcrumb';
@@ -42,6 +43,7 @@
 
 	const openInspector: (item: ResourceItem) => void = getContext('openInspector');
 	const registerRefresh: (fn: () => void) => void = getContext('registerRefresh');
+	const toggleChat: () => void = getContext('toggleChat');
 
 	const MAX_VISIBLE_TAGS = 5;
 
@@ -295,6 +297,10 @@
 			<Button class="cursor-pointer" onclick={openEditDialog}>
 				<Pencil size={16} />
 				Edit Project
+			</Button>
+			<Button variant="outline" class="cursor-pointer" onclick={toggleChat}>
+				<MessageSquare size={16} />
+				Chat
 			</Button>
 		{/if}
 	</div>

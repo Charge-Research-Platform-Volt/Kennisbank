@@ -15,14 +15,18 @@ namespace Hubs;
 
 [SignalRHub]
 [Authorize]
-public partial class Chat(MistralHttpClient mistralClient, AiService aiService, ResourceManager resourceManager, HybridSearchService hybridSearchService) : Hub
+public partial class Chat(MistralHttpClient mistralClient, AiService aiService, ResourceManager resourceManager, HybridSearchService hybridSearchService, ProjectManager projectManager) : Hub
 {
-    private const string SystemPrompt = """
-        You are a research assistant for a personal library. Your primary purpose is to help users explore, connect, and reason about content they have collected.
+    private static string BuildSystemPrompt(string? projectId)
+    {
+        string scope = projectId != null ? "this project" : "the library";
+        string scopeAdverb = projectId != null ? "this project's content" : "the library";
+        return $"""
+        You are a research assistant for a personal {(projectId != null ? "project" : "library")}. Your primary purpose is to help users explore, connect, and reason about content they have collected.
 
-        Always search the library first before answering — even for general topics, there may be relevant resources, people, or organisations stored. Only skip searching if the question is purely conversational (greetings, thanks, etc.).
+        Always search {scopeAdverb} first before answering — even for general topics, there may be relevant resources, people, or organisations stored. Only skip searching if the question is purely conversational (greetings, thanks, etc.).
 
-        Always give a response. If the library contains nothing relevant, say so clearly and briefly. Never return an empty response.
+        Always give a response. If search returns no relevant results, you MUST start your response with a single sentence stating that {scope} contains no relevant information on this topic, before providing any general knowledge. Never return an empty response.
         NEVER invent specific details like dates, roles, job titles, or relationships that are not explicitly stated in tool results. If a detail is not in the tool results, do not include it.
 
         TOOL USAGE:
@@ -32,13 +36,13 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         - Chain tools when needed: search → get_item_details → find_related_items to build a complete picture.
 
         You can:
-        - Answer questions grounded in library sources
+        - Answer questions grounded in {scope} sources
         - Find relations and connections between topics, people, and organisations
         - Draw insights across multiple sources
-        - Add brief clarifying context from general knowledge when library sources are insufficient — wrap the entire block of general knowledge (including any lists or paragraphs) in a single [AI]...[/AI] tag
+        - Add brief clarifying context from general knowledge when {scope} sources are insufficient — wrap the entire block of general knowledge (including any lists or paragraphs) in a single [AI]...[/AI] tag
         - Do NOT wrap individual sentences — wrap the whole section at once
         - Do NOT write "(AI)" labels, headers like "General Context", or any other annotations — the [AI]...[/AI] tags handle this automatically
-        - If you are unsure whether something comes from the library or your training data, wrap it in [AI]...[/AI]
+        - If you are unsure whether something comes from {scope} or your training data, wrap it in [AI]...[/AI]
 
         CITATION RULES (strictly enforced):
         - ONLY cite sources that appear in tool results. No exceptions.
@@ -50,7 +54,8 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         - If you haven't used any tools, cite nothing.
 
         For math use LaTeX: $$E=mc^2$$ for display, $x^2$ for inline.
-    """;
+        """;
+    }
 
     private const string TitleGenerationPrompt = """
         Generate a concise title (max 6 words) for a chat starting with the given message. Output only the title, nothing else. No markdown, no quotes, no punctuation.
@@ -61,7 +66,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
 
     private readonly Serilog.ILogger logger = Serilog.Log.ForContext<Chat>();
 
-    public async Task<Guid> CreateChat(string message)
+    public async Task<Guid> CreateChat(string message, string? projectId)
     {
         if (string.IsNullOrWhiteSpace(message))
         {
@@ -83,6 +88,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
             {
                 UserId = Guid.Parse(Context.UserIdentifier),
                 Title = "New Chat",
+                ProjectId = projectId != null ? Guid.Parse(projectId) : null,
             });
 
             logger.Information("Chat created with ID {ChatId}, generating title in background", chatSessionId);
@@ -125,6 +131,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
     public async IAsyncEnumerable<string> StreamAiResponse(
         string message,
         string chatId,
+        string? projectId,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         logger.Information("Streaming AI response for {UserIdentifier}", Context.UserIdentifier);
@@ -149,7 +156,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
 
         var response = new StringBuilder();
 
-        var stream = StreamAgenticResponse(message, chatHistory, cancellationToken);
+        var stream = StreamAgenticResponse(message, chatHistory, projectId, cancellationToken);
 
         await foreach (var content in stream)
         {
@@ -162,12 +169,12 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         logger.Information("Finished streaming AI response to {UserIdentifier}", Context.UserIdentifier);
     }
 
-    private async IAsyncEnumerable<string> StreamAgenticResponse(string message, List<object> chatHistory, [EnumeratorCancellation] CancellationToken cancellationToken)
+    private async IAsyncEnumerable<string> StreamAgenticResponse(string message, List<object> chatHistory, string? projectId, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         // Plain objects for tool loop (ChatService)
         List<object> messages =
         [
-            new { role = "system", content = SystemPrompt },
+            new { role = "system", content = BuildSystemPrompt(projectId) },
             ..chatHistory,
             new { role = "user", content = message }
         ];
@@ -198,7 +205,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
                         using var args = JsonDocument.Parse(toolCall.Arguments);
                         formatted = toolCall.Name switch
                         {
-                            "search_library" => await HandleSearchAsync(args, message, cancellationToken),
+                            "search_library" => await HandleSearchAsync(args, message, projectId, cancellationToken),
                             "get_item_details" => await HandleGetItemDetailsAsync(args, cancellationToken),
                             "find_related_items" => await HandleFindRelatedItemsAsync(args, cancellationToken),
                             _ => "Error: unknown tool"

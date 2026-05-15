@@ -16,7 +16,7 @@
 		submitting = true;
 
 		try {
-			const chatId: string = await ctx.connection.invoke('CreateChat', message);
+			const chatId: string = await ctx.connection.invoke('CreateChat', message, null);
 			goto(`/chatbot/${chatId}`, { state: { initialMessage: message } });
 			chatRefresh.trigger();
 		} catch (e) {
