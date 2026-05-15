@@ -3,7 +3,7 @@
     import type { ResourceItem, TrashItem } from "$lib/types/resource";
     import { userState } from "$lib/state/user.svelte";
     import Spinner from "$lib/components/ui/spinner/spinner.svelte";
-    import { RotateCcw, ArrowLeft } from "lucide-svelte";
+    import { RotateCcw, ArrowLeft } from "@lucide/svelte";
     import * as Table from "$lib/components/ui/table";
     import { getFileIcon } from "$lib/utils/icons";
     import { formatDate } from "$lib/utils/date";

@@ -7,7 +7,7 @@
     import * as Dialog from '$lib/components/ui/dialog';
     import * as Tooltip from '$lib/components/ui/tooltip';
 	import Button from '$lib/components/ui/button/button.svelte';
-    import { Sparkles } from 'lucide-svelte';
+    import { Sparkles } from '@lucide/svelte';
     
     type ChangelogEntry = { title: string; body: string; createdAt: string; };
 

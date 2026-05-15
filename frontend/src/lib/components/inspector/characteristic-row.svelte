@@ -1,10 +1,10 @@
 <script lang="ts">
     import * as Tooltip from "$lib/components/ui/tooltip";
-    import type { Icon } from "lucide-svelte";
+    import type { LucideIcon } from "@lucide/svelte";
 	import { getContext, untrack, type Snippet } from "svelte";
 
-    let { icon: LucideIcon, label, value, href, onsave, editContent }: {
-        icon: typeof Icon;
+    let { icon: IconComponent, label, value, href, onsave, editContent }: {
+        icon: LucideIcon;
         label: string;
         value?: string;
         href?: string;
@@ -24,7 +24,7 @@
 <div class="flex items-center gap-2 overflow-hidden">
     <Tooltip.Root>
         <Tooltip.Trigger>
-            <LucideIcon size={14} class="text-muted-foreground shrink-0" />
+            <IconComponent size={14} class="text-muted-foreground shrink-0" />
         </Tooltip.Trigger>
         <Tooltip.Content>{label}</Tooltip.Content>
     </Tooltip.Root>

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { ResourceItem, NavigationTarget } from "$lib/types/resource";
-    import { ArrowLeft, ArrowRight, Download, X, Pencil, PencilOff, Trash2, Ellipsis, Share2, BookmarkPlus } from "lucide-svelte";
+    import { ArrowLeft, ArrowRight, Download, X, Pencil, PencilOff, Trash2, Ellipsis, Share2, BookmarkPlus } from "@lucide/svelte";
     import { getFileAction, getFileIcon } from "$lib/utils/icons";
     import { untrack, setContext, getContext } from "svelte";
 	import { formatDate } from "$lib/utils/date";

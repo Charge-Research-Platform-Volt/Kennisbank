@@ -5,7 +5,7 @@
     import { debounce } from "$lib/utils/debounce";
 	import { toast } from "svelte-sonner";
     import * as Command from "$lib/components/ui/command";
-    import { Folder, BookMarked, ArrowLeft } from "lucide-svelte";
+    import { Folder, BookMarked, ArrowLeft } from "@lucide/svelte";
 
     let { open = $bindable(false), item }: { open: boolean; item: ResourceItem | null; } = $props();
 

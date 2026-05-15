@@ -2,7 +2,7 @@
     import { api } from "$lib/api";
     import { goto } from '$app/navigation';
     import { page } from '$app/state';
-    import { Trash2 } from 'lucide-svelte';
+    import { Trash2 } from '@lucide/svelte';
     import Button from "../ui/button/button.svelte";
     import { SvelteDate } from "svelte/reactivity";
     import { chatRefresh } from '$lib/state/chat-refresh.svelte';

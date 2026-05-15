@@ -1,4 +1,4 @@
-<script module>
+<script module lang="ts">
     import { marked, Renderer } from 'marked';
     import markedKatex from 'marked-katex-extension';
     import 'katex/dist/katex.min.css';
@@ -70,11 +70,11 @@
     import { fade } from 'svelte/transition';
     import { page } from '$app/state';
     import { api } from '$lib/api';
-    import { HubConnection, type ISubscription } from '@microsoft/signalr';
+    import type { HubConnection, ISubscription } from '@microsoft/signalr';
     import ChatInput from '$lib/components/chatbot/chat-input.svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import ChatMessage from '$lib/components/chatbot/ChatMessage.svelte';
-    import { ArrowDown } from 'lucide-svelte';
+    import { ArrowDown } from '@lucide/svelte';
 
     type Message = { id: string; messageRole: 'User' | 'Assistant'; content: string; resolvedSources?: Map<string, ResolvedSource>; };
 

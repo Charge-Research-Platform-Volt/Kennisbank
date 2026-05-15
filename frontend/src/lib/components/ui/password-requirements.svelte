@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Check, CircleX } from 'lucide-svelte';
+    import { Check, CircleX } from '@lucide/svelte';
 
     let { password }: { password: string } = $props();
 

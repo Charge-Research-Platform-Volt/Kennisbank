@@ -1,4 +1,4 @@
-import { File, FileText, Globe, Music, Video, User, Building2 } from 'lucide-svelte';
+import { File, FileText, Globe, Music, Video, User, Building2 } from '@lucide/svelte';
 
 export function getFileIcon(fileType: string)
 {

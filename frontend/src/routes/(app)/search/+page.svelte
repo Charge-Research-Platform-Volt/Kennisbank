@@ -3,7 +3,7 @@
 	import Spinner from "$lib/components/ui/spinner/spinner.svelte";
 	import type { ResourceItem } from "$lib/types/resource";
 	import { getFileIcon } from "$lib/utils/icons";
-    import { Search, ArrowRight, X } from "lucide-svelte";
+    import { Search, ArrowRight, X } from "@lucide/svelte";
     import { onMount, getContext } from "svelte";
 	import { fade, fly } from "svelte/transition";
     import { formatDate } from "$lib/utils/date";

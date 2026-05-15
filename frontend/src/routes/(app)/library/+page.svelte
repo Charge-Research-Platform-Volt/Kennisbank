@@ -3,7 +3,7 @@
     import { debounce } from '$lib/utils/debounce';
     import type { ResourceItem } from "$lib/types/resource";
     import Spinner from "$lib/components/ui/spinner/spinner.svelte";
-    import { Search, ListFilter, ExternalLink, Download, X, ArrowUp, ArrowDown, ArrowUpDown, Trash2 } from "lucide-svelte";
+    import { Search, ListFilter, ExternalLink, Download, X, ArrowUp, ArrowDown, ArrowUpDown, Trash2 } from "@lucide/svelte";
     import { userState } from "$lib/state/user.svelte";
     import * as Table from "$lib/components/ui/table";
     import { getFileAction, getFileIcon } from "$lib/utils/icons";
@@ -261,7 +261,7 @@
                 <!-- Type filter -->
                 <div class="flex items-center gap-3">
                     <span class="text-sm font-medium text-muted-foreground w-20 shrink-0">Category</span>
-                    <ToggleGroup.Root variant="outline" class="flex-wrap" type="multiple" value={typeFilter} onValueChange={handleTypeFilterChange}>
+                    <ToggleGroup.Root variant="outline" class="flex-wrap" type="multiple" bind:value={typeFilter} onValueChange={handleTypeFilterChange}>
                         <ToggleGroup.Item value="resource" class="text-xs">Resources</ToggleGroup.Item>
                         <ToggleGroup.Item value="person" class="text-xs">Persons</ToggleGroup.Item>
                         <ToggleGroup.Item value="organisation" class="text-xs">Organisations</ToggleGroup.Item>

@@ -4,7 +4,7 @@
     import { afterNavigate, goto } from "$app/navigation";
     import type { ProjectInfo } from "$lib/types/project"
     import { api } from "$lib/api";
-    import { Search, X, Folder, ExternalLink, Download, Tags, Users, FolderPlus, FolderUp, Plus, Check, Pencil, CirclePlus } from 'lucide-svelte';
+    import { Search, X, Folder, ExternalLink, Download, Tags, Users, FolderPlus, FolderUp, Plus, Check, Pencil, CirclePlus } from '@lucide/svelte';
     import type { ResourceItem } from "$lib/types/resource";
     import * as Breadcrumb from "$lib/components/ui/breadcrumb";
     import * as Table from "$lib/components/ui/table";

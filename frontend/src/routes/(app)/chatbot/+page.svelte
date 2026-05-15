@@ -1,6 +1,6 @@
 <script lang="ts">
     import { getContext } from 'svelte';
-    import { HubConnection } from '@microsoft/signalr';
+    import type { HubConnection } from '@microsoft/signalr';
     import { goto } from '$app/navigation';
     import ChatInput from '$lib/components/chatbot/chat-input.svelte';
     import { chatRefresh } from '$lib/state/chat-refresh.svelte';

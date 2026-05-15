@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { RelationItem } from "$lib/types/resource";
     import { getContext, untrack } from "svelte";
-    import { X } from "lucide-svelte";
+    import { X } from "@lucide/svelte";
     import { debounce } from '$lib/utils/debounce';
 
     let { label, items, search, onadd, oncreate, onremove }: {

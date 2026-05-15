@@ -4,7 +4,7 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/state";
 	import { api } from "$lib/api";
-	import { Pencil } from "lucide-svelte";
+	import { Pencil } from "@lucide/svelte";
     import Avatar from "$lib/components/ui/avatar/avatar.svelte";
     import PasswordRequirements from "$lib/components/ui/password-requirements.svelte";
     import { isPasswordValid } from "$lib/utils/password";

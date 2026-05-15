@@ -3,7 +3,7 @@
     import { debounce } from "$lib/utils/debounce";
     import { confirm } from "$lib/state/confirm.svelte";
     import { toast } from "svelte-sonner";
-	import { Plus, Search, Check, X, Pencil, Trash2, Merge, Tag, MapPin, Layers, User, Building2, Newspaper } from "lucide-svelte";
+	import { Plus, Search, Check, X, Pencil, Trash2, Merge, Tag, MapPin, Layers, User, Building2, Newspaper } from "@lucide/svelte";
 	import { Button } from "$lib/components/ui/button";
 	import { Input } from "$lib/components/ui/input";
 	import Spinner from "$lib/components/ui/spinner/spinner.svelte";

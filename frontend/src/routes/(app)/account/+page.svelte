@@ -7,7 +7,7 @@
     import Label from "$lib/components/ui/label/label.svelte";
     import { toast } from "svelte-sonner";
     import { goto } from "$app/navigation";
-    import { Pencil } from "lucide-svelte";
+    import { Pencil } from "@lucide/svelte";
     import { confirm } from "$lib/state/confirm.svelte";
 	import Spinner from "$lib/components/ui/spinner/spinner.svelte";
     import PasswordRequirements from "$lib/components/ui/password-requirements.svelte";

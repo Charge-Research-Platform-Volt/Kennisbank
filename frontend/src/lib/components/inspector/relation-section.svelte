@@ -2,7 +2,7 @@
     import type { RelationItem, NavigationTarget, EntityType } from "$lib/types/resource";
     import { getFileIcon } from "$lib/utils/icons";
     import { getContext, untrack } from "svelte";
-    import { X } from "lucide-svelte";
+    import { X } from "@lucide/svelte";
     import { debounce } from '$lib/utils/debounce';
 
     let { label, items, itemType, search, onadd, oncreate, onremove, hasRole = false, onupdaterole }: {

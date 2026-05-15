@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { HubConnectionBuilder, HubConnection, LogLevel, HttpTransportType } from "@microsoft/signalr";
+    import { HubConnectionBuilder, LogLevel, HttpTransportType } from "@microsoft/signalr";
+    import type { HubConnection } from "@microsoft/signalr";
     import { setContext, onMount } from 'svelte';
     import ChatHistory from "$lib/components/chatbot/chat-history.svelte";
     import { chatRefresh } from '$lib/state/chat-refresh.svelte';

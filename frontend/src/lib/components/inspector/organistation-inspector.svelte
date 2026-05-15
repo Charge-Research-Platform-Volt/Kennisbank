@@ -2,7 +2,7 @@
     import type { ResourceItem, OrganisationDetail } from "$lib/types/resource";
     import { api } from "$lib/api";
     import Spinner from "../ui/spinner/spinner.svelte";
-    import { AtSign, Link } from "lucide-svelte";
+    import { AtSign, Link } from "@lucide/svelte";
     import RelationSection from "./relation-section.svelte";
     import TextSection from "./text-section.svelte";
     import CharacteristicRow from "./characteristic-row.svelte";

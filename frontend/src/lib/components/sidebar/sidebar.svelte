@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { LayoutDashboard, Search, Library, BookMarked, PanelLeftOpen, PanelLeftClose, CirclePlus, MessageCircleQuestionMark, MessageCircleMore, Wrench, Settings, LogOut } from "lucide-svelte";
+    import { LayoutDashboard, Search, Library, BookMarked, PanelLeftOpen, PanelLeftClose, CirclePlus, MessageCircleQuestionMark, MessageCircleMore, Wrench, Settings, LogOut, type LucideIcon } from "@lucide/svelte";
     import Avatar from "$lib/components/ui/avatar/avatar.svelte";
     import { sidebar } from "$lib/state/sidebar.svelte";
     import { page } from "$app/state";
@@ -9,8 +9,6 @@
     import { goto } from "$app/navigation";
 	import { api } from "$lib/api";
 
-    type LucideIcon = typeof LayoutDashboard;
-    
     let aside = $state<HTMLElement>();
     let collapsed = $state(!sidebar.open);
     

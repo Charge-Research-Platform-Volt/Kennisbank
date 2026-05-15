@@ -3,7 +3,7 @@
     import Button from '$lib/components/ui/button/button.svelte';
     import Input from '$lib/components/ui/input/input.svelte';
     import Label from '$lib/components/ui/label/label.svelte';
-    import { Upload, FileText } from 'lucide-svelte';
+    import { Upload, FileText } from '@lucide/svelte';
     import { hashFile, uploadFile } from '$lib/upload';
     import { toast } from 'svelte-sonner';
 

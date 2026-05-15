@@ -1,12 +1,12 @@
 <script lang="ts">
-    import { FileText, User, Building2, type Icon } from 'lucide-svelte';
+    import { FileText, User, Building2, type LucideIcon } from '@lucide/svelte';
     import { page } from '$app/state';
 
     const projectId = $derived(page.url.searchParams.get('projectId'));
     const suffix = $derived(projectId ? `?projectId=${projectId}` : '');
 </script>
 
-{#snippet card(href: string, icon: typeof Icon, title: string, subtext: string)}
+{#snippet card(href: string, icon: LucideIcon, title: string, subtext: string)}
     {@const LucideIcon = icon}
     
     <a {href} class="border-border hover:bg-accent rounded-lg border p-6 transition-colors">

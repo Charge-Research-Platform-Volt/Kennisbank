@@ -7,7 +7,7 @@
     import { fly } from 'svelte/transition';
 	import { LanguageCodes } from '$lib/lists/languageCodes';
 	import type { DatePrecision, ExtractedMetadata } from '$lib/types/resource';
-	import { User, Building2, X, CircleCheck, Sparkles } from 'lucide-svelte';
+	import { User, Building2, X, CircleCheck, Sparkles } from '@lucide/svelte';
 	import BadgeInput from '$lib/components/ui/badge-input.svelte';
 	import { toast } from 'svelte-sonner';
     import ProcessingPhase from './processing-phase.svelte';

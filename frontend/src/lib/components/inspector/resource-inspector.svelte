@@ -2,7 +2,7 @@
     import type { ResourceItem, ResourceDetail } from "$lib/types/resource";
     import { api } from "$lib/api";
     import Spinner from "../ui/spinner/spinner.svelte";
-    import { Layers, Languages, Scale, FingerprintPattern, Link, Newspaper } from "lucide-svelte";
+    import { Layers, Languages, Scale, FingerprintPattern, Link, Newspaper } from "@lucide/svelte";
     import { formatLanguage } from "$lib/utils/locale";
     import { LanguageCodes } from "$lib/lists/languageCodes";
     import BadgeSection from "./badge-section.svelte";

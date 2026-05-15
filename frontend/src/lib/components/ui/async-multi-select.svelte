@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Popover } from "bits-ui";
     import { debounce } from '$lib/utils/debounce';
-    import { Check, ChevronDown, Search } from "lucide-svelte";
+    import { Check, ChevronDown, Search } from "@lucide/svelte";
 
     let {
         value = $bindable<string[]>([]),

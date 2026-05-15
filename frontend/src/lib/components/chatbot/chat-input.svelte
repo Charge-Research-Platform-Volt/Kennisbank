@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { ArrowUp, CircleX } from 'lucide-svelte';
+    import { ArrowUp, CircleX } from '@lucide/svelte';
     // import Switch from '$lib/components/ui/switch/switch.svelte';
     // import Label from '../ui/label/label.svelte';
 

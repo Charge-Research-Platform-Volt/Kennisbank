@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { X } from 'lucide-svelte';
+    import { X } from '@lucide/svelte';
     import { debounce } from '$lib/utils/debounce';
 
     let { items = $bindable<{ id: string; name: string }[]>([]), search, oncreate, placeholder = 'Search...' }: {

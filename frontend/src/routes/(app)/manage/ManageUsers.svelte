@@ -8,7 +8,7 @@
     import { confirm } from "$lib/state/confirm.svelte";
     import type { CombinedEntry, CombinedListResponse, UserEntry } from "$lib/types/user";
     import { debounce } from "$lib/utils/debounce";
-	import { Search, Plus, RefreshCw, X, Pencil, Trash2, Mail } from "lucide-svelte";
+	import { Search, Plus, RefreshCw, X, Pencil, Trash2, Mail } from "@lucide/svelte";
 	import * as Pagination from "$lib/components/ui/pagination";
     import { toast } from "svelte-sonner";
 	import * as Dialog from "$lib/components/ui/dialog";
