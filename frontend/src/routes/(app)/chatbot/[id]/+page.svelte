@@ -5,7 +5,7 @@
 
 	marked.use(markedKatex({ throwOnError: false }));
 
-	type ResolvedSource = { id: string; name: string; type: string };
+	type ResolvedSource = { id: string; name: string; type: string; fileType: string; sourceUrl?: string };
 
 	const renderer = new Renderer();
 	renderer.link = ({ href, text }) => {
@@ -21,7 +21,9 @@
 		}
 
 		if (/^\d+$/.test(text)) {
-			return `<a href="${normalizedHref}" class="chat-cite-num" target="_blank" rel="noopener noreferrer">${text}</a>`;
+			const uuidMatch = normalizedHref.match(/inspectorId=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+			const uuid = uuidMatch?.[1] ?? '';
+			return `<a href="${normalizedHref}" class="chat-cite-num" data-uuid="${uuid}" target="_blank" rel="noopener noreferrer">${text}</a>`;
 		}
 		if (normalizedHref.startsWith('/library')) {
 			return `<a href="${normalizedHref}" class="chat-cite-source" title="${text}" target="_blank" rel="noopener noreferrer">${text}</a>`;

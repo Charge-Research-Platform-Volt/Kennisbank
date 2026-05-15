@@ -100,6 +100,7 @@ public static class DatabaseContextExtensions
                         WHEN ""file-ext"" = NULL THEN 'document'
                         ELSE ""file-ext""
                     END as ""FileType"",
+                    ""source-url"" as ""SourceUrl"",
                     ""creation-date"" as ""CreationDate"",
                     ""type-id"" as ""TypeId"",
                     ""journal-id"" as ""JournalId"",
@@ -122,6 +123,7 @@ public static class DatabaseContextExtensions
                     2 as ""PublicationDatePrecision"",
                     'person' as ""Type"",
                     'person' as ""FileType"",
+                    NULL as ""SourceUrl"",
                     e.""creation-date"" as ""CreationDate"",
                     NULL::uuid as ""TypeId"",
                     NULL::uuid as ""JournalId"",
@@ -147,6 +149,7 @@ public static class DatabaseContextExtensions
                     2 as ""PublicationDatePrecision"",
                     'organisation' as ""Type"",
                     'organisation' as ""FileType"",
+                    NULL as ""SourceUrl"",
                     e.""creation-date"" as ""CreationDate"",
                     NULL::uuid as ""TypeId"",
                     NULL::uuid as ""JournalId"",

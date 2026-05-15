@@ -358,7 +358,7 @@ public class AIController(ResourceManager resourceManager, IServiceScopeFactory 
             if (guids.Count == 0) return Ok(new ApiResponse(true, "No items", Array.Empty<object>()));
 
             var items = await resourceManager.GetResourceGridItemsByIdsAsync(guids);
-            return Ok(new ApiResponse(true, "Items retrieved", items.Select(i => new { i.Id, i.Name, i.Type })));
+            return Ok(new ApiResponse(true, "Items retrieved", items.Select(i => new { i.Id, i.Name, i.Type, i.FileType, i.SourceUrl })));
         }
         catch (Exception ex)
         {

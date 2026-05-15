@@ -650,6 +650,9 @@ namespace KnowledgeBank.Data.Migrations
                     b.Property<int?>("PublicationDatePrecision")
                         .HasColumnType("integer");
 
+                    b.Property<string>("SourceUrl")
+                        .HasColumnType("text");
+
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("text");

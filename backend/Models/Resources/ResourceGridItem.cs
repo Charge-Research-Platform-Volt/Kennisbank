@@ -11,6 +11,7 @@ public class ResourceGridItem
     public PublicationDatePrecision? PublicationDatePrecision { get; set; }
     public string Type { get; set; } = string.Empty;
     public string FileType { get; set; } = string.Empty;
+    public string? SourceUrl { get; set; }
     public DateTime CreationDate { get; set; }
     public Guid? TypeId { get; set; }
     public Guid? JournalId { get; set; }
