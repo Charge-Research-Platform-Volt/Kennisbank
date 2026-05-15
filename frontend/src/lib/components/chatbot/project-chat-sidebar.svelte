@@ -7,11 +7,11 @@
     import { api } from '$lib/api';
     import * as Popover from '$lib/components/ui/popover';
     import * as Tooltip from '$lib/components/ui/tooltip';
-    import { SquarePen, History } from '@lucide/svelte';
+    import { SquarePen, History, X, Info } from '@lucide/svelte';
 
     type ChatSummary = { id: string; title: string; creationDate: string };
 
-    let { projectId }: { projectId: string } = $props();
+    let { projectId, onClose }: { projectId: string; onClose?: () => void } = $props();
 
     let connection = $state<HubConnection | null>(null);
     let chatId = $state<string | null>(null);
@@ -93,7 +93,7 @@
                             {#each history as chat (chat.id)}
                                 <button
                                     onclick={() => { chatId = chat.id; pendingMessage = null; historyOpen = false; }}
-                                    class="w-full truncate rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
+                                    class="w-full cursor-pointer truncate rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
                                 >
                                     {chat.title}
                                 </button>
@@ -109,6 +109,15 @@
                         </button>
                     </Tooltip.Trigger>
                     <Tooltip.Content>New chat</Tooltip.Content>
+                </Tooltip.Root>
+
+                <Tooltip.Root>
+                    <Tooltip.Trigger>
+                        <button onclick={onClose} class="cursor-pointer rounded p-1 text-muted-foreground hover:text-foreground">
+                            <X size={15} />
+                        </button>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content>Close</Tooltip.Content>
                 </Tooltip.Root>
             </Tooltip.Provider>
         </div>
@@ -127,6 +136,13 @@
                     <span class="text-3xl font-medium">GridAI</span>
                 </div>
                 <p class="mt-1 text-xs text-muted-foreground">Ask about this project</p>
+                <div class="mt-3 flex items-center gap-2 rounded-md border border-yellow-500/50 px-3 py-2 text-xs text-muted-foreground">
+                    <Info size={13} class="shrink-0" />
+                    <span>
+                        Only searches this project's items.
+                        For library-wide search, use the <a href="/chatbot" class="text-foreground underline underline-offset-2 hover:opacity-70">ChatBot</a>.
+                    </span>
+                </div>
             </div>
         </div>
         <div class="shrink-0 px-4 pb-4">

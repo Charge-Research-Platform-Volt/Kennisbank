@@ -59,6 +59,6 @@
 	<Inspector bind:this={inspector} bind:item={selectedItem} onaftersave={() => refreshFn?.()} />
 
 	<div class="h-full shrink-0 overflow-hidden transition-all duration-300 {chatOpen ? 'w-[520px]' : 'w-0'}">
-		<ProjectChatSidebar projectId={page.params.id!} />
+		<ProjectChatSidebar projectId={page.params.id!} onClose={() => (chatOpen = false)} />
 	</div>
 </div>
