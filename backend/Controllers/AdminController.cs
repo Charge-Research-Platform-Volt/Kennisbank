@@ -1,11 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
-using KnowledgeBank.Models;
 using KnowledgeBank.Data;
 using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using KnowledgeBank.Services.Background;
-using KnowledgeBank.Services;
 using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Storage;
 
@@ -15,7 +13,7 @@ namespace KnowledgeBank.Controllers
     [Route("[controller]")]
     [Produces("application/json")]
     [Authorize]
-    public class AdminController(IBackgroundTaskQueue taskQueue, EnvironmentConfig environmentConfig, IServiceScopeFactory serviceScopeFactory) : ControllerBase
+    public class AdminController(IBackgroundTaskQueue taskQueue, EnvironmentConfig environmentConfig, IServiceScopeFactory serviceScopeFactory) : AppControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<AdminController>();
         private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
@@ -85,7 +83,7 @@ namespace KnowledgeBank.Controllers
                 logger.Information("Re-embedding complete");
             });
 
-            return Accepted(new ApiResponse(true, "Re-embedding started in the background"));
+            return Accepted();
         }
     }
 }

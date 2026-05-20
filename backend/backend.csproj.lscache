@@ -57,6 +57,7 @@ TemporaryDependencyNodeTargetIdentifier=net9.0
 Controllers/
  AdminController.cs
  AIController.cs
+ AppControllerBase.cs
  AuthController.cs
  ChangelogController.cs
  FilesController.cs

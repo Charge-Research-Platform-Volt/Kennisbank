@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using KnowledgeBank.Models;
-using Serilog;
 using Swashbuckle.AspNetCore.Annotations;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -14,21 +13,8 @@ namespace KnowledgeBank.Controllers
     [ApiController]
     [Route("[controller]")]
     [Authorize(Policy = "RequireAdminRole")]
-    public class RolesController : ControllerBase
+    public class RolesController(RoleManager<IdentityRole> roleManager, UserManager<User> userManager, IOptions<OwnerUserConfig> ownerConfig) : AppControllerBase
     {
-        private readonly RoleManager<IdentityRole> roleManager;
-        private readonly UserManager<User> userManager;
-        private readonly Serilog.ILogger logger;
-        private readonly OwnerUserConfig ownerConfig;
-
-        public RolesController(RoleManager<IdentityRole> roleManager, UserManager<User> userManager, IOptions<OwnerUserConfig> ownerConfig)
-        {
-            this.roleManager = roleManager;
-            this.userManager = userManager;
-            this.logger = Log.ForContext<RolesController>();
-            this.ownerConfig = ownerConfig.Value;
-        }
-
         [HttpGet("current")]
         [AllowAnonymous]
         [SwaggerOperation(
@@ -36,35 +22,26 @@ namespace KnowledgeBank.Controllers
             Description = "Returns the current user's role or an empty string if not authenticated"
         )]
         [SwaggerResponse(200, "The current user's role.")]
-        [SwaggerResponse(500, "Internal server error")]
         public async Task<IActionResult> GetCurrentUserRole()
         {
-            try
-            {
-                // Check if user is authenticated
-                if (User.Identity == null || !User.Identity.IsAuthenticated)
-                    return Ok(new { role = "", isAuthenticated = false });
+            // Check if user is authenticated
+            if (User.Identity == null || !User.Identity.IsAuthenticated)
+                return Ok(new { role = "", isAuthenticated = false });
 
-                string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-                if (string.IsNullOrEmpty(userId))
-                    return Ok(new { role = "", isAuthenticated = true });
+            if (string.IsNullOrEmpty(userId))
+                throw new InvalidOperationException("Authenticated user has no NameIdentifier claim.");
 
-                User? user = await userManager.FindByIdAsync(userId);
+            User? user = await userManager.FindByIdAsync(userId);
 
-                if (user == null)
-                    return Ok(new { role = "", isAuthenticated = true });
+            if (user == null)
+                return Ok(new { role = "", isAuthenticated = true });
 
-                IList<string> roles = await userManager.GetRolesAsync(user);
-                string role = roles.Count > 0 ? roles[0] : "";
+            IList<string> roles = await userManager.GetRolesAsync(user);
+            string role = roles.Count > 0 ? roles[0] : "";
 
-                return Ok(new { role, isAuthenticated = true });
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error retrieving current user's role");
-                return StatusCode(500, "Internal server error.");
-            }
+            return Ok(new { role, isAuthenticated = true });
         }
 
         [HttpGet]
@@ -73,22 +50,13 @@ namespace KnowledgeBank.Controllers
             Description = "Lists all roles that exist in the application."
         )]
         [SwaggerResponse(200, "A list of the roles")]
-        [SwaggerResponse(500, "Internal server error")]
         public async Task<IActionResult> GetRoles()
         {
-            try
-            {
-                IdentityRole[] roles = await roleManager.Roles.ToArrayAsync();
-                return Ok(roles);
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error retrieving roles.");
-                return StatusCode(500, "Internal server error.");
-            }
+            IdentityRole[] roles = await roleManager.Roles.ToArrayAsync();
+            return Ok(roles);
         }
 
-        [HttpPatch("assign")]
+        [HttpPut("assign")]
         [SwaggerOperation(
             Summary = "Assigns a role to a user.",
             Description = "Assigns a role to the given user. Strips all other roles, since users only can have one role."
@@ -96,44 +64,35 @@ namespace KnowledgeBank.Controllers
         [SwaggerResponse(200, "Role was assigned succesfully.")]
         [SwaggerResponse(404, "User or role not found.")]
         [SwaggerResponse(400, "Cannot assign role.")]
-        [SwaggerResponse(500, "Internal server error.")]
         [SwaggerResponse(403, "This action is forbidden")]
         public async Task<IActionResult> AssignRole([FromBody] RoleAssignDto dto)
         {
-            try
-            {
-                User? user = await userManager.FindByIdAsync(dto.UserId);
+            User? user = await userManager.FindByIdAsync(dto.UserId);
 
-                if (user == null)
-                    return NotFound(new {message = "Invalid user ID."});
+            if (user == null)
+                return Problem("User not found", statusCode: 404);
 
-                if (user.Email == ownerConfig.Email)
-                    return StatusCode(403, "Role of the owner account cannot be changed!");            
+            if (user.Email == ownerConfig.Value.Email)
+                return Problem("Role of the owner account cannot be changed.", statusCode: 403);           
 
-                if (!await roleManager.RoleExistsAsync(dto.RoleName))
-                    return NotFound(new { message = "Invalid role name."});
+            if (!await roleManager.RoleExistsAsync(dto.RoleName))
+                return Problem("Role does not exist", statusCode: 404);
 
-                if (await userManager.IsInRoleAsync(user, dto.RoleName))
-                    return BadRequest(new {message = $"User is already has the role '{dto.RoleName}'"});
+            if (await userManager.IsInRoleAsync(user, dto.RoleName))
+                return Problem("User already has this role", statusCode: 400);
 
-                IList<string> currentRoles = await userManager.GetRolesAsync(user);
-                IdentityResult removeResult = await userManager.RemoveFromRolesAsync(user, currentRoles);
+            IList<string> currentRoles = await userManager.GetRolesAsync(user);
+            IdentityResult removeResult = await userManager.RemoveFromRolesAsync(user, currentRoles);
 
-                if (!removeResult.Succeeded)
-                    return StatusCode(500, "Error removing current roles: " + removeResult.Errors);
+            if (!removeResult.Succeeded)
+                throw new InvalidOperationException($"Failed to remove roles: {string.Join(", ", removeResult.Errors.Select(e => e.Description))}");
 
-                IdentityResult result = await userManager.AddToRoleAsync(user, dto.RoleName);
+            IdentityResult result = await userManager.AddToRoleAsync(user, dto.RoleName);
 
-                if (result.Succeeded)
-                    return Ok(new { message = $"User '{user.UserName}' added to role '{dto.RoleName}' successfully." });
+            if (!result.Succeeded)
+                throw new InvalidOperationException($"Failed to assign role: {string.Join(", ", result.Errors.Select(e => e.Description))}");
 
-                return BadRequest(result.Errors);
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error assigning role {RoleName} to user with ID {UserID}", dto.RoleName, dto.UserId);
-                return StatusCode(500, new { message = "Internal server error." });
-            }
+            return Ok();
         }
 
         [HttpGet("user/{id}")]
@@ -143,54 +102,31 @@ namespace KnowledgeBank.Controllers
         )]
         [SwaggerResponse(200, "The role of the user")]
         [SwaggerResponse(404, "User not found")]
-        [SwaggerResponse(500, "Internal server error")]
         public async Task<IActionResult> RetrieveUserRole(string id)
         {
-            try
-            {
-                User? user = await userManager.FindByIdAsync(id);
+            User? user = await userManager.FindByIdAsync(id);
 
-                if (user == null)
-                    return NotFound("User not found.");
+            if (user == null)
+                return Problem("User not found.", statusCode: 404);
 
-                IList<string> roles = await userManager.GetRolesAsync(user);
-
-                if (roles.Count == 0)
-                    return Ok("No role assigned.");
-
-                return Ok(roles[0]);
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error retrieving role of user with ID {id}", id);
-                return StatusCode(500, "Internal server error.");
-            }
+            IList<string> roles = await userManager.GetRolesAsync(user);
+            return Ok(roles.Count > 0 ? roles[0] : "");
         }
 
-        [HttpGet("{roleName}")]
+        [HttpGet("members")]
         [SwaggerOperation(
-            Summary = "Retrieves users in the given role.",
-            Description = "Retrieves all users in the given role."
+            Summary = "Retrieves users in the given role",
+            Description = "Retrieves all users in the given role"
         )]
-        [SwaggerResponse(200, "All users in the role.")]
-        [SwaggerResponse(404, "Role not found.")]
-        [SwaggerResponse(500, "Internal server error.")]
-        public async Task<IActionResult> RetrieveUsersInRole(string roleName)
+        [SwaggerResponse(200, "All users in the role")]
+        [SwaggerResponse(404, "Role not found")]
+        public async Task<IActionResult> RetrieveUsersInRole([FromQuery] string roleName)
         {
-            try
-            {
-                if (string.IsNullOrEmpty(roleName) || !await roleManager.RoleExistsAsync(roleName))
-                    return NotFound("Role does not exist.");
+            if (string.IsNullOrEmpty(roleName) || !await roleManager.RoleExistsAsync(roleName))
+                return Problem("Role does not exist.", statusCode: 404);
 
-                IList<User> users = await userManager.GetUsersInRoleAsync(roleName);
-
-                return Ok(users);
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error retrieving users in role {RoleName}", roleName);
-                return StatusCode(500, "Internal server error.");
-            }
+            IList<User> users = await userManager.GetUsersInRoleAsync(roleName);
+            return Ok(users);
         }
     }
 }

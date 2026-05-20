@@ -67,7 +67,7 @@
 			if (editMail !== openUser.email)
 				await api.patch('/api/user/update-mail', { userId: openUser.id, email: editMail });
 			if (editRole !== openUser.role)
-				await api.patch('/api/roles/assign', { userId: openUser.id, roleName: editRole });
+				await api.put('/api/roles/assign', { userId: openUser.id, roleName: editRole });
 			await fetchItems();
 			openUser = null;
 			toast.success('User updated.');

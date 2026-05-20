@@ -5,7 +5,7 @@ namespace KnowledgeBank.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class StatusController : Controller
+    public class StatusController : AppControllerBase
     {
         [HttpGet]
         [SwaggerOperation(

@@ -69,9 +69,10 @@ namespace KnowledgeBank
             }
 
             Log.Information("OwnerUser configuration validated successfully for: {Email}", ownerConfig.Email);
-            
+
             // # Services
             builder.Services.AddControllers();
+            builder.Services.AddProblemDetails();
             builder.Services.AddSignalR();
             builder.Services.AddSingleton<IStorageService, S3StorageService>();
             builder.Services.AddSingleton<MetadataExtractionJobService>();
@@ -242,7 +243,7 @@ namespace KnowledgeBank
                 Log.Information("Creating bucket '{BucketName}' in object storage...", bucketName);
                 await storageService.CreateBucketAsync(bucketName);
             }
-            
+
             // # Middleware
             if (app.Environment.IsDevelopment())
             {
@@ -250,8 +251,9 @@ namespace KnowledgeBank
                 app.MapOpenApi();
                 app.UseSwagger();
                 app.UseSwaggerUI(ConfigureSwaggerUI);
-                app.UseDeveloperExceptionPage();
             }
+            app.UseExceptionHandler();
+            app.UseStatusCodePages();
 
             // Seeding the database with initial data
             using (IServiceScope scope = app.Services.CreateScope())
