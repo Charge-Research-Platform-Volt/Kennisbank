@@ -121,6 +121,10 @@ Data/
   20260416112116_AddJournal.Designer.cs
   20260515113344_AddProjectIdToChats.cs
   20260515113344_AddProjectIdToChats.Designer.cs
+  20260520124712_CleanupTagSchema.cs
+  20260520124712_CleanupTagSchema.Designer.cs
+  20260520132652_CreatedByRegionSchema.cs
+  20260520132652_CreatedByRegionSchema.Designer.cs
   DatabaseContextModelSnapshot.cs
  OwnerUserConfig.cs
  ProjectManager/
@@ -228,6 +232,9 @@ Services/
   StorageCleanupService.cs
   TrashbinCleanupService.cs
   VPNCleanupService.cs
+ Domain/
+  RegionService.cs
+  TagService.cs
  MetadataExtractionJobService.cs
  Search/
   HybridSearchService.cs

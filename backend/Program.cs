@@ -21,6 +21,7 @@ using DotNetEnv;
 using KnowledgeBank.Services.Storage;
 using KnowledgeBank.Services.Search;
 using Npgsql;
+using KnowledgeBank.Services.Domain;
 
 namespace KnowledgeBank
 {
@@ -140,6 +141,8 @@ namespace KnowledgeBank
             // Resource management
             builder.Services.AddScoped<ResourceManager>();
             builder.Services.AddScoped<ProjectManager>();
+            builder.Services.AddScoped<TagService>();
+            builder.Services.AddScoped<RegionService>();
 
             // Retrieval Augmented Generation system
             builder.Services.AddSingleton<MistralHttpClient>();

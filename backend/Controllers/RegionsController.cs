@@ -1,421 +1,138 @@
+using System.Linq.Expressions;
+using KnowledgeBank.Services.Domain;
+using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
-using Serilog;
-using KnowledgeBank.Models;
-using KnowledgeBank.Data;
-using KnowledgeBank.Utils;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Cors;
-using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
-namespace KnowledgeBank.Controllers
+namespace KnowledgeBank.Controllers;
+
+[ApiController]
+[Route("[controller]")]
+[Authorize]
+public class RegionsController(RegionService regionService) : AppControllerBase
 {
-    /// <summary>
-    /// This controller is responsible for handing API calls to manage regions and their metadata.
-    ///
-    /// </summary>
-    /// <param name="resourceManager">The resource manager service for database interactions</param>
-    [ApiController]
-    [Route("[controller]")]
-    [Produces("application/json")]
-    [Authorize]
-    public class RegionsController(ResourceManager resourceManager) : ControllerBase
+    private const int MAX_NAME_LENGTH = 100;
+
+    [HttpGet]
+    [SwaggerOperation(Summary = "Get regions with optional search and pagination")]
+    [SwaggerResponse(200, "List of regions")]
+    public async Task<IActionResult> Get(
+        [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
     {
-        private readonly Serilog.ILogger logger = Log.ForContext<RegionsController>();
+        Expression<Func<Region, bool>>? predicate = search != null
+            ? r => EF.Functions.TrigramsAreSimilar(r.Name, search) ||
+                    EF.Functions.ILike(r.Name, $"%{search}%")
+            : null;
 
-        #region New
-        /// <summary>
-        /// Creates a new region
-        /// </summary>
-        /// <param name="dto">The Data Transfer Object</param>
-        [HttpPut("new")]
-        [SwaggerOperation(Summary = "Create a new region in the archive")]
-        [SwaggerResponse(200, "Region was created successfully", typeof(ApiResponse))]
-        [SwaggerResponse(409, "Region already exists", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> New([FromBody] RegionCreateDto dto)
-        {
-            // DTO checks
-            if (string.IsNullOrEmpty(dto.Name))
-                return BadRequest(new ApiResponse(false, "No name was given"));
+        var (items, totalCount) = await regionService.GetPageAsync(page, pageSize, predicate);
 
-            logger.Information("Creating region '{Name}'...", dto.Name);
-
-            try
-            {
-                // Create the region and return the ID
-                Guid id = await resourceManager.CreateRegionAsync(dto);
-
-                logger.Information("Region '{Name}' created successfully.", dto.Name);
-                return Ok(new ApiResponse(true, "Region created successfully", id));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error creating region '{Name}'.", dto.Name);
-                return StatusCode(500, new ApiResponse(false, "Error creating region", e.Message));
-            }
-
-        }
-        #endregion
-
-        #region Delete
-        /// <summary>
-        /// Deletes a region
-        /// </summary>
-        /// <param name="id">The ID of the region</param>
-        [HttpDelete("delete/{id}")]
-        [Authorize(Policy = "RequireAdminRole")]
-        [SwaggerOperation(Summary = "Deletes a region")]
-        [SwaggerResponse(200, "Region deleted successfully", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Region not found", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Delete(string id)
-        {
-            // Check if the ID is valid
-            if (!ValidityUtil.IsValidId(id))
-                return BadRequest(new ApiResponse(false, "Invalid ID"));
-
-            try
-            {
-                // Delete person
-                logger.Information("Deleting region with ID: {ID}", id);
-                bool found = await resourceManager.DeleteRegionAsync(Guid.Parse(id));
-
-                if (found)
-                {
-                    logger.Information("Region with ID '{ID}' deleted successfully", id);
-                    return Ok(new ApiResponse(true, "Region deleted successfully"));
-                }
-
-                logger.Information("Region with ID '{ID}' not found", id);
-                return NotFound(new ApiResponse(false, "Region does not exist"));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error deleting region with ID '{ID}'", id);
-                return StatusCode(500, new ApiResponse(false, "Error deleting region"));
-            }
-        }
-        #endregion
-
-        #region Update
-        /// <summary>
-        /// Updates a region
-        /// </summary>
-        /// <param name="id">The ID of the region</param>
-        /// <param name="updates">The dictionary of propertynames to update and their new values</param>
-        [HttpPatch("update/{id}")]
-        [Authorize(Policy = "RequireAdminRole")]
-        [SwaggerOperation(Summary = "Updates a person")]
-        [SwaggerResponse(200, "Region updated", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Region not found", typeof(ApiResponse))]
-        [SwaggerResponse(409, "Already exists", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Update(string id, [FromBody] Dictionary<string, object> updates)
-        {
-            // Check if the ID is valid
-            if (!ValidityUtil.IsValidId(id))
-                return BadRequest(new ApiResponse(false, "Invalid ID."));
-
-            // Check if updates are provided
-            if (updates == null || updates.Count == 0)
-                return BadRequest(new ApiResponse(false, "No updates were provided."));
-
-            logger.Information("Updating person with ID '{ID}'...", id);
-
-            try
-            {
-                // Check if region exists
-                if (!await resourceManager.RegionExistsAsync(Guid.Parse(id)))
-                    return NotFound(new ApiResponse(false, "The region does not exist"));
-
-                // Start a database transaction, since we could be doing multiple updates
-                await resourceManager.BeginTransaction();
-
-                // Update the properties (regions don't have vector embeddings, so no ragManager needed)
-                List<string> updatedProperties = await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Region), id, updates);
-
-                // No props were found
-                if (updatedProperties.Count == 0)
-                {
-                    await resourceManager.Rollback();
-                    return BadRequest(new ApiResponse(false, "None of the props were found"));
-                }
-
-                // Commit changes to database
-                await resourceManager.Commit();
-
-                // Join all updated properties
-                string updatedPropertiesString = string.Join(", ", updatedProperties);
-
-                // If all properties were updated
-                if (updatedProperties.Count == updates.Count)
-                {
-                    logger.Information("Successfully updated region with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
-                    return Ok(new ApiResponse(true, "Region updated successfully", updatedProperties));
-                }
-
-                // If not all properties were updated
-                else
-                {
-                    logger.Information("Partially updated region with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
-                    return Ok(new ApiResponse(true, "Region updated partially", updatedProperties));
-                }
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error updating region with ID '{ID}'", id);
-                return StatusCode(500, new ApiResponse(false, "Error updating region", e.Message));
-            }
-        }
-        #endregion
-
-        #region Exists
-        /// <summary>
-        /// Checks if a region already exists in the database
-        /// </summary>
-        /// <param name="name">The name of the region</param>
-        [EnableCors("AllowFrontend")]
-        [HttpGet("exists")]
-        [SwaggerOperation(Summary = "Check if a region exists")]
-        [SwaggerResponse(200, "Response with boolean indicating if region exists.", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Exists([FromQuery] string? name)
-        {
-            // Check for null
-            if (string.IsNullOrEmpty(name))
-                return BadRequest(new ApiResponse(false, "No value given"));
-
-            try
-            {
-                // Retrieve the ID of the region if it already exists
-                object? regionId = null;
-
-                // Handle name
-                if (!string.IsNullOrEmpty(name))
-                    regionId = await resourceManager.GetRegionPropertyOrDefaultAsync(predicate: r => EF.Functions.ILike(r.Name, name), selector: "Id");
-
-                // ID is empty, so no region was found
-                if (regionId == null)
-                    return Ok(new ApiResponse(true, "Region does not exist", new { exists = false, id = "" }));
-
-                // ID was not empty, so region already exists, return the ID
-                return Ok(new ApiResponse(true, "Region already exists.", new { exists = true, id = regionId.ToString() }));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error while checking if region exists");
-                return StatusCode(500, new ApiResponse(false, "Error while checking if region exists", e.Message));
-            }
-        }
-        #endregion
-
-        #region Info
-        /// <summary>
-        /// Gets the information of the region (database row)
-        /// </summary>
-        /// <param name="id">The ID of the region</param>
-        /// <param name="properties">The properties you are trying to receive, separated by comma</param>
-        [HttpGet("info/{id}")]
-        [SwaggerOperation(Summary = "Get the information of the region")]
-        [SwaggerResponse(200, "Region information", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Region Not Found", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Info(string id, [FromQuery] string? properties)
-        {
-            // Check if ID is valid
-            if (!ValidityUtil.IsValidId(id))
-                return BadRequest(new ApiResponse(false, "ID is invalid"));
-
-            try
-            {
-                // Retrieve the region
-                object? region = string.IsNullOrEmpty(properties) ?
-                    await resourceManager.GetRegionAsync(id) :
-                    await resourceManager.GetRegionPropertyAsync(id, $"new({properties})");
-
-                // If null, the region was not found
-                if (region == null)
-                    return NotFound(new ApiResponse(false, "The region does not exist"));
-
-                // Return the region
-                return Ok(new ApiResponse(true, "Region was found", region));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error retrieving region info.");
-                return StatusCode(500, new ApiResponse(false, "Error retrieving region info", e.Message));
-            }
-        }
-        #endregion
-
-        #region List
-        /// <summary>
-        /// Retrieves a list or page of all regions
-        /// </summary>
-        /// <param name="pageIndex">(Optional) The index of the page</param>
-        /// <param name="pageSize">(Optional) The size of the page</param>
-        /// <param name="properties">(Optional) The properties to select, separated by comma</param>
-        /// <param name="searchQuery">(Optional) Filter on search query </param>
-        [HttpGet("list")]
-        [SwaggerOperation(Summary = "Retrieves a list or page of all regions")]
-        [SwaggerResponse(200, "A list or page of all the regions in the archive", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties, string? searchQuery)
-        {
-            // Verification
-            if (pageIndex != null && pageIndex < 1)
-                return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1."));
-
-            if (pageSize != null && pageSize < 1)
-                return BadRequest(new ApiResponse(false, "Page size cannot be lower than 1"));
-
-            // Set defaults
-            if (pageIndex != null && pageSize == null) pageSize = 100;
-            if (pageSize != null && pageIndex == null) pageIndex = 1;
-
-            try
-            {
-                // All regions to be returned
-                object[] regions = [];
-
-                string projectionString = $"new({properties})";
-
-                Expression<Func<Region, bool>>? predicate = searchQuery != null ? r =>  EF.Functions.TrigramsAreSimilar(r.Name, searchQuery) ||
-                                                                                        EF.Functions.ILike(r.Name, $"{searchQuery}%") ||
-                                                                                        EF.Functions.ILike(r.Name, $"%{searchQuery}%") : null;
-
-                // No paging requested, list all regions
-                if (pageIndex == null || pageSize == null)
-                    regions = string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetAllRegionsAsync(predicate: predicate) :
-                        await resourceManager.GetAllRegionsAsync(projection: projectionString, predicate: predicate);
-
-                // Paging requested, retrieve regions on that page
-                else
-                    regions = string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetRegionPageAsync((int)pageIndex, (int)pageSize, predicate: predicate) :
-                        await resourceManager.GetRegionPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: predicate);
-
-                // Return found regions
-                return Ok(new ApiResponse(true, $"Found {regions.Length} regions", regions));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error listing regions");
-                return StatusCode(500, new ApiResponse(false, "Error listing regions", e.Message));
-            }
-        }
-        #endregion
-
-        #region Merge
-        /// <summary>
-        /// Merges the second region into the first. All resources associated with the second region
-        /// are reassigned to the first, and the second region is deleted.
-        /// </summary>
-        /// <param name="id1">The ID of the region to merge into</param>
-        /// <param name="id2">The ID of the region to merge from (will be deleted)</param>
-        [HttpPatch("merge/{id1}/{id2}")]
-        [Authorize(Policy = "RequireAdminRole")]
-        [SwaggerOperation(Summary = "Merges the second region into the first")]
-        [SwaggerResponse(200, "Regions merged successfully", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Bad request", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Region(s) not found", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Merge(string id1, string id2)
-        {
-            if (string.IsNullOrEmpty(id1) || string.IsNullOrEmpty(id2))
-                return BadRequest(new ApiResponse(false, "IDs are required."));
-
-            if (id1 == id2)
-                return BadRequest(new ApiResponse(false, "Cannot merge a region with itself."));
-
-            if (!Guid.TryParse(id1, out Guid regionId1) || !Guid.TryParse(id2, out Guid regionId2))
-                return BadRequest(new ApiResponse(false, "Invalid region ID format."));
-
-            try
-            {
-                if (!await resourceManager.RegionExistsAsync(regionId1) || !await resourceManager.RegionExistsAsync(regionId2))
-                    return NotFound(new ApiResponse(false, "One or both regions were not found."));
-
-                await resourceManager.BeginTransaction();
-
-                // Transfer all resource-region relations from id2 to id1
-                ResourceRegionRelation[] relations = await resourceManager
-                    .GetAllResourceRegionRelationsAsync(predicate: r => r.RegionId == regionId2);
-
-                foreach (ResourceRegionRelation relation in relations)
-                {
-                    bool hasFirstRegion = await resourceManager.ResourceRegionRelationExistsAsync(
-                        r => r.ResourceId == relation.ResourceId && r.RegionId == regionId1);
-
-                    if (!hasFirstRegion)
-                        await resourceManager.AddRegionToResourceAsync(relation.ResourceId, regionId1);
-                }
-
-                // DeleteRegionAsync also cleans up all remaining relations for id2
-                if (!await resourceManager.DeleteRegionAsync(regionId2))
-                {
-                    await resourceManager.Rollback();
-                    logger.Error("Failed to delete region {RegionId2} during merge", id2);
-                    return StatusCode(500, new ApiResponse(false, "Failed to delete source region during merge."));
-                }
-
-                await resourceManager.Commit();
-                return Ok(new ApiResponse(true, "Regions merged successfully."));
-            }
-            catch (Exception e)
-            {
-                await resourceManager.Rollback();
-                logger.Error(e, "Error merging regions {RegionId1} and {RegionId2}", id1, id2);
-                return StatusCode(500, new ApiResponse(false, "Internal Server Error"));
-            }
-        }
-        #endregion
-
-        #region Suggestions
-        /// <summary>
-        /// Returns pairs of regions with similar names that may be candidates for merging.
-        /// </summary>
-        /// <param name="threshold">Trigram similarity threshold (0–1, default 0.6)</param>
-        /// <param name="limit">Maximum number of suggestions to return (default 20)</param>
-        [HttpGet("suggestions")]
-        [Authorize(Policy = "RequireAdminRole")]
-        [SwaggerOperation(Summary = "Returns region pairs that are candidates for merging based on name similarity")]
-        [SwaggerResponse(200, "List of merge suggestions", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Suggestions([FromQuery] float threshold = 0.6f, [FromQuery] int limit = 20)
-        {
-            try
-            {
-                var suggestions = await resourceManager.GetRegionMergeSuggestionsAsync(threshold, limit);
-                return Ok(new ApiResponse(true, $"Found {suggestions.Count} suggestion(s)", suggestions));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error fetching region merge suggestions");
-                return StatusCode(500, new ApiResponse(false, "Error fetching region merge suggestions", e.Message));
-            }
-        }
-        #endregion
-
-        #region Helper Functions
-        // ---------------------------
-        // Helper functions
-        // ---------------------------
-
-        // Helper method to update a property
-        private async Task UpdateProperty<TSet, TProperty>(string id, string propertyName, TProperty newValue) where TSet : class
-        {
-            await resourceManager.UpdateRegionAsync(Guid.Parse(id), PropertyUpdateUtil.CreatePropertySelector<Region, TProperty>(propertyName), newValue);
-        }
-        #endregion
+        return Ok(new { items, totalCount });
     }
+    
+    [HttpPut]
+    [SwaggerOperation(Summary = "Create a region")]
+    [SwaggerResponse(200, "Region created", typeof(Guid))]
+    [SwaggerResponse(409, "Region already exists", typeof(Guid))]
+    public async Task<IActionResult> Create([FromBody] RegionCreateDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            return Problem("Name is required.", statusCode: 400);
+
+        if (dto.Name.Length > MAX_NAME_LENGTH)
+            return Problem($"Name too long (max {MAX_NAME_LENGTH} characters).", statusCode: 400);
+
+        Guid? existingId = await regionService.FindIdByNameAsync(dto.Name);
+
+        if (existingId != null)
+            return Conflict(existingId);
+
+        Guid createdBy = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        Guid id = await regionService.CreateAsync(dto.Name, createdBy);
+
+        return Ok(id);
+    }
+
+    [HttpDelete("{id}")]
+    [SwaggerOperation(Summary = "Delete a region")]
+    [SwaggerResponse(204, "Region deleted")]
+    [SwaggerResponse(403, "Action forbidden")]
+    [SwaggerResponse(404, "Region not found")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        Region? region = await regionService.GetByIdAsync(id, includeRelations: true);
+        if (region == null) return Problem("Region not found.", statusCode: 404);
+
+        bool isAdmin = User.IsInRole("admin");
+        Guid userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        int usageCount = region.ResourceRegionRelations?.Count ?? 0;
+
+        if (!isAdmin && (region.CreatedBy != userId || usageCount != 0))
+            return Problem("Cannot delete this region.", statusCode: 403);
+
+        await regionService.DeleteAsync(id);
+        return NoContent();
+    }
+
+    [HttpPatch("{id}/name")]
+    [SwaggerOperation(Summary = "Rename a region")]
+    [SwaggerResponse(204, "Rename successfull")]
+    [SwaggerResponse(409, "Name already exists")]
+    [SwaggerResponse(403, "Action forbidden")]
+    [SwaggerResponse(404, "Region not found")]
+    [SwaggerResponse(400, "Invalid name")]
+    public async Task<IActionResult> Rename(Guid id, [FromBody] TagCreateDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            return Problem("Name is required.", statusCode: 400);
+
+        if (dto.Name.Length > MAX_NAME_LENGTH)
+            return Problem($"Name too long (max {MAX_NAME_LENGTH} characters).", statusCode: 400);
+
+        Region? region = await regionService.GetByIdAsync(id, includeRelations: true);
+        if (region == null)
+            return Problem("Region not found.", statusCode: 404);
+
+        bool isAdmin = User.IsInRole("admin");
+        Guid userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        int usageCount = region.ResourceRegionRelations?.Count ?? 0;
+
+        if (!isAdmin && (region.CreatedBy != userId || usageCount != 0))
+            return Problem("Cannot edit this region.", statusCode: 403);
+
+        if (await regionService.ExistsAsync(r => EF.Functions.ILike(r.Name, dto.Name)))
+            return Problem("Region name already exists.", statusCode: 409);
+
+        await regionService.UpdateAsync(id, r => r.Name = dto.Name);
+        return NoContent();
+    }
+
+    [HttpPatch("merge/{keepId}/{removeId}")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerOperation(Summary = "(Admin only) Merge two regions")]
+    [SwaggerResponse(204, "Regions merged")]
+    [SwaggerResponse(404, "Region not found")]
+    [SwaggerResponse(400, "Invalid request")]
+    public async Task<IActionResult> Merge(Guid keepId, Guid removeId)
+    {
+        if (keepId == removeId)
+            return Problem("Cannot merge region with itself.", statusCode: 400);
+
+        if (!await regionService.ExistsAsync(keepId) || !await regionService.ExistsAsync(removeId))
+            return Problem("One or both tags not found.", statusCode: 404);
+
+        await regionService.MergeAsync(keepId, removeId);
+        return NoContent();
+    }
+
+    [HttpGet("suggestions")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerOperation(Summary = "(Admin only) Get merge suggestions based on name similarity")]
+    [SwaggerResponse(200, "List of suggestions")]
+    public async Task<IActionResult> Suggestions([FromQuery] float threshold = 0.6f, [FromQuery] int limit = 20)
+        => Ok(await regionService.GetMergeSuggestionsAsync(threshold, limit));
 }

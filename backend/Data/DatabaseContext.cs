@@ -65,20 +65,19 @@ namespace KnowledgeBank.Data
                 .ToTable("organisations");
 
             modelBuilder.Entity<ResourceTagRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.TagId }); // Define composite primary key
+                .HasKey(ft => new { ft.ResourceId, ft.TagId });
 
             modelBuilder.Entity<ResourceAuthorRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.AuthorId});
+                .HasKey(ft => new { ft.ResourceId, ft.AuthorId });
 
-            // Configure ResourceAuthorRelation to reference Entity base class
             modelBuilder.Entity<ResourceAuthorRelation>()
                 .HasOne(ra => ra.Author)
                 .WithMany(e => e.ResourceAuthorRelations)
                 .HasForeignKey(ra => ra.AuthorId)
                 .OnDelete(DeleteBehavior.NoAction);
-                
+
             modelBuilder.Entity<ResourceRelatedPersonRelation>()
-               .HasKey(ft => new { ft.ResourceId, ft.PersonId });
+                .HasKey(ft => new { ft.ResourceId, ft.PersonId });
 
             modelBuilder.Entity<ResourceOrganisationRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.OrganisationId });
@@ -89,34 +88,38 @@ namespace KnowledgeBank.Data
             modelBuilder.Entity<PersonRelationship>()
                 .HasKey(ft => new { ft.SourcePersonId, ft.TargetPersonId });
 
+            modelBuilder.Entity<PersonRelationship>()
+                .HasOne(or => or.SourcePerson)
+                .WithMany(o => o.TargetRelationships)
+                .HasForeignKey(or => or.SourcePersonId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PersonRelationship>()
+                .HasOne(or => or.TargetPerson)
+                .WithMany(o => o.SourceRelationships)
+                .HasForeignKey(or => or.TargetPersonId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             modelBuilder.Entity<OrganisationRelationship>()
                 .HasKey(ft => new { ft.SourceOrganisationId, ft.TargetOrganisationId });
+
+            modelBuilder.Entity<OrganisationRelationship>()
+                .HasOne(or => or.SourceOrganisation)
+                .WithMany(o => o.TargetRelationships)
+                .HasForeignKey(or => or.SourceOrganisationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<OrganisationRelationship>()
+                .HasOne(or => or.TargetOrganisation)
+                .WithMany(o => o.SourceRelationships)
+                .HasForeignKey(or => or.TargetOrganisationId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<ResourceRegionRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.RegionId });
 
             modelBuilder.Entity<ResourceSourceRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.Url });
-
-            modelBuilder.Entity<OrganisationRelationship>()
-                .HasOne(or => or.SourceOrganisation)
-                .WithMany(o => o.TargetRelationships)
-                .HasForeignKey(or => or.SourceOrganisationId);
-
-            modelBuilder.Entity<OrganisationRelationship>()
-                .HasOne(or => or.TargetOrganisation)
-                .WithMany(o => o.SourceRelationships)
-                .HasForeignKey(or => or.TargetOrganisationId);
-
-            modelBuilder.Entity<PersonRelationship>()
-                .HasOne(or => or.SourcePerson)
-                .WithMany(o => o.TargetRelationships)
-                .HasForeignKey(or => or.SourcePersonId);
-
-            modelBuilder.Entity<PersonRelationship>()
-                .HasOne(or => or.TargetPerson)
-                .WithMany(o => o.SourceRelationships)
-                .HasForeignKey(or => or.TargetPersonId);
 
             // Resource chunks
             modelBuilder.Entity<ResourceChunk>(entity =>
@@ -219,12 +222,14 @@ namespace KnowledgeBank.Data
             modelBuilder.Entity<ProjectFolderRelation>()
                 .HasOne(pfr => pfr.ParentFolder)
                 .WithMany(u => u.ChildFolders)
-                .HasForeignKey(pfr => pfr.ParentId);
+                .HasForeignKey(pfr => pfr.ParentId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<ProjectFolderRelation>()
                 .HasOne(pfr => pfr.ChildFolder)
                 .WithMany(f => f.ParentFolders)
-                .HasForeignKey(pfr => pfr.ChildId);
+                .HasForeignKey(pfr => pfr.ChildId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Resource grid view
             modelBuilder.Entity<ResourceGridItem>(entity =>

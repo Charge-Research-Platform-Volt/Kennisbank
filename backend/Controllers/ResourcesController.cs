@@ -292,7 +292,7 @@ namespace KnowledgeBank.Controllers
                         Guid tagId = await resourceManager.CreateTagAsync(new TagCreateDto
                         {
                             Name = tagName,
-                            CreatedBy = userId ?? string.Empty
+                            // CreatedBy = userId ?? string.Empty
                         });
                         dto.Tags[i] = tagId.ToString();
                     }

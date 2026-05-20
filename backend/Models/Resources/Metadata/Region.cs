@@ -16,6 +16,12 @@ public class Region
     [Column("name")]
     public required string Name { get; set; }
 
+    [Column("created-by")]
+    public required Guid CreatedBy { get; set; }
+
+    [Column("created-on")]
+    public required DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+
     // Navigation property
     [JsonIgnore] public ICollection<ResourceRegionRelation>? ResourceRegionRelations { get; set; }
 }

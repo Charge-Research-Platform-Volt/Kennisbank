@@ -3,6 +3,7 @@ using System;
 using KnowledgeBank.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -12,9 +13,11 @@ using Pgvector;
 namespace KnowledgeBank.Data.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20260520124712_CleanupTagSchema")]
+    partial class CleanupTagSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -35,7 +38,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasKey("ResourceId");
 
-                    b.ToTable("audio-metadata", (string)null);
+                    b.ToTable("audio-metadata");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.ChangelogEntry", b =>
@@ -63,7 +66,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("changelog", (string)null);
+                    b.ToTable("changelog");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.Chats", b =>
@@ -92,7 +95,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("chats", (string)null);
+                    b.ToTable("chats");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.DocumentMetadata", b =>
@@ -107,7 +110,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasKey("ResourceId");
 
-                    b.ToTable("document-metadata", (string)null);
+                    b.ToTable("document-metadata");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.Entity", b =>
@@ -147,7 +150,7 @@ namespace KnowledgeBank.Data.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("entities", (string)null);
+                    b.ToTable("entities");
 
                     b.UseTptMappingStrategy();
                 });
@@ -190,7 +193,7 @@ namespace KnowledgeBank.Data.Migrations
                     b.HasIndex("EntityId")
                         .HasDatabaseName("idx_entity_chunks_entity_id");
 
-                    b.ToTable("entity-chunks", (string)null);
+                    b.ToTable("entity-chunks");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.Invitation", b =>
@@ -221,7 +224,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("invitations", (string)null);
+                    b.ToTable("invitations");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.Journal", b =>
@@ -241,7 +244,7 @@ namespace KnowledgeBank.Data.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("journals", (string)null);
+                    b.ToTable("journals");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.Messages", b =>
@@ -274,7 +277,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasIndex("ChatId");
 
-                    b.ToTable("messages", (string)null);
+                    b.ToTable("messages");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.OrganisationRelationship", b =>
@@ -295,7 +298,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasIndex("TargetOrganisationId");
 
-                    b.ToTable("organisation-relationships", (string)null);
+                    b.ToTable("organisation-relationships");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.PersonOrganisationRelation", b =>
@@ -316,7 +319,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasIndex("OrganisationId");
 
-                    b.ToTable("person-organisation", (string)null);
+                    b.ToTable("person-organisation");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.PersonRelationship", b =>
@@ -337,7 +340,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasIndex("TargetPersonId");
 
-                    b.ToTable("person-person", (string)null);
+                    b.ToTable("person-person");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.Project", b =>
@@ -372,7 +375,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("projects", (string)null);
+                    b.ToTable("projects");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.ProjectCreatorRelation", b =>
@@ -389,7 +392,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasIndex("CreatorId");
 
-                    b.ToTable("project-creator", (string)null);
+                    b.ToTable("project-creator");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.ProjectFolderRelation", b =>
@@ -410,7 +413,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasIndex("ChildId");
 
-                    b.ToTable("project-folder", (string)null);
+                    b.ToTable("project-folder");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.ProjectItemRelation", b =>
@@ -429,7 +432,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasKey("ProjectId", "ItemId");
 
-                    b.ToTable("project-item", (string)null);
+                    b.ToTable("project-item");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.ProjectTagRelation", b =>
@@ -450,7 +453,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasIndex("TagId");
 
-                    b.ToTable("project-tag", (string)null);
+                    b.ToTable("project-tag");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.Region", b =>
@@ -459,14 +462,6 @@ namespace KnowledgeBank.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created-by");
-
-                    b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created-on");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -478,7 +473,7 @@ namespace KnowledgeBank.Data.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("regions", (string)null);
+                    b.ToTable("regions");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.Resource", b =>
@@ -573,7 +568,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasIndex("TypeId");
 
-                    b.ToTable("resources", (string)null);
+                    b.ToTable("resources");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.ResourceAuthorRelation", b =>
@@ -590,7 +585,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasIndex("AuthorId");
 
-                    b.ToTable("resource-author", (string)null);
+                    b.ToTable("resource-author");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.ResourceChunk", b =>
@@ -634,7 +629,7 @@ namespace KnowledgeBank.Data.Migrations
                     b.HasIndex("ResourceId", "ChunkPart")
                         .HasDatabaseName("id_resource_chunks_resource_part");
 
-                    b.ToTable("resource-chunks", (string)null);
+                    b.ToTable("resource-chunks");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.ResourceGridItem", b =>
@@ -737,7 +732,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasIndex("OrganisationId");
 
-                    b.ToTable("resource-organisation", (string)null);
+                    b.ToTable("resource-organisation");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.ResourceRegionRelation", b =>
@@ -755,7 +750,7 @@ namespace KnowledgeBank.Data.Migrations
                     b.HasIndex("RegionId")
                         .HasDatabaseName("idx_resource_region_region_id");
 
-                    b.ToTable("resource-region", (string)null);
+                    b.ToTable("resource-region");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.ResourceRelatedPersonRelation", b =>
@@ -776,7 +771,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasIndex("PersonId");
 
-                    b.ToTable("resource-related_person", (string)null);
+                    b.ToTable("resource-related_person");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.ResourceSourceRelation", b =>
@@ -791,7 +786,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasKey("ResourceId", "Url");
 
-                    b.ToTable("resource-source", (string)null);
+                    b.ToTable("resource-source");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.ResourceTagRelation", b =>
@@ -813,7 +808,7 @@ namespace KnowledgeBank.Data.Migrations
                     b.HasIndex("TagId")
                         .HasDatabaseName("idx_resource_tag_tag_id");
 
-                    b.ToTable("resource-tag", (string)null);
+                    b.ToTable("resource-tag");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.ResourceTrashItem", b =>
@@ -860,7 +855,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("resource-types", (string)null);
+                    b.ToTable("resource-types");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.Tag", b =>
@@ -888,7 +883,7 @@ namespace KnowledgeBank.Data.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("tags", (string)null);
+                    b.ToTable("tags");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.User", b =>
@@ -986,7 +981,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasKey("ResourceId");
 
-                    b.ToTable("video-metadata", (string)null);
+                    b.ToTable("video-metadata");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.WebsiteMetadata", b =>
@@ -1006,7 +1001,7 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasKey("ResourceId");
 
-                    b.ToTable("website-metadata", (string)null);
+                    b.ToTable("website-metadata");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

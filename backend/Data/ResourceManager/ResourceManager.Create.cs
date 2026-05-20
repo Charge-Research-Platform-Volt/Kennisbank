@@ -255,6 +255,8 @@ namespace KnowledgeBank.Data
             {
                 Id = regionId,
                 Name = dto.Name,
+                CreatedBy = Guid.NewGuid(),
+                CreatedOn = DateTime.UtcNow
             };
 
             // Add region to database
@@ -279,23 +281,9 @@ namespace KnowledgeBank.Data
             {
                 Id = tagId,
                 Name = dto.Name,
-                IsStandardized = isStandardized,
-                IsApproved = isStandardized ? true : dto.IsApproved,
-                CreatedBy = Guid.Parse(dto.CreatedBy),
+                CreatedBy = Guid.NewGuid(),
                 CreatedOn = DateTime.UtcNow,
             };
-
-            // Set approved by if present or if isStandardized (createdBy == approvedBy)
-            if (isStandardized)
-            {
-                tag.ApprovedBy = Guid.Parse(dto.CreatedBy);
-                tag.ApprovedOn = DateTime.UtcNow;
-            }
-            else if (!string.IsNullOrEmpty(dto.ApprovedBy))
-            {
-                tag.ApprovedBy = Guid.Parse(dto.ApprovedBy);
-                tag.ApprovedOn = DateTime.UtcNow;
-            }
 
             // Add tag to database
             await database.Tags.AddAsync(tag);
