@@ -3,6 +3,7 @@ using System;
 using KnowledgeBank.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -12,9 +13,11 @@ using Pgvector;
 namespace KnowledgeBank.Data.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20260527134626_AddCreatedByResourceType")]
+    partial class AddCreatedByResourceType
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -575,7 +578,7 @@ namespace KnowledgeBank.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("trashed");
 
-                    b.Property<Guid?>("TypeId")
+                    b.Property<Guid>("TypeId")
                         .HasColumnType("uuid")
                         .HasColumnName("type-id");
 
@@ -1364,7 +1367,9 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasOne("KnowledgeBank.Models.ResourceType", "ResourceType")
                         .WithMany("Resources")
-                        .HasForeignKey("TypeId");
+                        .HasForeignKey("TypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Journal");
 

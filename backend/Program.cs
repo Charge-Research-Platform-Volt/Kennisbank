@@ -143,6 +143,10 @@ namespace KnowledgeBank
             builder.Services.AddScoped<ProjectManager>();
             builder.Services.AddScoped<TagService>();
             builder.Services.AddScoped<RegionService>();
+            builder.Services.AddScoped<JournalService>();
+            builder.Services.AddScoped<PersonService>();
+            builder.Services.AddScoped<OrganisationService>();
+            builder.Services.AddScoped<ResourceTypeService>();
 
             // Retrieval Augmented Generation system
             builder.Services.AddSingleton<MistralHttpClient>();
@@ -264,11 +268,7 @@ namespace KnowledgeBank
                 RoleInitializer roleInitializer = scope.ServiceProvider.GetRequiredService<RoleInitializer>();
                 await roleInitializer.InitializeAsync();
                 
-                // Ensure the "Unknown" resource type exists (used as fallback when a resource type is deleted)
                 var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-                var unknownTypeId = Guid.Parse(DatabaseContext.UnknownResourceTypeId);
-                if (!await db.ResourceTypes.AnyAsync(t => t.Id == unknownTypeId))
-                    await db.ResourceTypes.AddAsync(new() { Id = unknownTypeId, Name = "Unknown" });
                 await db.SaveChangesAsync();
 
                 await db.EnsureDatabaseSetupAsync();

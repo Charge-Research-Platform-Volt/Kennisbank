@@ -85,7 +85,7 @@ public class RegionsController(RegionService regionService) : AppControllerBase
     [SwaggerResponse(403, "Action forbidden")]
     [SwaggerResponse(404, "Region not found")]
     [SwaggerResponse(400, "Invalid name")]
-    public async Task<IActionResult> Rename(Guid id, [FromBody] TagCreateDto dto)
+    public async Task<IActionResult> Rename(Guid id, [FromBody] RegionCreateDto dto)
     {
         if (string.IsNullOrWhiteSpace(dto.Name))
             return Problem("Name is required.", statusCode: 400);
@@ -123,7 +123,7 @@ public class RegionsController(RegionService regionService) : AppControllerBase
             return Problem("Cannot merge region with itself.", statusCode: 400);
 
         if (!await regionService.ExistsAsync(keepId) || !await regionService.ExistsAsync(removeId))
-            return Problem("One or both tags not found.", statusCode: 404);
+            return Problem("One or both regions not found.", statusCode: 404);
 
         await regionService.MergeAsync(keepId, removeId);
         return NoContent();

@@ -28,3 +28,25 @@ public class OrganisationCreateDto
     // Tuple: (OrganisationId, Relation?)
     public RelatedEntry[] OrganisationRelations { get; set; } = [];
 }
+
+public class OrganisationUpdateDto
+{
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public string? EmailAddress { get; set; }
+    public string? Website { get; set; }
+}
+
+public class OrganisationDetailDto
+{
+    public string Name { get; set; } = null!;
+    public string? Description { get; set; }
+    public string? EmailAddress { get; set; }
+    public string? Website { get; set; }
+    public DateTime CreatedOn { get; set; }
+    public RelationItemDto[] Authored { get; set; } = [];
+    public RelationItemDto[] RelatedResources { get; set; } = [];
+    public RelationItemDto[] TargetOrganisations { get; set; } = [];
+    public RelationItemDto[] SourceOrganisations { get; set; } = [];
+    public RelationItemDto[] Persons { get; set; } = [];
+}

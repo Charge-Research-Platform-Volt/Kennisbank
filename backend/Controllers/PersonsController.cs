@@ -1,752 +1,213 @@
+using System.Linq.Expressions;
+using KnowledgeBank.Services.Domain;
+using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
-using Serilog;
-using KnowledgeBank.Models;
-using KnowledgeBank.Data;
-using KnowledgeBank.Utils;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Cors;
-using KnowledgeBank.Services.Background;
-using KnowledgeBank.Services;
-using KnowledgeBank.Services.AI;
-using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using KnowledgeBank.Services.Background;
+using KnowledgeBank.Services.AI;
 
-namespace KnowledgeBank.Controllers
+namespace KnowledgeBank.Controllers;
+
+[ApiController]
+[Route("[controller]")]
+[Authorize]
+public class PersonsController(PersonService personService, IBackgroundTaskQueue taskQueue) : AppControllerBase
 {
-    /// <summary>
-    /// This controller is responsible for handing API calls to manage persons and their metadata.
-    ///
-    /// </summary>
-    /// <param name="resourceManager">The resource manager service for database interactions</param>
-    /// <param name="taskQueue">The background task queue for handling asynchronous tasks</param>
-    [ApiController]
-    [Route("[controller]")]
-    [Produces("application/json")]
-    [Authorize]
-    public class PersonsController(ResourceManager resourceManager, IBackgroundTaskQueue taskQueue) : ControllerBase
+    [HttpGet]
+    [SwaggerOperation(Summary = "Get persons with optional search and pagination")]
+    [SwaggerResponse(200, "List of persons")]
+    public async Task<IActionResult> Get(
+        [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] bool trash = false)
     {
-        private readonly Serilog.ILogger logger = Log.ForContext<PersonsController>();
-        private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
-
-
-        #region New
-        /// <summary>
-        /// Creates a new person
-        /// </summary>
-        /// <param name="dto">The Data Transfer Object</param>
-        [HttpPut("new")]
-        [SwaggerOperation(Summary = "Create a new person in the archive")]
-        [SwaggerResponse(200, "Person was created successfully", typeof(ApiResponse))]
-        [SwaggerResponse(409, "Person already exists", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> New([FromBody] PersonCreateDto dto)
-        {
-            // DTO checks
-            if (string.IsNullOrEmpty(dto.Name))
-                return BadRequest(new ApiResponse(false, "No name was given"));
-
-            logger.Information("Creating person '{Name}'...", dto.Name);
-
-            try
-            {
-                // Create the person and return the ID
-                Guid id = await resourceManager.CreatePersonAsync(dto);
-
-                // Add the person to the vector database 
-                _taskQueue.QueueBackgroundWorkItem(async token =>
-                {
-                    using var scope = HttpContext.RequestServices.CreateScope();
-                    var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
-                    await ingestionService.RunPersonEntityPipelineAsync(id);
-                });
-
-                logger.Information("Person '{Name}' created successfully.", dto.Name);
-                return Ok(new ApiResponse(true, "Person created successfully", id));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error creating person '{Name}'.", dto.Name);
-                return StatusCode(500, new ApiResponse(false, "Error creating person", e.Message));
-            }
-        }
-        #endregion
-        
-        #region Trash
-        /// <summary>
-        /// Trashes a person
-        /// </summary>
-        /// <param name="id">The ID of the person</param>
-        [HttpPatch("trash/{id}")]
-        [Authorize]
-        [SwaggerOperation(Summary = "Trashes a person.")]
-        [SwaggerResponse(200, "Person trashed successfully", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Person not found", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Trash(string id) 
-        {
-            // Check if the ID is valid
-            if (!ValidityUtil.IsValidId(id))
-                return BadRequest(new ApiResponse(false, "Invalid ID."));
-                
-            try 
-            {
-                // Check if the person exists
-                if (!await resourceManager.PersonExistsAsync(Guid.Parse(id)))
-                    return NotFound(new ApiResponse(false, $"Person with ID '{id}' does not exist."));
-
-                logger.Information("Trashing person with ID: {ID}", id);
-
-                // Trash the person
-                await resourceManager.TrashPersonAsync(Guid.Parse(id));
-
-                logger.Information("Trashed person with ID '{ID}' successfully.", id);
-                return Ok(new ApiResponse(true, "Person trashed successfully."));
-            }
-            catch (Exception e) 
-            {
-                logger.Error(e, "Error trashing person with ID {ID}.", id);
-                return StatusCode(500, new ApiResponse(false, "Error trashing person", e.Message));
-            }
-        }
-        #endregion
-
-        #region Untrash
-        /// <summary>
-        /// Untrashes a person
-        /// </summary>
-        /// <param name="id">The ID of the person</param>
-        [HttpPatch("untrash/{id}")]
-        [Authorize(Policy = "RequireAdminRole")]
-        [SwaggerOperation(Summary = "Untrashes a person.")]
-        [SwaggerResponse(200, "Person untrashed successfully", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Person not found", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Untrash(string id) 
-        {
-            // Check if the ID is valid
-            if (!ValidityUtil.IsValidId(id))
-                return BadRequest(new ApiResponse(false, "Invalid ID."));
-                
-            try 
-            {
-                // Check if the person exists
-                if (!await resourceManager.PersonExistsAsync(Guid.Parse(id)))
-                    return NotFound(new ApiResponse(false, $"Person with ID '{id}' does not exist."));
-
-                logger.Information("Untrashing person with ID: {ID}", id);
-
-                // Untrash the person
-                await resourceManager.UntrashPersonAsync(Guid.Parse(id));
-
-                logger.Information("Untrashed person with ID '{ID}' successfully.", id);
-                return Ok(new ApiResponse(true, "Person untrashed successfully."));
-            }
-            catch (Exception e) 
-            {
-                logger.Error(e, "Error untrashing person with ID {ID}.", id);
-                return StatusCode(500, new ApiResponse(false, "Error untrashing person", e.Message));
-            }
-        }
-        #endregion
-
-        #region Delete
-        /// <summary>
-        /// Deletes a person
-        /// </summary>
-        /// <param name="id">The ID of the person</param>
-        [HttpDelete("delete/{id}")]
-        [Authorize(Policy = "RequireAdminRole")]
-        [SwaggerOperation(Summary = "Deletes a person")]
-        [SwaggerResponse(200, "Person deleted successfully", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Person not found", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Delete(string id)
-        {
-            // Check if the ID is valid
-            if (!ValidityUtil.IsValidId(id))
-                return BadRequest(new ApiResponse(false, "Invalid ID"));
-
-            try
-            {
-                // Delete person
-                logger.Information("Deleting person with ID: {ID}", id);
-                bool found = await resourceManager.DeletePersonAsync(Guid.Parse(id));
-
-                if (!found)
-                {
-                    logger.Information("Person with ID '{ID}' not found.", id);
-                    return NotFound(new ApiResponse(false, "Person does not exist"));
-                }
-
-                logger.Information("Person with ID '{ID}' deleted successfully", id);
-                return Ok(new ApiResponse(true, "Person deleted successfully"));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error deleting person with ID {ID}", id);
-                return StatusCode(500, new ApiResponse(false, "Error deleting person"));
-            }
-        }
-        #endregion
-
-        #region Merge
-        /// <summary>
-        /// Merges the second person into the first. All relations are transferred to the first person and the second is deleted.
-        /// </summary>
-        /// <param name="id1">The ID of the person to merge into (survivor)</param>
-        /// <param name="id2">The ID of the person to merge from (will be deleted)</param>
-        [HttpPatch("merge/{id1}/{id2}")]
-        [Authorize(Policy = "RequireAdminRole")]
-        [SwaggerOperation(Summary = "Merges the second person into the first")]
-        [SwaggerResponse(200, "Persons merged successfully", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Bad request", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Person(s) not found", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Merge(string id1, string id2)
-        {
-            if (string.IsNullOrEmpty(id1) || string.IsNullOrEmpty(id2))
-                return BadRequest(new ApiResponse(false, "IDs are required."));
-
-            if (id1 == id2)
-                return BadRequest(new ApiResponse(false, "Cannot merge a person with itself."));
-
-            if (!Guid.TryParse(id1, out Guid personId1) || !Guid.TryParse(id2, out Guid personId2))
-                return BadRequest(new ApiResponse(false, "Invalid person ID format."));
-
-            try
-            {
-                if (!await resourceManager.PersonExistsAsync(personId1) || !await resourceManager.PersonExistsAsync(personId2))
-                    return NotFound(new ApiResponse(false, "One or both persons were not found."));
-
-                await resourceManager.MergePersonsAsync(personId1, personId2);
-                return Ok(new ApiResponse(true, "Persons merged successfully."));
-            }
-            catch (Exception e)
-            {
-                await resourceManager.Rollback();
-                logger.Error(e, "Error merging persons {PersonId1} and {PersonId2}", id1, id2);
-                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
-            }
-        }
-        #endregion
-
-        #region Update
-        /// <summary>
-        /// Updates a person
-        /// </summary>
-        /// <param name="id">The ID of the person</param>
-        /// <param name="updates">The dictionary of propertynames to update and their new values</param>
-        [HttpPatch("update/{id}")]
-        [Authorize]
-        [SwaggerOperation(Summary = "Updates a person")]
-        [SwaggerResponse(200, "Person updated", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Person not found", typeof(ApiResponse))]
-        [SwaggerResponse(409, "Already exists", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Update(string id, [FromBody] Dictionary<string, object> updates)
-        {
-            // Check if the ID is valid
-            if (!ValidityUtil.IsValidId(id))
-                return BadRequest(new ApiResponse(false, "Invalid ID."));
-
-            // Check if updates are provided
-            if (updates == null || updates.Count == 0)
-                return BadRequest(new ApiResponse(false, "No updates were provided."));
-
-            logger.Information("Updating person with ID '{ID}'...", id);
-
-            try
-            {
-                // Check if person exists
-                if (!await resourceManager.PersonExistsAsync(Guid.Parse(id)))
-                    return NotFound(new ApiResponse(false, "The person does not exist"));
-
-                // Start a database transaction, since we could be doing multiple updates
-                await resourceManager.BeginTransaction();
-
-                // Update the properties (get IngestionService from DI for metadata updates)
-                using var scope = HttpContext.RequestServices.CreateScope();
-                var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
-                List<string> updatedProperties = await PropertyUpdateUtil.UpdateProperties(this, nameof(UpdateProperty), typeof(Person), id, updates, ingestionService);
-
-                // No props were found
-                if (updatedProperties.Count == 0)
-                {
-                    await resourceManager.Rollback();
-                    return BadRequest(new ApiResponse(false, "None of the props were found."));
-                }
-
-                // Commit changes to database
-                await resourceManager.Commit();
-
-                // Update embeddings
-                Guid personGuid = Guid.Parse(id);
-                _taskQueue.QueueBackgroundWorkItem(async token =>
-                {
-                    using var scope = HttpContext.RequestServices.CreateScope();
-                    var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
-                    await ingestionService.RunPersonEntityPipelineAsync(personGuid);
-                });
-
-                // Join all updated properties
-                string updatedPropertiesString = string.Join(", ", updatedProperties);
-
-                // If all properties were updated
-                if (updatedProperties.Count == updates.Count)
-                {
-                    logger.Information("Successfully updated person with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
-                    return Ok(new ApiResponse(true, $"Person updated successfully.", updatedProperties));
-                }
-
-                // If not all properties were updated
-                else
-                {
-                    logger.Information("Partially updated person with ID '{ID}'. Updated properties: {props}", id, updatedPropertiesString);
-                    return Ok(new ApiResponse(true, $"Person updated partially.", updatedProperties));
-                }
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error updating person with ID '{ID}'", id);
-                return StatusCode(500, new ApiResponse(false, "Error updating person", e.Message));
-            }
-        }
-        #endregion
-
-        #region Exists
-        /// <summary>
-        /// Checks if a person already exists in the database
-        /// </summary>
-        /// <param name="name">The name of the person</param>
-        [EnableCors("AllowFrontend")]
-        [HttpGet("exists")]
-        [SwaggerOperation(Summary = "Check if a person exists")]
-        [SwaggerResponse(200, "Response with boolean indicating if person exists.", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Exists([FromQuery] string? name)
-        {
-            // Check for null
-            if (string.IsNullOrEmpty(name))
-                return BadRequest(new ApiResponse(false, "No value given"));
-
-            try
-            {
-                // Retrieve the ID of the person if it already exists
-                object? personId = null;
-
-                // Handle name
-                if (!string.IsNullOrEmpty(name))
-                    personId = await resourceManager.GetPersonPropertyOrDefaultAsync(predicate: p => EF.Functions.ILike(p.Name, name), selector: "Id");
-
-
-
-                // ID is empty, so no person was found
-                if (personId == null)
-                    return Ok(new ApiResponse(true, "Person does not exist", new { exists = false, id = "" }));
-
-                // ID was not empty, so person already exists, return the ID
-                return Ok(new ApiResponse(true, "Person already exists.", new { exists = true, id = personId.ToString() }));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error while checking if person exists");
-                return StatusCode(500, new ApiResponse(false, "Error while checking if person exists", e.Message));
-            }
-        }
-        #endregion
-
-        #region Info
-        /// <summary>
-        /// Gets the information of the person (database row)
-        /// </summary>
-        /// <param name="id">The ID of the person</param>
-        /// <param name="properties">The properties you are trying to receive, separated by comma</param>
-        [HttpGet("info/{id}")]
-        [SwaggerOperation(Summary = "Get the information of the person")]
-        [SwaggerResponse(200, "Person information", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Person Not Found", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Info(string id, [FromQuery] string? properties)
-        {
-            // Check if ID is valid
-            if (!ValidityUtil.IsValidId(id))
-                return BadRequest(new ApiResponse(false, "ID is invalid"));
-
-            try
-            {
-                // Retrieve the person
-                object? person = string.IsNullOrEmpty(properties) ?
-                    await resourceManager.GetPersonAsync(id) :
-                    await resourceManager.GetPersonPropertyAsync(id, $"new({properties})");
-
-                // If null, the person was not found
-                if (person == null)
-                    return NotFound(new ApiResponse(false, "The person does not exist"));
-
-                // Return the person
-                return Ok(new ApiResponse(true, "Person was found", person));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error retrieving person info.");
-                return StatusCode(500, new ApiResponse(false, "Error retrieving person info.", e.Message));
-            }
-        }
-        #endregion
-
-        #region List
-        /// <summary>
-        /// Retrieves a list or page of all persons
-        /// </summary>
-        /// <param name="pageIndex">(Optional) The index of the page</param>
-        /// <param name="pageSize">(Optional) The size of the page</param>
-        /// <param name="properties">(Optional) The properties to select, separated by comma</param>
-        /// <param name="searchQuery">(Optional) Filter on search query </param>
-        /// <param name="trash">(Optional) Whether to show trashed persons or non trashed presons</param>
-        [HttpGet("list")]
-        [SwaggerOperation(Summary = "Retrieves a list or page of all persons")]
-        [SwaggerResponse(200, "A list or page of all the persons in the archive", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> List(int? pageIndex, int? pageSize, string? properties, string? searchQuery, bool trash = false)
-        {
-
-            // Verification
-            if (trash && !User.IsInRole("admin"))
-                return Unauthorized(new ApiResponse(false, "You are not authorized to view trashed persons."));
-
-            if (pageIndex != null && pageIndex < 1)
-                return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1."));
-
-            if (pageSize != null && pageSize < 1)
-                return BadRequest(new ApiResponse(false, "Page size cannot be lower than 1"));
-
-            // Set defaults
-            if (pageIndex != null && pageSize == null) pageSize = 100;
-            if (pageSize != null && pageIndex == null) pageIndex = 1;
-
-            try
-            {
-                // All persons to be returned
-                object[] persons = [];
-
-                string projectionString = $"new({properties})";
-
-                Expression<Func<Person, bool>>? predicate = searchQuery != null ? p => (EF.Functions.TrigramsAreSimilar(p.Name, searchQuery) ||
-                                                                                            EF.Functions.ILike(p.Name, $"{searchQuery}%") ||
-                                                                                            EF.Functions.ILike(p.Name, $"%{searchQuery}%"))
-                                                                                            && p.Trashed == trash
-                                                                                  : p => p.Trashed == trash;
-
-                // No paging requested, list all persons
-                if (pageIndex == null || pageSize == null)
-                {
-                    persons = string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetAllPersonsAsync(predicate: predicate) :
-                        await resourceManager.GetAllPersonsAsync(projection: projectionString, predicate: predicate);
-
-                    return Ok(new ApiResponse(true, $"Found {persons.Length} persons", new { Items = persons, PageCount = 1, TotalCount = persons.Length }));
-                }
-
-                // Paging requested, retrieve persons on that page
-                persons = string.IsNullOrEmpty(properties) ?
-                    await resourceManager.GetPersonPageAsync((int)pageIndex, (int)pageSize, predicate: predicate) :
-                    await resourceManager.GetPersonPageAsync(projectionString, (int)pageIndex, (int)pageSize, predicate: predicate);
-
-                int totalPersons = (await resourceManager.GetAllPersonsAsync(predicate: predicate)).Length;
-                int pageCount = (int)Math.Ceiling((double)totalPersons / (int)pageSize);
-
-                return Ok(new ApiResponse(true, $"Found {persons.Length} persons", new { Items = persons, PageCount = pageCount, TotalCount = totalPersons }));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error listing persons.");
-                return StatusCode(500, new ApiResponse(false, "Error listing persons.", e.Message));
-            }
-        }
-        #endregion
-
-
-        #region Relation fetches
-        /// <summary>
-        /// Retrieves all relations of the given type for the given person ID
-        /// </summary>
-        /// <param name="relation">The relation to retrieve</param>
-        /// <param name="id">The ID of the person</param>
-        /// <param name="properties">(Optional) The properties to select from the result</param>
-        [HttpGet("{id}/relations/{relation}")]
-        [SwaggerOperation(Summary = "Retrieves all relations of the given type for the given person ID")]
-        [SwaggerResponse(200, "The relations", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Person not found", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Relations(string relation, string id, string? properties)
-        {
-            // Check if relation is filled in
-            if (string.IsNullOrEmpty(relation))
-                return BadRequest(new ApiResponse(false, "Invalid relation"));
-
-            // Check ID
-            if (!ValidityUtil.IsValidId(id))
-                return BadRequest(new ApiResponse(false, "Invalid ID"));
-
-            try
-            {
-                object? result = relation switch
-                {
-                    // Authored resources
-                    "authored-resources" => string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetAllResourceAuthorRelationsAsync(r => r.AuthorId == Guid.Parse(id)) :
-                        await resourceManager.GetAllResourceAuthorRelationsAsync(predicate: r => r.AuthorId == Guid.Parse(id), projection: $"new({properties})"),
-
-                    // Related resources
-                    "related-resources" => string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetAllResourceRelatedPersonRelationsAsync(r => r.PersonId == Guid.Parse(id)) :
-                        await resourceManager.GetAllResourceRelatedPersonRelationsAsync(predicate: r => r.PersonId == Guid.Parse(id), projection: $"new({properties})"),
-
-                    // Related persons
-                    "related-persons" => string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetAllPersonRelationshipsAsync(predicate: p => p.SourcePersonId == Guid.Parse(id) || p.TargetPersonId == Guid.Parse(id)) :
-                        await resourceManager.GetAllPersonRelationshipsAsync(predicate: p => p.SourcePersonId == Guid.Parse(id) || p.TargetPersonId == Guid.Parse(id), projection: $"new({properties})"),
-
-                    // Related organisations
-                    "organisations" => string.IsNullOrEmpty(properties) ?
-                        await resourceManager.GetAllPersonOrganisationRelationsAsync(predicate: p => p.PersonId == Guid.Parse(id)) :
-                        await resourceManager.GetAllPersonOrganisationRelationsAsync(predicate: p => p.PersonId == Guid.Parse(id), projection: $"new({properties})"),
-
-                    // Default
-                    _ => null
-                };
-
-                if (result == null)
-                    return NotFound(new ApiResponse(false, "ID or relation not found"));
-
-                return Ok(new ApiResponse(true, "Successfully retrieved relations", result));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error retrieving relation '{Relation}' for person with ID '{Id}'", relation, id);
-                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
-            }
-        }
-
-        #endregion
-
-        #region Add Relations
-        /// <summary>
-        /// Adds a relation for this person
-        /// </summary>
-        /// <param name="id">The ID of the person</param>
-        /// <param name="relation">The relation to be made</param>
-        /// <param name="targetId">The ID of the other item in the relation</param>
-        /// /// <param name="relationInfo">(Optional) Extra information over the relation</param>
-        [HttpGet("{id}/relations/add/{relation}/{targetId}")]
-        [SwaggerOperation(Summary = "Adds a relation to the person")]
-        [SwaggerResponse(200, "Successfully added relation", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Person not found", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> AddRelation(string id, string relation, string targetId, [FromQuery] string? relationInfo)
-        {
-            // Check if relation is filled in
-            if (string.IsNullOrEmpty(relation))
-                return BadRequest(new ApiResponse(false, "Invalid relation"));
-
-            // Check if ids are valid
-            if (!ValidityUtil.IsValidId(id)) return BadRequest(new ApiResponse(false, "Invalid ID"));
-            if (!ValidityUtil.IsValidId(targetId)) return BadRequest(new ApiResponse(false, "Invalid target ID"));
-
-            try
-            {
-                switch (relation)
-                {
-                    // Authored resources
-                    case "authored-resources":
-                        await resourceManager.AddAuthorToResourceAsync(targetId, id);
-                        break;
-
-                    // Related resources
-                    case "related-resources":
-                        await resourceManager.AddRelatedPersonToResourceAsync(targetId, id, relationInfo);
-                        break;
-
-                    // Persons
-                    case "related-persons":
-                        await resourceManager.AddPersonRelationshipAsync(id, relationInfo, targetId);
-                        break;
-
-                    // Organisations
-                    case "organisations":
-                        await resourceManager.AddPersonToOrganisationAsync(id, relationInfo, targetId);
-                        break;
-
-                    // Default
-                    default:
-                        return BadRequest(new ApiResponse(false, "Invalid relation"));
-                }
-
-                return Ok(new ApiResponse(true, "Relation added successfully"));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error creating relation '{Relation}' for person with ID '{Id}'", relation, id);
-                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
-            }
-        }
-        #endregion
-
-        #region Remove Relations
-        /// <summary>
-        /// Removes a relation for this person
-        /// </summary>
-        /// <param name="id">The ID of the person</param>
-        /// <param name="relation">The relation to be removed</param>
-        /// <param name="targetId">The ID of the other item in the relation</param>
-        [HttpGet("{id}/relations/remove/{relation}/{targetId}")]
-        [SwaggerOperation(Summary = "Removes a relation to the person")]
-        [SwaggerResponse(200, "Successfully removed relation", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Person not found", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> RemoveRelation(string id, string relation, string targetId)
-        {
-            // Check if relation is filled in
-            if (string.IsNullOrEmpty(relation))
-                return BadRequest(new ApiResponse(false, "Invalid relation"));
-
-            // Check if ids are valid
-            if (!ValidityUtil.IsValidId(id)) return BadRequest(new ApiResponse(false, "Invalid ID"));
-            if (!ValidityUtil.IsValidId(targetId)) return BadRequest(new ApiResponse(false, "Invalid target ID"));
-
-            try
-            {
-                switch (relation)
-                {
-                    // Authored resources
-                    case "authored-resources":
-                        await resourceManager.RemoveAuthorFromResourceAsync(targetId, id);
-                        break;
-
-                    // Related resources
-                    case "related-resources":
-                        await resourceManager.RemoveRelatedPersonFromResourceAsync(targetId, id);
-                        break;
-
-                    // Persons
-                    case "related-persons":
-                        await resourceManager.RemovePersonRelationshipAsync(id, targetId);
-                        break;
-
-                    // Organisations
-                    case "organisations":
-                        await resourceManager.RemovePersonFromOrganisationAsync(id, targetId);
-                        break;
-
-                    // Default
-                    default:
-                        return BadRequest(new ApiResponse(false, "Invalid relation"));
-                }
-
-                return Ok(new ApiResponse(true, "Relation removed successfully"));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error removing relation '{Relation}' for person with ID '{Id}'", relation, id);
-                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
-            }
-        }
-        #endregion
-
-        #region Update Relation Role
-        /// <summary>
-        /// Updates the role/relation in a relation between this person and another entity
-        /// </summary>
-        /// <param name="id">The ID of the person</param>
-        /// <param name="relation">The relation type (organisations, related-persons, related-resources)</param>
-        /// <param name="targetId">The ID of the related entity</param>
-        /// <param name="newRole">The new role/relation value</param>
-        [HttpPatch("{id}/relations/update-role/{relation}/{targetId}")]
-        [Authorize]
-        [SwaggerOperation(Summary = "Updates the role/relation in a relationship")]
-        [SwaggerResponse(200, "Role updated successfully", typeof(ApiResponse))]
-        [SwaggerResponse(404, "Person or relation not found", typeof(ApiResponse))]
-        [SwaggerResponse(400, "Bad Request", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> UpdateRelationRole(string id, string relation, string targetId, [FromQuery] string newRole)
-        {
-            // Validation
-            if (string.IsNullOrEmpty(relation))
-                return BadRequest(new ApiResponse(false, "Invalid relation"));
-
-            if (!ValidityUtil.IsValidId(id))
-                return BadRequest(new ApiResponse(false, "Invalid ID"));
-
-            if (!ValidityUtil.IsValidId(targetId))
-                return BadRequest(new ApiResponse(false, "Invalid target ID"));
-
-            try
-            {
-                // Use the utility to update the role
-                bool success = await RelationUpdateUtil.UpdateRelationRole(
-                    resourceManager,
-                    "persons",
-                    id,
-                    relation,
-                    targetId,
-                    newRole ?? ""
-                );
-
-                if (!success)
-                    return NotFound(new ApiResponse(false, "Relation not found or invalid relation type"));
-
-                return Ok(new ApiResponse(true, "Role updated successfully"));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error updating role in relation '{Relation}' for person with ID '{Id}'", relation, id);
-                return StatusCode(500, new ApiResponse(false, "Internal Server Error", e.Message));
-            }
-        }
-        #endregion
-
-        #region Suggestions
-        [HttpGet("suggestions")]
-        [SwaggerOperation(Summary = "Returns pairs of persons with similar names as merge suggestions")]
-        [SwaggerResponse(200, "List of merge suggestions", typeof(ApiResponse))]
-        [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-        public async Task<IActionResult> Suggestions([FromQuery] float threshold = 0.6f, [FromQuery] int limit = 20)
-        {
-            try
-            {
-                var suggestions = await resourceManager.GetPersonMergeSuggestionsAsync(threshold, limit);
-                return Ok(new ApiResponse(true, $"Found {suggestions.Count} suggestion(s)", suggestions));
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "Error fetching person merge suggestions");
-                return StatusCode(500, new ApiResponse(false, "Error fetching person merge suggestions", e.Message));
-            }
-        }
-        #endregion
-
-        #region Helper Functions
-        // ---------------------------
-        // Helper functions
-        // ---------------------------
-
-        // Helper method to update a property
-        private async Task UpdateProperty<TSet, TProperty>(string id, string propertyName, TProperty newValue) where TSet : class
-        {
-            await resourceManager.UpdatePersonAsync(Guid.Parse(id), PropertyUpdateUtil.CreatePropertySelector<Person, TProperty>(propertyName), newValue);
-        }
-        #endregion
+        Expression<Func<Person, bool>> predicate = search != null
+            ? p => (EF.Functions.TrigramsAreSimilar(p.Name, search) ||
+                    EF.Functions.ILike(p.Name, $"%{search}%")) &&
+                    p.Trashed == trash
+            : p => p.Trashed == trash;
+
+        var (items, totalCount) = await personService.GetPageAsync(page, pageSize, predicate);
+
+        return Ok(new { items, totalCount });
     }
+
+    [HttpPut]
+    [SwaggerOperation(Summary = "Create a person")]
+    [SwaggerResponse(200, "Person created", typeof(Guid))]
+    [SwaggerResponse(409, "Person already exists", typeof(Guid))]
+    public async Task<IActionResult> Create([FromBody] PersonCreateDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            return Problem("Name is required.", statusCode: 400);
+
+        Guid? existingId = await personService.FindIdByNameAsync(dto.Name);
+
+        if (existingId != null)
+            return Conflict(existingId);
+
+        Guid createdBy = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        Guid id = await personService.CreateAsync(dto, createdBy);
+
+        taskQueue.QueueBackgroundWorkItem(async token =>
+        {
+            using var scope = HttpContext.RequestServices.CreateScope();
+            IngestionService ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
+            await ingestionService.RunPersonEntityPipelineAsync(id);
+        });
+
+        return Ok(id);
+    }
+
+    [HttpGet("{id}")]
+    [SwaggerOperation(Summary = "Get person details")]
+    [SwaggerResponse(200, "Details of the person", typeof(PersonDetailDto))]
+    [SwaggerResponse(404, "Person not found")]
+    public async Task<IActionResult> GetDetails(Guid id)
+        => OkOrNotFound(await personService.GetDetailAsync(id));
+
+    [HttpPatch("{id}")]
+    [SwaggerOperation(Summary = "Update a person")]
+    [SwaggerResponse(204, "Person updated")]
+    [SwaggerResponse(404, "Person not found")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] PersonUpdateDto dto)
+    {
+        bool found = await personService.UpdateAsync(id, p =>
+        {
+            if (dto.Name != null) p.Name = dto.Name;
+            if (dto.Description != null) p.Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description;
+            if (dto.EmailAddress != null) p.EmailAddress = string.IsNullOrWhiteSpace(dto.EmailAddress) ? null : dto.EmailAddress;
+            if (dto.Occupation != null) p.Occupation = string.IsNullOrWhiteSpace(dto.Occupation) ? null : dto.Occupation;
+            if (dto.Linkedin != null) p.Linkedin = string.IsNullOrWhiteSpace(dto.Linkedin) ? null : dto.Linkedin;
+        });
+
+        if (!found) return Problem("Person not found.", statusCode: 404);
+
+        taskQueue.QueueBackgroundWorkItem(async token =>
+        {
+            using var scope = HttpContext.RequestServices.CreateScope();
+            IngestionService ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
+            await ingestionService.RunPersonEntityPipelineAsync(id);
+        });
+
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerOperation(Summary = "(Admin only) Delete a person permanently")]
+    [SwaggerResponse(204, "Person deleted permanently.")]
+    [SwaggerResponse(404, "Person not found")]
+    public async Task<IActionResult> Delete(Guid id)
+        => NoContentOrNotFound(await personService.DeleteAsync(id));
+
+    [HttpPatch("{id}/trash")]
+    [SwaggerOperation(Summary = "Move person to trash")]
+    [SwaggerResponse(204, "Person moved to trash.")]
+    [SwaggerResponse(404, "Person not found")]
+    public async Task<IActionResult> Trash(Guid id)
+        => NoContentOrNotFound(await personService.TrashAsync(id));
+
+    [HttpPatch("{id}/untrash")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerOperation(Summary = "(Admin only) Restore person from trash")]
+    [SwaggerResponse(204, "Person restored from trash.")]
+    [SwaggerResponse(404, "Person not found")]
+    public async Task<IActionResult> Untrash(Guid id)
+        => NoContentOrNotFound(await personService.UntrashAsync(id));
+
+    [HttpPost("{id}/relations/{relation}/{targetId}")]
+    [SwaggerOperation(Summary = "Add a relation")]
+    [SwaggerResponse(204, "Relation added")]
+    [SwaggerResponse(400, "Invalid relation type")]
+    public async Task<IActionResult> AddRelation(Guid id, string relation, Guid targetId, [FromQuery] string? role)
+    {
+        switch (relation)
+        {
+            case "authored-resources":
+                await personService.AddAuthoredResourceAsync(id, targetId);
+                break;
+            case "related-resources":
+                await personService.AddRelatedResourceAsync(id, targetId, role);
+                break;
+            case "related-persons":
+                await personService.AddPersonRelationshipAsync(id, targetId, role);
+                break;
+            case "organisations":
+                await personService.AddOrganisationRelationAsync(id, targetId, role);
+                break;
+            default:
+                return Problem("Invalid relation type.", statusCode: 400);
+        }
+
+        return NoContent();
+    }
+
+    [HttpDelete("{id}/relations/{relation}/{targetId}")]
+    [SwaggerOperation(Summary = "Remove a relation")]
+    [SwaggerResponse(204, "Relation removed")]
+    [SwaggerResponse(404, "Relation not found")]
+    [SwaggerResponse(400, "Invalid relation type")]
+    public async Task<IActionResult> RemoveRelation(Guid id, string relation, Guid targetId)
+    {
+        bool? found = relation switch
+        {
+            "authored-resources" => await personService.RemoveAuthoredResourceAsync(id, targetId),
+            "related-resources" => await personService.RemoveRelatedResourceAsync(id, targetId),
+            "related-persons" => await personService.RemovePersonRelationshipAsync(id, targetId),
+            "organisations" => await personService.RemoveOrganisationRelationAsync(id, targetId),
+            _ => null
+        };
+
+        if (found == null) return Problem("Invalid relation type.", statusCode: 400);
+        return NoContentOrNotFound(found.Value);
+    }
+
+    [HttpPatch("{id}/relations/{relation}/{targetId}/role")]
+    [SwaggerOperation(Summary = "Update role in relation")]
+    [SwaggerResponse(204, "Role updated")]
+    [SwaggerResponse(404, "Relation not found")]
+    [SwaggerResponse(400, "Invalid relation type")]
+    public async Task<IActionResult> UpdateRelationRole(Guid id, string relation, Guid targetId, [FromQuery] string newRole)
+    {
+        bool? found = relation switch
+        {
+            "related-resources" => await personService.UpdateRelatedResourceRoleAsync(id, targetId, newRole),
+            "related-persons" => await personService.UpdatePersonRelationshipRoleAsync(id, targetId, newRole),
+            "organisations" => await personService.UpdateOrganisationRelationRoleAsync(id, targetId, newRole),
+            _ => null
+        };
+
+        if (found == null) return Problem("Invalid relation type.", statusCode: 400);
+        return NoContentOrNotFound(found.Value);
+    }
+
+    [HttpPatch("merge/{keepId}/{removeId}")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerOperation(Summary = "(Admin only) Merge two persons")]
+    [SwaggerResponse(204, "Persons merged.")]
+    [SwaggerResponse(404, "Person not found")]
+    [SwaggerResponse(400, "Invalid request")]
+    public async Task<IActionResult> Merge(Guid keepId, Guid removeId)
+    {
+        if (keepId == removeId)
+            return Problem("Cannot merge person with itself.", statusCode: 400);
+
+        if (!await personService.ExistsAsync(keepId) || !await personService.ExistsAsync(removeId))
+            return Problem("One or both persons not found.", statusCode: 404);
+
+        await personService.MergeAsync(keepId, removeId);
+        return NoContent();
+    }
+
+    [HttpGet("suggestions")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerOperation(Summary = "(Admin only) Get merge suggestions based on name similarity")]
+    [SwaggerResponse(200, "List of suggestions", typeof(List<MergeSuggestion>))]
+    public async Task<IActionResult> Suggestions([FromQuery] float threshold = 0.6f, [FromQuery] int limit = 20)
+        => Ok(await personService.GetMergeSuggestionsAsync(threshold, limit));
 }

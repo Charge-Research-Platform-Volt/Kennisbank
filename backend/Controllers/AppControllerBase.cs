@@ -7,4 +7,7 @@ public abstract class AppControllerBase : ControllerBase
 {
     protected IActionResult OkOrNotFound<T>(T? value)
         => value is null ? NotFound() : Ok(value);
+
+    protected IActionResult NoContentOrNotFound(bool found)
+        => found ? NoContent() : NotFound();
 }

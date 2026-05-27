@@ -19,7 +19,7 @@ public class Resource
 
     [Column("type-id")]
     [ForeignKey("ResourceType")]
-    public required Guid TypeId { get; set; }
+    public Guid? TypeId { get; set; }
 
     [Column("language-code")]
     [MaxLength(2)]

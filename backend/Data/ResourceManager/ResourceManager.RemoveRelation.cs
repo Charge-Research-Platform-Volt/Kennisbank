@@ -456,7 +456,7 @@ namespace KnowledgeBank.Data
 
         public async Task<bool> RemoveResourceTypeFromResourceAsync(Guid resourceId)
         {
-            await AddResourceTypeToResourceAsync(resourceId, DatabaseContext.UnknownResourceTypeId);
+            await UpdatePropertyAsync(database.Resources, r => r.Id == resourceId, r => r.TypeId, (Guid?)null);
             return true;
         }
 

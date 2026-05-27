@@ -22,8 +22,11 @@ public abstract class Entity
     [Column("email-address")]
     public string? EmailAddress { get; set; }
 
-    [Column("creation-date")]
-    public required DateTime CreationDate { get; set; }
+    [Column("created-on")]
+    public required DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+
+    [Column("created-by")]
+    public required Guid CreatedBy { get; set; }
 
     [Column("trashed")]
     public bool Trashed { get; set; } = false;
@@ -36,4 +39,13 @@ public abstract class Entity
 
     // Navigation property for the Author Resource Relation (1:m)
     [JsonIgnore] public ICollection<ResourceAuthorRelation>? ResourceAuthorRelations { get; set; }
+}
+
+public class RelationItemDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = null!;
+    public string? Role { get; set; }
+    public string? Relation { get; set; }
+    public string? FileType { get; set; }
 }

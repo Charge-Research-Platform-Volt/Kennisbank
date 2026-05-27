@@ -3,6 +3,7 @@ using System;
 using KnowledgeBank.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -12,9 +13,11 @@ using Pgvector;
 namespace KnowledgeBank.Data.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20260527112105_AddCreatedByPerson")]
+    partial class AddCreatedByPerson
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -575,7 +578,7 @@ namespace KnowledgeBank.Data.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("trashed");
 
-                    b.Property<Guid?>("TypeId")
+                    b.Property<Guid>("TypeId")
                         .HasColumnType("uuid")
                         .HasColumnName("type-id");
 
@@ -864,14 +867,6 @@ namespace KnowledgeBank.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    b.Property<Guid>("CreatedBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("created-by");
-
-                    b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created-on");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1364,7 +1359,9 @@ namespace KnowledgeBank.Data.Migrations
 
                     b.HasOne("KnowledgeBank.Models.ResourceType", "ResourceType")
                         .WithMany("Resources")
-                        .HasForeignKey("TypeId");
+                        .HasForeignKey("TypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Journal");
 

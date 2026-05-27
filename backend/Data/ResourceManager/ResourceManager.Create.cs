@@ -193,7 +193,8 @@ namespace KnowledgeBank.Data
                 Description = dto.Description,
                 EmailAddress = dto.EmailAddress,
                 Linkedin = dto.Linkedin,
-                CreationDate = DateTime.UtcNow,
+                CreatedOn = DateTime.UtcNow,
+                CreatedBy = new Guid(),
             };
 
             // Add person to database
@@ -227,7 +228,8 @@ namespace KnowledgeBank.Data
                 Description = dto.Description,
                 Website = dto.Website,
                 EmailAddress = dto.EmailAddress,
-                CreationDate = DateTime.UtcNow,
+                CreatedOn = DateTime.UtcNow,
+                CreatedBy = new Guid(),
             };
 
             // Add organisation to database
@@ -307,6 +309,8 @@ namespace KnowledgeBank.Data
             {
                 Id = typeId,
                 Name = dto.Name,
+                CreatedBy = new Guid(),
+                CreatedOn = DateTime.UtcNow,
             };
 
             // Add resource type to database
@@ -327,7 +331,9 @@ namespace KnowledgeBank.Data
             Journal journal = new()
             {
                 Id = id,
-                Name = dto.Name
+                Name = dto.Name,
+                CreatedBy = new Guid(),
+                CreatedOn = DateTime.UtcNow,
             };
 
             await database.Journals.AddAsync(journal);

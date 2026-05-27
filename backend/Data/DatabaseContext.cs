@@ -8,8 +8,6 @@ namespace KnowledgeBank.Data
 {
     public class DatabaseContext : IdentityDbContext<User>
     {
-        public const string UnknownResourceTypeId = "0cc285a8-0f07-11f0-a0a6-5600051f1387";
-
         public DatabaseContext(DbContextOptions<DatabaseContext> options) : base(options) { }
 
         public DbSet<Resource> Resources { get; set; }

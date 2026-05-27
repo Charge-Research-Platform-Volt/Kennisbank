@@ -35,3 +35,27 @@ public class PersonCreateDto
     // Tuple: (PersonId, Relation?)
     public RelatedEntry[] PersonRelations { get; set; } = Array.Empty<RelatedEntry>();
 }
+
+public class PersonUpdateDto
+{
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public string? EmailAddress { get; set; }
+    public string? Occupation { get; set; }
+    public string? Linkedin { get; set; }
+}
+
+public class PersonDetailDto
+{
+    public string Name { get; set; } = null!;
+    public string? Description { get; set; }
+    public string? Occupation { get; set; }
+    public string? EmailAddress { get; set; }
+    public string? Linkedin { get; set; }
+    public DateTime CreatedOn { get; set; }
+    public RelationItemDto[] Authored { get; set; } = [];
+    public RelationItemDto[] RelatedResources { get; set; } = [];
+    public RelationItemDto[] TargetPersons { get; set; } = [];
+    public RelationItemDto[] SourcePersons { get; set; } = [];
+    public RelationItemDto[] RelatedOrganisations { get; set; } = [];
+}

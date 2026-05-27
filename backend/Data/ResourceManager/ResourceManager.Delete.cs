@@ -222,8 +222,8 @@ namespace KnowledgeBank.Data
 
             int count = await DeleteAsync(database.ResourceTypes, type => type.Id == id);
 
-            // Set the type of all resources with this type to unknown
-            count += await UpdatePropertyAsync(database.Resources, i => i.TypeId == id, i => i.TypeId, Guid.Parse(DatabaseContext.UnknownResourceTypeId));
+            // Set the type of all resources with this type to null
+            count += await UpdatePropertyAsync(database.Resources, i => i.TypeId == id, i => i.TypeId, (Guid?)null);
 
             if (startedTransaction) await Commit();
 

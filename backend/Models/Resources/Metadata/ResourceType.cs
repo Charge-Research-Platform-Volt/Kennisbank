@@ -14,6 +14,12 @@ public class ResourceType
     [Column("name")]
     public required string Name { get; set; }
 
+    [Column("created-by")]
+    public required Guid CreatedBy { get; set; }
+
+    [Column("created-on")]
+    public required DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+
     // Navigation properties
     [JsonIgnore] public ICollection<Resource>? Resources { get; set; }
 }
