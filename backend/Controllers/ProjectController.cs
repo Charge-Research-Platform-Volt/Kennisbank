@@ -1,750 +1,212 @@
-using KnowledgeBank.Data;
-using KnowledgeBank.Models;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Serilog;
-using Swashbuckle.AspNetCore.Annotations;
-using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
-using System.Linq.Expressions;
-using KnowledgeBank.Utils;
+using KnowledgeBank.Models;
+using KnowledgeBank.Services.Domain;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace KnowledgeBank.Controllers;
 
-[ApiController]
-[Route("[controller]")]
-[Produces("application/json")]
+[Route("projects")]
 [Authorize]
-public class ProjectController(ProjectManager projectManager, ResourceManager resourceManager) : ControllerBase
+public class ProjectController(ProjectService projectService, TagService tagService, LibraryService libraryService) : AppControllerBase
 {
-    private readonly ProjectManager projectManager = projectManager;
-    private readonly ResourceManager resourceManager = resourceManager;
+    [HttpPost]
+    [SwaggerOperation(Summary = "List projects with filters and pagination")]
+    [SwaggerResponse(200, "Project list")]
+    public async Task<IActionResult> List([FromBody] ProjectListRequest request)
+        => Ok(await projectService.GetListAsync(request));
 
-    #region Create
-    /// <summary>
-    /// Adds a new project given a dto.
-    /// 
-    /// </summary>
-    /// <param name="dto">The DTO for project creation.</param>
-    /// <returns>
-    /// Returns a 200 OK response containing the added project.
-    /// </returns>
-    [HttpPut("create")]
-    [SwaggerOperation(
-            Summary = "Creates a new project.",
-            Description = "Creates a new project, given a dto"
-        )]
-    [SwaggerResponse(200, "New project created", typeof(Guid))]
-    [SwaggerResponse(400, "Bad request")]
-    [SwaggerResponse(500, "Internal server error")]
+    [HttpGet("{id}")]
+    [SwaggerOperation(Summary = "Get project info with children, items, and ancestors")]
+    [SwaggerResponse(200, "Project info")]
+    [SwaggerResponse(404, "Not found")]
+    public async Task<IActionResult> Info(Guid id)
+    {
+        var info = await projectService.GetInfoAsync(id);
+        if (info == null) return NotFound();
+        return Ok(info);
+    }
+
+    [HttpGet("{rootId}/folders")]
+    [SwaggerOperation(Summary = "Get all subfolders of a project")]
+    [SwaggerResponse(200, "Folder list")]
+    [SwaggerResponse(404, "Not found")]
+    public async Task<IActionResult> GetAllFolders(Guid rootId)
+    {
+        if (!await projectService.ExistsAsync(rootId)) return NotFound();
+        return Ok(await projectService.GetAllFoldersAsync(rootId));
+    }
+
+    [HttpPost("create")]
+    [SwaggerOperation(Summary = "Create a new root project")]
+    [SwaggerResponse(201, "Project created")]
+    [SwaggerResponse(400, "Invalid request")]
+    [SwaggerResponse(409, "Title already exists")]
     public async Task<IActionResult> Create([FromBody] ProjectCreateDto dto)
     {
-        Log.Information("Creating a new project.");
+        if (string.IsNullOrWhiteSpace(dto.Title))
+            return Problem("Title is required.", statusCode: 400);
 
-        // Make sure we have the required fields
-        if (string.IsNullOrEmpty(dto.Title))
-        {
-            Log.Error("Title is required");
-            return BadRequest(new ApiResponse(false, "Title is required"));
-        }
+        if (dto.ProjectType != "root")
+            return Problem("ProjectType must be 'root'.", statusCode: 400);
 
-        // If the project type is empty or is not root, it is not a new project, but a folder or something else
-        if (string.IsNullOrEmpty(dto.ProjectType) || dto.ProjectType != "root")
-        {
-            Log.Error("Type invalid");
-            return BadRequest(new ApiResponse(false, "Type invalid"));
-        }
+        if (await projectService.ExistsAsync(p => p.Title == dto.Title))
+            return Problem("A project with this title already exists.", statusCode: 409);
 
-        // Mandatory check: look if project already exists with the same name
-        bool projectExists = await projectManager.ProjectExistsAsync(project => project.Title == dto.Title);
+        foreach (var tagId in dto.Tags)
+            if (!await tagService.ExistsAsync(tagId))
+                return Problem("One or more tags do not exist.", statusCode: 400);
 
-        if (projectExists)
-        {
-            Log.Error("Project already exists.");
-            return Conflict(new ApiResponse(false, "Project already exists."));
-        }
-
-        // If tags are added, make sure that they exist
-        if (dto.Tags != null && dto.Tags.Length > 0)
-        {
-            foreach (string tagId in dto.Tags)
-            {
-                if (!await resourceManager.TagExistsAsync(Guid.Parse(tagId)))
-                {
-                    Log.Error("One or more tags do not exist");
-                    return BadRequest(new ApiResponse(false, "One or more tags do not exist"));
-                }
-            }
-        }
-
-        Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
-
-        if (userId == null)
-            throw new Exception("No current user found");
-
-        // Always add the actual creator to the list
-        dto.Creators = dto.Creators.Append(userId.Value.ToString()).ToArray();
-
-        // Add the project to the database using the ProjectManager class
-        try
-        {
-            // Create the project
-            Guid projectId = await projectManager.CreateProject(dto);
-
-            // Adding the project was successful
-            Log.Information("New project added to database.");
-            return Ok(new ApiResponse(true, "Project added successfully.", projectId));
-        }
-        catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException postgresEx && postgresEx.SqlState == "23505")
-        {
-            // The project already exists
-            Log.Error(e, "Project already exists.");
-            return Conflict(new ApiResponse(false, "Project already exists."));
-        }
-        catch (Exception e)
-        {
-            // Something else went wrong
-            Log.Error(e, "Failed to add project.");
-            return StatusCode(500, new ApiResponse(false, "Internal server error"));
-        }
+        Guid userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        Guid projectId = await projectService.CreateAsync(dto, userId);
+        return CreatedAtAction(nameof(Info), new { id = projectId }, new { projectId });
     }
-    #endregion
 
-    #region Delete
-    /// <summary>
-    /// Deletes a project or folder from the database.
-    /// 
-    /// </summary>
-    /// <param name="projectId">The id of the project or folder to delete.</param>
-    /// <returns>
-    /// Returns a 200 OK response if all went well.
-    /// </returns>
-    [HttpDelete("delete/{projectId}")]
-    [Authorize]
-    [SwaggerOperation(
-            Summary = "Deletes a project (or folder).",
-            Description = "Only creators of the project / folder OR admins are able to delete it."
-        )]
-    [SwaggerResponse(200, "Project deleted")]
-    [SwaggerResponse(400, "Bad request")]
-    [SwaggerResponse(403, "Forbidden - User cannot delete this project")]
-    [SwaggerResponse(404, "Project not found")]
-    [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> Delete(string projectId)
+    [HttpDelete("{id}")]
+    [SwaggerOperation(Summary = "Delete a project")]
+    [SwaggerResponse(204, "Deleted")]
+    [SwaggerResponse(403, "Forbidden")]
+    [SwaggerResponse(404, "Not found")]
+    public async Task<IActionResult> Delete(Guid id)
     {
-        try
-        {
-            Log.Information("Deleting project.");
+        Project? project = await projectService.GetByIdAsync(id, includeMembers: true);
+        if (project == null) return NotFound();
 
-            // Make sure we have the required fields
-            if (string.IsNullOrEmpty(projectId) || !ValidityUtil.IsValidId(projectId))
-            {
-                Log.Error("Id is required");
-                return BadRequest(new ApiResponse(false, "Id is required"));
-            }
+        Guid userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (!IsMemberOrAdmin(userId, project)) return Forbid();
 
-            // Get the GUID of the user
-            Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
-
-            // Get the project
-            Project? project = await projectManager.GetProjectAsync(projectId, includeProperties: "ProjectCreatorRelations");
-
-            if (project == null)
-            {
-                Log.Error("Project not found.");
-                return NotFound(new ApiResponse(false, "Project not found."));
-            }
-
-            // Check if the user has permission to delete this project
-            if (ProjectAuthorizationLevel(userId, project) == "unauthorized")
-            {
-                Log.Warning("User {UserId} attempted to delete {id} without permissions.", userId, projectId);
-                return StatusCode(403, new ApiResponse(false, "User cannot delete this project or folder."));
-            }
-            // Delete project / folder and all its subfolders and resources, creators, tags links
-            if (await projectManager.DeleteProject(projectId))
-                return Ok(new ApiResponse(true, "Project deleted."));
-
-            Log.Error("Failed to delete project.");
-            return StatusCode(500, new ApiResponse(false, "Internal server error."));
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "Error deleting project {id}", projectId);
-            return StatusCode(500, new ApiResponse(false, "Internal server error."));
-        }
+        await projectService.DeleteAsync(id);
+        return NoContent();
     }
 
-    #endregion
-
-    #region List
-
-    /// <summary>
-    /// Retrieves projects, given a dto to filter on.
-    /// The query is a string that is used to search for projects by title.
-    ///
-    /// </summary>
-    /// <param name="dto"></param>
-    /// <returns>
-    /// Returns a 200 OK response containing the projects.
-    /// </returns>
-    [HttpPost("list")]
-    [SwaggerOperation(
-        Summary = "Retrieves projects",
-        Description = "Retrieves projects, given a dto to filter on"
-    )]
-    [SwaggerResponse(200, "Projects fetched")]
-    [SwaggerResponse(400, "Bad request")]
-    [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> List([FromBody] FilterProjectDto dto)
+    [HttpPatch("{id}")]
+    [SwaggerOperation(Summary = "Update project title or description")]
+    [SwaggerResponse(204, "Updated")]
+    [SwaggerResponse(400, "Invalid request")]
+    [SwaggerResponse(403, "Forbidden")]
+    [SwaggerResponse(404, "Not found")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProjectDto dto)
     {
-        try
+        if (dto.Title == null && dto.Description == null)
+            return Problem("No updates provided.", statusCode: 400);
+
+        Project? project = await projectService.GetByIdAsync(id, includeMembers: true);
+        if (project == null) return NotFound();
+
+        Guid userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (!IsMemberOrAdmin(userId, project)) return Forbid();
+
+        if (dto.Title != null && string.IsNullOrWhiteSpace(dto.Title))
+            return Problem("Title cannot be empty.", statusCode: 400);
+
+        if (dto.Description != null && project.ProjectType != "root")
+            return Problem("Description can only be set on root projects.", statusCode: 400);
+
+        await projectService.UpdateAsync(id, p =>
         {
-            // Validate paging parameters if using paging
-            if (dto.UsePaging)
-            {
-                if (dto.PageIndex < 1)
-                    return BadRequest(new ApiResponse(false, "Page index cannot be lower than 1."));
+            if (dto.Title != null) p.Title = dto.Title.Trim();
+            if (dto.Description != null) p.Description = dto.Description;
+        });
 
-                if (dto.PageSize < 1)
-                    return BadRequest(new ApiResponse(false, "PAge size cannot be lower than 1."));
-            }
-
-            // Build the predicate used to filter the projects by giving it to the BuildPredicate function
-            Expression<Func<Project, bool>> predicate = BuildPredicate(dto);
-            
-            Project[] projects = [];
-            
-            if (dto.UsePaging)
-            {
-                projects = await projectManager.GetProjectPageAsync(
-                    pageIndex: dto.PageIndex,
-                    pageSize: dto.PageSize,
-                    predicate: predicate,
-                    includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations.Creator"]
-                );
-            }
-            else
-            {
-                projects = await projectManager.GetAllProjectsAsync(
-                    predicate: predicate,
-                    includeProperties: ["ProjectTagRelations", "ProjectCreatorRelations.Creator"]
-                );
-            }
-
-            var mapped = projects.Select(p => new {
-                p.Id,
-                p.Title,
-                p.Description,
-                p.CreationDate,
-                p.ProjectType,
-                p.ProjectTagRelations,
-                p.ProjectCreatorRelations,
-                Creators = p.ProjectCreatorRelations?
-                    .Where(r => r.Creator != null)
-                    .Select(r => new {
-                        r.Creator!.Id,
-                        r.Creator.FirstName,
-                        r.Creator.LastName,
-                        r.Creator.CustomAvatarVersion
-                    })
-            }).ToArray();
-
-            if (mapped.Length == 0)
-            {
-                if (dto.UsePaging && dto.PageIndex > 1)
-                    return BadRequest(new ApiResponse(false, "The page index is invalid"));
-                else
-                    return Ok(new ApiResponse(true, "No projects found", new { projects = mapped }));
-            }
-
-            if (dto.UsePaging)
-            {
-                int totalCount = await projectManager.ProjectCount(predicate);
-                int pageCount = (int)Math.Ceiling((double)totalCount / dto.PageSize);
-                return Ok(new ApiResponse(true, $"{mapped.Length} project(s) found.", new { projects = mapped, pageIndex = dto.PageIndex, pageSize = dto.PageSize, pageCount, totalCount }));
-            }
-
-            return Ok(new ApiResponse(true, $"{mapped.Length} project(s) found.", new { projects = mapped }));
-        }
-
-        catch (Exception e)
-        {
-            Log.Error(e, "Failed to fetch folders");
-            return StatusCode(500, new ApiResponse(false, "Internal server error"));
-        }
+        return NoContent();
     }
 
-    #endregion
-
-    #region Update
-
-    /// <summary>
-    /// Updates a property of the project itself.
-    /// 
-    /// </summary>
-    /// <param name="projectId">The ID of the project or folder to update.</param>
-    /// <param name="dto">DTO containing the properties to update.</param>
-    /// <returns>
-    /// Returns a 200 OK response if all went well.
-    /// </returns>
-    [HttpPatch("update/{projectId}")]
-    [Authorize]
-    [SwaggerOperation(
-            Summary = "Updates a project.",
-            Description = "Updates properties of the project, only creators or admins can change them."
-        )]
-    [SwaggerResponse(200, "Project updated")]
-    [SwaggerResponse(400, "Bad request")]
-    [SwaggerResponse(403, "Forbidden - User cannot update this project")]
-    [SwaggerResponse(404, "Project not found")]
-    [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> Update(string projectId, [FromBody] UpdateProjectDto dto)
+    [HttpPatch("{id}/tags")]
+    [SwaggerOperation(Summary = "Set project tags")]
+    [SwaggerResponse(204, "Updated")]
+    [SwaggerResponse(403, "Forbidden")]
+    [SwaggerResponse(404, "Not found")]
+    public async Task<IActionResult> SetTags(Guid id, [FromBody] Guid[] tagIds)
     {
-        try
-        {
-            Log.Information("Updating project.");
+        Project? project = await projectService.GetByIdAsync(id, includeMembers: true);
+        if (project == null) return NotFound();
 
-            if (!ValidityUtil.IsValidId(projectId))
-                return BadRequest(new ApiResponse(false, "Id is required"));
+        if (project.ProjectType != "root")
+            return Problem("Tags can only be set on root projects.", statusCode: 400);
 
-            if (dto == null || (dto.Title == null && dto.Description == null && dto.Tags == null && dto.Creators == null))
-                return BadRequest(new ApiResponse(false, "No updates were provided."));
+        Guid userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (!IsMemberOrAdmin(userId, project)) return Forbid();
 
-            Project? project = await projectManager.GetProjectAsync(projectId, includeProperties: ["ProjectCreatorRelations"]);
-            if (project == null)
-                return NotFound(new ApiResponse(false, "Project not found."));
-
-            Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
-            bool userIsAdmin = User.IsInRole("admin");
-
-            if (!userIsAdmin && ProjectAuthorizationLevel(userId, project) == "unauthorized")
-            {
-                Log.Warning("User {UserId} attempted to update project {id} without permissions.", userId, projectId);
-                return StatusCode(403, new ApiResponse(false, "User cannot update this project."));
-            }
-
-            await projectManager.BeginTransaction();
-
-            if (dto.Title != null)
-            {
-                if (string.IsNullOrWhiteSpace(dto.Title))
-                {
-                    await projectManager.Rollback();
-                    return BadRequest(new ApiResponse(false, "Title cannot be empty."));
-                }
-                await projectManager.UpdateProjectAsync(project.Id, p => p.Title, dto.Title);
-            }
-
-            if (dto.Description != null)
-            {
-                if (project.ProjectType != "root")
-                {
-                    await projectManager.Rollback();
-                    return BadRequest(new ApiResponse(false, "Description can only be set on root projects."));
-                }
-                await projectManager.UpdateProjectAsync(project.Id, p => p.Description, dto.Description);
-            }
-
-            if (dto.Tags != null)
-            {
-                if (project.ProjectType != "root")
-                {
-                    await projectManager.Rollback();
-                    return BadRequest(new ApiResponse(false, "Tags can only be set on root projects."));
-                }
-                await projectManager.UpdateProjectTagsAsync(project.Id, dto.Tags.ToArray());
-            }
-
-            if (dto.Creators != null)
-            {
-                if (dto.Creators.Count == 0)
-                {
-                    await projectManager.Rollback();
-                    return BadRequest(new ApiResponse(false, "Creators cannot be empty."));
-                }
-                await projectManager.UpdateProjectCreatorsAsync(project.Id, dto.Creators.ToArray());
-            }
-
-            await projectManager.Commit();
-            return Ok(new ApiResponse(true, "Project updated successfully."));
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "Error updating project {id}", projectId);
-            return StatusCode(500, new ApiResponse(false, "Internal server error."));
-        }
+        await projectService.SetTagsAsync(id, tagIds);
+        return NoContent();
     }
 
-    #endregion
-
-    #region Info
-
-    /// <summary>
-    /// Gets the project and its direct children (resources and folders).
-    /// 
-    /// </summary>
-    /// <param name="id">The ID of the project / folder</param>
-    /// <returns>
-    /// Returns a 200 OK response containing the project and its children.
-    /// </returns>
-    [HttpGet("info/{id}")]
-    [SwaggerOperation(Summary = "Get the direct children of the project")]
-    [SwaggerResponse(200, "Project Information", typeof(ApiResponse))]
-    [SwaggerResponse(404, "Project Not Found", typeof(ApiResponse))]
-    [SwaggerResponse(400, "Invalid ID", typeof(ApiResponse))]
-    [SwaggerResponse(500, "Internal Server Error", typeof(ApiResponse))]
-    public async Task<IActionResult> Info(string id)
+    [HttpPatch("{id}/members")]
+    [SwaggerOperation(Summary = "Set project members")]
+    [SwaggerResponse(204, "Updated")]
+    [SwaggerResponse(400, "Members cannot be empty")]
+    [SwaggerResponse(403, "Forbidden")]
+    [SwaggerResponse(404, "Not found")]
+    public async Task<IActionResult> SetMembers(Guid id, [FromBody] Guid[] memberIds)
     {
-        // Check if ID is valid
-            if (!ValidityUtil.IsValidId(id))
-                return BadRequest(new ApiResponse(false, "ID is invalid."));
+        if (memberIds.Length == 0)
+            return Problem("Members cannot be empty.", statusCode: 400);
 
-        try
-        {
-            Project? project = await projectManager.GetProjectChildrenAsync(id);
+        Project? project = await projectService.GetByIdAsync(id, includeMembers: true);
+        if (project == null) return NotFound();
 
-            if (project == null)
-                return NotFound(new ApiResponse(false, "Project not found."));
+        Guid userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (!IsMemberOrAdmin(userId, project)) return Forbid();
 
-            // Resolve folder AddedBy user names
-            HashSet<string> folderUserIds = project.ChildFolders?
-                .Where(pfr => pfr.AddedBy != null)
-                .Select(pfr => pfr.AddedBy!)
-                .ToHashSet() ?? [];
-
-            Dictionary<string, string> userNames = await projectManager.GetUserNamesByIds(folderUserIds);
-
-            List<FolderWithAddedBy> folders = project.ChildFolders?
-                .Where(r => r?.ChildFolder != null)
-                .Select(r => new FolderWithAddedBy(
-                    r.ChildFolder!,
-                    r.AddedBy != null && userNames.TryGetValue(r.AddedBy, out string? name) ? name ?? "Unknown" : "Unknown"))
-                .ToList() ?? [];
-
-            // Items are resolved via ResourceGridView (covers resources, persons, organisations)
-            List<ResourceGridItemWithAddedBy> items = await projectManager.GetProjectItemsAsync(Guid.Parse(id));
-
-            // Resolve item AddedBy user IDs to display names
-            HashSet<string> itemUserIds = items
-                .Where(i => i.AddedBy != null && i.AddedBy != "Unknown")
-                .Select(i => i.AddedBy)
-                .ToHashSet();
-            Dictionary<string, string> itemUserNames = await projectManager.GetUserNamesByIds(itemUserIds);
-            items = items.Select(i => new ResourceGridItemWithAddedBy(
-                i.Item,
-                itemUserNames.TryGetValue(i.AddedBy, out string? name) ? name : "Unknown"
-            )).ToList();
-
-            List<ProjectAncestor> ancestors = await projectManager.GetAncestorsAsync(Guid.Parse(id));
-
-            // If we're at root level, root is the current project (already loaded with full relations).
-            // If we're in a subfolder, fetch the root project with its tags and creators.
-            Project rootProject = ancestors.Count == 0
-                ? project
-                : await projectManager.GetProjectAsync(ancestors[0].Id, includeProperties: ["ProjectTagRelations.Tag", "ProjectCreatorRelations.Creator"]) ?? project;
-
-            List<object> creators = rootProject.ProjectCreatorRelations?
-                .Select(r => (object)new {
-                    Id = new Guid(r.Creator!.Id),
-                    r.Creator.FirstName,
-                    r.Creator.LastName,
-                    r.Creator.Email,
-                    CustomAvatarVersion = r.Creator.HasCustom ? r.Creator.CustomAvatarVersion : (int?)null,
-                    r.Creator.EmailConfirmed,
-                    Role = "No Role"
-                }).ToList() ?? [];
-
-            List<Tag?> tags = rootProject.ProjectTagRelations?
-                .Select(r => r.Tag).ToList() ?? [];
-
-            ProjectInfoDto projectInfo = new()
-            {
-                Project = project,
-                RootProject = rootProject,
-                Items = items,
-                Folders = folders,
-                Creators = creators,
-                Tags = tags,
-                Ancestors = ancestors
-            };
-
-            return Ok(new ApiResponse(true, "Project found.", projectInfo));
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "Error getting project {id}", id);
-            return StatusCode(500, new ApiResponse(false, "Internal server error.", e.Message));
-        }
+        await projectService.SetMembersAsync(id, memberIds);
+        return NoContent();
     }
 
-    #endregion
-
-    #region Add Folder
-
-    /// <summary>
-    /// Adds a new folder given a name and parent.
-    /// 
-    /// </summary>
-    /// <param name="parentId">ID of the parent project or folder.</param>
-    /// <param name="dto">DTO containing the folder name.</param>
-    /// <returns>
-    /// Returns a 200 OK response containing the ID of the added folder.
-    /// </returns>
-    [HttpPut("add-folder/{parentId}")]
-    [SwaggerOperation(
-        Summary = "Adds a folder to a parent project or folder.",
-        Description = "Creates an empty folder inside a project or folder. Creators are inherited from the parent plus whoever created this."
-    )]
-    [SwaggerResponse(200, "Folder created")]
-    [SwaggerResponse(400, "Bad request")]
-    [SwaggerResponse(404, "Project not found")]
-    [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> AddFolder(string parentId, [FromBody] AddFolderDto dto)
+    [HttpPost("{parentId}/folders")]
+    [SwaggerOperation(Summary = "Add a folder to a project or folder")]
+    [SwaggerResponse(201, "Folder created")]
+    [SwaggerResponse(400, "Invalid request")]
+    [SwaggerResponse(404, "Parent not found")]
+    public async Task<IActionResult> AddFolder(Guid parentId, [FromBody] AddFolderDto dto)
     {
-        Log.Information("Creating a new folder");
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            return Problem("Folder name is required.", statusCode: 400);
 
-        // Make sure we have the required fields
-        if (string.IsNullOrEmpty(dto.Name) || !ValidityUtil.IsValidId(parentId))
-        {
-            Log.Error("Folder name and valid parent id are required");
-            return BadRequest(new ApiResponse(false, "Folder name and valid parent id are required"));
-        }
+        if (!await projectService.ExistsAsync(parentId)) return NotFound();
 
-        // Get parent project and user ID
-        Project? parent = await projectManager.GetProjectAsync(parentId, includeProperties: "ProjectCreatorRelations");
-
-        if (parent == null)
-        {
-            Log.Error("Parent component does not exist.");
-            return NotFound(new ApiResponse(false, "Parent component does not exist"));
-        }
-
-        Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
-
-        // If there is somehow no user found calling this action, abort
-        if (userId == null)
-        {
-            Log.Error("Failed to add folder.");
-            return StatusCode(500, new ApiResponse(false, "Internal server error"));
-        }
-
-        // Otherwise grab the creators of the parent component, add the current user to that set and then create an empty folder with the name given and same language code
-        HashSet<string> creators = parent.ProjectCreatorRelations?.Select(relation => relation.CreatorId).ToHashSet() ?? [];
-        creators.Add(userId.ToString() ?? throw new Exception("User ID is null"));
-
-        // Folders don't have descriptions
-        ProjectCreateDto newFolder = new()
-        {
-            Title = dto.Name,
-            ProjectType = "folder",
-            Creators = creators.ToArray()
-        };
-
-        try
-        {
-            // Create folder and add to parent with a relation
-            Guid folderId = await projectManager.CreateProject(newFolder);
-            await projectManager.AddFolderToProjectAsync(parentId, folderId, userId.Value);
-
-            Log.Information("New folder {folderId} added to parent {parentId}.", folderId, parentId);
-            return Ok(new ApiResponse(true, "Folder added successfully.", folderId));
-        }
-
-        catch (Exception e)
-        {
-            // Something else went wrong
-            Log.Error(e, "Failed to add folder.");
-            return StatusCode(500, new ApiResponse(false, "Internal server error"));
-        }
+        Guid userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        Guid folderId = await projectService.AddFolderAsync(parentId, dto.Name.Trim(), userId);
+        return CreatedAtAction(nameof(Info), new { id = folderId }, new { folderId });
     }
 
-    #endregion
-
-    #region Get Folders
-
-    [HttpGet("all-folders/{rootId}")]
-    [SwaggerOperation(Summary = "Retrieves all subfolders of the given project/folder ID")]
-    [SwaggerResponse(200, "Retrieved subfolders")]
-    [SwaggerResponse(400, "Bad Request")]
-    [SwaggerResponse(404, "Root project not found.")]
-    [SwaggerResponse(500, "Internal Server Error")]
-    public async Task<IActionResult> GetAllFolders(string rootId)
-    {
-        if (!ValidityUtil.IsValidId(rootId))
-            return BadRequest(new ApiResponse(false, "Invalid ID."));
-        
-        try
-        {
-            if (!await projectManager.ProjectExistsAsync(rootId))
-                return NotFound(new ApiResponse(false, "Project not found."));
-
-            var folders = await projectManager.GetAllFoldersAsync(Guid.Parse(rootId));
-            return Ok(new ApiResponse(true, "Successfully retrieved folders.", folders.Select(f => new { f.Id, f.Title, f.Depth })));
-        }
-
-        catch (Exception e)
-        {
-            Log.Error(e, "Failed to retrieve subfolders.");
-            return StatusCode(500, new ApiResponse(false, "Internal server error"));
-        }
-    }
-
-    #endregion
-
-    #region Add Item
-
-    /// <summary>
-    /// Adds a library item (resource, person, or organisation) to a project or folder.
-    /// </summary>
-    [HttpPut("add-item/{projectId}/{itemId}")]
-    [SwaggerOperation(
-        Summary = "Adds a library item to a project or folder.",
-        Description = "Links a resource, person, or organisation to a project/folder by ID."
-    )]
-    [SwaggerResponse(200, "Item added")]
-    [SwaggerResponse(400, "Bad request")]
+    [HttpPost("{projectId}/items/{itemId}")]
+    [SwaggerOperation(Summary = "Add a library item to a project or folder")]
+    [SwaggerResponse(204, "Added")]
     [SwaggerResponse(404, "Project or item not found")]
     [SwaggerResponse(409, "Item already linked")]
-    [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> AddItem(string projectId, string itemId)
+    public async Task<IActionResult> AddItem(Guid projectId, Guid itemId)
     {
-        if (!ValidityUtil.IsValidId(projectId) || !ValidityUtil.IsValidId(itemId))
-            return BadRequest(new ApiResponse(false, "Invalid id."));
+        if (!await projectService.ExistsAsync(projectId)) return NotFound();
+        if (!await libraryService.ItemExistsAsync(itemId)) return NotFound();
+        if (await projectService.ItemAlreadyLinkedAsync(projectId, itemId))
+            return Problem("Item already in project.", statusCode: 409);
 
-        try
-        {
-            if (!await projectManager.ProjectExistsAsync(projectId))
-                return NotFound(new ApiResponse(false, "Project not found."));
-
-            // Validate item exists in the grid view (covers resources, persons, organisations)
-            bool itemExists = await projectManager.ItemExistsInGridAsync(Guid.Parse(itemId));
-            if (!itemExists)
-                return NotFound(new ApiResponse(false, "Item not found."));
-
-            Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
-            if (userId == null)
-                return StatusCode(500, new ApiResponse(false, "Internal server error"));
-
-            if ((await projectManager.GetAllItems(predicate: r => r.ProjectId == Guid.Parse(projectId) && r.ItemId == Guid.Parse(itemId))).Length != 0)
-                return Conflict(new ApiResponse(false, "Item already in project / folder."));
-
-            await projectManager.AddItemToProjectAsync(projectId, itemId, userId.Value);
-            return Ok(new ApiResponse(true, "Item added to project."));
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "Failed to add item {itemId} to project {projectId}.", itemId, projectId);
-            return StatusCode(500, new ApiResponse(false, "Internal server error"));
-        }
+        Guid userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        await projectService.AddItemAsync(projectId, itemId, userId);
+        return NoContent();
     }
 
-    #endregion
-
-    #region Remove Item
-
-    /// <summary>
-    /// Removes a library item (resource, person, or organisation) from a project or folder.
-    /// </summary>
-    [HttpDelete("remove-item/{projectId}/{itemId}")]
-    [SwaggerOperation(
-        Summary = "Removes a library item from a project or folder.",
-        Description = "Only the user who added the item or a project creator or admin can remove it."
-    )]
-    [SwaggerResponse(200, "Item removed")]
-    [SwaggerResponse(400, "Bad request")]
+    [HttpDelete("{projectId}/items/{itemId}")]
+    [SwaggerOperation(Summary = "Remove a library item from a project or folder")]
+    [SwaggerResponse(204, "Removed")]
     [SwaggerResponse(403, "Forbidden")]
-    [SwaggerResponse(404, "Project or item not found")]
-    [SwaggerResponse(500, "Internal server error")]
-    public async Task<IActionResult> RemoveItem(string projectId, string itemId)
+    [SwaggerResponse(404, "Not found")]
+    public async Task<IActionResult> RemoveItem(Guid projectId, Guid itemId)
     {
-        if (!ValidityUtil.IsValidId(projectId) || !ValidityUtil.IsValidId(itemId))
-            return BadRequest(new ApiResponse(false, "Invalid id."));
+        Project? project = await projectService.GetByIdAsync(projectId, includeMembers: true, includeItems: true);
+        if (project == null) return NotFound();
 
-        try
-        {
-            Guid? userId = Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out Guid guid) ? guid : null;
-            bool userIsAdmin = User.IsInRole("admin");
+        Guid userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        bool userAddedItem = project.ProjectItemRelations?.Any(r => r.ItemId == itemId && r.AddedBy == userId.ToString()) ?? false;
 
-            Project? project = await projectManager.GetProjectAsync(projectId, includeProperties: ["ProjectItemRelations", "ProjectCreatorRelations"]);
-            if (project == null)
-                return NotFound(new ApiResponse(false, "Project not found."));
+        if (!userAddedItem && !IsMemberOrAdmin(userId, project)) return Forbid();
 
-            bool userAddedItem = project.ProjectItemRelations?.Any(r => r.ItemId == Guid.Parse(itemId) && r.AddedBy == userId.ToString()) ?? false;
-            bool userIsAuthorized = ProjectAuthorizationLevel(userId, project) != "unauthorized";
-
-            if (!userIsAdmin && !userAddedItem && !userIsAuthorized)
-            {
-                Log.Warning("User {UserId} attempted to remove item {itemId} from {projectId} without permissions.", userId, itemId, projectId);
-                return StatusCode(403, new ApiResponse(false, "User cannot remove this item."));
-            }
-
-            if (await projectManager.RemoveItemFromProject(projectId, itemId))
-                return Ok(new ApiResponse(true, "Item removed from project."));
-
-            return StatusCode(500, new ApiResponse(false, "Internal server error."));
-        }
-        catch (Exception e)
-        {
-            Log.Error(e, "Error removing item {itemId} from project {projectId}.", itemId, projectId);
-            return StatusCode(500, new ApiResponse(false, "Internal server error."));
-        }
+        await projectService.RemoveItemAsync(projectId, itemId);
+        return NoContent();
     }
 
-    #endregion
-
-    #region Helper Methods
-
-    /// <summary>
-    /// Gets the user authorization level for a project, given the project and the user.
-    /// </summary>
-    private string ProjectAuthorizationLevel(Guid? user, Project project)
-    {
-        if (user == null)
-            return "unauthorized";
-        if (User.IsInRole("admin"))
-            return "admin";
-        string level = "unauthorized";
-        if (project.ProjectCreatorRelations?.Any(r => r.CreatorId == user.ToString()) ?? false)
-            level = "creator";
-        return level;
-    }
-
-    /// <summary>
-    /// Builds a predicate using a FilterProjectDto, similar to the function of the same name in TagsController.
-    /// 
-    /// </summary>
-    /// <param name="dto">Dto used for constructing the predicate</param>
-    /// <returns>Predicate built from the dto</returns>
-    private Expression<Func<Project, bool>> BuildPredicate(FilterProjectDto dto)
-    {
-        Expression<Func<Project, bool>>? predicate = null;
-        predicate = PredicateBuilder.AddAnd(predicate, project => project.ProjectType == "root");
-
-        if (dto.StartDate.HasValue && dto.EndDate.HasValue)
-        {
-            predicate = PredicateBuilder.AddAnd(predicate, project => dto.StartDate < project.CreationDate && project.CreationDate < dto.EndDate);
-        }
-
-        if (!string.IsNullOrEmpty(dto.CreatedBy))
-        {
-            predicate = PredicateBuilder.AddAnd(predicate, project => project.ProjectCreatorRelations != null && project.ProjectCreatorRelations.Any(rel => rel.CreatorId == dto.CreatedBy));
-        }
-
-        if (!string.IsNullOrEmpty(dto.SearchQuery))
-        {
-            predicate = PredicateBuilder.AddAnd(predicate, project => project.Title.ToUpper().Contains(dto.SearchQuery.ToUpper()));
-        }
-
-        if (dto.Tags != null)
-        {
-            foreach (Guid tag in dto.Tags)
-            {
-                predicate = PredicateBuilder.AddAnd(predicate, project => project.ProjectTagRelations != null && project.ProjectTagRelations.Any(rel => dto.Tags.Contains(rel.TagId)));
-            }
-        }
-        return predicate;
-    }
-    #endregion
-
+    private bool IsMemberOrAdmin(Guid userId, Project project)
+        => User.IsInRole("admin") ||
+           (project.ProjectMemberRelations?.Any(r => r.UserId == userId.ToString()) ?? false);
 }

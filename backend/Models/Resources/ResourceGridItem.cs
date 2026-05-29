@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace KnowledgeBank.Models;
 
 public class ResourceGridItem
@@ -15,11 +13,7 @@ public class ResourceGridItem
     public DateTime CreationDate { get; set; }
     public Guid? TypeId { get; set; }
     public Guid? JournalId { get; set; }
-}
-
-public class ResourceGridItemWithChunks : ResourceGridItem
-{
-    public List<string> Chunks { get; set; } = new List<string>();
+    public List<string> Chunks { get; set; } = [];
 }
 
 public class ResourceGridSearchResult

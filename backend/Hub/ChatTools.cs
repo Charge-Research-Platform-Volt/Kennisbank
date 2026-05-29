@@ -69,7 +69,7 @@ public partial class Chat
 
         if (projectId != null && Guid.TryParse(projectId, out var projGuid))
         {
-            Guid[] ids = await projectManager.GetProjectItemIdsAsync(projGuid);
+            Guid[] ids = await projectService.GetProjectItemIdsAsync(projGuid);
             if (ids.Length > 0) filters["ids"] = ids;
         }
 
@@ -95,14 +95,7 @@ public partial class Chat
 
         if (type == "resource")
         {
-            Resource? r = await resourceManager.GetResourceAsync(guid,
-                "ResourceAuthorRelations.Author",
-                "ResourceTagRelations.Tag",
-                "ResourceOrganisationRelations.Organisation",
-                "ResourceRegionRelations.Region",
-                "ResourceRelatedPersonRelations.Person",
-                "ResourceType", "Journal");
-
+            Resource? r = await resourceService.GetByIdAsync(guid, includeRelations: true);
             if (r == null) return "Error: resource not found";
 
             sb.AppendLine($"Title: {r.Title}");
@@ -129,7 +122,7 @@ public partial class Chat
         }
         else if (type == "person")
         {
-            Person? p = await resourceManager.GetPersonAsync(guid, "PersonOrganisationRelations.Organisation");
+            Person? p = await personService.GetByIdAsync(guid, includeRelations: true);
             if (p == null) return "Error: person not found";
 
             sb.AppendLine($"Name: {p.Name}");
@@ -143,7 +136,7 @@ public partial class Chat
         }
         else if (type == "organisation")
         {
-            Organisation? o = await resourceManager.GetOrganisationAsync(guid, "PersonOrganisationRelations.Person");
+            Organisation? o = await organisationService.GetByIdAsync(guid, includeRelations: true);
             if (o == null) return "Error: organisation not found";
 
             sb.AppendLine($"Name: {o.Name}");
@@ -171,11 +164,7 @@ public partial class Chat
 
         if (type == "resource")
         {
-            Resource? r = await resourceManager.GetResourceAsync(guid,
-                "ResourceAuthorRelations.Author",
-                "ResourceOrganisationRelations.Organisation",
-                "ResourceRelatedPersonRelations.Person");
-
+            Resource? r = await resourceService.GetByIdAsync(guid, includeRelations: true);
             if (r == null) return "Error: resource not found";
 
             sb.AppendLine($"Related items for resource: {r.Title}");
@@ -188,29 +177,27 @@ public partial class Chat
         }
         else if (type == "person")
         {
-            Person? p = await resourceManager.GetPersonAsync(guid, "PersonOrganisationRelations.Organisation");
+            Person? p = await personService.GetByIdAsync(guid, includeRelations: true);
             if (p == null) return "Error: person not found";
 
             sb.AppendLine($"Related items for person: {p.Name}");
             foreach (var rel in p.PersonOrganisationRelations?.Where(x => x.Organisation != null) ?? [])
                 sb.AppendLine($"- Organisation: {rel.Organisation!.Name} [SRC:{rel.Organisation.Id}]");
 
-            var resources = await resourceManager.GetAllResourcesAsync(
-                predicate: r => r.ResourceAuthorRelations!.Any(a => a.AuthorId == guid));
+            var resources = await resourceService.GetAllAsync(predicate: r => r.ResourceAuthorRelations!.Any(a => a.AuthorId == guid));
             foreach (var res in resources)
                 sb.AppendLine($"- Resource: {res.Title} [SRC:{res.Id}]");
         }
         else if (type == "organisation")
         {
-            Organisation? o = await resourceManager.GetOrganisationAsync(guid, "PersonOrganisationRelations.Person");
+            Organisation? o = await organisationService.GetByIdAsync(guid, includeRelations: true);
             if (o == null) return "Error: organisation not found";
 
             sb.AppendLine($"Related items for organisation: {o.Name}");
             foreach (var rel in o.PersonOrganisationRelations?.Where(x => x.Person != null) ?? [])
                 sb.AppendLine($"- Member: {rel.Person!.Name} [SRC:{rel.Person.Id}]");
 
-            var resources = await resourceManager.GetAllResourcesAsync(
-                predicate: r => r.ResourceOrganisationRelations!.Any(a => a.OrganisationId == guid));
+            var resources = await resourceService.GetAllAsync(predicate: r => r.ResourceOrganisationRelations!.Any(a => a.OrganisationId == guid));
             foreach (var res in resources)
                 sb.AppendLine($"- Resource: {res.Title} [SRC:{res.Id}]");
         }

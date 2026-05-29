@@ -14,9 +14,9 @@ public class PersonService(DatabaseContext db)
         IQueryable<Person> query = db.Persons;
 
         if (includeRelations)
-            query = query.Include(p => p.TargetRelationships)
-                            .Include(p => p.SourceRelationships)
-                            .Include(p => p.PersonOrganisationRelations)
+            query = query.Include(p => p.TargetRelationships!).ThenInclude(x => x.SourcePerson)
+                            .Include(p => p.SourceRelationships!).ThenInclude(x => x.TargetPerson)
+                            .Include(p => p.PersonOrganisationRelations!).ThenInclude(x => x.Organisation)
                             .Include(p => p.ResourceRelatedPersonRelations);
 
         return await query.FirstOrDefaultAsync(p => p.Id == id);
@@ -27,9 +27,9 @@ public class PersonService(DatabaseContext db)
         IQueryable<Person> query = db.Persons;
 
         if (includeRelations)
-            query = query.Include(p => p.TargetRelationships)
-                            .Include(p => p.SourceRelationships)
-                            .Include(p => p.PersonOrganisationRelations)
+            query = query.Include(p => p.TargetRelationships!).ThenInclude(x => x.SourcePerson)
+                            .Include(p => p.SourceRelationships!).ThenInclude(x => x.TargetPerson)
+                            .Include(p => p.PersonOrganisationRelations!).ThenInclude(x => x.Organisation)
                             .Include(p => p.ResourceRelatedPersonRelations);
 
         if (predicate != null)
@@ -44,6 +44,22 @@ public class PersonService(DatabaseContext db)
             .ToArrayAsync();
 
         return (items, totalCount);
+    }
+
+    public async Task<Person[]> GetAllAsync(Expression<Func<Person, bool>>? predicate = null, bool includeRelations = false)
+    {
+        IQueryable<Person> query = db.Persons;
+
+        if (includeRelations)
+            query = query.Include(p => p.TargetRelationships!).ThenInclude(x => x.SourcePerson)
+                         .Include(p => p.SourceRelationships!).ThenInclude(x => x.TargetPerson)
+                         .Include(p => p.PersonOrganisationRelations!).ThenInclude(x => x.Organisation)
+                         .Include(p => p.ResourceRelatedPersonRelations);
+
+        if (predicate != null)
+            query = query.Where(predicate);
+
+        return await query.OrderBy(p => p.Name).ToArrayAsync();
     }
 
     public async Task<bool> ExistsAsync(Guid id)
@@ -112,7 +128,7 @@ public class PersonService(DatabaseContext db)
 
         db.Persons.Add(person);
 
-        foreach (RelatedEntry entry in dto.OrganisationRelations)
+        foreach (RelatedEntry entry in dto.OrganisationRelations.DistinctBy(e => e.Id))
         {
             if (!Guid.TryParse(entry.Id, out Guid orgId)) continue;
             db.PersonOrganisationRelations.Add(new PersonOrganisationRelation
@@ -123,7 +139,7 @@ public class PersonService(DatabaseContext db)
             });
         }
 
-        foreach (RelatedEntry entry in dto.PersonRelations)
+        foreach (RelatedEntry entry in dto.PersonRelations.DistinctBy(e => e.Id))
         {
             if (!Guid.TryParse(entry.Id, out Guid targetId)) continue;
             db.PersonRelationships.Add(new PersonRelationship

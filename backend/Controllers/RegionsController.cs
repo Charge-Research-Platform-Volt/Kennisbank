@@ -9,7 +9,6 @@ using System.Security.Claims;
 
 namespace KnowledgeBank.Controllers;
 
-[ApiController]
 [Route("[controller]")]
 [Authorize]
 public class RegionsController(RegionService regionService) : AppControllerBase

@@ -76,7 +76,7 @@ namespace KnowledgeBank
             builder.Services.AddProblemDetails();
             builder.Services.AddSignalR();
             builder.Services.AddSingleton<IStorageService, S3StorageService>();
-            builder.Services.AddSingleton<MetadataExtractionJobService>();
+            builder.Services.AddSingleton<ExtractionJobService>();
 
             builder.Services.AddSingleton<TextExtractionService>();
             builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, CustomAuthorizationMiddlewareResultHandler>();
@@ -139,14 +139,17 @@ namespace KnowledgeBank
             );
 
             // Resource management
-            builder.Services.AddScoped<ResourceManager>();
-            builder.Services.AddScoped<ProjectManager>();
+            builder.Services.AddScoped<UserService>();
             builder.Services.AddScoped<TagService>();
             builder.Services.AddScoped<RegionService>();
             builder.Services.AddScoped<JournalService>();
             builder.Services.AddScoped<PersonService>();
             builder.Services.AddScoped<OrganisationService>();
             builder.Services.AddScoped<ResourceTypeService>();
+            builder.Services.AddScoped<ResourceService>();
+            builder.Services.AddScoped<LibraryService>();
+            builder.Services.AddScoped<ProjectService>();
+            builder.Services.AddScoped<ChatService>();
 
             // Retrieval Augmented Generation system
             builder.Services.AddSingleton<MistralHttpClient>();

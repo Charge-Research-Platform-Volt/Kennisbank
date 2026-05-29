@@ -9,7 +9,6 @@ using System.Security.Claims;
 
 namespace KnowledgeBank.Controllers;
 
-[ApiController]
 [Route("resource-types")]
 [Authorize]
 public class ResourceTypesController(ResourceTypeService resourceTypeService) : AppControllerBase

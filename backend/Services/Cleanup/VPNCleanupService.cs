@@ -1,6 +1,6 @@
 using KnowledgeBank.Data;
-using Microsoft.EntityFrameworkCore;
 using KnowledgeBank.Utils;
+using Microsoft.EntityFrameworkCore;
 using KnowledgeBank.Services;
 using Serilog;
 
@@ -44,7 +44,7 @@ public class VPNCleanupService : BackgroundService
 
                 foreach (var (id, name) in vpnUsers)
                 {
-                    if (!ValidityUtil.IsValidId(name) || userIds.Contains(name) || invitationIds.Contains(name))
+                    if (!Guid.TryParse(name, out _) || userIds.Contains(name) || invitationIds.Contains(name))
                         continue;
 
                     try

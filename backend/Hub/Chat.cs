@@ -1,12 +1,11 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
-using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.AI;
+using KnowledgeBank.Services.Domain;
 using KnowledgeBank.Services.Search;
 using KnowledgeBank.Services.Search.Models;
-using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using SignalRSwaggerGen.Attributes;
@@ -15,7 +14,7 @@ namespace Hubs;
 
 [SignalRHub]
 [Authorize]
-public partial class Chat(MistralHttpClient mistralClient, AiService aiService, ResourceManager resourceManager, HybridSearchService hybridSearchService, ProjectManager projectManager) : Hub
+public partial class Chat(MistralHttpClient mistralClient, AiService aiService, ChatService chatService, ResourceService resourceService, PersonService personService, OrganisationService organisationService, ProjectService projectService, HybridSearchService hybridSearchService) : Hub
 {
     private static string BuildSystemPrompt(string? projectId)
     {
@@ -84,7 +83,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
 
         try
         {
-            Guid chatSessionId = await resourceManager.CreateChatAsync(new()
+            Guid chatSessionId = await chatService.CreateChatAsync(new ChatsCreateDto
             {
                 UserId = Guid.Parse(Context.UserIdentifier),
                 Title = "New Chat",
@@ -119,7 +118,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
             });
 
             string title = string.IsNullOrWhiteSpace(result.Content) ? "Untitled Chat" : result.Content.Trim().Trim('*', '_', '`', '#', '"', '\'').Trim();
-            await resourceManager.UpdateChatAsync(chatId, c => c.Title, title);
+            await chatService.UpdateTitleAsync(chatId, title);
             await caller.SendAsync("ChatTitleUpdated", chatId.ToString());
         }
         catch (Exception ex)
@@ -142,7 +141,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
             yield break;
         }
 
-        if (!ValidityUtil.IsValidId(chatId))
+        if (!Guid.TryParse(chatId, out _))
         {
             logger.Error("Invalid chat session ID: {ChatId}", chatId);
             yield break;
@@ -171,7 +170,6 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
 
     private async IAsyncEnumerable<string> StreamAgenticResponse(string message, List<object> chatHistory, string? projectId, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        // Plain objects for tool loop (ChatService)
         List<object> messages =
         [
             new { role = "system", content = BuildSystemPrompt(projectId) },
@@ -185,7 +183,6 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
 
             if (completion.HasToolCalls)
             {
-                // Add assistant tool_call message to both lists
                 messages.Add(new
                 {
                     role = "assistant",
@@ -223,13 +220,12 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
             else { break; }
         }
 
-        // Stream final answer
         await Clients.Caller.SendAsync("Thinking", cancellationToken);
 
         await foreach (string chunk in mistralClient.StreamAsync(new MistralChatRequest { Messages = messages }, cancellationToken))
             yield return chunk;
     }
-    
+
     private async Task<string> FormatSearchResultsAsync(HybridSearchResult result, string userQuestion, string searchQuery, CancellationToken ct)
     {
         var relevant = result.Items.Where(i => i.RelevanceScore >= RelevanceThreshold).ToList();
@@ -265,15 +261,15 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
     {
         try
         {
-            Chats? chatMessages = await resourceManager.GetChatAsync(c => c.Id == Guid.Parse(chatId), includeProperties: "Messages");
+            Chats? chat = await chatService.GetWithMessagesAsync(Guid.Parse(chatId));
 
-            if (chatMessages == null || chatMessages.UserId != Guid.Parse(Context.UserIdentifier!))
+            if (chat == null || chat.UserId != Guid.Parse(Context.UserIdentifier!))
             {
                 logger.Warning("Chat with ID {ChatId} not found or user not authorized", chatId);
                 return null;
             }
 
-            return BuildChatHistory(chatMessages.Messages, chatId);
+            return BuildChatHistory(chat.Messages, chatId);
         }
         catch (Exception ex)
         {
@@ -282,7 +278,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         }
     }
 
-    private List<object> BuildChatHistory(IEnumerable<dynamic> messages, string chatId)
+    private List<object> BuildChatHistory(IEnumerable<Messages> messages, string chatId)
     {
         var chatHistory = new List<object>();
 
@@ -296,10 +292,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
             };
 
             if (role != null)
-            {
-                string content = messageItem.Content is string s ? s : messageItem.Content?.ToString() ?? "";
-                chatHistory.Add(new { role, content });
-            }
+                chatHistory.Add(new { role, content = messageItem.Content });
             else
                 logger.Warning("Unknown message role {MessageRole} in chat {ChatId}", messageItem.MessageRole, chatId);
         }
@@ -311,7 +304,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
     {
         try
         {
-            await resourceManager.CreateMessageAsync(new()
+            await chatService.CreateMessageAsync(new MessagesCreateDto
             {
                 SenderId = Guid.Parse(Context.UserIdentifier!),
                 ChatId = Guid.Parse(chatId),
@@ -334,7 +327,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
 
         try
         {
-            await resourceManager.CreateMessageAsync(new()
+            await chatService.CreateMessageAsync(new MessagesCreateDto
             {
                 SenderId = Guid.Parse(Context.UserIdentifier!),
                 ChatId = Guid.Parse(chatId),

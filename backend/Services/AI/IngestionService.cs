@@ -1,5 +1,5 @@
 using KnowledgeBank.Models;
-using KnowledgeBank.Data;
+using KnowledgeBank.Services.Domain;
 using KnowledgeBank.Services.Vector;
 using Microsoft.SemanticKernel.Text;
 using Serilog;
@@ -9,7 +9,7 @@ namespace KnowledgeBank.Services.AI;
 
 #pragma warning disable SKEXP0050, SKEXP0001
 
-public class IngestionService(IVectorStore vectorStore, TextExtractionService textExtractionService, ResourceManager resourceManager)
+public class IngestionService(IVectorStore vectorStore, TextExtractionService textExtractionService, ResourceService resourceService, PersonService personService, OrganisationService organisationService)
 {
     private readonly Serilog.ILogger logger = Log.ForContext<IngestionService>();
 
@@ -93,13 +93,13 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
 
     public async Task RunPersonEntityPipelineAsync(Guid id)
     {
-        Person? person = await resourceManager.GetPersonAsync(id) ?? throw new InvalidOperationException($"Person {id} not found");
+        Person? person = await personService.GetByIdAsync(id) ?? throw new InvalidOperationException($"Person {id} not found");
         await RunEntityPipelineAsync(person);
     }
 
     public async Task RunOrganisationEntityPipelineAsync(Guid id)
     {
-        Organisation? organisation = await resourceManager.GetOrganisationAsync(id) ?? throw new InvalidOperationException($"Organisation {id} not found");
+        Organisation? organisation = await organisationService.GetByIdAsync(id) ?? throw new InvalidOperationException($"Organisation {id} not found");
         await RunEntityPipelineAsync(organisation);
     }
 
@@ -137,15 +137,7 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
     {
         try
         {
-            var resource = await resourceManager.GetResourceAsync(r => r.Id == id, includeProperties: new[]
-            {
-                "ResourceAuthorRelations.Author",
-                "ResourceTagRelations.Tag",
-                "ResourceOrganisationRelations.Organisation",
-                "ResourceRegionRelations.Region",
-                "ResourceType",
-                "Journal"
-            });
+            var resource = await resourceService.GetByIdAsync(id, includeRelations: true);
 
             if (resource == null)
             {

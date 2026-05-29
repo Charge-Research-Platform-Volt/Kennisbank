@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Identity;
 
 namespace KnowledgeBank.Controllers;
 
-[ApiController]
 [Route("[controller]")]
 public class ChangelogController(IDbContextFactory<DatabaseContext> dbFactory, UserManager<User> userManager) : AppControllerBase
 {

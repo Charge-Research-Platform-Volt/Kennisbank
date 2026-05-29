@@ -14,9 +14,9 @@ public class OrganisationService(DatabaseContext db)
         IQueryable<Organisation> query = db.Organisations;
 
         if (includeRelations)
-            query = query.Include(o => o.TargetRelationships)
-                         .Include(o => o.SourceRelationships)
-                         .Include(o => o.PersonOrganisationRelations)
+            query = query.Include(o => o.TargetRelationships!).ThenInclude(x => x.SourceOrganisation)
+                         .Include(o => o.SourceRelationships!).ThenInclude(x => x.TargetOrganisation)
+                         .Include(o => o.PersonOrganisationRelations!).ThenInclude(x => x.Person)
                          .Include(o => o.ResourceOrganisationRelations);
 
         return await query.FirstOrDefaultAsync(o => o.Id == id);
@@ -27,9 +27,9 @@ public class OrganisationService(DatabaseContext db)
         IQueryable<Organisation> query = db.Organisations;
 
         if (includeRelations)
-            query = query.Include(o => o.TargetRelationships)
-                         .Include(o => o.SourceRelationships)
-                         .Include(o => o.PersonOrganisationRelations)
+            query = query.Include(o => o.TargetRelationships!).ThenInclude(x => x.SourceOrganisation)
+                         .Include(o => o.SourceRelationships!).ThenInclude(x => x.TargetOrganisation)
+                         .Include(o => o.PersonOrganisationRelations!).ThenInclude(x => x.Person)
                          .Include(o => o.ResourceOrganisationRelations);
 
         if (predicate != null)
@@ -44,6 +44,22 @@ public class OrganisationService(DatabaseContext db)
             .ToArrayAsync();
 
         return (items, totalCount);
+    }
+
+    public async Task<Organisation[]> GetAllAsync(Expression<Func<Organisation, bool>>? predicate = null, bool includeRelations = false)
+    {
+        IQueryable<Organisation> query = db.Organisations;
+
+        if (includeRelations)
+            query = query.Include(o => o.TargetRelationships!).ThenInclude(x => x.SourceOrganisation)
+                         .Include(o => o.SourceRelationships!).ThenInclude(x => x.TargetOrganisation)
+                         .Include(o => o.PersonOrganisationRelations!).ThenInclude(x => x.Person)
+                         .Include(o => o.ResourceOrganisationRelations);
+
+        if (predicate != null)
+            query = query.Where(predicate);
+
+        return await query.OrderBy(o => o.Name).ToArrayAsync();
     }
 
     public async Task<bool> ExistsAsync(Guid id)
@@ -138,7 +154,7 @@ public class OrganisationService(DatabaseContext db)
 
         db.Organisations.Add(organisation);
 
-        foreach (RelatedEntry entry in dto.OrganisationRelations)
+        foreach (RelatedEntry entry in dto.OrganisationRelations.DistinctBy(e => e.Id))
         {
             if (!Guid.TryParse(entry.Id, out Guid targetOrgId)) continue;
             db.OrganisationRelationships.Add(new OrganisationRelationship

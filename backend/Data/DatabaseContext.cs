@@ -17,10 +17,6 @@ namespace KnowledgeBank.Data
         public DbSet<Tag> Tags { get; set; }
         public DbSet<ResourceTagRelation> ResourceTagRelations { get; set; }
         public DbSet<Invitation> Invitations { get; set; }
-        public DbSet<DocumentMetadata> DocumentMetadata { get; set; }
-        public DbSet<WebsiteMetadata> WebsiteMetadata { get; set; }
-        public DbSet<AudioMetadata> AudioMetadata { get; set; }
-        public DbSet<VideoMetadata> VideoMetadata { get; set; }
         public DbSet<Entity> Entities { get; set; }
         public DbSet<Person> Persons { get; set; }
         public DbSet<Organisation> Organisations { get; set; }
@@ -37,11 +33,10 @@ namespace KnowledgeBank.Data
         public DbSet<PersonRelationship> PersonRelationships { get; set; }
         public DbSet<OrganisationRelationship> OrganisationRelationships { get; set; }
         public DbSet<ResourceRegionRelation> ResourceRegionRelations { get; set; }
-        public DbSet<ResourceSourceRelation> ResourceSourceRelations { get; set; }
         public DbSet<ProjectFolderRelation> ProjectFolderRelations { get; set; }
         public DbSet<ProjectTagRelation> ProjectTagRelations { get; set; }
         public DbSet<ProjectItemRelation> ProjectItemRelations { get; set; }
-        public DbSet<ProjectCreatorRelation> ProjectCreatorRelations { get; set; }
+        public DbSet<ProjectMemberRelation> ProjectMemberRelations { get; set; }
         
         
         public DbSet<ResourceGridItem> ResourceGridItems { get; set; }
@@ -116,8 +111,6 @@ namespace KnowledgeBank.Data
             modelBuilder.Entity<ResourceRegionRelation>()
                 .HasKey(ft => new { ft.ResourceId, ft.RegionId });
 
-            modelBuilder.Entity<ResourceSourceRelation>()
-                .HasKey(ft => new { ft.ResourceId, ft.Url });
 
             // Resource chunks
             modelBuilder.Entity<ResourceChunk>(entity =>
@@ -208,8 +201,8 @@ namespace KnowledgeBank.Data
             modelBuilder.Entity<ProjectItemRelation>()
                 .HasKey(pir => new { pir.ProjectId, pir.ItemId });
 
-            modelBuilder.Entity<ProjectCreatorRelation>()
-                .HasKey(pcr => new { pcr.ProjectId, pcr.CreatorId });
+            modelBuilder.Entity<ProjectMemberRelation>()
+                .HasKey(pcr => new { pcr.ProjectId, pcr.UserId });
 
             modelBuilder.Entity<ProjectTagRelation>()
                 .HasKey(ptr => new { ptr.ProjectId, ptr.TagId });
@@ -228,28 +221,6 @@ namespace KnowledgeBank.Data
                 .WithMany(f => f.ParentFolders)
                 .HasForeignKey(pfr => pfr.ChildId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            // Resource grid view
-            modelBuilder.Entity<ResourceGridItem>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.ToView("resourcegridview");
-            });
-
-            modelBuilder.Entity<ResourceGridSearchResult>(entity =>
-            {
-                entity.HasNoKey();
-                entity.ToView(null);
-            });
-
-            // Relation indexes for better query performance
-            modelBuilder.Entity<ResourceTagRelation>()
-                .HasIndex(rt => rt.TagId)
-                .HasDatabaseName("idx_resource_tag_tag_id");
-
-            modelBuilder.Entity<ResourceRegionRelation>()
-                .HasIndex(rr => rr.RegionId)
-                .HasDatabaseName("idx_resource_region_region_id");
 
             // Resource trash view
             modelBuilder.Entity<ResourceTrashItem>(entity =>

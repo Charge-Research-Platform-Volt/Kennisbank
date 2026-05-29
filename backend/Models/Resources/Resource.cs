@@ -17,6 +17,9 @@ public class Resource
     [Column("description")]
     public string? Description { get; set; }
 
+    [Column("abstract")]
+    public string? Abstract { get; set; }
+
     [Column("type-id")]
     [ForeignKey("ResourceType")]
     public Guid? TypeId { get; set; }
@@ -38,17 +41,17 @@ public class Resource
     [Column("publication-date-precision")]
     public PublicationDatePrecision? PublicationDatePrecision { get; set; }
 
-    [Column("creation-date")]
-    public required DateTime CreationDate { get; set; }
+    [Column("created-on")]
+    public required DateTime CreatedOn { get; set; }
+
+    [Column("created-by")]
+    public required Guid CreatedBy { get; set; }
 
     [Column("license")]
     public string? License { get; set; }
 
     [Column("note")]
     public string? Note { get; set; }
-
-    [Column("ai-generated-tags")]
-    public string? AiGeneratedTags { get; set; }
 
     [Column("filetype")]
     [MaxLength(50)]
@@ -72,21 +75,6 @@ public class Resource
     public DateTime? TrashDate { get; set; } = null;
 
     #region Direct navigation properties
-    // Navigation property for Vector (one to one). JsonIgnore excludes it from response bodies.
-
-    // Navigation property for Document metadata (1:1)
-    [JsonIgnore] public DocumentMetadata? DocumentMetadata { get; set; }
-
-    // Navigation property for Website metadata (1:1)
-    [JsonIgnore] public WebsiteMetadata? WebsiteMetadata { get; set; }
-
-    // Navigation property for Audio metadata (1:1)
-    [JsonIgnore] public AudioMetadata? AudioMetadata { get; set; }
-
-    // Navigation property for Video metadata (1:1)
-    [JsonIgnore] public VideoMetadata? VideoMetadata { get; set; }
-
-    // Navigation property for Resource Type (1:1)
     [JsonIgnore] public ResourceType? ResourceType { get; set; }
 
     [JsonIgnore] public Journal? Journal { get; set; }
@@ -115,22 +103,17 @@ public class AuthorEntry
     public string? Type { get; set; } // "person" or "organisation" - needed when creating new entities
 }
 
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "uploadType")]
-[JsonDerivedType(typeof(WebsiteCreateDto), "website")]
-[JsonDerivedType(typeof(DocumentCreateDto), "document")]
-[JsonDerivedType(typeof(AudioCreateDto), "audio")]
-[JsonDerivedType(typeof(VideoCreateDto), "video")]
-public class ResourceCreateDto // Data Transfer Object (DTO)
+public class ResourceCreateDto
 {
     public required string Title { get; set; }
     public string? Description { get; set; }
+    public string? Abstract { get; set; }
     public required string TypeId { get; set; }
     public required string LanguageCode { get; set; }
     public string? PublicationCode { get; set; }
     public DateTime? PublicationDate { get; set; }
     public string? JournalId { get; set; }
     public PublicationDatePrecision? PublicationDatePrecision { get; set; }
-    public DateTime? CreationDate { get; set; }
     public string? License { get; set; }
     public string? SourceUrl { get; set; }
     public string? Note { get; set; }
@@ -139,20 +122,26 @@ public class ResourceCreateDto // Data Transfer Object (DTO)
     public RelatedEntry[] Organisations { get; set; } = [];
     public string[] Regions { get; set; } = [];
     public RelatedEntry[] RelatedPersons { get; set; } = [];
+    // File-specific (null for websites)
+    public string? FileId { get; set; }
+    public string? FileExtension { get; set; }
+    public string? Hash { get; set; }
 }
 
-public class FileResourceCreateDto : ResourceCreateDto
+public class ResourceUpdateDto
 {
-    public string? Hash { get; set; } = null;
-    public string FileExtension { get; set; } = "";
-    public required string Id { get; set; }
-}
-
-public class ResourceUploadDto
-{
-    public required string Dto { get; set; }
-    public required string UploadType { get; set; }
-    public IFormFile? File { get; set; }
+    public string? Title { get; set; }
+    public string? Description { get; set; }
+    public string? Abstract { get; set; }
+    public string? TypeId { get; set; }
+    public string? LanguageCode { get; set; }
+    public string? PublicationCode { get; set; }
+    public DateTime? PublicationDate { get; set; }
+    public string? JournalId { get; set; }
+    public PublicationDatePrecision? PublicationDatePrecision { get; set; }
+    public string? License { get; set; }
+    public string? Note { get; set; }
+    public string? SourceUrl { get; set; }
 }
 
 public class FileUploadInitDto
@@ -166,4 +155,35 @@ public class FileUploadFinalizeDto
     public required string ObjectName { get; set; }
     public required string UploadId { get; set; }
     public required IDictionary<int, string> PartETags { get; set; }
+}
+
+public class ResourceDetailDto
+{
+    public Guid Id { get; set; }
+    public string Title { get; set; } = null!;
+    public string? Description { get; set; }
+    public string? Abstract { get; set; }
+    public Guid? TypeId { get; set; }
+    public string? TypeName { get; set; }
+    public string LanguageCode { get; set; } = null!;
+    public string? PublicationCode { get; set; }
+    public DateTime? PublicationDate { get; set; }
+    public PublicationDatePrecision? PublicationDatePrecision { get; set; }
+    public Guid? JournalId { get; set; }
+    public string? JournalName { get; set; }
+    public DateTime CreatedOn { get; set; }
+    public Guid CreatedBy { get; set; }
+    public string? License { get; set; }
+    public string? Note { get; set; }
+    public string FileType { get; set; } = null!;
+    public string? FileExt { get; set; }
+    public string? Hash { get; set; }
+    public string? SourceUrl { get; set; }
+    public bool Trashed { get; set; }
+    public DateTime? TrashDate { get; set; }
+    public RelationItemDto[] Authors { get; set; } = [];
+    public RelationItemDto[] Organisations { get; set; } = [];
+    public RelationItemDto[] Regions { get; set; } = [];
+    public RelationItemDto[] RelatedPersons { get; set; } = [];
+    public RelationItemDto[] Tags { get; set; } = [];
 }

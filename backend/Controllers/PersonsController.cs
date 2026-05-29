@@ -11,7 +11,6 @@ using KnowledgeBank.Services.AI;
 
 namespace KnowledgeBank.Controllers;
 
-[ApiController]
 [Route("[controller]")]
 [Authorize]
 public class PersonsController(PersonService personService, IBackgroundTaskQueue taskQueue) : AppControllerBase
