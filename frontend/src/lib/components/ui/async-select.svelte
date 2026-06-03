@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ListItem } from '$lib/types/results';
 	import { Popover } from 'bits-ui';
 	import { debounce } from '$lib/utils/debounce';
 	import { Check, ChevronDown, Search, X } from '@lucide/svelte';
@@ -16,17 +17,17 @@
 	}: {
 		value: string | null;
 		displayValue: string | null;
-		search: (q: string) => Promise<{ id: string; name: string }[]>;
+		search: (q: string) => Promise<ListItem[]>;
 		placeholder?: string;
 		class?: string;
 		variant?: 'default' | 'ghost' | 'flat';
 		onchange?: (id: string | null, name: string | null) => void;
-		oncreate?: (name: string) => Promise<{ id: string; name: string } | null>;
+		oncreate?: (name: string) => Promise<ListItem | null>;
 		allowClear?: boolean;
 	} = $props();
 
 	let open = $state(false);
-	let options = $state<{ id: string; name: string }[]>([]);
+	let options = $state<ListItem[]>([]);
 	let searchQuery = $state('');
 	const debouncedSearch = debounce((q: string) => search(q).then((r) => (options = r)));
 
@@ -42,7 +43,7 @@
 		}
 	});
 
-	function select(option: { id: string; name: string }) {
+	function select(option: ListItem) {
 		value = option.id;
 		displayValue = option.name;
 		open = false;

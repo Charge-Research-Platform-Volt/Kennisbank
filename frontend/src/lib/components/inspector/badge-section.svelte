@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ListItem } from '$lib/types/results';
 	import type { RelationItem } from '$lib/types/resource';
 	import { getContext, untrack } from 'svelte';
 	import { X } from '@lucide/svelte';
@@ -14,9 +15,9 @@
 	}: {
 		label: string;
 		items: RelationItem[];
-		search?: (q: string) => Promise<{ id: string; name: string }[]>;
+		search?: (q: string) => Promise<ListItem[]>;
 		onadd?: (id: string, name: string) => Promise<void>;
-		oncreate?: (name: string) => Promise<{ id: string; name: string } | null>;
+		oncreate?: (name: string) => Promise<ListItem | null>;
 		onremove?: (item: RelationItem) => Promise<void>;
 	} = $props();
 
@@ -27,7 +28,7 @@
 	let localItems = $state<RelationItem[]>(untrack(() => items.map((i) => ({ ...i }))));
 
 	let searchQuery = $state('');
-	let searchResults = $state<{ id: string; name: string }[]>([]);
+	let searchResults = $state<ListItem[]>([]);
 	let searchOpen = $state(false);
 	const debouncedSearch = debounce((q: string) => {
 		search?.(q).then((r) => {

@@ -9,11 +9,16 @@ export type ResourceItem = {
 	fileType: string;
 	publicationDate: string;
 	publicationDatePrecision: DatePrecision;
-	creationDate: string;
+	createdOn: string;
 	description: string;
 	trashed?: boolean;
 	chunks?: string[];
+	sourceUrl?: string;
 };
+
+export type RawResourceItem = ResourceItem & {
+	title: string;
+}
 
 export type TrashItem = ResourceItem & {
 	trashDate: string;
@@ -38,15 +43,14 @@ export type ResourceDetail = {
 	journalId?: string;
 	journalName?: string;
 	license?: string;
-	creationDate?: string;
+	createdOn?: string;
 	note?: string;
 	fileType?: string;
 	fileExt?: string;
 	sourceUrl?: string;
-	url?: string;
 	abstract?: string;
-	resourceTypeId?: string;
-	resourceTypeName?: string;
+	typeId?: string;
+	typeName?: string;
 	authors: RelationItem[];
 	organisations: RelationItem[];
 	regions: RelationItem[];
@@ -58,8 +62,8 @@ export type PersonDetail = {
 	name: string;
 	description?: string;
 	occupation?: string;
-	creationDate?: string;
-	email?: string;
+	createdOn?: string;
+	emailAddress?: string;
 	linkedin?: string;
 	authored: RelationItem[];
 	relatedResources: RelationItem[];
@@ -72,8 +76,8 @@ export type OrganisationDetail = {
 	name: string;
 	website?: string;
 	description?: string;
-	creationDate?: string;
-	email?: string;
+	createdOn?: string;
+	emailAddress?: string;
 	authored: RelationItem[];
 	relatedResources: RelationItem[];
 	targetOrganisations: RelationItem[];

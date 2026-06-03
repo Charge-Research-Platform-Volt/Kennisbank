@@ -40,6 +40,7 @@
 	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
 	import AsyncMultiSelect from '$lib/components/ui/async-multi-select.svelte';
 	import { toast } from 'svelte-sonner';
+	import type { ListItem, PagedResult } from '$lib/types/results';
 
 	const openInspector: (item: ResourceItem) => void = getContext('openInspector');
 	const registerRefresh: (fn: () => void) => void = getContext('registerRefresh');
@@ -54,12 +55,12 @@
 
 	let filteredFolders = $derived(
 		projectInfo?.folders.filter((e) =>
-			e.folder.title.toLowerCase().includes(searchInput.toLowerCase())
+			e.title.toLowerCase().includes(searchInput.toLowerCase())
 		) ?? []
 	);
 	let filteredItems = $derived(
 		projectInfo?.items.filter((e) =>
-			e.item.name.toLowerCase().includes(searchInput.toLowerCase())
+			e.name.toLowerCase().includes(searchInput.toLowerCase())
 		) ?? []
 	);
 
@@ -70,8 +71,8 @@
 		loading = true;
 
 		try {
-			const result = await api.get<ProjectInfo>(`/api/project/info/${page.params.id}`);
-			projectInfo = result.body;
+			const result = await api.get<ProjectInfo>(`/api/projects/${page.params.id}`);
+			projectInfo = result;
 		} finally {
 			loading = false;
 		}
@@ -88,7 +89,7 @@
 		}
 
 		try {
-			await api.put(`/api/project/add-folder/${page.params.id}`, { name: newFolderName.trim() });
+			await api.put(`/api/projects/${page.params.id}/folders`, { name: newFolderName.trim() });
 			await fetchProject();
 		} finally {
 			addingFolder = false;
@@ -113,23 +114,23 @@
 	let itemSearch = $state('');
 	let itemSearchResults = $state<ResourceItem[]>([]);
 	let itemSearchLoading = $state(false);
-	let addedItemIds = $derived(new Set(projectInfo?.items.map((e) => e.item.id) ?? []));
+	let addedItemIds = $derived(new Set(projectInfo?.items.map((e) => e.id) ?? []));
 
 	async function searchItems() {
 		itemSearchLoading = true;
 
 		try {
-			const result = await api.post<{ items: ResourceItem[]; totalCount: number }>(
-				'/api/resources/grid',
+			const result = await api.post<PagedResult<ResourceItem>>(
+				'/api/library',
 				{
-					pageIndex: 1,
+					page: 1,
 					pageSize: 20,
-					searchQuery: itemSearch || undefined,
+					search: itemSearch || undefined,
 					filterOptions: {}
 				}
 			);
 
-			itemSearchResults = result.body?.items ?? [];
+			itemSearchResults = result.items;
 		} finally {
 			itemSearchLoading = false;
 		}
@@ -137,7 +138,7 @@
 
 	async function addItem(itemId: string) {
 		try {
-			await api.put(`/api/project/add-item/${page.params.id}/${itemId}`, {});
+			await api.post(`/api/projects/${page.params.id}/items/${itemId}`, {});
 			await fetchProject();
 		} catch (e) {
 			toast.error(e instanceof Error ? e.message : 'Failed to add item.');
@@ -148,7 +149,7 @@
 
 	async function removeItem(itemId: string) {
 		try {
-			await api.delete(`/api/project/remove-item/${page.params.id}/${itemId}`);
+			await api.delete(`/api/projects/${page.params.id}/items/${itemId}`);
 			await fetchProject();
 			toast.success('Successfully removed item.');
 		} catch (e) {
@@ -158,7 +159,7 @@
 
 	async function deleteFolder(folderId: string) {
 		try {
-			await api.delete(`/api/project/delete/${folderId}`);
+			await api.delete(`/api/projects/${folderId}`);
 			await fetchProject();
 			toast.success('Successfully deleted folder.');
 		} catch (e) {
@@ -177,7 +178,7 @@
 		}
 
 		try {
-			await api.patch(`/api/project/update/${renamingFolderId}`, {
+			await api.patch(`/api/projects/${renamingFolderId}`, {
 				title: renameFolderName.trim()
 			});
 			await fetchProject();
@@ -198,14 +199,14 @@
 	let editTitle = $state('');
 	let editDescription = $state('');
 	let editTags = $state<string[]>([]);
-	let editCreators = $state<string[]>([]);
+	let editMembers = $state<string[]>([]);
 	let editSubmitting = $state(false);
 
 	function openEditDialog() {
 		editTitle = projectInfo!.rootProject.title;
 		editDescription = projectInfo!.rootProject.description ?? '';
 		editTags = projectInfo!.tags.filter(Boolean).map((t) => t!.id);
-		editCreators = projectInfo!.creators.map((c) => c.id);
+		editMembers = projectInfo!.members.map((c) => c.id);
 		editOpen = true;
 	}
 
@@ -215,11 +216,11 @@
 		editSubmitting = true;
 
 		try {
-			await api.patch(`/api/project/update/${projectInfo!.rootProject.id}`, {
+			await api.patch(`/api/projects/${projectInfo!.rootProject.id}`, {
 				title: editTitle.trim(),
 				description: editDescription.trim() || null,
 				tags: editTags,
-				creators: editCreators
+				members: editMembers
 			});
 
 			editOpen = false;
@@ -234,7 +235,7 @@
 
 	async function deleteProject() {
 		try {
-			await api.delete(`/api/project/delete/${projectInfo!.rootProject.id}`);
+			await api.delete(`/api/projects/${projectInfo!.rootProject.id}`);
 			toast.success('Successfully deleted project.');
 			goto('/projects');
 		} catch (e) {
@@ -243,24 +244,16 @@
 	}
 
 	async function searchTags(q: string) {
-		const result = await api.post<{ tags: { id: string; name: string }[] }>('/api/tags/tags', {
-			usePaging: true,
-			pageIndex: 1,
-			pageSize: 20,
-			searchQuery: q,
-			includeUsageCount: false,
-			includeCanEditAndDelete: false
-		});
-
-		return result.body.tags;
+		const result = await api.get<PagedResult<ListItem>>(`/api/tags?search=${encodeURIComponent(q)}`);
+		return result.items;
 	}
 
 	async function searchUsers(q: string) {
 		const result = await api.get<{ users: { id: string; firstName: string; lastName: string }[] }>(
-			`/api/user/list-paged?pageIndex=1&pageSize=20&searchQuery=${encodeURIComponent(q)}&excludeId=${userState.user?.id ?? ''}`
+			`/api/users?page=1&pageSize=20&search=${encodeURIComponent(q)}&excludeId=${userState.user?.id ?? ''}`
 		);
 
-		return result.body.users.map((u) => ({ id: u.id, name: `${u.firstName} ${u.lastName}` }));
+		return result.users.map((u) => ({ id: u.id, name: `${u.firstName} ${u.lastName}` }));
 	}
 
 	// Run on page load
@@ -333,15 +326,15 @@
 
 		<!-- Info strip -->
 		<div class="flex items-center justify-start gap-10">
-			<!-- Creator avatars -->
+			<!-- Member avatars -->
 			<div class="flex items-center gap-2">
 				<Users size={14} class="shrink-0 text-muted-foreground" />
 				<div class="flex items-center">
-					{#each projectInfo.creators as creator (creator.id)}
+					{#each projectInfo.members as member (member.id)}
 						<Avatar
-							userId={creator.id.toString()}
-							name="{creator.firstName} {creator.lastName}"
-							customAvatarVersion={creator.customAvatarVersion ?? null}
+							userId={member.id.toString()}
+							name="{member.firstName} {member.lastName}"
+							customAvatarVersion={member.customAvatarVersion ?? null}
 							size={28}
 							class="-ml-2 first:ml-0"
 						/>
@@ -477,19 +470,19 @@
 				{/if}
 
 				<!-- Folders -->
-				{#each filteredFolders as entry (entry.folder.id)}
+				{#each filteredFolders as entry (entry.id)}
 					<ContextMenu.Root>
 						<ContextMenu.Trigger>
 							{#snippet child({ props })}
 								<Table.Row
 									{...props}
 									class="cursor-pointer {props.class ?? ''}"
-									onclick={() => goto(`/projects/${entry.folder.id}`)}
+									onclick={() => goto(`/projects/${entry.id}`)}
 								>
 									<Table.Cell class="py-3">
 										<div class="flex items-center gap-3">
 											<Folder size={16} class="shrink-0 text-muted-foreground" />
-											{#if renamingFolderId === entry.folder.id}
+											{#if renamingFolderId === entry.id}
 												<input
 													class="w-full bg-transparent text-sm outline-none"
 													bind:value={renameFolderName}
@@ -500,7 +493,7 @@
 													use:autofocus
 												/>
 											{:else}
-												{entry.folder.title}
+												{entry.title}
 											{/if}
 										</div>
 									</Table.Cell>
@@ -515,8 +508,8 @@
 						<ContextMenu.Content>
 							<ContextMenu.Item
 								onclick={() => {
-									renamingFolderId = entry.folder.id;
-									renameFolderName = entry.folder.title;
+									renamingFolderId = entry.id;
+									renameFolderName = entry.title;
 								}}>Rename</ContextMenu.Item
 							>
 							<ContextMenu.Separator />
@@ -524,9 +517,9 @@
 								class="text-destructive focus:text-destructive"
 								onclick={async () => {
 									if (
-										await confirm(`Delete folder "${entry.folder.title}"? This cannot be undone.`)
+										await confirm(`Delete folder "${entry.title}"? This cannot be undone.`)
 									)
-										await deleteFolder(entry.folder.id);
+										await deleteFolder(entry.id);
 								}}>Delete</ContextMenu.Item
 							>
 						</ContextMenu.Content>
@@ -534,9 +527,9 @@
 				{/each}
 
 				<!-- Items -->
-				{#each filteredItems as entry (entry.item.id)}
-					{@const Icon = getFileIcon(entry.item.fileType)}
-					{@const action = getFileAction(entry.item.fileType)}
+				{#each filteredItems as entry (entry.id)}
+					{@const Icon = getFileIcon(entry.fileType)}
+					{@const action = getFileAction(entry.fileType)}
 
 					<ContextMenu.Root>
 						<ContextMenu.Trigger>
@@ -544,12 +537,12 @@
 								<Table.Row
 									{...props}
 									class="cursor-pointer {props.class ?? ''}"
-									onclick={() => openInspector(entry.item)}
+									onclick={() => openInspector(entry)}
 								>
 									<Table.Cell class="py-3">
 										<div class="flex items-center gap-3">
 											<Icon size={16} class="shrink-0 text-muted-foreground" />
-											{entry.item.name}
+											{entry.name}
 										</div>
 									</Table.Cell>
 									<Table.Cell class="text-xs whitespace-nowrap text-muted-foreground"
@@ -562,7 +555,7 @@
 													class="cursor-pointer"
 													onclick={(e) => {
 														e.stopPropagation();
-														openFile(entry.item.id, entry.item.fileType);
+														openFile(entry.id, entry.fileType, entry.sourceUrl);
 													}}
 												>
 													<ExternalLink size={14} />
@@ -572,7 +565,7 @@
 													class="cursor-pointer"
 													onclick={(e) => {
 														e.stopPropagation();
-														openFile(entry.item.id, entry.item.fileType);
+														openFile(entry.id, entry.fileType, entry.sourceUrl);
 													}}
 												>
 													<Download size={14} />
@@ -590,10 +583,10 @@
 								onclick={async () => {
 									if (
 										await confirm(
-											`Remove "${entry.item.name}"? This will not delete it from the library.`
+											`Remove "${entry.name}"? This will not delete it from the library.`
 										)
 									)
-										await removeItem(entry.item.id);
+										await removeItem(entry.id);
 								}}
 							>
 								Remove
@@ -681,11 +674,11 @@
 				/>
 			</div>
 			<div class="flex flex-col gap-1.5">
-				<Label>Co-creators</Label>
+				<Label>Co-members</Label>
 				<AsyncMultiSelect
-					bind:value={editCreators}
+					bind:value={editMembers}
 					search={searchUsers}
-					placeholder="Co-creators"
+					placeholder="Co-members"
 					class="w-full"
 				/>
 			</div>

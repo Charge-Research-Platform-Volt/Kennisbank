@@ -30,19 +30,19 @@
 		startEdit(chat);
 	}
 
-	type Chat = { id: string; title: string; creationDate: string };
+	type Chat = { id: string; title: string; createdOn: string };
 
 	let chatHistory = $state<Record<string, Chat[]>>({});
 	let editingId = $state<string | null>(null);
 	let editingTitle = $state('');
 
 	async function fetchHistory() {
-		const result = await api.get<{ chats: Record<string, Chat[]> }>('/api/ai/all-chats');
-		chatHistory = result.body?.chats ?? {};
+		const result = await api.get<Record<string, Chat[]>>('/api/chats');
+		chatHistory = result ?? {};
 	}
 
 	async function deleteChat(id: string) {
-		await api.delete(`/api/ai/delete-chat/${id}`);
+		await api.delete(`/api/chats/${id}`);
 		await fetchHistory();
 
 		if (page.params.id === id) goto('/chatbot');
@@ -63,7 +63,7 @@
 		cancelEdit();
 		if (!title) return;
 
-		await api.patch(`/api/ai/rename-chat/${id}`, title);
+		await api.patch(`/api/chats/${id}/title`, title);
 		await fetchHistory();
 	}
 
@@ -83,7 +83,7 @@
 		fetchHistory();
 	});
 </script>
-
+·
 <div class="flex h-full flex-col overflow-hidden">
 	<div class="border-b border-border p-3">
 		<Button class="w-full cursor-pointer" onclick={() => goto('/chatbot')}>+ New Chat</Button>

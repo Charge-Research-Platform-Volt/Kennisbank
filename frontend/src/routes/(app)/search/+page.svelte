@@ -9,6 +9,7 @@
 	import { formatDate } from '$lib/utils/date';
 	import { getParam, setParams } from '$lib/utils/urlState';
 	import { debounce } from '$lib/utils/debounce';
+	import type { PagedResult } from '$lib/types/results';
 
 	const openInspector: (item: ResourceItem) => void = getContext('openInspector');
 	const debouncedSearch = debounce(search);
@@ -33,17 +34,14 @@
 		loading = true;
 
 		try {
-			const result = await api.post<{ items: ResourceItem[]; totalCount: number }>(
-				'/api/resources/grid',
-				{
-					pageIndex: currentPage,
-					pageSize: 20,
-					searchQuery: searchInput
-				}
-			);
+			const result = await api.post<PagedResult<ResourceItem>>('/api/library', {
+				page: currentPage,
+				pageSize: 20,
+				search: searchInput
+			});
 
-			items = items.concat(result.body.items);
-			totalCount = result.body.totalCount;
+			items = items.concat(result.items);
+			totalCount = result.totalCount;
 			currentPage++;
 		} finally {
 			loading = false;

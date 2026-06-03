@@ -46,9 +46,9 @@ public class ProjectCreateDto
 
 public class ProjectListRequest
 {
-    public int PageIndex { get; set; } = 1;
+    public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 50;
-    public string? SearchQuery { get; set; }
+    public string? Search { get; set; }
     public Guid? MemberFilter { get; set; }
     public Guid[]? Tags { get; set; }
     public DateTime? StartDate { get; set; }
@@ -59,7 +59,7 @@ public class ProjectListResult
 {
     public Project[] Items { get; set; } = [];
     public int TotalCount { get; set; }
-    public int PageIndex { get; set; }
+    public int Page { get; set; }
     public int PageSize { get; set; }
     public int PageCount { get; set; }
 }

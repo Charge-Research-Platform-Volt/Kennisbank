@@ -67,12 +67,12 @@ public class UsersController(UserService userService, IStorageService storageSer
     [Authorize]
     [SwaggerOperation(Summary = "Gets a paged, searchable list of users")]
     [SwaggerResponse(200, "Users loaded successfully")]
-    public async Task<IActionResult> GetUsersPaged(int pageIndex = 1, int pageSize = 100, string? searchQuery = null, string? excludeId = null)
+    public async Task<IActionResult> GetUsersPaged(int page = 1, int pageSize = 100, string? search = null, string? excludeId = null)
     {
-        if (pageIndex < 1) return Problem("Page index cannot be lower than 1.", statusCode: 400);
+        if (page < 1) return Problem("Page index cannot be lower than 1.", statusCode: 400);
         if (pageSize < 1) return Problem("Page size cannot be lower than 1.", statusCode: 400);
 
-        var (users, totalCount) = await userService.GetPageAsync(pageIndex, pageSize, searchQuery, excludeId);
+        var (users, totalCount) = await userService.GetPageAsync(page, pageSize, search, excludeId);
         var roleMap = await userService.GetRoleMapAsync(users.Select(u => u.Id));
 
         int pageCount = (int)Math.Ceiling((double)totalCount / pageSize);
@@ -87,19 +87,19 @@ public class UsersController(UserService userService, IStorageService storageSer
             Role = roleMap.TryGetValue(user.Id, out var role) ? role : "No Role"
         });
 
-        return Ok(new { Users = userItems, PageIndex = pageIndex, PageSize = pageSize, PageCount = pageCount });
+        return Ok(new { Users = userItems, Page = page, PageSize = pageSize, PageCount = pageCount });
     }
 
     [HttpGet("combined")]
     [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(Summary = "Gets a combined list of registered users and pending invitations")]
     [SwaggerResponse(200, "Combined list loaded successfully")]
-    public async Task<IActionResult> GetUsersCombined(int pageIndex = 1, int pageSize = 50, string? searchQuery = null)
+    public async Task<IActionResult> GetUsersCombined(int page = 1, int pageSize = 50, string? search = null)
     {
-        if (pageIndex < 1) return Problem("Page index cannot be lower than 1.", statusCode: 400);
+        if (page < 1) return Problem("Page index cannot be lower than 1.", statusCode: 400);
         if (pageSize < 1) return Problem("Page size cannot be lower than 1.", statusCode: 400);
 
-        var (matchedUsers, matchedInvites) = await userService.GetCombinedAsync(searchQuery);
+        var (matchedUsers, matchedInvites) = await userService.GetCombinedAsync(search);
         var roleMap = await userService.GetRoleMapAsync(matchedUsers.Select(u => u.Id));
 
         var combined = new List<object>();
@@ -112,9 +112,9 @@ public class UsersController(UserService userService, IStorageService storageSer
 
         int totalCount = combined.Count;
         int pageCount = (int)Math.Ceiling((double)totalCount / pageSize);
-        var page = combined.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
+        var paged = combined.Skip((page - 1) * pageSize).Take(pageSize).ToList();
 
-        return Ok(new { Items = page, PageIndex = pageIndex, PageSize = pageSize, PageCount = pageCount, TotalCount = totalCount });
+        return Ok(new { Items = paged, Page = page, PageSize = pageSize, PageCount = pageCount, TotalCount = totalCount });
     }
 
     [HttpGet("roles")]

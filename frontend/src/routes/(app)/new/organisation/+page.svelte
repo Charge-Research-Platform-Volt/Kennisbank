@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { PagedResult, ListItem } from '$lib/types/results';
 	import { goto } from '$app/navigation';
 	import { debounce } from '$lib/utils/debounce';
 	import { api } from '$lib/api';
@@ -22,7 +23,7 @@
 	let isSubmitting = $state(false);
 	let isCheckingDuplicate = $state(false);
 	let duplicate = $state<{ exists: boolean; id: string } | null>(null);
-	let similar = $state<{ id: string; name: string }[]>([]);
+	let similar = $state<ListItem[]>([]);
 
 	const debouncedCheckDuplicate = debounce(checkDuplicate, 500);
 
@@ -37,15 +38,10 @@
 		isCheckingDuplicate = true;
 
 		try {
-			const result = await api.get<{ exists: boolean; id: string }>(
-				`/api/organisations/exists?name=${encodeURIComponent(name)}`
-			);
-			duplicate = result.body;
-
-			const listResult = await api.get<{ id: string; name: string }[]>(
-				`/api/organisations/list?searchQuery=${encodeURIComponent(name)}&pageSize=3&properties=Id,Name`
-			);
-			similar = listResult.body.filter((o) => o.name.toLowerCase() !== name.toLowerCase());
+			const result = await api.get<PagedResult<ListItem>>(`/api/organisations?search=${encodeURIComponent(name)}&pageSize=5`);
+			const exact = result.items.find(i => i.name.toLowerCase() === name.toLowerCase());
+			duplicate = exact ? { exists: true, id: exact.id } : { exists: false, id: '' };
+			similar = result.items;
 		} catch {
 			// Silently ignore
 		} finally {
@@ -60,7 +56,7 @@
 
 		isSubmitting = true;
 		try {
-			const result = await api.put<string>('/api/organisations/new', {
+			const result = await api.put<string>('/api/organisations', {
 				Name: name,
 				Description: description || undefined,
 				EmailAddress: email || undefined,
@@ -70,7 +66,7 @@
 			// Add to selected projects
 			if (projectIds.length > 0) {
 				const results = await Promise.allSettled(
-					projectIds.map((pid) => api.put(`/api/project/add-item/${pid}/${result.body}`, {}))
+					projectIds.map((pid) => api.post(`/api/projects/${pid}/items/${result}`, {}))
 				);
 
 				const failed = results.filter((r) => r.status === 'rejected').length;
@@ -85,8 +81,8 @@
 			}
 
 			if (sourceProjectId)
-				goto(`/projects/${sourceProjectId}?inspectorId=${result.body}&inspectorType=organisation`);
-			else goto(`/library?inspectorId=${result.body}&inspectorType=organisation`);
+				goto(`/projects/${sourceProjectId}?inspectorId=${result}&inspectorType=organisation`);
+			else goto(`/library?inspectorId=${result}&inspectorType=organisation`);
 		} catch (e) {
 			toast.error(e instanceof Error ? e.message : 'Failed to create organisation');
 		} finally {
@@ -95,14 +91,13 @@
 	}
 
 	async function searchProjects(q: string) {
-		const result = await api.post<ProjectListResponse>('/api/project/list', {
-			usePaging: true,
-			pageIndex: 1,
+		const result = await api.post<ProjectListResponse>('/api/projects', {
+			page: 1,
 			pageSize: 20,
-			searchQuery: q || undefined
+			search: q || undefined
 		});
 
-		return result.body.projects.map((p) => ({ id: p.id, name: p.title }));
+		return result.items.map((p) => ({ id: p.id, name: p.title }));
 	}
 
 	const canSubmit = $derived(name.trim().length > 0 && !isSubmitting && !duplicate?.exists);

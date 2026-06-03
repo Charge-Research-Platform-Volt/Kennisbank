@@ -17,6 +17,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import AsyncMultiSelect from '$lib/components/ui/async-multi-select.svelte';
+	import type { ListItem, PagedResult } from '$lib/types/results';
 
 	type Phase = 'select' | 'processing' | 'review' | 'duplicate';
 	type EntityEntry = {
@@ -47,17 +48,15 @@
 
 	const searchResourceTypes = async (q: string) => {
 		const url = q
-			? `/api/resources/types/list?search=${encodeURIComponent(q)}`
-			: '/api/resources/types/list';
-		const result = await api.get<{ id: string; name: string }[]>(url);
-		return result.body.filter((t) => t.name !== 'Unknown');
+			? `/api/resource-types?search=${encodeURIComponent(q)}`
+			: '/api/resource-types';
+		const result = await api.get<PagedResult<ListItem>>(url);
+		return result.items;
 	};
 
 	const createResourceType = async (name: string) => {
-		const result = await api.put<{ id: string; name: string }>('/api/resources/types/new', {
-			name
-		});
-		return result.body;
+		const result = await api.put<string>('/api/resource-types', { name });
+		return { id: result, name };
 	};
 
 	const searchLanguages = (q: string) =>
@@ -69,64 +68,57 @@
 		);
 
 	const searchPersons = async (q: string) => {
-		const result = await api.get<{ id: string; name: string }[]>(
-			`/api/persons/list?searchQuery=${encodeURIComponent(q)}&pageSize=10&properties=Id,Name`
-		);
-		return result.body;
+		const result = await api.get<PagedResult<ListItem>>(`/api/persons?search=${encodeURIComponent(q)}&pageSize=10`);
+		return result.items;
 	};
 
 	const searchOrganisations = async (q: string) => {
-		const result = await api.get<{ id: string; name: string }[]>(
-			`/api/organisations/list?searchQuery=${encodeURIComponent(q)}&pageSize=10&properties=Id,Name`
-		);
-		return result.body;
+		const result = await api.get<PagedResult<ListItem>>(`/api/organisations?search=${encodeURIComponent(q)}&pageSize=10`);
+		return result.items;
 	};
 
-	const searchTags = async (q: string) => {
+	async function searchTags(q: string) {
 		const url = q
-			? `/api/tags/tag-page?pageIndex=1&pageSize=20&searchQuery=${encodeURIComponent(q)}`
-			: '/api/tags/tag-page?pageIndex=1&pageSize=20';
-		const r = await api.get<{ tags: { id: string; name: string }[] }>(url);
-		return r.body?.tags ?? [];
-	};
+			? `/api/tags?page=1&pageSize=20&search=${encodeURIComponent(q)}`
+			: '/api/tags?page=1&pageSize=20';
+		const r = await api.get<PagedResult<ListItem>>(url);
+		return r.items ?? [];
+	}
 
-	const createTag = async (name: string): Promise<{ id: string; name: string } | null> => {
-		const response = await fetch('/api/tags/add-user-tag', {
-			method: 'PUT',
-			credentials: 'include',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ name })
-		});
-		const data = await response.json();
-		if (response.ok || response.status === 409) return { id: data.body as string, name };
-		return null;
-	};
+	async function createTag(name: string): Promise<ListItem | null> {
+		try {
+			const id = await api.put<string>('/api/tags', { name });
+			return { id, name };
+		} catch {
+			return null;
+		}
+	}
 
-	const searchRegions = async (q: string) => {
+	async function searchRegions(q: string) {
 		const url = q
-			? `/api/regions/list?pageIndex=1&pageSize=20&searchQuery=${encodeURIComponent(q)}&properties=Id,Name`
-			: '/api/regions/list?pageIndex=1&pageSize=20&properties=Id,Name';
-		const r = await api.get<{ id: string; name: string }[]>(url);
-		return r.body ?? [];
-	};
+			? `/api/regions?page=1&pageSize=20&search=${encodeURIComponent(q)}`
+			: '/api/regions?page=1&pageSize=20';
+		const r = await api.get<PagedResult<ListItem>>(url);
+		return r.items ?? [];
+	}
 
-	const createRegion = async (name: string): Promise<{ id: string; name: string } | null> => {
-		const r = await api.put<string>('/api/regions/new', { name });
-		return { id: r.body, name };
-	};
+	async function createRegion(name: string): Promise<ListItem | null> {
+		const r = await api.put<string>('/api/regions', { name });
+		return { id: r, name };
+	}
 
-	const searchJournals = async (q: string) => {
+	async function searchJournals(q: string) {
 		const url = q
-			? `/api/journal/list?pageIndex=1&pageSize=20&searchQuery=${encodeURIComponent(q)}&properties=Id,Name`
-			: '/api/journal/list?pageIndex=1&pageSize=20&properties=Id,Name';
-		const r = await api.get<{ id: string; name: string }[]>(url);
-		return r.body ?? [];
-	};
+			? `/api/journals?page=1&pageSize=20&search=${encodeURIComponent(q)}`
+			: '/api/journals?page=1&pageSize=20';
+		const r = await api.get<PagedResult<ListItem>>(url);
+		return r.items ?? [];
+	}
 
-	const createJournal = async (name: string): Promise<{ id: string; name: string } | null> => {
-		const r = await api.put<string>('/api/journal/new', { name });
-		return { id: r.body, name };
-	};
+	async function createJournal(name: string): Promise<ListItem | null> {
+		const r = await api.put<string>('/api/journals', { name });
+		return { id: r, name };
+	}
 
 	let resourceInfo = $state({
 		typeId: '',
@@ -188,19 +180,13 @@
 		dateDay = precision === 'Day' ? String(d.getDate()) : '';
 	}
 
-	function getUploadType(ext: string): 'audio' | 'video' | 'document' {
-		if (['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac'].includes(ext)) return 'audio';
-		if (['mp4', 'mov', 'avi', 'mkv', 'webm', 'wmv'].includes(ext)) return 'video';
-		return 'document';
-	}
-
 	let isSubmitting = $state(false);
 
 	async function handleSubmit() {
 		isSubmitting = true;
 
 		try {
-			const baseDto = {
+			const createDto = {
 				Title: resourceInfo.title,
 				Description: resourceInfo.description || null,
 				TypeId: resourceInfo.typeId,
@@ -214,7 +200,7 @@
 					: null,
 				JournalId: resourceInfo.journalId || null,
 				License: resourceInfo.license || null,
-				SourceUrl: resourceInfo.sourceUrl || null,
+				SourceUrl: mode === 'url' ? url : resourceInfo.sourceUrl || null,
 				Note: resourceInfo.note || null,
 				Tags: tags.map((t) => t.id),
 				Authors: authors.map((a) => ({
@@ -223,33 +209,18 @@
 				})),
 				Organisations: organisations.map((o) => ({ Id: o.value, Relation: o.role || null })),
 				RelatedPersons: relatedPersons.map((p) => ({ Id: p.value, Relation: p.role || null })),
-				Regions: regions.map((r) => r.id)
+				Regions: regions.map((r) => r.id),
+				FileId: mode === 'file' ? fileId : null,
+				Hash: mode === 'file' ? fileHash : null,
+				fileExtension: mode === 'file' ? fileExtension : null
 			};
 
-			let result: { body: string };
-
-			if (mode === 'url') {
-				result = await api.put<string>('/api/resources/new', {
-					uploadType: 'website',
-					url,
-					...baseDto
-				});
-			} else {
-				const uploadType = getUploadType(fileExtension);
-				result = await api.put<string>('/api/resources/new', {
-					uploadType,
-					...baseDto,
-					Id: fileId,
-					Hash: fileHash,
-					FileExtension: fileExtension,
-					...(uploadType === 'document' ? { Abstract: resourceInfo.abstract } : {})
-				});
-			}
+			const result = await api.put<string>('/api/resources', createDto);
 
 			// add to selected projects
 			if (projectIds.length > 0) {
 				const results = await Promise.allSettled(
-					projectIds.map((pid) => api.put(`/api/project/add-item/${pid}/${result.body}`, {}))
+					projectIds.map((pid) => api.post(`/api/projects/${pid}/items/${result}`, {}))
 				);
 
 				const failed = results.filter((r) => r.status === 'rejected').length;
@@ -264,8 +235,8 @@
 			}
 
 			if (sourceProjectId)
-				goto(`/projects/${sourceProjectId}?inspectorId=${result.body}&inspectorType=resource`);
-			else goto(`/library?inspectorId=${result.body}&inspectorType=resource`);
+				goto(`/projects/${sourceProjectId}?inspectorId=${result}&inspectorType=resource`);
+			else goto(`/library?inspectorId=${result}&inspectorType=resource`);
 		} catch (e) {
 			toast.error(e instanceof Error ? e.message : 'Something went wrong');
 		} finally {
@@ -353,14 +324,13 @@
 	}
 
 	async function searchProjects(q: string) {
-		const result = await api.post<ProjectListResponse>('/api/project/list', {
-			usePaging: true,
-			pageIndex: 1,
+		const result = await api.post<ProjectListResponse>('/api/projects', {
+			page: 1,
 			pageSize: 20,
 			searchQuery: q || undefined
 		});
 
-		return result.body.projects.map((p) => ({ id: p.id, name: p.title }));
+		return result.items.map((p) => ({ id: p.id, name: p.title }));
 	}
 
 	onMount(() => {

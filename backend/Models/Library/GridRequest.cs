@@ -2,9 +2,9 @@ namespace KnowledgeBank.Models;
 
 public class GridRequest
 {
-    public required int PageIndex { get; set; }
+    public required int Page { get; set; }
     public required int PageSize { get; set; }
-    public string? SearchQuery { get; set; }
+    public string? Search { get; set; }
     public string? SortBy { get; set; }
     public string? SortDirection { get; set; }
     public GridFilterOptions? FilterOptions { get; set; }
@@ -28,7 +28,7 @@ public class GridResult
     public ResourceGridItem[] Items { get; set; } = [];
     public int TotalCount { get; set; }
     public int DurationInMs { get; set; }
-    public int PageIndex { get; set; }
+    public int Page { get; set; }
     public int PageSize { get; set; }
     public string? SearchTerm { get; set; }
     public bool IsSearchResult { get; set; }

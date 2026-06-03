@@ -37,11 +37,11 @@
 		loading = true;
 		try {
 			const result = await api.get<CombinedListResponse>(
-				`/api/user/list-combined?pageIndex=${page}&pageSize=50&searchQuery=${encodeURIComponent(search)}`
+				`/api/users/combined?page=${page}&pageSize=50&search=${encodeURIComponent(search)}`
 			);
-			items = result.body.items;
-			pageCount = result.body.pageCount;
-			totalCount = result.body.totalCount;
+			items = result.items;
+			pageCount = result.pageCount;
+			totalCount = result.totalCount;
 		} finally {
 			loading = false;
 		}
@@ -65,9 +65,9 @@
 		submitting = true;
 		try {
 			if (editMail !== openUser.email)
-				await api.patch('/api/user/update-mail', { userId: openUser.id, email: editMail });
+				await api.patch(`/api/users/${openUser.id}/email`, { email: editMail });
 			if (editRole !== openUser.role)
-				await api.put('/api/roles/assign', { userId: openUser.id, roleName: editRole });
+				await api.patch(`/api/users/${openUser.id}/role`, { roleName: editRole });
 			await fetchItems();
 			openUser = null;
 			toast.success('User updated.');
@@ -82,7 +82,7 @@
 		const ok = await confirm(`Delete ${entry.email}? This cannot be undone.`);
 		if (!ok) return;
 		try {
-			await api.delete(`/api/user/delete?userId=${entry.id}`);
+			await api.delete(`/api/users/${entry.id}`);
 			await fetchItems();
 			toast.success('User deleted.');
 		} catch (e) {
@@ -93,7 +93,7 @@
 	async function inviteUser() {
 		submitting = true;
 		try {
-			await api.post('/api/auth/invite', { email: inviteEmail, role: inviteRole });
+			await api.post('/api/users/invitations', { email: inviteEmail, role: inviteRole });
 			toast.success('Invitation sent.');
 			inviteOpen = false;
 			inviteEmail = '';
@@ -109,7 +109,7 @@
 	async function resendInvite(id: string) {
 		try {
 			toast.loading('Sending invite...');
-			await api.post(`/api/auth/resend-invite/${id}`);
+			await api.post(`/api/users/invitations/${id}/resend`);
 			toast.success('Invitation resent.');
 			await fetchItems();
 		} catch (e) {
@@ -121,7 +121,7 @@
 		const ok = await confirm('Cancel this invitation?');
 		if (!ok) return;
 		try {
-			await api.delete(`/api/auth/invitations/${id}`);
+			await api.delete(`/api/users/invitations/${id}`);
 			await fetchItems();
 			toast.success('Invitation cancelled.');
 		} catch (e) {

@@ -45,14 +45,14 @@ public class HybridSearchService
     /// Executes a hybrid search across multiple search sources.
     /// </summary>
     /// <param name="searchQuery">The search query string</param>
-    /// <param name="pageIndex">Page index (1-based)</param>
+    /// <param name="page">Page index (1-based)</param>
     /// <param name="pageSize">Number of results per page</param>
     /// <param name="filters">Dictionary of filters to apply</param>
     /// <param name="includeMetadataChunks"></param>
     /// <returns>Hybrid search result with ranked items and metadata</returns>
     public async Task<HybridSearchResult> SearchAsync(
         string searchQuery,
-        int pageIndex,
+        int page,
         int pageSize,
         Dictionary<string, object?> filters,
         bool includeMetadataChunks = false)
@@ -75,7 +75,7 @@ public class HybridSearchService
             if (candidates.Count == 0)
             {
                 _logger.Warning("No candidates found from any search source");
-                return CreateEmptyResult(searchQuery, pageIndex, pageSize, metadata, stopwatch);
+                return CreateEmptyResult(searchQuery, page, pageSize, metadata, stopwatch);
             }
 
             _logger.Information("Retrieved {Count} total candidates before fusion", candidates.Count);
@@ -100,7 +100,7 @@ public class HybridSearchService
 
             // Paginate results
             var pagedCandidates = finalCandidates
-                .Skip((pageIndex - 1) * pageSize)
+                .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
 
@@ -114,7 +114,7 @@ public class HybridSearchService
                     PublicationDate = c.Item.PublicationDate,
                     Type = c.Item.Type,
                     FileType = c.Item.FileType,
-                    CreationDate = c.Item.CreationDate,
+                    CreatedOn = c.Item.CreatedOn,
                     RelevanceScore = c.FinalScore,
                     Provenance = c.Provenance,
                     MatchedChunks = c.MatchedChunks
@@ -138,7 +138,7 @@ public class HybridSearchService
                 Items = resultItems,
                 TotalCount = totalCount,
                 DurationInMs = stopwatch.ElapsedMilliseconds,
-                PageIndex = pageIndex,
+                Page = page,
                 PageSize = pageSize,
                 SearchTerm = searchQuery,
                 IsSearchResult = true,
@@ -152,7 +152,7 @@ public class HybridSearchService
             metadata.Warnings.Add($"Search failed: {ex.Message}");
             metadata.SearchDuration = stopwatch.Elapsed;
 
-            return CreateEmptyResult(searchQuery, pageIndex, pageSize, metadata, stopwatch);
+            return CreateEmptyResult(searchQuery, page, pageSize, metadata, stopwatch);
         }
     }
 
@@ -356,7 +356,7 @@ public class HybridSearchService
     private string BuildPostgresSearchQuery(string searchQuery, int limit)
     {
         return $@"
-            SELECT ""Id"", ""Name"", ""Description"", ""PublicationDate"", ""PublicationDatePrecision"", ""Type"", ""FileType"", ""CreationDate"",
+            SELECT ""Id"", ""Name"", ""Description"", ""PublicationDate"", ""PublicationDatePrecision"", ""Type"", ""FileType"", ""CreatedOn"",
                 (
                     CASE WHEN ""SearchVector"" @@ phraseto_tsquery('english', {{0}}) THEN 10.0 ELSE 0.0 END +
                     CASE WHEN ""SearchVector"" @@ websearch_to_tsquery('english', {{0}})
@@ -540,7 +540,7 @@ public class HybridSearchService
     /// </summary>
     private HybridSearchResult CreateEmptyResult(
         string searchQuery,
-        int pageIndex,
+        int page,
         int pageSize,
         SearchMetadata metadata,
         Stopwatch stopwatch)
@@ -551,7 +551,7 @@ public class HybridSearchService
         {
             Items = Array.Empty<ResourceGridItemWithScore>(),
             TotalCount = 0,
-            PageIndex = pageIndex,
+            Page = page,
             PageSize = pageSize,
             SearchTerm = searchQuery,
             IsSearchResult = true,

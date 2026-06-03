@@ -44,6 +44,9 @@ public class ResourceService(DatabaseContext db)
         return await query.OrderBy(r => r.Title).ToArrayAsync();
     }
 
+    public async Task<Resource[]> GetByIdsAsync(IEnumerable<Guid> ids)
+        => await db.Resources.Where(r => ids.Contains(r.Id)).ToArrayAsync();
+
     public async Task<(Resource[] Items, int TotalCount)> GetPageAsync(int page, int pageSize, Expression<Func<Resource, bool>>? predicate, bool includeRelations = false)
     {
         IQueryable<Resource> query = db.Resources;

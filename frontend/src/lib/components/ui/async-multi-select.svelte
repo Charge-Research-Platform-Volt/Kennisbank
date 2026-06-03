@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ListItem } from '$lib/types/results';
 	import { Popover } from 'bits-ui';
 	import { debounce } from '$lib/utils/debounce';
 	import { Check, ChevronDown, Search } from '@lucide/svelte';
@@ -11,14 +12,14 @@
 		onchange
 	}: {
 		value: string[];
-		search: (q: string) => Promise<{ id: string; name: string }[]>;
+		search: (q: string) => Promise<ListItem[]>;
 		placeholder?: string;
 		class?: string;
 		onchange?: () => void;
 	} = $props();
 
 	let open = $state(false);
-	let options = $state<{ id: string; name: string }[]>([]);
+	let options = $state<ListItem[]>([]);
 	let searchQuery = $state('');
 	async function doSearch(q: string) {
 		options = await search(q);

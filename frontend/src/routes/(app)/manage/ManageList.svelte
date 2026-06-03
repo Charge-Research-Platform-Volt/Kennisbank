@@ -27,124 +27,26 @@
 	import { SvelteSet } from 'svelte/reactivity';
 	import { untrack } from 'svelte';
 	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
+	import type { ListItem, PagedResult } from '$lib/types/results';
 
 	let {
 		type
 	}: { type: 'tags' | 'regions' | 'resourceTypes' | 'persons' | 'organisations' | 'journals' } =
 		$props();
 
-	type ListItem = { id: string; name: string };
-	type TagsListResponse = { tags: ListItem[]; pageCount: number; totalCount: number };
-	type PagedListResponse = { items: ListItem[]; pageCount: number; totalCount: number };
-	type FlatListResponse = ListItem[];
+	type EntityConfig = { label: string; icon: typeof Tag; basePath: string; canCreate: boolean };
 
-	const config = {
-		tags: {
-			label: 'Tag',
-			icon: Tag,
-			listUrl: (search: string, page: number) =>
-				`/api/tags/tag-page?pageIndex=${page}&pageSize=50&searchQuery=${encodeURIComponent(search)}`,
-			createUrl: '/api/tags/add-standard-tag',
-			createBody: (name: string) => ({ name }),
-			renameUrl: (id: string, name: string) =>
-				`/api/tags/rename-tag/${id}/${encodeURIComponent(name)}`,
-			renameBody: undefined as undefined,
-			deleteUrl: (id: string) => `/api/tags/delete-tag/${id}`,
-			mergeUrl: (id1: string, id2: string) => `/api/tags/merge/${id1}/${id2}`,
-			suggestionsUrl: '/api/tags/suggestions',
-			extractItems: (body: unknown) => {
-				const b = body as TagsListResponse;
-				return { items: b.tags, pageCount: b.pageCount, totalCount: b.totalCount };
-			}
-		},
-		regions: {
-			label: 'Region',
-			icon: MapPin,
-			listUrl: (search: string) => `/api/regions/list?searchQuery=${encodeURIComponent(search)}`,
-			createUrl: '/api/regions/new',
-			createBody: (name: string) => ({ name }),
-			renameUrl: (id: string) => `/api/regions/update/${id}`,
-			renameBody: (name: string) => ({ name }),
-			deleteUrl: (id: string) => `/api/regions/delete/${id}`,
-			mergeUrl: (id1: string, id2: string) => `/api/regions/merge/${id1}/${id2}`,
-			suggestionsUrl: '/api/regions/suggestions',
-			extractItems: (body: unknown) => ({
-				items: body as FlatListResponse,
-				pageCount: 1,
-				totalCount: (body as FlatListResponse).length
-			})
-		},
-		resourceTypes: {
-			label: 'Resource Type',
-			icon: Layers,
-			listUrl: (search: string) => `/api/resources/types/list?search=${encodeURIComponent(search)}`,
-			createUrl: '/api/resources/types/new',
-			createBody: (name: string) => ({ name }),
-			renameUrl: (id: string) => `/api/resources/types/rename/${id}`,
-			renameBody: (name: string) => ({ name }),
-			deleteUrl: (id: string) => `/api/resources/types/delete/${id}`,
-			mergeUrl: (id1: string, id2: string) => `/api/resources/types/merge/${id1}/${id2}`,
-			suggestionsUrl: '/api/resources/types/suggestions',
-			extractItems: (body: unknown) => ({
-				items: body as FlatListResponse,
-				pageCount: 1,
-				totalCount: (body as FlatListResponse).length
-			})
-		},
-		persons: {
-			label: 'Person',
-			icon: User,
-			listUrl: (search: string, page: number) =>
-				`/api/persons/list?pageIndex=${page}&pageSize=50&searchQuery=${encodeURIComponent(search)}`,
-			createUrl: '',
-			createBody: () => null,
-			renameUrl: (id: string) => `/api/persons/update/${id}`,
-			renameBody: (name: string) => ({ name }),
-			deleteUrl: (id: string) => `/api/persons/delete/${id}`,
-			mergeUrl: (id1: string, id2: string) => `/api/persons/merge/${id1}/${id2}`,
-			suggestionsUrl: '/api/persons/suggestions',
-			extractItems: (body: unknown) => {
-				const b = body as PagedListResponse;
-				return { items: b.items, pageCount: b.pageCount, totalCount: b.totalCount };
-			}
-		},
-		organisations: {
-			label: 'Organisation',
-			icon: Building2,
-			listUrl: (search: string, page: number) =>
-				`/api/organisations/list?pageIndex=${page}&pageSize=50&searchQuery=${encodeURIComponent(search)}`,
-			createUrl: '',
-			createBody: () => null,
-			renameUrl: (id: string) => `/api/organisations/update/${id}`,
-			renameBody: (name: string) => ({ name }),
-			deleteUrl: (id: string) => `/api/organisations/delete/${id}`,
-			mergeUrl: (id1: string, id2: string) => `/api/organisations/merge/${id1}/${id2}`,
-			suggestionsUrl: '/api/organisations/suggestions',
-			extractItems: (body: unknown) => {
-				const b = body as PagedListResponse;
-				return { items: b.items, pageCount: b.pageCount, totalCount: b.totalCount };
-			}
-		},
-		journals: {
-			label: 'Journal',
-			icon: Newspaper,
-			listUrl: (search: string) => `/api/journal/list?searchQuery=${encodeURIComponent(search)}`,
-			createUrl: '/api/journal/new',
-			createBody: (name: string) => ({ name }),
-			renameUrl: (id: string) => `/api/journal/update/${id}`,
-			renameBody: (name: string) => ({ name }),
-			deleteUrl: (id: string) => `/api/journal/delete/${id}`,
-			mergeUrl: (id1: string, id2: string) => `/api/journal/merge/${id1}/${id2}`,
-			suggestionsUrl: '/api/journal/suggestions',
-			extractItems: (body: unknown) => ({
-				items: body as FlatListResponse,
-				pageCount: 1,
-				totalCount: (body as FlatListResponse).length
-			})
-		}
+	const configs: Record<string, EntityConfig> = {
+		tags:          { label: 'Tag',           icon: Tag,       basePath: 'tags',           canCreate: true },
+		regions:       { label: 'Region',        icon: MapPin,    basePath: 'regions',        canCreate: true },
+		resourceTypes: { label: 'Resource Type', icon: Layers,    basePath: 'resource-types', canCreate: true },
+		persons:       { label: 'Person',        icon: User,      basePath: 'persons',        canCreate: false },
+		organisations: { label: 'Organisation',  icon: Building2, basePath: 'organisations',  canCreate: false },
+		journals:      { label: 'Journal',       icon: Newspaper, basePath: 'journals',       canCreate: true },
 	};
 
-	const cfg = $derived(config[type]);
+	const cfg = $derived(configs[type]);
+	const base = $derived(`/api/${cfg.basePath}`);
 
 	type MergeSuggestion = { id1: string; name1: string; id2: string; name2: string; score: number };
 
@@ -191,12 +93,13 @@
 		selectedIds.clear();
 
 		try {
-			const result = await api.get(cfg.listUrl(search, page), { signal });
-			const { items: fetched, pageCount: pc, totalCount: tc } = cfg.extractItems(result.body);
-
-			items = fetched;
-			pageCount = pc;
-			totalCount = tc;
+			const result = await api.get<PagedResult<ListItem>>(
+				`${base}?page=${page}&pageSize=50&search=${encodeURIComponent(search)}`,
+				{ signal }
+			);
+			items = result.items;
+			totalCount = result.totalCount;
+			pageCount = Math.ceil(result.totalCount / 50);
 		} catch (e) {
 			if (!(e instanceof DOMException && e.name === 'AbortError')) throw e;
 		} finally {
@@ -213,8 +116,7 @@
 		suggestions = [];
 
 		try {
-			const result = await api.get<MergeSuggestion[]>(cfg.suggestionsUrl, { signal });
-			suggestions = result.body;
+			suggestions = await api.get<MergeSuggestion[]>(`${base}/suggestions`, { signal });
 		} catch (e) {
 			if (!(e instanceof DOMException && e.name === 'AbortError')) throw e;
 		} finally {
@@ -231,10 +133,10 @@
 	}
 
 	async function createItem() {
-		if (!creatingName.trim() || !cfg.createUrl.trim()) return;
+		if (!creatingName.trim() || !cfg.canCreate) return;
 		submitting = true;
 		try {
-			await api.put(cfg.createUrl, cfg.createBody(creatingName.trim()));
+			await api.put(base, { name: creatingName.trim() });
 			creatingName = '';
 			creating = false;
 			await fetchItems();
@@ -255,9 +157,7 @@
 		}
 		submitting = true;
 		try {
-			const url = cfg.renameUrl(editingId, editingName.trim());
-			const body = cfg.renameBody?.(editingName.trim());
-			await (body ? api.patch(url, body) : api.patch(url));
+			await api.patch(`${base}/${editingId}/name`, { name: editingName.trim() });
 			editingId = null;
 			await fetchItems();
 			toast.success(`${cfg.label} renamed.`);
@@ -272,7 +172,7 @@
 		const ok = await confirm(`Delete "${item.name}"? This cannot be undone.`);
 		if (!ok) return;
 		try {
-			await api.delete(cfg.deleteUrl(item.id));
+			await api.delete(`${base}/${item.id}`);
 			await fetchItems();
 			await fetchSuggestions();
 			toast.success(`${cfg.label} deleted.`);
@@ -291,7 +191,7 @@
 		if (!ok) return;
 
 		try {
-			await Promise.all([...selectedIds].map((id) => api.delete(cfg.deleteUrl(id))));
+			await Promise.all([...selectedIds].map((id) => api.delete(`${base}/${id}`)));
 			await fetchItems();
 			await fetchSuggestions();
 
@@ -307,17 +207,14 @@
 
 		try {
 			for (const id of otherIds) {
-				await api.patch(cfg.mergeUrl(mergeSurvivorId, id));
+				await api.patch(`${base}/merge/${mergeSurvivorId}/${id}`);
 			}
 
 			const survivorOriginalName = mergeDialogItems.find((i) => i.id === mergeSurvivorId)?.name;
 			mergeSurvivorName = mergeSurvivorName.trim();
 
 			if (mergeSurvivorName && mergeSurvivorName !== survivorOriginalName) {
-				const url = cfg.renameUrl(mergeSurvivorId, mergeSurvivorName);
-				const body = cfg.renameBody?.(mergeSurvivorName);
-
-				await (body ? api.patch(url, body) : api.patch(url));
+				await api.patch(`${base}/${mergeSurvivorId}/name`, { name: mergeSurvivorName });
 			}
 
 			mergeDialogOpen = false;
@@ -380,7 +277,7 @@
 					/>
 				</div>
 
-				{#if cfg.createUrl.trim()}
+				{#if cfg.canCreate}
 					<Button onclick={() => (creating = true)} class="cursor-pointer">
 						<Plus size={14} class="shrink-0" /> New {cfg.label}
 					</Button>

@@ -23,7 +23,7 @@ public class HybridSearchResult
     /// <summary>
     /// Current page index (1-based).
     /// </summary>
-    public int PageIndex { get; set; }
+    public int Page { get; set; }
 
     /// <summary>
     /// Number of items per page.

@@ -378,13 +378,15 @@ public class PersonService(DatabaseContext db)
         return await db.Database.SqlQuery<MergeSuggestion>($"""
             SELECT
                 a.id        AS "Id1",
-                a.name      AS "Name1",
+                ea.name     AS "Name1",
                 b.id        AS "Id2",
-                b.name      AS "Name2",
-                similarity(a.name, b.name) AS "Score"
+                eb.name     AS "Name2",
+                similarity(ea.name, eb.name) AS "Score"
             FROM persons a
+            JOIN entities ea ON a.id = ea.id
             JOIN persons b ON a.id < b.id
-            WHERE similarity(a.name, b.name) > {threshold}
+            JOIN entities eb ON b.id = eb.id
+            WHERE similarity(ea.name, eb.name) > {threshold}
             ORDER BY "Score" DESC
             LIMIT {limit}
         """).ToListAsync();

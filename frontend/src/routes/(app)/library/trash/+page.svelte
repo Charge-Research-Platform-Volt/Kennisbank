@@ -20,8 +20,8 @@
 		loading = true;
 
 		try {
-			const result = await api.get<TrashItem[]>('/api/resources/trash-grid');
-			items = result.body;
+			const result = await api.get<TrashItem[]>('/api/library/trash');
+			items = result;
 		} finally {
 			loading = false;
 		}
@@ -29,7 +29,7 @@
 
 	async function restore(item: TrashItem) {
 		try {
-			await api.patch(`/api/${item.type}s/untrash/${encodeURIComponent(item.id)}`);
+			await api.patch(`/api/${item.type}s/${encodeURIComponent(item.id)}/untrash`);
 			items = items.filter((i) => i.id !== item.id);
 			closeInspector();
 			toast.success('Successfully restored item.');

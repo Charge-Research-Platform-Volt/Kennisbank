@@ -18,9 +18,9 @@
 
 	// Fetch user role, which also automatically checks authentication
 	api
-		.get<User>('/api/user/current/account')
+		.get<User>('/api/users/me')
 		.then((res) => {
-			userState.user = res.body;
+			userState.user = res;
 			userState.loading = false;
 		})
 		.catch(() => {
@@ -29,7 +29,7 @@
 
 	// Fetch changelog unseen
 	api.get<ChangelogEntry[]>('/api/changelog/unseen').then((res) => {
-		changelogEntries = res.body;
+		changelogEntries = res;
 
 		if (changelogEntries.length > 0) changelogDialogOpen = true;
 	});

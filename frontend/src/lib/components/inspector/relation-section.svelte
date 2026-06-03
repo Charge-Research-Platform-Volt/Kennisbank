@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ListItem } from '$lib/types/results';
 	import type { RelationItem, NavigationTarget, EntityType } from '$lib/types/resource';
 	import { getFileIcon } from '$lib/utils/icons';
 	import { getContext, untrack } from 'svelte';
@@ -19,9 +20,9 @@
 		label: string;
 		items: RelationItem[];
 		itemType?: EntityType;
-		search?: (q: string) => Promise<{ id: string; name: string }[]>;
+		search?: (q: string) => Promise<ListItem[]>;
 		onadd?: (id: string, name: string) => Promise<void>;
-		oncreate?: (name: string) => Promise<{ id: string; name: string } | null>;
+		oncreate?: (name: string) => Promise<ListItem | null>;
 		onremove?: (item: RelationItem) => Promise<void>;
 		hasRole?: boolean;
 		onupdaterole?: (item: RelationItem, newRole: string) => Promise<void>;
@@ -38,7 +39,7 @@
 	const LIMIT = 3;
 
 	let searchQuery = $state('');
-	let searchResults = $state<{ id: string; name: string }[]>([]);
+	let searchResults = $state<ListItem[]>([]);
 	let searchOpen = $state(false);
 	const debouncedSearch = debounce((q: string) => {
 		search?.(q).then((r) => {

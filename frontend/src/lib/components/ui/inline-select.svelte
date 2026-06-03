@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ListItem } from '$lib/types/results';
 	import { debounce } from '$lib/utils/debounce';
 
 	let {
@@ -10,13 +11,13 @@
 	}: {
 		value: string | null;
 		displayValue: string | null;
-		search: (q: string) => Promise<{ id: string; name: string }[]>;
-		oncreate?: (name: string) => Promise<{ id: string; name: string } | null>;
+		search: (q: string) => Promise<ListItem[]>;
+		oncreate?: (name: string) => Promise<ListItem | null>;
 		placeholder?: string;
 	} = $props();
 
 	let searchQuery = $state(displayValue ?? '');
-	let results = $state<{ id: string; name: string }[]>([]);
+	let results = $state<ListItem[]>([]);
 	let open = $state(false);
 	let highlightedIndex = $state(-1);
 
@@ -42,7 +43,7 @@
 		debouncedSearch(q);
 	}
 
-	function select(option: { id: string; name: string }) {
+	function select(option: ListItem) {
 		value = option.id;
 		displayValue = option.name;
 		searchQuery = option.name;

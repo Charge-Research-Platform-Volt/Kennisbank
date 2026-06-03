@@ -27,7 +27,7 @@ export type CombinedEntry = UserEntry | InvitedEntry;
 export type CombinedListResponse = {
 	items: CombinedEntry[];
 	pageCount: number;
-	pageIndex: number;
+	page: number;
 	pageSize: number;
 	totalCount: number;
 };

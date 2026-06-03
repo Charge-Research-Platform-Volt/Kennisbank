@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ResourceItem, NavigationTarget } from '$lib/types/resource';
+	import type { ResourceItem, NavigationTarget, RawResourceItem } from '$lib/types/resource';
 	import {
 		ArrowLeft,
 		ArrowRight,
@@ -82,23 +82,19 @@
 				: target.type === 'person'
 					? 'persons'
 					: 'organisations';
-		const props =
-			target.type === 'resource'
-				? 'CreationDate,PublicationDate,PublicationDatePrecision,FileType,Description,Trashed' +
-					(target.name ? '' : ',Title as Name')
-				: 'CreationDate,Description,Trashed' + (target.name ? '' : ',Name');
 
-		const result = await api.get<Partial<ResourceItem>>(
-			`/api/${endpoint}/info/${target.id}?properties=${props}`
+		const result = await api.get<Partial<RawResourceItem>>(
+			`/api/${endpoint}/${target.id}`
 		);
 		const fullItem: ResourceItem = {
 			fileType: target.type,
 			publicationDate: '',
 			publicationDatePrecision: 'Day',
-			creationDate: '',
+			createdOn: '',
 			description: '',
 			...target,
-			...result.body
+			...result,
+			name: result.title ?? result.name ?? ""
 		};
 
 		history = [...history.slice(0, historyIndex + 1), fullItem];
@@ -138,7 +134,7 @@
 		const trashed = item;
 
 		try {
-			await api.patch(`/api/${item.type}s/trash/${item.id}`);
+			await api.patch(`/api/${item.type}s/${item.id}/trash`);
 			closeInspector();
 			onaftersave?.();
 
@@ -147,7 +143,7 @@
 					label: 'Undo',
 					onClick: async () => {
 						try {
-							await api.patch(`/api/${trashed.type}s/untrash/${trashed.id}`);
+							await api.patch(`/api/${trashed.type}s/${trashed.id}/untrash`);
 							toast.success('Restored');
 							onaftersave?.();
 						} catch {
@@ -204,7 +200,7 @@
 				<div class="flex items-center gap-1">
 					{#if action && item.fileType !== 'website'}
 						<button
-							onclick={() => item && openFile(item.id, item.fileType)}
+							onclick={() => item && openFile(item.id, item.fileType, item.sourceUrl)}
 							class="cursor-pointer p-1 text-muted-foreground transition-colors hover:text-foreground"
 						>
 							<Download size={16} />
@@ -292,7 +288,7 @@
 								dirty = true;
 								pendingSaves.push(
 									api
-										.patch(`/api/${endpoint}/update/${item.id}`, { [field]: nameInput })
+										.patch(`/api/${endpoint}/${item.id}`, { [field]: nameInput })
 										.then(() => {})
 										.catch(() => {})
 								);
@@ -338,7 +334,7 @@
 							date={item.publicationDate}
 							precision={item.publicationDatePrecision}
 							onsave={async (d, p) => {
-								await api.patch(`/api/resources/update/${item!.id}`, {
+								await api.patch(`/api/resources/${item!.id}`, {
 									publicationDate: d,
 									publicationDatePrecision: p
 								});
@@ -349,7 +345,7 @@
 						/>
 					{/if}
 					{#if !editMode}
-						<span>Added: {formatDate(item.creationDate) ?? '-'}</span>
+						<span>Added: {formatDate(item.createdOn) ?? '-'}</span>
 					{/if}
 				</div>
 			</div>

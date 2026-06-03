@@ -300,7 +300,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
     {
         var result = await searchService.SearchAsync(
             name.Replace(".", ""),
-            pageIndex: 1,
+            page: 1,
             pageSize: 3,
             filters: new Dictionary<string, object?> { { "type", typeFilter } }
         );

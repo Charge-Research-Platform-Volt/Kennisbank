@@ -137,8 +137,8 @@ public class ResourceTypeService(DatabaseContext db)
                 b.id        AS "Id2",
                 b.name      AS "Name2",
                 similarity(a.name, b.name) AS "Score"
-            FROM resource-types a
-            JOIN resource-types b ON a.id < b.id
+            FROM "resource-types" a
+            JOIN "resource-types" b ON a.id < b.id
             WHERE similarity(a.name, b.name) > {threshold}
             ORDER BY "Score" DESC
             LIMIT {limit}

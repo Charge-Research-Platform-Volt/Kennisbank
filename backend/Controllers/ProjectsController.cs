@@ -9,7 +9,7 @@ namespace KnowledgeBank.Controllers;
 
 [Route("projects")]
 [Authorize]
-public class ProjectController(ProjectService projectService, TagService tagService, LibraryService libraryService) : AppControllerBase
+public class ProjectsController(ProjectService projectService, TagService tagService, LibraryService libraryService) : AppControllerBase
 {
     [HttpPost]
     [SwaggerOperation(Summary = "List projects with filters and pagination")]
@@ -38,7 +38,7 @@ public class ProjectController(ProjectService projectService, TagService tagServ
         return Ok(await projectService.GetAllFoldersAsync(rootId));
     }
 
-    [HttpPost("create")]
+    [HttpPut]
     [SwaggerOperation(Summary = "Create a new root project")]
     [SwaggerResponse(201, "Project created")]
     [SwaggerResponse(400, "Invalid request")]

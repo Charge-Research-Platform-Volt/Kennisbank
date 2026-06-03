@@ -14,7 +14,7 @@ namespace Hubs;
 
 [SignalRHub]
 [Authorize]
-public partial class Chat(MistralHttpClient mistralClient, AiService aiService, ChatService chatService, ResourceService resourceService, PersonService personService, OrganisationService organisationService, ProjectService projectService, HybridSearchService hybridSearchService) : Hub
+public partial class Chat(MistralHttpClient mistralClient, AiService aiService, ChatService chatService, ResourceService resourceService, PersonService personService, OrganisationService organisationService, ProjectService projectService, HybridSearchService hybridSearchService, IServiceScopeFactory scopeFactory) : Hub
 {
     private static string BuildSystemPrompt(string? projectId)
     {
@@ -118,7 +118,9 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
             });
 
             string title = string.IsNullOrWhiteSpace(result.Content) ? "Untitled Chat" : result.Content.Trim().Trim('*', '_', '`', '#', '"', '\'').Trim();
-            await chatService.UpdateTitleAsync(chatId, title);
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var scopedChatService = scope.ServiceProvider.GetRequiredService<ChatService>();
+            await scopedChatService.UpdateTitleAsync(chatId, title);
             await caller.SendAsync("ChatTitleUpdated", chatId.ToString());
         }
         catch (Exception ex)

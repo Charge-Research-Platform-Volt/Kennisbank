@@ -27,6 +27,7 @@
 	import { formatDate } from '$lib/utils/date';
 	import { getContext, onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
+	import type { PagedResult, ListItem } from '$lib/types/results';
 
 	// Search
 	let searchInput = $state('');
@@ -63,10 +64,10 @@
 	async function fetchItems() {
 		loading = true;
 		try {
-			const result = await api.post<{ items: ResourceItem[]; totalCount: number }>(
-				'/api/resources/grid',
+			const result = await api.post<PagedResult<ResourceItem>>(
+				'/api/library',
 				{
-					pageIndex: currentPage,
+					page: currentPage,
 					pageSize: PAGE_SIZE,
 					searchQuery: searchInput || undefined,
 					filterOptions: {
@@ -82,8 +83,8 @@
 					sortDirection
 				}
 			);
-			items = result.body.items;
-			totalItems = result.body.totalCount;
+			items = result.items;
+			totalItems = result.totalCount;
 		} finally {
 			loading = false;
 		}
@@ -109,22 +110,13 @@
 	}
 
 	async function searchTags(q: string) {
-		const result = await api.post<{ tags: { id: string; name: string }[] }>('/api/tags/tags', {
-			usePaging: true,
-			pageIndex: 1,
-			pageSize: 20,
-			searchQuery: q,
-			includeUsageCount: false,
-			includeCanEditAndDelete: false
-		});
-		return result.body.tags;
+		const result = await api.get<PagedResult<ListItem>>(`/api/tags?page=1&pageSize=20&search=${encodeURIComponent(q)}`);
+		return result.items;
 	}
 
 	async function searchRegions(q: string) {
-		const result = await api.get<{ value: string; label: string }[]>(
-			`/api/regions/list?pageIndex=1&pageSize=20&searchQuery=${encodeURIComponent(q)}&properties=${encodeURIComponent('Id as value,Name as label')}`
-		);
-		return result.body.map((r) => ({ id: r.value, name: r.label }));
+		const result = await api.get<PagedResult<ListItem>>(`/api/regions?page=1&pageSize=20&search=${encodeURIComponent(q)}`);
+		return result.items;
 	}
 
 	function handleTagFilterChange() {
@@ -150,10 +142,10 @@
 	}
 
 	async function searchResourceTypes(q: string) {
-		const result = await api.get<{ id: string; name: string }[]>(
-			`/api/resources/types/list${q ? `?search=${encodeURIComponent(q)}` : ''}`
+		const result = await api.get<PagedResult<ListItem>>(
+			`/api/resource-types?q=${encodeURIComponent(q)}`
 		);
-		return result.body.map((t) => ({ id: t.id, name: t.name }));
+		return result.items;
 	}
 
 	function handleResourceTypeFilterChange() {
@@ -168,10 +160,10 @@
 	}
 
 	async function searchJournals(q: string) {
-		const result = await api.get<{ value: string; label: string }[]>(
-			`/api/journal/list?pageIndex=1&pageSize=20&searchQuery=${encodeURIComponent(q)}&properties=${encodeURIComponent('Id as value,Name as label')}`
+		const result = await api.get<PagedResult<ListItem>>(
+			`/api/journals?page=1&pageSize=20&search=${encodeURIComponent(q)}`
 		);
-		return result.body.map((r) => ({ id: r.value, name: r.label }));
+		return result.items;
 	}
 
 	function handleJournalFilterChange() {
@@ -521,7 +513,7 @@
 										class="cursor-pointer"
 										onclick={(e) => {
 											e.stopPropagation();
-											openFile(item.id, item.fileType);
+											openFile(item.id, item.fileType, item.sourceUrl);
 										}}
 									>
 										<ExternalLink size={14} />
@@ -531,7 +523,7 @@
 										class="cursor-pointer"
 										onclick={(e) => {
 											e.stopPropagation();
-											openFile(item.id, item.fileType);
+											openFile(item.id, item.fileType, item.sourceUrl);
 										}}
 									>
 										<Download size={14} />

@@ -1,16 +1,38 @@
+using System.Linq.Expressions;
 using System.Security.Claims;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.Domain;
+using KnowledgeBank.Services.Vector;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace KnowledgeBank.Controllers;
 
 [Route("[controller]")]
 [Authorize]
-public class ResourcesController(ResourceService resourceService) : AppControllerBase
+public class ResourcesController(ResourceService resourceService, IVectorStore vectorStore) : AppControllerBase
 {
+    [HttpGet]
+    [SwaggerOperation(Summary = "Get resources with optional search and pagination")]
+    [SwaggerResponse(200, "List of resources")]
+    public async Task<IActionResult> Get(
+        [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] bool trash = false)
+    {
+        Expression<Func<Resource, bool>> predicate = search != null
+            ? r => (EF.Functions.TrigramsAreSimilar(r.Title, search) ||
+                    EF.Functions.ILike(r.Title, $"%{search}%")) && r.Trashed == trash
+            : r => r.Trashed == trash;
+
+        var (items, totalCount) = await resourceService.GetPageAsync(page, pageSize, predicate);
+
+        return Ok(new { items, totalCount });
+    }
+
     [HttpPut]
     [SwaggerOperation(Summary = "Create a resource")]
     [SwaggerResponse(200, "Resource created", typeof(Guid))]
@@ -58,6 +80,17 @@ public class ResourcesController(ResourceService resourceService) : AppControlle
     [SwaggerResponse(404, "Not found")]
     public async Task<IActionResult> Delete(Guid id)
         => NoContentOrNotFound(await resourceService.DeleteAsync(id));
+
+    [HttpGet("{id}/similar")]
+    [SwaggerOperation(Summary = "Get similar resources based on vector embeddings")]
+    [SwaggerResponse(200, "Similar resources")]
+    public async Task<IActionResult> Similar(Guid id, [FromQuery] int limit = 5)
+    {
+        var results = await vectorStore.RecommendSimilarAsync(id, limit * 3, 0.5f);
+        var resourceIds = results.Select(r => r.ResourceId).Distinct().Where(rid => rid != id).Take(limit).ToArray();
+        var resources = await resourceService.GetByIdsAsync(resourceIds);
+        return Ok(resources.Select(r => new { r.Id, r.Title, r.FileType }));
+    }
 
     [HttpPatch("{id}/trash")]
     [SwaggerOperation(Summary = "Move resource to trash")]

@@ -46,9 +46,9 @@
 		formData.append('newAvatar', file);
 
 		try {
-			const response = await api.form<number>('/api/user/avatar', formData);
+			const response = await api.form<number>('/api/users/avatar', formData);
 
-			userState.user = { ...userState.user!, customAvatarVersion: response.body };
+			userState.user = { ...userState.user!, customAvatarVersion: response };
 
 			toast.success('Avatar updated successfully.');
 		} catch (e) {
@@ -62,7 +62,7 @@
 		loadingAvatar = true;
 
 		try {
-			await api.delete('/api/user/avatar');
+			await api.delete('/api/users/avatar');
 			userState.user = { ...userState.user!, customAvatarVersion: null };
 
 			avatarFile = null;
@@ -79,7 +79,7 @@
 		loadingDetails = true;
 
 		try {
-			await api.patch('/api/user/update-details', {
+			await api.patch('/api/users/me', {
 				newFirstName: firstName,
 				newLastName: lastName,
 				newEmail: email
@@ -119,7 +119,7 @@
 		loadingPassword = true;
 
 		try {
-			await api.put('/api/auth/update-password', {
+			await api.patch('/api/auth/password', {
 				currentPassword,
 				newPassword
 			});
@@ -147,7 +147,7 @@
 		loadingDelete = true;
 
 		try {
-			await api.delete('/api/user/delete');
+			await api.delete('/api/users');
 
 			goto('/login');
 		} catch (e) {

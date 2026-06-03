@@ -30,8 +30,8 @@ public class ProjectService(DatabaseContext db)
             .Where(p => p.ProjectType == "root")
             .AsNoTracking();
 
-        if (!string.IsNullOrEmpty(request.SearchQuery))
-            query = query.Where(p => p.Title.ToLower().Contains(request.SearchQuery.ToLower()));
+        if (!string.IsNullOrEmpty(request.Search))
+            query = query.Where(p => p.Title.ToLower().Contains(request.Search.ToLower()));
 
         if (request.MemberFilter.HasValue)
         {
@@ -53,7 +53,7 @@ public class ProjectService(DatabaseContext db)
 
         Project[] items = await query
             .OrderByDescending(p => p.CreatedOn)
-            .Skip((request.PageIndex - 1) * request.PageSize)
+            .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToArrayAsync();
 
@@ -61,7 +61,7 @@ public class ProjectService(DatabaseContext db)
         {
             Items = items,
             TotalCount = totalCount,
-            PageIndex = request.PageIndex,
+            Page =request.Page,
             PageSize = request.PageSize,
             PageCount = pageCount
         };
@@ -116,7 +116,7 @@ public class ProjectService(DatabaseContext db)
             Type = x.Item.Type,
             FileType = x.Item.FileType,
             SourceUrl = x.Item.SourceUrl,
-            CreationDate = x.Item.CreationDate,
+            CreatedOn = x.Item.CreatedOn,
             TypeId = x.Item.TypeId,
             JournalId = x.Item.JournalId,
             AddedBy = x.Relation.AddedBy != null && userNames.TryGetValue(x.Relation.AddedBy, out string? n)

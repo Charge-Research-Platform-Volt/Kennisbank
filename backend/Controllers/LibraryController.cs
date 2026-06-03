@@ -1,3 +1,4 @@
+using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.Domain;
 using Microsoft.AspNetCore.Authorization;
@@ -27,4 +28,10 @@ public class LibraryController(LibraryService libraryService) : AppControllerBas
     [SwaggerResponse(200, "List of trash items")]
     public async Task<IActionResult> Trash()
         => Ok(await libraryService.GetTrashItemsAsync());
+
+    [HttpGet("supported-extensions")]
+    [SwaggerOperation(Summary = "Get a list of supported extensions")]
+    [SwaggerResponse(200, "List of supported file extensions")]
+    public IActionResult SupportedExtensions()
+        => Ok(Filetype.SupportedExtensions);
 }

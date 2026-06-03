@@ -31,14 +31,13 @@
 		projectLoading = true;
 
 		try {
-			const result = await api.post<ProjectListResponse>('/api/project/list', {
-				usePaging: true,
-				pageIndex: 1,
+			const result = await api.post<ProjectListResponse>('/api/projects', {
+				page: 1,
 				pageSize: 20,
 				searchQuery: projectSearch || undefined
 			});
 
-			projectResults = result.body.projects;
+			projectResults = result.items;
 		} finally {
 			projectLoading = false;
 		}
@@ -50,8 +49,8 @@
 		step = 'folder';
 
 		try {
-			const result = await api.get<FolderEntry[]>(`/api/project/all-folders/${project.id}`);
-			folders = result.body;
+			const result = await api.get<FolderEntry[]>(`/api/projects/${project.id}/folders`);
+			folders = result;
 		} finally {
 			folderLoading = false;
 		}
@@ -61,7 +60,7 @@
 		if (!item) return;
 
 		try {
-			await api.put(`/api/project/add-item/${locationId}/${item.id}`, {});
+			await api.post(`/api/projects/${locationId}/items/${item.id}`, {});
 			toast.success(`Added to ${locationTitle}`);
 		} catch (e) {
 			if (e instanceof Error && e.message.includes('already')) {

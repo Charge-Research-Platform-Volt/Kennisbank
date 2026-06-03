@@ -20,6 +20,7 @@
 	import Label from '$lib/components/ui/label/label.svelte';
 	import Avatar from '$lib/components/ui/avatar/avatar.svelte';
 	import { toast } from 'svelte-sonner';
+	import type { ListItem, PagedResult } from '$lib/types/results';
 
 	// Search
 	let searchInput = $state('');
@@ -38,7 +39,7 @@
 	let newTitle = $state('');
 	let newDescription = $state('');
 	let newTags = $state<string[]>([]);
-	let newCreators = $state<string[]>([]);
+	let newMembers = $state<string[]>([]);
 	let submitting = $state(false);
 
 	const debouncedFetchProjects = debounce(fetchProjects);
@@ -47,39 +48,28 @@
 		loading = true;
 
 		try {
-			const result = await api.post<ProjectListResponse>('/api/project/list', {
-				usePaging: true,
-				pageIndex: currentPage,
+			const result = await api.post<ProjectListResponse>('/api/projects', {
+				page: currentPage,
 				pageSize: PAGE_SIZE,
-				searchQuery: searchInput || undefined
+				search: searchInput || undefined
 			});
 
-			items = result.body.projects;
-			totalItems = result.body.totalCount ?? 0;
+			items = result.items;
+			totalItems = result.totalCount ?? 0;
 		} finally {
 			loading = false;
 		}
 	}
 
 	async function searchTags(q: string) {
-		const result = await api.post<{ tags: { id: string; name: string }[] }>('/api/tags/tags', {
-			usePaging: true,
-			pageIndex: 1,
-			pageSize: 20,
-			searchQuery: q,
-			includeUsageCount: false,
-			includeCanEditAndDelete: false
-		});
-
-		return result.body.tags;
+		const result = await api.get<PagedResult<ListItem>>(`/api/tags?search=${encodeURIComponent(q)}`);
+		return result.items;
 	}
 
 	async function searchUsers(q: string) {
-		const result = await api.get<{ users: { id: string; firstName: string; lastName: string }[] }>(
-			`/api/user/list-paged?pageIndex=1&pageSize=20&searchQuery=${encodeURIComponent(q)}&excludeId=${userState.user?.id ?? ''}`
-		);
+		const result = await api.get<{ users: { id: string; firstName: string; lastName: string }[] }>(`/api/users?search=${encodeURIComponent(q)}&excludeId=${userState.user?.id ?? ''}`);
 
-		return result.body.users.map((u) => ({
+		return result.users.map((u) => ({
 			id: u.id.toString(),
 			name: `${u.firstName} ${u.lastName}`
 		}));
@@ -91,19 +81,19 @@
 		submitting = true;
 
 		try {
-			await api.put('/api/project/create', {
+			await api.put('/api/projects', {
 				title: newTitle.trim(),
 				description: newDescription.trim() || null,
 				projectType: 'root',
 				tags: newTags,
-				creators: newCreators
+				members: newMembers
 			});
 
 			dialogOpen = false;
 			newTitle = '';
 			newDescription = '';
 			newTags = [];
-			newCreators = [];
+			newMembers = [];
 			await fetchProjects();
 		} catch (e) {
 			toast.error(e instanceof Error ? e.message : 'Failed to create project.');
@@ -201,7 +191,7 @@
 			<Table.Header>
 				<tr class="border-b">
 					<Table.Head class="w-full">Name</Table.Head>
-					<Table.Head class="w-px whitespace-nowrap">Creators</Table.Head>
+					<Table.Head class="w-px whitespace-nowrap">Members</Table.Head>
 					<Table.Head class="w-px text-center whitespace-nowrap">Created</Table.Head>
 				</tr>
 			</Table.Header>
@@ -232,11 +222,11 @@
 
 						<Table.Cell class="py-3">
 							<div class="flex items-center">
-								{#each item.creators ?? [] as creator (creator.id)}
+								{#each item.members ?? [] as member (member.id)}
 									<Avatar
-										userId={creator.id.toString()}
-										name="{creator.firstName} {creator.lastName}"
-										customAvatarVersion={creator.customAvatarVersion ?? null}
+										userId={member.id.toString()}
+										name="{member.firstName} {member.lastName}"
+										customAvatarVersion={member.customAvatarVersion ?? null}
 										size={24}
 										class="-ml-2 first:ml-0"
 									/>
@@ -245,7 +235,7 @@
 						</Table.Cell>
 
 						<Table.Cell class="px-5 py-3 text-center whitespace-nowrap"
-							>{formatDate(item.creationDate)}</Table.Cell
+							>{formatDate(item.createdOn)}</Table.Cell
 						>
 					</Table.Row>
 				{/each}
@@ -274,9 +264,9 @@
 				<AsyncMultiSelect bind:value={newTags} search={searchTags} placeholder="Add tags..." />
 			</div>
 			<div class="flex flex-col gap-1.5">
-				<Label for="newCreators">Co-Creators</Label>
+				<Label for="newmembers">Co-members</Label>
 				<AsyncMultiSelect
-					bind:value={newCreators}
+					bind:value={newMembers}
 					search={searchUsers}
 					placeholder="Search by name..."
 				/>

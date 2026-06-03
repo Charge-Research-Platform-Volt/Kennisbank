@@ -9,17 +9,17 @@ public class ChatService(DatabaseContext db)
     public async Task<Dictionary<DateTime, Chats[]>> GetChatsGroupedByDateAsync(Guid userId, Guid? projectId)
         => (await db.Chats
             .Where(c => c.UserId == userId && c.ProjectId == projectId)
-            .OrderByDescending(c => c.CreationDate)
+            .OrderByDescending(c => c.CreatedOn)
             .ToArrayAsync())
-            .GroupBy(c => c.CreationDate.Date)
+            .GroupBy(c => c.CreatedOn.Date)
             .OrderByDescending(g => g.Key)
-            .ToDictionary(g => g.Key, g => g.OrderByDescending(c => c.CreationDate).ToArray());
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(c => c.CreatedOn).ToArray());
 
     public async Task<Chats?> GetByIdAsync(Guid id)
         => await db.Chats.FirstOrDefaultAsync(c => c.Id == id);
 
     public async Task<Messages[]> GetMessagesAsync(Guid chatId)
-        => await db.Messages.Where(m => m.ChatId == chatId).OrderBy(m => m.CreationDate).ToArrayAsync();
+        => await db.Messages.Where(m => m.ChatId == chatId).OrderBy(m => m.CreatedOn).ToArrayAsync();
 
     public async Task<bool> UpdateTitleAsync(Guid id, string title)
     {
@@ -38,7 +38,7 @@ public class ChatService(DatabaseContext db)
             Id = id,
             UserId = dto.UserId,
             Title = dto.Title,
-            CreationDate = DateTime.UtcNow,
+            CreatedOn = DateTime.UtcNow,
             ProjectId = dto.ProjectId
         });
         await db.SaveChangesAsync();
@@ -47,7 +47,7 @@ public class ChatService(DatabaseContext db)
 
     public async Task<Chats?> GetWithMessagesAsync(Guid id)
         => await db.Chats
-            .Include(c => c.Messages.OrderBy(m => m.CreationDate))
+            .Include(c => c.Messages.OrderBy(m => m.CreatedOn))
             .FirstOrDefaultAsync(c => c.Id == id);
 
     public async Task CreateMessageAsync(MessagesCreateDto dto)
@@ -58,7 +58,7 @@ public class ChatService(DatabaseContext db)
             ChatId = dto.ChatId,
             MessageRole = dto.MessageRole,
             Content = dto.Content,
-            CreationDate = DateTime.UtcNow
+            CreatedOn = DateTime.UtcNow
         });
         await db.SaveChangesAsync();
     }

@@ -9,7 +9,7 @@
     import * as Tooltip from '$lib/components/ui/tooltip';
     import { SquarePen, History, X, Info } from '@lucide/svelte';
 
-    type ChatSummary = { id: string; title: string; creationDate: string };
+    type ChatSummary = { id: string; title: string; createdOn: string };
 
     let { projectId, onClose }: { projectId: string; onClose?: () => void } = $props();
 
@@ -27,8 +27,8 @@
         
         if (!historyOpen) return;
 
-        api.get<{ chats: Record<string, ChatSummary[]> }>(`/api/ai/all-chats?projectId=${projectId}`)
-            .then(r => { history = Object.values(r.body?.chats ?? {}).flat();});
+        api.get<Record<string, ChatSummary[]>>(`/api/chats?projectId=${projectId}`)
+            .then(r => { history = Object.values(r ?? {}).flat();});
     })
 
     setContext('chatConnection', {

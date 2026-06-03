@@ -20,7 +20,7 @@ public class UserService(DatabaseContext db)
         return pairs.GroupBy(x => x.UserId).ToDictionary(g => g.Key, g => g.First().Name!);
     }
 
-    public async Task<(User[] Users, int TotalCount)> GetPageAsync(int pageIndex, int pageSize, string? searchQuery = null, string? excludeId = null)
+    public async Task<(User[] Users, int TotalCount)> GetPageAsync(int page, int pageSize, string? searchQuery = null, string? excludeId = null)
     {
         IQueryable<User> query = db.Users;
         if (!string.IsNullOrEmpty(searchQuery))
@@ -28,7 +28,7 @@ public class UserService(DatabaseContext db)
         if (!string.IsNullOrEmpty(excludeId))
             query = query.Where(u => u.Id != excludeId);
 
-        int skip = (pageIndex - 1) * pageSize;
+        int skip = (page - 1) * pageSize;
         User[] users = await query.OrderBy(u => u.Email).Skip(skip).Take(pageSize).ToArrayAsync();
         int totalCount = await db.Users.CountAsync();
         return (users, totalCount);

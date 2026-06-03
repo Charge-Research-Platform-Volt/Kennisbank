@@ -20,12 +20,12 @@
 	let resolvedSrc = $derived(
 		src ??
 			(customAvatarVersion != null && customAvatarVersion > 0
-				? `/api/user/avatar/${userId}?v=${customAvatarVersion}`
+				? `/api/users/${userId}/avatar?v=${customAvatarVersion}`
 				: null)
 	);
 
 	$effect(() => {
-		resolvedSrc;
+		void resolvedSrc;
 		imgError = false;
 	});
 

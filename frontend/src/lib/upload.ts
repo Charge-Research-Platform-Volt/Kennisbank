@@ -8,7 +8,7 @@ export async function uploadFile(file: File): Promise<string> {
 		FileName: file.name,
 		FileSize: file.size
 	});
-	const { objectName, uploadId } = init.body;
+	const { objectName, uploadId } = init;
 
 	// Upload chunks
 	const partETags: Record<number, string> = {};
@@ -21,7 +21,7 @@ export async function uploadFile(file: File): Promise<string> {
 			chunk
 		);
 
-		partETags[part] = result.body.eTag;
+		partETags[part] = result.eTag;
 		part++;
 	}
 
@@ -32,7 +32,7 @@ export async function uploadFile(file: File): Promise<string> {
 		partETags: partETags
 	});
 
-	return finalize.body.objectName;
+	return finalize.objectName;
 }
 
 export async function hashFile(file: File): Promise<string> {

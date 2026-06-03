@@ -31,9 +31,9 @@ public class LibraryService(DatabaseContext db, HybridSearchService hybridSearch
             { "journal_ids", ParseGuids(request.FilterOptions?.JournalFilter) },
         };
 
-        if (!string.IsNullOrEmpty(request.SearchQuery))
+        if (!string.IsNullOrEmpty(request.Search))
         {
-            var result = await hybridSearch.SearchAsync(request.SearchQuery, request.PageIndex, request.PageSize, filters);
+            var result = await hybridSearch.SearchAsync(request.Search, request.Page, request.PageSize, filters);
 
             return new GridResult
             {
@@ -46,12 +46,12 @@ public class LibraryService(DatabaseContext db, HybridSearchService hybridSearch
                     PublicationDatePrecision = item.PublicationDatePrecision,
                     Type = item.Type,
                     FileType = item.FileType,
-                    CreationDate = item.CreationDate,
+                    CreatedOn = item.CreatedOn,
                     Chunks = item.MatchedChunks
                 }).ToArray(),
                 TotalCount = result.TotalCount,
                 DurationInMs = (int)result.DurationInMs,
-                PageIndex = result.PageIndex,
+                Page = result.Page,
                 PageSize = result.PageSize,
                 SearchTerm = result.SearchTerm,
                 IsSearchResult = result.IsSearchResult
@@ -64,7 +64,7 @@ public class LibraryService(DatabaseContext db, HybridSearchService hybridSearch
 
         int totalCount = await query.CountAsync();
         ResourceGridItem[] items = await query
-            .Skip((request.PageIndex - 1) * request.PageSize)
+            .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToArrayAsync();
 
@@ -72,7 +72,7 @@ public class LibraryService(DatabaseContext db, HybridSearchService hybridSearch
         {
             Items = items,
             TotalCount = totalCount,
-            PageIndex = request.PageIndex,
+            Page =request.Page,
             PageSize = request.PageSize,
             IsSearchResult = false
         };
@@ -148,9 +148,9 @@ public class LibraryService(DatabaseContext db, HybridSearchService hybridSearch
             ("type", _) => query.OrderBy(x => x.Type),
             ("publicationdate", "desc") => query.OrderByDescending(x => x.PublicationDate),
             ("publicationdate", _) => query.OrderBy(x => x.PublicationDate),
-            ("creationdate", "desc") => query.OrderByDescending(x => x.CreationDate),
-            ("creationdate", _) => query.OrderBy(x => x.CreationDate),
-            _ => query.OrderByDescending(x => x.CreationDate)
+            ("createdon", "desc") => query.OrderByDescending(x => x.CreatedOn),
+            ("createdon", _) => query.OrderBy(x => x.CreatedOn),
+            _ => query.OrderByDescending(x => x.CreatedOn)
         };
     }
 

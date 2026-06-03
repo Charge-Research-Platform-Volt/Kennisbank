@@ -24,8 +24,8 @@ public class Chats
     [Column("title")]
     public required string Title { get; set; }
 
-    [Column("creation-date")]
-    public required DateTime CreationDate { get; set; }
+    [Column("created-on")]
+    public required DateTime CreatedOn { get; set; }
 
     [Column("project-id")]
     public Guid? ProjectId { get; set; }

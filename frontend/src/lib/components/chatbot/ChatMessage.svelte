@@ -154,7 +154,6 @@
 </div>
 
 {#if popover}
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class="cite-popover"
 		style="left: {popover.x}px; top: {popover.y}px;"
@@ -176,7 +175,7 @@
 					Open website
 				</a>
 			{:else if popover.source.type === 'resource' && popover.source.fileType !== 'website'}
-				<a href="/api/files/download/{popover.source.id}" target="_blank" rel="noopener noreferrer">
+				<a href="/api/files/{popover.source.id}" target="_blank" rel="noopener noreferrer">
 					Open file
 				</a>
 			{/if}

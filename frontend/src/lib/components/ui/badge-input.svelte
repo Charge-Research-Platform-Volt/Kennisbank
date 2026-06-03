@@ -1,21 +1,22 @@
 <script lang="ts">
+	import type { ListItem } from '$lib/types/results';
 	import { X } from '@lucide/svelte';
 	import { debounce } from '$lib/utils/debounce';
 
 	let {
-		items = $bindable<{ id: string; name: string }[]>([]),
+		items = $bindable<ListItem[]>([]),
 		search,
 		oncreate,
 		placeholder = 'Search...'
 	}: {
-		items: { id: string; name: string }[];
-		search: (q: string) => Promise<{ id: string; name: string }[]>;
-		oncreate?: (name: string) => Promise<{ id: string; name: string } | null>;
+		items: ListItem[];
+		search: (q: string) => Promise<ListItem[]>;
+		oncreate?: (name: string) => Promise<ListItem | null>;
 		placeholder?: string;
 	} = $props();
 
 	let searchQuery = $state('');
-	let searchResults = $state<{ id: string; name: string }[]>([]);
+	let searchResults = $state<ListItem[]>([]);
 	let searchOpen = $state(false);
 	let highlightedIndex = $state(-1);
 

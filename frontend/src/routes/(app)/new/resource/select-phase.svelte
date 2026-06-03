@@ -65,8 +65,8 @@
 					`/api/resources/exists?hash=${encodeURIComponent(hash)}`
 				);
 
-				if (dup.body.exists) {
-					onduplicate(dup.body.id);
+				if (dup.exists) {
+					onduplicate(dup.id);
 					return;
 				}
 
@@ -82,8 +82,8 @@
 					`/api/resources/exists?url=${encodeURIComponent(url)}`
 				);
 
-				if (dup.body.exists) {
-					onduplicate(dup.body.id);
+				if (dup.exists) {
+					onduplicate(dup.id);
 					return;
 				}
 
@@ -96,7 +96,7 @@
 				`/api/ai/extract-metadata/start?type=${extractType}&value=${encodeURIComponent(extractValue)}`
 			);
 
-			oncomplete({ mode, url, jobId: result.body.jobId, fileId, fileHash, fileExtension });
+			oncomplete({ mode, url, jobId: result.jobId, fileId, fileHash, fileExtension });
 		} catch (e) {
 			toast.error(e instanceof Error ? e.message : 'Something went wrong');
 		} finally {
@@ -106,8 +106,8 @@
 	}
 
 	api
-		.get<{ document: string[] }>('/api/resources/supported_extensions')
-		.then((r) => (supportedExtensions = r.body.document))
+		.get<{ document: string[] }>('/api/library/supported_extensions')
+		.then((r) => (supportedExtensions = r.document))
 		.catch(() => {});
 </script>
 

@@ -4,28 +4,29 @@ export type Project = {
 	id: string;
 	title: string;
 	description: string | null;
-	creationDate: string;
+	createdOn: string;
 	projectType: 'root' | 'folder';
-	projectCreatorRelations?: { creatorId: string }[];
+	projectMemberRelations?: { memberId: string }[];
 	projectTagRelations?: { tag: { id: string; name: string } }[];
-	creators?: { id: string; firstName: string; lastName: string; customAvatarVersion: number }[];
+	members?: { id: string; firstName: string; lastName: string; customAvatarVersion: number }[];
 };
 
 export type ProjectListResponse = {
-	projects: Project[];
-	pageIndex?: number;
+	items: Project[];
+	page?: number;
 	pageSize?: number;
 	pageCount?: number;
 	totalCount?: number;
 };
 
 export type ProjectFolder = {
-	folder: { id: string; title: string };
+	id: string;
+	title: string;
 	addedBy: string;
+	depth: number;
 };
 
-export type ProjectItem = {
-	item: ResourceItem;
+export type ProjectItem = ResourceItem & {
 	addedBy: string;
 };
 
@@ -39,7 +40,7 @@ export type ProjectInfo = {
 	rootProject: Project;
 	folders: ProjectFolder[];
 	items: ProjectItem[];
-	creators: {
+	members: {
 		id: string;
 		firstName: string;
 		lastName: string;

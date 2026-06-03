@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace KnowledgeBank.Models;
 
 public class ResourceGridItem
@@ -10,9 +12,10 @@ public class ResourceGridItem
     public string Type { get; set; } = string.Empty;
     public string FileType { get; set; } = string.Empty;
     public string? SourceUrl { get; set; }
-    public DateTime CreationDate { get; set; }
+    public DateTime CreatedOn { get; set; }
     public Guid? TypeId { get; set; }
     public Guid? JournalId { get; set; }
+    [NotMapped]
     public List<string> Chunks { get; set; } = [];
 }
 
@@ -25,7 +28,7 @@ public class ResourceGridSearchResult
     public PublicationDatePrecision? PublicationDatePrecision { get; set; }
     public string Type { get; set; } = string.Empty;
     public string FileType { get; set; } = string.Empty;
-    public DateTime CreationDate { get; set; }
+    public DateTime CreatedOn { get; set; }
     public float Relevance { get; set; }
 
     // Conversion method
@@ -40,7 +43,7 @@ public class ResourceGridSearchResult
             PublicationDatePrecision = PublicationDatePrecision,
             Type = Type,
             FileType = FileType,
-            CreationDate = CreationDate,
+            CreatedOn = CreatedOn,
         };
     }
 }

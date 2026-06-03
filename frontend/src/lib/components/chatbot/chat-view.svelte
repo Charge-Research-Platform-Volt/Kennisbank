@@ -168,9 +168,9 @@
 	function fetchSources(content: string, msgId: string) {
 		const uuids = extractUuids(content);
 		if (uuids.length === 0) return;
-		api.get<ResolvedSource[]>(`/api/ai/items?ids=${uuids.join(',')}`).then((r) => {
+		api.post<ResolvedSource[]>(`/api/library/items`, uuids).then((r) => {
 			const map = new SvelteMap<string, ResolvedSource>();
-			r.body?.forEach((s: ResolvedSource) => map.set(s.id, s));
+			r.forEach((s: ResolvedSource) => map.set(s.id, s));
 			messages = messages.map((m) => (m.id === msgId ? { ...m, resolvedSources: map } : m));
 		});
 	}
@@ -181,10 +181,10 @@
 
 		if (allUuids.length === 0) return;
 
-		api.get<ResolvedSource[]>(`/api/ai/items?ids=${allUuids.join(',')}`).then((r) => {
+		api.post<ResolvedSource[]>(`/api/library/items`, allUuids).then((r) => {
 			// eslint-disable-next-line svelte/prefer-svelte-reactivity
 			const lookup = new Map<string, ResolvedSource>();
-			r.body?.forEach((s: ResolvedSource) => lookup.set(s.id, s));
+			r.forEach((s: ResolvedSource) => lookup.set(s.id, s));
 
 			messages = msgs.map((m) => {
 				if (m.messageRole !== 'Assistant') return m;
@@ -203,9 +203,9 @@
 
 	function fetchMessages(id: string) {
 		api
-			.get<{ messages: Message[] }>(`/api/ai/messages/${id}`)
+			.get<Message[]>(`/api/chats/${id}/messages`)
 			.then((result) => {
-				messages = result.body?.messages ?? [];
+				messages = result ?? [];
 				fetchSourcesForMessages(messages);
 				tick().then(() =>
 					setTimeout(
@@ -272,9 +272,9 @@
 
 		if (initialMessage) {
 			api
-				.get<{ messages: Message[] }>(`/api/ai/messages/${chatId}`)
+				.get<Message[]>(`/api/chats/${chatId}/messages`)
 				.then((result) => {
-					const existing = result.body?.messages ?? [];
+					const existing = result ?? [];
 					if (existing.length === 0) {
 						stream(initialMessage!);
 					} else {

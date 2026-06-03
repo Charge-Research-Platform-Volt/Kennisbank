@@ -29,8 +29,8 @@ public class Messages
     [Column("content")]
     public string Content { get; set; } = string.Empty;
 
-    [Column("creation-date")]
-    public required DateTime CreationDate { get; set; }
+    [Column("created-on")]
+    public required DateTime CreatedOn { get; set; }
 
     // Navigation properties
     [JsonIgnore] public virtual Chats Chat { get; set; } = null!;

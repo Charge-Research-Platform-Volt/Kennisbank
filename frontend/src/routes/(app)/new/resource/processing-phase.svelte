@@ -31,14 +31,14 @@
 				}>(`/api/ai/extract-metadata/status/${jobId}`);
 
 				errorCount = 0;
-				statusMessage = res.body.statusMessage;
-				progressPercentage = res.body.progressPercentage;
+				statusMessage = res.statusMessage;
+				progressPercentage = res.progressPercentage;
 
-				if (res.body.status === 'Completed') {
+				if (res.status === 'Completed') {
 					clearInterval(interval);
-					oncomplete(res.body.result);
-				} else if (res.body.status === 'Failed') {
-					processingError = res.body.errorMessage ?? 'Processing failed';
+					oncomplete(res.result);
+				} else if (res.status === 'Failed') {
+					processingError = res.errorMessage ?? 'Processing failed';
 					clearInterval(interval);
 				}
 			} catch {
