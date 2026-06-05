@@ -245,7 +245,7 @@
 								<BookmarkPlus size={14} class="mr-2" /> Add to project
 							</DropdownMenu.Item>
 
-							{#if userState.role === 'admin'}
+							{#if userState.role === 'admin' && !item?.trashed}
 								<DropdownMenu.Separator />
 
 								<DropdownMenu.Item

@@ -46,8 +46,8 @@
 		const url = q
 			? `/api/resources?page=1&pageSize=20&search=${encodeURIComponent(q)}`
 			: '/api/resources?page=1&pageSize=20';
-		const r = await api.get<PagedResult<ListItem>>(url);
-		return r.items ?? [];
+		const r = await api.get<PagedResult<{ id: string; title: string }>>(url);
+		return r.items.map(i => ({ id: i.id, name: i.title }));
 	}
 </script>
 
@@ -97,10 +97,10 @@
 		itemType="resource"
 		search={searchResources}
 		onadd={async (id) => {
-			await api.post(`/api/persons/${item.id}/relations/authored-resources/${id}`);
+			await api.post(`/api/persons/${item.id}/authored-resources/${id}`);
 		}}
 		onremove={async (rel) => {
-			await api.delete(`/api/persons/${item.id}/relations/authored-resources/${rel.id}`);
+			await api.delete(`/api/persons/${item.id}/authored-resources/${rel.id}`);
 		}}
 	/>
 	<RelationSection
@@ -110,14 +110,14 @@
 		hasRole
 		search={searchResources}
 		onadd={async (id) => {
-			await api.post(`/api/persons/${item.id}/relations/related-resources/${id}`);
+			await api.post(`/api/persons/${item.id}/related-resources/${id}`);
 		}}
 		onremove={async (rel) => {
-			await api.delete(`/api/persons/${item.id}/relations/related-resources/${rel.id}`);
+			await api.delete(`/api/persons/${item.id}/related-resources/${rel.id}`);
 		}}
 		onupdaterole={async (rel, role) => {
 			await api.patch(
-				`/api/persons/${item.id}/relations/related-resources/${rel.id}/role?newRole=${encodeURIComponent(role)}`
+				`/api/persons/${item.id}/related-resources/${rel.id}/role?newRole=${encodeURIComponent(role)}`
 			);
 		}}
 	/>
@@ -128,15 +128,15 @@
 		hasRole
 		search={searchPersons}
 		onadd={async (id) => {
-			await api.post(`/api/persons/${item.id}/relations/related-persons/${id}`);
+			await api.post(`/api/persons/${item.id}/related-persons/${id}`);
 		}}
 		oncreate={createPerson}
 		onremove={async (rel) => {
-			await api.delete(`/api/persons/${item.id}/relations/related-persons/${rel.id}`);
+			await api.delete(`/api/persons/${item.id}/related-persons/${rel.id}`);
 		}}
 		onupdaterole={async (rel, role) => {
 			await api.patch(
-				`/api/persons/${item.id}/relations/related-persons/${rel.id}/role?newRole=${encodeURIComponent(role)}`
+				`/api/persons/${item.id}/related-persons/${rel.id}/role?newRole=${encodeURIComponent(role)}`
 			);
 		}}
 	/>
@@ -147,15 +147,15 @@
 		hasRole
 		search={searchOrgs}
 		onadd={async (id) => {
-			await api.post(`/api/persons/${item.id}/relations/organisations/${id}`);
+			await api.post(`/api/persons/${item.id}/organisations/${id}`);
 		}}
 		oncreate={createOrg}
 		onremove={async (rel) => {
-			await api.delete(`/api/persons/${item.id}/relations/organisations/${rel.id}`);
+			await api.delete(`/api/persons/${item.id}/organisations/${rel.id}`);
 		}}
 		onupdaterole={async (rel, role) => {
 			await api.patch(
-				`/api/persons/${item.id}/relations/organisations/${rel.id}/role?newRole=${encodeURIComponent(role)}`
+				`/api/persons/${item.id}/organisations/${rel.id}/role?newRole=${encodeURIComponent(role)}`
 			);
 		}}
 	/>

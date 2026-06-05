@@ -26,13 +26,13 @@ export async function uploadFile(file: File): Promise<string> {
 	}
 
 	// Finalize
-	const finalize = await api.post<{ objectName: string }>('/api/files/upload/finalize', {
+	await api.post('/api/files/upload/finalize', {
 		ObjectName: objectName,
 		UploadId: uploadId,
 		partETags: partETags
 	});
 
-	return finalize.objectName;
+	return objectName;
 }
 
 export async function hashFile(file: File): Promise<string> {

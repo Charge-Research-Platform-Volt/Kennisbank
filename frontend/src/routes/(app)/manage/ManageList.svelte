@@ -34,14 +34,14 @@
 	}: { type: 'tags' | 'regions' | 'resourceTypes' | 'persons' | 'organisations' | 'journals' } =
 		$props();
 
-	type EntityConfig = { label: string; icon: typeof Tag; basePath: string; canCreate: boolean };
+	type EntityConfig = { label: string; icon: typeof Tag; basePath: string; canCreate: boolean; renameViaBody?: boolean };
 
 	const configs: Record<string, EntityConfig> = {
 		tags:          { label: 'Tag',           icon: Tag,       basePath: 'tags',           canCreate: true },
 		regions:       { label: 'Region',        icon: MapPin,    basePath: 'regions',        canCreate: true },
 		resourceTypes: { label: 'Resource Type', icon: Layers,    basePath: 'resource-types', canCreate: true },
-		persons:       { label: 'Person',        icon: User,      basePath: 'persons',        canCreate: false },
-		organisations: { label: 'Organisation',  icon: Building2, basePath: 'organisations',  canCreate: false },
+		persons:       { label: 'Person',        icon: User,      basePath: 'persons',        canCreate: false, renameViaBody: true },
+		organisations: { label: 'Organisation',  icon: Building2, basePath: 'organisations',  canCreate: false, renameViaBody: true },
 		journals:      { label: 'Journal',       icon: Newspaper, basePath: 'journals',       canCreate: true },
 	};
 
@@ -157,7 +157,9 @@
 		}
 		submitting = true;
 		try {
-			await api.patch(`${base}/${editingId}/name`, { name: editingName.trim() });
+			cfg.renameViaBody
+				? await api.patch(`${base}/${editingId}`, { name: editingName.trim() })
+				: await api.patch(`${base}/${editingId}/name`, { name: editingName.trim() });
 			editingId = null;
 			await fetchItems();
 			toast.success(`${cfg.label} renamed.`);
@@ -214,7 +216,9 @@
 			mergeSurvivorName = mergeSurvivorName.trim();
 
 			if (mergeSurvivorName && mergeSurvivorName !== survivorOriginalName) {
-				await api.patch(`${base}/${mergeSurvivorId}/name`, { name: mergeSurvivorName });
+				cfg.renameViaBody
+					? await api.patch(`${base}/${mergeSurvivorId}`, { name: mergeSurvivorName })
+					: await api.patch(`${base}/${mergeSurvivorId}/name`, { name: mergeSurvivorName });
 			}
 
 			mergeDialogOpen = false;

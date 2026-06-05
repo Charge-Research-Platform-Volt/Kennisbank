@@ -69,7 +69,7 @@
 				{
 					page: currentPage,
 					pageSize: PAGE_SIZE,
-					searchQuery: searchInput || undefined,
+					search: searchInput || undefined,
 					filterOptions: {
 						typeFilter: typeFilter.length === 3 ? undefined : typeFilter,
 						pubdateMin: dateMin ? `${dateMin}-01-01` : undefined,

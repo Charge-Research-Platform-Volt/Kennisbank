@@ -34,7 +34,7 @@
 			const result = await api.post<ProjectListResponse>('/api/projects', {
 				page: 1,
 				pageSize: 20,
-				searchQuery: projectSearch || undefined
+				search: projectSearch || undefined
 			});
 
 			projectResults = result.items;

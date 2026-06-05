@@ -61,12 +61,12 @@
 			if (mode === 'file') {
 				uploadStep = 'hashing';
 				const hash = await hashFile(selectedFile!);
-				const dup = await api.get<{ exists: boolean; id: string }>(
+				const dup = await api.get<string | null>(
 					`/api/resources/exists?hash=${encodeURIComponent(hash)}`
 				);
 
-				if (dup.exists) {
-					onduplicate(dup.id);
+				if (dup) {
+					onduplicate(dup);
 					return;
 				}
 
@@ -78,12 +78,12 @@
 				extractValue = objectName;
 				extractType = 'file';
 			} else {
-				const dup = await api.get<{ exists: boolean; id: string }>(
+				const dup = await api.get<string | null>(
 					`/api/resources/exists?url=${encodeURIComponent(url)}`
 				);
 
-				if (dup.exists) {
-					onduplicate(dup.id);
+				if (dup) {
+					onduplicate(dup);
 					return;
 				}
 
@@ -106,7 +106,7 @@
 	}
 
 	api
-		.get<{ document: string[] }>('/api/library/supported_extensions')
+		.get<{ document: string[] }>('/api/library/supported-extensions')
 		.then((r) => (supportedExtensions = r.document))
 		.catch(() => {});
 </script>

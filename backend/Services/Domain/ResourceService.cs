@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.Domain;
 
-public class ResourceService(DatabaseContext db)
+public class ResourceService(DatabaseContext db, TagService tagService, PersonService personService, OrganisationService organisationService, RegionService regionService)
 {
     #region Queries
 
@@ -175,20 +175,43 @@ public class ResourceService(DatabaseContext db)
 
         db.Resources.Add(resource);
 
-        foreach (Guid tagId in dto.Tags.Select(Guid.Parse).Distinct())
+        foreach (string tag in dto.Tags.Distinct())
+        {
+            Guid tagId = Guid.TryParse(tag, out Guid parsed)
+                ? parsed
+                : await tagService.FindIdByNameAsync(tag) ?? await tagService.CreateAsync(tag, createdBy);
             db.ResourceTagRelations.Add(new ResourceTagRelation { ResourceId = resourceId, TagId = tagId });
+        }
 
-        foreach (Guid authorId in dto.Authors.Select(a => Guid.Parse(a.Value)).Distinct())
+        foreach (var author in dto.Authors.DistinctBy(a => a.Value))
+        {
+            Guid authorId = Guid.TryParse(author.Value, out Guid parsedAuthor) ? parsedAuthor
+                : author.Type?.ToLower() == "organisation"
+                    ? await organisationService.FindIdByNameAsync(author.Value) ?? await organisationService.CreateAsync(new OrganisationCreateDto { Name = author.Value }, createdBy)
+                    : await personService.FindIdByNameAsync(author.Value) ?? await personService.CreateAsync(new PersonCreateDto { Name = author.Value }, createdBy);
             db.ResourceAuthorRelations.Add(new ResourceAuthorRelation { ResourceId = resourceId, AuthorId = authorId });
+        }
 
         foreach (var org in dto.Organisations.DistinctBy(o => o.Id))
-            db.ResourceOrganisationRelations.Add(new ResourceOrganisationRelation { ResourceId = resourceId, OrganisationId = Guid.Parse(org.Id), Role = org.Relation });
+        {
+            Guid orgId = Guid.TryParse(org.Id, out Guid parsedOrg) ? parsedOrg
+                : await organisationService.FindIdByNameAsync(org.Id) ?? await organisationService.CreateAsync(new OrganisationCreateDto { Name = org.Id }, createdBy);
+            db.ResourceOrganisationRelations.Add(new ResourceOrganisationRelation { ResourceId = resourceId, OrganisationId = orgId, Role = org.Relation });
+        }
 
-        foreach (Guid regionId in dto.Regions.Select(Guid.Parse).Distinct())
+        foreach (string region in dto.Regions.Distinct())
+        {
+            Guid regionId = Guid.TryParse(region, out Guid parsedRegion) ? parsedRegion
+                : await regionService.FindIdByNameAsync(region) ?? await regionService.CreateAsync(region, createdBy);
             db.ResourceRegionRelations.Add(new ResourceRegionRelation { ResourceId = resourceId, RegionId = regionId });
+        }
 
         foreach (var person in dto.RelatedPersons.DistinctBy(p => p.Id))
-            db.ResourceRelatedPersonRelations.Add(new ResourceRelatedPersonRelation { ResourceId = resourceId, PersonId = Guid.Parse(person.Id), Role = person.Relation });
+        {
+            Guid personId = Guid.TryParse(person.Id, out Guid parsedPerson) ? parsedPerson
+                : await personService.FindIdByNameAsync(person.Id) ?? await personService.CreateAsync(new PersonCreateDto { Name = person.Id }, createdBy);
+            db.ResourceRelatedPersonRelations.Add(new ResourceRelatedPersonRelation { ResourceId = resourceId, PersonId = personId, Role = person.Relation });
+        }
 
         await db.SaveChangesAsync();
         await transaction.CommitAsync();

@@ -68,7 +68,7 @@
 			// Add to selected projects
 			if (projectIds.length > 0) {
 				const results = await Promise.allSettled(
-					projectIds.map((pid) => api.post(`/api/project/${pid}/items/${result}`, {}))
+					projectIds.map((pid) => api.post(`/api/projects/${pid}/items/${result}`, {}))
 				);
 
 				const failed = results.filter((r) => r.status === 'rejected').length;
@@ -96,7 +96,7 @@
 		const result = await api.post<ProjectListResponse>('/api/projects', {
 			page: 1,
 			pageSize: 20,
-			searchQuery: q || undefined
+			search: q || undefined
 		});
 
 		return result.items.map((p) => ({ id: p.id, name: p.title }));
@@ -141,7 +141,7 @@
 					<p class="text-xs text-muted-foreground">
 						Similar names already in the library:
 						{#each similar as s, i (s.id)}
-							<a href="/libary?inspectorId={s.id}&inspectorType=person" class="underline"
+							<a href="/library?inspectorId={s.id}&inspectorType=person" class="underline"
 								>{s.name}</a
 							>{#if i < similar.length - 1},&nbsp;{/if}
 						{/each}

@@ -327,7 +327,7 @@
 		const result = await api.post<ProjectListResponse>('/api/projects', {
 			page: 1,
 			pageSize: 20,
-			searchQuery: q || undefined
+			search: q || undefined
 		});
 
 		return result.items.map((p) => ({ id: p.id, name: p.title }));

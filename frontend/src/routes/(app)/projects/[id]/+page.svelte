@@ -89,7 +89,7 @@
 		}
 
 		try {
-			await api.put(`/api/projects/${page.params.id}/folders`, { name: newFolderName.trim() });
+			await api.post(`/api/projects/${page.params.id}/folders`, { name: newFolderName.trim() });
 			await fetchProject();
 		} finally {
 			addingFolder = false;

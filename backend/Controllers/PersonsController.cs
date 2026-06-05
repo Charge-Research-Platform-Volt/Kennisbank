@@ -119,71 +119,90 @@ public class PersonsController(PersonService personService, IBackgroundTaskQueue
     public async Task<IActionResult> Untrash(Guid id)
         => NoContentOrNotFound(await personService.UntrashAsync(id));
 
-    [HttpPost("{id}/relations/{relation}/{targetId}")]
-    [SwaggerOperation(Summary = "Add a relation")]
+    [HttpPost("{id}/authored-resources/{targetId}")]
+    [SwaggerOperation(Summary = "Add authored resource")]
     [SwaggerResponse(204, "Relation added")]
-    [SwaggerResponse(400, "Invalid relation type")]
-    public async Task<IActionResult> AddRelation(Guid id, string relation, Guid targetId, [FromQuery] string? role)
+    public async Task<IActionResult> AddAuthoredResource(Guid id, Guid targetId)
     {
-        switch (relation)
-        {
-            case "authored-resources":
-                await personService.AddAuthoredResourceAsync(id, targetId);
-                break;
-            case "related-resources":
-                await personService.AddRelatedResourceAsync(id, targetId, role);
-                break;
-            case "related-persons":
-                await personService.AddPersonRelationshipAsync(id, targetId, role);
-                break;
-            case "organisations":
-                await personService.AddOrganisationRelationAsync(id, targetId, role);
-                break;
-            default:
-                return Problem("Invalid relation type.", statusCode: 400);
-        }
-
+        await personService.AddAuthoredResourceAsync(id, targetId);
         return NoContent();
     }
 
-    [HttpDelete("{id}/relations/{relation}/{targetId}")]
-    [SwaggerOperation(Summary = "Remove a relation")]
+    [HttpDelete("{id}/authored-resources/{targetId}")]
+    [SwaggerOperation(Summary = "Remove authored resource")]
     [SwaggerResponse(204, "Relation removed")]
     [SwaggerResponse(404, "Relation not found")]
-    [SwaggerResponse(400, "Invalid relation type")]
-    public async Task<IActionResult> RemoveRelation(Guid id, string relation, Guid targetId)
-    {
-        bool? found = relation switch
-        {
-            "authored-resources" => await personService.RemoveAuthoredResourceAsync(id, targetId),
-            "related-resources" => await personService.RemoveRelatedResourceAsync(id, targetId),
-            "related-persons" => await personService.RemovePersonRelationshipAsync(id, targetId),
-            "organisations" => await personService.RemoveOrganisationRelationAsync(id, targetId),
-            _ => null
-        };
+    public async Task<IActionResult> RemoveAuthoredResource(Guid id, Guid targetId)
+        => NoContentOrNotFound(await personService.RemoveAuthoredResourceAsync(id, targetId));
 
-        if (found == null) return Problem("Invalid relation type.", statusCode: 400);
-        return NoContentOrNotFound(found.Value);
+    [HttpPost("{id}/related-resources/{targetId}")]
+    [SwaggerOperation(Summary = "Add related resource")]
+    [SwaggerResponse(204, "Relation added")]
+    public async Task<IActionResult> AddRelatedResource(Guid id, Guid targetId, [FromQuery] string? role)
+    {
+        await personService.AddRelatedResourceAsync(id, targetId, role);
+        return NoContent();
     }
 
-    [HttpPatch("{id}/relations/{relation}/{targetId}/role")]
-    [SwaggerOperation(Summary = "Update role in relation")]
+    [HttpDelete("{id}/related-resources/{targetId}")]
+    [SwaggerOperation(Summary = "Remove related resource")]
+    [SwaggerResponse(204, "Relation removed")]
+    [SwaggerResponse(404, "Relation not found")]
+    public async Task<IActionResult> RemoveRelatedResource(Guid id, Guid targetId)
+        => NoContentOrNotFound(await personService.RemoveRelatedResourceAsync(id, targetId));
+
+    [HttpPatch("{id}/related-resources/{targetId}/role")]
+    [SwaggerOperation(Summary = "Update related resource role")]
     [SwaggerResponse(204, "Role updated")]
     [SwaggerResponse(404, "Relation not found")]
-    [SwaggerResponse(400, "Invalid relation type")]
-    public async Task<IActionResult> UpdateRelationRole(Guid id, string relation, Guid targetId, [FromQuery] string newRole)
-    {
-        bool? found = relation switch
-        {
-            "related-resources" => await personService.UpdateRelatedResourceRoleAsync(id, targetId, newRole),
-            "related-persons" => await personService.UpdatePersonRelationshipRoleAsync(id, targetId, newRole),
-            "organisations" => await personService.UpdateOrganisationRelationRoleAsync(id, targetId, newRole),
-            _ => null
-        };
+    public async Task<IActionResult> UpdateRelatedResourceRole(Guid id, Guid targetId, [FromQuery] string newRole)
+        => NoContentOrNotFound(await personService.UpdateRelatedResourceRoleAsync(id, targetId, newRole));
 
-        if (found == null) return Problem("Invalid relation type.", statusCode: 400);
-        return NoContentOrNotFound(found.Value);
+    [HttpPost("{id}/related-persons/{targetId}")]
+    [SwaggerOperation(Summary = "Add related person")]
+    [SwaggerResponse(204, "Relation added")]
+    public async Task<IActionResult> AddRelatedPerson(Guid id, Guid targetId, [FromQuery] string? role)
+    {
+        await personService.AddPersonRelationshipAsync(id, targetId, role);
+        return NoContent();
     }
+
+    [HttpDelete("{id}/related-persons/{targetId}")]
+    [SwaggerOperation(Summary = "Remove related person")]
+    [SwaggerResponse(204, "Relation removed")]
+    [SwaggerResponse(404, "Relation not found")]
+    public async Task<IActionResult> RemoveRelatedPerson(Guid id, Guid targetId)
+        => NoContentOrNotFound(await personService.RemovePersonRelationshipAsync(id, targetId));
+
+    [HttpPatch("{id}/related-persons/{targetId}/role")]
+    [SwaggerOperation(Summary = "Update related person role")]
+    [SwaggerResponse(204, "Role updated")]
+    [SwaggerResponse(404, "Relation not found")]
+    public async Task<IActionResult> UpdateRelatedPersonRole(Guid id, Guid targetId, [FromQuery] string newRole)
+        => NoContentOrNotFound(await personService.UpdatePersonRelationshipRoleAsync(id, targetId, newRole));
+
+    [HttpPost("{id}/organisations/{targetId}")]
+    [SwaggerOperation(Summary = "Add organisation relation")]
+    [SwaggerResponse(204, "Relation added")]
+    public async Task<IActionResult> AddOrganisation(Guid id, Guid targetId, [FromQuery] string? role)
+    {
+        await personService.AddOrganisationRelationAsync(id, targetId, role);
+        return NoContent();
+    }
+
+    [HttpDelete("{id}/organisations/{targetId}")]
+    [SwaggerOperation(Summary = "Remove organisation relation")]
+    [SwaggerResponse(204, "Relation removed")]
+    [SwaggerResponse(404, "Relation not found")]
+    public async Task<IActionResult> RemoveOrganisation(Guid id, Guid targetId)
+        => NoContentOrNotFound(await personService.RemoveOrganisationRelationAsync(id, targetId));
+
+    [HttpPatch("{id}/organisations/{targetId}/role")]
+    [SwaggerOperation(Summary = "Update organisation relation role")]
+    [SwaggerResponse(204, "Role updated")]
+    [SwaggerResponse(404, "Relation not found")]
+    public async Task<IActionResult> UpdateOrganisationRole(Guid id, Guid targetId, [FromQuery] string newRole)
+        => NoContentOrNotFound(await personService.UpdateOrganisationRelationRoleAsync(id, targetId, newRole));
 
     [HttpPatch("merge/{keepId}/{removeId}")]
     [Authorize(Policy = "RequireAdminRole")]
