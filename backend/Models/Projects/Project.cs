@@ -55,9 +55,35 @@ public class ProjectListRequest
     public DateTime? EndDate { get; set; }
 }
 
+public class ProjectListItemDto
+{
+    public Guid Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public DateTime CreatedOn { get; set; }
+    public string ProjectType { get; set; } = string.Empty;
+    public List<ProjectListTagDto> Tags { get; set; } = [];
+    public List<ProjectListMemberDto> Members { get; set; } = [];
+}
+
+public class ProjectListTagDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+}
+
+public class ProjectListMemberDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public int? CustomAvatarVersion { get; set; }
+    public bool HasCustom { get; set; }
+}
+
 public class ProjectListResult
 {
-    public Project[] Items { get; set; } = [];
+    public ProjectListItemDto[] Items { get; set; } = [];
     public int TotalCount { get; set; }
     public int Page { get; set; }
     public int PageSize { get; set; }

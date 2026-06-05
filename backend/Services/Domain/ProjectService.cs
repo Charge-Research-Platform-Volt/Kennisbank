@@ -25,7 +25,7 @@ public class ProjectService(DatabaseContext db)
     public async Task<ProjectListResult> GetListAsync(ProjectListRequest request)
     {
         IQueryable<Project> query = db.Projects
-            .Include(p => p.ProjectTagRelations)
+            .Include(p => p.ProjectTagRelations!).ThenInclude(r => r.Tag)
             .Include(p => p.ProjectMemberRelations!).ThenInclude(r => r.Member)
             .Where(p => p.ProjectType == "root")
             .AsNoTracking();
@@ -51,17 +51,41 @@ public class ProjectService(DatabaseContext db)
         int totalCount = await query.CountAsync();
         int pageCount = (int)Math.Ceiling((double)totalCount / request.PageSize);
 
-        Project[] items = await query
+        Project[] projects = await query
             .OrderByDescending(p => p.CreatedOn)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToArrayAsync();
 
+        ProjectListItemDto[] items = projects.Select(p => new ProjectListItemDto
+        {
+            Id = p.Id,
+            Title = p.Title,
+            Description = p.Description,
+            CreatedOn = p.CreatedOn,
+            ProjectType = p.ProjectType,
+            Tags = p.ProjectTagRelations?
+                .Where(r => r.Tag != null)
+                .Select(r => new ProjectListTagDto { Id = r.Tag!.Id, Name = r.Tag.Name })
+                .ToList() ?? [],
+            Members = p.ProjectMemberRelations?
+                .Where(r => r.Member != null)
+                .Select(r => new ProjectListMemberDto
+                {
+                    Id = r.Member!.Id,
+                    FirstName = r.Member.FirstName,
+                    LastName = r.Member.LastName,
+                    CustomAvatarVersion = r.Member.HasCustom ? r.Member.CustomAvatarVersion : null,
+                    HasCustom = r.Member.HasCustom
+                })
+                .ToList() ?? []
+        }).ToArray();
+
         return new ProjectListResult
         {
             Items = items,
             TotalCount = totalCount,
-            Page =request.Page,
+            Page = request.Page,
             PageSize = request.PageSize,
             PageCount = pageCount
         };
