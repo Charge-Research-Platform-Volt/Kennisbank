@@ -5,7 +5,7 @@ using KnowledgeBank.Utils;
 
 namespace KnowledgeBank.Services.AI;
 
-public enum MistralReasoningEffort { None, High }
+public enum MistralReasoningEffort { Default, None, High }
 public enum MistralCapability { CodeInterpreter, WebSearch, PremiumWebSearch, ImageGeneration }
 public enum MistralResponseFormat { Text, Json, JsonSchema }
 public record MistralToolCall(string Id, string Name, string Arguments);
@@ -32,10 +32,11 @@ public class MistralHttpClient
 
     private readonly HttpClient httpClient;
     private readonly string modelName;
+    private readonly Serilog.ILogger logger = Serilog.Log.ForContext<MistralHttpClient>();
 
     public MistralHttpClient(EnvironmentConfig environmentConfig)
     {
-        modelName = environmentConfig.GetVariableValue(EnvironmentVariable.CHAT_MODEL_NAME);
+        modelName = environmentConfig.GetVariableValue(EnvironmentVariable.MEDIUM_MODEL_NAME);
         httpClient = new HttpClient
         {
             BaseAddress = new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_ENDPOINT).TrimEnd('/') + "/"),
@@ -45,9 +46,10 @@ public class MistralHttpClient
             $"Bearer {environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_API_KEY)}");
     }
 
-    public async Task<MistralCompletion> CompleteAsync(MistralChatRequest request, CancellationToken ct = default)
+    public async Task<MistralCompletion> CompleteAsync(MistralChatRequest request, string? modelOverride = null, CancellationToken ct = default)
     {
-        var body = JsonSerializer.Serialize(BuildBody(request));
+        logger.Debug("Mistral call [{Model}]", modelOverride ?? modelName);
+        var body = JsonSerializer.Serialize(BuildBody(request, modelOverride: modelOverride));
 
         HttpResponseMessage response = null!;
         for (int attempt = 0; attempt < MaxRetries; attempt++)
@@ -138,7 +140,7 @@ public class MistralHttpClient
         }
     }
 
-    private object BuildBody(MistralChatRequest request, bool stream = false)
+    private object BuildBody(MistralChatRequest request, bool stream = false, string? modelOverride = null)
     {
         List<object> tools = [];
 
@@ -157,10 +159,10 @@ public class MistralHttpClient
 
         return new
         {
-            model = modelName,
+            model = modelOverride ?? modelName,
             messages = request.Messages,
             temperature = request.Temperature,
-            reasoning_effort = request.ReasoningEffort == MistralReasoningEffort.None ? null : EffortToString(request.ReasoningEffort),
+            reasoning_effort = request.ReasoningEffort == MistralReasoningEffort.Default ? null : EffortToString(request.ReasoningEffort),
             stream,
             tools = tools.Count > 0 ? tools.ToArray() : null,
             response_format = request.ResponseFormat switch

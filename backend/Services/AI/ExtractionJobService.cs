@@ -113,10 +113,8 @@ public class ExtractionJobService(
                     return;
                 }
 
-                UpdateJobStatus(jobId, JobStatus.Processing, "Analyzing with AI...", 50);
-
-                metadata = await metadataExtractionService.ExtractMetadataFromFileAsync(extractedText, fileName, () =>
-                    UpdateJobStatus(jobId, JobStatus.Processing, "Finding similar entities...", 70));
+                metadata = await metadataExtractionService.ExtractMetadataFromFileAsync(extractedText, fileName,
+                    (msg, pct) => UpdateJobStatus(jobId, JobStatus.Processing, msg, pct));
             }
             else if (Filetype.IsDocumentUrl(value))
             {
@@ -150,10 +148,8 @@ public class ExtractionJobService(
                     return;
                 }
 
-                UpdateJobStatus(jobId, JobStatus.Processing, "Analyzing with AI...", 50);
-
-                metadata = await metadataExtractionService.ExtractMetadataFromFileAsync(extractedText, fileName, () =>
-                    UpdateJobStatus(jobId, JobStatus.Processing, "Finding similar entities...", 70));
+                metadata = await metadataExtractionService.ExtractMetadataFromFileAsync(extractedText, fileName,
+                    (msg, pct) => UpdateJobStatus(jobId, JobStatus.Processing, msg, pct));
             }
             else
             {
@@ -174,10 +170,8 @@ public class ExtractionJobService(
                     return;
                 }
 
-                UpdateJobStatus(jobId, JobStatus.Processing, "Analyzing with AI...", 50);
-
-                metadata = await metadataExtractionService.ExtractMetadataFromWebAsync(readabilityResult, value, () =>
-                    UpdateJobStatus(jobId, JobStatus.Processing, "Finding similar entities...", 70));
+                metadata = await metadataExtractionService.ExtractMetadataFromWebAsync(readabilityResult, value,
+                    (msg, pct) => UpdateJobStatus(jobId, JobStatus.Processing, msg, pct));
             }
 
             if (metadata == null)

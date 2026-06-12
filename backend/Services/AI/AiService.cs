@@ -33,7 +33,7 @@ public class AiService(MistralHttpClient mistralClient)
             ReasoningEffort = MistralReasoningEffort.None
         };
 
-        MistralCompletion result = await mistralClient.CompleteAsync(request, ct);
+        MistralCompletion result = await mistralClient.CompleteAsync(request, ct: ct);
         return result.Content ?? "";
     }
 }

@@ -23,5 +23,6 @@
     "typescriptreact": "typescriptreact"
   },
   "tailwindCSS.experimental.configFile": "frontend/tailwind.config.ts",
-  "typescript.preferences.includePackageJsonAutoImports": "on"
+  "typescript.preferences.includePackageJsonAutoImports": "on",
+  "mistral-vibe-code.telemetry.enabled": false
 }

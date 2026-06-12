@@ -103,7 +103,7 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
 
         string result = sb.ToString();
         logger.LogInformation("Mistral OCR extracted {Length} characters.", result.Length);
-        await File.WriteAllTextAsync("/tmp/pdf_extracted.txt", result);
+        
         return result;
     }
 

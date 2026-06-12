@@ -1,5 +1,7 @@
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.Domain;
 using KnowledgeBank.Services.Search;
+using KnowledgeBank.Utils;
 using Lingua;
 using Serilog;
 using System.Text.Json;
@@ -7,54 +9,115 @@ using System.Text.RegularExpressions;
 
 namespace KnowledgeBank.Services.AI;
 
-public class MetadataExtractionService(MistralHttpClient mistralHttpClient, HybridSearchService searchService)
+public class MetadataExtractionService(MistralHttpClient mistralHttpClient, HybridSearchService searchService, EnvironmentConfig environmentConfig, ResourceTypeService resourceTypeService)
 {
     private readonly Serilog.ILogger logger = Log.ForContext<MetadataExtractionService>();
     private static readonly LanguageDetector languageDetector = LanguageDetectorBuilder.FromAllLanguages().WithPreloadedLanguageModels().Build();
 
+
+    private const string RoleProduction = "production";
+    private const string RoleSubject = "subject";
+
+
+    private readonly string smallModelName = environmentConfig.GetVariableValue(EnvironmentVariable.SMALL_MODEL_NAME);
+    private readonly string mediumModelName = environmentConfig.GetVariableValue(EnvironmentVariable.MEDIUM_MODEL_NAME);
+
+
+    private const int maxRetries = 3;
+    private const int EntityChunkSize = 16_000;
+    private const int EntityChunkOverlap = 500;
+    private const int EntityChunkRequestIntervalMs = 600;
+
+
+    private static readonly SemaphoreSlim AiSemaphore = new(5, 5);
+    private static readonly SemaphoreSlim SearchSemaphore = new(10, 10);
+
+
+    private static string TrimTextForFile(string text) => TrimText(text, firstChars: 8000, lastChars: 2000);
+    private static string TrimTextForWeb(string text) => TrimText(text, firstChars: 8000, lastChars: 0);
+
+
 #pragma warning disable SYSLIB1045 // Convert to 'GeneratedRegexAttribute'.
     private static readonly Regex DoiRegex = new(@"10\.\d{4,}/[^\s,;)""\]]+", RegexOptions.Compiled);
     private static readonly Regex ArxivRegex = new(@"arXiv:\s*(\d{4}\.\d{4,5})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex PmidRegex = new(@"PMID[:\s]*(\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex IssnRegex = new(@"ISSN[:\s]*(\d{4}-\d{3}[\dX])", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex Isbn13Regex = new(@"978[-\s]?\d[-\s]?\d{1,5}[-\s]?\d{1,7}[-\s]?\d{1,7}[-\s]?\d", RegexOptions.Compiled);
     private static readonly Regex Isbn10Regex = new(@"\b\d{9}[\dX]\b", RegexOptions.Compiled);
 #pragma warning restore SYSLIB1045 // Convert to 'GeneratedRegexAttribute'.
 
-    private static string TrimTextForFile(string text) => TrimText(text, firstChars: 16000, lastChars: 4000);
-    private static string TrimTextForWeb(string text) => TrimText(text, firstChars: 8000, lastChars: 0);
 
-    private const string systemPrompt = """
-        You are a metadata extraction assistant.
+    #region Prompts and Schemes
 
-        Rules:
-        - Only extract information explicitly present in the document. Do not infer, guess, or assume values. Use null or empty array when a field cannot be found.
-        - Publication date formats: YYYY, YYYY-MM, or YYYY-MM-DD. Use the most specific format the document allows.
-        - If the document uses relative dates ("today", "yesterday", "vandaag", "gisteren", etc.), calculate the absolute date using the Current date provided above.
-        - Tags must be capitalized, but not in full-caps (e.g. "Machine Learning", not "machine learning" or "MACHINE LEARNING").
-        - Deduplication: each person or organisation must appear only once per list. When variations exist, use the most complete version.
-        - Person names must follow Given name(s) FIRST, Family name LAST. Reorder any "Last, First" formatted names from citations.
+    private const string BiblioSystemPrompt = """
+        You are a bibliographic metadata extraction assistant for a political research library.
 
-        Field distinctions:
-        - AUTHORS: Who wrote or created this document (persons or organisations).
-            * Look for bylines, "by", "door", or similar attribution markers.
-            * If attribution refers to an internal team or staff ("our newsroom", "onze redactie", "by staff"), the publishing organisation is the author - find its name in the document.
-            * If no attribution is found, leave empty.
-        - ORGANISATIONS: Organisations mentioned or associated with the document (publishers, sources, subject).
-            * An organisation can appear in both authors and organisations.
-        - RELATEDPERSONS: People mentioned in the document who are not authors (cited, quoted, acknowledged, discussed)
+        General rules:
+        - Only extract information explicitly present in the docuemnt. Do not infer or assume.
+        - Use empty string for any field you cannot confidently fill, these will be filled by the researcher after.
+        - Person names: Given name(s) FIRST, Family name LAST. Reorder any "Last, First" formatted names.
+
+        TITLE
+        The document title as it appears. Empty string if not found.
+
+        DESCRIPTION
+        Write a neutral, informative summary of what this document is about, what it argues or covers, and what conclusions it draws (50-300 words).
+        This is not extracted text, instead you write it based on the document content.
+        Write for a researcher who has not read the document.
+
+        ABSTRACT
+        Only extract if the document is a scientific paper with an explicit abstract section.
+        Copy it verbatim or near-verbatim. Empty string for all other document types or when abstract is not present.
+
+        PUBLICATIONDATE
+        Format: YYYY, YYYY-MM, or YYYY-MM-DD — use the most specific format available.
+        If a relative date is used ("today", "vandaag", etc.), calculate the absolute date using the current date provided.
+        Empty string if not found.
+
+        RESOURCETYPE
+        Classify the document using exactly one of the provided resource types.
+        Pick the closest match. Leave empty if nothing fits.
+
+        JOURNAL
+        The name of the journal or periodical if this is a journal article or academic paper published in one.
+        Empty string for reports, books, news articles, and all other types.
+
+        LICENSE
+        The license or copyright statement as it appears in the document (e.g. "CC BY 4.0", "All Rights Reserved", "Open Government License v3.0").
+        Empty string if not stated.
+
+        AUTHORS
+        The specific persons or organisations directly credited as writing or creating this document.
+        - Look for bylines, "by", "door", author lists, or explicit authorship credits near the title or at the start/end of the document.
+        - Do NOT include publishers, commissioners, funders, or supporting institutions but only those credited as writers or creators.
+        - If attribution refers to an internal team or staff ("our editorial team", "onze redactie"), use the name of the publishing organisation as the author.
+        - If no authorship is found, leave empty.
+
+        PRODUCTIONS
+        Persons and organisations explicitly named as having commissioned, published, funded, led, reviewed, edited, or contributed to this document.
+        - Do NOT include document authors, since those should go in AUTHORS.
+        - Do NOT include entities merely discussed in the content.
+        - Do NOT include laws, regulations, directives, or funding programmes.
+        - Leave empty if nothing qualifies.
+
+        TAGS
+        5-15 topical keywords relevant to the document's subject matter.
+        Capitalised but not full-caps: "Machine Learning", not "machine learning" or "MACHINE LEARNING".
     """;
 
-    private const string MetadataExtractionOutputJsonSchema = """
+    private static string GetBiblioJsonSchema(IEnumerable<string> resourceTypes) => $$"""
         {
-            "title": "Metadata Extraction",
             "type": "object",
             "properties": {
-                "title": { "anyOf": [{"type": "string"}, {"type": "null"}], "description": "The document title" },
-                "abstract": { "anyOf": [{"type": "string"}, {"type": "null"}], "description": "The abstract of the paper when scientific, otherwise null" },
-                "description": { "anyOf": [{"type": "string"}, {"type": "null"}], "description": "A concise description of the document (50-300 words)" },
-                "publicationDate": { "anyOf": [{"type": "string"}, {"type": "null"}], "description": "Publication date in YYYY, YYYY-MM, or YYYY-MM-DD format, or null" },
+                "title": { "type": "string" },
+                "description": { "type": "string" },
+                "abstract": { "type": "string" },
+                "publicationDate": { "type": "string" },
+                "resourceType": { "type": "string", "enum": [{{string.Join(", ", resourceTypes.Select(t => $"\"{t}\""))}}] },
+                "journal": { "type": "string" },
+                "license": { "type": "string" },
                 "authors": {
                     "type": "array",
-                    "description": "Document authors (persons or organisations)",
                     "items": {
                         "type": "object",
                         "properties": {
@@ -65,58 +128,105 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
                         "additionalProperties": false
                     }
                 },
-                "organisations": {
+                "productions": {
                     "type": "array",
-                    "description": "Organisation names associated with the document",
-                    "items": { "type": "string" }
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": { "type": "string" },
+                            "type": { "type": "string", "enum": ["person", "organisation"] }
+                        },
+                        "required": ["name", "type"],
+                        "additionalProperties": false
+                    }
                 },
-                "relatedPersons": {
-                    "type": "array",
-                    "description": "Person names mentioned in the document who are not authors",
-                    "items": { "type": "string" }
-                },
-                "tags": {
-                    "type": "array",
-                    "description": "Relevant tags for the document",
-                    "items": { "type": "string" }
-                }
+                "tags": { "type": "array", "items": { "type": "string" } }
             },
-            "required": ["title", "abstract", "description", "publicationDate", "authors", "organisations", "relatedPersons", "tags"],
+            "required": ["title", "description", "abstract", "publicationDate", "resourceType", "journal", "license", "authors", "productions", "tags"],
             "additionalProperties": false
         }
     """;
 
-    public async Task<ExtractedMetadata?> ExtractMetadataFromFileAsync(string text, string fileName, Action? progressCallback = null)
+
+
+    private const string ContentSystemPrompt = """
+        You are extracting entities substantively discussed in this document section for a political research library.
+        The goal is to surface people and organisations relevant for political and policy research — who argued what,
+        which organisations played a meaningful role, who is responsible for decisions or outcomes.
+
+        Extract persons and organisations that:
+        - Are the primary subject of analysis, reporting, or critique in this section.
+        - Are substantively analyzed, discussed, or reported on — their actions, positions, decisions, or findings are examined in depth.
+
+        Do NOT extract:
+        - Entities appearing in citations or references. An APA-style citation like "(Smith, 2019)" does NOT qualify — the cited author is NOT a subject.
+        - Entities mentioned only as an illustrative example. Signal phrases like "an example is", "such as", "for instance", "een voorbeeld hiervan is", "bijvoorbeeld" immediately before an entity name mean it is an example — do not extract it.
+        - Entities appearing in footnotes, endnotes, or marginal annotations (typically marked with a number like "¹" or "1 " at the start of a line).
+        - Entities mentioned only once, in passing, or peripheral to the main argument.
+        - Laws, regulations, directives, acts, policy frameworks, funding programmes, or initiatives (e.g. GDPR, Horizon Europe, Gaia-X)
+        - Fictional examples or illustrative scenario personas
+        - Document authors or producers (extracted separately)
+        - Tech companies named only as market examples (e.g. "Amazon, Google, and Microsoft dominate cloud")
+
+        The key distinction: a subject is WHO the text is ABOUT, not WHO the text cites, quotes as a source, or uses as a passing example.
+
+        Rules:
+        - Only extract what is explicitly present. Do not infer.
+        - Person names: Given name(s) FIRST, Family name LAST. Reorder any "Last, First" formatted names.
+        - Use full official names, not abbreviations.
+        - Leave subjects empty if nothing qualifies
+
+        KEYINSIGHT
+        One sentence describing what this section covers that likely does not appear in the document's introduction or conclusion.
+        Empty string if nothing notable or if this is the first section.
+    """;
+
+    private const string ContentJsonSchema = """
+        {
+            "type": "object",
+            "properties": {
+                "subjects": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": { "type": "string" },
+                            "type": { "type": "string", "enum": ["person", "organisation"] }
+                        },
+                        "required": ["name", "type"],
+                        "additionalProperties": false
+                    }
+                },
+                "keyInsight": { "type": "string" }
+            },
+            "required": ["subjects", "keyInsight"],
+            "additionalProperties": false
+        }
+    """;
+
+    #endregion
+
+
+
+    #region Public functions
+
+    public async Task<ExtractedMetadata?> ExtractMetadataFromFileAsync(string text, string fileName, Action<string, int>? progress = null)
     {
         logger.Information("Starting metadata extraction for file: {FileName}", fileName);
 
         string trimmed = TrimTextForFile(text);
+        string contextHint = $"Current date: {DateTime.UtcNow:yyyy-MM-dd}\nFileName: {fileName}";
 
-        string prompt = $"""
-            Current date: {DateTime.UtcNow:yyyy-MM-dd}
-            Filename: {fileName}
+        ExtractedMetadata? metadata = await RunPipelineAsync(text, trimmed, contextHint, progress);
+        if (metadata == null) return null;
 
-            Document text:
-            {trimmed}
-        """;
+        metadata.PublicationCode = ExtractPublicationCode(text);
+        metadata.LanguageCode = DetectLanguage(text);
 
-        TempExtractedMetadata? temp = await ExtractMetadataWithLLMAsync(prompt);
-
-        if (temp == null)
-        {
-            logger.Warning("Failed to extract metadata from LLM response for file: {FileName}", fileName);
-            return null;
-        }
-
-        // Manual extraction
-        temp.PublicationCode = ExtractPublicationCode(text);
-        temp.LanguageCode = DetectLanguage(text);
-
-        progressCallback?.Invoke();
-        return await ValidateAndProcessMetadataAsync(temp);
+        return metadata;
     }
 
-    public async Task<ExtractedMetadata?> ExtractMetadataFromWebAsync(ReadabilityResult readabilityResult, string url, Action? progressCallback = null)
+    public async Task<ExtractedMetadata?> ExtractMetadataFromWebAsync(ReadabilityResult readabilityResult, string url, Action<string, int>? progress = null)
     {
         if (string.IsNullOrWhiteSpace(readabilityResult.TextContent))
         {
@@ -134,119 +244,205 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
             ? TrimTextForWeb(readabilityResult.TextContent)
             : TrimTextForFile(readabilityResult.TextContent);
 
-        string prompt = $"""
+        string contextHint = $"""
             Current date: {DateTime.UtcNow:yyyy-MM-dd}
             URL: {url}
-
             Pre-extracted fields (prefer these over body text):
             - Title: {readabilityResult.Title ?? "not extracted"}
             - Byline: {readabilityResult.Byline ?? "not extracted"}
             - Excerpt: {readabilityResult.Excerpt ?? "not extracted"}
             - SiteName: {readabilityResult.SiteName ?? "not extracted"}
-
-            Extracted text:
-            {trimmed}
         """;
 
-        TempExtractedMetadata? temp = await ExtractMetadataWithLLMAsync(prompt);
-        if (temp == null)
+        ExtractedMetadata? metadata = await RunPipelineAsync(readabilityResult.TextContent, trimmed, contextHint, progress);
+        if (metadata == null) return null;
+
+        metadata.PublicationCode = ExtractPublicationCode(readabilityResult.TextContent);
+        metadata.LanguageCode = DetectLanguage(readabilityResult.TextContent);
+
+        return metadata;
+    }
+
+    #endregion
+
+
+
+    #region Helper functions
+
+    private async Task<ExtractedMetadata?> RunPipelineAsync(string fullText, string trimmedText, string contextHint, Action<string, int>? progress)
+    {
+        // Fetch resource types
+        ResourceType[] resourceTypes = await resourceTypeService.GetAllAsync();
+        string biblioSchema = GetBiblioJsonSchema(resourceTypes.Select(r => r.Name));
+
+        // PHASE 1: Extract bibliographic info (includes production entities)
+        progress?.Invoke("Extracting bibliographic metadata...", 50);
+        string biblioPrompt = $"{contextHint}\n\nDocument text:\n{trimmedText}";
+        TempBiblio? biblio = await CallLLMAsync<TempBiblio>(BiblioSystemPrompt, biblioPrompt, biblioSchema);
+
+        if (biblio == null)
         {
-            logger.Warning("Failed to extract metadata from LLM response for URL: {Url}", url);
+            logger.Warning("Biblio extraction returned null");
             return null;
         }
 
-        // Manual extraction
-        temp.PublicationCode = ExtractPublicationCode(readabilityResult.TextContent);
-        temp.LanguageCode = DetectLanguage(readabilityResult.TextContent);
+        // PHASE 2: Extract subjects and key insights
+        List<TempEntity> allSubjects = [];
+        List<string> keyInsights = [];
+        string[] chunks = ChunkText(fullText, EntityChunkSize, EntityChunkOverlap);
+        string docContext = $"Document title: {biblio.Title}\nDocument description: {biblio.Description}";
 
-        progressCallback?.Invoke();
-        return await ValidateAndProcessMetadataAsync(temp);
+        // Search on each chunk
+        for (int i = 0; i < chunks.Length; i++)
+        {
+            progress?.Invoke($"Extracting entities (chunk {i + 1}/{chunks.Length})...", 55 + (i * 20 / chunks.Length));
+
+            if (i > 0) await Task.Delay(EntityChunkRequestIntervalMs);
+
+            string chunkPrompt = $"{docContext}\n\n{chunks[i]}";
+            TempSubjectList? result = await CallLLMAsync<TempSubjectList>(ContentSystemPrompt, chunkPrompt, ContentJsonSchema);
+
+            if (result == null) continue;
+            allSubjects.AddRange(result.Subjects);
+            if (!string.IsNullOrWhiteSpace(result.KeyInsight))
+                keyInsights.Add(result.KeyInsight);
+        }
+
+        // PHASE 3: Quality assurance and deduplication
+        progress?.Invoke("Filtering duplicates...", 76);
+
+        // Remove author duplicates and filter on common mistakes
+        HashSet<string> authorNames = [.. biblio.Authors.Select(a => a.Name.Trim().ToLowerInvariant())];
+        List<TempEntity> productions = GroundAndFilter(biblio.Productions, fullText, authorNames);
+        List<TempEntity> subjects = GroundAndFilter(allSubjects, fullText, authorNames);
+
+        // Remove all subjects already in production
+        HashSet<string> productionNames = [.. productions.Select(e => e.Name.Trim().ToLowerInvariant())];
+        subjects = [.. subjects.Where(e => !productionNames.Contains(e.Name.Trim().ToLowerInvariant()))];
+
+        // PHASE 4: Find similars and build results
+        progress?.Invoke("Matching against library...", 85);
+
+        // Temporarily debug keyInsights:
+        if (keyInsights.Count > 0)
+            logger.Debug("Key insights: {Insights}", string.Join(" | ", keyInsights));
+
+        return await BuildMetadataAsync(biblio, productions, subjects);
     }
 
-    private async Task<TempExtractedMetadata?> ExtractMetadataWithLLMAsync(string prompt)
+    private async Task<T?> CallLLMAsync<T>(string systemPrompt, string userPrompt, string jsonSchema, string? modelOverride = null) where T : class
     {
-        var request = new MistralChatRequest
+        // Prepare request
+        MistralChatRequest request = new()
         {
-            Messages = [
-                new { role = "system", content = systemPrompt },
-                new { role = "user", content = prompt }
-            ],
+            Messages = [new { role = "system", content = systemPrompt }, new { role = "user", content = userPrompt }],
             Temperature = 0.1f,
             ResponseFormat = MistralResponseFormat.JsonSchema,
-            JsonSchema = JsonSerializer.Deserialize<object>(MetadataExtractionOutputJsonSchema)
+            JsonSchema = JsonSerializer.Deserialize<object>(jsonSchema)
         };
 
-        const int maxRetries = 3;
+        // Attempt multiple times (rate limits and unavailability happen)
         for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
             try
             {
-                MistralCompletion completion = await mistralHttpClient.CompleteAsync(request);
-                if (string.IsNullOrWhiteSpace(completion.Content)) return null;
+                // Wait for semaphore availability
+                await AiSemaphore.WaitAsync();
 
-                return JsonSerializer.Deserialize<TempExtractedMetadata>(completion.Content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                // Try LLM call
+                try
+                {
+                    MistralCompletion completion = await mistralHttpClient.CompleteAsync(request, modelOverride: modelOverride);
+                    if (string.IsNullOrWhiteSpace(completion.Content)) return null;
+                    return JsonSerializer.Deserialize<T>(completion.Content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
+                finally { AiSemaphore.Release(); }
             }
-            catch (HttpRequestException ex) when (ex.Message.Contains("429"))
+            // Rate limit or unavailability request error
+            catch (HttpRequestException ex) when (ex.Message.Contains("429") || ex.Message.Contains("503") || ex.Message.Contains("ServiceUnavailable"))
             {
                 if (attempt == maxRetries) throw;
-
-                int waitSeconds = 60 * attempt;
-                logger.Warning("Rate limit hit. {Wait}s before retry {Attempt}/{Max}", waitSeconds, attempt, maxRetries);
+                int waitSeconds = ex.Message.Contains("429") ? 60 * attempt : 5 * attempt;
+                logger.Warning("Transient error on LLM call. Waiting {Wait}s before retry {Attempt}/{Max}", waitSeconds, attempt, maxRetries);
                 await Task.Delay(TimeSpan.FromSeconds(waitSeconds));
+            }
+            // Other errors
+            catch (Exception ex)
+            {
+                logger.Error(ex, "LLM call error (attempt {Attempt}/{Max})", attempt, maxRetries);
+                if (attempt == maxRetries) throw;
+                await Task.Delay(TimeSpan.FromSeconds(10 * attempt));
             }
         }
 
         return null;
     }
 
-    private async Task<ExtractedMetadata?> ValidateAndProcessMetadataAsync(TempExtractedMetadata temp)
+    private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+    private async Task<ExtractedMetadata> BuildMetadataAsync(TempBiblio biblio, List<TempEntity> productions, List<TempEntity> subjects)
     {
-        try
+        ExtractedMetadata metadata = new()
         {
-            var metadata = new ExtractedMetadata
+            Title = NullIfEmpty(biblio.Title),
+            Abstract = NullIfEmpty(biblio.Abstract),
+            Description = NullIfEmpty(biblio.Description),
+            Journal = NullIfEmpty(biblio.Journal),
+            License = NullIfEmpty(biblio.License),
+            ResourceTypeName = NullIfEmpty(biblio.ResourceType),
+            Tags = [.. biblio.Tags.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim())]
+        };
+
+        (metadata.PublicationDate, metadata.PublicationDatePrecision) = ParsePublicationDate(biblio.PublicationDate);
+
+        HashSet<string> authorNames = [.. biblio.Authors.Select(a => a.Name.Trim().ToLowerInvariant())];
+
+        var personItems = productions
+            .Where(e => e.Type.Equals("person", StringComparison.OrdinalIgnoreCase))
+            .Select(e => (e, RoleProduction))
+            .Concat(subjects
+                .Where(e => e.Type.Equals("person", StringComparison.OrdinalIgnoreCase))
+                .Select(e => (e, RoleSubject)))
+            .Where(x => !authorNames.Contains(x.e.Name.Trim().ToLowerInvariant()))
+            .ToList();
+
+        var orgItems = productions
+            .Where(e => e.Type.Equals("organisation", StringComparison.OrdinalIgnoreCase))
+            .Select(e => (e, RoleProduction))
+            .Concat(subjects
+                .Where(e => e.Type.Equals("organisation", StringComparison.OrdinalIgnoreCase))
+                .Select(e => (e, RoleSubject)))
+            .Where(x => !authorNames.Contains(x.e.Name.Trim().ToLowerInvariant()))
+            .ToList();
+
+        metadata.Authors = await ProcessAuthorsAsync(biblio.Authors);
+        metadata.RelatedPersons = await ProcessEntitiesAsync(personItems, "person");
+        metadata.Organisations = await ProcessEntitiesAsync(orgItems, "organisation");
+
+        return metadata;
+    }
+
+    private async Task<List<AuthorWithSimilars>> ProcessAuthorsAsync(IEnumerable<TempEntity> authors)
+    {
+        var tasks = authors
+            .Where(a => !string.IsNullOrWhiteSpace(a.Name))
+            .Select(async author =>
             {
-                Title = temp.Title?.Trim(),
-                Abstract = temp.Abstract?.Trim(),
-                Description = temp.Description?.Trim(),
-                PublicationCode = temp.PublicationCode?.Trim(),
-                Tags = temp.Tags?.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim()).ToList() ?? [],
-            };
+                var similars = await FindSimilarsAsync(author.Name, ["person", "organisation"]);
+                return new AuthorWithSimilars { Name = author.Name.Trim(), Type = author.Type.ToLowerInvariant(), Similars = similars };
+            });
+        return [.. await Task.WhenAll(tasks)];
+    }
 
-            // Language code: must be exactly 2 lowercase letters
-            if (!string.IsNullOrEmpty(temp.LanguageCode))
+    private async Task<List<EntityWithSimilars>> ProcessEntitiesAsync(IEnumerable<(TempEntity Entity, string Role)> items, string type)
+    {
+        var tasks = items
+            .Where(x => !string.IsNullOrWhiteSpace(x.Entity.Name))
+            .Select(async item =>
             {
-                string code = temp.LanguageCode.ToLowerInvariant();
-                metadata.LanguageCode = code.Length == 2 ? code : null;
-            }
-
-            // Publication date: parse partial dates (YYYY / YYYY-MM / YYYY-MM-DD)
-            (metadata.PublicationDate, metadata.PublicationDatePrecision) = ParsePublicationDate(temp.PublicationDate);
-
-            // Entity processing — deduplicate orgs/persons that already appear as authors
-            var authorOrgNames = (temp.Authors ?? [])
-                .Where(a => a.Type.Equals("organisation", StringComparison.OrdinalIgnoreCase))
-                .Select(a => a.Name.Trim().ToLowerInvariant())
-                .ToHashSet();
-            var authorPersonNames = (temp.Authors ?? [])
-                .Where(a => a.Type.Equals("person", StringComparison.OrdinalIgnoreCase))
-                .Select(a => a.Name.Trim().ToLowerInvariant())
-                .ToHashSet();
-
-            metadata.Authors = await ProcessAuthorsAsync(temp.Authors ?? []);
-            metadata.Organisations = await ProcessEntitiesAsync(
-                (temp.Organisations ?? []).Where(o => !authorOrgNames.Contains(o.Trim().ToLowerInvariant())).ToList(),
-                ["organisation"]);
-            metadata.RelatedPersons = await ProcessEntitiesAsync(
-                (temp.RelatedPersons ?? []).Where(p => !authorPersonNames.Contains(p.Trim().ToLowerInvariant())).ToList(),
-                ["person"]);
-
-            return metadata;
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, "Error validating and processing metadata");
-            return null;
-        }
+                var similars = await FindSimilarsAsync(item.Entity.Name, [type]);
+                return new EntityWithSimilars { Name = item.Entity.Name.Trim(), Type = type, Role = item.Role, Similars = similars };
+            });
+        return [.. await Task.WhenAll(tasks)];
     }
 
     private static (DateTime? Date, PublicationDatePrecision? Precision) ParsePublicationDate(string? raw)
@@ -270,42 +466,36 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         }
     }
 
-    private async Task<List<EntityWithSimilars>> ProcessEntitiesAsync(List<string> names, string[] typeFilter)
-    {
-        var filtered = names.Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
-
-        var tasks = filtered.Select(async name =>
-        {
-            var similars = await FindSimilarsAsync(name, typeFilter);
-            return new EntityWithSimilars { Name = name.Trim(), Type = typeFilter[0], Similars = similars };
-        });
-
-        return [.. await Task.WhenAll(tasks)];
-    }
-
-    private async Task<List<AuthorWithSimilars>> ProcessAuthorsAsync(List<TempAuthor> authors)
-    {
-        var filtered = authors.Where(a => !string.IsNullOrWhiteSpace(a.Name)).ToList();
-
-        var tasks = filtered.Select(async author =>
-        {
-            var similars = await FindSimilarsAsync(author.Name, ["person", "organisation"]);
-            return new AuthorWithSimilars { Name = author.Name.Trim(), Type = author.Type.ToLowerInvariant().Trim(), Similars = similars };
-        });
-
-        return [.. await Task.WhenAll(tasks)];
-    }
+    private static List<TempEntity> GroundAndFilter(IEnumerable<TempEntity> entities, string sourceText, HashSet<string> authorNames) =>
+        [.. entities
+            .Where(e => !string.IsNullOrWhiteSpace(e.Name) && e.Name.Length > 2)
+            .Where(e => !e.Name.Contains("et al.", StringComparison.OrdinalIgnoreCase))
+            .Where(e => !e.Name.Contains("author", StringComparison.OrdinalIgnoreCase))
+            .Where(e => !e.Name.Contains("anonymous", StringComparison.OrdinalIgnoreCase))
+            .Where(e => !authorNames.Contains(e.Name.Trim().ToLowerInvariant()))
+            .Where(e => sourceText.Contains(e.Name, StringComparison.OrdinalIgnoreCase))
+            .DistinctBy(e => e.Name.Trim().ToLowerInvariant())
+        ];
 
     private async Task<List<SimilarEntity>> FindSimilarsAsync(string name, string[] typeFilter)
     {
-        var result = await searchService.SearchAsync(
-            name.Replace(".", ""),
-            page: 1,
-            pageSize: 3,
-            filters: new Dictionary<string, object?> { { "type", typeFilter } }
-        );
+        await SearchSemaphore.WaitAsync();
 
-        return [.. result.Items.Where(i => i.RelevanceScore >= 0.5f).Select(i => new SimilarEntity { Id = i.Id, Name = i.Name, Score = i.RelevanceScore, Type = i.Type })];
+        try
+        {
+            var result = await searchService.SearchAsync(
+                name.Replace(".", ""),
+                page: 1,
+                pageSize: 3,
+                filters: new Dictionary<string, object?> { { "type", typeFilter } }
+            );
+
+            return [.. result.Items.Where(i => i.RelevanceScore >= 0.5f).Select(i => new SimilarEntity { Id = i.Id, Name = i.Name, Score = i.RelevanceScore, Type = i.Type })];
+        }
+        finally
+        {
+            SearchSemaphore.Release();
+        }
     }
 
     private static string TrimText(string text, int firstChars, int lastChars)
@@ -320,6 +510,22 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         return beginning + "\n\n[...middle section omitted...]\n\n" + ending;
     }
 
+    private static string[] ChunkText(string text, int chunkSize = 4000, int overlap = 300)
+    {
+        List<string> chunks = [];
+        int start = 0;
+
+        while (start < text.Length)
+        {
+            int end = Math.Min(start + chunkSize, text.Length);
+            chunks.Add(text[start..end]);
+            if (end == text.Length) break;
+            start = end - overlap;
+        }
+
+        return chunks.ToArray();
+    }
+
     private static string? ExtractPublicationCode(string text)
     {
         var doi = DoiRegex.Match(text);
@@ -327,6 +533,12 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
 
         var arxiv = ArxivRegex.Match(text);
         if (arxiv.Success) return $"arXiv: {arxiv.Groups[1].Value}";
+
+        var pmid = PmidRegex.Match(text);
+        if (pmid.Success) return $"PMID: {pmid.Groups[1].Value}";
+
+        var issn = IssnRegex.Match(text);
+        if (issn.Success) return $"ISSN: {issn.Groups[1].Value}";
 
         var isbn13 = Isbn13Regex.Match(text);
         if (isbn13.Success) return $"ISBN: {isbn13.Value}";
@@ -344,30 +556,50 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
 
         return lang?.IsoCode6391().ToString().ToLowerInvariant();
     }
-}
 
-/// <summary>
-/// Temporary class for deserializing LLM JSON response (before enrichment with similars)
-/// </summary>
-internal class TempExtractedMetadata
-{
-    public string? Title { get; set; }
-    public string? Abstract { get; set; }
-    public string? Description { get; set; }
-    public string? PublicationDate { get; set; }  // String to support partial dates (YYYY, YYYY-MM, YYYY-MM-DD)
-    public string? LanguageCode { get; set; }
-    public List<TempAuthor> Authors { get; set; } = [];
-    public List<string> Organisations { get; set; } = [];
-    public List<string> RelatedPersons { get; set; } = [];
-    public string? PublicationCode { get; set; }
-    public List<string> Tags { get; set; } = [];
-}
+    #endregion
 
-/// <summary>
-/// Temporary class for author with type information from LLM
-/// </summary>
-internal class TempAuthor
-{
-    public string Name { get; set; } = string.Empty;
-    public string Type { get; set; } = string.Empty; // "person" or "organisation"
+
+
+    #region Internal Classes
+
+    internal class TempEntity
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+    }
+
+    internal class TempBiblio
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Abstract { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string PublicationDate { get; set; } = string.Empty;
+        public string ResourceType { get; set; } = string.Empty;
+        public string Journal { get; set; } = string.Empty;
+        public string License { get; set; } = string.Empty;
+        public List<TempEntity> Authors { get; set; } = [];
+        public List<TempEntity> Productions { get; set; } = [];
+        public List<string> Tags { get; set; } = [];
+    }
+
+    internal class TempSubjectList
+    {
+        public List<TempEntity> Subjects { get; set; } = [];
+        public string KeyInsight { get; set; } = string.Empty;
+    }
+
+    internal class TempVerdict
+    {
+        public string Name { get; set; } = string.Empty;
+        public bool Keep { get; set; }
+    }
+
+    internal class TempValidationResult
+    {
+        public List<TempVerdict> Verdicts { get; set; } = [];
+        public string Description { get; set; } = string.Empty;
+    }
+
+    #endregion
 }

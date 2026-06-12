@@ -31,6 +31,8 @@ public enum EnvironmentVariable
     // Chat Completions
     MISTRAL_ENDPOINT,
     MISTRAL_API_KEY,
+    SMALL_MODEL_NAME,
+    MEDIUM_MODEL_NAME,
     CHAT_MODEL_NAME,
 
     // Headscale
@@ -78,6 +80,8 @@ public class EnvironmentConfig
         // Chat Completions
         _variableNames.Add(EnvironmentVariable.MISTRAL_ENDPOINT, "MISTRAL_ENDPOINT");
         _variableNames.Add(EnvironmentVariable.MISTRAL_API_KEY, "MISTRAL_API_KEY");
+        _variableNames.Add(EnvironmentVariable.SMALL_MODEL_NAME, "SMALL_MODEL_NAME");
+        _variableNames.Add(EnvironmentVariable.MEDIUM_MODEL_NAME, "MEDIUM_MODEL_NAME");
         _variableNames.Add(EnvironmentVariable.CHAT_MODEL_NAME, "CHAT_MODEL_NAME");
 
         // Headscale

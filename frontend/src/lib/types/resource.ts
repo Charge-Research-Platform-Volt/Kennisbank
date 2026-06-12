@@ -98,6 +98,9 @@ export type ExtractedMetadata = {
 	publicationDate: string | null;
 	publicationDatePrecision: 'Day' | 'Month' | 'Year' | null;
 	languageCode: string | null;
+	journal: string | null;
+	license: string | null;
+	resourceTypeName: string | null;
 	authors: {
 		name: string;
 		type: string;
@@ -106,11 +109,13 @@ export type ExtractedMetadata = {
 	organisations: {
 		name: string;
 		type: string;
+		role?: string;
 		similars: { id: string; name: string; score: number; type: string }[];
 	}[];
 	relatedPersons: {
 		name: string;
 		type: string;
+		role?: string;
 		similars: { id: string; name: string; score: number; type: string }[];
 	}[];
 	publicationCode: string | null;

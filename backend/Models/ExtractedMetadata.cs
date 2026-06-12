@@ -11,6 +11,9 @@ public class ExtractedMetadata
     public DateTime? PublicationDate { get; set; }
     public PublicationDatePrecision? PublicationDatePrecision { get; set; }
     public string? LanguageCode { get; set; }
+    public string? Journal { get; set; }
+    public string? License { get; set; }
+    public string? ResourceTypeName { get; set; }
     public List<AuthorWithSimilars> Authors { get; set; } = [];
     public List<EntityWithSimilars> Organisations { get; set; } = [];
     public List<EntityWithSimilars> RelatedPersons { get; set; } = [];
@@ -25,6 +28,7 @@ public class EntityWithSimilars
 {
     public string Name { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty; // "person" or "organisation" - the suggested type for new entities
+    public string? Role { get; set; }
     public List<SimilarEntity> Similars { get; set; } = [];
 }
 

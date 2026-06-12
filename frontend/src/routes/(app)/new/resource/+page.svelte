@@ -291,6 +291,7 @@
 			const toEntry = (e: {
 				name: string;
 				type: string;
+				role?: string;
 				similars: { id: string; name: string; score: number }[];
 			}): EntityEntry => {
 				const top = e.similars[0];
@@ -300,20 +301,52 @@
 							value: top.id,
 							displayValue: top.name,
 							authorType: e.type,
-							score: top.score
+							score: top.score,
+							role: e.role
 						}
 					: {
 							extracted: e.name,
 							value: e.name,
 							displayValue: e.name,
 							authorType: e.type,
-							score: top?.score ?? null
+							score: top?.score ?? null,
+							role: e.role
 						};
 			};
 
 			authors = metadata.authors.map(toEntry);
 			organisations = metadata.organisations.map(toEntry);
 			relatedPersons = metadata.relatedPersons.map(toEntry);
+
+			if (metadata.license) resourceInfo.license = metadata.license;
+
+			if (metadata.resourceTypeName) {
+				const rtResults = await searchResourceTypes(metadata.resourceTypeName);
+				const exactRt = rtResults.find(
+					(r) => r.name.toLowerCase() === metadata.resourceTypeName!.toLowerCase()
+				);
+				if (exactRt) {
+					resourceInfo.typeId = exactRt.id;
+					resourceTypeDisplay = exactRt.name;
+				}
+			}
+
+			if (metadata.journal) {
+				const journalResults = await searchJournals(metadata.journal);
+				const exactJournal = journalResults.find(
+					(r) => r.name.toLowerCase() === metadata.journal!.toLowerCase()
+				);
+				if (exactJournal) {
+					resourceInfo.journalId = exactJournal.id;
+					journalDisplay = exactJournal.name;
+				} else {
+					const created = await createJournal(metadata.journal);
+					if (created) {
+						resourceInfo.journalId = created.id;
+						journalDisplay = created.name;
+					}
+				}
+			}
 		}
 
 		phase = 'review';

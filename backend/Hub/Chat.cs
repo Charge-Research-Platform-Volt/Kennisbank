@@ -181,7 +181,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
 
         for (int i = 0; i < MaxToolIterations; i++)
         {
-            MistralCompletion completion = await mistralClient.CompleteAsync(new MistralChatRequest { Messages = messages, Functions = [SearchTool, GetItemDetailsTool, FindRelatedItemsTool] }, cancellationToken);
+            MistralCompletion completion = await mistralClient.CompleteAsync(new MistralChatRequest { Messages = messages, Functions = [SearchTool, GetItemDetailsTool, FindRelatedItemsTool] }, ct: cancellationToken);
 
             if (completion.HasToolCalls)
             {

@@ -1,10 +1,12 @@
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Search.Models;
 using KnowledgeBank.Services.Vector;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Bcpg.Sig;
 using Serilog;
 
 namespace KnowledgeBank.Services.Search;
@@ -314,7 +316,7 @@ public class HybridSearchService
 
             // Format query for tsquery prefix search - join words with " & " and add :* to each word
             string[] words = searchQuery.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            string prefixQuery = string.Join(" & ", words.Select(w => $"{w}:*"));
+            string prefixQuery = string.Join(" & ", words.Select(w => new string([.. w.Where(char.IsLetterOrDigit)])).Where(w => w.Length > 0).Select(w => $"{w}:*"));
 
             await using var db = await _dbFactory.CreateDbContextAsync();
             var searchResults = await db.ResourceGridSearchResults
