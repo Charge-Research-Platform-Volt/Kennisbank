@@ -107,6 +107,13 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         TAGS
         5-15 topical keywords relevant to the document's subject matter.
         Capitalised but not full-caps: "Machine Learning", not "machine learning" or "MACHINE LEARNING".
+        Do NOT include geographic regions, countries, or places — those go in REGIONS.
+
+        REGIONS
+        Geographic regions that this document primarily concerns.
+        Include countries, supranational regions (e.g. "European Union", "ASEAN"), continents, or broad areas (e.g. "Global South", "Western Europe").
+        Do NOT include regions merely mentioned in passing or as examples.
+        Leave empty if the document has no clear geographic scope.
     """;
 
     private static string GetBiblioJsonSchema(IEnumerable<string> resourceTypes) => $$"""
@@ -144,9 +151,10 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
                         "additionalProperties": false
                     }
                 },
-                "tags": { "type": "array", "items": { "type": "string" } }
+                "tags": { "type": "array", "items": { "type": "string" } },
+                "regions": { "type": "array", "items": {"type": "string" } }
             },
-            "required": ["title", "description", "abstract", "publicationDate", "resourceType", "journal", "license", "authors", "productions", "tags"],
+            "required": ["title", "description", "abstract", "publicationDate", "resourceType", "journal", "license", "authors", "productions", "tags", "regions"],
             "additionalProperties": false
         }
     """;
@@ -384,7 +392,8 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
             Journal = NullIfEmpty(biblio.Journal),
             License = NullIfEmpty(biblio.License),
             ResourceTypeName = NullIfEmpty(biblio.ResourceType),
-            Tags = [.. biblio.Tags.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim())]
+            Tags = [.. biblio.Tags.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim())],
+            Regions = [.. biblio.Regions.Where(r => !string.IsNullOrWhiteSpace(r)).Select(r => r.Trim())]
         };
 
         (metadata.PublicationDate, metadata.PublicationDatePrecision) = ParsePublicationDate(biblio.PublicationDate);
@@ -614,6 +623,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         public List<TempEntity> Authors { get; set; } = [];
         public List<TempEntity> Productions { get; set; } = [];
         public List<string> Tags { get; set; } = [];
+        public List<string> Regions { get; set; } = [];
     }
 
     internal class TempSubjectList

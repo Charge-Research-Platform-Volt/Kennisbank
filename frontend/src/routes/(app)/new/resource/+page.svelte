@@ -288,6 +288,14 @@
 				})
 			);
 
+			regions = await Promise.all(
+				(metadata.regions ?? []).map(async (name: string) => {
+					const results = await searchRegions(name);
+					const exact = results.find((r) => r.name.toLowerCase() === name.toLowerCase());
+					return exact ?? { id: name, name };
+				})
+			);
+
 			const toEntry = (e: {
 				name: string;
 				type: string;

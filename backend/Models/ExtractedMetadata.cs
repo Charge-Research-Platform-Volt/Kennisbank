@@ -19,6 +19,7 @@ public class ExtractedMetadata
     public List<EntityWithSimilars> RelatedPersons { get; set; } = [];
     public string? PublicationCode { get; set; }
     public List<string> Tags { get; set; } = [];
+    public List<string> Regions { get; set; } = [];
 }
 
 /// <summary>
