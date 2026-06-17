@@ -76,7 +76,7 @@
 							>{new Date(entry.createdAt).toLocaleDateString()}</span
 						>
 					</div>
-					<p class="text-sm text-muted-foreground">{entry.body}</p>
+					<p class="text-sm text-muted-foreground whitespace-pre-line">{entry.body}</p>
 				</div>
 			{/each}
 		</div>
