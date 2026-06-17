@@ -222,14 +222,14 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
 
     #region Public functions
 
-    public async Task<ExtractedMetadata?> ExtractMetadataFromFileAsync(string text, string fileName, Action<string, int>? progress = null)
+    public async Task<ExtractedMetadata?> ExtractMetadataFromFileAsync(string text, string fileName, string headerFooterText = "", Action<string, int>? progress = null)
     {
         logger.Information("Starting metadata extraction for file: {FileName}", fileName);
 
         string trimmed = TrimTextForFile(text);
         string contextHint = $"Current date: {DateTime.UtcNow:yyyy-MM-dd}\nFileName: {fileName}";
 
-        return await RunPipelineAsync(text, trimmed, contextHint, progress);
+        return await RunPipelineAsync(text, trimmed, contextHint, progress, headerFooterText);
     }
 
     public async Task<ExtractedMetadata?> ExtractMetadataFromWebAsync(ReadabilityResult readabilityResult, string url, Action<string, int>? progress = null)
@@ -269,7 +269,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
 
     #region Helper functions
 
-    private async Task<ExtractedMetadata?> RunPipelineAsync(string fullText, string trimmedText, string contextHint, Action<string, int>? progress)
+    private async Task<ExtractedMetadata?> RunPipelineAsync(string fullText, string trimmedText, string contextHint, Action<string, int>? progress, string headerFooterText = "")
     {
         // Fetch resource types
         ResourceType[] resourceTypes = await resourceTypeService.GetAllAsync();
@@ -277,7 +277,10 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
 
         // PHASE 1: Extract bibliographic info (includes production entities)
         progress?.Invoke("Extracting bibliographic metadata...", 50);
-        string biblioPrompt = $"{contextHint}\n\nDocument text:\n{trimmedText}";
+        string biblioText = string.IsNullOrWhiteSpace(headerFooterText)
+            ? trimmedText
+            : trimmedText + "\n\n[Page headers/footers]:\n" + headerFooterText;
+        string biblioPrompt = $"{contextHint}\n\nDocument text:\n{biblioText}";
         TempBiblio? biblio = await CallLLMAsync<TempBiblio>(BiblioSystemPrompt, biblioPrompt, biblioSchema);
 
         if (biblio == null)
@@ -327,7 +330,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         progress?.Invoke("Matching against library...", 85);
 
         ExtractedMetadata extractedMetadata = await BuildMetadataAsync(biblio, productions, subjects);
-        extractedMetadata.PublicationCode = ExtractPublicationCode(strippedText);
+        extractedMetadata.PublicationCode = ExtractPublicationCode(string.IsNullOrWhiteSpace(headerFooterText) ? strippedText : strippedText + "\n" + headerFooterText);
         extractedMetadata.LanguageCode = DetectLanguage(strippedText);
 
         return extractedMetadata;

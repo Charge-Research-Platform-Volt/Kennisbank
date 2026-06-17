@@ -105,7 +105,7 @@ public class ExtractionJobService(
                 await blobStream.CopyToAsync(memoryStream);
                 memoryStream.Position = 0;
 
-                string extractedText = await textExtractionService.ExtractTextFromFileAsync(memoryStream, extension);
+                var (extractedText, headerFooterText) = await textExtractionService.ExtractOcrResultFromFileAsync(memoryStream, extension);
 
                 if (string.IsNullOrWhiteSpace(extractedText))
                 {
@@ -113,7 +113,7 @@ public class ExtractionJobService(
                     return;
                 }
 
-                metadata = await metadataExtractionService.ExtractMetadataFromFileAsync(extractedText, fileName,
+                metadata = await metadataExtractionService.ExtractMetadataFromFileAsync(extractedText, fileName, headerFooterText,
                     (msg, pct) => UpdateJobStatus(jobId, JobStatus.Processing, msg, pct));
             }
             else if (Filetype.IsDocumentUrl(value))
@@ -140,7 +140,7 @@ public class ExtractionJobService(
                 memoryStream.Position = 0;
 
                 UpdateJobStatus(jobId, JobStatus.Processing, "Extracting text from document...", 30);
-                string extractedText = await textExtractionService.ExtractTextFromFileAsync(memoryStream, extension);
+                var (extractedText, headerFooterText) = await textExtractionService.ExtractOcrResultFromFileAsync(memoryStream, extension);
 
                 if (string.IsNullOrWhiteSpace(extractedText))
                 {
@@ -148,7 +148,7 @@ public class ExtractionJobService(
                     return;
                 }
 
-                metadata = await metadataExtractionService.ExtractMetadataFromFileAsync(extractedText, fileName,
+                metadata = await metadataExtractionService.ExtractMetadataFromFileAsync(extractedText, fileName, headerFooterText,
                     (msg, pct) => UpdateJobStatus(jobId, JobStatus.Processing, msg, pct));
             }
             else

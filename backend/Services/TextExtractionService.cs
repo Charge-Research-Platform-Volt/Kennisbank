@@ -19,7 +19,7 @@ namespace KnowledgeBank.Services;
 public class TextExtractionService(ILogger<TextExtractionService> logger, EnvironmentConfig environmentConfig, BrowserService browserService)
 {
     #region File Text Extraction
-    
+
     /// <summary>
     /// Extracts text from a document stream, choosing the best extraction method based on file type
     /// </summary>
@@ -45,12 +45,12 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         {
             return fileExtension switch
             {
-                ".pdf" => await ExtractWithMistralOCR(stream, fileExtension),
+                ".pdf" => (await ExtractWithMistralOCR(stream, fileExtension)).Text,
                 ".txt" => await ExtractFromPlainText(stream),
                 ".docx" => ExtractWithOpenXmlDocx(stream),
                 ".pptx" => ExtractWithOpenXmlPptx(stream),
                 ".xlsx" => ExtractWithClosedXmlXlsx(stream),
-                _ when Filetype.SupportedImage(fileExtension) => await ExtractWithMistralOCR(stream, fileExtension),
+                _ when Filetype.SupportedImage(fileExtension) => (await ExtractWithMistralOCR(stream, fileExtension)).Text,
                 _ => throw new NotSupportedException($"Unsupported file type: {fileExtension}")
             };
         }
@@ -66,7 +66,14 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         }
     }
     
-    private async Task<string> ExtractWithMistralOCR(Stream stream, string fileExtension)
+    public async Task<(string Text, string HeaderFooterText)> ExtractOcrResultFromFileAsync(Stream stream, string fileExtension)
+    {
+        bool isOcr = string.Equals(fileExtension, ".pdf", StringComparison.OrdinalIgnoreCase) || Filetype.SupportedImage(fileExtension);
+        if (!isOcr) return (await ExtractTextFromFileAsync(stream, fileExtension), string.Empty);
+        return await ExtractWithMistralOCR(stream, fileExtension);
+    }
+    
+    private async Task<(string Text, string HeaderFooterText)> ExtractWithMistralOCR(Stream stream, string fileExtension)
     {
         logger.LogInformation("Using Mistral OCR for {FileType}", fileExtension);
 
@@ -99,13 +106,32 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         using JsonDocument doc = JsonDocument.Parse(responseBody);
 
         StringBuilder sb = new();
+        HashSet<string> headerFooterLines = new(StringComparer.OrdinalIgnoreCase);
+
         foreach (JsonElement page in doc.RootElement.GetProperty("pages").EnumerateArray())
-            sb.AppendLine(page.GetProperty("markdown").GetString());
+        {
+            string? pageText = page.GetProperty("markdown").GetString();
+
+            if (!string.IsNullOrWhiteSpace(pageText))
+                sb.AppendLine(pageText);
+
+            if (page.TryGetProperty("header", out JsonElement header) && header.ValueKind == JsonValueKind.String)
+            {
+                string? text = header.GetString();
+                if (!string.IsNullOrWhiteSpace(text)) headerFooterLines.Add(text.Trim());
+            }
+
+            if (page.TryGetProperty("footer", out JsonElement footer) && footer.ValueKind == JsonValueKind.String)
+            {
+                string? text = footer.GetString();
+                if (!string.IsNullOrWhiteSpace(text)) headerFooterLines.Add(text.Trim());
+            }
+        }
 
         string result = CleanOcrMarkdown(sb.ToString());
         logger.LogInformation("Mistral OCR extracted {Length} characters.", result.Length);
         
-        return result;
+        return (result, string.Join("\n", headerFooterLines));
     }
 
     private async Task<string> ExtractFromPlainText(Stream stream)
