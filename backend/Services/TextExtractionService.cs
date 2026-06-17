@@ -105,9 +105,6 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         string result = CleanOcrMarkdown(sb.ToString());
         logger.LogInformation("Mistral OCR extracted {Length} characters.", result.Length);
         
-        // TODO: REMOVE THIS LINE -- DEBUG PURPOSES ONLY
-        await File.WriteAllTextAsync("/tmp/ocrOutput.md", result);
-
         return result;
     }
 
@@ -195,7 +192,7 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         text = Regex.Replace(text, @"(?m)^#+\s*$", "");
 
         text = System.Net.WebUtility.HtmlDecode(text);
-        
+
         return text;
     }
     

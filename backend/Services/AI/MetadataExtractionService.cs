@@ -44,6 +44,10 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
     private static readonly Regex IssnRegex = new(@"ISSN[:\s]*(\d{4}-\d{3}[\dX])", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex Isbn13Regex = new(@"978[-\s]?\d[-\s]?\d{1,5}[-\s]?\d{1,7}[-\s]?\d{1,7}[-\s]?\d", RegexOptions.Compiled);
     private static readonly Regex Isbn10Regex = new(@"\b\d{9}[\dX]\b", RegexOptions.Compiled);
+
+    private static readonly Regex HeadingRegex = new(@"^#{1,3}\s+.+", RegexOptions.Compiled | RegexOptions.Multiline);
+    private static readonly Regex UnicodeSuperscriptLineRegex = new(@"(?m)^[\u00B9\u00B2\u00B3\u2074-\u2079\u2070].+$", RegexOptions.Compiled);
+    private static readonly Regex LatexFootnoteMarkerRegex = new(@"\$\^\{?\d+\}?\$", RegexOptions.Compiled);
 #pragma warning restore SYSLIB1045 // Convert to 'GeneratedRegexAttribute'.
 
 
@@ -217,13 +221,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         string trimmed = TrimTextForFile(text);
         string contextHint = $"Current date: {DateTime.UtcNow:yyyy-MM-dd}\nFileName: {fileName}";
 
-        ExtractedMetadata? metadata = await RunPipelineAsync(text, trimmed, contextHint, progress);
-        if (metadata == null) return null;
-
-        metadata.PublicationCode = ExtractPublicationCode(text);
-        metadata.LanguageCode = DetectLanguage(text);
-
-        return metadata;
+        return await RunPipelineAsync(text, trimmed, contextHint, progress);
     }
 
     public async Task<ExtractedMetadata?> ExtractMetadataFromWebAsync(ReadabilityResult readabilityResult, string url, Action<string, int>? progress = null)
@@ -254,13 +252,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
             - SiteName: {readabilityResult.SiteName ?? "not extracted"}
         """;
 
-        ExtractedMetadata? metadata = await RunPipelineAsync(readabilityResult.TextContent, trimmed, contextHint, progress);
-        if (metadata == null) return null;
-
-        metadata.PublicationCode = ExtractPublicationCode(readabilityResult.TextContent);
-        metadata.LanguageCode = DetectLanguage(readabilityResult.TextContent);
-
-        return metadata;
+        return await RunPipelineAsync(readabilityResult.TextContent, trimmed, contextHint, progress);
     }
 
     #endregion
@@ -286,10 +278,13 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
             return null;
         }
 
+        // Strip back matter for subject extraction and publication code
+        string strippedText = await StripBackMatterAsync(fullText);
+
         // PHASE 2: Extract subjects and key insights
         List<TempEntity> allSubjects = [];
         List<string> keyInsights = [];
-        string[] chunks = ChunkText(fullText, EntityChunkSize, EntityChunkOverlap);
+        string[] chunks = ChunkText(strippedText, EntityChunkSize, EntityChunkOverlap);
         string docContext = $"Document title: {biblio.Title}\nDocument description: {biblio.Description}";
 
         // Search on each chunk
@@ -323,11 +318,11 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         // PHASE 4: Find similars and build results
         progress?.Invoke("Matching against library...", 85);
 
-        // Temporarily debug keyInsights:
-        if (keyInsights.Count > 0)
-            logger.Debug("Key insights: {Insights}", string.Join(" | ", keyInsights));
+        ExtractedMetadata extractedMetadata = await BuildMetadataAsync(biblio, productions, subjects);
+        extractedMetadata.PublicationCode = ExtractPublicationCode(strippedText);
+        extractedMetadata.LanguageCode = DetectLanguage(strippedText);
 
-        return await BuildMetadataAsync(biblio, productions, subjects);
+        return extractedMetadata;
     }
 
     private async Task<T?> CallLLMAsync<T>(string systemPrompt, string userPrompt, string jsonSchema, string? modelOverride = null) where T : class
@@ -557,11 +552,49 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         return lang?.IsoCode6391().ToString().ToLowerInvariant();
     }
 
+    private async Task<string> StripBackMatterAsync(string text)
+    {
+        text = UnicodeSuperscriptLineRegex.Replace(text, "");
+        text = LatexFootnoteMarkerRegex.Replace(text, "");
+
+        List<string> headings = [.. HeadingRegex.Matches(text).Select(m => m.Value.Trim()).Distinct()];
+        if (headings.Count == 0) return text;
+
+        string headingList = string.Join("\n", headings);
+        string prompt = $"Here are section headings from a document:\n{headingList}\n\nReturn the headings that are back matter (references, bibliography, notes, acknowledgements, appendices, or any equivalent in any language). Return empty array if none qualify.";
+        string schema = """{"type":"object","properties":{"backMatterHeadings":{"type":"array","items":{"type":"string"}}},"required":["backMatterHeadings"],"additionalProperties":false}""";
+
+        BackMatterResult? result = await CallLLMAsync<BackMatterResult>("You are a document structure analyzer. Identify which section headings are back matter.", prompt, schema, modelOverride: smallModelName);
+
+        if (result == null || result.BackMatterHeadings.Count == 0) return text;
+
+        int midpoint = text.Length / 2;
+        int? cutIndex = null;
+
+        foreach (string heading in result.BackMatterHeadings)
+        {
+            string normalizedHeading = heading.TrimStart('#').Trim();
+
+            var match = HeadingRegex.Matches(text).Cast<Match>().FirstOrDefault(m => m.Index >= midpoint &&
+                m.Value.TrimStart('#').Trim().Equals(normalizedHeading, StringComparison.OrdinalIgnoreCase));
+
+            if (match != null && (cutIndex == null || match.Index < cutIndex))
+                cutIndex = match.Index;
+        }
+
+        return cutIndex.HasValue ? text[..cutIndex.Value] : text;
+    }
+
     #endregion
 
 
 
     #region Internal Classes
+
+    internal class BackMatterResult
+    {
+        public List<string> BackMatterHeadings { get; set; } = [];
+    }
 
     internal class TempEntity
     {
