@@ -8,6 +8,7 @@ using PuppeteerSharp;
 using KnowledgeBank.Utils;
 using KnowledgeBank.Data;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace KnowledgeBank.Services;
 
@@ -81,8 +82,8 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         string apiKey = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_API_KEY);
 
         var requestBody = isPdf
-            ? (object)new { model = "mistral-ocr-latest", document = new { type = "document_url", document_url = dataUri } }
-            : new { model = "mistral-ocr-latest", document = new { type = "image_url", image_url = dataUri } };
+            ? (object)new { model = "mistral-ocr-latest", document = new { type = "document_url", document_url = dataUri }, extract_header = true, extract_footer = true }
+            : new { model = "mistral-ocr-latest", document = new { type = "image_url", image_url = dataUri }, extract_header = true, extract_footer = true };
 
         string json = JsonSerializer.Serialize(requestBody);
 
@@ -101,9 +102,12 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         foreach (JsonElement page in doc.RootElement.GetProperty("pages").EnumerateArray())
             sb.AppendLine(page.GetProperty("markdown").GetString());
 
-        string result = sb.ToString();
+        string result = CleanOcrMarkdown(sb.ToString());
         logger.LogInformation("Mistral OCR extracted {Length} characters.", result.Length);
         
+        // TODO: REMOVE THIS LINE -- DEBUG PURPOSES ONLY
+        await File.WriteAllTextAsync("/tmp/ocrOutput.md", result);
+
         return result;
     }
 
@@ -184,41 +188,15 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         return sb.ToString();
     }
 
-    /// <summary>
-    /// Checks if extracted text has poor spacing quality (e.g., words running together)
-    /// </summary>
-    /// <param name="text">The extracted text to check</param>
-    /// <returns>True if spacing quality is poor, false if acceptable</returns>
-    private bool HasPoorSpacing(string text)
+    private static string CleanOcrMarkdown(string text)
     {
-        if (string.IsNullOrWhiteSpace(text))
-            return true;
+        text = Regex.Replace(text, @"!\[[^\]]*\]\([^\)]*\)", "");
+        text = Regex.Replace(text, @"\^\{\}\[\]", "");
+        text = Regex.Replace(text, @"(?m)^#+\s*$", "");
 
-        // Remove newlines for analysis
-        var textWithoutNewlines = text.Replace("\n", " ").Replace("\r", "");
-
-        // Calculate space ratio (spaces should be at least 10% of text in normal documents)
-        int spaceCount = textWithoutNewlines.Count(c => c == ' ');
-        double spaceRatio = (double)spaceCount / textWithoutNewlines.Length;
-
-        if (spaceRatio < 0.10)
-        {
-            logger.LogWarning("Low space ratio detected: {SpaceRatio:P2} (expected > 10%)", spaceRatio);
-            return true;
-        }
-
-        // Check for abnormally long words (> 50 characters without spaces suggests missing spaces)
-        var words = textWithoutNewlines.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        int longWordCount = words.Count(w => w.Length > 50);
-        double longWordRatio = words.Length > 0 ? (double)longWordCount / words.Length : 0;
-
-        if (longWordRatio > 0.30)
-        {
-            logger.LogWarning("High long-word ratio detected: {LongWordRatio:P2} (expected < 30%)", longWordRatio);
-            return true;
-        }
-
-        return false;
+        text = System.Net.WebUtility.HtmlDecode(text);
+        
+        return text;
     }
     
     #endregion
