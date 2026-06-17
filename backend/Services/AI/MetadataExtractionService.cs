@@ -179,6 +179,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         - Fictional examples or illustrative scenario personas
         - Document authors or producers (extracted separately)
         - Tech companies named only as market examples (e.g. "Amazon, Google, and Microsoft dominate cloud")
+        - Participant codes, pseudonyms, or anonymized identifiers (e.g. "P08", "P14", "Participant 3", "Interviewee A")
 
         The key distinction: a subject is WHO the text is ABOUT, not WHO the text cites, quotes as a source, or uses as a passing example.
 
