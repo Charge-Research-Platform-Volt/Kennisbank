@@ -120,6 +120,7 @@ export type ExtractedMetadata = {
 	}[];
 	publicationCode: string | null;
 	tags: string[];
+	regions: string[];
 };
 
 export type ResourceType = {

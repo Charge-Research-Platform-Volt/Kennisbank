@@ -7,7 +7,7 @@
 	import { fly } from 'svelte/transition';
 	import { LanguageCodes } from '$lib/lists/languageCodes';
 	import type { DatePrecision, ExtractedMetadata } from '$lib/types/resource';
-	import { User, Building2, X, CircleCheck, Sparkles } from '@lucide/svelte';
+	import { User, Building2, X, CircleCheck } from '@lucide/svelte';
 	import BadgeInput from '$lib/components/ui/badge-input.svelte';
 	import { toast } from 'svelte-sonner';
 	import ProcessingPhase from './processing-phase.svelte';
@@ -18,6 +18,7 @@
 	import { page } from '$app/state';
 	import AsyncMultiSelect from '$lib/components/ui/async-multi-select.svelte';
 	import type { ListItem, PagedResult } from '$lib/types/results';
+	import RoleBadge from '$lib/components/role-badge.svelte';
 
 	type Phase = 'select' | 'processing' | 'review' | 'duplicate';
 	type EntityEntry = {
@@ -666,13 +667,6 @@
 										>
 											<CircleCheck size={11} />{Math.min(100, Math.round(entry.score * 100))}%
 										</span>
-									{:else}
-										<span
-											title="No confident match found — will be created as a new entity"
-											class="ml-auto flex shrink-0 items-center gap-0.5 font-medium text-amber-400"
-										>
-											<Sparkles size={11} />New
-										</span>
 									{/if}
 								</div>
 							{/if}
@@ -703,14 +697,6 @@
 										placeholder="Search or create..."
 									/>
 								</div>
-								{#if !entry.extracted && entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
-									<span
-										title="Will be created as a new entity"
-										class="flex shrink-0 items-center gap-0.5 text-xs font-medium text-amber-400"
-									>
-										<Sparkles size={11} />New
-									</span>
-								{/if}
 								<button
 									onclick={() => (authors = authors.filter((_, j) => j !== i))}
 									class="shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
@@ -718,6 +704,11 @@
 									<X size={14} />
 								</button>
 							</div>
+							{#if entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
+								<div class="mt-0.5">
+									<span class="rounded px-1.5 py-0.5 text-xs font-medium bg-amber-500/15 text-amber-400">New</span>
+								</div>
+							{/if}
 						</div>
 					{/each}
 					<button
@@ -757,13 +748,6 @@
 										>
 											<CircleCheck size={11} />{Math.min(100, Math.round(entry.score * 100))}%
 										</span>
-									{:else}
-										<span
-											title="No confident match found — will be created as a new entity"
-											class="ml-auto flex shrink-0 items-center gap-0.5 font-medium text-amber-400"
-										>
-											<Sparkles size={11} />New
-										</span>
 									{/if}
 								</div>
 							{/if}
@@ -777,14 +761,6 @@
 										placeholder="Search or create..."
 									/>
 								</div>
-								{#if !entry.extracted && entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
-									<span
-										title="Will be created as a new entity"
-										class="flex shrink-0 items-center gap-0.5 text-xs font-medium text-amber-400"
-									>
-										<Sparkles size={11} />New
-									</span>
-								{/if}
 								<button
 									onclick={() => (relatedPersons = relatedPersons.filter((_, j) => j !== i))}
 									class="shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
@@ -792,14 +768,11 @@
 									<X size={14} />
 								</button>
 							</div>
-							<div
-								class="border-b border-transparent pb-0.5 transition-colors focus-within:border-border"
-							>
-								<input
-									bind:value={entry.role}
-									placeholder="Role..."
-									class="w-full bg-transparent text-xs outline-none placeholder:text-muted-foreground/50"
-								/>
+							<div class="mt-0.5 flex items-center gap-1.5">
+								<RoleBadge bind:role={entry.role} editable />
+								{#if entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
+									<span class="rounded px-1.5 py-0.5 text-xs font-medium bg-amber-500/15 text-amber-400">New</span>
+								{/if}
 							</div>
 						</div>
 					{/each}
@@ -842,13 +815,6 @@
 										>
 											<CircleCheck size={11} />{Math.min(100, Math.round(entry.score * 100))}%
 										</span>
-									{:else}
-										<span
-											title="No confident match found — will be created as a new entity"
-											class="ml-auto flex shrink-0 items-center gap-0.5 font-medium text-amber-400"
-										>
-											<Sparkles size={11} />New
-										</span>
 									{/if}
 								</div>
 							{/if}
@@ -862,14 +828,6 @@
 										placeholder="Search or create..."
 									/>
 								</div>
-								{#if !entry.extracted && entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
-									<span
-										title="Will be created as a new entity"
-										class="flex shrink-0 items-center gap-0.5 text-xs font-medium text-amber-400"
-									>
-										<Sparkles size={11} />New
-									</span>
-								{/if}
 								<button
 									onclick={() => (organisations = organisations.filter((_, j) => j !== i))}
 									class="shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
@@ -877,14 +835,11 @@
 									<X size={14} />
 								</button>
 							</div>
-							<div
-								class="border-b border-transparent pb-0.5 transition-colors focus-within:border-border"
-							>
-								<input
-									bind:value={entry.role}
-									placeholder="Role..."
-									class="w-full bg-transparent text-xs outline-none placeholder:text-muted-foreground/50"
-								/>
+							<div class="mt-0.5 flex items-center gap-1.5">
+								<RoleBadge bind:role={entry.role} editable />
+								{#if entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
+									<span class="rounded px-1.5 py-0.5 text-xs font-medium bg-amber-500/15 text-amber-400">New</span>
+								{/if}
 							</div>
 						</div>
 					{/each}

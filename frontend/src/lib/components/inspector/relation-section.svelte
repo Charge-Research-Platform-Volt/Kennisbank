@@ -5,6 +5,7 @@
 	import { getContext, untrack } from 'svelte';
 	import { X } from '@lucide/svelte';
 	import { debounce } from '$lib/utils/debounce';
+	import RoleBadge from '$lib/components/role-badge.svelte';
 
 	let {
 		label,
@@ -119,23 +120,17 @@
 						<Icon size={13} class="shrink-0" />
 						<span class="truncate">{relItem.name}</span>
 					</button>
-					{#if hasRole}
-						{#if editMode && onupdaterole}
-							<input
-								value={relItem.role ?? relItem.relation ?? ''}
-								onblur={(e) => {
-									const newRole = e.currentTarget.value;
+					{#if hasRole && (editMode ? true : !!(relItem.role ?? relItem.relation))}
+						<div class="mt-0.5 pl-[21px]">
+							<RoleBadge
+								role={relItem.role ?? relItem.relation ?? 'subject'}
+								editable={editMode && !!onupdaterole}
+								onchange={(newRole) => {
 									relItem.role = newRole;
-									registerSave?.(onupdaterole(relItem, newRole));
+									registerSave?.(onupdaterole!(relItem, newRole));
 								}}
-								placeholder="Role"
-								class="mt-0.5 w-full border-b border-input bg-transparent pl-[21px] text-xs text-muted-foreground/60 focus:border-ring focus:outline-none"
 							/>
-						{:else if relItem.role ?? relItem.relation}
-							<span class="block pl-[21px] text-xs text-muted-foreground/60"
-								>{relItem.role ?? relItem.relation}</span
-							>
-						{/if}
+						</div>
 					{/if}
 				</div>
 			</div>
