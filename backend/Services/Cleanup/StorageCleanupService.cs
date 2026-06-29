@@ -82,25 +82,32 @@ public class StorageCleanupService : BackgroundService
 
             try
             {
+                // OCR cache objects are named "{resourceId}-ocr" — strip the suffix to recover the owning resource ID
+                bool isOcrCache = objectName.EndsWith("-ocr", StringComparison.Ordinal);
+                string guidPart = isOcrCache ? objectName[..^"-ocr".Length] : objectName;
+
                 // Check if this is a valid GUID (our object names are resource IDs)
-                if (!Guid.TryParse(objectName, out Guid objectId))
+                if (!Guid.TryParse(guidPart, out Guid objectId))
                 {
                     _logger.Warning("Object {ObjectName} is not a valid GUID, skipping", objectName);
                     skippedCount++;
                     continue;
                 }
 
-                // Check upload timestamp from metadata
-                var metadata = await storageService.GetObjectMetadataAsync(_bucketName, objectName);
-
-                if (metadata.TryGetValue("uploadTimestamp", out string? timestampStr) &&
-                    DateTime.TryParse(timestampStr, out DateTime uploadTime))
+                if (!isOcrCache)
                 {
-                    // Skip if uploaded less than 24 hours ago
-                    if (uploadTime > DateTime.UtcNow.AddHours(-24))
+                    // Check upload timestamp from metadata
+                    var metadata = await storageService.GetObjectMetadataAsync(_bucketName, objectName);
+
+                    if (metadata.TryGetValue("uploadTimestamp", out string? timestampStr) &&
+                        DateTime.TryParse(timestampStr, out DateTime uploadTime))
                     {
-                        skippedCount++;
-                        continue;
+                        // Skip if uploaded less than 24 hours ago
+                        if (uploadTime > DateTime.UtcNow.AddHours(-24))
+                        {
+                            skippedCount++;
+                            continue;
+                        }
                     }
                 }
 
@@ -112,12 +119,16 @@ public class StorageCleanupService : BackgroundService
                     continue;
                 }
 
-                // Check if this is a user avatar (user ID matches object name)
-                bool isUserAvatar = await context.Users.AnyAsync(u => u.Id == objectName, stoppingToken);
-                if (isUserAvatar)
+                // OCR cache for a resource that no longer exists — falls through to delete below
+                if (!isOcrCache)
                 {
-                    skippedCount++;
-                    continue;
+                    // Check if this is a user avatar (user ID matches object name)
+                    bool isUserAvatar = await context.Users.AnyAsync(u => u.Id == objectName, stoppingToken);
+                    if (isUserAvatar)
+                    {
+                        skippedCount++;
+                        continue;
+                    }
                 }
 
                 // Object is orphaned - delete it

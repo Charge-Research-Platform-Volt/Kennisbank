@@ -105,15 +105,15 @@ public class ExtractionJobService(
                 await blobStream.CopyToAsync(memoryStream);
                 memoryStream.Position = 0;
 
-                var (extractedText, headerFooterText) = await textExtractionService.ExtractOcrResultFromFileAsync(memoryStream, extension);
+                OcrResult ocrResult = await textExtractionService.ExtractOcrResultFromFileAsync(memoryStream, extension, bucketName, value);
 
-                if (string.IsNullOrWhiteSpace(extractedText))
+                if (string.IsNullOrWhiteSpace(ocrResult.Text))
                 {
                     SetJobError(jobId, "No text could be extracted from the document");
                     return;
                 }
 
-                metadata = await metadataExtractionService.ExtractMetadataFromFileAsync(extractedText, fileName, headerFooterText,
+                metadata = await metadataExtractionService.ExtractMetadataFromFileAsync(ocrResult.Text, fileName, ocrResult.HeaderFooterText,
                     (msg, pct) => UpdateJobStatus(jobId, JobStatus.Processing, msg, pct));
             }
             else if (Filetype.IsDocumentUrl(value))
@@ -140,15 +140,15 @@ public class ExtractionJobService(
                 memoryStream.Position = 0;
 
                 UpdateJobStatus(jobId, JobStatus.Processing, "Extracting text from document...", 30);
-                var (extractedText, headerFooterText) = await textExtractionService.ExtractOcrResultFromFileAsync(memoryStream, extension);
+                OcrResult ocrResult = await textExtractionService.ExtractOcrResultFromFileAsync(memoryStream, extension);
 
-                if (string.IsNullOrWhiteSpace(extractedText))
+                if (string.IsNullOrWhiteSpace(ocrResult.Text))
                 {
                     SetJobError(jobId, "No text could be extracted from the document");
                     return;
                 }
 
-                metadata = await metadataExtractionService.ExtractMetadataFromFileAsync(extractedText, fileName, headerFooterText,
+                metadata = await metadataExtractionService.ExtractMetadataFromFileAsync(ocrResult.Text, fileName, ocrResult.HeaderFooterText,
                     (msg, pct) => UpdateJobStatus(jobId, JobStatus.Processing, msg, pct));
             }
             else

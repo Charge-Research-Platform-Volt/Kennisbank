@@ -9,6 +9,7 @@ using KnowledgeBank.Utils;
 using KnowledgeBank.Data;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using KnowledgeBank.Services.Storage;
 
 namespace KnowledgeBank.Services;
 
@@ -16,7 +17,7 @@ namespace KnowledgeBank.Services;
 /// Service for extracting text from various document formats
 /// Uses free methods when possible, falls back to OCR
 /// </summary>
-public class TextExtractionService(ILogger<TextExtractionService> logger, EnvironmentConfig environmentConfig, BrowserService browserService)
+public class TextExtractionService(ILogger<TextExtractionService> logger, EnvironmentConfig environmentConfig, BrowserService browserService, IStorageService storageService)
 {
     #region File Text Extraction
 
@@ -66,14 +67,28 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         }
     }
     
-    public async Task<(string Text, string HeaderFooterText)> ExtractOcrResultFromFileAsync(Stream stream, string fileExtension)
+    public async Task<OcrResult> ExtractOcrResultFromFileAsync(Stream stream, string fileExtension, string? bucketName = null, string? fileId = null)
     {
         bool isOcr = string.Equals(fileExtension, ".pdf", StringComparison.OrdinalIgnoreCase) || Filetype.SupportedImage(fileExtension);
-        if (!isOcr) return (await ExtractTextFromFileAsync(stream, fileExtension), string.Empty);
-        return await ExtractWithMistralOCR(stream, fileExtension);
+        if (!isOcr) return new OcrResult { Text = await ExtractTextFromFileAsync(stream, fileExtension) };
+
+        bool canCache = bucketName != null && fileId != null;
+
+        if (canCache)
+        {
+            OcrResult? cached = await TryReadOcrCacheAsync(bucketName!, fileId!);
+            if (cached != null) return cached;
+        }
+
+        OcrResult result = await ExtractWithMistralOCR(stream, fileExtension);
+
+        if (canCache)
+            await WriteOcrCacheAsync(bucketName!, fileId!, result);
+
+        return result;
     }
     
-    private async Task<(string Text, string HeaderFooterText)> ExtractWithMistralOCR(Stream stream, string fileExtension)
+    private async Task<OcrResult> ExtractWithMistralOCR(Stream stream, string fileExtension)
     {
         logger.LogInformation("Using Mistral OCR for {FileType}", fileExtension);
 
@@ -129,9 +144,41 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         }
 
         string result = CleanOcrMarkdown(sb.ToString());
+        string model = doc.RootElement.GetProperty("model").GetString() ?? "";
         logger.LogInformation("Mistral OCR extracted {Length} characters.", result.Length);
-        
-        return (result, string.Join("\n", headerFooterLines));
+
+        return new OcrResult { Text = result, HeaderFooterText = string.Join("\n", headerFooterLines), Model = model };
+    }
+
+    private async Task<OcrResult?> TryReadOcrCacheAsync(string bucketName, string fileId)
+    {
+        try
+        {
+            ObjectDownloadResponse response = await storageService.DownloadObjectAsync(bucketName, $"{fileId}-ocr");
+            using StreamReader reader = new(response.Stream);
+            string json = await reader.ReadToEndAsync();
+            OcrResult? cached = JsonSerializer.Deserialize<OcrResult>(json);
+            if (cached != null) logger.LogInformation("OCR cache hit for {FileId} (model: {Model})", fileId, cached.Model);
+            return cached;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task WriteOcrCacheAsync(string bucketName, string fileId, OcrResult result)
+    {
+        try
+        {
+            string json = JsonSerializer.Serialize(result);
+            using MemoryStream ms = new(Encoding.UTF8.GetBytes(json));
+            await storageService.UploadObjectAsync(bucketName, $"{fileId}-ocr", ms, contentType: "application/json");
+        }
+        catch (Exception e)
+        {
+            logger.LogWarning(e, "Failed to write OCR cache for {FileId}", fileId);
+        }
     }
 
     private async Task<string> ExtractFromPlainText(Stream stream)
@@ -418,4 +465,11 @@ public class ReadabilityResult
     public string? Byline { get; set; }
     public string? Excerpt { get; set; }
     public string? SiteName { get; set; }
+}
+
+public class OcrResult
+{
+    public string Text { get; set; } = "";
+    public string HeaderFooterText { get; set; } = "";
+    public string Model { get; set; } = "";
 }

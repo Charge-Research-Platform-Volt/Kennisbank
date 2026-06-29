@@ -1,6 +1,7 @@
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.Domain;
 using KnowledgeBank.Services.Vector;
+using KnowledgeBank.Utils;
 using Microsoft.SemanticKernel.Text;
 using Serilog;
 using System.Text;
@@ -9,9 +10,10 @@ namespace KnowledgeBank.Services.AI;
 
 #pragma warning disable SKEXP0050, SKEXP0001
 
-public class IngestionService(IVectorStore vectorStore, TextExtractionService textExtractionService, ResourceService resourceService, PersonService personService, OrganisationService organisationService)
+public class IngestionService(IVectorStore vectorStore, TextExtractionService textExtractionService, ResourceService resourceService, PersonService personService, OrganisationService organisationService, EnvironmentConfig environmentConfig)
 {
     private readonly Serilog.ILogger logger = Log.ForContext<IngestionService>();
+    private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
 
     public async Task RunResourcePipelineAsync(Guid id, string? fileType = null, Stream? fileStream = null)
     {
@@ -26,15 +28,15 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
                 ? (fileType.StartsWith('.') ? fileType : $".{fileType}")
                 : ".pdf";
 
-            string extracted = await textExtractionService.ExtractTextFromFileAsync(fileStream, ext);
+            OcrResult ocrResult = await textExtractionService.ExtractOcrResultFromFileAsync(fileStream, ext, bucketName, id.ToString());
 
-            if (string.IsNullOrEmpty(extracted))
+            if (string.IsNullOrEmpty(ocrResult.Text))
             {
                 logger.Warning("No text extracted from file for resource {Id}", id);
                 return;
             }
 
-            chunks.AddRange(SplitTextIntoChunks(extracted, markdownSplit: true));
+            chunks.AddRange(SplitTextIntoChunks(ocrResult.Text, markdownSplit: true));
         }
         else if (resource?.FileType == "website" && !string.IsNullOrEmpty(resource.SourceUrl))
         {
