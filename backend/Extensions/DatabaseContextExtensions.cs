@@ -133,7 +133,8 @@ public static class DatabaseContextExtensions
                         coalesce(e.""name"", '') || ' ' ||
                         coalesce(e.""description"", '') || ' ' ||
                         coalesce(e.""email-address"", '') || ' ' ||
-                        coalesce(p.""occupation"", '') || ' '
+                        coalesce(p.""occupation"", '') || ' ' ||
+                        coalesce(array_to_string(e.""aliases"", ' '), '') || ' '
                     ) as ""SearchVector""
                 FROM ""persons"" p
                 INNER JOIN ""entities"" e ON p.""id"" = e.""id""
@@ -159,7 +160,8 @@ public static class DatabaseContextExtensions
                         coalesce(e.""name"", '') || ' ' ||
                         coalesce(e.""description"", '') || ' ' ||
                         coalesce(e.""email-address"", '') || ' ' ||
-                        coalesce(o.""website"", '') || ' '
+                        coalesce(o.""website"", '') || ' ' ||
+                        coalesce(array_to_string(e.""aliases"", ' '), '') || ' '
                     ) as ""SearchVector""
                 FROM ""organisations"" o
                 INNER JOIN ""entities"" e ON o.""id"" = e.""id""

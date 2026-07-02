@@ -1,15 +1,18 @@
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.Domain;
 using KnowledgeBank.Services.Search;
+using KnowledgeBank.Data;
 using KnowledgeBank.Utils;
 using Lingua;
 using Serilog;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
+using System.Text;
 
 namespace KnowledgeBank.Services.AI;
 
-public class MetadataExtractionService(MistralHttpClient mistralHttpClient, HybridSearchService searchService, EnvironmentConfig environmentConfig, ResourceTypeService resourceTypeService)
+public class MetadataExtractionService(MistralHttpClient mistralHttpClient, HybridSearchService searchService, EnvironmentConfig environmentConfig, ResourceTypeService resourceTypeService, IDbContextFactory<DatabaseContext> dbFactory)
 {
     private readonly Serilog.ILogger logger = Log.ForContext<MetadataExtractionService>();
     private static readonly LanguageDetector languageDetector = LanguageDetectorBuilder.FromAllLanguages().WithPreloadedLanguageModels().Build();
@@ -217,6 +220,36 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         }
     """;
 
+    private const string QcSystemPrompt = """
+        You are a quality control assistant for a political research library.
+        For each entity, identify the best matching database candidate.
+
+        For each entity decide:
+        1. confirmedMatchId: UUID of the best-matching database candidate, or empty string if none. Only confirm when confident. Abbreviations and alternate names count as a match. If there are no candidates, return empty string.
+        2. suggestedAlias: If the document name is an alias/abbreviation of the confirmed match (e.g. "EU" for "European Union"), return that string. Otherwise empty string.
+    """;
+
+    private static string GetQcJsonSchema() => """
+        {
+            "type": "object",
+            "properties": {
+                "decisions": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": { "type": "string" },
+                            "confirmedMatchId": { "type": "string" },
+                            "suggestedAlias": { "type": "string" }
+                        },
+                        "required": ["name", "confirmedMatchId", "suggestedAlias"]
+                    }
+                }
+            },
+            "required": ["decisions"]
+        }
+    """;
+
     #endregion
 
 
@@ -331,6 +364,8 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         progress?.Invoke("Matching against library...", 85);
 
         ExtractedMetadata extractedMetadata = await BuildMetadataAsync(biblio, productions, subjects);
+        progress?.Invoke("Running entity quality check...", 92);
+        await RunEntityQcAsync(extractedMetadata, trimmedText);
         extractedMetadata.PublicationCode = ExtractPublicationCode(string.IsNullOrWhiteSpace(headerFooterText) ? strippedText : strippedText + "\n" + headerFooterText);
         extractedMetadata.LanguageCode = DetectLanguage(strippedText);
 
@@ -487,22 +522,99 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
 
     private async Task<List<SimilarEntity>> FindSimilarsAsync(string name, string[] typeFilter)
     {
-        await SearchSemaphore.WaitAsync();
+        string nameLower = name.Trim().ToLowerInvariant();
+        await using var db = await dbFactory.CreateDbContextAsync();
 
+        if (typeFilter.Contains("person"))
+        {
+            var p = await db.Persons
+                .Where(x => !x.Trashed && x.Aliases.Any(a => a.ToLower() == nameLower))
+                .Select(x => new SimilarEntity { Id = x.Id, Name = x.Name, Score = 1.0f, Type = "person", IsQcConfirmed = true, Description = x.Description })
+                .FirstOrDefaultAsync();
+
+            if (p != null) return [p];
+        }
+
+        if (typeFilter.Contains("organisation"))
+        {
+            var o = await db.Organisations
+                .Where(x => !x.Trashed && x.Aliases.Any(a => a.ToLower() == nameLower))
+                .Select(x => new SimilarEntity { Id = x.Id, Name = x.Name, Score = 1.0f, Type = "organisation", IsQcConfirmed = true, Description = x.Description })
+                .FirstOrDefaultAsync();
+
+            if (o != null) return [o];
+        }
+
+        await SearchSemaphore.WaitAsync();
         try
         {
             var result = await searchService.SearchAsync(
                 name.Replace(".", ""),
                 page: 1,
-                pageSize: 3,
+                pageSize: 6,
                 filters: new Dictionary<string, object?> { { "type", typeFilter } }
             );
 
-            return [.. result.Items.Where(i => i.RelevanceScore >= 0.5f).Select(i => new SimilarEntity { Id = i.Id, Name = i.Name, Score = i.RelevanceScore, Type = i.Type })];
+            return [.. result.Items.Where(i => i.RelevanceScore >= 0.3f).Select(i => new SimilarEntity { Id = i.Id, Name = i.Name, Score = i.RelevanceScore, Type = i.Type, Description = i.Description })];
         }
         finally
         {
             SearchSemaphore.Release();
+        }
+    }
+
+    private async Task RunEntityQcAsync(ExtractedMetadata metadata, string docContext)
+    {
+        var allEntities = metadata.Authors
+            .Cast<EntityWithSimilars>()
+            .Concat(metadata.RelatedPersons)
+            .Concat(metadata.Organisations)
+            .ToList();
+
+        if (allEntities.Count == 0) return;
+
+        StringBuilder sb = new();
+        sb.AppendLine($"Document context (excerpt):\n{docContext[..Math.Min(docContext.Length, 1500)]}");
+        sb.AppendLine();
+        sb.AppendLine("Entities to validate:");
+
+        foreach (var entity in allEntities)
+        {
+            sb.AppendLine($"\nName: \"{entity.Name}\" | Type: {entity.Type}");
+            if (entity.Similars.Count > 0)
+            {
+                sb.AppendLine("Database candidates:");
+                foreach (var s in entity.Similars)
+                {
+                    string desc = string.IsNullOrWhiteSpace(s.Description) ? "no description" : s.Description[..Math.Min(s.Description.Length, 100)];
+                    sb.AppendLine($"  - ID: {s.Id} | Name: {s.Name} | {desc}");
+                }
+            }
+            else
+            {
+                sb.AppendLine("Database candidates: none");
+            }
+        }
+
+        QcResult? qcResult = await CallLLMAsync<QcResult>(QcSystemPrompt, sb.ToString(), GetQcJsonSchema(), modelOverride: smallModelName);
+        if (qcResult == null) return;
+
+        var decisionMap = qcResult.Decisions.ToDictionary(d => d.Name.Trim().ToLowerInvariant());
+
+        foreach (var entity in allEntities)
+        {
+            if (!decisionMap.TryGetValue(entity.Name.Trim().ToLowerInvariant(), out var decision)) continue;
+
+            if (!string.IsNullOrWhiteSpace(decision.ConfirmedMatchId) && Guid.TryParse(decision.ConfirmedMatchId, out Guid matchId))
+            {
+                var confirmed = entity.Similars.FirstOrDefault(s => s.Id == matchId);
+                if (confirmed != null)
+                {
+                    confirmed.IsQcConfirmed = true;
+                    if (!string.IsNullOrWhiteSpace(decision.SuggestedAlias) && !decision.SuggestedAlias.Equals(confirmed.Name, StringComparison.OrdinalIgnoreCase))
+                        confirmed.SuggestedAlias = decision.SuggestedAlias;
+                }
+            }
         }
     }
 
@@ -646,6 +758,18 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
     {
         public List<TempVerdict> Verdicts { get; set; } = [];
         public string Description { get; set; } = string.Empty;
+    }
+
+    internal class QcDecision
+    {
+        public string Name { get; set; } = "";
+        public string? ConfirmedMatchId { get; set; }
+        public string? SuggestedAlias { get; set; }
+    }
+
+    internal class QcResult
+    {
+        public List<QcDecision> Decisions { get; set; } = [];
     }
 
     #endregion

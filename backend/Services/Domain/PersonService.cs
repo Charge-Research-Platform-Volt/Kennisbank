@@ -381,12 +381,17 @@ public class PersonService(DatabaseContext db)
                 ea.name     AS "Name1",
                 b.id        AS "Id2",
                 eb.name     AS "Name2",
-                similarity(ea.name, eb.name) AS "Score"
+                GREATEST(
+                    similarity(ea.name, eb.name),
+                    CASE WHEN ea.name ILIKE ANY(eb.aliases) OR eb.name ILIKE ANY(ea.aliases) THEN 1.0 ELSE 0.0 END
+                ) AS "Score"
             FROM persons a
             JOIN entities ea ON a.id = ea.id
             JOIN persons b ON a.id < b.id
             JOIN entities eb ON b.id = eb.id
             WHERE similarity(ea.name, eb.name) > {threshold}
+               OR ea.name ILIKE ANY(eb.aliases)
+               OR eb.name ILIKE ANY(ea.aliases)
             ORDER BY "Score" DESC
             LIMIT {limit}
         """).ToListAsync();

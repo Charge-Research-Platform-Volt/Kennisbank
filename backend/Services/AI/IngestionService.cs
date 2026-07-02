@@ -75,6 +75,7 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
 
         if (!string.IsNullOrWhiteSpace(person.Description)) sb.AppendLine($"Description: {person.Description}").AppendLine();
         sb.AppendLine($"Person: {person.Name}");
+        if (person.Aliases.Count > 0) sb.AppendLine($"Also known as: {string.Join(", ", person.Aliases)}");
         if (!string.IsNullOrWhiteSpace(person.Occupation)) sb.AppendLine($"Occupation: {person.Occupation}");
         if (!string.IsNullOrWhiteSpace(person.EmailAddress)) sb.AppendLine($"Email: {person.EmailAddress}");
         
@@ -87,6 +88,7 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
 
         if (!string.IsNullOrWhiteSpace(organisation.Description)) sb.AppendLine($"Description: {organisation.Description}").AppendLine();
         sb.AppendLine($"Organisation: {organisation.Name}");
+        if (organisation.Aliases.Count > 0) sb.AppendLine($"Also known as: {string.Join(", ", organisation.Aliases)}");
         if (!string.IsNullOrWhiteSpace(organisation.Website)) sb.AppendLine($"Website: {organisation.Website}");
         if (!string.IsNullOrWhiteSpace(organisation.EmailAddress)) sb.AppendLine($"Email: {organisation.EmailAddress}");
         

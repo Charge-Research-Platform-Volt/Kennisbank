@@ -1,11 +1,12 @@
 using System.Linq.Expressions;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.AI;
 using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.Domain;
 
-public class ResourceService(DatabaseContext db, TagService tagService, PersonService personService, OrganisationService organisationService, RegionService regionService)
+public class ResourceService(DatabaseContext db, TagService tagService, PersonService personService, OrganisationService organisationService, RegionService regionService, IServiceScopeFactory scopeFactory)
 {
     #region Queries
 
@@ -145,6 +146,8 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
     {
         await using var transaction = await db.Database.BeginTransactionAsync();
 
+        List<(Guid Id, string Type)> aliasedEntities = [];
+
         bool isFile = !string.IsNullOrEmpty(dto.FileExtension);
 
         Guid resourceId = isFile && Guid.TryParse(dto.FileId, out Guid fileId)
@@ -185,18 +188,26 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
 
         foreach (var author in dto.Authors.DistinctBy(a => a.Value))
         {
-            Guid authorId = Guid.TryParse(author.Value, out Guid parsedAuthor) ? parsedAuthor
+            bool isExisting = Guid.TryParse(author.Value, out Guid parsedAuthor);
+            Guid authorId = isExisting ? parsedAuthor
                 : author.Type?.ToLower() == "organisation"
                     ? await organisationService.FindIdByNameAsync(author.Value) ?? await organisationService.CreateAsync(new OrganisationCreateDto { Name = author.Value }, createdBy)
                     : await personService.FindIdByNameAsync(author.Value) ?? await personService.CreateAsync(new PersonCreateDto { Name = author.Value }, createdBy);
             db.ResourceAuthorRelations.Add(new ResourceAuthorRelation { ResourceId = resourceId, AuthorId = authorId });
+
+            if (isExisting && !string.IsNullOrWhiteSpace(author.SuggestedAlias))
+                await TryAppendAliasAsync(authorId, author.SuggestedAlias, author.Type?.ToLower() == "organisation" ? "organisation" : "person", aliasedEntities);
         }
 
         foreach (var org in dto.Organisations.DistinctBy(o => o.Id))
         {
-            Guid orgId = Guid.TryParse(org.Id, out Guid parsedOrg) ? parsedOrg
+            bool isExisting = Guid.TryParse(org.Id, out Guid parsedOrg);
+            Guid orgId = isExisting ? parsedOrg
                 : await organisationService.FindIdByNameAsync(org.Id) ?? await organisationService.CreateAsync(new OrganisationCreateDto { Name = org.Id }, createdBy);
             db.ResourceOrganisationRelations.Add(new ResourceOrganisationRelation { ResourceId = resourceId, OrganisationId = orgId, Role = org.Relation });
+
+            if (isExisting && !string.IsNullOrWhiteSpace(org.SuggestedAlias))
+                await TryAppendAliasAsync(orgId, org.SuggestedAlias, "organisation", aliasedEntities);
         }
 
         foreach (string region in dto.Regions.Distinct())
@@ -208,15 +219,40 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
 
         foreach (var person in dto.RelatedPersons.DistinctBy(p => p.Id))
         {
-            Guid personId = Guid.TryParse(person.Id, out Guid parsedPerson) ? parsedPerson
+            bool isExisting = Guid.TryParse(person.Id, out Guid parsedPerson);
+            Guid personId = isExisting ? parsedPerson
                 : await personService.FindIdByNameAsync(person.Id) ?? await personService.CreateAsync(new PersonCreateDto { Name = person.Id }, createdBy);
             db.ResourceRelatedPersonRelations.Add(new ResourceRelatedPersonRelation { ResourceId = resourceId, PersonId = personId, Role = person.Relation });
+
+            if (isExisting && !string.IsNullOrWhiteSpace(person.SuggestedAlias))
+                await TryAppendAliasAsync(personId, person.SuggestedAlias, "person", aliasedEntities);
         }
 
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
 
+        if (aliasedEntities.Count > 0)
+        {
+            using var scope = scopeFactory.CreateScope();
+            var ingestion = scope.ServiceProvider.GetRequiredService<IngestionService>();
+            foreach (var (entityId, entityType) in aliasedEntities)
+            {
+                if (entityType == "organisation")
+                    await ingestion.RunOrganisationEntityPipelineAsync(entityId);
+                else
+                    await ingestion.RunPersonEntityPipelineAsync(entityId);
+            }
+        }
+
         return resourceId;
+    }
+
+    private async Task TryAppendAliasAsync(Guid entityId, string alias, string type, List<(Guid Id, string Type)> collected)
+    {
+        var entity = await db.Entities.FindAsync(entityId);
+        if (entity == null || entity.Aliases.Contains(alias, StringComparer.OrdinalIgnoreCase)) return;
+        entity.Aliases.Add(alias);
+        collected.Add((entityId, type));
     }
 
     public async Task<bool> UpdateAsync(Guid id, Action<Resource> update)

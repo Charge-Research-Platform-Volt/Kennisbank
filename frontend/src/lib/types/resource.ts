@@ -104,19 +104,19 @@ export type ExtractedMetadata = {
 	authors: {
 		name: string;
 		type: string;
-		similars: { id: string; name: string; score: number; type: string }[];
+		similars: { id: string; name: string; score: number; type: string; isQcConfirmed: boolean; suggestedAlias?: string | null }[];
 	}[];
 	organisations: {
 		name: string;
 		type: string;
 		role?: string;
-		similars: { id: string; name: string; score: number; type: string }[];
+		similars: { id: string; name: string; score: number; type: string; isQcConfirmed: boolean; suggestedAlias?: string | null }[];
 	}[];
 	relatedPersons: {
 		name: string;
 		type: string;
 		role?: string;
-		similars: { id: string; name: string; score: number; type: string }[];
+		similars: { id: string; name: string; score: number; type: string; isQcConfirmed: boolean; suggestedAlias?: string | null }[];
 	}[];
 	publicationCode: string | null;
 	tags: string[];

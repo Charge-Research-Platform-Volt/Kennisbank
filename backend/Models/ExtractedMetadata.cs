@@ -31,6 +31,8 @@ public class EntityWithSimilars
     public string Type { get; set; } = string.Empty; // "person" or "organisation" - the suggested type for new entities
     public string? Role { get; set; }
     public List<SimilarEntity> Similars { get; set; } = [];
+
+    public bool IsValid { get; set; } = true;
 }
 
 /// <summary>
@@ -49,4 +51,7 @@ public class SimilarEntity
     public string Name { get; set; } = string.Empty;
     public float Score { get; set; }
     public string Type { get; set; } = string.Empty; // "person" or "organisation"
+    public bool IsQcConfirmed { get; set; } = false;
+    public string? Description { get; set; }
+    public string? SuggestedAlias { get; set; }
 }

@@ -19,6 +19,9 @@ public abstract class Entity
     [Column("description")]
     public string? Description { get; set; }
 
+    [Column("aliases")]
+    public List<string> Aliases { get; set; } = [];
+
     [Column("email-address")]
     public string? EmailAddress { get; set; }
 

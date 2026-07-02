@@ -28,6 +28,7 @@
 		score?: number | null;
 		role?: string;
 		authorType?: string;
+		suggestedAlias?: string | null;
 	};
 
 	let phase = $state<Phase>('select');
@@ -206,10 +207,11 @@
 				Tags: tags.map((t) => t.id),
 				Authors: authors.map((a) => ({
 					value: a.value,
-					type: a.authorType?.toLowerCase() ?? 'person'
+					type: a.authorType?.toLowerCase() ?? 'person',
+					suggestedAlias: a.suggestedAlias ?? null
 				})),
-				Organisations: organisations.map((o) => ({ Id: o.value, Relation: o.role || null })),
-				RelatedPersons: relatedPersons.map((p) => ({ Id: p.value, Relation: p.role || null })),
+				Organisations: organisations.map((o) => ({ Id: o.value, Relation: o.role || null, SuggestedAlias: o.suggestedAlias ?? null })),
+				RelatedPersons: relatedPersons.map((p) => ({ Id: p.value, Relation: p.role || null, SuggestedAlias: p.suggestedAlias ?? null })),
 				Regions: regions.map((r) => r.id),
 				FileId: mode === 'file' ? fileId : null,
 				Hash: mode === 'file' ? fileHash : null,
@@ -301,17 +303,18 @@
 				name: string;
 				type: string;
 				role?: string;
-				similars: { id: string; name: string; score: number }[];
+				similars: { id: string; name: string; score: number; isQcConfirmed: boolean; suggestedAlias?: string | null }[];
 			}): EntityEntry => {
 				const top = e.similars[0];
-				return top && top.score >= 0.8
+				return top && (top.score >= 0.8 || top.isQcConfirmed)
 					? {
 							extracted: e.name,
 							value: top.id,
 							displayValue: top.name,
 							authorType: e.type,
 							score: top.score,
-							role: e.role
+							role: e.role,
+							suggestedAlias: top.suggestedAlias ?? null
 						}
 					: {
 							extracted: e.name,
@@ -319,7 +322,8 @@
 							displayValue: e.name,
 							authorType: e.type,
 							score: top?.score ?? null,
-							role: e.role
+							role: e.role,
+							suggestedAlias: null
 						};
 			};
 
@@ -657,7 +661,9 @@
 									<span class="shrink-0">Found:</span>
 									<span class="truncate font-mono" title={entry.extracted}>"{entry.extracted}"</span
 									>
-									{#if entry.score != null && entry.score >= 0.8}
+									{#if entry.suggestedAlias}
+										<span class="shrink-0 text-amber-400" title='Will add "{entry.suggestedAlias}" as alias for {entry.displayValue}'>alias: {entry.suggestedAlias}</span>
+									{:else if entry.score != null && entry.score >= 0.8}
 										<span
 											title="Matched to existing entity with {Math.min(
 												100,
@@ -738,7 +744,9 @@
 									<span class="shrink-0">Found:</span>
 									<span class="truncate font-mono" title={entry.extracted}>"{entry.extracted}"</span
 									>
-									{#if entry.score != null && entry.score >= 0.8}
+									{#if entry.suggestedAlias}
+										<span class="shrink-0 text-amber-400" title='Will add "{entry.suggestedAlias}" as alias for {entry.displayValue}'>alias: {entry.suggestedAlias}</span>
+									{:else if entry.score != null && entry.score >= 0.8}
 										<span
 											title="Matched to existing entity with {Math.min(
 												100,
@@ -805,7 +813,9 @@
 									<span class="shrink-0">Found:</span>
 									<span class="truncate font-mono" title={entry.extracted}>"{entry.extracted}"</span
 									>
-									{#if entry.score != null && entry.score >= 0.8}
+									{#if entry.suggestedAlias}
+										<span class="shrink-0 text-amber-400" title='Will add "{entry.suggestedAlias}" as alias for {entry.displayValue}'>alias: {entry.suggestedAlias}</span>
+									{:else if entry.score != null && entry.score >= 0.8}
 										<span
 											title="Matched to existing entity with {Math.min(
 												100,
