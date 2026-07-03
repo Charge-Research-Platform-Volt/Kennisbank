@@ -191,23 +191,27 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
             bool isExisting = Guid.TryParse(author.Value, out Guid parsedAuthor);
             Guid authorId = isExisting ? parsedAuthor
                 : author.Type?.ToLower() == "organisation"
-                    ? await organisationService.FindIdByNameAsync(author.Value) ?? await organisationService.CreateAsync(new OrganisationCreateDto { Name = author.Value }, createdBy)
-                    : await personService.FindIdByNameAsync(author.Value) ?? await personService.CreateAsync(new PersonCreateDto { Name = author.Value }, createdBy);
+                    ? await organisationService.FindIdByNameAsync(author.Value) ?? await organisationService.CreateAsync(new OrganisationCreateDto { Name = author.Value, Website = author.Website, EmailAddress = author.Email }, createdBy)
+                    : await personService.FindIdByNameAsync(author.Value) ?? await personService.CreateAsync(new PersonCreateDto { Name = author.Value, Occupation = author.Occupation, EmailAddress = author.Email }, createdBy);
             db.ResourceAuthorRelations.Add(new ResourceAuthorRelation { ResourceId = resourceId, AuthorId = authorId });
 
             if (isExisting && !string.IsNullOrWhiteSpace(author.SuggestedAlias))
                 await TryAppendAliasAsync(authorId, author.SuggestedAlias, author.Type?.ToLower() == "organisation" ? "organisation" : "person", aliasedEntities);
+            if (isExisting)
+                await TryPatchEntityMetadataAsync(authorId, author.Type?.ToLower() == "organisation" ? "organisation" : "person", author.Occupation, author.Website, author.Email);
         }
 
         foreach (var org in dto.Organisations.DistinctBy(o => o.Id))
         {
             bool isExisting = Guid.TryParse(org.Id, out Guid parsedOrg);
             Guid orgId = isExisting ? parsedOrg
-                : await organisationService.FindIdByNameAsync(org.Id) ?? await organisationService.CreateAsync(new OrganisationCreateDto { Name = org.Id }, createdBy);
+                : await organisationService.FindIdByNameAsync(org.Id) ?? await organisationService.CreateAsync(new OrganisationCreateDto { Name = org.Id, Website = org.Website, EmailAddress = org.Email }, createdBy);
             db.ResourceOrganisationRelations.Add(new ResourceOrganisationRelation { ResourceId = resourceId, OrganisationId = orgId, Role = org.Relation });
 
             if (isExisting && !string.IsNullOrWhiteSpace(org.SuggestedAlias))
                 await TryAppendAliasAsync(orgId, org.SuggestedAlias, "organisation", aliasedEntities);
+            if (isExisting)
+                await TryPatchEntityMetadataAsync(orgId, "organisation", null, org.Website, org.Email);
         }
 
         foreach (string region in dto.Regions.Distinct())
@@ -221,11 +225,13 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
         {
             bool isExisting = Guid.TryParse(person.Id, out Guid parsedPerson);
             Guid personId = isExisting ? parsedPerson
-                : await personService.FindIdByNameAsync(person.Id) ?? await personService.CreateAsync(new PersonCreateDto { Name = person.Id }, createdBy);
+                : await personService.FindIdByNameAsync(person.Id) ?? await personService.CreateAsync(new PersonCreateDto { Name = person.Id, Occupation = person.Occupation, EmailAddress = person.Email }, createdBy);
             db.ResourceRelatedPersonRelations.Add(new ResourceRelatedPersonRelation { ResourceId = resourceId, PersonId = personId, Role = person.Relation });
 
             if (isExisting && !string.IsNullOrWhiteSpace(person.SuggestedAlias))
                 await TryAppendAliasAsync(personId, person.SuggestedAlias, "person", aliasedEntities);
+            if (isExisting)
+                await TryPatchEntityMetadataAsync(personId, "person", person.Occupation, null, person.Email);
         }
 
         await db.SaveChangesAsync();
@@ -253,6 +259,24 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
         if (entity == null || entity.Aliases.Contains(alias, StringComparer.OrdinalIgnoreCase)) return;
         entity.Aliases.Add(alias);
         collected.Add((entityId, type));
+    }
+
+    private async Task TryPatchEntityMetadataAsync(Guid entityId, string type, string? occupation, string? website, string? email)
+    {
+        if (type == "organisation")
+        {
+            var org = await db.Organisations.FindAsync(entityId);
+            if (org == null) return;
+            if (!string.IsNullOrWhiteSpace(website) && string.IsNullOrWhiteSpace(org.Website)) org.Website = website;
+            if (!string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(org.EmailAddress)) org.EmailAddress = email;
+        }
+        else
+        {
+            var person = await db.Persons.FindAsync(entityId);
+            if (person == null) return;
+            if (!string.IsNullOrWhiteSpace(occupation) && string.IsNullOrWhiteSpace(person.Occupation)) person.Occupation = occupation;
+            if (!string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(person.EmailAddress)) person.EmailAddress = email;
+        }
     }
 
     public async Task<bool> UpdateAsync(Guid id, Action<Resource> update)

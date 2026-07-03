@@ -95,29 +95,53 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         stream.Position = 0;
         using MemoryStream ms = new();
         await stream.CopyToAsync(ms);
-        string base64 = Convert.ToBase64String(ms.ToArray());
-        string mimeType = Filetype.GetMimeType(fileExtension);
-        string dataUri = $"data:{mimeType};base64,{base64}";
 
         bool isPdf = string.Equals(fileExtension, ".pdf", StringComparison.OrdinalIgnoreCase);
-
         string apiKey = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_API_KEY);
+        string mistralEndpoint = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_ENDPOINT);
 
+        using HttpClient httpClient = new() { Timeout = TimeSpan.FromMinutes(5) };
+        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+
+        // Step 1: Upload file to Mistral Files API
+        ms.Position = 0;
+        using MultipartFormDataContent uploadForm = new();
+        uploadForm.Add(new StreamContent(ms), "file", $"document{fileExtension}");
+        uploadForm.Add(new StringContent("ocr"), "purpose");
+
+        using HttpRequestMessage uploadRequest = new(HttpMethod.Post, mistralEndpoint + "/files");
+        uploadRequest.Content = uploadForm;
+
+        using HttpResponseMessage uploadResponse = await httpClient.SendAsync(uploadRequest);
+        string uploadResponseBody = await uploadResponse.Content.ReadAsStringAsync();
+        logger.LogInformation("Mistral file upload response ({Status}): {Body}", (int)uploadResponse.StatusCode, uploadResponseBody);
+        uploadResponse.EnsureSuccessStatusCode();
+
+        string mistralFileId = JsonDocument.Parse(uploadResponseBody).RootElement.GetProperty("id").GetString()!;
+        logger.LogInformation("Uploaded file to Mistral Files API: {FileId}", mistralFileId);
+
+        // Step 2: Get signed download URL
+        using HttpRequestMessage signedUrlRequest = new(HttpMethod.Get, $"{mistralEndpoint}/files/{mistralFileId}/url?expiry=1");
+        using HttpResponseMessage signedUrlResponse = await httpClient.SendAsync(signedUrlRequest);
+        string signedUrlResponseBody = await signedUrlResponse.Content.ReadAsStringAsync();
+        logger.LogInformation("Mistral signed URL response ({Status}): {Body}", (int)signedUrlResponse.StatusCode, signedUrlResponseBody);
+        signedUrlResponse.EnsureSuccessStatusCode();
+        string fileUrl = JsonDocument.Parse(signedUrlResponseBody).RootElement.GetProperty("url").GetString()!;
+        logger.LogInformation("Got signed URL for OCR");
+
+        // Step 3: Run OCR using signed URL
         var requestBody = isPdf
-            ? (object)new { model = "mistral-ocr-latest", document = new { type = "document_url", document_url = dataUri }, extract_header = true, extract_footer = true }
-            : new { model = "mistral-ocr-latest", document = new { type = "image_url", image_url = dataUri }, extract_header = true, extract_footer = true };
+            ? (object)new { model = "mistral-ocr-latest", document = new { type = "document_url", document_url = fileUrl }, extract_header = true, extract_footer = true }
+            : new { model = "mistral-ocr-latest", document = new { type = "image_url", image_url = fileUrl }, extract_header = true, extract_footer = true };
 
-        string json = JsonSerializer.Serialize(requestBody);
+        using HttpRequestMessage ocrRequest = new(HttpMethod.Post, mistralEndpoint + "/ocr");
+        ocrRequest.Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
 
-        using HttpClient httpClient = new();
-        using HttpRequestMessage request = new(HttpMethod.Post, environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_ENDPOINT) + "/ocr");
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
-        request.Content = new StringContent(json, Encoding.UTF8, "application/json");
-
-        using HttpResponseMessage response = await httpClient.SendAsync(request);
-        response.EnsureSuccessStatusCode();
-
+        using HttpResponseMessage response = await httpClient.SendAsync(ocrRequest);
         string responseBody = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+            logger.LogError("Mistral OCR failed ({Status}): {Body}", (int)response.StatusCode, responseBody);
+        response.EnsureSuccessStatusCode();
         using JsonDocument doc = JsonDocument.Parse(responseBody);
 
         StringBuilder sb = new();
@@ -146,6 +170,17 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         string result = CleanOcrMarkdown(sb.ToString());
         string model = doc.RootElement.GetProperty("model").GetString() ?? "";
         logger.LogInformation("Mistral OCR extracted {Length} characters.", result.Length);
+
+        // Step 4: Delete uploaded file from Mistral (avoid storage charges)
+        try
+        {
+            using HttpRequestMessage deleteRequest = new(HttpMethod.Delete, $"{mistralEndpoint}/files/{mistralFileId}");
+            await httpClient.SendAsync(deleteRequest);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to delete Mistral file {FileId} after OCR", mistralFileId);
+        }
 
         return new OcrResult { Text = result, HeaderFooterText = string.Join("\n", headerFooterLines), Model = model };
     }

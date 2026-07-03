@@ -2,12 +2,11 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import AsyncSelect from '$lib/components/ui/async-select.svelte';
-	import InlineSelect from '$lib/components/ui/inline-select.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { fly } from 'svelte/transition';
 	import { LanguageCodes } from '$lib/lists/languageCodes';
 	import type { DatePrecision, ExtractedMetadata } from '$lib/types/resource';
-	import { User, Building2, X, CircleCheck } from '@lucide/svelte';
+	import { User, Building2, X, Briefcase, Globe, Mail } from '@lucide/svelte';
 	import BadgeInput from '$lib/components/ui/badge-input.svelte';
 	import { toast } from 'svelte-sonner';
 	import ProcessingPhase from './processing-phase.svelte';
@@ -25,10 +24,13 @@
 		extracted: string;
 		value: string;
 		displayValue: string;
-		score?: number | null;
 		role?: string;
 		authorType?: string;
 		suggestedAlias?: string | null;
+		reason?: string | null;
+		occupation?: string | null;
+		website?: string | null;
+		email?: string | null;
 	};
 
 	let phase = $state<Phase>('select');
@@ -69,17 +71,7 @@
 			}))
 		);
 
-	const searchPersons = async (q: string) => {
-		const result = await api.get<PagedResult<ListItem>>(`/api/persons?search=${encodeURIComponent(q)}&pageSize=10`);
-		return result.items;
-	};
-
-	const searchOrganisations = async (q: string) => {
-		const result = await api.get<PagedResult<ListItem>>(`/api/organisations?search=${encodeURIComponent(q)}&pageSize=10`);
-		return result.items;
-	};
-
-	async function searchTags(q: string) {
+async function searchTags(q: string) {
 		const url = q
 			? `/api/tags?page=1&pageSize=20&search=${encodeURIComponent(q)}`
 			: '/api/tags?page=1&pageSize=20';
@@ -208,10 +200,26 @@
 				Authors: authors.map((a) => ({
 					value: a.value,
 					type: a.authorType?.toLowerCase() ?? 'person',
-					suggestedAlias: a.suggestedAlias ?? null
+					suggestedAlias: a.suggestedAlias ?? null,
+					occupation: a.occupation ?? null,
+					email: a.email ?? null
 				})),
-				Organisations: organisations.map((o) => ({ Id: o.value, Relation: o.role || null, SuggestedAlias: o.suggestedAlias ?? null })),
-				RelatedPersons: relatedPersons.map((p) => ({ Id: p.value, Relation: p.role || null, SuggestedAlias: p.suggestedAlias ?? null })),
+				Organisations: organisations.map((o) => ({ 
+					Id: o.value, 
+					Relation: o.role || null, 
+					SuggestedAlias: o.suggestedAlias ?? null,
+					Occupation: o.occupation ?? null,
+					Website: o.website ?? null,
+					Email: o.email ?? null
+				})),
+				RelatedPersons: relatedPersons.map((p) => ({ 
+					Id: p.value, 
+					Relation: p.role || null, 
+					SuggestedAlias: p.suggestedAlias ?? null,
+					Occupation: p.occupation ?? null,
+					Website: p.website ?? null,
+					Email: p.email ?? null
+				})),
 				Regions: regions.map((r) => r.id),
 				FileId: mode === 'file' ? fileId : null,
 				Hash: mode === 'file' ? fileHash : null,
@@ -303,27 +311,37 @@
 				name: string;
 				type: string;
 				role?: string;
-				similars: { id: string; name: string; score: number; isQcConfirmed: boolean; suggestedAlias?: string | null }[];
+				reason?: string | null;
+				occupation?: string | null;
+				website?: string | null;
+				email?: string | null;
+				similars: { id: string; name: string; isQcConfirmed: boolean; suggestedAlias?: string | null }[];
 			}): EntityEntry => {
-				const top = e.similars[0];
-				return top && (top.score >= 0.8 || top.isQcConfirmed)
+				const confirmed = e.similars.find((s) => s.isQcConfirmed);
+				const meta = {
+					reason: e.reason ?? null,
+					occupation: e.occupation ?? null,
+					website: e.website ?? null,
+					email: e.email ?? null
+				};
+				return confirmed
 					? {
 							extracted: e.name,
-							value: top.id,
-							displayValue: top.name,
+							value: confirmed.id,
+							displayValue: confirmed.name,
 							authorType: e.type,
-							score: top.score,
 							role: e.role,
-							suggestedAlias: top.suggestedAlias ?? null
+							suggestedAlias: confirmed.suggestedAlias ?? null,
+							...meta
 						}
 					: {
 							extracted: e.name,
 							value: e.name,
 							displayValue: e.name,
 							authorType: e.type,
-							score: top?.score ?? null,
 							role: e.role,
-							suggestedAlias: null
+							suggestedAlias: null,
+							...meta
 						};
 			};
 
@@ -655,64 +673,47 @@
 					</div>
 					{#each authors as entry, i (i)}
 						{#if i > 0}<div class="border-t border-border/50"></div>{/if}
-						<div class="flex flex-col gap-1">
-							{#if entry.extracted}
-								<div class="flex items-center gap-1 text-xs text-muted-foreground">
-									<span class="shrink-0">Found:</span>
-									<span class="truncate font-mono" title={entry.extracted}>"{entry.extracted}"</span
-									>
-									{#if entry.suggestedAlias}
-										<span class="shrink-0 text-amber-400" title='Will add "{entry.suggestedAlias}" as alias for {entry.displayValue}'>alias: {entry.suggestedAlias}</span>
-									{:else if entry.score != null && entry.score >= 0.8}
-										<span
-											title="Matched to existing entity with {Math.min(
-												100,
-												Math.round(entry.score * 100)
-											)}% confidence"
-											class="ml-auto flex shrink-0 items-center gap-0.5 font-medium text-emerald-500"
-										>
-											<CircleCheck size={11} />{Math.min(100, Math.round(entry.score * 100))}%
-										</span>
-									{/if}
-								</div>
-							{/if}
-							<div class="flex items-center gap-1.5">
-								<button
-									onclick={() => {
-										entry.authorType =
-											entry.authorType === 'organisation' ? 'person' : 'organisation';
-										entry.value = '';
-										entry.displayValue = '';
-									}}
-									class="flex shrink-0 cursor-pointer items-center gap-1 rounded border border-border/50 px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:border-border hover:text-foreground"
-								>
-									{#if entry.authorType === 'organisation'}
-										<Building2 size={13} />Org
-									{:else}
-										<User size={13} />Person
-									{/if}
-								</button>
-								<div class="min-w-0 flex-1">
-									<InlineSelect
-										bind:value={entry.value}
-										bind:displayValue={entry.displayValue}
-										search={entry.authorType === 'organisation'
-											? searchOrganisations
-											: searchPersons}
-										oncreate={async (name) => ({ id: name, name })}
-										placeholder="Search or create..."
-									/>
+						<div class="flex flex-col gap-0.5">
+							<div class="flex items-start justify-between gap-2">
+								<div class="flex min-w-0 flex-1 flex-col gap-0.5">
+									<span class="truncate text-sm font-medium">{entry.displayValue || entry.extracted}</span>
 								</div>
 								<button
 									onclick={() => (authors = authors.filter((_, j) => j !== i))}
-									class="shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
+									class="mt-0.5 shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
 								>
 									<X size={14} />
 								</button>
 							</div>
-							{#if entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
-								<div class="mt-0.5">
-									<span class="rounded px-1.5 py-0.5 text-xs font-medium bg-amber-500/15 text-amber-400">New</span>
+							<div class="flex flex-wrap items-center gap-1 pt-0.5">
+								{#if entry.authorType}
+									<span class="flex items-center gap-1 rounded border border-border/50 px-1.5 py-0.5 text-xs text-muted-foreground">
+										{#if entry.authorType === 'organisation'}
+											<Building2 size={10} />Org
+										{:else}
+											<User size={10} />Person
+										{/if}
+									</span>
+								{/if}
+								{#if entry.suggestedAlias}
+									<span class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400" title="Will be added as alias to {entry.displayValue}">alias: {entry.suggestedAlias}</span>
+								{/if}
+								{#if entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
+									<span class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400">New</span>
+								{/if}
+							</div>
+							{#if entry.occupation || entry.email}
+								<div class="flex flex-wrap items-center gap-1 pt-0.5">
+									{#if entry.occupation}
+										<span class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground" title="Occupation">
+											<Briefcase size={10} />{entry.occupation}
+										</span>
+									{/if}
+									{#if entry.email}
+										<span class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground" title="Email">
+											<Mail size={10} />{entry.email}
+										</span>
+									{/if}
 								</div>
 							{/if}
 						</div>
@@ -738,50 +739,44 @@
 					</div>
 					{#each relatedPersons as entry, i (i)}
 						{#if i > 0}<div class="border-t border-border/50"></div>{/if}
-						<div class="flex flex-col gap-1">
-							{#if entry.extracted}
-								<div class="flex items-center gap-1 text-xs text-muted-foreground">
-									<span class="shrink-0">Found:</span>
-									<span class="truncate font-mono" title={entry.extracted}>"{entry.extracted}"</span
-									>
-									{#if entry.suggestedAlias}
-										<span class="shrink-0 text-amber-400" title='Will add "{entry.suggestedAlias}" as alias for {entry.displayValue}'>alias: {entry.suggestedAlias}</span>
-									{:else if entry.score != null && entry.score >= 0.8}
-										<span
-											title="Matched to existing entity with {Math.min(
-												100,
-												Math.round(entry.score * 100)
-											)}% confidence"
-											class="ml-auto flex shrink-0 items-center gap-0.5 font-medium text-emerald-500"
-										>
-											<CircleCheck size={11} />{Math.min(100, Math.round(entry.score * 100))}%
-										</span>
+						<div class="flex flex-col gap-0.5">
+							<div class="flex items-start justify-between gap-2">
+								<div class="flex min-w-0 flex-1 flex-col gap-0.5">
+									<span class="truncate text-sm font-medium">{entry.displayValue || entry.extracted}</span>
+									{#if entry.reason && entry.role !== 'production'}
+										<span class="text-xs italic text-muted-foreground">{entry.reason}</span>
 									{/if}
-								</div>
-							{/if}
-							<div class="flex items-center gap-1.5">
-								<div class="min-w-0 flex-1">
-									<InlineSelect
-										bind:value={entry.value}
-										bind:displayValue={entry.displayValue}
-										search={searchPersons}
-										oncreate={async (name) => ({ id: name, name })}
-										placeholder="Search or create..."
-									/>
 								</div>
 								<button
 									onclick={() => (relatedPersons = relatedPersons.filter((_, j) => j !== i))}
-									class="shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
+									class="mt-0.5 shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
 								>
 									<X size={14} />
 								</button>
 							</div>
-							<div class="mt-0.5 flex items-center gap-1.5">
+							<div class="flex flex-wrap items-center gap-1 pt-0.5">
 								<RoleBadge bind:role={entry.role} editable />
+								{#if entry.suggestedAlias}
+									<span class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400" title="Will be added as alias to {entry.displayValue}">alias: {entry.suggestedAlias}</span>
+								{/if}
 								{#if entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
-									<span class="rounded px-1.5 py-0.5 text-xs font-medium bg-amber-500/15 text-amber-400">New</span>
+									<span class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400">New</span>
 								{/if}
 							</div>
+							{#if entry.occupation || entry.email}
+								<div class="flex flex-wrap items-center gap-1 pt-0.5">
+									{#if entry.occupation}
+										<span class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground" title="Occupation">
+											<Briefcase size={10} />{entry.occupation}
+										</span>
+									{/if}
+									{#if entry.email}
+										<span class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground" title="Email">
+											<Mail size={10} />{entry.email}
+										</span>
+									{/if}
+								</div>
+							{/if}
 						</div>
 					{/each}
 					<button
@@ -807,50 +802,44 @@
 					</div>
 					{#each organisations as entry, i (i)}
 						{#if i > 0}<div class="border-t border-border/50"></div>{/if}
-						<div class="flex flex-col gap-1">
-							{#if entry.extracted}
-								<div class="flex items-center gap-1 text-xs text-muted-foreground">
-									<span class="shrink-0">Found:</span>
-									<span class="truncate font-mono" title={entry.extracted}>"{entry.extracted}"</span
-									>
-									{#if entry.suggestedAlias}
-										<span class="shrink-0 text-amber-400" title='Will add "{entry.suggestedAlias}" as alias for {entry.displayValue}'>alias: {entry.suggestedAlias}</span>
-									{:else if entry.score != null && entry.score >= 0.8}
-										<span
-											title="Matched to existing entity with {Math.min(
-												100,
-												Math.round(entry.score * 100)
-											)}% confidence"
-											class="ml-auto flex shrink-0 items-center gap-0.5 font-medium text-emerald-500"
-										>
-											<CircleCheck size={11} />{Math.min(100, Math.round(entry.score * 100))}%
-										</span>
+						<div class="flex flex-col gap-0.5">
+							<div class="flex items-start justify-between gap-2">
+								<div class="flex min-w-0 flex-1 flex-col gap-0.5">
+									<span class="truncate text-sm font-medium">{entry.displayValue || entry.extracted}</span>
+									{#if entry.reason && entry.role !== 'production'}
+										<span class="text-xs italic text-muted-foreground">{entry.reason}</span>
 									{/if}
-								</div>
-							{/if}
-							<div class="flex items-center gap-1.5">
-								<div class="min-w-0 flex-1">
-									<InlineSelect
-										bind:value={entry.value}
-										bind:displayValue={entry.displayValue}
-										search={searchOrganisations}
-										oncreate={async (name) => ({ id: name, name })}
-										placeholder="Search or create..."
-									/>
 								</div>
 								<button
 									onclick={() => (organisations = organisations.filter((_, j) => j !== i))}
-									class="shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
+									class="mt-0.5 shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
 								>
 									<X size={14} />
 								</button>
 							</div>
-							<div class="mt-0.5 flex items-center gap-1.5">
+							<div class="flex flex-wrap items-center gap-1 pt-0.5">
 								<RoleBadge bind:role={entry.role} editable />
+								{#if entry.suggestedAlias}
+									<span class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400" title="Will be added as alias to {entry.displayValue}">alias: {entry.suggestedAlias}</span>
+								{/if}
 								{#if entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
-									<span class="rounded px-1.5 py-0.5 text-xs font-medium bg-amber-500/15 text-amber-400">New</span>
+									<span class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400">New</span>
 								{/if}
 							</div>
+							{#if entry.website || entry.email}
+								<div class="flex flex-wrap items-center gap-1 pt-0.5">
+									{#if entry.website}
+										<a href={entry.website} target="_blank" rel="noreferrer" class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground" title="Website">
+											<Globe size={10} />{entry.website}
+										</a>
+									{/if}
+									{#if entry.email}
+										<span class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground" title="Email">
+											<Mail size={10} />{entry.email}
+										</span>
+									{/if}
+								</div>
+							{/if}
 						</div>
 					{/each}
 					<button

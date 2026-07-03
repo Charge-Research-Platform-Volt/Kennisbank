@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace KnowledgeBank.Models;
 
 /// <summary>
@@ -30,9 +32,12 @@ public class EntityWithSimilars
     public string Name { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty; // "person" or "organisation" - the suggested type for new entities
     public string? Role { get; set; }
+    public string? Reason { get; set; }
+    public string? Occupation { get; set; }
+    public string? Website { get; set; }
+    public string? Email { get; set; }
     public List<SimilarEntity> Similars { get; set; } = [];
-
-    public bool IsValid { get; set; } = true;
+    [JsonIgnore] public bool IsValid { get; set; } = true;
 }
 
 /// <summary>
@@ -49,9 +54,9 @@ public class SimilarEntity
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
-    public float Score { get; set; }
-    public string Type { get; set; } = string.Empty; // "person" or "organisation"
+    public string Type { get; set; } = string.Empty;
     public bool IsQcConfirmed { get; set; } = false;
-    public string? Description { get; set; }
+    [JsonIgnore] public float Score { get; set; }
+    [JsonIgnore] public string? Description { get; set; }
     public string? SuggestedAlias { get; set; }
 }

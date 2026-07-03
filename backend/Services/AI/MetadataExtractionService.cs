@@ -34,6 +34,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
 
     private static readonly SemaphoreSlim AiSemaphore = new(5, 5);
     private static readonly SemaphoreSlim SearchSemaphore = new(10, 10);
+    private static readonly JsonSerializerOptions IndentedJson = new() { WriteIndented = true };
 
 
     private static string TrimTextForFile(string text) => TrimText(text, firstChars: 8000, lastChars: 2000);
@@ -100,12 +101,21 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         - If attribution refers to an internal team or staff ("our editorial team", "onze redactie"), use the name of the publishing organisation as the author.
         - If no authorship is found, leave empty.
 
+        For each author also extract if present near the authorship credits:
+        - OCCUPATION: Persons only — job title or role as stated (e.g. "Professor", "CEO", "Digital Minister"). Empty string if not mentioned.
+        - EMAIL: Email address if explicitly listed next to the author's name. Empty string if not stated.
+
         PRODUCTIONS
         Persons and organisations explicitly named as having commissioned, published, funded, led, reviewed, edited, or contributed to this document.
         - Do NOT include document authors, since those should go in AUTHORS.
         - Do NOT include entities merely discussed in the content.
         - Do NOT include laws, regulations, directives, or funding programmes.
         - Leave empty if nothing qualifies.
+
+        For each production entity also extract if present:
+        - OCCUPATION: Persons only — job title or role as stated (e.g. "Professor", "CEO", "Digital Minister"). Empty string if not mentioned.
+        - WEBSITE: Organisations only — URL to website of organisation as stated. Empty string if not mentioned.
+        - EMAIL: Email address if explicitly stated for this entity. Empty string if not stated.
 
         TAGS
         5-15 topical keywords relevant to the document's subject matter.
@@ -136,9 +146,11 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
                         "type": "object",
                         "properties": {
                             "name": { "type": "string" },
-                            "type": { "type": "string", "enum": ["person", "organisation"] }
+                            "type": { "type": "string", "enum": ["person", "organisation"] },
+                            "occupation": { "type": "string" },
+                            "email": { "type": "string" }
                         },
-                        "required": ["name", "type"],
+                        "required": ["name", "type", "occupation", "email"],
                         "additionalProperties": false
                     }
                 },
@@ -148,9 +160,12 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
                         "type": "object",
                         "properties": {
                             "name": { "type": "string" },
-                            "type": { "type": "string", "enum": ["person", "organisation"] }
+                            "type": { "type": "string", "enum": ["person", "organisation"] },
+                            "occupation": { "type": "string" },
+                            "website": { "type": "string" },
+                            "email": { "type": "string" }
                         },
-                        "required": ["name", "type"],
+                        "required": ["name", "type", "occupation", "website", "email"],
                         "additionalProperties": false
                     }
                 },
@@ -192,6 +207,11 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         - Use full official names, not abbreviations.
         - Leave subjects empty if nothing qualifies
 
+        For each extracted entity also provide:
+        - REASON: One sentence explaining why this entity was extracted — what action, decision, or position makes them relevant to this section.
+        - OCCUPATION: Persons only — job title or role as stated (e.g. "Professor", "CEO", "Digital Minister"). Empty string if not mentioned.
+        - WEBSITE: Organisations only — website URL if mentioned in this section. Empty string if not mentioned.
+
         KEYINSIGHT
         One sentence describing what this section covers that likely does not appear in the document's introduction or conclusion.
         Empty string if nothing notable or if this is the first section.
@@ -207,9 +227,12 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
                         "type": "object",
                         "properties": {
                             "name": { "type": "string" },
-                            "type": { "type": "string", "enum": ["person", "organisation"] }
+                            "type": { "type": "string", "enum": ["person", "organisation"] },
+                            "reason": { "type": "string" },
+                            "occupation": { "type": "string" },
+                            "website": { "type": "string" }
                         },
-                        "required": ["name", "type"],
+                        "required": ["name", "type", "reason", "occupation", "website"],
                         "additionalProperties": false
                     }
                 },
@@ -220,16 +243,37 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         }
     """;
 
-    private const string QcSystemPrompt = """
-        You are a quality control assistant for a political research library.
-        For each entity, identify the best matching database candidate.
-
-        For each entity decide:
-        1. confirmedMatchId: UUID of the best-matching database candidate, or empty string if none. Only confirm when confident. Abbreviations and alternate names count as a match. If there are no candidates, return empty string.
-        2. suggestedAlias: If the document name is an alias/abbreviation of the confirmed match (e.g. "EU" for "European Union"), return that string. Otherwise empty string.
+    private const string EnrichmentSystemPrompt = """
+        You are a research librarian assistant.
+        Using the document title, original description, and key section insights provided, write an enriched description (100-400 words) covering the full document.
+        Be neutral and informative, written for a researcher who has not read the document.
+        Incorporate insights from all sections, not just the introduction or conclusion.
+        If no key insights are provided, reproduce and lightly improve the original description if necessary.
+        ONLY state information provided, DO NOT infer.
     """;
 
-    private static string GetQcJsonSchema() => """
+    private static string GetEnrichmentJsonSchema() => """
+        {
+            "type": "object",
+            "properties": {
+                "enrichedDescription": { "type": "string" }
+            },
+            "required": ["enrichedDescription"],
+            "additionalProperties": false
+        }
+    """;
+
+    private const string EntityQcSystemPrompt = """
+        You are a quality control assistant for a political research library.
+        For each extracted entity you receive the name, type, reason it was extracted, and any database candidates.
+
+        For each entity decide:
+        1. isValid: true if this entity genuinely belongs in this document's subject matter given its reason and the document context. Mark false only when clearly wrong — e.g. an author of a cited work, a passing example, or completely unrelated to this document. Default to true when uncertain.
+        2. confirmedMatchId: UUID of the candidate that is the exact same real-world entity — same person, same organisation. Use your general knowledge about the entity to verify: if you know what the extracted entity is and the candidate clearly refers to something different, reject it regardless of similarity score. Being in the same field, sector, or country is NOT sufficient. Do not pick the least-bad option — if no candidate is clearly the same entity, return empty string. A missed match is far better than a wrong one.
+        3. suggestedAlias: If the extracted name is an alias or abbreviation of the confirmed match (e.g. "EU" for "European Union"), return that string. Otherwise empty string.
+    """;
+
+    private static string GetEntityQcJsonSchema() => """
         {
             "type": "object",
             "properties": {
@@ -239,14 +283,16 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
                         "type": "object",
                         "properties": {
                             "name": { "type": "string" },
+                            "isValid": { "type": "boolean" },
                             "confirmedMatchId": { "type": "string" },
                             "suggestedAlias": { "type": "string" }
                         },
-                        "required": ["name", "confirmedMatchId", "suggestedAlias"]
+                        "required": ["name", "isValid", "confirmedMatchId", "suggestedAlias"]
                     }
                 }
             },
-            "required": ["decisions"]
+            "required": ["decisions"],
+            "additionalProperties": false
         }
     """;
 
@@ -364,8 +410,12 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         progress?.Invoke("Matching against library...", 85);
 
         ExtractedMetadata extractedMetadata = await BuildMetadataAsync(biblio, productions, subjects);
+        logger.Information("Metadata before QC: {Metadata}", JsonSerializer.Serialize(extractedMetadata, IndentedJson));
         progress?.Invoke("Running entity quality check...", 92);
-        await RunEntityQcAsync(extractedMetadata, trimmedText);
+        await RunEntityQcAsync(extractedMetadata, keyInsights);
+        extractedMetadata.RelatedPersons.RemoveAll(e => !e.IsValid);
+        extractedMetadata.Organisations.RemoveAll(e => !e.IsValid);
+        logger.Information("Metadata after QC: {Metadata}", JsonSerializer.Serialize(extractedMetadata, IndentedJson));
         extractedMetadata.PublicationCode = ExtractPublicationCode(string.IsNullOrWhiteSpace(headerFooterText) ? strippedText : strippedText + "\n" + headerFooterText);
         extractedMetadata.LanguageCode = DetectLanguage(strippedText);
 
@@ -471,7 +521,15 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
             .Select(async author =>
             {
                 var similars = await FindSimilarsAsync(author.Name, ["person", "organisation"]);
-                return new AuthorWithSimilars { Name = author.Name.Trim(), Type = author.Type.ToLowerInvariant(), Similars = similars };
+                return new AuthorWithSimilars
+                {
+                    Name = author.Name.Trim(),
+                    Type = author.Type.ToLowerInvariant(),
+                    Reason = "Author of this document",
+                    Occupation = NullIfEmpty(author.Occupation),
+                    Email = NullIfEmpty(author.Email),
+                    Similars = similars
+                };
             });
         return [.. await Task.WhenAll(tasks)];
     }
@@ -483,7 +541,17 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
             .Select(async item =>
             {
                 var similars = await FindSimilarsAsync(item.Entity.Name, [type]);
-                return new EntityWithSimilars { Name = item.Entity.Name.Trim(), Type = type, Role = item.Role, Similars = similars };
+                return new EntityWithSimilars
+                {
+                    Name = item.Entity.Name.Trim(),
+                    Type = type,
+                    Role = item.Role,
+                    Reason = NullIfEmpty(item.Entity.Reason) ?? (item.Role == RoleProduction ? "Production contributor of this document" : null),
+                    Occupation = NullIfEmpty(item.Entity.Occupation),
+                    Website = NullIfEmpty(item.Entity.Website),
+                    Email = NullIfEmpty(item.Entity.Email),
+                    Similars = similars
+                };
             });
         return [.. await Task.WhenAll(tasks)];
     }
@@ -529,7 +597,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         {
             var p = await db.Persons
                 .Where(x => !x.Trashed && x.Aliases.Any(a => a.ToLower() == nameLower))
-                .Select(x => new SimilarEntity { Id = x.Id, Name = x.Name, Score = 1.0f, Type = "person", IsQcConfirmed = true, Description = x.Description })
+                .Select(x => new SimilarEntity { Id = x.Id, Name = x.Name, Type = "person", IsQcConfirmed = true, Score = 1.0f, Description = x.Description })
                 .FirstOrDefaultAsync();
 
             if (p != null) return [p];
@@ -539,7 +607,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         {
             var o = await db.Organisations
                 .Where(x => !x.Trashed && x.Aliases.Any(a => a.ToLower() == nameLower))
-                .Select(x => new SimilarEntity { Id = x.Id, Name = x.Name, Score = 1.0f, Type = "organisation", IsQcConfirmed = true, Description = x.Description })
+                .Select(x => new SimilarEntity { Id = x.Id, Name = x.Name, Type = "organisation", IsQcConfirmed = true, Score = 1.0f, Description = x.Description })
                 .FirstOrDefaultAsync();
 
             if (o != null) return [o];
@@ -555,7 +623,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
                 filters: new Dictionary<string, object?> { { "type", typeFilter } }
             );
 
-            return [.. result.Items.Where(i => i.RelevanceScore >= 0.3f).Select(i => new SimilarEntity { Id = i.Id, Name = i.Name, Score = i.RelevanceScore, Type = i.Type, Description = i.Description })];
+            return [.. result.Items.Where(i => i.RelevanceScore >= 0.55f).Select(i => new SimilarEntity { Id = i.Id, Name = i.Name, Type = i.Type, Score = i.RelevanceScore, Description = i.Description })];
         }
         finally
         {
@@ -563,7 +631,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         }
     }
 
-    private async Task RunEntityQcAsync(ExtractedMetadata metadata, string docContext)
+    private async Task RunEntityQcAsync(ExtractedMetadata metadata, List<string> keyInsights)
     {
         var allEntities = metadata.Authors
             .Cast<EntityWithSimilars>()
@@ -571,32 +639,48 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
             .Concat(metadata.Organisations)
             .ToList();
 
-        if (allEntities.Count == 0) return;
+        if (allEntities.Count == 0 && keyInsights.Count == 0) return;
 
-        StringBuilder sb = new();
-        sb.AppendLine($"Document context (excerpt):\n{docContext[..Math.Min(docContext.Length, 1500)]}");
-        sb.AppendLine();
-        sb.AppendLine("Entities to validate:");
-
-        foreach (var entity in allEntities)
+        // STEP 1: Description enrichment (small model)
+        StringBuilder enrichSb = new();
+        enrichSb.AppendLine($"Document title: {metadata.Title}");
+        enrichSb.AppendLine($"Original description: {metadata.Description}");
+        if (keyInsights.Count > 0)
         {
-            sb.AppendLine($"\nName: \"{entity.Name}\" | Type: {entity.Type}");
-            if (entity.Similars.Count > 0)
-            {
-                sb.AppendLine("Database candidates:");
-                foreach (var s in entity.Similars)
-                {
-                    string desc = string.IsNullOrWhiteSpace(s.Description) ? "no description" : s.Description[..Math.Min(s.Description.Length, 100)];
-                    sb.AppendLine($"  - ID: {s.Id} | Name: {s.Name} | {desc}");
-                }
-            }
-            else
-            {
-                sb.AppendLine("Database candidates: none");
-            }
+            enrichSb.AppendLine("\nKey section insights:");
+            foreach (string insight in keyInsights)
+                enrichSb.AppendLine($"- {insight}");
         }
 
-        QcResult? qcResult = await CallLLMAsync<QcResult>(QcSystemPrompt, sb.ToString(), GetQcJsonSchema(), modelOverride: smallModelName);
+        EnrichmentResult? enrichResult = await CallLLMAsync<EnrichmentResult>(EnrichmentSystemPrompt, enrichSb.ToString(), GetEnrichmentJsonSchema(), modelOverride: smallModelName);
+        if (!string.IsNullOrWhiteSpace(enrichResult?.EnrichedDescription))
+            metadata.Description = enrichResult.EnrichedDescription;
+
+        if (allEntities.Count == 0) return;
+
+        // STEP 2: Entity QC (medium model) — uses enriched description as context
+        StringBuilder qcSb = new();
+        qcSb.AppendLine($"Document title: {metadata.Title}");
+        qcSb.AppendLine($"Document description: {metadata.Description}");
+        qcSb.AppendLine("\nEntities to validate:");
+        foreach (EntityWithSimilars entity in allEntities)
+        {
+            qcSb.AppendLine($"\nName: \"{entity.Name}\" | Type: {entity.Type}");
+            if (!string.IsNullOrWhiteSpace(entity.Reason))
+                qcSb.AppendLine($"Reason: {entity.Reason}");
+            if (entity.Similars.Count > 0)
+            {
+                qcSb.AppendLine("Database candidates:");
+                foreach (SimilarEntity similar in entity.Similars)
+                {
+                    string desc = string.IsNullOrWhiteSpace(similar.Description) ? "no description" : similar.Description[..Math.Min(similar.Description.Length, 100)];
+                    qcSb.AppendLine($"  - ID: {similar.Id} | Name: {similar.Name} | Similarity: {similar.Score:P0} | Description: {desc}");
+                }
+            }
+            else qcSb.AppendLine("Database candidates: none");
+        }
+
+        EntityQcResult? qcResult = await CallLLMAsync<EntityQcResult>(EntityQcSystemPrompt, qcSb.ToString(), GetEntityQcJsonSchema(), modelOverride: mediumModelName);
         if (qcResult == null) return;
 
         var decisionMap = qcResult.Decisions.ToDictionary(d => d.Name.Trim().ToLowerInvariant());
@@ -604,6 +688,12 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         foreach (var entity in allEntities)
         {
             if (!decisionMap.TryGetValue(entity.Name.Trim().ToLowerInvariant(), out var decision)) continue;
+
+            if (!decision.IsValid)
+            {
+                entity.IsValid = false;
+                continue;
+            }
 
             if (!string.IsNullOrWhiteSpace(decision.ConfirmedMatchId) && Guid.TryParse(decision.ConfirmedMatchId, out Guid matchId))
             {
@@ -725,6 +815,10 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
     {
         public string Name { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
+        public string? Reason { get; set; }
+        public string? Occupation { get; set; }
+        public string? Website { get; set; }
+        public string? Email { get; set; }
     }
 
     internal class TempBiblio
@@ -760,14 +854,20 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         public string Description { get; set; } = string.Empty;
     }
 
+    internal class EnrichmentResult
+    {
+        public string? EnrichedDescription { get; set; }
+    }
+
     internal class QcDecision
     {
         public string Name { get; set; } = "";
+        public bool IsValid { get; set; } = true;
         public string? ConfirmedMatchId { get; set; }
         public string? SuggestedAlias { get; set; }
     }
 
-    internal class QcResult
+    internal class EntityQcResult
     {
         public List<QcDecision> Decisions { get; set; } = [];
     }
