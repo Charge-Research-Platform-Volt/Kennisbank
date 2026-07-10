@@ -107,7 +107,8 @@ export type ExtractedMetadata = {
 		reason?: string | null;
 		occupation?: string | null;
 		email?: string | null;
-		similars: { id: string; name: string; type: string; isQcConfirmed: boolean; suggestedAlias?: string | null }[];
+		suggestedAlias?: string | null;
+		confirmedMatch: { id: string; name: string; type: string; suggestedAlias?: string | null } | null;
 	}[];
 	organisations: {
 		name: string;
@@ -116,7 +117,8 @@ export type ExtractedMetadata = {
 		reason?: string | null;
 		website?: string | null;
 		email?: string | null;
-		similars: { id: string; name: string; type: string; isQcConfirmed: boolean; suggestedAlias?: string | null }[];
+		suggestedAlias?: string | null;
+		confirmedMatch: { id: string; name: string; type: string; suggestedAlias?: string | null } | null;
 	}[];
 	relatedPersons: {
 		name: string;
@@ -126,7 +128,8 @@ export type ExtractedMetadata = {
 		occupation?: string | null;
 		website?: string | null;
 		email?: string | null;
-		similars: { id: string; name: string; type: string; isQcConfirmed: boolean; suggestedAlias?: string | null }[];
+		suggestedAlias?: string | null;
+		confirmedMatch: { id: string; name: string; type: string; suggestedAlias?: string | null } | null;
 	}[];
 	publicationCode: string | null;
 	tags: string[];

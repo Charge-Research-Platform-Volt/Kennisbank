@@ -72,6 +72,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         Write a neutral, informative summary of what this document is about, what it argues or covers, and what conclusions it draws (50-300 words).
         This is not extracted text, instead you write it based on the document content.
         Write for a researcher who has not read the document.
+        Write in plain text. No markdown formatting — no bold, headers, bullet points, or emphasis.
 
         ABSTRACT
         Only extract if the document is a scientific paper with an explicit abstract section.
@@ -250,6 +251,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         Incorporate insights from all sections, not just the introduction or conclusion.
         If no key insights are provided, reproduce and lightly improve the original description if necessary.
         ONLY state information provided, DO NOT infer.
+        Write in plain text. No markdown formatting — no bold, headers, bullet points, or emphasis.
     """;
 
     private static string GetEnrichmentJsonSchema() => """
@@ -271,6 +273,8 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         1. isValid: true if this entity genuinely belongs in this document's subject matter given its reason and the document context. Mark false only when clearly wrong — e.g. an author of a cited work, a passing example, or completely unrelated to this document. Default to true when uncertain.
         2. confirmedMatchId: UUID of the candidate that is the exact same real-world entity — same person, same organisation. Use your general knowledge about the entity to verify: if you know what the extracted entity is and the candidate clearly refers to something different, reject it regardless of similarity score. Being in the same field, sector, or country is NOT sufficient. Do not pick the least-bad option — if no candidate is clearly the same entity, return empty string. A missed match is far better than a wrong one.
         3. suggestedAlias: If the extracted name is an alias or abbreviation of the confirmed match (e.g. "EU" for "European Union"), return that string. Otherwise empty string.
+        4. correctedEmail / correctedWebsite / correctedOccupation: If a metadata value is assigned to the wrong entity, provide the correct value on the entity that should own it, and empty string on the entity that has it incorrectly. null = leave unchanged, empty string = remove this value, a string value = set to that value.
+        5. mergeInto: If an entity name is clearly a fragment or partial name of another entity in this list (e.g. "Charge" and "Volt" when "Charge Wetenschappelijk Platform Volt" is also present), set this to the exact name of the full entity. Empty string or null if not applicable.
     """;
 
     private static string GetEntityQcJsonSchema() => """
@@ -285,9 +289,13 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
                             "name": { "type": "string" },
                             "isValid": { "type": "boolean" },
                             "confirmedMatchId": { "type": "string" },
-                            "suggestedAlias": { "type": "string" }
+                            "suggestedAlias": { "type": "string" },
+                            "correctedEmail": { "type": ["string", "null"] },
+                            "correctedWebsite": { "type": ["string", "null"] },
+                            "correctedOccupation": { "type": ["string", "null"] },
+                            "mergeInto": { "type": ["string", "null"] }
                         },
-                        "required": ["name", "isValid", "confirmedMatchId", "suggestedAlias"]
+                        "required": ["name", "isValid", "confirmedMatchId", "suggestedAlias", "correctedEmail", "correctedWebsite", "correctedOccupation", "mergeInto"]
                     }
                 }
             },
@@ -422,7 +430,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         return extractedMetadata;
     }
 
-    private async Task<T?> CallLLMAsync<T>(string systemPrompt, string userPrompt, string jsonSchema, string? modelOverride = null) where T : class
+    private async Task<T?> CallLLMAsync<T>(string systemPrompt, string userPrompt, string jsonSchema, string? modelOverride = null, MistralReasoningEffort reasoningEffort = MistralReasoningEffort.Default) where T : class
     {
         // Prepare request
         MistralChatRequest request = new()
@@ -430,7 +438,8 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
             Messages = [new { role = "system", content = systemPrompt }, new { role = "user", content = userPrompt }],
             Temperature = 0.1f,
             ResponseFormat = MistralResponseFormat.JsonSchema,
-            JsonSchema = JsonSerializer.Deserialize<object>(jsonSchema)
+            JsonSchema = JsonSerializer.Deserialize<object>(jsonSchema),
+            ReasoningEffort = reasoningEffort
         };
 
         // Attempt multiple times (rate limits and unavailability happen)
@@ -471,6 +480,24 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
     }
 
     private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+    private static bool IsInitialNameMatch(string name1, string name2)
+    {
+        var parts1 = name1.Split([' ', '.'], StringSplitOptions.RemoveEmptyEntries);
+        var parts2 = name2.Split([' ', '.'], StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts1.Length != parts2.Length || parts1.Length < 2) return false;
+
+        bool hasInitial = false;
+        for (int i = 0; i < parts1.Length; i++)
+        {
+            if (parts1[i].Equals(parts2[i], StringComparison.OrdinalIgnoreCase)) continue;
+            if (parts1[i].Length == 1 && char.ToUpperInvariant(parts1[i][0]) == char.ToUpperInvariant(parts2[i][0])) { hasInitial = true; continue; }
+            if (parts2[i].Length == 1 && char.ToUpperInvariant(parts2[i][0]) == char.ToUpperInvariant(parts1[i][0])) { hasInitial = true; continue; }
+            return false;
+        }
+        return hasInitial;
+    }
     private async Task<ExtractedMetadata> BuildMetadataAsync(TempBiblio biblio, List<TempEntity> productions, List<TempEntity> subjects)
     {
         ExtractedMetadata metadata = new()
@@ -514,21 +541,22 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         return metadata;
     }
 
-    private async Task<List<AuthorWithSimilars>> ProcessAuthorsAsync(IEnumerable<TempEntity> authors)
+    private async Task<List<EntityWithSimilars>> ProcessAuthorsAsync(IEnumerable<TempEntity> authors)
     {
         var tasks = authors
             .Where(a => !string.IsNullOrWhiteSpace(a.Name))
             .Select(async author =>
             {
                 var similars = await FindSimilarsAsync(author.Name, ["person", "organisation"]);
-                return new AuthorWithSimilars
+                return new EntityWithSimilars
                 {
                     Name = author.Name.Trim(),
                     Type = author.Type.ToLowerInvariant(),
                     Reason = "Author of this document",
                     Occupation = NullIfEmpty(author.Occupation),
                     Email = NullIfEmpty(author.Email),
-                    Similars = similars
+                    Similars = similars,
+                    ConfirmedMatch = similars.FirstOrDefault(s => s.Score == 1.0f)
                 };
             });
         return [.. await Task.WhenAll(tasks)];
@@ -550,7 +578,8 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
                     Occupation = NullIfEmpty(item.Entity.Occupation),
                     Website = NullIfEmpty(item.Entity.Website),
                     Email = NullIfEmpty(item.Entity.Email),
-                    Similars = similars
+                    Similars = similars,
+                    ConfirmedMatch = similars.FirstOrDefault(s => s.Score == 1.0f)
                 };
             });
         return [.. await Task.WhenAll(tasks)];
@@ -597,7 +626,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         {
             var p = await db.Persons
                 .Where(x => !x.Trashed && x.Aliases.Any(a => a.ToLower() == nameLower))
-                .Select(x => new SimilarEntity { Id = x.Id, Name = x.Name, Type = "person", IsQcConfirmed = true, Score = 1.0f, Description = x.Description })
+                .Select(x => new SimilarEntity { Id = x.Id, Name = x.Name, Type = "person", Score = 1.0f, Description = x.Description, ExistingEmail = x.EmailAddress, ExistingOccupation = x.Occupation })
                 .FirstOrDefaultAsync();
 
             if (p != null) return [p];
@@ -607,7 +636,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         {
             var o = await db.Organisations
                 .Where(x => !x.Trashed && x.Aliases.Any(a => a.ToLower() == nameLower))
-                .Select(x => new SimilarEntity { Id = x.Id, Name = x.Name, Type = "organisation", IsQcConfirmed = true, Score = 1.0f, Description = x.Description })
+                .Select(x => new SimilarEntity { Id = x.Id, Name = x.Name, Type = "organisation", Score = 1.0f, Description = x.Description, ExistingEmail = x.EmailAddress, ExistingWebsite = x.Website })
                 .FirstOrDefaultAsync();
 
             if (o != null) return [o];
@@ -623,7 +652,40 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
                 filters: new Dictionary<string, object?> { { "type", typeFilter } }
             );
 
-            return [.. result.Items.Where(i => i.RelevanceScore >= 0.55f).Select(i => new SimilarEntity { Id = i.Id, Name = i.Name, Type = i.Type, Score = i.RelevanceScore, Description = i.Description })];
+            var similars = result.Items.Where(i => i.RelevanceScore >= 0.35f)
+                .Select(i => new SimilarEntity { Id = i.Id, Name = i.Name, Type = i.Type, Score = i.RelevanceScore, Description = i.Description })
+                .ToList();
+
+            if (similars.Count > 0)
+            {
+                var personIds = similars.Where(s => s.Type == "person").Select(s => s.Id).ToHashSet();
+                var orgIds = similars.Where(s => s.Type == "organisation").Select(s => s.Id).ToHashSet();
+
+                if (personIds.Count > 0)
+                {
+                    var persons = await db.Persons.Where(p => personIds.Contains(p.Id))
+                        .Select(p => new { p.Id, p.EmailAddress, p.Occupation }).ToDictionaryAsync(p => p.Id);
+                    foreach (var s in similars.Where(s => s.Type == "person"))
+                        if (persons.TryGetValue(s.Id, out var p)) { s.ExistingEmail = p.EmailAddress; s.ExistingOccupation = p.Occupation; }
+                }
+                if (orgIds.Count > 0)
+                {
+                    var orgs = await db.Organisations.Where(o => orgIds.Contains(o.Id))
+                        .Select(o => new { o.Id, o.EmailAddress, o.Website }).ToDictionaryAsync(o => o.Id);
+                    foreach (var s in similars.Where(s => s.Type == "organisation"))
+                        if (orgs.TryGetValue(s.Id, out var o)) { s.ExistingEmail = o.EmailAddress; s.ExistingWebsite = o.Website; }
+                }
+            }
+
+            // Auto-confirm if a candidate is an initial-name match (e.g. "John Smith" ↔ "J. Smith")
+            var initialMatch = similars.FirstOrDefault(s => IsInitialNameMatch(name.Trim(), s.Name));
+            if (initialMatch != null)
+            {
+                initialMatch.Score = 1.0f;
+                return [initialMatch];
+            }
+
+            return similars;
         }
         finally
         {
@@ -634,7 +696,6 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
     private async Task RunEntityQcAsync(ExtractedMetadata metadata, List<string> keyInsights)
     {
         var allEntities = metadata.Authors
-            .Cast<EntityWithSimilars>()
             .Concat(metadata.RelatedPersons)
             .Concat(metadata.Organisations)
             .ToList();
@@ -668,6 +729,12 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
             qcSb.AppendLine($"\nName: \"{entity.Name}\" | Type: {entity.Type}");
             if (!string.IsNullOrWhiteSpace(entity.Reason))
                 qcSb.AppendLine($"Reason: {entity.Reason}");
+            if (!string.IsNullOrWhiteSpace(entity.Email))
+                qcSb.AppendLine($"Email: {entity.Email}");
+            if (!string.IsNullOrWhiteSpace(entity.Website))
+                qcSb.AppendLine($"Website: {entity.Website}");
+            if (!string.IsNullOrWhiteSpace(entity.Occupation))
+                qcSb.AppendLine($"Occupation: {entity.Occupation}");
             if (entity.Similars.Count > 0)
             {
                 qcSb.AppendLine("Database candidates:");
@@ -680,7 +747,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
             else qcSb.AppendLine("Database candidates: none");
         }
 
-        EntityQcResult? qcResult = await CallLLMAsync<EntityQcResult>(EntityQcSystemPrompt, qcSb.ToString(), GetEntityQcJsonSchema(), modelOverride: mediumModelName);
+        EntityQcResult? qcResult = await CallLLMAsync<EntityQcResult>(EntityQcSystemPrompt, qcSb.ToString(), GetEntityQcJsonSchema(), modelOverride: mediumModelName, reasoningEffort: MistralReasoningEffort.High);
         if (qcResult == null) return;
 
         var decisionMap = qcResult.Decisions.ToDictionary(d => d.Name.Trim().ToLowerInvariant());
@@ -700,11 +767,37 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
                 var confirmed = entity.Similars.FirstOrDefault(s => s.Id == matchId);
                 if (confirmed != null)
                 {
-                    confirmed.IsQcConfirmed = true;
                     if (!string.IsNullOrWhiteSpace(decision.SuggestedAlias) && !decision.SuggestedAlias.Equals(confirmed.Name, StringComparison.OrdinalIgnoreCase))
                         confirmed.SuggestedAlias = decision.SuggestedAlias;
+                    else if (!entity.Name.Trim().Equals(confirmed.Name.Trim(), StringComparison.OrdinalIgnoreCase))
+                        confirmed.SuggestedAlias = entity.Name.Trim();
+                    entity.ConfirmedMatch = confirmed;
                 }
             }
+
+            if (decision.CorrectedEmail != null)
+                entity.Email = string.IsNullOrEmpty(decision.CorrectedEmail) ? null : decision.CorrectedEmail;
+            if (decision.CorrectedWebsite != null)
+                entity.Website = string.IsNullOrEmpty(decision.CorrectedWebsite) ? null : decision.CorrectedWebsite;
+            if (decision.CorrectedOccupation != null)
+                entity.Occupation = string.IsNullOrEmpty(decision.CorrectedOccupation) ? null : decision.CorrectedOccupation;
+
+            if (!string.IsNullOrWhiteSpace(decision.MergeInto))
+            {
+                entity.IsValid = false;
+                var target = allEntities.FirstOrDefault(e => e.Name.Trim().Equals(decision.MergeInto.Trim(), StringComparison.OrdinalIgnoreCase));
+                if (target != null && !decision.MergeInto.Contains(entity.Name.Trim(), StringComparison.OrdinalIgnoreCase))
+                    target.SuggestedAlias = entity.Name.Trim();
+            }
+        }
+
+        // Strip metadata already present in the confirmed DB entity — only send deltas to frontend
+        foreach (var entity in allEntities.Where(e => e.ConfirmedMatch != null))
+        {
+            var match = entity.ConfirmedMatch!;
+            if (entity.Email == match.ExistingEmail) entity.Email = null;
+            if (entity.Website == match.ExistingWebsite) entity.Website = null;
+            if (entity.Occupation == match.ExistingOccupation) entity.Occupation = null;
         }
     }
 
@@ -761,10 +854,23 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
 
     private static string? DetectLanguage(string text)
     {
-        string sample = text.Length > 500 ? text[..500] : text;
-        Language? lang = languageDetector.DetectLanguageOf(sample);
+        if (text.Length <= 500)
+        {
+            Language lang = languageDetector.DetectLanguageOf(text);
+            return lang.IsoCode6391().ToString().ToLowerInvariant();
+        }
 
-        return lang?.IsoCode6391().ToString().ToLowerInvariant();
+        const int sampleSize = 400;
+        const int sampleCount = 7;
+        int step = (text.Length - sampleSize) / (sampleCount - 1);
+
+        var votes = Enumerable.Range(0, sampleCount)
+            .Select(i => languageDetector.DetectLanguageOf(text.Substring(i * step, sampleSize)))
+            .GroupBy(l => l)
+            .OrderByDescending(g => g.Count())
+            .FirstOrDefault();
+
+        return votes?.Key.IsoCode6391().ToString().ToLowerInvariant();
     }
 
     private async Task<string> StripBackMatterAsync(string text)
@@ -842,18 +948,6 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         public string KeyInsight { get; set; } = string.Empty;
     }
 
-    internal class TempVerdict
-    {
-        public string Name { get; set; } = string.Empty;
-        public bool Keep { get; set; }
-    }
-
-    internal class TempValidationResult
-    {
-        public List<TempVerdict> Verdicts { get; set; } = [];
-        public string Description { get; set; } = string.Empty;
-    }
-
     internal class EnrichmentResult
     {
         public string? EnrichedDescription { get; set; }
@@ -865,6 +959,10 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         public bool IsValid { get; set; } = true;
         public string? ConfirmedMatchId { get; set; }
         public string? SuggestedAlias { get; set; }
+        public string? CorrectedEmail { get; set; }
+        public string? CorrectedWebsite { get; set; }
+        public string? CorrectedOccupation { get; set; }
+        public string? MergeInto { get; set; }
     }
 
     internal class EntityQcResult

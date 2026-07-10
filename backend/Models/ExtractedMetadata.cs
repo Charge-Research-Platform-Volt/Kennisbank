@@ -16,7 +16,7 @@ public class ExtractedMetadata
     public string? Journal { get; set; }
     public string? License { get; set; }
     public string? ResourceTypeName { get; set; }
-    public List<AuthorWithSimilars> Authors { get; set; } = [];
+    public List<EntityWithSimilars> Authors { get; set; } = [];
     public List<EntityWithSimilars> Organisations { get; set; } = [];
     public List<EntityWithSimilars> RelatedPersons { get; set; } = [];
     public string? PublicationCode { get; set; }
@@ -36,15 +36,10 @@ public class EntityWithSimilars
     public string? Occupation { get; set; }
     public string? Website { get; set; }
     public string? Email { get; set; }
-    public List<SimilarEntity> Similars { get; set; } = [];
+    [JsonIgnore] public List<SimilarEntity> Similars { get; set; } = [];
+    public SimilarEntity? ConfirmedMatch { get; set; }
+    public string? SuggestedAlias { get; set; }
     [JsonIgnore] public bool IsValid { get; set; } = true;
-}
-
-/// <summary>
-/// Type alias for backward compatibility - authors are persons with similars
-/// </summary>
-public class AuthorWithSimilars : EntityWithSimilars
-{
 }
 
 /// <summary>
@@ -55,8 +50,10 @@ public class SimilarEntity
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
-    public bool IsQcConfirmed { get; set; } = false;
+    public string? SuggestedAlias { get; set; }
+    [JsonIgnore] public string? ExistingEmail { get; set; }
+    [JsonIgnore] public string? ExistingWebsite { get; set; }
+    [JsonIgnore] public string? ExistingOccupation { get; set; }
     [JsonIgnore] public float Score { get; set; }
     [JsonIgnore] public string? Description { get; set; }
-    public string? SuggestedAlias { get; set; }
 }

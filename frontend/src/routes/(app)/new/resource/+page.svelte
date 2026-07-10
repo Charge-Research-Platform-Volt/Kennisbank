@@ -6,7 +6,7 @@
 	import { fly } from 'svelte/transition';
 	import { LanguageCodes } from '$lib/lists/languageCodes';
 	import type { DatePrecision, ExtractedMetadata } from '$lib/types/resource';
-	import { User, Building2, X, Briefcase, Globe, Mail } from '@lucide/svelte';
+	import { User, Building2, X, Briefcase, Globe, Mail, Tag } from '@lucide/svelte';
 	import BadgeInput from '$lib/components/ui/badge-input.svelte';
 	import { toast } from 'svelte-sonner';
 	import ProcessingPhase from './processing-phase.svelte';
@@ -315,9 +315,10 @@ async function searchTags(q: string) {
 				occupation?: string | null;
 				website?: string | null;
 				email?: string | null;
-				similars: { id: string; name: string; isQcConfirmed: boolean; suggestedAlias?: string | null }[];
+				suggestedAlias?: string | null;
+				confirmedMatch: { id: string; name: string; suggestedAlias?: string | null } | null;
 			}): EntityEntry => {
-				const confirmed = e.similars.find((s) => s.isQcConfirmed);
+				const confirmed = e.confirmedMatch;
 				const meta = {
 					reason: e.reason ?? null,
 					occupation: e.occupation ?? null,
@@ -331,7 +332,7 @@ async function searchTags(q: string) {
 							displayValue: confirmed.name,
 							authorType: e.type,
 							role: e.role,
-							suggestedAlias: confirmed.suggestedAlias ?? null,
+							suggestedAlias: confirmed.suggestedAlias ?? e.suggestedAlias ?? null,
 							...meta
 						}
 					: {
@@ -340,7 +341,7 @@ async function searchTags(q: string) {
 							displayValue: e.name,
 							authorType: e.type,
 							role: e.role,
-							suggestedAlias: null,
+							suggestedAlias: e.suggestedAlias ?? null,
 							...meta
 						};
 			};
@@ -696,10 +697,10 @@ async function searchTags(q: string) {
 									</span>
 								{/if}
 								{#if entry.suggestedAlias}
-									<span class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400" title="Will be added as alias to {entry.displayValue}">alias: {entry.suggestedAlias}</span>
+									<span class="flex items-center gap-1 rounded bg-green-500/15 px-1.5 py-0.5 text-xs font-medium text-green-400" title="Alias: will be added as alias to {entry.displayValue}"><Tag size={10} />{entry.suggestedAlias}</span>
 								{/if}
 								{#if entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
-									<span class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400">New</span>
+									<span class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400" title="Not present in the database">New</span>
 								{/if}
 							</div>
 							{#if entry.occupation || entry.email}
@@ -757,10 +758,10 @@ async function searchTags(q: string) {
 							<div class="flex flex-wrap items-center gap-1 pt-0.5">
 								<RoleBadge bind:role={entry.role} editable />
 								{#if entry.suggestedAlias}
-									<span class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400" title="Will be added as alias to {entry.displayValue}">alias: {entry.suggestedAlias}</span>
+									<span class="flex items-center gap-1 rounded bg-green-500/15 px-1.5 py-0.5 text-xs font-medium text-green-400" title="Alias: will be added as alias to {entry.displayValue}"><Tag size={10} />{entry.suggestedAlias}</span>
 								{/if}
 								{#if entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
-									<span class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400">New</span>
+									<span class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400" title="Not present in the database">New</span>
 								{/if}
 							</div>
 							{#if entry.occupation || entry.email}
@@ -820,10 +821,10 @@ async function searchTags(q: string) {
 							<div class="flex flex-wrap items-center gap-1 pt-0.5">
 								<RoleBadge bind:role={entry.role} editable />
 								{#if entry.suggestedAlias}
-									<span class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400" title="Will be added as alias to {entry.displayValue}">alias: {entry.suggestedAlias}</span>
+									<span class="flex items-center gap-1 rounded bg-green-500/15 px-1.5 py-0.5 text-xs font-medium text-green-400" title="Alias: will be added as alias to {entry.displayValue}"><Tag size={10} />{entry.suggestedAlias}</span>
 								{/if}
 								{#if entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
-									<span class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400">New</span>
+									<span class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400" title="Not present in the database">New</span>
 								{/if}
 							</div>
 							{#if entry.website || entry.email}
