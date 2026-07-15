@@ -38,7 +38,7 @@ public class EntityWithSimilars
     public string? Email { get; set; }
     [JsonIgnore] public List<SimilarEntity> Similars { get; set; } = [];
     public SimilarEntity? ConfirmedMatch { get; set; }
-    public string? SuggestedAlias { get; set; }
+    public List<string> SuggestedAliases { get; set; } = [];
     [JsonIgnore] public bool IsValid { get; set; } = true;
 }
 
@@ -50,7 +50,7 @@ public class SimilarEntity
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
-    public string? SuggestedAlias { get; set; }
+    public List<string> SuggestedAliases { get; set; } = [];
     [JsonIgnore] public string? ExistingEmail { get; set; }
     [JsonIgnore] public string? ExistingWebsite { get; set; }
     [JsonIgnore] public string? ExistingOccupation { get; set; }

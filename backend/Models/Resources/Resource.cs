@@ -95,7 +95,7 @@ public class RelatedEntry
 {
     public required string Id { get; set; }
     public string? Relation { get; set; }
-    public string? SuggestedAlias { get; set; }
+    public List<string> SuggestedAliases { get; set; } = [];
     public string? Occupation { get; set; }
     public string? Website { get; set; }
     public string? Email { get; set; }
@@ -105,7 +105,7 @@ public class AuthorEntry
 {
     public required string Value { get; set; } // GUID for existing entity, or name for new entity
     public string? Type { get; set; } // "person" or "organisation" - needed when creating new entities
-    public string? SuggestedAlias { get; set; }
+    public List<string> SuggestedAliases { get; set; } = [];
     public string? Occupation { get; set; }
     public string? Website { get; set; }
     public string? Email { get; set; }

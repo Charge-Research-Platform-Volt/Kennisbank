@@ -195,8 +195,9 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
                     : await personService.FindIdByNameAsync(author.Value) ?? await personService.CreateAsync(new PersonCreateDto { Name = author.Value, Occupation = author.Occupation, EmailAddress = author.Email }, createdBy);
             db.ResourceAuthorRelations.Add(new ResourceAuthorRelation { ResourceId = resourceId, AuthorId = authorId });
 
-            if (isExisting && !string.IsNullOrWhiteSpace(author.SuggestedAlias))
-                await TryAppendAliasAsync(authorId, author.SuggestedAlias, author.Type?.ToLower() == "organisation" ? "organisation" : "person", aliasedEntities);
+            if (author.SuggestedAliases.Count > 0)
+                foreach (string alias in author.SuggestedAliases)
+                    await TryAppendAliasAsync(authorId, alias, author.Type?.ToLower() == "organisation" ? "organisation" : "person", aliasedEntities);
             if (isExisting)
                 await TryPatchEntityMetadataAsync(authorId, author.Type?.ToLower() == "organisation" ? "organisation" : "person", author.Occupation, author.Website, author.Email);
         }
@@ -208,8 +209,9 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
                 : await organisationService.FindIdByNameAsync(org.Id) ?? await organisationService.CreateAsync(new OrganisationCreateDto { Name = org.Id, Website = org.Website, EmailAddress = org.Email }, createdBy);
             db.ResourceOrganisationRelations.Add(new ResourceOrganisationRelation { ResourceId = resourceId, OrganisationId = orgId, Role = org.Relation });
 
-            if (isExisting && !string.IsNullOrWhiteSpace(org.SuggestedAlias))
-                await TryAppendAliasAsync(orgId, org.SuggestedAlias, "organisation", aliasedEntities);
+            if (org.SuggestedAliases.Count > 0)
+                foreach (string alias in org.SuggestedAliases)
+                    await TryAppendAliasAsync(orgId, alias, "organisation", aliasedEntities);
             if (isExisting)
                 await TryPatchEntityMetadataAsync(orgId, "organisation", null, org.Website, org.Email);
         }
@@ -228,8 +230,9 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
                 : await personService.FindIdByNameAsync(person.Id) ?? await personService.CreateAsync(new PersonCreateDto { Name = person.Id, Occupation = person.Occupation, EmailAddress = person.Email }, createdBy);
             db.ResourceRelatedPersonRelations.Add(new ResourceRelatedPersonRelation { ResourceId = resourceId, PersonId = personId, Role = person.Relation });
 
-            if (isExisting && !string.IsNullOrWhiteSpace(person.SuggestedAlias))
-                await TryAppendAliasAsync(personId, person.SuggestedAlias, "person", aliasedEntities);
+            if (person.SuggestedAliases.Count > 0)
+                foreach (string alias in person.SuggestedAliases)
+                    await TryAppendAliasAsync(personId, alias, "person", aliasedEntities);
             if (isExisting)
                 await TryPatchEntityMetadataAsync(personId, "person", person.Occupation, null, person.Email);
         }

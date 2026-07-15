@@ -6,34 +6,103 @@
 	import { fly } from 'svelte/transition';
 	import { LanguageCodes } from '$lib/lists/languageCodes';
 	import type { DatePrecision, ExtractedMetadata } from '$lib/types/resource';
-	import { User, Building2, X, Briefcase, Globe, Mail, Tag } from '@lucide/svelte';
 	import BadgeInput from '$lib/components/ui/badge-input.svelte';
 	import { toast } from 'svelte-sonner';
 	import ProcessingPhase from './processing-phase.svelte';
 	import SelectPhase from './select-phase.svelte';
 	import DuplicatePhase from './duplicate-phase.svelte';
+	import EntitySection from './entity-section.svelte';
+	import type { EntityEntry } from './types.js';
 	import type { ProjectListResponse } from '$lib/types/project';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import AsyncMultiSelect from '$lib/components/ui/async-multi-select.svelte';
 	import type { ListItem, PagedResult } from '$lib/types/results';
-	import RoleBadge from '$lib/components/role-badge.svelte';
+	import * as Dialog from '$lib/components/ui/dialog';
+	import * as ToggleGroup from '$lib/components/ui/toggle-group';
+	import Input from '$lib/components/ui/input/input.svelte';
+	import Label from '$lib/components/ui/label/label.svelte';
 
 	type Phase = 'select' | 'processing' | 'review' | 'duplicate';
-	type EntityEntry = {
-		extracted: string;
-		value: string;
-		displayValue: string;
-		role?: string;
-		authorType?: string;
-		suggestedAlias?: string | null;
-		reason?: string | null;
-		occupation?: string | null;
-		website?: string | null;
-		email?: string | null;
-	};
+	type ModalSection = 'authors' | 'relatedPersons' | 'organisations';
 
 	let phase = $state<Phase>('select');
+	let entityModal = $state({
+		open: false,
+		mode: 'add' as 'add' | 'edit',
+		section: 'authors' as ModalSection,
+		index: -1,
+		name: '',
+		entityType: 'person',
+		role: '',
+		occupation: '',
+		email: '',
+		website: '',
+		selectedId: null as string | null,
+		aliases: [] as { id: string; name: string }[]
+	});
+
+	function openAddModal(section: ModalSection) {
+		entityModal = { open: true, mode: 'add', section, index: -1, name: '', entityType: 'person', role: '', occupation: '', email: '', website: '', selectedId: null, aliases: [] };
+	}
+
+	function openEditModal(section: ModalSection, index: number) {
+		const arr = section === 'authors' ? authors : section === 'relatedPersons' ? relatedPersons : organisations;
+		const e = arr[index];
+		entityModal = {
+			open: true, mode: 'edit', section, index,
+			name: e.displayValue || e.extracted || '',
+			entityType: e.authorType ?? 'person',
+			role: e.role ?? '',
+			occupation: e.occupation ?? '',
+			email: e.email ?? '',
+			website: e.website ?? '',
+			selectedId: /^[0-9a-f-]{36}$/i.test(e.value) ? e.value : null,
+			aliases: (e.suggestedAliases ?? []).map(a => ({ id: a, name: a }))
+		};
+	}
+
+	function confirmModal() {
+		const { section, mode, index } = entityModal;
+		const name = entityModal.name.trim();
+		if (mode === 'add') {
+			if (!name) return;
+			
+			const entry: EntityEntry = {
+				extracted: name, value: entityModal.selectedId ?? name, displayValue: name,
+				authorType: section === 'authors' ? entityModal.entityType : undefined,
+				role: section !== 'authors' ? entityModal.role || undefined : undefined,
+				occupation: entityModal.occupation || undefined,
+				email: entityModal.email || undefined,
+				website: entityModal.website || undefined,
+				suggestedAliases: entityModal.aliases.map(a => a.name)
+			};
+
+			if (section === 'authors') authors = [...authors, entry];
+			else if (section === 'relatedPersons') relatedPersons = [...relatedPersons, entry];
+			else organisations = [...organisations, entry];
+		} else {
+			const patch = (arr: EntityEntry[]) => arr.map((e, i) => i !== index ? e : {
+				...e,
+				value: entityModal.selectedId || e.value,
+				displayValue: name || e.displayValue,
+				extracted: name || e.extracted,
+				authorType: section === 'authors' ? entityModal.entityType : e.authorType,
+				role: section !== 'authors' ? entityModal.role || undefined : e.role,
+				occupation: entityModal.occupation || undefined,
+				email: entityModal.email || undefined,
+				website: entityModal.website || undefined,
+				suggestedAliases: entityModal.aliases.map(a => a.name)
+			});
+
+			if (section === 'authors') authors = patch(authors);
+			else if (section === 'relatedPersons') relatedPersons = patch(relatedPersons);
+			else organisations = patch(organisations);
+		}
+
+		entityModal.open = false;
+	}
+
 	let mode = $state<'file' | 'url'>('file');
 
 	// URL mode
@@ -112,6 +181,18 @@ async function searchTags(q: string) {
 	async function createJournal(name: string): Promise<ListItem | null> {
 		const r = await api.put<string>('/api/journals', { name });
 		return { id: r, name };
+	}
+
+	async function searchPersons(q: string) {
+		const url = q ? `/api/persons?page=1&pageSize=20&search=${encodeURIComponent(q)}` : '/api/persons?page=1&pageSize=20';
+		const r = await api.get<PagedResult<ListItem>>(url);
+		return r.items ?? [];
+	}
+
+	async function searchOrgs(q: string) {
+		const url = q ? `/api/organisations?page=1&pageSize=20&search=${encodeURIComponent(q)}` : '/api/organisations?page=1&pageSize=20';
+		const r = await api.get<PagedResult<ListItem>>(url);
+		return r.items ?? [];
 	}
 
 	let resourceInfo = $state({
@@ -200,14 +281,14 @@ async function searchTags(q: string) {
 				Authors: authors.map((a) => ({
 					value: a.value,
 					type: a.authorType?.toLowerCase() ?? 'person',
-					suggestedAlias: a.suggestedAlias ?? null,
+					suggestedAliases: a.suggestedAliases ?? [],
 					occupation: a.occupation ?? null,
 					email: a.email ?? null
 				})),
 				Organisations: organisations.map((o) => ({ 
 					Id: o.value, 
 					Relation: o.role || null, 
-					SuggestedAlias: o.suggestedAlias ?? null,
+					SuggestedAliases: o.suggestedAliases ?? [],
 					Occupation: o.occupation ?? null,
 					Website: o.website ?? null,
 					Email: o.email ?? null
@@ -215,7 +296,7 @@ async function searchTags(q: string) {
 				RelatedPersons: relatedPersons.map((p) => ({ 
 					Id: p.value, 
 					Relation: p.role || null, 
-					SuggestedAlias: p.suggestedAlias ?? null,
+					SuggestedAliases: p.suggestedAliases ?? [],
 					Occupation: p.occupation ?? null,
 					Website: p.website ?? null,
 					Email: p.email ?? null
@@ -315,8 +396,8 @@ async function searchTags(q: string) {
 				occupation?: string | null;
 				website?: string | null;
 				email?: string | null;
-				suggestedAlias?: string | null;
-				confirmedMatch: { id: string; name: string; suggestedAlias?: string | null } | null;
+				suggestedAliases?: string[];
+				confirmedMatch: { id: string; name: string; suggestedAliases?: string[] } | null;
 			}): EntityEntry => {
 				const confirmed = e.confirmedMatch;
 				const meta = {
@@ -332,7 +413,7 @@ async function searchTags(q: string) {
 							displayValue: confirmed.name,
 							authorType: e.type,
 							role: e.role,
-							suggestedAlias: confirmed.suggestedAlias ?? e.suggestedAlias ?? null,
+							suggestedAliases: [...new Set([...(confirmed.suggestedAliases ?? []), ...(e.suggestedAliases ?? [])])],
 							...meta
 						}
 					: {
@@ -341,7 +422,7 @@ async function searchTags(q: string) {
 							displayValue: e.name,
 							authorType: e.type,
 							role: e.role,
-							suggestedAlias: e.suggestedAlias ?? null,
+							suggestedAliases: e.suggestedAliases ?? [],
 							...meta
 						};
 			};
@@ -666,190 +747,32 @@ async function searchTags(q: string) {
 
 			<!-- Connections -->
 			<div class="flex flex-col gap-4 overflow-y-auto px-4 py-2 pb-10">
-				<!-- Authors -->
-				<div class="flex flex-col gap-2">
-					<div>
-						<h3 class="text-xs font-medium tracking-wide text-foreground uppercase">Authors</h3>
-						<p class="text-xs text-muted-foreground">Wrote or contributed to this resource</p>
-					</div>
-					{#each authors as entry, i (i)}
-						{#if i > 0}<div class="border-t border-border/50"></div>{/if}
-						<div class="flex flex-col gap-0.5">
-							<div class="flex items-start justify-between gap-2">
-								<div class="flex min-w-0 flex-1 flex-col gap-0.5">
-									<span class="truncate text-sm font-medium">{entry.displayValue || entry.extracted}</span>
-								</div>
-								<button
-									onclick={() => (authors = authors.filter((_, j) => j !== i))}
-									class="mt-0.5 shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
-								>
-									<X size={14} />
-								</button>
-							</div>
-							<div class="flex flex-wrap items-center gap-1 pt-0.5">
-								{#if entry.authorType}
-									<span class="flex items-center gap-1 rounded border border-border/50 px-1.5 py-0.5 text-xs text-muted-foreground">
-										{#if entry.authorType === 'organisation'}
-											<Building2 size={10} />Org
-										{:else}
-											<User size={10} />Person
-										{/if}
-									</span>
-								{/if}
-								{#if entry.suggestedAlias}
-									<span class="flex items-center gap-1 rounded bg-green-500/15 px-1.5 py-0.5 text-xs font-medium text-green-400" title="Alias: will be added as alias to {entry.displayValue}"><Tag size={10} />{entry.suggestedAlias}</span>
-								{/if}
-								{#if entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
-									<span class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400" title="Not present in the database">New</span>
-								{/if}
-							</div>
-							{#if entry.occupation || entry.email}
-								<div class="flex flex-wrap items-center gap-1 pt-0.5">
-									{#if entry.occupation}
-										<span class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground" title="Occupation">
-											<Briefcase size={10} />{entry.occupation}
-										</span>
-									{/if}
-									{#if entry.email}
-										<span class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground" title="Email">
-											<Mail size={10} />{entry.email}
-										</span>
-									{/if}
-								</div>
-							{/if}
-						</div>
-					{/each}
-					<button
-						onclick={() =>
-							(authors = [
-								...authors,
-								{ extracted: '', value: '', displayValue: '', authorType: 'person' }
-							])}
-						class="w-full cursor-pointer rounded border border-dashed border-border py-1.5 text-xs text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
-						>+ Add</button
-					>
-				</div>
-
+				<EntitySection
+					title="Authors"
+					subtitle="Wrote or contributed to this resource"
+					variant="authors"
+					bind:entries={authors}
+					onadd={() => openAddModal('authors')}
+					onedit={(i) => openEditModal('authors', i)}
+				/>
 				<div class="border-t border-border"></div>
-
-				<!-- Related Persons -->
-				<div class="flex flex-col gap-2">
-					<div>
-						<h3 class="text-xs font-medium tracking-wide text-foreground uppercase">People</h3>
-						<p class="text-xs text-muted-foreground">Mentioned or otherwise connected</p>
-					</div>
-					{#each relatedPersons as entry, i (i)}
-						{#if i > 0}<div class="border-t border-border/50"></div>{/if}
-						<div class="flex flex-col gap-0.5">
-							<div class="flex items-start justify-between gap-2">
-								<div class="flex min-w-0 flex-1 flex-col gap-0.5">
-									<span class="truncate text-sm font-medium">{entry.displayValue || entry.extracted}</span>
-									{#if entry.reason && entry.role !== 'production'}
-										<span class="text-xs italic text-muted-foreground">{entry.reason}</span>
-									{/if}
-								</div>
-								<button
-									onclick={() => (relatedPersons = relatedPersons.filter((_, j) => j !== i))}
-									class="mt-0.5 shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
-								>
-									<X size={14} />
-								</button>
-							</div>
-							<div class="flex flex-wrap items-center gap-1 pt-0.5">
-								<RoleBadge bind:role={entry.role} editable />
-								{#if entry.suggestedAlias}
-									<span class="flex items-center gap-1 rounded bg-green-500/15 px-1.5 py-0.5 text-xs font-medium text-green-400" title="Alias: will be added as alias to {entry.displayValue}"><Tag size={10} />{entry.suggestedAlias}</span>
-								{/if}
-								{#if entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
-									<span class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400" title="Not present in the database">New</span>
-								{/if}
-							</div>
-							{#if entry.occupation || entry.email}
-								<div class="flex flex-wrap items-center gap-1 pt-0.5">
-									{#if entry.occupation}
-										<span class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground" title="Occupation">
-											<Briefcase size={10} />{entry.occupation}
-										</span>
-									{/if}
-									{#if entry.email}
-										<span class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground" title="Email">
-											<Mail size={10} />{entry.email}
-										</span>
-									{/if}
-								</div>
-							{/if}
-						</div>
-					{/each}
-					<button
-						onclick={() =>
-							(relatedPersons = [
-								...relatedPersons,
-								{ extracted: '', value: '', displayValue: '' }
-							])}
-						class="w-full cursor-pointer rounded border border-dashed border-border py-1.5 text-xs text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
-						>+ Add</button
-					>
-				</div>
-
+				<EntitySection
+					title="People"
+					subtitle="Mentioned or otherwise connected"
+					variant="persons"
+					bind:entries={relatedPersons}
+					onadd={() => openAddModal('relatedPersons')}
+					onedit={(i) => openEditModal('relatedPersons', i)}
+				/>
 				<div class="border-t border-border"></div>
-
-				<!-- Related Organisations -->
-				<div class="flex flex-col gap-2">
-					<div>
-						<h3 class="text-xs font-medium tracking-wide text-foreground uppercase">
-							Organisations
-						</h3>
-						<p class="text-xs text-muted-foreground">Mentioned or otherwise connected</p>
-					</div>
-					{#each organisations as entry, i (i)}
-						{#if i > 0}<div class="border-t border-border/50"></div>{/if}
-						<div class="flex flex-col gap-0.5">
-							<div class="flex items-start justify-between gap-2">
-								<div class="flex min-w-0 flex-1 flex-col gap-0.5">
-									<span class="truncate text-sm font-medium">{entry.displayValue || entry.extracted}</span>
-									{#if entry.reason && entry.role !== 'production'}
-										<span class="text-xs italic text-muted-foreground">{entry.reason}</span>
-									{/if}
-								</div>
-								<button
-									onclick={() => (organisations = organisations.filter((_, j) => j !== i))}
-									class="mt-0.5 shrink-0 cursor-pointer text-muted-foreground hover:text-foreground"
-								>
-									<X size={14} />
-								</button>
-							</div>
-							<div class="flex flex-wrap items-center gap-1 pt-0.5">
-								<RoleBadge bind:role={entry.role} editable />
-								{#if entry.suggestedAlias}
-									<span class="flex items-center gap-1 rounded bg-green-500/15 px-1.5 py-0.5 text-xs font-medium text-green-400" title="Alias: will be added as alias to {entry.displayValue}"><Tag size={10} />{entry.suggestedAlias}</span>
-								{/if}
-								{#if entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
-									<span class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400" title="Not present in the database">New</span>
-								{/if}
-							</div>
-							{#if entry.website || entry.email}
-								<div class="flex flex-wrap items-center gap-1 pt-0.5">
-									{#if entry.website}
-										<a href={entry.website} target="_blank" rel="noreferrer" class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground" title="Website">
-											<Globe size={10} />{entry.website}
-										</a>
-									{/if}
-									{#if entry.email}
-										<span class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground" title="Email">
-											<Mail size={10} />{entry.email}
-										</span>
-									{/if}
-								</div>
-							{/if}
-						</div>
-					{/each}
-					<button
-						onclick={() =>
-							(organisations = [...organisations, { extracted: '', value: '', displayValue: '' }])}
-						class="w-full cursor-pointer rounded border border-dashed border-border py-1.5 text-xs text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
-						>+ Add</button
-					>
-				</div>
+				<EntitySection
+					title="Organisations"
+					subtitle="Mentioned or otherwise connected"
+					variant="organisations"
+					bind:entries={organisations}
+					onadd={() => openAddModal('organisations')}
+					onedit={(i) => openEditModal('organisations', i)}
+				/>
 			</div>
 		</div>
 	</div>
@@ -881,6 +804,97 @@ async function searchTags(q: string) {
 		</div>
 	</div>
 {/if}
+
+<!-- Entity Add/Edit Modal -->
+<Dialog.Root bind:open={entityModal.open}>
+	<Dialog.Content class="max-w-sm">
+		<Dialog.Header>
+			<Dialog.Title>
+				{entityModal.mode === 'add' ? 'Add' : 'Edit'}
+				{entityModal.section === 'authors' ? 'Author' : entityModal.section === 'relatedPersons' ? 'Person' : 'Organisation'}
+			</Dialog.Title>
+		</Dialog.Header>
+
+		<div class="flex flex-col gap-4">
+			<!-- Entity type for authors -->
+			{#if entityModal.section === 'authors'}
+				<div class="flex flex-col gap-1.5">
+					<Label>Type</Label>
+					<ToggleGroup.Root class="w-full" type="single" variant="outline" bind:value={entityModal.entityType} onValueChange={(v) => { if (v) entityModal.entityType = v; }}>
+						<ToggleGroup.Item value="person" class="text-xs flex-1 cursor-pointer">Person</ToggleGroup.Item>
+						<ToggleGroup.Item value="organisation" class="text-xs flex-1 cursor-pointer">Organisation</ToggleGroup.Item>
+					</ToggleGroup.Root>
+				</div>
+			{/if}
+
+			<!-- Name -->
+			<div class="flex flex-col gap-1.5">
+				<Label>Name</Label>
+				<AsyncSelect 
+					value={entityModal.selectedId} 
+					displayValue={entityModal.name} 
+					search={entityModal.section === 'organisations' || (entityModal.section === 'authors' && entityModal.entityType === 'organisation') ? searchOrgs : searchPersons}
+					onchange={(id, name) => {
+						entityModal.selectedId = id;
+						entityModal.name = name ?? '';
+					}}
+					oncreate={async (name) => ({ id: name, name })}
+					placeholder="Search or enter name..."
+					allowClear={false}
+				/>
+			</div>
+
+			<!-- Aliases -->
+			<div class="flex flex-col gap-1.5">
+				<Label>Aliases</Label>
+				<BadgeInput
+					bind:items={entityModal.aliases}
+					search={async () => []}
+					oncreate={async (name) => ({ id: name, name })}
+					placeholder="Add alias..."
+				/>
+			</div>
+			
+			<!-- Role for non-authors -->
+			{#if entityModal.section !== 'authors'}
+				<div class="flex flex-col gap-1.5">
+					<Label>Role</Label>
+					<ToggleGroup.Root class="w-full" type="single" variant="outline" bind:value={entityModal.role}>
+						<ToggleGroup.Item value="subject" class="text-xs flex-1 cursor-pointer">Subject</ToggleGroup.Item>
+						<ToggleGroup.Item value="production" class="text-xs flex-1 cursor-pointer">Production</ToggleGroup.Item>
+					</ToggleGroup.Root>
+				</div>
+			{/if}
+
+			<!-- Email -->
+			<div class="flex flex-col gap-1.5">
+				<Label>Email</Label>
+				<Input bind:value={entityModal.email} type="email" placeholder="email@example.com" />
+			</div>
+
+			<!-- Occupation for persons -->
+			{#if entityModal.section !== 'organisations' && !(entityModal.section === 'authors' && entityModal.entityType === 'organisation')}
+				<div class="flex flex-col gap-1.5">
+					<Label>Occupation</Label>
+					<Input bind:value={entityModal.occupation} placeholder="Job title or role" />
+				</div>
+			{/if}
+
+			<!-- Website for organisations -->
+			{#if entityModal.section !== 'relatedPersons' && !(entityModal.section === 'authors' && entityModal.entityType === 'person')}
+				<div class="flex flex-col gap-1.5">
+					<Label>Website</Label>
+					<Input bind:value={entityModal.website} type="url" placeholder="https://example.com" />
+				</div>
+			{/if}
+		</div>
+
+		<Dialog.Footer>
+			<Button class="cursor-pointer" variant="outline" onclick={() => (entityModal.open = false)}>Cancel</Button>
+			<Button class="cursor-pointer" onclick={confirmModal}>{entityModal.mode === 'add' ? 'Add' : 'Save'}</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>
 
 <style>
 	input[type='number']::-webkit-inner-spin-button,

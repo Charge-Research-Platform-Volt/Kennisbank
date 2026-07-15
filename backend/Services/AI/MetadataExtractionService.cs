@@ -768,9 +768,9 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
                 if (confirmed != null)
                 {
                     if (!string.IsNullOrWhiteSpace(decision.SuggestedAlias) && !decision.SuggestedAlias.Equals(confirmed.Name, StringComparison.OrdinalIgnoreCase))
-                        confirmed.SuggestedAlias = decision.SuggestedAlias;
-                    else if (!entity.Name.Trim().Equals(confirmed.Name.Trim(), StringComparison.OrdinalIgnoreCase))
-                        confirmed.SuggestedAlias = entity.Name.Trim();
+                        confirmed.SuggestedAliases.Add(decision.SuggestedAlias);
+                    if (!entity.Name.Trim().Equals(confirmed.Name.Trim(), StringComparison.OrdinalIgnoreCase) && !confirmed.SuggestedAliases.Contains(entity.Name.Trim(), StringComparer.OrdinalIgnoreCase))
+                        confirmed.SuggestedAliases.Add(entity.Name.Trim());
                     entity.ConfirmedMatch = confirmed;
                 }
             }
@@ -787,7 +787,8 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
                 entity.IsValid = false;
                 var target = allEntities.FirstOrDefault(e => e.Name.Trim().Equals(decision.MergeInto.Trim(), StringComparison.OrdinalIgnoreCase));
                 if (target != null && !decision.MergeInto.Contains(entity.Name.Trim(), StringComparison.OrdinalIgnoreCase))
-                    target.SuggestedAlias = entity.Name.Trim();
+                    if (!entity.Name.Trim().Equals(target.Name.Trim(), StringComparison.OrdinalIgnoreCase) && !target.SuggestedAliases.Contains(entity.Name.Trim(), StringComparer.OrdinalIgnoreCase))
+                        target.SuggestedAliases.Add(entity.Name.Trim());
             }
         }
 

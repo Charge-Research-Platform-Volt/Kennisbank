@@ -100,8 +100,9 @@
 	</Popover.Trigger>
 	<Popover.Portal>
 		<Popover.Content
-			sideOffset={4}
-			class="z-50 w-52 rounded-md border border-border bg-popover p-1 shadow-md outline-none"
+			sideOffset={0}
+			style="width: var(--bits-popover-anchor-width)"
+			class="z-50 rounded-md border border-border bg-popover p-1 shadow-md outline-none"
 		>
 			<div
 				class="mx-1 mb-1 flex items-center gap-1.5 rounded-sm border border-input px-2 focus-within:ring-1 focus-within:ring-ring"
