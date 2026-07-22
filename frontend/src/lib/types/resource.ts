@@ -60,6 +60,7 @@ export type ResourceDetail = {
 
 export type PersonDetail = {
 	name: string;
+	aliases?: string[];
 	description?: string;
 	occupation?: string;
 	createdOn?: string;
@@ -74,6 +75,7 @@ export type PersonDetail = {
 
 export type OrganisationDetail = {
 	name: string;
+	aliases?: string[];
 	website?: string;
 	description?: string;
 	createdOn?: string;

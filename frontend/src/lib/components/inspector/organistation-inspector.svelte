@@ -8,6 +8,7 @@
 	import CharacteristicRow from './characteristic-row.svelte';
 	import { getContext } from 'svelte';
 	import type { PagedResult, ListItem } from '$lib/types/results';
+	import AliasSection from './alias-section.svelte';
 
 	let { item }: { item: ResourceItem } = $props();
 
@@ -81,6 +82,9 @@
 			/>
 		</div>
 	{/if}
+
+	<!-- Aliases -->
+	<AliasSection label="Aliases" value={detail.aliases} onsave={async (aliases) => { await api.patch(`/api/organisations/${item.id}`, { aliases }); }} />
 
 	<!-- Authored, Related Resources, Related Organisations, Related People -->
 	<RelationSection

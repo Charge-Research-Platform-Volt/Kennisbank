@@ -13,7 +13,7 @@ namespace KnowledgeBank.Controllers;
 
 [Route("[controller]")]
 [Authorize]
-public class OrganisationsController(OrganisationService organisationService, IBackgroundTaskQueue taskQueue) : AppControllerBase
+public class OrganisationsController(OrganisationService organisationService, IBackgroundTaskQueue taskQueue, IServiceScopeFactory serviceScopeFactory) : AppControllerBase
 {
     [HttpGet]
     [SwaggerOperation(Summary = "Get organisations with optional search and pagination")]
@@ -26,7 +26,9 @@ public class OrganisationsController(OrganisationService organisationService, IB
     {
         Expression<Func<Organisation, bool>> predicate = search != null
             ? o => (EF.Functions.TrigramsAreSimilar(o.Name, search) ||
-                    EF.Functions.ILike(o.Name, $"%{search}%")) && o.Trashed == trash
+                    EF.Functions.ILike(o.Name, $"%{search}%") ||
+                    o.Aliases.Any(a => EF.Functions.TrigramsAreSimilar(a, search) || EF.Functions.ILike(a, $"%{search}%"))) &&
+                    o.Trashed == trash
             : o => o.Trashed == trash;
 
         var (items, totalCount) = await organisationService.GetPageAsync(page, pageSize, predicate);
@@ -59,7 +61,7 @@ public class OrganisationsController(OrganisationService organisationService, IB
 
         taskQueue.QueueBackgroundWorkItem(async token =>
         {
-            using var scope = HttpContext.RequestServices.CreateScope();
+            using var scope = serviceScopeFactory.CreateScope();
             var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
             await ingestionService.RunOrganisationEntityPipelineAsync(id);
         });
@@ -76,6 +78,7 @@ public class OrganisationsController(OrganisationService organisationService, IB
         bool found = await organisationService.UpdateAsync(id, o =>
         {
             if (dto.Name != null) o.Name = dto.Name;
+            if (dto.Aliases != null) o.Aliases = dto.Aliases;
             if (dto.Description != null) o.Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description;
             if (dto.EmailAddress != null) o.EmailAddress = string.IsNullOrWhiteSpace(dto.EmailAddress) ? null : dto.EmailAddress;
             if (dto.Website != null) o.Website = string.IsNullOrWhiteSpace(dto.Website) ? null : dto.Website;
@@ -85,7 +88,7 @@ public class OrganisationsController(OrganisationService organisationService, IB
 
         taskQueue.QueueBackgroundWorkItem(async token =>
         {
-            using var scope = HttpContext.RequestServices.CreateScope();
+            using var scope = serviceScopeFactory.CreateScope();
             var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
             await ingestionService.RunOrganisationEntityPipelineAsync(id);
         });

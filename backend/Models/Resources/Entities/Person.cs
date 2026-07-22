@@ -26,6 +26,7 @@ public class Person : Entity
 public class PersonCreateDto
 {
     public required string Name { get; set; }
+    public List<string> Aliases { get; set; } = [];
     public string? Occupation { get; set; }
     public string? Description { get; set; }
     public string? EmailAddress { get; set; }
@@ -39,6 +40,7 @@ public class PersonCreateDto
 public class PersonUpdateDto
 {
     public string? Name { get; set; }
+    public List<string>? Aliases { get; set; }
     public string? Description { get; set; }
     public string? EmailAddress { get; set; }
     public string? Occupation { get; set; }
@@ -48,6 +50,7 @@ public class PersonUpdateDto
 public class PersonDetailDto
 {
     public string Name { get; set; } = null!;
+    public List<string> Aliases { get; set; } = [];
     public string? Description { get; set; }
     public string? Occupation { get; set; }
     public string? EmailAddress { get; set; }

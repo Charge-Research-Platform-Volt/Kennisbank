@@ -22,6 +22,7 @@ public class Organisation : Entity
 public class OrganisationCreateDto
 {
     public required string Name { get; set; }
+    public List<string> Aliases { get; set; } = [];
     public string? Description { get; set; }
     public string? Website { get; set; }
     public string? EmailAddress { get; set; }
@@ -32,6 +33,7 @@ public class OrganisationCreateDto
 public class OrganisationUpdateDto
 {
     public string? Name { get; set; }
+    public List<string>? Aliases { get; set; }
     public string? Description { get; set; }
     public string? EmailAddress { get; set; }
     public string? Website { get; set; }
@@ -40,6 +42,7 @@ public class OrganisationUpdateDto
 public class OrganisationDetailDto
 {
     public string Name { get; set; } = null!;
+    public List<string> Aliases { get; set; } = [];
     public string? Description { get; set; }
     public string? EmailAddress { get; set; }
     public string? Website { get; set; }

@@ -104,6 +104,7 @@ public static class DatabaseContextExtensions
                     ""created-on"" as ""CreatedOn"",
                     ""type-id"" as ""TypeId"",
                     ""journal-id"" as ""JournalId"",
+                    NULL::text[] as ""Aliases"",
 
                     -- Create search vector from multiple fields
                     to_tsvector(
@@ -127,6 +128,7 @@ public static class DatabaseContextExtensions
                     e.""created-on"" as ""CreatedOn"",
                     NULL::uuid as ""TypeId"",
                     NULL::uuid as ""JournalId"",
+                    e.""aliases"" as ""Aliases"",
 
                     -- Create search vector from multiple fields
                     to_tsvector(
@@ -154,6 +156,7 @@ public static class DatabaseContextExtensions
                     e.""created-on"" as ""CreatedOn"",
                     NULL::uuid as ""TypeId"",
                     NULL::uuid as ""JournalId"",
+                    e.""aliases"" as ""Aliases"",
 
                     -- Create search vector from multiple fields
                     to_tsvector(

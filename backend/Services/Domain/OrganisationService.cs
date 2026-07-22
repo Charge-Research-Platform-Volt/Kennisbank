@@ -87,6 +87,7 @@ public class OrganisationService(DatabaseContext db)
             .Select(o => new OrganisationDetailDto
             {
                 Name = o.Name,
+                Aliases = o.Aliases,
                 Description = o.Description,
                 EmailAddress = o.EmailAddress,
                 Website = o.Website,
@@ -145,6 +146,7 @@ public class OrganisationService(DatabaseContext db)
         {
             Id = Guid.NewGuid(),
             Name = dto.Name,
+            Aliases = dto.Aliases,
             Description = dto.Description,
             EmailAddress = dto.EmailAddress,
             Website = dto.Website,

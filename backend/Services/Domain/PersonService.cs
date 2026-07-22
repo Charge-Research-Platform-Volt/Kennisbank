@@ -87,6 +87,7 @@ public class PersonService(DatabaseContext db)
             .Select(p => new PersonDetailDto
             {
                 Name = p.Name,
+                Aliases = p.Aliases,
                 Description = p.Description,
                 Occupation = p.Occupation,
                 EmailAddress = p.EmailAddress,
@@ -117,6 +118,7 @@ public class PersonService(DatabaseContext db)
         Person person = new()
         {
             Id = Guid.NewGuid(),
+            Aliases = dto.Aliases,
             Name = dto.Name,
             Occupation = dto.Occupation,
             Description = dto.Description,

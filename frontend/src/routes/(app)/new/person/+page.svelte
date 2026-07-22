@@ -12,8 +12,10 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import AsyncMultiSelect from '$lib/components/ui/async-multi-select.svelte';
+	import BadgeInput from '$lib/components/ui/badge-input.svelte';
 
 	let name = $state('');
+	let aliasItems = $state<ListItem[]>([]);
 	let occupation = $state('');
 	let description = $state('');
 	let email = $state('');
@@ -59,6 +61,7 @@
 		try {
 			const result = await api.put<string>('/api/persons', {
 				Name: name,
+				Aliases: aliasItems.map((a) => a.name),
 				Occupation: occupation || undefined,
 				Description: description || undefined,
 				EmailAddress: email || undefined,
@@ -147,6 +150,12 @@
 						{/each}
 					</p>
 				{/if}
+			</div>
+
+			<!-- Aliases -->
+			<div class="flex flex-col gap-1.5">
+				<Label>Aliases</Label>
+				<BadgeInput bind:items={aliasItems} search={async () => []} oncreate={async (name) => ({ id: name, name })} placeholder="Add alias..." />
 			</div>
 
 			<!-- Occupation -->

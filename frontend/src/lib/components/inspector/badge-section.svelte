@@ -30,7 +30,9 @@
 	let searchQuery = $state('');
 	let searchResults = $state<ListItem[]>([]);
 	let searchOpen = $state(false);
+	let filtered = $derived(searchResults.filter((r) => !localItems.some((i) => i.id === r.id)));
 	const debouncedSearch = debounce((q: string) => {
+		if (!search) return;
 		search?.(q).then((r) => {
 			searchResults = r;
 			searchOpen = true;
@@ -108,20 +110,28 @@
 					type="text"
 					value={searchQuery}
 					oninput={(e) => onSearchInput(e.currentTarget.value)}
-					onfocus={() =>
+					onkeydown={(e) => {
+						if (e.key === 'Enter') {
+							e.preventDefault();
+							if (searchOpen && filtered.length) addItem(filtered[0].id, filtered[0].name);
+							else if (searchQuery.trim() && oncreate) createItem();
+						}
+					}}
+					onfocus={() => {
+						if (!search) return;
 						search?.(searchQuery).then((r) => {
 							searchResults = r;
 							searchOpen = true;
-						})}
+						});}}
 					onblur={() =>
 						setTimeout(() => {
 							searchOpen = false;
 						}, 150)}
-					placeholder={oncreate ? 'Search or create...' : 'Search to add...'}
+					placeholder={!search ? 'Add' : oncreate ? 'Search or create...' : 'Search to add...'}
 					class="w-full rounded-sm border border-input bg-transparent px-2 py-1 text-xs placeholder:text-muted-foreground focus:border-ring focus:outline-none"
 				/>
 				{#if searchOpen}
-					{@const filtered = searchResults.filter((r) => !localItems.some((i) => i.id === r.id))}
+					
 					{@const showCreate =
 						!!oncreate &&
 						!!searchQuery.trim() &&

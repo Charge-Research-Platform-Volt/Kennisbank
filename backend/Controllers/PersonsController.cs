@@ -13,7 +13,7 @@ namespace KnowledgeBank.Controllers;
 
 [Route("[controller]")]
 [Authorize]
-public class PersonsController(PersonService personService, IBackgroundTaskQueue taskQueue) : AppControllerBase
+public class PersonsController(PersonService personService, IBackgroundTaskQueue taskQueue, IServiceScopeFactory serviceScopeFactory) : AppControllerBase
 {
     [HttpGet]
     [SwaggerOperation(Summary = "Get persons with optional search and pagination")]
@@ -26,7 +26,8 @@ public class PersonsController(PersonService personService, IBackgroundTaskQueue
     {
         Expression<Func<Person, bool>> predicate = search != null
             ? p => (EF.Functions.TrigramsAreSimilar(p.Name, search) ||
-                    EF.Functions.ILike(p.Name, $"%{search}%")) &&
+                    EF.Functions.ILike(p.Name, $"%{search}%") ||
+                    p.Aliases.Any(a => EF.Functions.TrigramsAreSimilar(a, search) || EF.Functions.ILike(a, $"%{search}%"))) &&
                     p.Trashed == trash
             : p => p.Trashed == trash;
 
@@ -54,7 +55,7 @@ public class PersonsController(PersonService personService, IBackgroundTaskQueue
 
         taskQueue.QueueBackgroundWorkItem(async token =>
         {
-            using var scope = HttpContext.RequestServices.CreateScope();
+            using var scope = serviceScopeFactory.CreateScope();
             IngestionService ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
             await ingestionService.RunPersonEntityPipelineAsync(id);
         });
@@ -78,6 +79,7 @@ public class PersonsController(PersonService personService, IBackgroundTaskQueue
         bool found = await personService.UpdateAsync(id, p =>
         {
             if (dto.Name != null) p.Name = dto.Name;
+            if (dto.Aliases != null) p.Aliases = dto.Aliases;
             if (dto.Description != null) p.Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description;
             if (dto.EmailAddress != null) p.EmailAddress = string.IsNullOrWhiteSpace(dto.EmailAddress) ? null : dto.EmailAddress;
             if (dto.Occupation != null) p.Occupation = string.IsNullOrWhiteSpace(dto.Occupation) ? null : dto.Occupation;
@@ -88,7 +90,7 @@ public class PersonsController(PersonService personService, IBackgroundTaskQueue
 
         taskQueue.QueueBackgroundWorkItem(async token =>
         {
-            using var scope = HttpContext.RequestServices.CreateScope();
+            using var scope = serviceScopeFactory.CreateScope();
             IngestionService ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
             await ingestionService.RunPersonEntityPipelineAsync(id);
         });

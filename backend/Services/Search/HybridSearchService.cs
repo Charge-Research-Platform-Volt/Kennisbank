@@ -367,7 +367,10 @@ public class HybridSearchService
                     CASE WHEN ""SearchVector"" @@ to_tsquery('english', {{1}})
                         THEN ts_rank(""SearchVector"", to_tsquery('english', {{1}}))
                         ELSE 0.0 END +
-                    CASE WHEN ""Name"" ILIKE {{4}} THEN 1.0 ELSE 0.0 END
+                    CASE WHEN ""Name"" ILIKE {{4}} THEN 1.0 ELSE 0.0 END +
+                    CASE WHEN EXISTS (SELECT 1 FROM unnest(""Aliases"") AS alias WHERE alias ILIKE {{4}}) THEN 0.8 ELSE 0.0 END +
+                    CASE WHEN ""Name"" % {{0}} THEN 1.0 ELSE 0.0 END +
+                    CASE WHEN EXISTS (SELECT 1 FROM unnest(""Aliases"") AS alias WHERE alias % {{0}}) THEN 0.8 ELSE 0.0 END
                 ) as ""Relevance""
             FROM ResourceGridView
             WHERE (
@@ -375,7 +378,10 @@ public class HybridSearchService
                 ""SearchVector"" @@ websearch_to_tsquery('english', {{2}}) OR
                 ""SearchVector"" @@ to_tsquery('english', {{1}}) OR
                 ""Name"" ILIKE {{3}} OR
-                coalesce(""Description"", '') ILIKE {{3}}
+                EXISTS (SELECT 1 FROM unnest(""Aliases"") AS alias WHERE alias ILIKE {{3}}) OR
+                coalesce(""Description"", '') ILIKE {{3}} OR
+                ""Name"" % {{0}} OR
+                EXISTS (SELECT 1 FROM unnest(""Aliases"") AS alias WHERE alias % {{0}})
             )
             ORDER BY ""Relevance"" DESC
             LIMIT {limit}
