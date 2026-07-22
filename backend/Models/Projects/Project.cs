@@ -103,7 +103,7 @@ public class ProjectInfoDto
 
 public record ProjectAncestor(Guid Id, string Title);
 
-public class ProjectItem : ResourceGridItem
+public class ProjectItem : LibraryItem
 {
     public string AddedBy { get; set; } = "Unknown";
 }

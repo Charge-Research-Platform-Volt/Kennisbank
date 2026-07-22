@@ -13,15 +13,15 @@ public class LibraryController(LibraryService libraryService) : AppControllerBas
 {
     [HttpPost]
     [SwaggerOperation(Summary = "Browse or search the library with filters and pagination")]
-    [SwaggerResponse(200, "Grid result")]
-    public async Task<IActionResult> Browse([FromBody] GridRequest request)
-        => Ok(await libraryService.GetGridAsync(request));
+    [SwaggerResponse(200, "Library result")]
+    public async Task<IActionResult> Browse([FromBody] LibraryRequest request)
+        => Ok(await libraryService.GetLibraryAsync(request));
 
     [HttpPost("items")]
-    [SwaggerOperation(Summary = "Get grid items by IDs")]
-    [SwaggerResponse(200, "Grid items")]
+    [SwaggerOperation(Summary = "Get library items by IDs")]
+    [SwaggerResponse(200, "Library items")]
     public async Task<IActionResult> GetItemsByIds([FromBody] Guid[] ids)
-        => Ok(await libraryService.GetGridItemsByIdsAsync(ids));
+        => Ok(await libraryService.GetLibraryItemsByIdsAsync(ids));
 
     [HttpGet("trash")]
     [SwaggerOperation(Summary = "Get all trashed items")]

@@ -108,7 +108,7 @@ public class HybridSearchService
 
             // Convert to result items
             var resultItems = pagedCandidates
-                .Select(c => new ResourceGridItemWithScore
+                .Select(c => new LibraryItemWithScore
                 {
                     Id = c.Item!.Id,
                     Name = c.Item.Name,
@@ -319,7 +319,7 @@ public class HybridSearchService
             string prefixQuery = string.Join(" & ", words.Select(w => new string([.. w.Where(char.IsLetterOrDigit)])).Where(w => w.Length > 0).Select(w => $"{w}:*"));
 
             await using var db = await _dbFactory.CreateDbContextAsync();
-            var searchResults = await db.ResourceGridSearchResults
+            var searchResults = await db.LibrarySearchResults
                 .FromSqlRaw(sql, searchQuery, prefixQuery, searchQuery, $"%{searchQuery}%", searchQuery + "%")
                 .ToListAsync();
 
@@ -329,7 +329,7 @@ public class HybridSearchService
                 candidates.Add(new SearchCandidate
                 {
                     ResourceId = result.Id,
-                    Item = result.ToResourceGridItem(),
+                    Item = result.ToLibraryItem(),
                     Provenance = new SearchProvenance
                     {
                         PostgresScore = result.Relevance
@@ -372,7 +372,7 @@ public class HybridSearchService
                     CASE WHEN ""Name"" % {{0}} THEN 1.0 ELSE 0.0 END +
                     CASE WHEN EXISTS (SELECT 1 FROM unnest(""Aliases"") AS alias WHERE alias % {{0}}) THEN 0.8 ELSE 0.0 END
                 ) as ""Relevance""
-            FROM ResourceGridView
+            FROM LibraryView
             WHERE (
                 ""SearchVector"" @@ phraseto_tsquery('english', {{2}}) OR
                 ""SearchVector"" @@ websearch_to_tsquery('english', {{2}}) OR
@@ -409,7 +409,7 @@ public class HybridSearchService
 
         // Query database for full resource data
         await using var db = await _dbFactory.CreateDbContextAsync();
-        var resourceItems = await db.ResourceGridItems
+        var resourceItems = await db.LibraryItems
             .Where(x => idsToLoad.Contains(x.Id))
             .ToListAsync();
 
@@ -443,7 +443,7 @@ public class HybridSearchService
 
         // Query database for full resource data
         await using var db = await _dbFactory.CreateDbContextAsync();
-        var query = db.ResourceGridItems.Where(x => resourceIds.Contains(x.Id));
+        var query = db.LibraryItems.Where(x => resourceIds.Contains(x.Id));
 
         // Apply filters (same logic as ResourceManager)
         query = ApplyFilters(query, db, filters);
@@ -475,8 +475,8 @@ public class HybridSearchService
     /// <summary>
     /// Applies standard filters to the query (copied from ResourceManager).
     /// </summary>
-    private IQueryable<ResourceGridItem> ApplyFilters(
-        IQueryable<ResourceGridItem> query,
+    private IQueryable<LibraryItem> ApplyFilters(
+        IQueryable<LibraryItem> query,
         DatabaseContext db,
         Dictionary<string, object?> filters)
     {
@@ -507,8 +507,8 @@ public class HybridSearchService
     /// <summary>
     /// Applies relation filters (tags, regions) to the query.
     /// </summary>
-    private IQueryable<ResourceGridItem> ApplyRelationFilter(
-        IQueryable<ResourceGridItem> query,
+    private IQueryable<LibraryItem> ApplyRelationFilter(
+        IQueryable<LibraryItem> query,
         DatabaseContext db,
         Dictionary<string, object?> filters,
         string idsKey,
@@ -557,7 +557,7 @@ public class HybridSearchService
 
         return new HybridSearchResult
         {
-            Items = Array.Empty<ResourceGridItemWithScore>(),
+            Items = Array.Empty<LibraryItemWithScore>(),
             TotalCount = 0,
             Page = page,
             PageSize = pageSize,

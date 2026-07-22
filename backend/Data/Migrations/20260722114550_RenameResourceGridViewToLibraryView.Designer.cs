@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using KnowledgeBank.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Pgvector;
@@ -13,9 +14,11 @@ using Pgvector;
 namespace KnowledgeBank.Data.Migrations
 {
     [DbContext(typeof(DatabaseContext))]
-    partial class DatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20260722114550_RenameResourceGridViewToLibraryView")]
+    partial class RenameResourceGridViewToLibraryView
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -793,6 +796,36 @@ namespace KnowledgeBank.Data.Migrations
                     b.ToTable("resource-tag");
                 });
 
+            modelBuilder.Entity("KnowledgeBank.Models.ResourceTrashItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FileType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PublicationDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("TrashDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("resourcetrashview", (string)null);
+                });
+
             modelBuilder.Entity("KnowledgeBank.Models.ResourceType", b =>
                 {
                     b.Property<Guid>("Id")
@@ -844,36 +877,6 @@ namespace KnowledgeBank.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("tags");
-                });
-
-            modelBuilder.Entity("KnowledgeBank.Models.TrashItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("FileType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("PublicationDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("TrashDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable((string)null);
-
-                    b.ToView("trashview", (string)null);
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.User", b =>

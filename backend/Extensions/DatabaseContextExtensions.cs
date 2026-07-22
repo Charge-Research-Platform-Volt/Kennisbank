@@ -10,8 +10,8 @@ public static class DatabaseContextExtensions
     public static async Task EnsureDatabaseSetupAsync(this DatabaseContext context) 
     {
         await context.EnsureVectorExtensionsCreatedAsync();
-        await context.CreateResourceGridViewAsync();
-        await context.CreateResourceTrashViewAsync();
+        await context.CreateLibraryViewAsync();
+        await context.CreateTrashViewAsync();
     }
     
     public static async Task EnsureVectorExtensionsCreatedAsync(this DatabaseContext context) 
@@ -60,34 +60,41 @@ public static class DatabaseContextExtensions
         }
     }
     
-    public static async Task CreateResourceGridViewAsync(this DatabaseContext context) 
+    public static async Task CreateLibraryViewAsync(this DatabaseContext context)
     {
         using IDbContextTransaction transaction = await context.Database.BeginTransactionAsync();
-    
-        try 
+
+        try
         {
             // Step 1: Drop existing objects
+            // (old resource-grid-named objects are dropped too, to clean up databases from before the LibraryView rename)
             await context.Database.ExecuteSqlRawAsync(@"
-                DROP TRIGGER IF EXISTS refresh_grid_on_resource_change ON ""resources"";");
+                DROP TRIGGER IF EXISTS refresh_grid_on_resource_change ON ""resources"";
+                DROP TRIGGER IF EXISTS refresh_library_on_resource_change ON ""resources"";");
 
             await context.Database.ExecuteSqlRawAsync(@"
-                DROP TRIGGER IF EXISTS refresh_grid_on_entity_change ON ""entities"";");
+                DROP TRIGGER IF EXISTS refresh_grid_on_entity_change ON ""entities"";
+                DROP TRIGGER IF EXISTS refresh_library_on_entity_change ON ""entities"";");
 
             await context.Database.ExecuteSqlRawAsync(@"
-                DROP TRIGGER IF EXISTS refresh_grid_on_person_change ON ""persons"";");
+                DROP TRIGGER IF EXISTS refresh_grid_on_person_change ON ""persons"";
+                DROP TRIGGER IF EXISTS refresh_library_on_person_change ON ""persons"";");
 
             await context.Database.ExecuteSqlRawAsync(@"
-                DROP TRIGGER IF EXISTS refresh_grid_on_organisation_change ON ""organisations"";");
+                DROP TRIGGER IF EXISTS refresh_grid_on_organisation_change ON ""organisations"";
+                DROP TRIGGER IF EXISTS refresh_library_on_organisation_change ON ""organisations"";");
 
             await context.Database.ExecuteSqlRawAsync(@"
-                DROP FUNCTION IF EXISTS refresh_resource_grid_view();");
+                DROP FUNCTION IF EXISTS refresh_resource_grid_view();
+                DROP FUNCTION IF EXISTS refresh_library_view();");
 
             await context.Database.ExecuteSqlRawAsync(@"
-                DROP MATERIALIZED VIEW IF EXISTS ResourceGridView;");
+                DROP MATERIALIZED VIEW IF EXISTS ResourceGridView;
+                DROP MATERIALIZED VIEW IF EXISTS LibraryView;");
 
             // Step 2: Create materialized view
             await context.Database.ExecuteSqlRawAsync(@"
-                CREATE MATERIALIZED VIEW ResourceGridView AS
+                CREATE MATERIALIZED VIEW LibraryView AS
                 SELECT
                     ""id"" as ""Id"",
                     ""title"" as ""Name"",
@@ -173,75 +180,76 @@ public static class DatabaseContextExtensions
 
             // Step 3: Create indexes
             await context.Database.ExecuteSqlRawAsync(@"
-                CREATE UNIQUE INDEX idx_resourcegridview_id ON ResourceGridView(""Id"");");
-            
-            await context.Database.ExecuteSqlRawAsync(@"
-                CREATE INDEX idx_resourcegridview_type ON ResourceGridView(""Type"");");
-            
-            await context.Database.ExecuteSqlRawAsync(@"
-                CREATE INDEX idx_resourcegridview_name ON ResourceGridView(""Name"");");
-                
-            await context.Database.ExecuteSqlRawAsync(@"
-                CREATE INDEX idx_resourcegridview_search ON ResourceGridView USING GIN(""SearchVector"");");
+                CREATE UNIQUE INDEX idx_libraryview_id ON LibraryView(""Id"");");
 
             await context.Database.ExecuteSqlRawAsync(@"
-                CREATE INDEX idx_resourcegridview_name_trgm ON ResourceGridView USING GIN(""Name"" gin_trgm_ops);");
+                CREATE INDEX idx_libraryview_type ON LibraryView(""Type"");");
 
             await context.Database.ExecuteSqlRawAsync(@"
-                CREATE INDEX idx_resourcegridview_desc_trgm ON ResourceGridView USING GIN(""Description"" gin_trgm_ops);");
+                CREATE INDEX idx_libraryview_name ON LibraryView(""Name"");");
+
+            await context.Database.ExecuteSqlRawAsync(@"
+                CREATE INDEX idx_libraryview_search ON LibraryView USING GIN(""SearchVector"");");
+
+            await context.Database.ExecuteSqlRawAsync(@"
+                CREATE INDEX idx_libraryview_name_trgm ON LibraryView USING GIN(""Name"" gin_trgm_ops);");
+
+            await context.Database.ExecuteSqlRawAsync(@"
+                CREATE INDEX idx_libraryview_desc_trgm ON LibraryView USING GIN(""Description"" gin_trgm_ops);");
 
             // Step 4: Create refresh function
             await context.Database.ExecuteSqlRawAsync(@"
-                CREATE OR REPLACE FUNCTION refresh_resource_grid_view()
+                CREATE OR REPLACE FUNCTION refresh_library_view()
                 RETURNS TRIGGER AS $$
                 BEGIN
-                    REFRESH MATERIALIZED VIEW CONCURRENTLY ResourceGridView;
+                    REFRESH MATERIALIZED VIEW CONCURRENTLY LibraryView;
                     RETURN NULL;
                 END;
                 $$ LANGUAGE plpgsql;");
 
             // Step 5: Create triggers
             await context.Database.ExecuteSqlRawAsync(@"
-                CREATE TRIGGER refresh_grid_on_resource_change
+                CREATE TRIGGER refresh_library_on_resource_change
                     AFTER INSERT OR UPDATE OR DELETE ON ""resources""
                     FOR EACH STATEMENT
-                    EXECUTE FUNCTION refresh_resource_grid_view();");
+                    EXECUTE FUNCTION refresh_library_view();");
 
             await context.Database.ExecuteSqlRawAsync(@"
-                CREATE TRIGGER refresh_grid_on_entity_change
+                CREATE TRIGGER refresh_library_on_entity_change
                     AFTER INSERT OR UPDATE OR DELETE ON ""entities""
                     FOR EACH STATEMENT
-                    EXECUTE FUNCTION refresh_resource_grid_view();");
+                    EXECUTE FUNCTION refresh_library_view();");
 
             await context.Database.ExecuteSqlRawAsync(@"
-                CREATE TRIGGER refresh_grid_on_person_change
+                CREATE TRIGGER refresh_library_on_person_change
                     AFTER INSERT OR UPDATE OR DELETE ON ""persons""
                     FOR EACH STATEMENT
-                    EXECUTE FUNCTION refresh_resource_grid_view();");
+                    EXECUTE FUNCTION refresh_library_view();");
 
             await context.Database.ExecuteSqlRawAsync(@"
-                CREATE TRIGGER refresh_grid_on_organisation_change
+                CREATE TRIGGER refresh_library_on_organisation_change
                     AFTER INSERT OR UPDATE OR DELETE ON ""organisations""
                     FOR EACH STATEMENT
-                    EXECUTE FUNCTION refresh_resource_grid_view();");
+                    EXECUTE FUNCTION refresh_library_view();");
 
             await transaction.CommitAsync();
-            Serilog.Log.Information("Materialized view ResourceGridView with triggers created successfully");
+            Serilog.Log.Information("Materialized view LibraryView with triggers created successfully");
         }
-        catch (Exception e) 
+        catch (Exception e)
         {
             await transaction.RollbackAsync();
-            Serilog.Log.Error(e, "Failed to create resource grid view");
+            Serilog.Log.Error(e, "Failed to create library view");
         }
     }
     
-    public static async Task CreateResourceTrashViewAsync(this DatabaseContext context) 
+    public static async Task CreateTrashViewAsync(this DatabaseContext context)
     {
         using IDbContextTransaction transaction = await context.Database.BeginTransactionAsync();
-        
-        try 
+
+        try
         {
             // Step 1: Drop existing objects
+            // (old resource-trash-named function/view are dropped too, to clean up databases from before the TrashView rename)
             await context.Database.ExecuteSqlRawAsync(@"
                 DROP TRIGGER IF EXISTS refresh_trash_on_resource_change ON ""resources"";");
 
@@ -255,14 +263,16 @@ public static class DatabaseContextExtensions
                 DROP TRIGGER IF EXISTS refresh_trash_on_organisation_change ON ""organisations"";");
 
             await context.Database.ExecuteSqlRawAsync(@"
-                DROP FUNCTION IF EXISTS refresh_resource_trash_view();");
+                DROP FUNCTION IF EXISTS refresh_resource_trash_view();
+                DROP FUNCTION IF EXISTS refresh_trash_view();");
 
             await context.Database.ExecuteSqlRawAsync(@"
-                DROP MATERIALIZED VIEW IF EXISTS ResourceTrashView;");
+                DROP MATERIALIZED VIEW IF EXISTS ResourceTrashView;
+                DROP MATERIALIZED VIEW IF EXISTS TrashView;");
 
             // Step 2: Create materialized view
             await context.Database.ExecuteSqlRawAsync(@"
-                CREATE MATERIALIZED VIEW ResourceTrashView AS
+                CREATE MATERIALIZED VIEW TrashView AS
                 SELECT
                     ""id"" as ""Id"",
                     ""title"" as ""Name"",
@@ -306,14 +316,14 @@ public static class DatabaseContextExtensions
 
             // Step 3: Create indexes
             await context.Database.ExecuteSqlRawAsync(@"
-                CREATE UNIQUE INDEX idx_resourcetrashview_id ON ResourceTrashView(""Id"");");
+                CREATE UNIQUE INDEX idx_trashview_id ON TrashView(""Id"");");
 
             // Step 4: Create refresh function
             await context.Database.ExecuteSqlRawAsync(@"
-                CREATE OR REPLACE FUNCTION refresh_resource_trash_view()
+                CREATE OR REPLACE FUNCTION refresh_trash_view()
                 RETURNS TRIGGER AS $$
                 BEGIN
-                    REFRESH MATERIALIZED VIEW CONCURRENTLY ResourceTrashView;
+                    REFRESH MATERIALIZED VIEW CONCURRENTLY TrashView;
                     RETURN NULL;
                 END;
                 $$ LANGUAGE plpgsql;");
@@ -323,33 +333,33 @@ public static class DatabaseContextExtensions
                 CREATE TRIGGER refresh_trash_on_resource_change
                     AFTER INSERT OR UPDATE OR DELETE ON ""resources""
                     FOR EACH STATEMENT
-                    EXECUTE FUNCTION refresh_resource_trash_view();");
+                    EXECUTE FUNCTION refresh_trash_view();");
 
             await context.Database.ExecuteSqlRawAsync(@"
                 CREATE TRIGGER refresh_trash_on_entity_change
                     AFTER INSERT OR UPDATE OR DELETE ON ""entities""
                     FOR EACH STATEMENT
-                    EXECUTE FUNCTION refresh_resource_trash_view();");
+                    EXECUTE FUNCTION refresh_trash_view();");
 
             await context.Database.ExecuteSqlRawAsync(@"
                 CREATE TRIGGER refresh_trash_on_person_change
                     AFTER INSERT OR UPDATE OR DELETE ON ""persons""
                     FOR EACH STATEMENT
-                    EXECUTE FUNCTION refresh_resource_trash_view();");
+                    EXECUTE FUNCTION refresh_trash_view();");
 
             await context.Database.ExecuteSqlRawAsync(@"
                 CREATE TRIGGER refresh_trash_on_organisation_change
                     AFTER INSERT OR UPDATE OR DELETE ON ""organisations""
                     FOR EACH STATEMENT
-                    EXECUTE FUNCTION refresh_resource_trash_view();");
+                    EXECUTE FUNCTION refresh_trash_view();");
 
             await transaction.CommitAsync();
-            Serilog.Log.Information("Materialized view ResourceTrashView with triggers created successfully");
+            Serilog.Log.Information("Materialized view TrashView with triggers created successfully");
         }
-        catch (Exception e) 
+        catch (Exception e)
         {
             await transaction.RollbackAsync();
-            Serilog.Log.Error(e, "Failed to create resource trash view");
+            Serilog.Log.Error(e, "Failed to create trash view");
         }
     }
 }

@@ -4,7 +4,7 @@ namespace KnowledgeBank.Models;
 
 /// <summary>
 /// Relation linking a project/folder to any library item (resource, person, or organisation).
-/// Uses the shared ResourceGridView for resolving item details. This is a many-to-many relationship.
+/// Uses the shared LibraryView for resolving item details. This is a many-to-many relationship.
 /// </summary>
 [Table("project-item")]
 public class ProjectItemRelation

@@ -104,7 +104,7 @@ public class ProjectService(DatabaseContext db)
 
         var rawItems = await db.ProjectItemRelations
             .Where(r => r.ProjectId == id)
-            .Join(db.ResourceGridItems, r => r.ItemId, g => g.Id, (r, g) => new { Relation = r, Item = g })
+            .Join(db.LibraryItems, r => r.ItemId, g => g.Id, (r, g) => new { Relation = r, Item = g })
             .AsNoTracking()
             .ToListAsync();
 

@@ -8,7 +8,7 @@ public class HybridSearchResult
     /// <summary>
     /// The search result items with relevance scores.
     /// </summary>
-    public ResourceGridItemWithScore[] Items { get; set; } = Array.Empty<ResourceGridItemWithScore>();
+    public LibraryItemWithScore[] Items { get; set; } = Array.Empty<LibraryItemWithScore>();
 
     /// <summary>
     /// Total count of matching items (before pagination).

@@ -7,7 +7,7 @@ namespace KnowledgeBank.Services.Domain;
 
 public class LibraryService(DatabaseContext db, HybridSearchService hybridSearch)
 {
-    public async Task<GridResult> GetGridAsync(GridRequest request)
+    public async Task<LibraryResult> GetLibraryAsync(LibraryRequest request)
     {
         DateTime? minDate = null;
         DateTime? maxDate = null;
@@ -35,9 +35,9 @@ public class LibraryService(DatabaseContext db, HybridSearchService hybridSearch
         {
             var result = await hybridSearch.SearchAsync(request.Search, request.Page, request.PageSize, filters);
 
-            return new GridResult
+            return new LibraryResult
             {
-                Items = result.Items.Select(item => new ResourceGridItem
+                Items = result.Items.Select(item => new LibraryItem
                 {
                     Id = item.Id,
                     Name = item.Name,
@@ -58,17 +58,17 @@ public class LibraryService(DatabaseContext db, HybridSearchService hybridSearch
             };
         }
 
-        IQueryable<ResourceGridItem> query = db.ResourceGridItems.AsQueryable();
+        IQueryable<LibraryItem> query = db.LibraryItems.AsQueryable();
         query = ApplyFilters(query, filters);
         query = ApplySorting(query, request.SortBy, request.SortDirection);
 
         int totalCount = await query.CountAsync();
-        ResourceGridItem[] items = await query
+        LibraryItem[] items = await query
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToArrayAsync();
 
-        return new GridResult
+        return new LibraryResult
         {
             Items = items,
             TotalCount = totalCount,
@@ -78,16 +78,16 @@ public class LibraryService(DatabaseContext db, HybridSearchService hybridSearch
         };
     }
 
-    public async Task<ResourceGridItem[]> GetGridItemsByIdsAsync(IEnumerable<Guid> ids)
-        => await db.ResourceGridItems.Where(i => ids.Contains(i.Id)).ToArrayAsync();
+    public async Task<LibraryItem[]> GetLibraryItemsByIdsAsync(IEnumerable<Guid> ids)
+        => await db.LibraryItems.Where(i => ids.Contains(i.Id)).ToArrayAsync();
 
     public async Task<bool> ItemExistsAsync(Guid id)
-        => await db.ResourceGridItems.AnyAsync(i => i.Id == id);
+        => await db.LibraryItems.AnyAsync(i => i.Id == id);
 
-    public async Task<ResourceTrashItem[]> GetTrashItemsAsync()
-        => await db.ResourceTrashItems.OrderByDescending(x => x.TrashDate).ToArrayAsync();
+    public async Task<TrashItem[]> GetTrashItemsAsync()
+        => await db.TrashItems.OrderByDescending(x => x.TrashDate).ToArrayAsync();
 
-    private IQueryable<ResourceGridItem> ApplyFilters(IQueryable<ResourceGridItem> query, Dictionary<string, object?> filters)
+    private IQueryable<LibraryItem> ApplyFilters(IQueryable<LibraryItem> query, Dictionary<string, object?> filters)
     {
         if (filters.TryGetValue("type", out var typeFilter) && typeFilter is string[] types && types.Length > 0)
             query = query.Where(x => types.Contains(x.Type));
@@ -110,7 +110,7 @@ public class LibraryService(DatabaseContext db, HybridSearchService hybridSearch
         return query;
     }
 
-    private IQueryable<ResourceGridItem> ApplyRelationFilter(IQueryable<ResourceGridItem> query, Dictionary<string, object?> filters, string idsKey, string modeKey, string relationType)
+    private IQueryable<LibraryItem> ApplyRelationFilter(IQueryable<LibraryItem> query, Dictionary<string, object?> filters, string idsKey, string modeKey, string relationType)
     {
         if (!filters.TryGetValue(idsKey, out var idsFilter) || idsFilter is not Guid[] ids || ids.Length == 0)
             return query;
@@ -138,7 +138,7 @@ public class LibraryService(DatabaseContext db, HybridSearchService hybridSearch
         return query;
     }
 
-    private static IQueryable<ResourceGridItem> ApplySorting(IQueryable<ResourceGridItem> query, string? sortBy, string? sortDirection)
+    private static IQueryable<LibraryItem> ApplySorting(IQueryable<LibraryItem> query, string? sortBy, string? sortDirection)
     {
         return (sortBy?.ToLower(), sortDirection?.ToLower()) switch
         {

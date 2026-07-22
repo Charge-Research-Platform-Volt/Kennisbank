@@ -39,9 +39,9 @@ namespace KnowledgeBank.Data
         public DbSet<ProjectMemberRelation> ProjectMemberRelations { get; set; }
         
         
-        public DbSet<ResourceGridItem> ResourceGridItems { get; set; }
-        public DbSet<ResourceGridSearchResult> ResourceGridSearchResults { get; set; }
-        public DbSet<ResourceTrashItem> ResourceTrashItems { get; set; }
+        public DbSet<LibraryItem> LibraryItems { get; set; }
+        public DbSet<LibrarySearchResult> LibrarySearchResults { get; set; }
+        public DbSet<TrashItem> TrashItems { get; set; }
 
         public DbSet<ChangelogEntry> Changelog { get; set; }
 
@@ -176,14 +176,14 @@ namespace KnowledgeBank.Data
                        .OnDelete(DeleteBehavior.Cascade);
              });
 
-            // Resource grid view
-            modelBuilder.Entity<ResourceGridItem>(entity =>
+            // Library view
+            modelBuilder.Entity<LibraryItem>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.ToView("resourcegridview");
+                entity.ToView("libraryview");
             });
 
-            modelBuilder.Entity<ResourceGridSearchResult>(entity =>
+            modelBuilder.Entity<LibrarySearchResult>(entity =>
             {
                 entity.HasNoKey();
                 entity.ToView(null);
@@ -222,11 +222,11 @@ namespace KnowledgeBank.Data
                 .HasForeignKey(pfr => pfr.ChildId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Resource trash view
-            modelBuilder.Entity<ResourceTrashItem>(entity =>
+            // Trash view
+            modelBuilder.Entity<TrashItem>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.ToView("resourcetrashview");
+                entity.ToView("trashview");
             });
 
             base.OnModelCreating(modelBuilder);

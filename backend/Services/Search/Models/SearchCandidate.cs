@@ -14,9 +14,9 @@ public class SearchCandidate
     public Guid ResourceId { get; set; }
 
     /// <summary>
-    /// The full resource grid item data.
+    /// The full library item data.
     /// </summary>
-    public ResourceGridItem? Item { get; set; }
+    public LibraryItem? Item { get; set; }
 
     /// <summary>
     /// Combined normalized score after fusion (0-1 range).

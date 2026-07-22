@@ -3,9 +3,9 @@ using KnowledgeBank.Models;
 namespace KnowledgeBank.Services.Search.Models;
 
 /// <summary>
-/// Extended resource grid item that includes search relevance information.
+/// Extended library item that includes search relevance information.
 /// </summary>
-public class ResourceGridItemWithScore : ResourceGridItem
+public class LibraryItemWithScore : LibraryItem
 {
     /// <summary>
     /// Final combined relevance score (0-1 range).

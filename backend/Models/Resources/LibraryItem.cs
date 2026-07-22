@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace KnowledgeBank.Models;
 
-public class ResourceGridItem
+public class LibraryItem
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
@@ -19,7 +19,7 @@ public class ResourceGridItem
     public List<string> Chunks { get; set; } = [];
 }
 
-public class ResourceGridSearchResult
+public class LibrarySearchResult
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
@@ -32,9 +32,9 @@ public class ResourceGridSearchResult
     public float Relevance { get; set; }
 
     // Conversion method
-    public ResourceGridItem ToResourceGridItem()
+    public LibraryItem ToLibraryItem()
     {
-        return new ResourceGridItem
+        return new LibraryItem
         {
             Id = Id,
             Name = Name,
@@ -48,7 +48,7 @@ public class ResourceGridSearchResult
     }
 }
 
-public class ResourceTrashItem 
+public class TrashItem
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
