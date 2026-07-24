@@ -37,7 +37,11 @@ public enum EnvironmentVariable
 
     // Headscale
     HEADSCALE_URL,
-    HEADSCALE_API_KEY
+    HEADSCALE_API_KEY,
+
+    // Meilisearch
+    MEILISEARCH_URL,
+    MEILISEARCH_API_KEY,
 }
 
 public class EnvironmentConfig
@@ -87,6 +91,10 @@ public class EnvironmentConfig
         // Headscale
         _variableNames.Add(EnvironmentVariable.HEADSCALE_URL, "HEADSCALE_URL");
         _variableNames.Add(EnvironmentVariable.HEADSCALE_API_KEY, "HEADSCALE_API_KEY");
+
+        // Meilisearch
+        _variableNames.Add(EnvironmentVariable.MEILISEARCH_URL, "MEILISEARCH_URL");
+        _variableNames.Add(EnvironmentVariable.MEILISEARCH_API_KEY, "MEILISEARCH_API_KEY");
     }
 
     /// <summary>

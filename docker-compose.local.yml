@@ -41,10 +41,26 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # Meilisearch
+  meilisearch:
+    image: getmeili/meilisearch:v1.50.0
+    container_name: knowledgebank-meilisearch-local
+    ports:
+      - "7700:7700"
+    environment:
+      - MEILI_MASTER_KEY=masterKeyForLocalDevOnly
+      - MEILI_ENV=development
+      - MEILI_NO_ANALYTICS=true
+    volumes:
+      - meilisearch_data_local:/meili_data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:7700/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
 volumes:
   postgres_data_local:
   minio_data_local:
-
-# This program has been developed by students from the bachelor Computer Science at Utrecht
-# University within the Software Project course.
-# © Copyright Utrecht University (Department of Information and Computing Sciences)
+  meilisearch_data_local:

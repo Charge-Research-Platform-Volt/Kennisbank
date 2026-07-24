@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.Domain;
 
-public class LibraryService(DatabaseContext db, HybridSearchService hybridSearch)
+public class LibraryService(DatabaseContext db, LibrarySearchIndexService librarySearchIndexService)
 {
     public async Task<LibraryResult> GetLibraryAsync(LibraryRequest request)
     {
@@ -31,30 +31,20 @@ public class LibraryService(DatabaseContext db, HybridSearchService hybridSearch
             { "journal_ids", ParseGuids(request.FilterOptions?.JournalFilter) },
         };
 
-        if (!string.IsNullOrEmpty(request.Search))
+        if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var result = await hybridSearch.SearchAsync(request.Search, request.Page, request.PageSize, filters);
+            var (ids, searchTotalCount) = await librarySearchIndexService.SearchAsync(request.Search, request.FilterOptions, request.Page, request.PageSize);
+
+            Dictionary<Guid, LibraryItem> itemLookup = await db.LibraryItems.Where(i => ids.Contains(i.Id)).ToDictionaryAsync(i => i.Id);
 
             return new LibraryResult
             {
-                Items = result.Items.Select(item => new LibraryItem
-                {
-                    Id = item.Id,
-                    Name = item.Name,
-                    Description = item.Description,
-                    PublicationDate = item.PublicationDate,
-                    PublicationDatePrecision = item.PublicationDatePrecision,
-                    Type = item.Type,
-                    FileType = item.FileType,
-                    CreatedOn = item.CreatedOn,
-                    Chunks = item.MatchedChunks
-                }).ToArray(),
-                TotalCount = result.TotalCount,
-                DurationInMs = (int)result.DurationInMs,
-                Page = result.Page,
-                PageSize = result.PageSize,
-                SearchTerm = result.SearchTerm,
-                IsSearchResult = result.IsSearchResult
+                Items = ids.Where(itemLookup.ContainsKey).Select(id => itemLookup[id]).ToArray(),
+                TotalCount = searchTotalCount,
+                Page = request.Page,
+                PageSize = request.PageSize,
+                SearchTerm = request.Search,
+                IsSearchResult = true
             };
         }
 

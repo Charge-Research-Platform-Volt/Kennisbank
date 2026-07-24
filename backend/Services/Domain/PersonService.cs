@@ -1,11 +1,12 @@
 using System.Linq.Expressions;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.Search;
 using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.Domain;
 
-public class PersonService(DatabaseContext db)
+public class PersonService(DatabaseContext db, LibrarySearchIndexService librarySearchIndexService)
 {
     #region Queries
 
@@ -153,6 +154,7 @@ public class PersonService(DatabaseContext db)
         }
 
         await db.SaveChangesAsync();
+        await librarySearchIndexService.SyncPersonAsync(person.Id);
         return person.Id;
     }
 
@@ -163,6 +165,7 @@ public class PersonService(DatabaseContext db)
 
         update(person);
         await db.SaveChangesAsync();
+        await librarySearchIndexService.SyncPersonAsync(id);
 
         return true;
     }
@@ -176,6 +179,8 @@ public class PersonService(DatabaseContext db)
         person.TrashDate = DateTime.UtcNow;
 
         await db.SaveChangesAsync();
+        await librarySearchIndexService.SyncPersonAsync(id);
+
         return true;
     }
 
@@ -188,6 +193,8 @@ public class PersonService(DatabaseContext db)
         person.TrashDate = null;
 
         await db.SaveChangesAsync();
+        await librarySearchIndexService.SyncPersonAsync(id);
+
         return true;
     }
 
@@ -198,6 +205,7 @@ public class PersonService(DatabaseContext db)
 
         db.Persons.Remove(person);
         await db.SaveChangesAsync();
+        await librarySearchIndexService.SyncPersonAsync(id);
         return true;
     }
 
@@ -269,6 +277,7 @@ public class PersonService(DatabaseContext db)
         db.Persons.Remove(removePerson);
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
+        await librarySearchIndexService.DeleteAsync(removeId);
     }
 
     // Authored resources

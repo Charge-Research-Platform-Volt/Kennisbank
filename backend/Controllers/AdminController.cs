@@ -2,6 +2,7 @@ using KnowledgeBank.Services.Background;
 using KnowledgeBank.Services.Domain;
 using KnowledgeBank.Services.Storage;
 using KnowledgeBank.Services.AI;
+using KnowledgeBank.Services.Search;
 using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -74,6 +75,53 @@ public class AdminController(
             }
 
             logger.Information("Re-embedding complete");
+        });
+
+        return Accepted();
+    }
+
+    [HttpPost("reindex-search")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerOperation(Summary = "Rebuild the Meilisearch index for all resources, persons, and organisations")]
+    [SwaggerResponse(202, "Queued")]
+    public IActionResult ReindexSearch()
+    {
+        taskQueue.QueueBackgroundWorkItem(async token =>
+        {
+            using var scope = serviceScopeFactory.CreateScope();
+            var searchIndexService = scope.ServiceProvider.GetRequiredService<LibrarySearchIndexService>();
+            var resourceService = scope.ServiceProvider.GetRequiredService<ResourceService>();
+            var personService = scope.ServiceProvider.GetRequiredService<PersonService>();
+            var organisationService = scope.ServiceProvider.GetRequiredService<OrganisationService>();
+
+            var resources = await resourceService.GetAllAsync();
+            logger.Information("Reindexing {Count} resources", resources.Length);
+
+            foreach (var resource in resources)
+            {
+                try { await searchIndexService.SyncResourceAsync(resource.Id); }
+                catch (Exception ex) { logger.Error(ex, "Faiiled to reindex resource {Id}", resource.Id); }
+            }
+
+            var persons = await personService.GetAllAsync();
+            logger.Information("Reindexing {Count} persons", persons.Length);
+
+            foreach (var person in persons)
+            {
+                try { await searchIndexService.SyncPersonAsync(person.Id); }
+                catch (Exception ex) { logger.Error(ex, "Failed to reindex person {Id}", person.Id); }
+            }
+
+            var organisations = await organisationService.GetAllAsync();
+            logger.Information("Reindexing {Count} organisations", organisations.Length);
+
+            foreach (var organisation in organisations)
+            {
+                try { await searchIndexService.SyncOrganisationAsync(organisation.Id); }
+                catch (Exception ex) { logger.Error(ex, "Failed to reindex organisation {Id}"); }
+            }
+
+            logger.Information("Search reindex complete");
         });
 
         return Accepted();

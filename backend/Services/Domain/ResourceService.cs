@@ -2,11 +2,12 @@ using System.Linq.Expressions;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.AI;
+using KnowledgeBank.Services.Search;
 using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.Domain;
 
-public class ResourceService(DatabaseContext db, TagService tagService, PersonService personService, OrganisationService organisationService, RegionService regionService, IServiceScopeFactory scopeFactory)
+public class ResourceService(DatabaseContext db, TagService tagService, PersonService personService, OrganisationService organisationService, RegionService regionService, IServiceScopeFactory scopeFactory, LibrarySearchIndexService librarySearchIndexService)
 {
     #region Queries
 
@@ -239,6 +240,7 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
 
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
+        await librarySearchIndexService.SyncResourceAsync(resourceId);
 
         if (aliasedEntities.Count > 0)
         {
@@ -289,6 +291,7 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
 
         update(resource);
         await db.SaveChangesAsync();
+        await librarySearchIndexService.SyncResourceAsync(id);
         return true;
     }
 
@@ -300,6 +303,7 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
         resource.Trashed = true;
         resource.TrashDate = DateTime.UtcNow;
         await db.SaveChangesAsync();
+        await librarySearchIndexService.SyncResourceAsync(id);
         return true;
     }
 
@@ -311,6 +315,7 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
         resource.Trashed = false;
         resource.TrashDate = null;
         await db.SaveChangesAsync();
+        await librarySearchIndexService.SyncResourceAsync(id);
         return true;
     }
 
@@ -321,6 +326,7 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
 
         db.Resources.Remove(resource);
         await db.SaveChangesAsync();
+        await librarySearchIndexService.SyncResourceAsync(id);
         return true;
     }
 
@@ -371,6 +377,7 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
     {
         db.ResourceRegionRelations.Add(new ResourceRegionRelation { ResourceId = resourceId, RegionId = regionId });
         await db.SaveChangesAsync();
+        await librarySearchIndexService.SyncResourceAsync(resourceId);
     }
 
     public async Task<bool> RemoveRegionAsync(Guid resourceId, Guid regionId)
@@ -379,6 +386,7 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
         if (rel == null) return false;
         db.ResourceRegionRelations.Remove(rel);
         await db.SaveChangesAsync();
+        await librarySearchIndexService.SyncResourceAsync(resourceId);
         return true;
     }
 
@@ -410,6 +418,7 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
     {
         db.ResourceTagRelations.Add(new ResourceTagRelation { ResourceId = resourceId, TagId = tagId });
         await db.SaveChangesAsync();
+        await librarySearchIndexService.SyncResourceAsync(resourceId);
     }
 
     public async Task<bool> RemoveTagAsync(Guid resourceId, Guid tagId)
@@ -418,6 +427,7 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
         if (rel == null) return false;
         db.ResourceTagRelations.Remove(rel);
         await db.SaveChangesAsync();
+        await librarySearchIndexService.SyncResourceAsync(resourceId);
         return true;
     }
 

@@ -22,6 +22,7 @@ using KnowledgeBank.Services.Storage;
 using KnowledgeBank.Services.Search;
 using Npgsql;
 using KnowledgeBank.Services.Domain;
+using Meilisearch;
 
 namespace KnowledgeBank
 {
@@ -168,6 +169,14 @@ namespace KnowledgeBank
             });
             builder.Services.AddScoped<HybridSearchService>();
 
+            // Meilisearch
+            builder.Services.AddSingleton(sp =>
+            {
+                var config = sp.GetRequiredService<EnvironmentConfig>();
+                return new MeilisearchClient(config.GetVariableValue(EnvironmentVariable.MEILISEARCH_URL), config.GetVariableValue(EnvironmentVariable.MEILISEARCH_API_KEY));
+            });
+            builder.Services.AddScoped<LibrarySearchIndexService>();
+
             // Background services
             builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
             builder.Services.AddHostedService<QueuedHostedService>();
@@ -275,6 +284,9 @@ namespace KnowledgeBank
                 await db.SaveChangesAsync();
 
                 await db.EnsureDatabaseSetupAsync();
+
+                var searchIndexService = scope.ServiceProvider.GetRequiredService<LibrarySearchIndexService>();
+                await searchIndexService.EnsureIndexConfiguredAsync();
             }
 
             app.UseRouting();

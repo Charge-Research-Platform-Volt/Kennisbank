@@ -1,11 +1,12 @@
 using System.Linq.Expressions;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.Search;
 using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.Domain;
 
-public class OrganisationService(DatabaseContext db)
+public class OrganisationService(DatabaseContext db, LibrarySearchIndexService librarySearchIndexService)
 {
     #region Queries
 
@@ -168,6 +169,7 @@ public class OrganisationService(DatabaseContext db)
         }
 
         await db.SaveChangesAsync();
+        await librarySearchIndexService.SyncOrganisationAsync(organisation.Id);
         return organisation.Id;
     }
 
@@ -178,6 +180,7 @@ public class OrganisationService(DatabaseContext db)
 
         update(organisation);
         await db.SaveChangesAsync();
+        await librarySearchIndexService.SyncOrganisationAsync(id);
         return true;
     }
 
@@ -189,6 +192,7 @@ public class OrganisationService(DatabaseContext db)
         organisation.Trashed = true;
         organisation.TrashDate = DateTime.UtcNow;
         await db.SaveChangesAsync();
+        await librarySearchIndexService.SyncOrganisationAsync(id);
         return true;
     }
 
@@ -200,6 +204,7 @@ public class OrganisationService(DatabaseContext db)
         organisation.Trashed = false;
         organisation.TrashDate = null;
         await db.SaveChangesAsync();
+        await librarySearchIndexService.SyncOrganisationAsync(id);
         return true;
     }
 
@@ -210,6 +215,7 @@ public class OrganisationService(DatabaseContext db)
 
         db.Organisations.Remove(organisation);
         await db.SaveChangesAsync();
+        await librarySearchIndexService.SyncOrganisationAsync(id);
         return true;
     }
 
@@ -268,6 +274,7 @@ public class OrganisationService(DatabaseContext db)
         db.Organisations.Remove(removeOrg);
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
+        await librarySearchIndexService.DeleteAsync(removeId);
     }
 
     // Authored resources
