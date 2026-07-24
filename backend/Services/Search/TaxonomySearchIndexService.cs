@@ -23,13 +23,27 @@ public class TaxonomySearchIndexService(MeilisearchClient client)
 
     public async Task<int> DeleteOrphanedAsync(HashSet<Guid> validIds)
     {
-        var result = await client.Index(IndexName).GetDocumentsAsync<TaxonomyIdRef>(new DocumentsQuery
-        {
-            Limit = 100000,
-            Fields = ["id"]
-        });
+        List<TaxonomyIdRef> all = [];
+        int offset = 0;
+        const int pageSize = 1000;
 
-        List<string> orphanIds = result.Results
+        while (true)
+        {
+            var page = await client.Index(IndexName).GetDocumentsAsync<TaxonomyIdRef>(new DocumentsQuery
+            {
+                Limit = pageSize,
+                Offset = offset,
+                Fields = ["id"]
+            });
+
+            List<TaxonomyIdRef> results = page.Results.ToList();
+            all.AddRange(results);
+
+            if (results.Count < pageSize) break;
+            offset += pageSize;
+        }
+
+        List<string> orphanIds = all
             .Where(d => !validIds.Contains(Guid.Parse(d.Id)))
             .Select(d => d.Id)
             .ToList();

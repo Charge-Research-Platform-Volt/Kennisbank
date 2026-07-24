@@ -141,13 +141,27 @@ public class LibrarySearchIndexService(MeilisearchClient client, DatabaseContext
 
     public async Task<int> DeleteOrphanedAsync(HashSet<Guid> validIds)
     {
-        var result = await client.Index(IndexName).GetDocumentsAsync<LibraryIdRef>(new DocumentsQuery
-        {
-            Limit = 100000,
-            Fields = ["id"]
-        });
+        List<LibraryIdRef> all = [];
+        int offset = 0;
+        const int pageSize = 1000;
 
-        List<string> orphanIds = result.Results
+        while (true)
+        {
+            var page = await client.Index(IndexName).GetDocumentsAsync<LibraryIdRef>(new DocumentsQuery
+            {
+                Limit = pageSize,
+                Offset = offset,
+                Fields = ["id"]
+            });
+
+            List<LibraryIdRef> results = page.Results.ToList();
+            all.AddRange(results);
+
+            if (results.Count < pageSize) break;
+            offset += pageSize;
+        }
+
+        List<string> orphanIds = all
             .Where(d => !validIds.Contains(Guid.Parse(d.Id)))
             .Select(d => d.Id)
             .ToList();

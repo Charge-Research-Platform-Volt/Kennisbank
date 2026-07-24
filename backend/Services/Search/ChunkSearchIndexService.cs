@@ -25,7 +25,7 @@ public class ChunkSearchIndexService(MeilisearchClient client)
     {
         var docs = documents.ToList();
         if (docs.Count == 0) return;
-        await client.Index(IndexName).AddDocumentsAsync(docs);
+        await client.Index(IndexName).AddDocumentsInBatchesAsync(docs, batchSize: 500);
     }
 
     public async Task DeleteByParentIdAsync(Guid parentId)
@@ -38,13 +38,27 @@ public class ChunkSearchIndexService(MeilisearchClient client)
 
     public async Task<int> DeleteOrphanedAsync(HashSet<Guid> validResourceIds, HashSet<Guid> validEntityIds)
     {
-        var result = await client.Index(IndexName).GetDocumentsAsync<ChunkParentRef>(new DocumentsQuery
-        {
-            Limit = 100000,
-            Fields = ["id", "parentId", "parentType"]
-        });
+        List<ChunkParentRef> all = [];
+        int offset = 0;
+        const int pageSize = 1000;
 
-        List<string> orphanIds = result.Results
+        while (true)
+        {
+            var page = await client.Index(IndexName).GetDocumentsAsync<ChunkParentRef>(new DocumentsQuery
+            {
+                Limit = pageSize,
+                Offset = offset,
+                Fields = ["id", "parentId", "parentType"]
+            });
+
+            List<ChunkParentRef> results = page.Results.ToList();
+            all.AddRange(results);
+
+            if (results.Count < pageSize) break;
+            offset += pageSize;
+        }
+
+        List<string> orphanIds = all
             .Where(d => !(d.ParentType == "resource" ? validResourceIds.Contains(Guid.Parse(d.ParentId)) : validEntityIds.Contains(Guid.Parse(d.ParentId))))
             .Select(d => d.Id)
             .ToList();
