@@ -1,12 +1,15 @@
 using System.Linq.Expressions;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.Search;
 using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.Domain;
 
-public class ResourceTypeService(DatabaseContext db)
+public class ResourceTypeService(DatabaseContext db, TaxonomySearchIndexService taxonomySearchIndexService)
 {
+    public const string TypeTag = "resourcetype";
+
     #region Queries
 
     public async Task<ResourceType?> GetByIdAsync(Guid id, bool includeRelations = false)
@@ -72,6 +75,15 @@ public class ResourceTypeService(DatabaseContext db)
     public async Task<Guid?> FindIdByNameAsync(string name)
         => await db.ResourceTypes.Where(r => r.Name == name).Select(r => (Guid?)r.Id).FirstOrDefaultAsync();
 
+    public async Task<(ResourceType[] Items, int TotalCount)> SearchAsync(string query, int page, int pageSize)
+    {
+        var (ids, totalCount) = await taxonomySearchIndexService.SearchAsync(query, TypeTag, page, pageSize);
+        ResourceType[] resourceTypes = await GetAllAsync(predicate: rt => ids.Contains(rt.Id));
+        Dictionary<Guid, ResourceType> lookup = resourceTypes.ToDictionary(rt => rt.Id);
+        ResourceType[] items = ids.Where(lookup.ContainsKey).Select(id => lookup[id]).ToArray();
+        return (items, totalCount);
+    }
+
     #endregion
 
     #region Commands
@@ -88,6 +100,7 @@ public class ResourceTypeService(DatabaseContext db)
 
         db.ResourceTypes.Add(resourceType);
         await db.SaveChangesAsync();
+        await taxonomySearchIndexService.SyncAsync(resourceType.Id, resourceType.Name, TypeTag);
         return resourceType.Id;
     }
 
@@ -98,6 +111,7 @@ public class ResourceTypeService(DatabaseContext db)
 
         update(resourceType);
         await db.SaveChangesAsync();
+        await taxonomySearchIndexService.SyncAsync(resourceType.Id, resourceType.Name, TypeTag);
         return true;
     }
 
@@ -108,6 +122,7 @@ public class ResourceTypeService(DatabaseContext db)
 
         db.ResourceTypes.Remove(resourceType);
         await db.SaveChangesAsync();
+        await taxonomySearchIndexService.DeleteAsync(id);
         return true;
     }
 
@@ -122,6 +137,7 @@ public class ResourceTypeService(DatabaseContext db)
         db.ResourceTypes.Remove(removeType);
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
+        await taxonomySearchIndexService.DeleteAsync(removeId);
     }
 
     #endregion

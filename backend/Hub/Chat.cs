@@ -5,7 +5,6 @@ using KnowledgeBank.Models;
 using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Domain;
 using KnowledgeBank.Services.Search;
-using KnowledgeBank.Services.Search.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using SignalRSwaggerGen.Attributes;
@@ -14,7 +13,7 @@ namespace Hubs;
 
 [SignalRHub]
 [Authorize]
-public partial class Chat(MistralHttpClient mistralClient, AiService aiService, ChatService chatService, ResourceService resourceService, PersonService personService, OrganisationService organisationService, ProjectService projectService, HybridSearchService hybridSearchService, IServiceScopeFactory scopeFactory) : Hub
+public partial class Chat(MistralHttpClient mistralClient, AiService aiService, ChatService chatService, ResourceService resourceService, PersonService personService, OrganisationService organisationService, ProjectService projectService, LibraryService libraryService, IServiceScopeFactory scopeFactory) : Hub
 {
     private static string BuildSystemPrompt(string? projectId)
     {
@@ -228,16 +227,16 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
             yield return chunk;
     }
 
-    private async Task<string> FormatSearchResultsAsync(HybridSearchResult result, string userQuestion, string searchQuery, CancellationToken ct)
+    private async Task<string> FormatSearchResultsAsync(List<LibraryItemWithChunks> results, string userQuestion, string searchQuery, CancellationToken ct)
     {
-        var relevant = result.Items.Where(i => i.RelevanceScore >= RelevanceThreshold).ToList();
+        var relevant = results.Where(i => i.Score >= RelevanceThreshold).ToList();
 
         if (relevant.Count == 0)
             return "No relevant results found";
 
         var summaryTasks = relevant.Select(item => item.MatchedChunks.Count > 0
-            ? aiService.SummarizeChunksAsync(userQuestion, searchQuery, item.Name, item.MatchedChunks, ct)
-            : Task.FromResult(item.Description ?? ""));
+            ? aiService.SummarizeChunksAsync(userQuestion, searchQuery, item.Item.Name, item.MatchedChunks, ct)
+            : Task.FromResult(item.Item.Description ?? ""));
 
         string[] summaries = await Task.WhenAll(summaryTasks);
 
@@ -246,9 +245,9 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         for (int i = 0; i < relevant.Count; i++)
         {
             var item = relevant[i];
-            sb.AppendLine($"{item.Name} ({item.Type})");
-            sb.AppendLine($"Cite as: [SRC:{item.Id}]");
-            sb.AppendLine($"Relevance: {item.RelevanceScore:F2}");
+            sb.AppendLine($"{item.Item.Name} ({item.Item.Type})");
+            sb.AppendLine($"Cite as: [SRC:{item.Item.Id}]");
+            sb.AppendLine($"Relevance: {item.Score:F2}");
 
             if (!string.IsNullOrWhiteSpace(summaries[i]) && summaries[i] != "NO_RELEVANT_CONTENT")
                 sb.AppendLine($"Content: {summaries[i]}");

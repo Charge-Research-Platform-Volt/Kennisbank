@@ -73,24 +73,69 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         if (!isOcr) return new OcrResult { Text = await ExtractTextFromFileAsync(stream, fileExtension) };
 
         bool canCache = bucketName != null && fileId != null;
+        string modelId = await ResolveOcrModelIdAsync();
 
         if (canCache)
         {
-            OcrResult? cached = await TryReadOcrCacheAsync(bucketName!, fileId!);
+            OcrResult? cached = await TryReadOcrCacheAsync(bucketName!, fileId!, modelId);
             if (cached != null) return cached;
         }
 
-        OcrResult result = await ExtractWithMistralOCR(stream, fileExtension);
+        OcrResult result = await ExtractWithMistralOCR(stream, fileExtension, modelId);
 
         if (canCache)
             await WriteOcrCacheAsync(bucketName!, fileId!, result);
 
         return result;
     }
-    
-    private async Task<OcrResult> ExtractWithMistralOCR(Stream stream, string fileExtension)
+
+    /// <summary>
+    /// The OCR model this app is configured to use. Leave as "mistral-ocr-latest" to auto-track
+    /// whatever Mistral currently resolves that alias to; set to a specific dated model id to pin it
+    /// and skip the resolution lookup entirely.
+    /// </summary>
+    private const string ConfiguredOcrModel = "mistral-ocr-latest";
+
+    private async Task<string> ResolveOcrModelIdAsync()
+    {
+        if (ConfiguredOcrModel != "mistral-ocr-latest")
+            return ConfiguredOcrModel;
+
+        try
+        {
+            string apiKey = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_API_KEY);
+            string mistralEndpoint = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_ENDPOINT);
+
+            using HttpClient httpClient = new();
+            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+
+            using HttpResponseMessage response = await httpClient.GetAsync(mistralEndpoint + "/models");
+            response.EnsureSuccessStatusCode();
+            using JsonDocument doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+
+            foreach (JsonElement model in doc.RootElement.GetProperty("data").EnumerateArray())
+            {
+                if (model.TryGetProperty("aliases", out JsonElement aliases) &&
+                    aliases.EnumerateArray().Any(a => a.GetString() == ConfiguredOcrModel))
+                {
+                    return model.GetProperty("id").GetString() ?? ConfiguredOcrModel;
+                }
+            }
+
+            logger.LogWarning("Could not find a model with alias {Alias} in Mistral's model list, falling back to alias", ConfiguredOcrModel);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to resolve {Alias} to a pinned model id, falling back to alias", ConfiguredOcrModel);
+        }
+
+        return ConfiguredOcrModel;
+    }
+
+    private async Task<OcrResult> ExtractWithMistralOCR(Stream stream, string fileExtension, string? model = null)
     {
         logger.LogInformation("Using Mistral OCR for {FileType}", fileExtension);
+        string resolvedModel = model ?? await ResolveOcrModelIdAsync();
 
         stream.Position = 0;
         using MemoryStream ms = new();
@@ -131,8 +176,8 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
 
         // Step 3: Run OCR using signed URL
         var requestBody = isPdf
-            ? (object)new { model = "mistral-ocr-latest", document = new { type = "document_url", document_url = fileUrl }, extract_header = true, extract_footer = true }
-            : new { model = "mistral-ocr-latest", document = new { type = "image_url", image_url = fileUrl }, extract_header = true, extract_footer = true };
+            ? (object)new { model = resolvedModel, document = new { type = "document_url", document_url = fileUrl }, extract_header = true, extract_footer = true }
+            : new { model = resolvedModel, document = new { type = "image_url", image_url = fileUrl }, extract_header = true, extract_footer = true };
 
         using HttpRequestMessage ocrRequest = new(HttpMethod.Post, mistralEndpoint + "/ocr");
         ocrRequest.Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
@@ -168,7 +213,7 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         }
 
         string result = CleanOcrMarkdown(sb.ToString());
-        string model = doc.RootElement.GetProperty("model").GetString() ?? "";
+        string responseModel = doc.RootElement.GetProperty("model").GetString() ?? "";
         logger.LogInformation("Mistral OCR extracted {Length} characters.", result.Length);
 
         // Step 4: Delete uploaded file from Mistral (avoid storage charges)
@@ -182,10 +227,10 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
             logger.LogWarning(ex, "Failed to delete Mistral file {FileId} after OCR", mistralFileId);
         }
 
-        return new OcrResult { Text = result, HeaderFooterText = string.Join("\n", headerFooterLines), Model = model };
+        return new OcrResult { Text = result, HeaderFooterText = string.Join("\n", headerFooterLines), Model = responseModel };
     }
 
-    private async Task<OcrResult?> TryReadOcrCacheAsync(string bucketName, string fileId)
+    private async Task<OcrResult?> TryReadOcrCacheAsync(string bucketName, string fileId, string currentModelId)
     {
         try
         {
@@ -193,7 +238,16 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
             using StreamReader reader = new(response.Stream);
             string json = await reader.ReadToEndAsync();
             OcrResult? cached = JsonSerializer.Deserialize<OcrResult>(json);
-            if (cached != null) logger.LogInformation("OCR cache hit for {FileId} (model: {Model})", fileId, cached.Model);
+
+            if (cached == null) return null;
+
+            if (cached.Model != currentModelId)
+            {
+                logger.LogInformation("OCR cache stale for {FileId} (cached model: {CachedModel}, current model: {CurrentModel}), re-running OCR", fileId, cached.Model, currentModelId);
+                return null;
+            }
+
+            logger.LogInformation("OCR cache hit for {FileId} (model: {Model})", fileId, cached.Model);
             return cached;
         }
         catch

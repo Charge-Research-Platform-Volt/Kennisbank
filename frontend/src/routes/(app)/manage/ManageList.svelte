@@ -258,7 +258,9 @@
 	});
 
 	$effect(() => {
-		fetchItems(currentPage);
+		const page = currentPage;
+		void type;
+		untrack(() => fetchItems(page));
 	});
 </script>
 

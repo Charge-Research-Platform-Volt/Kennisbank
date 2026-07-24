@@ -2,21 +2,26 @@ using KnowledgeBank.Data;
 using KnowledgeBank.Services.AI;
 using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
-using Pgvector.EntityFrameworkCore;
 using PgVector = Pgvector.Vector;
+using KnowledgeBank.Services.Search;
 
 namespace KnowledgeBank.Services.Vector;
 
-public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, EmbeddingService aiClientProvider) : IVectorStore
+public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, EmbeddingService aiClientProvider, ChunkSearchIndexService chunkSearchIndexService, LibrarySearchIndexService librarySearchIndexService) : IVectorStore
 {
     /// <inheritdoc />
     public async Task CreateResourcePointsAsync(Guid resourceId, List<(string Text, ChunkType Type, int Part)> chunks)
     {
         await using var database = await dbFactory.CreateDbContextAsync();
+        List<ChunkSearchDocument> searchDocs = [];
 
-        foreach (var chunk in chunks)
+        float[][] embeddings = await aiClientProvider.GenerateEmbeddings(chunks.Select(c => c.Text).ToList());
+
+        for (int i = 0; i < chunks.Count; i++)
         {
-            float[] embeddingArray = await aiClientProvider.GenerateEmbedding(chunk.Text);
+            var chunk = chunks[i];
+            float[] embeddingArray = embeddings[i];
+
             ResourceChunk resourceChunk = new ResourceChunk
             {
                 Id = Guid.NewGuid(),
@@ -29,19 +34,38 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, E
             };
 
             database.ResourceChunks.Add(resourceChunk);
+            searchDocs.Add(new ChunkSearchDocument
+            {
+                Id = resourceChunk.Id.ToString(),
+                ParentId = resourceId.ToString(),
+                ParentType = "resource",
+                ChunkType = chunk.Type.ToString(),
+                ChunkPart = chunk.Part,
+                ChunkText = chunk.Text,
+                Vectors = new() { ["default"] = embeddingArray }
+            });
+
+            if (chunk.Type == ChunkType.MetaData)
+                await librarySearchIndexService.UpdateVectorAsync(resourceId, embeddingArray);
         }
 
         await database.SaveChangesAsync();
+        await chunkSearchIndexService.IndexChunksAsync(searchDocs);
     }
-    
+
     /// <inheritdoc />
-    public async Task CreateEntityPointsAsync(Guid entityId, List<(string Text, ChunkType Type, int Part)> chunks) 
+    public async Task CreateEntityPointsAsync(Guid entityId, string entityType, List<(string Text, ChunkType Type, int Part)> chunks)
     {
         await using var database = await dbFactory.CreateDbContextAsync();
-        
-        foreach (var chunk in chunks) 
+        List<ChunkSearchDocument> searchDocs = [];
+
+        float[][] embeddings = await aiClientProvider.GenerateEmbeddings(chunks.Select(c => c.Text).ToList());
+
+        for (int i = 0; i < chunks.Count; i++)
         {
-            float[] embeddingArray = await aiClientProvider.GenerateEmbedding(chunk.Text);
+            var chunk = chunks[i];
+            float[] embeddingArray = embeddings[i];
+
             EntityChunk entityChunk = new EntityChunk
             {
                 Id = Guid.NewGuid(),
@@ -54,9 +78,23 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, E
             };
 
             database.EntityChunks.Add(entityChunk);
+            searchDocs.Add(new ChunkSearchDocument
+            {
+                Id = entityChunk.Id.ToString(),
+                ParentId = entityId.ToString(),
+                ParentType = entityType,
+                ChunkType = chunk.Type.ToString(),
+                ChunkPart = chunk.Part,
+                ChunkText = chunk.Text,
+                Vectors = new() { ["default"] = embeddingArray }
+            });
+
+            if (chunk.Type == ChunkType.MetaData)
+                await librarySearchIndexService.UpdateVectorAsync(entityId, embeddingArray);
         }
 
         await database.SaveChangesAsync();
+        await chunkSearchIndexService.IndexChunksAsync(searchDocs);
     }
 
     /// <inheritdoc />
@@ -67,6 +105,8 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, E
         int deleted = await database.ResourceChunks
             .Where(c => c.ResourceId == resourceId)
             .ExecuteDeleteAsync();
+
+        await chunkSearchIndexService.DeleteByParentIdAsync(resourceId);
         return deleted > 0;
     }
     
@@ -78,6 +118,8 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, E
         int deleted = await database.EntityChunks
             .Where(c => c.EntityId == entityId)
             .ExecuteDeleteAsync();
+
+        await chunkSearchIndexService.DeleteByParentIdAsync(entityId);
         return deleted > 0;
     }
 
@@ -97,151 +139,20 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, E
         metadataChunk.Embedding = new PgVector(embeddingArray);
 
         await database.SaveChangesAsync();
+
+        await chunkSearchIndexService.IndexChunksAsync([new ChunkSearchDocument {
+            Id = metadataChunk.Id.ToString(),
+            ParentId = resourceId.ToString(),
+            ParentType = "resource",
+            ChunkType = metadataChunk.ChunkType.ToString(),
+            ChunkPart = metadataChunk.ChunkPart,
+            ChunkText = newChunkText,
+            Vectors = new() { ["default"] = embeddingArray }
+        }]);
+
+        await librarySearchIndexService.UpdateVectorAsync(resourceId, embeddingArray);
+
         return true;
     }
 
-    /// <inheritdoc />
-    public async Task<List<VectorSearchResult>> SemanticSearchAsync(float[] queryEmbedding, int limit, float scoreThreshold)
-    {
-        await using var database = await dbFactory.CreateDbContextAsync();
-
-        var queryVector = new PgVector(queryEmbedding);
-
-        // Use cosine distance - score is 1 - distance (higher is better)
-        var resourceResults = await database.ResourceChunks
-            .Where(c => c.Embedding != null)
-            .Select(c => new
-            {
-                c.Id,
-                c.ResourceId,
-                c.ChunkText,
-                ChunkType = c.ChunkType.ToString(),
-                c.ChunkPart,
-                Distance = c.Embedding!.CosineDistance(queryVector)
-            })
-            .Where(c => 1 - c.Distance >= scoreThreshold)
-            .OrderBy(c => c.Distance)
-            .Take(limit)
-            .ToListAsync();
-
-        var entityResults = await database.EntityChunks
-            .Where(c => c.Embedding != null)
-            .Select(c => new
-            {
-                c.Id,
-                ResourceId = c.EntityId,
-                c.ChunkText,
-                ChunkType = c.ChunkType.ToString(),
-                c.ChunkPart,
-                Distance = c.Embedding!.CosineDistance(queryVector)
-            })
-            .Where(c => 1 - c.Distance >= scoreThreshold)
-            .OrderBy(c => c.Distance)
-            .Take(limit)
-            .ToListAsync();
-
-        return resourceResults.Concat(entityResults)
-            .OrderBy(r => r.Distance)
-            .Take(limit)
-            .Select(r => new VectorSearchResult
-        {
-            Id = r.Id,
-            ResourceId = r.ResourceId,
-            ChunkText = r.ChunkText,
-            ChunkType = r.ChunkType,
-            ChunkPart = r.ChunkPart,
-            Score = 1 - (float)r.Distance
-        }).ToList();
-    }
-
-    /// <inheritdoc />
-    public async Task<List<VectorSearchResult>> TextSearchAsync(string query, int limit)
-    {
-        await using var database = await dbFactory.CreateDbContextAsync();
-
-        // Use raw SQL for trigram search since EF Core doesn't have built-in support
-        return await database.Database.SqlQuery<VectorSearchResult>($@"
-            SELECT
-                id as ""Id"",
-                ""resource-id"" as ""ResourceId"",
-                ""chunk-text"" as ""ChunkText"",
-                ""chunk-type"" as ""ChunkType"",
-                ""chunk-part"" as ""ChunkPart"",
-                CAST(similarity(""chunk-text"", {query}) AS real) as ""Score""
-            FROM ""resource-chunks""
-            WHERE ""chunk-text"" % {query} OR ""chunk-text"" ILIKE '%' || {query} || '%'
-            
-            UNION ALL
-            
-            SELECT
-                id as ""Id"",
-                ""entity-id"" as ""ResourceId"",
-                ""chunk-text"" as ""ChunkText"",
-                ""chunk-type"" as ""ChunkType"",
-                ""chunk-part"" as ""ChunkPart"",
-                CAST(similarity(""chunk-text"", {query}) AS real) as ""Score""
-            FROM ""entity-chunks""
-            WHERE ""chunk-text"" % {query} OR ""chunk-text"" ILIKE '%' || {query} || '%'
-            
-            ORDER BY ""Score"" DESC
-            LIMIT {limit}
-        ").ToListAsync();
-    }
-
-    /// <inheritdoc />
-    public async Task<List<VectorSearchResult>> GetChunksByResourceIdAsync(Guid resourceId)
-    {
-        await using var database = await dbFactory.CreateDbContextAsync();
-
-        return await database.ResourceChunks
-            .Where(c => c.ResourceId == resourceId)
-            .OrderBy(c => c.ChunkPart)
-            .Select(c => new VectorSearchResult
-            {
-                Id = c.Id,
-                ResourceId = c.ResourceId,
-                ChunkText = c.ChunkText,
-                ChunkType = c.ChunkType.ToString(),
-                ChunkPart = c.ChunkPart,
-                Score = 1.0f
-            }).ToListAsync();
-    }
-
-    /// <inheritdoc />
-    public async Task<List<VectorSearchResult>> RecommendSimilarAsync(Guid resourceId, int limit, float scoreThreshold)
-    {
-        await using var database = await dbFactory.CreateDbContextAsync();
-
-        var results = await database.Database.SqlQuery<VectorSearchResult>($@"
-            WITH avg_vec AS (
-                SELECT AVG(embedding)::vector(1024) AS vec
-                FROM ""resource-chunks""
-                WHERE ""resource-id"" = {resourceId}
-                  AND embedding IS NOT NULL
-            )
-            SELECT
-                id                          AS ""Id"",
-                ""resource-id""             AS ""ResourceId"",
-                ""chunk-text""              AS ""ChunkText"",
-                ""chunk-type""              AS ""ChunkType"",
-                ""chunk-part""              AS ""ChunkPart"",
-                CAST(1 - (embedding <=> (SELECT vec FROM avg_vec)) AS real) AS ""Score""
-            FROM ""resource-chunks"", avg_vec
-            WHERE ""resource-id"" != {resourceId}
-              AND embedding IS NOT NULL
-              AND (SELECT vec FROM avg_vec) IS NOT NULL
-            ORDER BY embedding <=> (SELECT vec FROM avg_vec)
-            LIMIT {limit}
-        ").ToListAsync();
-
-        return results.Where(r => r.Score >= scoreThreshold).ToList();
-    }
-}
-
-/// <summary>
-/// Helper class for SQL query results that return a vector
-/// </summary>
-internal class VectorResult
-{
-    public PgVector? Value { get; set; }
 }

@@ -3,7 +3,6 @@ using KnowledgeBank.Services.Domain;
 using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using KnowledgeBank.Services.Background;
@@ -24,16 +23,16 @@ public class OrganisationsController(OrganisationService organisationService, IB
         [FromQuery] int pageSize = 50,
         [FromQuery] bool trash = false)
     {
-        Expression<Func<Organisation, bool>> predicate = search != null
-            ? o => (EF.Functions.TrigramsAreSimilar(o.Name, search) ||
-                    EF.Functions.ILike(o.Name, $"%{search}%") ||
-                    o.Aliases.Any(a => EF.Functions.TrigramsAreSimilar(a, search) || EF.Functions.ILike(a, $"%{search}%"))) &&
-                    o.Trashed == trash
-            : o => o.Trashed == trash;
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var (items, totalCount) = await organisationService.SearchAsync(search, page, pageSize, trash);
+            return Ok(new { items, totalCount });
+        }
 
-        var (items, totalCount) = await organisationService.GetPageAsync(page, pageSize, predicate);
+        Expression<Func<Organisation, bool>> predicate = o => o.Trashed == trash;
+        var (pagedItems, pagedTotalCount) = await organisationService.GetPageAsync(page, pageSize, predicate);
 
-        return Ok(new { items, totalCount });
+        return Ok(new { items = pagedItems, totalCount = pagedTotalCount });
     }
 
     [HttpGet("{id}")]

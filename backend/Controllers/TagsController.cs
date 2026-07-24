@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using KnowledgeBank.Services.Domain;
 using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -23,12 +22,9 @@ public class TagsController(TagService tagService) : AppControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
-        Expression<Func<Tag, bool>>? predicate = search != null
-            ? t =>  EF.Functions.TrigramsAreSimilar(t.Name, search) ||
-                    EF.Functions.ILike(t.Name, $"%{search}%")
-            : null;
-
-        var (items, totalCount) = await tagService.GetPageAsync(page, pageSize, predicate);
+        var (items, totalCount) = !string.IsNullOrWhiteSpace(search)
+            ? await tagService.SearchAsync(search, page, pageSize)
+            : await tagService.GetPageAsync(page, pageSize);
 
         return Ok(new { items, totalCount });
     }

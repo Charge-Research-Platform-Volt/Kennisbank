@@ -9,7 +9,7 @@
 	import { formatDate } from '$lib/utils/date';
 	import { getParam, setParams } from '$lib/utils/urlState';
 	import { debounce } from '$lib/utils/debounce';
-	import type { PagedResult } from '$lib/types/results';
+	import { toast } from 'svelte-sonner';
 
 	const openInspector: (item: ResourceItem) => void = getContext('openInspector');
 	const debouncedSearch = debounce(search);
@@ -26,35 +26,35 @@
 	let searched = $state(false);
 	let loading = $state(false);
 
-	let currentPage = $state(1);
-	let totalCount = $state(0);
+	let hasMore = $state(false);
 	let items = $state<ResourceItem[]>([]);
 
 	async function fetchItems() {
 		loading = true;
 
 		try {
-			const result = await api.post<PagedResult<ResourceItem>>('/api/library', {
-				page: currentPage,
+			const result = await api.post<{ items: ResourceItem[]; hasMore: boolean }>('/api/library/search-content', {
+				search: searchInput,
 				pageSize: 20,
-				search: searchInput
+				excludeIds: items.map((i) => i.id)
 			});
 
 			items = items.concat(result.items);
-			totalCount = result.totalCount;
-			currentPage++;
+			hasMore = result.hasMore;
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : 'Search failed.');
 		} finally {
 			loading = false;
 		}
 	}
 
-	async function search() {
+	async function search(blurInput = false) {
 		if (!searchInput.trim()) return;
 
 		searched = true;
-		currentPage = 1;
 		items = [];
-		inputElement?.blur();
+		hasMore = false;
+		if (blurInput) inputElement?.blur();
 
 		setParams({ q: searchInput });
 
@@ -64,9 +64,18 @@
 	function clearSearch() {
 		searchInput = '';
 		items = [];
-		currentPage = 1;
+		hasMore = false;
 		setParams({ q: null });
 		inputElement?.focus();
+	}
+
+	function renderSnippet(raw: string) {
+		const escaped = raw
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;');
+
+		return escaped.replaceAll('\u0001', '<mark>').replaceAll('\u0002', '</mark>');
 	}
 
 	onMount(() => {
@@ -102,7 +111,8 @@
 				{/if}
 			</div>
 			{#if snippet}
-				<p class="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{snippet}</p>
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+				<p class="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{@html renderSnippet(snippet)}</p>
 			{/if}
 		</div>
 	</button>
@@ -146,7 +156,7 @@
 					if (searched) debouncedSearch();
 				}}
 				onkeydown={(e) => {
-					if (e.key === 'Enter' && !searched) search();
+					if (e.key === 'Enter' && !searched) search(true);
 				}}
 			/>
 
@@ -164,7 +174,7 @@
 				<button
 					transition:fade={{ duration: 50 }}
 					class="cursor-pointer rounded-full bg-primary p-2"
-					onclick={search}
+					onclick={() => search(true)}
 				>
 					<ArrowRight size={20} class="shrink-0 text-primary-foreground" />
 				</button>
@@ -195,7 +205,7 @@
 				<div class="mx-auto flex w-full max-w-4xl justify-center py-5">
 					{#if loading}
 						<Spinner class="h-5 w-5 shrink-0" />
-					{:else if items.length < totalCount && items.length > 0}
+					{:else if hasMore}
 						<button class="cursor-pointer text-sm text-muted-foreground" onclick={fetchItems}>
 							Load more
 						</button>

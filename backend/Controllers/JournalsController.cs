@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using KnowledgeBank.Services.Domain;
 using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -23,12 +22,9 @@ public class JournalsController(JournalService journalService) : AppControllerBa
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
-        Expression<Func<Journal, bool>>? predicate = search != null
-            ? j => EF.Functions.TrigramsAreSimilar(j.Name, search) ||
-                   EF.Functions.ILike(j.Name, $"%{search}%")
-            : null;
-
-        var (items, totalCount) = await journalService.GetPageAsync(page, pageSize, predicate);
+        var (items, totalCount) = !string.IsNullOrWhiteSpace(search)
+            ? await journalService.SearchAsync(search, page, pageSize)
+            : await journalService.GetPageAsync(page, pageSize);
 
         return Ok(new { items, totalCount });
     }

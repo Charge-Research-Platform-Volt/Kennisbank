@@ -10,6 +10,13 @@ public class LibraryRequest
     public LibraryFilterOptions? FilterOptions { get; set; }
 }
 
+public class LibraryContentSearchRequest
+{
+    public required string Search { get; set; }
+    public int PageSize { get; set; } = 20;
+    public Guid[]? ExcludeIds { get; set; }
+}
+
 public class LibraryFilterOptions
 {
     public string[]? TypeFilter { get; set; }
@@ -31,5 +38,12 @@ public class LibraryResult
     public int Page { get; set; }
     public int PageSize { get; set; }
     public string? SearchTerm { get; set; }
-    public bool IsSearchResult { get; set; }
+    public Dictionary<string, int> TypeCounts { get; set; } = [];
+}
+
+public class LibraryItemWithChunks
+{
+    public required LibraryItem Item { get; set; }
+    public required List<string> MatchedChunks { get; set; }
+    public required float Score { get; set; }
 }

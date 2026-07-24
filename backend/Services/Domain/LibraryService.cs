@@ -1,12 +1,34 @@
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Search;
 using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.Domain;
 
-public class LibraryService(DatabaseContext db, LibrarySearchIndexService librarySearchIndexService)
+public class LibraryService(DatabaseContext db, LibrarySearchIndexService librarySearchIndexService, ChunkSearchIndexService chunkSearchIndexService, EmbeddingService embeddingService)
 {
+    public async Task<List<LibraryItemWithChunks>> SearchContentAsync(string query, int limit, Guid[]? idsFilter = null, string? typeFilter = null, Guid[]? excludeIds = null)
+    {
+        float[] queryEmbedding = await embeddingService.GenerateEmbedding(query);
+        List<ChunkSearchResult> chunkResults = await chunkSearchIndexService.SearchAsync(query, queryEmbedding, limit, idsFilter, typeFilter, excludeIds);
+
+        Guid[] parentIds = chunkResults.Select(r => r.ParentId).ToArray();
+        Dictionary<Guid, LibraryItem> itemLookup = await db.LibraryItems
+            .Where(i => parentIds.Contains(i.Id))
+            .ToDictionaryAsync(i => i.Id);
+
+        return chunkResults
+            .Where(r => itemLookup.ContainsKey(r.ParentId))
+            .Select(r => new LibraryItemWithChunks
+            {
+                Item = itemLookup[r.ParentId],
+                MatchedChunks = r.MatchedChunks,
+                Score = r.Score
+            })
+            .ToList();
+    }
+
     public async Task<LibraryResult> GetLibraryAsync(LibraryRequest request)
     {
         DateTime? minDate = null;
@@ -31,20 +53,23 @@ public class LibraryService(DatabaseContext db, LibrarySearchIndexService librar
             { "journal_ids", ParseGuids(request.FilterOptions?.JournalFilter) },
         };
 
+        Dictionary<string, int> typeCounts = await librarySearchIndexService.GetTypeFacetsAsync(request.Search ?? "", request.FilterOptions);
+
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var (ids, searchTotalCount) = await librarySearchIndexService.SearchAsync(request.Search, request.FilterOptions, request.Page, request.PageSize);
+            float[] queryEmbedding = await embeddingService.GenerateEmbedding(request.Search);
+            var (ids, searchTotalCount) = await librarySearchIndexService.SearchAsync(request.Search, request.FilterOptions, request.Page, request.PageSize, queryEmbedding);
 
             Dictionary<Guid, LibraryItem> itemLookup = await db.LibraryItems.Where(i => ids.Contains(i.Id)).ToDictionaryAsync(i => i.Id);
 
             return new LibraryResult
             {
-                Items = ids.Where(itemLookup.ContainsKey).Select(id => itemLookup[id]).ToArray(),
+                Items = [.. ids.Where(itemLookup.ContainsKey).Select(id => itemLookup[id])],
                 TotalCount = searchTotalCount,
                 Page = request.Page,
                 PageSize = request.PageSize,
                 SearchTerm = request.Search,
-                IsSearchResult = true
+                TypeCounts = typeCounts
             };
         }
 
@@ -64,7 +89,7 @@ public class LibraryService(DatabaseContext db, LibrarySearchIndexService librar
             TotalCount = totalCount,
             Page =request.Page,
             PageSize = request.PageSize,
-            IsSearchResult = false
+            TypeCounts = typeCounts
         };
     }
 

@@ -1,12 +1,15 @@
 using System.Linq.Expressions;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.Search;
 using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.Domain;
 
-public class RegionService(DatabaseContext db)
+public class RegionService(DatabaseContext db, TaxonomySearchIndexService taxonomySearchIndexService)
 {
+    public const string TypeTag = "region";
+
     #region Queries
 
     public async Task<Region?> GetByIdAsync(Guid id, bool includeRelations = false)
@@ -72,6 +75,15 @@ public class RegionService(DatabaseContext db)
     public async Task<Guid?> FindIdByNameAsync(string name)
         => await db.Regions.Where(r => r.Name == name).Select(r => (Guid?)r.Id).FirstOrDefaultAsync();
 
+    public async Task<(Region[] Items, int TotalCount)> SearchAsync(string query, int page, int pageSize)
+    {
+        var (ids, totalCount) = await taxonomySearchIndexService.SearchAsync(query, TypeTag, page, pageSize);
+        Region[] regions = await GetAllAsync(predicate: r => ids.Contains(r.Id));
+        Dictionary<Guid, Region> lookup = regions.ToDictionary(r => r.Id);
+        Region[] items = ids.Where(lookup.ContainsKey).Select(id => lookup[id]).ToArray();
+        return (items, totalCount);
+    }
+
     #endregion
 
     #region Commands
@@ -88,6 +100,7 @@ public class RegionService(DatabaseContext db)
 
         db.Regions.Add(region);
         await db.SaveChangesAsync();
+        await taxonomySearchIndexService.SyncAsync(region.Id, region.Name, TypeTag);
         return region.Id;
     }
 
@@ -98,6 +111,7 @@ public class RegionService(DatabaseContext db)
 
         update(region);
         await db.SaveChangesAsync();
+        await taxonomySearchIndexService.SyncAsync(region.Id, region.Name, TypeTag);
 
         return true;
     }
@@ -109,6 +123,7 @@ public class RegionService(DatabaseContext db)
 
         db.Regions.Remove(region);
         await db.SaveChangesAsync();
+        await taxonomySearchIndexService.DeleteAsync(id);
         return true;
     }
 
@@ -131,6 +146,7 @@ public class RegionService(DatabaseContext db)
         db.Regions.Remove(removeRegion);
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
+        await taxonomySearchIndexService.DeleteAsync(removeId);
     }
 
     #endregion

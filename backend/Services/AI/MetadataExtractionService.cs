@@ -12,7 +12,7 @@ using System.Text;
 
 namespace KnowledgeBank.Services.AI;
 
-public class MetadataExtractionService(MistralHttpClient mistralHttpClient, HybridSearchService searchService, EnvironmentConfig environmentConfig, ResourceTypeService resourceTypeService, IDbContextFactory<DatabaseContext> dbFactory)
+public class MetadataExtractionService(MistralHttpClient mistralHttpClient, LibrarySearchIndexService librarySearchIndexService, EnvironmentConfig environmentConfig, ResourceTypeService resourceTypeService, IDbContextFactory<DatabaseContext> dbFactory)
 {
     private readonly Serilog.ILogger logger = Log.ForContext<MetadataExtractionService>();
     private static readonly LanguageDetector languageDetector = LanguageDetectorBuilder.FromAllLanguages().WithPreloadedLanguageModels().Build();
@@ -645,15 +645,19 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Hybr
         await SearchSemaphore.WaitAsync();
         try
         {
-            var result = await searchService.SearchAsync(
+            var hits = await librarySearchIndexService.SearchWithScoresAsync(
                 name.Replace(".", ""),
-                page: 1,
-                pageSize: 6,
-                filters: new Dictionary<string, object?> { { "type", typeFilter } }
+                new LibraryFilterOptions { TypeFilter = typeFilter },
+                limit: 6
             );
 
-            var similars = result.Items.Where(i => i.RelevanceScore >= 0.35f)
-                .Select(i => new SimilarEntity { Id = i.Id, Name = i.Name, Type = i.Type, Score = i.RelevanceScore, Description = i.Description })
+            var relevantHits = hits.Where(h => h.Score >= 0.35f).ToList();
+            Guid[] hitIds = relevantHits.Select(h => h.Id).ToArray();
+            var itemLookup = await db.LibraryItems.Where(i => hitIds.Contains(i.Id)).ToDictionaryAsync(i => i.Id);
+
+            var similars = relevantHits
+                .Where(h => itemLookup.ContainsKey(h.Id))
+                .Select(h => new SimilarEntity { Id = h.Id, Name = itemLookup[h.Id].Name, Type = h.Type, Score = h.Score, Description = itemLookup[h.Id].Description })
                 .ToList();
 
             if (similars.Count > 0)

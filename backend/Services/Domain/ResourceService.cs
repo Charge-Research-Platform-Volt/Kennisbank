@@ -3,12 +3,15 @@ using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Search;
+using KnowledgeBank.Services.Vector;
 using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.Domain;
 
-public class ResourceService(DatabaseContext db, TagService tagService, PersonService personService, OrganisationService organisationService, RegionService regionService, IServiceScopeFactory scopeFactory, LibrarySearchIndexService librarySearchIndexService)
+public class ResourceService(DatabaseContext db, TagService tagService, PersonService personService, OrganisationService organisationService, RegionService regionService, IServiceScopeFactory scopeFactory, LibrarySearchIndexService librarySearchIndexService, EmbeddingService embeddingService, IVectorStore vectorStore)
 {
+    public const string TypeTag = "resource";
+
     #region Queries
 
     public async Task<Resource?> GetByIdAsync(Guid id, bool includeRelations = false)
@@ -84,6 +87,25 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
 
     public async Task<Guid?> FindIdByTitleAsync(string title)
         => await db.Resources.Where(r => r.Title == title).Select(r => (Guid?)r.Id).FirstOrDefaultAsync();
+
+    public async Task<(Resource[] Items, int TotalCount)> SearchAsync(string query, int page, int pageSize, bool trash)
+    {
+        if (!trash)
+        {
+            float[] queryEmbedding = await embeddingService.GenerateEmbedding(query);
+            var (ids, totalCount) = await librarySearchIndexService.SearchAsync(query, new LibraryFilterOptions { TypeFilter = [TypeTag] }, page, pageSize, queryEmbedding);
+            Resource[] resources = await GetAllAsync(predicate: r => ids.Contains(r.Id));
+            Dictionary<Guid, Resource> lookup = resources.ToDictionary(r => r.Id);
+            Resource[] items = ids.Where(lookup.ContainsKey).Select(id => lookup[id]).ToArray();
+            return (items, totalCount);
+        }
+
+        Expression<Func<Resource, bool>> predicate = r =>
+            (EF.Functions.TrigramsAreSimilar(r.Title, query) ||
+             EF.Functions.ILike(r.Title, $"%{query}%")) && r.Trashed == trash;
+
+        return await GetPageAsync(page, pageSize, predicate);
+    }
 
     public async Task<Guid?> FindIdByHashAsync(string hash)
         => await db.Resources.Where(r => r.Hash == hash).Select(r => (Guid?)r.Id).FirstOrDefaultAsync();
@@ -327,6 +349,7 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
         db.Resources.Remove(resource);
         await db.SaveChangesAsync();
         await librarySearchIndexService.SyncResourceAsync(id);
+        await vectorStore.DeletePointsByResourceIdAsync(id);
         return true;
     }
 

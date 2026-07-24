@@ -1,6 +1,9 @@
+using System.Text.Json.Serialization;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.AI;
 using Meilisearch;
+using Meilisearch.QueryParameters;
 using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.Search;
@@ -17,6 +20,18 @@ public class LibrarySearchIndexService(MeilisearchClient client, DatabaseContext
         await index.UpdateSearchableAttributesAsync(["name", "aliases", "description", "occupation", "website", "emailAddress"]);
         await index.UpdateFilterableAttributesAsync(["type", "typeId", "journalId", "tagIds", "regionIds", "publicationDateTimestamp"]);
         await index.UpdateSortableAttributesAsync(["createdOnTimestamp", "name", "publicationDateTimestamp"]);
+        await index.UpdateEmbeddersAsync(new Dictionary<string, Embedder>
+        {
+            ["default"] = new Embedder { Source = EmbedderSource.UserProvided, Dimensions = 1024 }
+        });
+    }
+
+    public async Task UpdateVectorAsync(Guid id, float[] vector)
+    {
+        await client.Index(IndexName).UpdateDocumentsAsync(new[]
+        {
+            new { id = id.ToString(), _vectors = new Dictionary<string, float[]> { ["default"] = vector }}
+        });
     }
 
     public async Task SyncResourceAsync(Guid id)
@@ -32,6 +47,11 @@ public class LibrarySearchIndexService(MeilisearchClient client, DatabaseContext
             return;
         }
 
+        float[]? vector = await db.ResourceChunks
+            .Where(c => c.ResourceId == id && c.ChunkType == ChunkType.MetaData && c.Embedding != null)
+            .Select(c => c.Embedding!.ToArray())
+            .FirstOrDefaultAsync();
+
         LibrarySearchDocument doc = new()
         {
             Id = resource.Id.ToString(),
@@ -43,7 +63,8 @@ public class LibrarySearchIndexService(MeilisearchClient client, DatabaseContext
             TagIds = resource.ResourceTagRelations?.Select(r => r.TagId.ToString()).ToArray() ?? [],
             RegionIds = resource.ResourceRegionRelations?.Select(r => r.RegionId.ToString()).ToArray() ?? [],
             PublicationDateTimestamp = resource.PublicationDate.HasValue ? new DateTimeOffset(resource.PublicationDate.Value).ToUnixTimeSeconds() : null,
-            CreatedOnTimestamp = new DateTimeOffset(resource.CreatedOn).ToUnixTimeSeconds()
+            CreatedOnTimestamp = new DateTimeOffset(resource.CreatedOn).ToUnixTimeSeconds(),
+            Vectors = new() { ["default"] = vector }
         };
 
         await client.Index(IndexName).AddDocumentsAsync([doc]);
@@ -59,6 +80,11 @@ public class LibrarySearchIndexService(MeilisearchClient client, DatabaseContext
             return;
         }
 
+        float[]? vector = await db.EntityChunks
+            .Where(c => c.EntityId == id && c.ChunkType == ChunkType.MetaData && c.Embedding != null)
+            .Select(c => c.Embedding!.ToArray())
+            .FirstOrDefaultAsync();
+
         LibrarySearchDocument doc = new()
         {
             Id = person.Id.ToString(),
@@ -70,7 +96,8 @@ public class LibrarySearchIndexService(MeilisearchClient client, DatabaseContext
             Type = "person",
             TagIds = [],
             RegionIds = [],
-            CreatedOnTimestamp = new DateTimeOffset(person.CreatedOn).ToUnixTimeSeconds()
+            CreatedOnTimestamp = new DateTimeOffset(person.CreatedOn).ToUnixTimeSeconds(),
+            Vectors = new() { ["default"] = vector }
         };
 
         await client.Index(IndexName).AddDocumentsAsync([doc]);
@@ -86,6 +113,11 @@ public class LibrarySearchIndexService(MeilisearchClient client, DatabaseContext
             return;
         }
 
+        float[]? vector = await db.EntityChunks
+            .Where(c => c.EntityId == id && c.ChunkType == ChunkType.MetaData && c.Embedding != null)
+            .Select(c => c.Embedding!.ToArray())
+            .FirstOrDefaultAsync();
+
         LibrarySearchDocument doc = new()
         {
             Id = org.Id.ToString(),
@@ -97,7 +129,8 @@ public class LibrarySearchIndexService(MeilisearchClient client, DatabaseContext
             Type = "organisation",
             TagIds = [],
             RegionIds = [],
-            CreatedOnTimestamp = new DateTimeOffset(org.CreatedOn).ToUnixTimeSeconds()
+            CreatedOnTimestamp = new DateTimeOffset(org.CreatedOn).ToUnixTimeSeconds(),
+            Vectors = new() { ["default"] = vector }
         };
 
         await client.Index(IndexName).AddDocumentsAsync([doc]);
@@ -106,17 +139,92 @@ public class LibrarySearchIndexService(MeilisearchClient client, DatabaseContext
     public async Task DeleteAsync(Guid id)
         => await client.Index(IndexName).DeleteOneDocumentAsync(id.ToString());
 
-    public async Task<(Guid[] Ids, int TotalCount)> SearchAsync(string query, LibraryFilterOptions? filterOptions, int page, int pageSize)
+    public async Task<int> DeleteOrphanedAsync(HashSet<Guid> validIds)
     {
-        var result = (SearchResult<LibrarySearchDocument>)await client.Index(IndexName).SearchAsync<LibrarySearchDocument>(query, new SearchQuery
+        var result = await client.Index(IndexName).GetDocumentsAsync<LibraryIdRef>(new DocumentsQuery
+        {
+            Limit = 100000,
+            Fields = ["id"]
+        });
+
+        List<string> orphanIds = result.Results
+            .Where(d => !validIds.Contains(Guid.Parse(d.Id)))
+            .Select(d => d.Id)
+            .ToList();
+
+        if (orphanIds.Count == 0) return 0;
+
+        await client.Index(IndexName).DeleteDocumentsAsync(orphanIds);
+        return orphanIds.Count;
+    }
+
+    public async Task<(Guid[] Ids, int TotalCount)> SearchAsync(string query, LibraryFilterOptions? filterOptions, int page, int pageSize, float[]? queryEmbedding = null)
+    {
+        var searchQuery = new SearchQuery
         {
             Filter = BuildFilterExpressions(filterOptions),
             Limit = pageSize,
             Offset = (page - 1) * pageSize
-        });
+        };
+
+        if (queryEmbedding != null)
+        {
+            searchQuery.Vector = Array.ConvertAll(queryEmbedding, v => (double)v);
+            searchQuery.Hybrid = new HybridSearch { Embedder = "default", SemanticRatio = SearchTuning.GetSemanticRatio(query) };
+        }
+
+        var result = (SearchResult<LibrarySearchDocument>)await client.Index(IndexName).SearchAsync<LibrarySearchDocument>(query, searchQuery);
 
         Guid[] ids = [.. result.Hits.Select(h => Guid.Parse(h.Id))];
         return (ids, result.EstimatedTotalHits);
+    }
+
+    public async Task<List<(Guid Id, string Type, float Score)>> SearchWithScoresAsync(string query, LibraryFilterOptions? filterOptions, int limit, float[]? queryEmbedding = null)
+    {
+        var searchQuery = new SearchQuery
+        {
+            Filter = BuildFilterExpressions(filterOptions),
+            ShowRankingScore = true,
+            Limit = limit
+        };
+
+        if (queryEmbedding != null)
+        {
+            searchQuery.Vector = Array.ConvertAll(queryEmbedding, v => (double)v);
+            searchQuery.Hybrid = new HybridSearch { Embedder = "default", SemanticRatio = SearchTuning.GetSemanticRatio(query) };
+        }
+
+        var result = (SearchResult<LibrarySearchDocument>)await client.Index(IndexName).SearchAsync<LibrarySearchDocument>(query, searchQuery);
+
+        return result.Hits
+            .Select(h => (Guid.Parse(h.Id), h.Type, (float)(h.RankingScore ?? 0)))
+            .ToList();
+    }
+
+    public async Task<Dictionary<string, int>> GetTypeFacetsAsync(string query, LibraryFilterOptions? filterOptions)
+    {
+        LibraryFilterOptions? facetFilterOptions = filterOptions == null ? null : new LibraryFilterOptions
+        {
+            PubdateMin = filterOptions.PubdateMin,
+            PubdateMax = filterOptions.PubdateMax,
+            TagFilter = filterOptions.TagFilter,
+            TagFilterMode = filterOptions.TagFilterMode,
+            RegionFilter = filterOptions.RegionFilter,
+            RegionFilterMode = filterOptions.RegionFilterMode,
+            ResourceTypeFilter = filterOptions.ResourceTypeFilter,
+            JournalFilter = filterOptions.JournalFilter
+        };
+
+        var result = (SearchResult<LibrarySearchDocument>)await client.Index(IndexName).SearchAsync<LibrarySearchDocument>(query, new SearchQuery
+        {
+            Filter = BuildFilterExpressions(facetFilterOptions),
+            Facets = ["type"],
+            Limit = 0
+        });
+
+        return result.FacetDistribution != null && result.FacetDistribution.TryGetValue("type", out var distribution)
+            ? distribution.ToDictionary(kv => kv.Key, kv => kv.Value)
+            : [];
     }
 
     private static string? BuildFilterExpressions(LibraryFilterOptions? options)
@@ -175,4 +283,15 @@ public class LibrarySearchDocument
     public string[] RegionIds { get; set; } = [];
     public long? PublicationDateTimestamp { get; set; }
     public long CreatedOnTimestamp { get; set; }
+
+    [JsonPropertyName("_vectors")]
+    public Dictionary<string, float[]?> Vectors { get; set; } = [];
+
+    [JsonPropertyName("_rankingScore")]
+    public double? RankingScore { get; set; }
+}
+
+public class LibraryIdRef
+{
+    public required string Id { get; set; }
 }

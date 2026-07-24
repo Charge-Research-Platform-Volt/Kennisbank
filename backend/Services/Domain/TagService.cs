@@ -1,12 +1,15 @@
 using System.Linq.Expressions;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.Search;
 using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.Domain;
 
-public class TagService(DatabaseContext db)
+public class TagService(DatabaseContext db, TaxonomySearchIndexService taxonomySearchIndexService)
 {
+    public const string TypeTag = "tag";
+
     #region Queries
 
     public async Task<Tag?> GetByIdAsync(Guid id, bool includeRelations = false)
@@ -72,6 +75,15 @@ public class TagService(DatabaseContext db)
     public async Task<Guid?> FindIdByNameAsync(string name)
         => await db.Tags.Where(t => t.Name == name).Select(t => (Guid?)t.Id).FirstOrDefaultAsync();
 
+    public async Task<(Tag[] Items, int TotalCount)> SearchAsync(string query, int page, int pageSize)
+    {
+        var (ids, totalCount) = await taxonomySearchIndexService.SearchAsync(query, TypeTag, page, pageSize);
+        Tag[] tags = await GetAllAsync(predicate: t => ids.Contains(t.Id));
+        Dictionary<Guid, Tag> lookup = tags.ToDictionary(t => t.Id);
+        Tag[] items = ids.Where(lookup.ContainsKey).Select(id => lookup[id]).ToArray();
+        return (items, totalCount);
+    }
+
     #endregion
 
     #region Commands
@@ -88,6 +100,7 @@ public class TagService(DatabaseContext db)
 
         db.Tags.Add(tag);
         await db.SaveChangesAsync();
+        await taxonomySearchIndexService.SyncAsync(tag.Id, tag.Name, TypeTag);
         return tag.Id;
     }
 
@@ -98,6 +111,7 @@ public class TagService(DatabaseContext db)
 
         update(tag);
         await db.SaveChangesAsync();
+        await taxonomySearchIndexService.SyncAsync(tag.Id, tag.Name, TypeTag);
 
         return true;
     }
@@ -109,6 +123,7 @@ public class TagService(DatabaseContext db)
 
         db.Tags.Remove(tag);
         await db.SaveChangesAsync();
+        await taxonomySearchIndexService.DeleteAsync(id);
         return true;
     }
 
@@ -141,6 +156,7 @@ public class TagService(DatabaseContext db)
         db.Tags.Remove(removeTag);
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
+        await taxonomySearchIndexService.DeleteAsync(removeId);
     }
 
     #endregion

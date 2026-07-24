@@ -3,7 +3,6 @@ using KnowledgeBank.Services.Domain;
 using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using KnowledgeBank.Services.Background;
@@ -24,16 +23,16 @@ public class PersonsController(PersonService personService, IBackgroundTaskQueue
         [FromQuery] int pageSize = 50,
         [FromQuery] bool trash = false)
     {
-        Expression<Func<Person, bool>> predicate = search != null
-            ? p => (EF.Functions.TrigramsAreSimilar(p.Name, search) ||
-                    EF.Functions.ILike(p.Name, $"%{search}%") ||
-                    p.Aliases.Any(a => EF.Functions.TrigramsAreSimilar(a, search) || EF.Functions.ILike(a, $"%{search}%"))) &&
-                    p.Trashed == trash
-            : p => p.Trashed == trash;
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var (items, totalCount) = await personService.SearchAsync(search, page, pageSize, trash);
+            return Ok(new { items, totalCount });
+        }
 
-        var (items, totalCount) = await personService.GetPageAsync(page, pageSize, predicate);
+        Expression<Func<Person, bool>> predicate = p => p.Trashed == trash;
+        var (pagedItems, pagedTotalCount) = await personService.GetPageAsync(page, pageSize, predicate);
 
-        return Ok(new { items, totalCount });
+        return Ok(new { items = pagedItems, totalCount = pagedTotalCount });
     }
 
     [HttpPut]

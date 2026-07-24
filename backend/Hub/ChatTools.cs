@@ -2,7 +2,6 @@ using System.Text;
 using System.Text.Json;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.AI;
-using KnowledgeBank.Services.Search.Models;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Hubs;
@@ -64,20 +63,18 @@ public partial class Chat
         string? typeFilter = args.RootElement.TryGetProperty("type", out var t) ? t.GetString() : null;
         int limit = args.RootElement.TryGetProperty("limit", out var l) ? Math.Clamp(l.GetInt32(), 1, 30) : 15;
 
-        var filters = new Dictionary<string, object?>();
-        if (typeFilter != null) filters["type"] = new[] { typeFilter };
-
+        Guid[]? idsFilter = null;
         if (projectId != null && Guid.TryParse(projectId, out var projGuid))
         {
             Guid[] ids = await projectService.GetProjectItemIdsAsync(projGuid);
-            if (ids.Length > 0) filters["ids"] = ids;
+            if (ids.Length > 0) idsFilter = ids;
         }
 
         logger.Information("LLM searching for: {Query}", query);
         await Clients.Caller.SendAsync("ToolStatus", "search_library", $"Searching: {query}", ct);
 
-        HybridSearchResult result = await hybridSearchService.SearchAsync(query, 1, limit, filters, includeMetadataChunks: true);
-        string formatted = await FormatSearchResultsAsync(result, userQuestion, query, ct);
+        List<LibraryItemWithChunks> results = await libraryService.SearchContentAsync(query, limit, idsFilter, typeFilter);
+        string formatted = await FormatSearchResultsAsync(results, userQuestion, query, ct);
         logger.Debug("Search tool result: {Result}", formatted);
         return formatted;
     }

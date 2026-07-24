@@ -1,12 +1,15 @@
 using System.Linq.Expressions;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.Search;
 using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.Domain;
 
-public class JournalService(DatabaseContext db)
+public class JournalService(DatabaseContext db, TaxonomySearchIndexService taxonomySearchIndexService)
 {
+    public const string TypeTag = "journal";
+
     #region Queries
 
     public async Task<Journal?> GetByIdAsync(Guid id, bool includeRelations = false)
@@ -72,6 +75,15 @@ public class JournalService(DatabaseContext db)
     public async Task<Guid?> FindIdByNameAsync(string name)
         => await db.Journals.Where(j => j.Name == name).Select(j => (Guid?)j.Id).FirstOrDefaultAsync();
 
+    public async Task<(Journal[] Items, int TotalCount)> SearchAsync(string query, int page, int pageSize)
+    {
+        var (ids, totalCount) = await taxonomySearchIndexService.SearchAsync(query, TypeTag, page, pageSize);
+        Journal[] journals = await GetAllAsync(predicate: j => ids.Contains(j.Id));
+        Dictionary<Guid, Journal> lookup = journals.ToDictionary(j => j.Id);
+        Journal[] items = ids.Where(lookup.ContainsKey).Select(id => lookup[id]).ToArray();
+        return (items, totalCount);
+    }
+
     #endregion
 
     #region Commands
@@ -88,6 +100,7 @@ public class JournalService(DatabaseContext db)
 
         db.Journals.Add(journal);
         await db.SaveChangesAsync();
+        await taxonomySearchIndexService.SyncAsync(journal.Id, journal.Name, TypeTag);
         return journal.Id;
     }
 
@@ -98,6 +111,7 @@ public class JournalService(DatabaseContext db)
 
         update(journal);
         await db.SaveChangesAsync();
+        await taxonomySearchIndexService.SyncAsync(journal.Id, journal.Name, TypeTag);
 
         return true;
     }
@@ -109,6 +123,7 @@ public class JournalService(DatabaseContext db)
 
         db.Journals.Remove(journal);
         await db.SaveChangesAsync();
+        await taxonomySearchIndexService.DeleteAsync(id);
         return true;
     }
 
@@ -123,6 +138,7 @@ public class JournalService(DatabaseContext db)
         db.Journals.Remove(removeJournal);
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
+        await taxonomySearchIndexService.DeleteAsync(removeId);
     }
 
     #endregion

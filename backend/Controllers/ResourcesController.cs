@@ -1,19 +1,24 @@
 using System.Linq.Expressions;
 using System.Security.Claims;
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.AI;
+using KnowledgeBank.Services.Background;
 using KnowledgeBank.Services.Domain;
-using KnowledgeBank.Services.Vector;
+using KnowledgeBank.Services.Search;
+using KnowledgeBank.Services.Storage;
+using KnowledgeBank.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace KnowledgeBank.Controllers;
 
 [Route("[controller]")]
 [Authorize]
-public class ResourcesController(ResourceService resourceService, IVectorStore vectorStore) : AppControllerBase
+public class ResourcesController(ResourceService resourceService, ChunkSearchIndexService chunkSearchIndexService, IBackgroundTaskQueue taskQueue, IServiceScopeFactory serviceScopeFactory, EnvironmentConfig environmentConfig) : AppControllerBase
 {
+    private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
+
     [HttpGet]
     [SwaggerOperation(Summary = "Get resources with optional search and pagination")]
     [SwaggerResponse(200, "List of resources")]
@@ -23,14 +28,16 @@ public class ResourcesController(ResourceService resourceService, IVectorStore v
         [FromQuery] int pageSize = 50,
         [FromQuery] bool trash = false)
     {
-        Expression<Func<Resource, bool>> predicate = search != null
-            ? r => (EF.Functions.TrigramsAreSimilar(r.Title, search) ||
-                    EF.Functions.ILike(r.Title, $"%{search}%")) && r.Trashed == trash
-            : r => r.Trashed == trash;
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var (items, totalCount) = await resourceService.SearchAsync(search, page, pageSize, trash);
+            return Ok(new { items, totalCount });
+        }
 
-        var (items, totalCount) = await resourceService.GetPageAsync(page, pageSize, predicate);
+        Expression<Func<Resource, bool>> predicate = r => r.Trashed == trash;
+        var (pagedItems, pagedTotalCount) = await resourceService.GetPageAsync(page, pageSize, predicate);
 
-        return Ok(new { items, totalCount });
+        return Ok(new { items = pagedItems, totalCount = pagedTotalCount });
     }
 
     [HttpPut]
@@ -40,6 +47,27 @@ public class ResourcesController(ResourceService resourceService, IVectorStore v
     {
         Guid createdBy = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         Guid id = await resourceService.CreateAsync(dto, createdBy);
+
+        taskQueue.QueueBackgroundWorkItem(async token =>
+        {
+            using var scope = serviceScopeFactory.CreateScope();
+            var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
+
+            if (!string.IsNullOrEmpty(dto.FileExtension))
+            {
+                var storageService = scope.ServiceProvider.GetRequiredService<IStorageService>();
+                var dlResponse = await storageService.DownloadObjectAsync(bucketName, id.ToString());
+                using var memStream = new MemoryStream();
+                await dlResponse.Stream.CopyToAsync(memStream, token);
+                memStream.Position = 0;
+                await ingestionService.RunResourcePipelineAsync(id, dto.FileExtension, memStream);
+            }
+            else
+            {
+                await ingestionService.RunResourcePipelineAsync(id);
+            }
+        });
+
         return Ok(id);
     }
 
@@ -71,6 +99,17 @@ public class ResourcesController(ResourceService resourceService, IVectorStore v
             if (dto.Note != null) r.Note = dto.Note;
             if (dto.SourceUrl != null) r.SourceUrl = dto.SourceUrl;
         });
+
+        if (found)
+        {
+            taskQueue.QueueBackgroundWorkItem(async token =>
+            {
+                using var scope = serviceScopeFactory.CreateScope();
+                var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
+                await ingestionService.UpdateResourceMetadataAsync(id);
+            });
+        }
+
         return NoContentOrNotFound(found);
     }
 
@@ -86,8 +125,8 @@ public class ResourcesController(ResourceService resourceService, IVectorStore v
     [SwaggerResponse(200, "Similar resources")]
     public async Task<IActionResult> Similar(Guid id, [FromQuery] int limit = 5)
     {
-        var results = await vectorStore.RecommendSimilarAsync(id, limit * 3, 0.5f);
-        var resourceIds = results.Select(r => r.ResourceId).Distinct().Where(rid => rid != id).Take(limit).ToArray();
+        var results = await chunkSearchIndexService.RecommendSimilarAsync(id, limit, 0.65f);
+        var resourceIds = results.Select(r => r.ResourceId).ToArray();
         var resources = await resourceService.GetByIdsAsync(resourceIds);
         return Ok(resources.Select(r => new { r.Id, r.Title, r.FileType }));
     }

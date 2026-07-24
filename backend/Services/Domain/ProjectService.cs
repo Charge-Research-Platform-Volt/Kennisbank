@@ -1,12 +1,15 @@
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.Search;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace KnowledgeBank.Services.Domain;
 
-public class ProjectService(DatabaseContext db)
+public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxonomySearchIndexService)
 {
+    public const string TypeTag = "project";
+
     public async Task<bool> ExistsAsync(Guid id)
         => await db.Projects.AnyAsync(p => p.Id == id);
 
@@ -31,7 +34,10 @@ public class ProjectService(DatabaseContext db)
             .AsNoTracking();
 
         if (!string.IsNullOrEmpty(request.Search))
-            query = query.Where(p => p.Title.ToLower().Contains(request.Search.ToLower()));
+        {
+            var (matchedIds, _) = await taxonomySearchIndexService.SearchAsync(request.Search, TypeTag, page: 1, pageSize: 500);
+            query = query.Where(p => matchedIds.Contains(p.Id));
+        }
 
         if (request.MemberFilter.HasValue)
         {
@@ -249,6 +255,7 @@ public class ProjectService(DatabaseContext db)
             memberIds.Select(userId => new ProjectMemberRelation { ProjectId = id, UserId = userId }));
 
         await db.SaveChangesAsync();
+        await taxonomySearchIndexService.SyncAsync(id, dto.Title, TypeTag);
         return id;
     }
 
@@ -258,6 +265,7 @@ public class ProjectService(DatabaseContext db)
         if (project == null) return false;
         update(project);
         await db.SaveChangesAsync();
+        await taxonomySearchIndexService.SyncAsync(id, project.Title, TypeTag);
         return true;
     }
 
@@ -389,6 +397,7 @@ public class ProjectService(DatabaseContext db)
         await db.ProjectTagRelations.Where(r => r.ProjectId == projectId).ExecuteDeleteAsync();
         await db.ProjectFolderRelations.Where(r => r.ChildId == projectId).ExecuteDeleteAsync();
         await db.Projects.Where(p => p.Id == projectId).ExecuteDeleteAsync();
+        await taxonomySearchIndexService.DeleteAsync(projectId);
     }
 
     private async Task CascadeMemberOperationAsync(Guid projectId, Func<Guid, Task> operation)

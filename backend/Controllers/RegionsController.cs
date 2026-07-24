@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using KnowledgeBank.Services.Domain;
 using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -23,12 +22,9 @@ public class RegionsController(RegionService regionService) : AppControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
-        Expression<Func<Region, bool>>? predicate = search != null
-            ? r => EF.Functions.TrigramsAreSimilar(r.Name, search) ||
-                    EF.Functions.ILike(r.Name, $"%{search}%")
-            : null;
-
-        var (items, totalCount) = await regionService.GetPageAsync(page, pageSize, predicate);
+        var (items, totalCount) = !string.IsNullOrWhiteSpace(search)
+            ? await regionService.SearchAsync(search, page, pageSize)
+            : await regionService.GetPageAsync(page, pageSize);
 
         return Ok(new { items, totalCount });
     }

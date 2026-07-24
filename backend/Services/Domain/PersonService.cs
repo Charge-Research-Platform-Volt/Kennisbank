@@ -1,13 +1,17 @@
 using System.Linq.Expressions;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Search;
+using KnowledgeBank.Services.Vector;
 using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.Domain;
 
-public class PersonService(DatabaseContext db, LibrarySearchIndexService librarySearchIndexService)
+public class PersonService(DatabaseContext db, LibrarySearchIndexService librarySearchIndexService, EmbeddingService embeddingService, IVectorStore vectorStore)
 {
+    public const string TypeTag = "person";
+
     #region Queries
 
     public async Task<Person?> GetByIdAsync(Guid id, bool includeRelations = false)
@@ -81,6 +85,27 @@ public class PersonService(DatabaseContext db, LibrarySearchIndexService library
 
     public async Task<Guid?> FindIdByNameAsync(string name)
         => await db.Persons.Where(p => p.Name == name).Select(p => (Guid?)p.Id).FirstOrDefaultAsync();
+
+    public async Task<(Person[] Items, int TotalCount)> SearchAsync(string query, int page, int pageSize, bool trash)
+    {
+        if (!trash)
+        {
+            float[] queryEmbedding = await embeddingService.GenerateEmbedding(query);
+            var (ids, totalCount) = await librarySearchIndexService.SearchAsync(query, new LibraryFilterOptions { TypeFilter = [TypeTag] }, page, pageSize, queryEmbedding);
+            Person[] persons = await GetAllAsync(predicate: p => ids.Contains(p.Id));
+            Dictionary<Guid, Person> lookup = persons.ToDictionary(p => p.Id);
+            Person[] items = ids.Where(lookup.ContainsKey).Select(id => lookup[id]).ToArray();
+            return (items, totalCount);
+        }
+
+        Expression<Func<Person, bool>> predicate = p =>
+            (EF.Functions.TrigramsAreSimilar(p.Name, query) ||
+             EF.Functions.ILike(p.Name, $"%{query}%") ||
+             p.Aliases.Any(a => EF.Functions.TrigramsAreSimilar(a, query) || EF.Functions.ILike(a, $"%{query}%"))) &&
+             p.Trashed == trash;
+
+        return await GetPageAsync(page, pageSize, predicate);
+    }
 
     public async Task<PersonDetailDto?> GetDetailAsync(Guid id)
         => await db.Persons
@@ -206,6 +231,7 @@ public class PersonService(DatabaseContext db, LibrarySearchIndexService library
         db.Persons.Remove(person);
         await db.SaveChangesAsync();
         await librarySearchIndexService.SyncPersonAsync(id);
+        await vectorStore.DeletePointsByEntityIdAsync(id);
         return true;
     }
 
@@ -278,6 +304,7 @@ public class PersonService(DatabaseContext db, LibrarySearchIndexService library
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
         await librarySearchIndexService.DeleteAsync(removeId);
+        await vectorStore.DeletePointsByEntityIdAsync(removeId);
     }
 
     // Authored resources

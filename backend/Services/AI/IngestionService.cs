@@ -61,11 +61,11 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
         logger.Information("Resource pipeline completed for ID: {Id}", id);
     }
 
-    public async Task RunEntityPipelineAsync(Guid id, string chunk)
+    public async Task RunEntityPipelineAsync(Guid id, string entityType, string chunk)
     {
         logger.Information("Entity pipeline started for entity ID: {Id}", id);
         await vectorStore.DeletePointsByEntityIdAsync(id);
-        await vectorStore.CreateEntityPointsAsync(id, [(chunk, ChunkType.MetaData, 0)]);
+        await vectorStore.CreateEntityPointsAsync(id, entityType, [(chunk, ChunkType.MetaData, 0)]);
         logger.Information("Entity pipeline completed for entity ID: {Id}", id);
     }
 
@@ -78,8 +78,8 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
         if (person.Aliases.Count > 0) sb.AppendLine($"Also known as: {string.Join(", ", person.Aliases)}");
         if (!string.IsNullOrWhiteSpace(person.Occupation)) sb.AppendLine($"Occupation: {person.Occupation}");
         if (!string.IsNullOrWhiteSpace(person.EmailAddress)) sb.AppendLine($"Email: {person.EmailAddress}");
-        
-        return RunEntityPipelineAsync(person.Id, sb.ToString());
+
+        return RunEntityPipelineAsync(person.Id, "person", sb.ToString());
     }
 
     public Task RunEntityPipelineAsync(Organisation organisation)
@@ -91,8 +91,8 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
         if (organisation.Aliases.Count > 0) sb.AppendLine($"Also known as: {string.Join(", ", organisation.Aliases)}");
         if (!string.IsNullOrWhiteSpace(organisation.Website)) sb.AppendLine($"Website: {organisation.Website}");
         if (!string.IsNullOrWhiteSpace(organisation.EmailAddress)) sb.AppendLine($"Email: {organisation.EmailAddress}");
-        
-        return RunEntityPipelineAsync(organisation.Id, sb.ToString());
+
+        return RunEntityPipelineAsync(organisation.Id, "organisation", sb.ToString());
     }
 
     public async Task RunPersonEntityPipelineAsync(Guid id)

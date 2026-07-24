@@ -17,6 +17,30 @@ public class LibraryController(LibraryService libraryService) : AppControllerBas
     public async Task<IActionResult> Browse([FromBody] LibraryRequest request)
         => Ok(await libraryService.GetLibraryAsync(request));
 
+    [HttpPost("search-content")]
+    [SwaggerOperation(Summary = "Search the library with content-aware chunk matching and snippets")]
+    [SwaggerResponse(200, "Search results with matched content snippets")]
+    public async Task<IActionResult> SearchContent([FromBody]LibraryContentSearchRequest request)
+    {
+        List<LibraryItemWithChunks> results = await libraryService.SearchContentAsync(request.Search, request.PageSize, excludeIds: request.ExcludeIds);
+
+        var items = results.Select(r => new
+        {
+            r.Item.Id,
+            r.Item.Name,
+            r.Item.Description,
+            r.Item.Type,
+            r.Item.FileType,
+            r.Item.SourceUrl,
+            r.Item.CreatedOn,
+            r.Item.PublicationDate,
+            r.Item.PublicationDatePrecision,
+            Chunks = r.MatchedChunks
+        });
+
+        return Ok(new { items, hasMore = results.Count == request.PageSize });
+    }
+
     [HttpPost("items")]
     [SwaggerOperation(Summary = "Get library items by IDs")]
     [SwaggerResponse(200, "Library items")]

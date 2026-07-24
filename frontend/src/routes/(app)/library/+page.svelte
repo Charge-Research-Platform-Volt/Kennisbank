@@ -34,8 +34,7 @@
 	let filtersOpen = $state(false);
 
 	// Filters
-	const ALL_TYPES = ['resource', 'person', 'organisation'];
-	let typeFilter = $state<string[]>(ALL_TYPES);
+	let typeFilter = $state<string[]>([]);
 	let dateMin = $state('');
 	let dateMax = $state('');
 	let tagFilter = $state<string[]>([]);
@@ -55,6 +54,7 @@
 	// Results
 	let items = $state<ResourceItem[]>([]);
 	let loading = $state(false);
+	let typeCounts = $state<Record<string, number>>({});
 
 	const debouncedFetchItems = debounce(fetchItems);
 
@@ -64,14 +64,14 @@
 	async function fetchItems() {
 		loading = true;
 		try {
-			const result = await api.post<PagedResult<ResourceItem>>(
+			const result = await api.post<PagedResult<ResourceItem> & { typeCounts?: Record<string, number> }>(
 				'/api/library',
 				{
 					page: currentPage,
 					pageSize: PAGE_SIZE,
 					search: searchInput || undefined,
 					filterOptions: {
-						typeFilter: typeFilter.length === 3 ? undefined : typeFilter,
+						typeFilter: typeFilter.length === 0 ? undefined : typeFilter,
 						pubdateMin: dateMin ? `${dateMin}-01-01` : undefined,
 						pubdateMax: dateMax ? `${dateMax}-12-31` : undefined,
 						tagFilter: tagFilter.length ? tagFilter : undefined,
@@ -85,6 +85,7 @@
 			);
 			items = result.items;
 			totalItems = result.totalCount;
+			typeCounts = result.typeCounts ?? {};
 		} finally {
 			loading = false;
 		}
@@ -124,7 +125,7 @@
 		if (tagFilter.length) typeFilter = ['resource'];
 		setParams({
 			tags: tagFilter.length ? tagFilter.join(',') : null,
-			type: typeFilter.length === 3 ? null : typeFilter.join(','),
+			type: typeFilter.length === 0 ? null : typeFilter.join(','),
 			page: null
 		});
 		fetchItems();
@@ -135,7 +136,7 @@
 		if (regionFilter.length) typeFilter = ['resource'];
 		setParams({
 			regions: regionFilter.length ? regionFilter.join(',') : null,
-			type: typeFilter.length === 3 ? null : typeFilter.join(','),
+			type: typeFilter.length === 0 ? null : typeFilter.join(','),
 			page: null
 		});
 		fetchItems();
@@ -153,7 +154,7 @@
 		if (resourceTypeFilter.length) typeFilter = ['resource'];
 		setParams({
 			resourceTypes: resourceTypeFilter.length ? resourceTypeFilter.join(',') : null,
-			type: typeFilter.length === 3 ? null : typeFilter.join(','),
+			type: typeFilter.length === 0 ? null : typeFilter.join(','),
 			page: null
 		});
 		fetchItems();
@@ -171,14 +172,14 @@
 		if (journalFilter.length) typeFilter = ['resource'];
 		setParams({
 			journals: journalFilter.length ? journalFilter.join(',') : null,
-			type: typeFilter.length === 3 ? null : typeFilter.join(','),
+			type: typeFilter.length === 0 ? null : typeFilter.join(','),
 			page: null
 		});
 		fetchItems();
 	}
 
 	function resetFilters() {
-		typeFilter = ALL_TYPES;
+		typeFilter = [];
 		dateMin = '';
 		dateMax = '';
 		tagFilter = [];
@@ -200,10 +201,9 @@
 	}
 
 	function handleTypeFilterChange(v: string[]) {
-		const next = v.length === 0 ? ALL_TYPES : v;
-		typeFilter = next;
+		typeFilter = v;
 		currentPage = 1;
-		setParams({ type: next.length === 3 ? null : next.join(','), page: null });
+		setParams({ type: v.length === 0 ? null : v.join(','), page: null });
 		fetchItems();
 	}
 
@@ -226,7 +226,7 @@
 
 	function syncFromUrl() {
 		searchInput = getParam('q');
-		typeFilter = getParamArray('type', ALL_TYPES);
+		typeFilter = getParamArray('type');
 		dateMin = getParam('dateMin');
 		dateMax = getParam('dateMax');
 		tagFilter = getParamArray('tags');
@@ -304,9 +304,17 @@
 						bind:value={typeFilter}
 						onValueChange={handleTypeFilterChange}
 					>
-						<ToggleGroup.Item value="resource" class="text-xs">Resources</ToggleGroup.Item>
-						<ToggleGroup.Item value="person" class="text-xs">Persons</ToggleGroup.Item>
-						<ToggleGroup.Item value="organisation" class="text-xs">Organisations</ToggleGroup.Item>
+						<ToggleGroup.Item value="resource" class="cursor-pointer text-xs"
+							>Resources{typeCounts.resource !== undefined ? ` (${typeCounts.resource})` : ''}</ToggleGroup.Item
+						>
+						<ToggleGroup.Item value="person" class="cursor-pointer text-xs"
+							>Persons{typeCounts.person !== undefined ? ` (${typeCounts.person})` : ''}</ToggleGroup.Item
+						>
+						<ToggleGroup.Item value="organisation" class="cursor-pointer text-xs"
+							>Organisations{typeCounts.organisation !== undefined
+								? ` (${typeCounts.organisation})`
+								: ''}</ToggleGroup.Item
+						>
 					</ToggleGroup.Root>
 				</div>
 
@@ -361,7 +369,7 @@
 				</div>
 
 				<!-- Resource type filter -->
-				{#if typeFilter.includes('resource')}
+				{#if typeFilter.length === 0 || typeFilter.includes('resource')}
 					<div class="flex items-center gap-3">
 						<span class="w-20 shrink-0 text-sm font-medium text-muted-foreground">Types</span>
 						<AsyncMultiSelect
@@ -375,7 +383,7 @@
 				{/if}
 
 				<!-- Journal filter -->
-				{#if typeFilter.includes('resource')}
+				{#if typeFilter.length === 0 || typeFilter.includes('resource')}
 					<div class="flex items-center gap-3">
 						<span class="w-20 shrink-0 text-sm font-medium text-muted-foreground">Journal</span>
 						<AsyncMultiSelect

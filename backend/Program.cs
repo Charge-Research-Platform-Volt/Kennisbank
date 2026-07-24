@@ -160,15 +160,6 @@ namespace KnowledgeBank
             builder.Services.AddScoped<MetadataExtractionService>();
             builder.Services.AddScoped<IVectorStore, PostgresVectorStore>();
 
-            // Hybrid Search System
-            builder.Services.AddSingleton(sp =>
-            {
-                var config = new Services.Search.Models.HybridSearchConfig();
-                config.Validate();
-                return config;
-            });
-            builder.Services.AddScoped<HybridSearchService>();
-
             // Meilisearch
             builder.Services.AddSingleton(sp =>
             {
@@ -176,6 +167,8 @@ namespace KnowledgeBank
                 return new MeilisearchClient(config.GetVariableValue(EnvironmentVariable.MEILISEARCH_URL), config.GetVariableValue(EnvironmentVariable.MEILISEARCH_API_KEY));
             });
             builder.Services.AddScoped<LibrarySearchIndexService>();
+            builder.Services.AddScoped<ChunkSearchIndexService>();
+            builder.Services.AddScoped<TaxonomySearchIndexService>();
 
             // Background services
             builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
@@ -285,8 +278,14 @@ namespace KnowledgeBank
 
                 await db.EnsureDatabaseSetupAsync();
 
-                var searchIndexService = scope.ServiceProvider.GetRequiredService<LibrarySearchIndexService>();
-                await searchIndexService.EnsureIndexConfiguredAsync();
+                var librarySearchIndexService = scope.ServiceProvider.GetRequiredService<LibrarySearchIndexService>();
+                await librarySearchIndexService.EnsureIndexConfiguredAsync();
+
+                var chunkSearchIndexService = scope.ServiceProvider.GetRequiredService<ChunkSearchIndexService>();
+                await chunkSearchIndexService.EnsureIndexConfiguredAsync();
+
+                var taxonomySearchIndexService = scope.ServiceProvider.GetRequiredService<TaxonomySearchIndexService>();
+                await taxonomySearchIndexService.EnsureIndexConfiguredAsync();
             }
 
             app.UseRouting();

@@ -65,4 +65,32 @@ public class EmbeddingService
 
         return embedding;
     }
+
+    public async Task<float[][]> GenerateEmbeddings(IReadOnlyList<string> texts)
+    {
+        if (texts.Count == 0) return [];
+
+        var result = await EmbeddingClient.GenerateEmbeddingsAsync(texts, new EmbeddingGenerationOptions { Dimensions = 1024 });
+
+        float[][] embeddings = new float[texts.Count][];
+
+        foreach (OpenAIEmbedding embedding in result.Value)
+        {
+            float[] vector = embedding.ToFloats().ToArray();
+            embeddings[embedding.Index] = vector;
+
+            lock (cacheLock)
+            {
+                if (embeddingCache.Count >= MaxCacheSize)
+                {
+                    var oldestKey = embeddingCache.OrderBy(kvp => kvp.Value.CachedAt).First().Key;
+                    embeddingCache.Remove(oldestKey);
+                }
+
+                embeddingCache[texts[embedding.Index].Trim().ToLowerInvariant()] = (vector, DateTime.UtcNow);
+            }
+        }
+
+        return embeddings;
+    }
 }
