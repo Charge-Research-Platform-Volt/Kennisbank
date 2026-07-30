@@ -1,12 +1,9 @@
 {
   "recommendations": [
-    "ms-dotnettools.csdevkit",
-    "ms-dotnettools.csharp",
-    "esbenp.prettier-vscode",
+    "svelte.svelte-vscode",
     "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
     "bradlc.vscode-tailwindcss",
-    "ms-azuretools.vscode-docker",
-    "ms-vscode.vscode-typescript-next",
-    "ms-vscode.vscode-json"
+    "ms-azuretools.vscode-docker"
   ]
 }
