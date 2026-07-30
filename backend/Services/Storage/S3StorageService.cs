@@ -164,7 +164,7 @@ public class S3StorageService : IStorageService
         do
         {
             response = await client.ListObjectsV2Async(request);
-            keys.AddRange(response.S3Objects.Select(o => o.Key));
+            keys.AddRange((response.S3Objects ?? []).Select(o => o.Key));
             request.ContinuationToken = response.NextContinuationToken;
         } while (response.IsTruncated == true);
 
