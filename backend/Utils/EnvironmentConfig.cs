@@ -34,6 +34,7 @@ public enum EnvironmentVariable
     SMALL_MODEL_NAME,
     MEDIUM_MODEL_NAME,
     CHAT_MODEL_NAME,
+    OCR_MODEL_NAME,
 
     // Headscale
     HEADSCALE_URL,
@@ -87,6 +88,7 @@ public class EnvironmentConfig
         _variableNames.Add(EnvironmentVariable.SMALL_MODEL_NAME, "SMALL_MODEL_NAME");
         _variableNames.Add(EnvironmentVariable.MEDIUM_MODEL_NAME, "MEDIUM_MODEL_NAME");
         _variableNames.Add(EnvironmentVariable.CHAT_MODEL_NAME, "CHAT_MODEL_NAME");
+        _variableNames.Add(EnvironmentVariable.OCR_MODEL_NAME, "OCR_MODEL_NAME");
 
         // Headscale
         _variableNames.Add(EnvironmentVariable.HEADSCALE_URL, "HEADSCALE_URL");

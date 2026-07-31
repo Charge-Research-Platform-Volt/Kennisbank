@@ -94,11 +94,9 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
     /// whatever Mistral currently resolves that alias to; set to a specific dated model id to pin it
     /// and skip the resolution lookup entirely.
     /// </summary>
-    private const string ConfiguredOcrModel = "mistral-ocr-latest";
-
     private async Task<string> ResolveOcrModelIdAsync()
     {
-        if (ConfiguredOcrModel != "mistral-ocr-latest")
+        if (ConfiguredOcrModel != environmentConfig.GetVariableValue(EnvironmentVariable.OCR_MODEL_NAME))
             return ConfiguredOcrModel;
 
         try
