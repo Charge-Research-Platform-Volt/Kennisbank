@@ -96,8 +96,10 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
     /// </summary>
     private async Task<string> ResolveOcrModelIdAsync()
     {
-        if (ConfiguredOcrModel != environmentConfig.GetVariableValue(EnvironmentVariable.OCR_MODEL_NAME))
-            return ConfiguredOcrModel;
+        string configuredOcrModel = environmentConfig.GetVariableValue(EnvironmentVariable.OCR_MODEL_NAME);
+
+        if (configuredOcrModel != "mistral-ocr-latest")
+            return configuredOcrModel;
 
         try
         {
@@ -114,20 +116,20 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
             foreach (JsonElement model in doc.RootElement.GetProperty("data").EnumerateArray())
             {
                 if (model.TryGetProperty("aliases", out JsonElement aliases) &&
-                    aliases.EnumerateArray().Any(a => a.GetString() == ConfiguredOcrModel))
+                    aliases.EnumerateArray().Any(a => a.GetString() == configuredOcrModel))
                 {
-                    return model.GetProperty("id").GetString() ?? ConfiguredOcrModel;
+                    return model.GetProperty("id").GetString() ?? configuredOcrModel;
                 }
             }
 
-            logger.LogWarning("Could not find a model with alias {Alias} in Mistral's model list, falling back to alias", ConfiguredOcrModel);
+            logger.LogWarning("Could not find a model with alias {Alias} in Mistral's model list, falling back to alias", configuredOcrModel);
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to resolve {Alias} to a pinned model id, falling back to alias", ConfiguredOcrModel);
+            logger.LogWarning(ex, "Failed to resolve {Alias} to a pinned model id, falling back to alias", configuredOcrModel);
         }
 
-        return ConfiguredOcrModel;
+        return configuredOcrModel;
     }
 
     private async Task<OcrResult> ExtractWithMistralOCR(Stream stream, string fileExtension, string? model = null)
