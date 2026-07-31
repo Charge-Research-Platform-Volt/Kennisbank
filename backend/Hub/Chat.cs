@@ -120,7 +120,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         string transcript = string.Join("\n\n", toFold.Select(m => $"{m.MessageRole}: {m.Content}"));
 
         string prompt = $"""
-            Summarize this excerpt of a conversation between a user and a research-assistant chatbot, in a concise paragraph (aim for around 600 words).
+            Summarize this excerpt of a conversation between a user and a research-assistant chatbot, in a concise paragraph (aim for around 600d words).
             Focus on: what the user is trying to accomplish or find out, key facts or conclusions established, and any preferences or constraints the user stated.
             Discard any information that is not relevant to the current conversation.
             Do not include any [SRC:...] citation markers or [AI][/AI] tags — this summary is background context only, never a source to cite from.
