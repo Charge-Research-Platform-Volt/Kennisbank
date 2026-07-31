@@ -4,6 +4,8 @@
 # Ignore environment variables file for development
 .env.local
 
+todo.txt
+
 /database
 /storage
 /storage/*
