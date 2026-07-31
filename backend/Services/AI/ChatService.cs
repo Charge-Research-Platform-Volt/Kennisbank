@@ -21,6 +21,20 @@ public class ChatService(DatabaseContext db)
     public async Task<Messages[]> GetMessagesAsync(Guid chatId)
         => await db.Messages.Where(m => m.ChatId == chatId).OrderBy(m => m.CreatedOn).ToArrayAsync();
 
+    public async Task<Messages[]> GetMessagesForContextAsync(Guid chatId, DateTime? after)
+        => await db.Messages
+            .Where(m => m.ChatId == chatId && (after == null || m.CreatedOn > after))
+            .OrderBy(m => m.CreatedOn)
+            .ToArrayAsync();
+
+    public async Task UpdateCompactionAsync(Guid chatId, string summary, DateTime through) {
+        Chats? chat = await db.Chats.FindAsync(chatId);
+        if (chat == null) return;
+        chat.ContextSummary = summary;
+        chat.SummarizedThroughCreatedOn = through;
+        await db.SaveChangesAsync();
+    }
+
     public async Task<bool> UpdateTitleAsync(Guid id, string title)
     {
         Chats? chat = await db.Chats.FindAsync(id);
@@ -28,6 +42,14 @@ public class ChatService(DatabaseContext db)
         chat.Title = title;
         await db.SaveChangesAsync();
         return true;
+    }
+
+    public async Task UpdateLastContextTokensAsync(Guid chatId, int? tokens)
+    {
+        Chats? chat = await db.Chats.FindAsync(chatId);
+        if (chat == null) return;
+        chat.LastContextTokens = tokens;
+        await db.SaveChangesAsync();
     }
 
     public async Task<Guid> CreateChatAsync(ChatsCreateDto dto)
@@ -44,11 +66,6 @@ public class ChatService(DatabaseContext db)
         await db.SaveChangesAsync();
         return id;
     }
-
-    public async Task<Chats?> GetWithMessagesAsync(Guid id)
-        => await db.Chats
-            .Include(c => c.Messages.OrderBy(m => m.CreatedOn))
-            .FirstOrDefaultAsync(c => c.Id == id);
 
     public async Task CreateMessageAsync(MessagesCreateDto dto)
     {

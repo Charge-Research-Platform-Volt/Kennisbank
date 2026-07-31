@@ -9,11 +9,13 @@ public enum MistralReasoningEffort { Default, None, High }
 public enum MistralCapability { CodeInterpreter, WebSearch, PremiumWebSearch, ImageGeneration }
 public enum MistralResponseFormat { Text, Json, JsonSchema }
 public record MistralToolCall(string Id, string Name, string Arguments);
-public record MistralCompletion(string? Content, List<MistralToolCall>? ToolCalls)
+public record MistralCompletion(string? Content, List<MistralToolCall>? ToolCalls, int? PromptTokens = null)
 {
     public bool HasToolCalls => ToolCalls?.Count > 0;
 }
 public record MistralFunction(string Name, string Description, object Parameters);
+
+public class MistralContextLengthExceededException(string message) : Exception(message);
 
 public class MistralChatRequest
 {
@@ -23,6 +25,7 @@ public class MistralChatRequest
     public MistralFunction[]? Functions { get; init; }
     public MistralCapability[]? Capabilities { get; init; }
     public MistralResponseFormat ResponseFormat { get; init; } = MistralResponseFormat.Text;
+    public int? MaxTokens {get; init; }
     public object? JsonSchema { get; init; }
 }
 
@@ -66,11 +69,19 @@ public class MistralHttpClient
             }
 
             string err = await response.Content.ReadAsStringAsync(ct);
+
+            if ((int)response.StatusCode == 400)
+                if (IsContextLengthError(err))
+                    throw new MistralContextLengthExceededException(err);
+                else
+                    logger.Warning("Mistral returned 400 but not a context length error: {Error}", err);
+
             throw new HttpRequestException($"Mistral {response.StatusCode} — URL: {response.RequestMessage?.RequestUri} — Body: {err}");
         }
 
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
         var choice = doc.RootElement.GetProperty("choices")[0];
+        int? promptTokens = doc.RootElement.TryGetProperty("usage", out var usage) && usage.TryGetProperty("prompt_tokens", out var pt) ? pt.GetInt32() : null;
         var message = choice.GetProperty("message");
         string finishReason = choice.GetProperty("finish_reason").GetString() ?? "stop";
 
@@ -83,10 +94,10 @@ public class MistralHttpClient
                     tc.GetProperty("function").GetProperty("arguments").GetString() ?? "{}"
                 )).ToList();
 
-            return new MistralCompletion(null, toolCalls);
+            return new MistralCompletion(null, toolCalls, promptTokens);
         }
 
-        return new MistralCompletion(ExtractTextContent(message.GetProperty("content")), null);
+        return new MistralCompletion(ExtractTextContent(message.GetProperty("content")), null, promptTokens);
     }
 
     public async IAsyncEnumerable<string> StreamAsync(MistralChatRequest request, [EnumeratorCancellation] CancellationToken ct = default)
@@ -111,6 +122,13 @@ public class MistralHttpClient
             }
 
             string err = await response.Content.ReadAsStringAsync(ct);
+
+            if ((int)response.StatusCode == 400)
+                if (IsContextLengthError(err))
+                    throw new MistralContextLengthExceededException(err);
+                else
+                    logger.Warning("Mistral returned 400 but not a context length error: {Error}", err);
+
             throw new HttpRequestException($"Mistral {response.StatusCode} — URL: {response.RequestMessage?.RequestUri} — Body: {err}");
         }
 
@@ -170,7 +188,8 @@ public class MistralHttpClient
                 MistralResponseFormat.Json => (object)new { type = "json_object" },
                 MistralResponseFormat.JsonSchema => new { type = "json_schema", json_schema = new { name = "response", schema = request.JsonSchema } },
                 _ => new { type = "text" }
-            }
+            },
+            max_tokens = request.MaxTokens
         };
     }
 
@@ -182,6 +201,11 @@ public class MistralHttpClient
             .GetProperty("text").GetString() ?? "",
         _ => ""
     };
+
+    private static bool IsContextLengthError(string body) =>
+        body.Contains("context length", StringComparison.OrdinalIgnoreCase) ||
+        body.Contains("maximum context", StringComparison.OrdinalIgnoreCase) ||
+        body.Contains("too many tokens", StringComparison.OrdinalIgnoreCase);
     
     private static string CapabilityToString(MistralCapability c) => c switch
     {

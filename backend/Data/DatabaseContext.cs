@@ -1,8 +1,6 @@
 using KnowledgeBank.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Npgsql;
-using Org.BouncyCastle.Crypto.Modes;
 
 namespace KnowledgeBank.Data
 {

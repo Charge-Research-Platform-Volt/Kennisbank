@@ -30,6 +30,15 @@ public class Chats
     [Column("project-id")]
     public Guid? ProjectId { get; set; }
 
+    [Column("last-context-tokens")]
+    public int? LastContextTokens { get; set; }
+
+    [Column("context-summary")]
+    public string? ContextSummary { get; set; }
+
+    [Column("summarized-through-created-on")]
+    public DateTime? SummarizedThroughCreatedOn { get; set; }
+
     // Navigation property
     public virtual ICollection<Messages> Messages { get; set; } = new List<Messages>();
 }

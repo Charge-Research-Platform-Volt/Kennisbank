@@ -1,10 +1,10 @@
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Text;
 using System.Text.Json;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Domain;
-using KnowledgeBank.Services.Search;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using SignalRSwaggerGen.Attributes;
@@ -61,6 +61,14 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
 
     private const float RelevanceThreshold = 0.25f;
     private const int MaxToolIterations = 10;
+    private const int MaxHistoryTokens = 80_000;
+    private const int MaxSummaryTokens = 2000;
+    private const int MessagesKeptUncompacted = 10;
+
+    private static readonly Regex SourceMarkerPattern = new(@"\[SRC:[0-9a-fA-F]+\]", RegexOptions.Compiled);
+    private static readonly Regex AiTagPattern = new(@"\[/?AI\]", RegexOptions.Compiled);
+    private static string StripCitationMarkers(string text) => SourceMarkerPattern.Replace(text, "").Trim();
+    private static string StripAiTags(string text) => AiTagPattern.Replace(text, "").Trim();
 
     private readonly Serilog.ILogger logger = Serilog.Log.ForContext<Chat>();
 
@@ -101,6 +109,42 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
             logger.Error(ex, "Failed to create chat for user {UserIdentifier}", Context.UserIdentifier);
             throw;
         }
+    }
+
+    private async Task CompactChatAsync(Chats chat) {
+        Messages[] uncompacted = await chatService.GetMessagesForContextAsync(chat.Id, chat.SummarizedThroughCreatedOn);
+        if (uncompacted.Length <= MessagesKeptUncompacted) return;
+
+        var toFold = uncompacted.Take(uncompacted.Length - MessagesKeptUncompacted).ToList();
+        DateTime cutoff = toFold[^1].CreatedOn;
+        string transcript = string.Join("\n\n", toFold.Select(m => $"{m.MessageRole}: {m.Content}"));
+
+        string prompt = $"""
+            Summarize this excerpt of a conversation between a user and a research-assistant chatbot, in a concise paragraph (aim for around 600 words).
+            Focus on: what the user is trying to accomplish or find out, key facts or conclusions established, and any preferences or constraints the user stated.
+            Discard any information that is not relevant to the current conversation.
+            Do not include any [SRC:...] citation markers or [AI][/AI] tags — this summary is background context only, never a source to cite from.
+            {(string.IsNullOrEmpty(chat.ContextSummary) ? "" : $"Existing summary of earlier parts of the conversation — preserve its important details, don't drop them:\n{chat.ContextSummary}\n\nIncorporate this with the new content below into one updated summary.")}
+
+            Conversation excerpt:
+            {transcript}
+        """;
+
+        MistralCompletion result = await mistralClient.CompleteAsync(new MistralChatRequest
+        {
+            Messages = [new { role = "user", content = prompt }],
+            Temperature = 0f,
+            ReasoningEffort = MistralReasoningEffort.None,
+            MaxTokens = MaxSummaryTokens
+        });
+
+        string summary = StripAiTags(StripCitationMarkers(result.Content ?? ""));
+
+        await chatService.UpdateCompactionAsync(chat.Id, summary, cutoff);
+        chat.ContextSummary = summary;
+        chat.SummarizedThroughCreatedOn = cutoff;
+
+        logger.Information("Compacted chat {ChatId} through {Cutoff}, folded {Count} messages", chat.Id, cutoff, toFold.Count);
     }
 
     private async Task GenerateTitleAsync(Guid chatId, string message, IClientProxy caller)
@@ -155,13 +199,35 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         if (!savedMessage) yield break;
 
         var response = new StringBuilder();
+        var stream = StreamAgenticResponse(chatId, message, chatHistory, projectId, cancellationToken);
+        await using var enumerator = stream.GetAsyncEnumerator(cancellationToken);
+        bool hasNext = true;
 
-        var stream = StreamAgenticResponse(message, chatHistory, projectId, cancellationToken);
+        while (hasNext) {
+            string? errorNotice = null;
 
-        await foreach (var content in stream)
-        {
-            response.Append(content);
-            yield return content;
+            try {
+                hasNext = await enumerator.MoveNextAsync();
+            }
+            catch (MistralContextLengthExceededException) {
+                logger.Warning("Chat {ChatId} exceeded the model's context length", chatId);
+                errorNotice = "This conversation has become too long for me to process. Please use **Compact** to summarize older messages, or start a new chat.";
+            }
+            catch (Exception ex) {
+                logger.Error(ex, "Streaming failed for chat {ChatId}", chatId);
+                errorNotice = "Something went wrong while generating a response. Please try again.";
+            }
+
+            if (errorNotice != null) {
+                response.Append(errorNotice);
+                yield return errorNotice;
+                break;
+            }
+
+            if (hasNext) {
+                response.Append(enumerator.Current);
+                yield return enumerator.Current;
+            }
         }
 
         await SaveAiResponseAsync(response.ToString(), chatId);
@@ -169,7 +235,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         logger.Information("Finished streaming AI response to {UserIdentifier}", Context.UserIdentifier);
     }
 
-    private async IAsyncEnumerable<string> StreamAgenticResponse(string message, List<object> chatHistory, string? projectId, [EnumeratorCancellation] CancellationToken cancellationToken)
+    private async IAsyncEnumerable<string> StreamAgenticResponse(string chatId, string message, List<object> chatHistory, string? projectId, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         List<object> messages =
         [
@@ -181,6 +247,9 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         for (int i = 0; i < MaxToolIterations; i++)
         {
             MistralCompletion completion = await mistralClient.CompleteAsync(new MistralChatRequest { Messages = messages, Functions = [SearchTool, GetItemDetailsTool, FindRelatedItemsTool] }, ct: cancellationToken);
+
+            if (i == 0 && completion.PromptTokens is int promptTokens)
+                await chatService.UpdateLastContextTokensAsync(Guid.Parse(chatId), promptTokens);
 
             if (completion.HasToolCalls)
             {
@@ -262,7 +331,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
     {
         try
         {
-            Chats? chat = await chatService.GetWithMessagesAsync(Guid.Parse(chatId));
+            Chats? chat = await chatService.GetByIdAsync(Guid.Parse(chatId));
 
             if (chat == null || chat.UserId != Guid.Parse(Context.UserIdentifier!))
             {
@@ -270,7 +339,14 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
                 return null;
             }
 
-            return BuildChatHistory(chat.Messages, chatId);
+            if (chat.LastContextTokens is int t && t >= MaxHistoryTokens)
+            {
+                try { await CompactChatAsync(chat); }
+                catch (Exception ex) { logger.Error(ex, "Compaction failed for chat {ChatId}", chatId); }
+            }
+
+            Messages[] recentMessages = await chatService.GetMessagesForContextAsync(chat.Id, chat.SummarizedThroughCreatedOn);
+            return BuildChatHistory(chat, recentMessages, chatId);
         }
         catch (Exception ex)
         {
@@ -279,11 +355,14 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         }
     }
 
-    private List<object> BuildChatHistory(IEnumerable<Messages> messages, string chatId)
+    private List<object> BuildChatHistory(Chats chat, IEnumerable<Messages> recentMessages, string chatId)
     {
-        var chatHistory = new List<object>();
+        List<object> chatHistory = [];
 
-        foreach (var messageItem in messages)
+        if (!string.IsNullOrEmpty(chat.ContextSummary))
+            chatHistory.Add(new { role = "assistant", content = $"[Summary of earlier conversation]\n{chat.ContextSummary}" });
+
+        foreach (var messageItem in recentMessages)
         {
             string? role = messageItem.MessageRole switch
             {
