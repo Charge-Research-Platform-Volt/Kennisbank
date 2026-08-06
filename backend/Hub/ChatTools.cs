@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.AI;
+using KnowledgeBank.Services.Domain;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Hubs;
@@ -57,7 +58,23 @@ public partial class Chat
         }
     );
 
-    private async Task<string> HandleSearchAsync(JsonDocument args, string userQuestion, string? projectId, CancellationToken ct)
+    private static readonly MistralFunction SearchAttachmentContentTool = new (
+        "search_attachment_content",
+        "Search within a specific attached file for relevant sections. The list of files attached to this chat, including their ids, is always provided as a system message. For small files this returns the full content, for large files this returns only the most relevant excerpts, not the full text — you may need multiple targeted queries to build a complete picture. Provide a focused query describing what you're looking for.",
+        new
+        {
+            type = "object",
+            properties = new
+            {
+                attachmentId = new { type = "string", description = "The attachment's ID" },
+                query = new { type = "string", description = "What to search for within the file" }
+            },
+            required = new[] { "attachmentId", "query" },
+            additionalProperties = false
+        }
+    );
+
+    private async Task<string> HandleSearchAsync(LibraryService libraryService, ProjectService projectService, JsonDocument args, string userQuestion, string? projectId, CancellationToken ct)
     {
         string query = args.RootElement.GetProperty("query").GetString() ?? userQuestion;
         string? typeFilter = args.RootElement.TryGetProperty("type", out var t) ? t.GetString() : null;
@@ -79,7 +96,7 @@ public partial class Chat
         return formatted;
     }
 
-    private async Task<string> HandleGetItemDetailsAsync(JsonDocument args, CancellationToken ct = default)
+    private async Task<string> HandleGetItemDetailsAsync(ResourceService resourceService, PersonService personService, OrganisationService organisationService, JsonDocument args, CancellationToken ct = default)
     {
         if (!args.RootElement.TryGetProperty("id", out var idProp) || !Guid.TryParse(idProp.GetString(), out var guid))
             return "Error: invalid or missing ID";
@@ -149,7 +166,7 @@ public partial class Chat
         return sb.ToString();
     }
 
-    private async Task<string> HandleFindRelatedItemsAsync(JsonDocument args, CancellationToken ct = default)
+    private async Task<string> HandleFindRelatedItemsAsync(ResourceService resourceService, PersonService personService, OrganisationService organisationService, JsonDocument args, CancellationToken ct = default)
     {
         if (!args.RootElement.TryGetProperty("id", out var idProp) || !Guid.TryParse(idProp.GetString(), out var guid))
             return "Error: invalid or missing ID";
@@ -201,5 +218,29 @@ public partial class Chat
         else return "Error: unknown item type";
 
         return sb.Length > 0 ? sb.ToString() : "No related items found";
+    }
+
+    private async Task<string> HandleSearchAttachmentContentAsync(ChatService chatService, JsonDocument args, Guid chatId, CancellationToken ct)
+    {
+        if (!args.RootElement.TryGetProperty("attachmentId", out var idProp) || !Guid.TryParse(idProp.GetString(), out var attachmentId))
+            return "Error: invalid or missing attachmentId";
+
+        string query = args.RootElement.TryGetProperty("query", out var q) ? q.GetString() ?? "" : "";
+        if (string.IsNullOrWhiteSpace(query))
+            return "Error: query is required";
+
+        await Clients.Caller.SendAsync("ToolStatus", "search_attachment_content", $"Searching attached file: {query}", ct);
+
+        MessageAttachments? attachment = await chatService.GetAttachmentByIdAsync(attachmentId);
+        if (attachment == null || attachment.ChatId != chatId)
+            return "Error: attachment not found in this chat";
+
+        if (!attachment.IsChunked)
+            return attachment.ExtractedText ?? "No content available.";
+
+        float[] queryEmbedding = await embeddingService.GenerateEmbedding(query);
+        List<string> matches = await attachmentChunkSearchIndexService.SearchAsync(query, queryEmbedding, attachmentId);
+
+        return matches.Count == 0 ? "No relevant sections found for that query." : string.Join("\n---\n", matches);
     }
 }

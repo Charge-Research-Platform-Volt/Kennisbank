@@ -4,12 +4,13 @@ using KnowledgeBank.Services.AI;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using KnowledgeBank.Data;
 
 namespace KnowledgeBank.Controllers;
 
 [Route("chats")]
 [Authorize]
-public class ChatsController(ChatService chatService) : AppControllerBase
+public class ChatsController(ChatService chatService, MessageAttachmentService messageAttachmentService) : AppControllerBase
 {
     [HttpGet]
     [SwaggerOperation(Summary = "Get all chats for the current user grouped by date")]
@@ -71,5 +72,31 @@ public class ChatsController(ChatService chatService) : AppControllerBase
         if (chat.UserId != userId) return Forbid();
 
         return Ok(await chatService.GetMessagesAsync(id));
+    }
+
+    [HttpPost("{id}/attachments")]
+    [SwaggerOperation(Summary = "Attach an uploaded file to a chat, extracting its text")]
+    [SwaggerResponse(200, "Attachment created")]
+    [SwaggerResponse(400, "Unsupported file type")]
+    [SwaggerResponse(403, "Not your chat")]
+    [SwaggerResponse(404, "Not found")]
+    public async Task<IActionResult> AttachFile(Guid id, [FromBody]MessageAttachmentCreateDto dto)
+    {
+        Guid userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        Chats? chat = await chatService.GetByIdAsync(id);
+
+        if (chat == null) return NotFound();
+        if (chat.UserId != userId) return Forbid();
+
+        if (!Guid.TryParse(dto.ObjectName, out Guid objectId))
+            return Problem("Invalid object name.", statusCode: 400);
+
+        string extension = Path.GetExtension(dto.FileName);
+        if (!Filetype.SupportedText(extension))
+            return Problem($"File type '{extension}' is not supported for chat attachments.", statusCode: 400);
+
+        MessageAttachments attachment = await messageAttachmentService.CreatePendingAttachmentAsync(id, objectId, dto.FileName);
+
+        return Ok(new { attachment.Id, attachment.FileName });
     }
 }

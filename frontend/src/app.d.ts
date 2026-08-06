@@ -7,6 +7,7 @@ declare global {
 		// interface PageData {}
 		interface PageState {
 			initialMessage?: string;
+			initialAttachmentIds?: string[];
 			contentBased?: boolean;
 		}
 		// interface Platform {}

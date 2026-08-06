@@ -151,6 +151,7 @@ namespace KnowledgeBank
             builder.Services.AddScoped<LibraryService>();
             builder.Services.AddScoped<ProjectService>();
             builder.Services.AddScoped<ChatService>();
+            builder.Services.AddScoped<MessageAttachmentService>();
 
             // Retrieval Augmented Generation system
             builder.Services.AddSingleton<MistralHttpClient>();
@@ -169,6 +170,7 @@ namespace KnowledgeBank
             builder.Services.AddScoped<LibrarySearchIndexService>();
             builder.Services.AddScoped<ChunkSearchIndexService>();
             builder.Services.AddScoped<TaxonomySearchIndexService>();
+            builder.Services.AddScoped<AttachmentChunkSearchIndexService>();
 
             // Background services
             builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
@@ -286,6 +288,9 @@ namespace KnowledgeBank
 
                 var taxonomySearchIndexService = scope.ServiceProvider.GetRequiredService<TaxonomySearchIndexService>();
                 await taxonomySearchIndexService.EnsureIndexConfiguredAsync();
+
+                var attachmentChunkSearchIndexService = scope.ServiceProvider.GetRequiredService<AttachmentChunkSearchIndexService>();
+                await attachmentChunkSearchIndexService.EnsureIndexConfiguredAsync();
             }
 
             app.UseRouting();

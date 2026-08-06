@@ -118,7 +118,7 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
         return await vectorStore.UpdateMetadataPointAsync(id, richMetadata);
     }
     
-    private static List<string> SplitTextIntoChunks(string text, bool markdownSplit = false, int chunkSize = 512, int overlapSize = 128)
+    public static List<string> SplitTextIntoChunks(string text, bool markdownSplit = false, int chunkSize = 512, int overlapSize = 128)
     {
         if (string.IsNullOrWhiteSpace(text)) return [];
         if (overlapSize >= chunkSize) { chunkSize = 512; overlapSize = 128; }

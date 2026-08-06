@@ -67,17 +67,19 @@ public class ChatService(DatabaseContext db)
         return id;
     }
 
-    public async Task CreateMessageAsync(MessagesCreateDto dto)
+    public async Task<Guid> CreateMessageAsync(MessagesCreateDto dto)
     {
+        Guid id = Guid.NewGuid();
         await db.Messages.AddAsync(new Messages
         {
-            Id = Guid.NewGuid(),
+            Id = id,
             ChatId = dto.ChatId,
             MessageRole = dto.MessageRole,
             Content = dto.Content,
             CreatedOn = DateTime.UtcNow
         });
         await db.SaveChangesAsync();
+        return id;
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -88,4 +90,25 @@ public class ChatService(DatabaseContext db)
         await db.SaveChangesAsync();
         return true;
     }
+
+    public async Task LinkAttachmentsToMessageAsync(Guid chatId, Guid messageId, List<Guid> attachmentIds)
+    {
+        if (attachmentIds.Count == 0) return;
+
+        List<MessageAttachments> attachments = await db.MessageAttachments.Where(a => a.ChatId == chatId && attachmentIds.Contains(a.Id) && a.MessageId == null).ToListAsync();
+
+        foreach (var attachment in attachments)
+            attachment.MessageId = messageId;
+
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<List<MessageAttachments>> GetAttachmentsForMessageAsync(Guid messageId)
+        => await db.MessageAttachments.Where(a => a.MessageId == messageId).ToListAsync();
+
+    public async Task<List<MessageAttachments>> GetAttachmentsForChatAsync(Guid chatId)
+        => await db.MessageAttachments.Where(a => a.ChatId == chatId).OrderBy(a => a.CreatedOn).ToListAsync();
+
+    public async Task<MessageAttachments?> GetAttachmentByIdAsync(Guid id)
+        => await db.MessageAttachments.FirstOrDefaultAsync(a => a.Id == id);
 }

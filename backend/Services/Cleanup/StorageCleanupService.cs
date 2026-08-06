@@ -111,9 +111,10 @@ public class StorageCleanupService : BackgroundService
                     }
                 }
 
-                // Check if resource exists in database
+                // Check if resource exists in database or if it is a chat attachment
                 bool isResource = await context.Resources.AnyAsync(r => r.Id == objectId, stoppingToken);
-                if (isResource)
+                bool isMessageAttachment = await context.MessageAttachments.AnyAsync(a => a.Id == objectId, stoppingToken);
+                if (isResource || isMessageAttachment)
                 {
                     skippedCount++;
                     continue;

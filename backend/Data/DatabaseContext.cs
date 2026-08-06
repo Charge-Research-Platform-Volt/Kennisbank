@@ -23,6 +23,7 @@ namespace KnowledgeBank.Data
         public DbSet<ResourceType> ResourceTypes { get; set; }
         public DbSet<Chats> Chats { get; set; }
         public DbSet<Messages> Messages { get; set; }
+        public DbSet<MessageAttachments> MessageAttachments { get; set; }
 
         public DbSet<ResourceAuthorRelation> ResourceAuthorRelations { get; set; }
         public DbSet<ResourceRelatedPersonRelation> ResourceRelatedPersonRelations { get; set; }
@@ -173,6 +174,21 @@ namespace KnowledgeBank.Data
                        .HasForeignKey(m => m.ChatId)
                        .OnDelete(DeleteBehavior.Cascade);
              });
+
+            modelBuilder.Entity<MessageAttachments>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.HasOne(a => a.Chat)
+                      .WithMany()
+                      .HasForeignKey(a => a.ChatId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(a => a.Message)
+                      .WithMany()
+                      .HasForeignKey(a => a.MessageId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
 
             // Library view
             modelBuilder.Entity<LibraryItem>(entity =>

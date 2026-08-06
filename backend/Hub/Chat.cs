@@ -8,12 +8,13 @@ using KnowledgeBank.Services.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using SignalRSwaggerGen.Attributes;
+using KnowledgeBank.Services.Search;
 
 namespace Hubs;
 
 [SignalRHub]
 [Authorize]
-public partial class Chat(MistralHttpClient mistralClient, AiService aiService, ChatService chatService, ResourceService resourceService, PersonService personService, OrganisationService organisationService, ProjectService projectService, LibraryService libraryService, IServiceScopeFactory scopeFactory) : Hub
+public partial class Chat(MistralHttpClient mistralClient, AiService aiService, ChatService chatService, AttachmentChunkSearchIndexService attachmentChunkSearchIndexService, EmbeddingService embeddingService, IServiceScopeFactory scopeFactory) : Hub
 {
     private static string BuildSystemPrompt(string? projectId)
     {
@@ -32,6 +33,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         - When search returns a specific person or organisation, always follow up with get_item_details to retrieve full information before answering.
         - Use find_related_items to explore connections — e.g. resources by a person, members of an organisation, people linked to a resource.
         - Chain tools when needed: search → get_item_details → find_related_items to build a complete picture.
+        - The list of files attached to this chat (if any) is always provided as a separate system message — use search_attachment_content with the attachment's id to look up relevant sections.
 
         You can:
         - Answer questions grounded in {scope} sources
@@ -41,6 +43,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         - Do NOT wrap individual sentences — wrap the whole section at once
         - Do NOT write "(AI)" labels, headers like "General Context", or any other annotations — the [AI]...[/AI] tags handle this automatically
         - If you are unsure whether something comes from {scope} or your training data, wrap it in [AI]...[/AI]
+        - Content from attached files is grounded, user-provided information, NOT general training data — treat it the same as {scope} sources and do NOT wrap it in [AI]...[/AI], even though it has no [SRC:...] marker.
 
         CITATION RULES (strictly enforced):
         - ONLY cite sources that appear in tool results. No exceptions.
@@ -50,6 +53,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         - NEVER invent UUIDs — copy markers verbatim from "Cite as:" lines in tool results
         - Do NOT write a Sources section — it is generated automatically
         - If you haven't used any tools, cite nothing.
+        - Attached files are NOT library sources — never use [SRC:...] markers for them, since no link can be generated for an attachment. Refer to them by name in plain text instead (e.g. "the attached file report.pdf states that...").
 
         For math use LaTeX: $$E=mc^2$$ for display, $x^2$ for inline.
         """;
@@ -120,7 +124,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         string transcript = string.Join("\n\n", toFold.Select(m => $"{m.MessageRole}: {m.Content}"));
 
         string prompt = $"""
-            Summarize this excerpt of a conversation between a user and a research-assistant chatbot, in a concise paragraph (aim for around 600d words).
+            Summarize this excerpt of a conversation between a user and a research-assistant chatbot, in a concise paragraph (aim for around 600 words).
             Focus on: what the user is trying to accomplish or find out, key facts or conclusions established, and any preferences or constraints the user stated.
             Discard any information that is not relevant to the current conversation.
             Do not include any [SRC:...] citation markers or [AI][/AI] tags — this summary is background context only, never a source to cite from.
@@ -176,6 +180,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         string message,
         string chatId,
         string? projectId,
+        List<string>? attachmentIds,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         logger.Information("Streaming AI response for {UserIdentifier}", Context.UserIdentifier);
@@ -195,11 +200,20 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         List<object>? chatHistory = await LoadChatHistoryAsync(chatId);
         if (chatHistory == null) yield break;
 
-        bool savedMessage = await SaveUserMessageAsync(message, chatId);
-        if (!savedMessage) yield break;
+        Guid? savedMessageId = await SaveUserMessageAsync(message, chatId);
+        if (savedMessageId == null) yield break;
+
+        List<MessageAttachments> attachments = [];
+        if (attachmentIds is { Count: > 0 })
+        {
+            await chatService.LinkAttachmentsToMessageAsync(Guid.Parse(chatId), savedMessageId.Value, attachmentIds.Select(Guid.Parse).ToList());
+            attachments = await chatService.GetAttachmentsForMessageAsync(savedMessageId.Value);
+        }
+
+        var (messageContent, attachmentNote) = BuildMessageWithAttachments(message, attachments);
 
         var response = new StringBuilder();
-        var stream = StreamAgenticResponse(chatId, message, chatHistory, projectId, cancellationToken);
+        var stream = StreamAgenticResponse(chatId, message, messageContent, attachmentNote, chatHistory, projectId, cancellationToken);
         await using var enumerator = stream.GetAsyncEnumerator(cancellationToken);
         bool hasNext = true;
 
@@ -230,23 +244,36 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
             }
         }
 
+        if (response.Length == 0)
+        {
+            logger.Warning("Chat {ChatId} received an empty response from the model", chatId);
+            string fallback = "I wasn't able to generate a response. Please try again.";
+            response.Append(fallback);
+            yield return fallback;
+        }
+
         await SaveAiResponseAsync(response.ToString(), chatId);
 
         logger.Information("Finished streaming AI response to {UserIdentifier}", Context.UserIdentifier);
     }
 
-    private async IAsyncEnumerable<string> StreamAgenticResponse(string chatId, string message, List<object> chatHistory, string? projectId, [EnumeratorCancellation] CancellationToken cancellationToken)
+    private async IAsyncEnumerable<string> StreamAgenticResponse(string chatId, string message, string messageContent, string? attachmentNote, List<object> chatHistory, string? projectId, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        List<object> messages =
-        [
-            new { role = "system", content = BuildSystemPrompt(projectId) },
-            ..chatHistory,
-            new { role = "user", content = message }
-        ];
+        List<object> messages = [new { role = "system", content = BuildSystemPrompt(projectId) }];
+
+        List<MessageAttachments> allAttachments = await chatService.GetAttachmentsForChatAsync(Guid.Parse(chatId));
+        if (allAttachments.Count > 0)
+            messages.Add(new { role = "system", content = BuildAttachmentsListText(allAttachments) });
+
+        messages.AddRange(chatHistory);
+        messages.Add(new { role = "user", content = messageContent });
+
+        if (attachmentNote != null)
+            messages.Add(new { role = "system", content = attachmentNote });
 
         for (int i = 0; i < MaxToolIterations; i++)
         {
-            MistralCompletion completion = await mistralClient.CompleteAsync(new MistralChatRequest { Messages = messages, Functions = [SearchTool, GetItemDetailsTool, FindRelatedItemsTool] }, ct: cancellationToken);
+            MistralCompletion completion = await mistralClient.CompleteAsync(new MistralChatRequest { Messages = messages, Functions = [SearchTool, GetItemDetailsTool, FindRelatedItemsTool, SearchAttachmentContentTool] }, ct: cancellationToken);
 
             if (i == 0 && completion.PromptTokens is int promptTokens)
                 await chatService.UpdateLastContextTokensAsync(Guid.Parse(chatId), promptTokens);
@@ -264,28 +291,13 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
                     }).ToArray()
                 });
 
-                foreach (MistralToolCall toolCall in completion.ToolCalls!)
-                {
-                    string formatted;
-                    try
-                    {
-                        using var args = JsonDocument.Parse(toolCall.Arguments);
-                        formatted = toolCall.Name switch
-                        {
-                            "search_library" => await HandleSearchAsync(args, message, projectId, cancellationToken),
-                            "get_item_details" => await HandleGetItemDetailsAsync(args, cancellationToken),
-                            "find_related_items" => await HandleFindRelatedItemsAsync(args, cancellationToken),
-                            _ => "Error: unknown tool"
-                        };
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex, "Tool call failed for {ToolName} with args: {Args}", toolCall.Name, toolCall.Arguments);
-                        formatted = "Tool call failed";
-                    }
+                string[] results = await Task.WhenAll(completion.ToolCalls!.Select(tc => HandleToolCallAsync(tc, message, projectId, Guid.Parse(chatId), cancellationToken)));
 
-                    messages.Add(new { role = "tool", tool_call_id = toolCall.Id, content = formatted });
-                }
+                for (int j = 0; j < completion.ToolCalls!.Count; j++)
+                    messages.Add(new { role = "tool", tool_call_id = completion.ToolCalls[j].Id, content = results[j] });
+
+                if (i == MaxToolIterations - 1)
+                    messages.Add(new { role = "system", content = "You've reached the maximum number of tool calls for this turn. Provide your best answer now based on the information gathered so far." });
             }
             else { break; }
         }
@@ -294,6 +306,42 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
 
         await foreach (string chunk in mistralClient.StreamAsync(new MistralChatRequest { Messages = messages }, cancellationToken))
             yield return chunk;
+    }
+
+    private async Task<string> HandleToolCallAsync(MistralToolCall toolCall, string message, string? projectId, Guid chatId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var args = JsonDocument.Parse(toolCall.Arguments);
+            await using var scope = scopeFactory.CreateAsyncScope();
+
+            return toolCall.Name switch
+            {
+                "search_library" => await HandleSearchAsync(
+                    scope.ServiceProvider.GetRequiredService<LibraryService>(),
+                    scope.ServiceProvider.GetRequiredService<ProjectService>(),
+                    args, message, projectId, cancellationToken),
+                "get_item_details" => await HandleGetItemDetailsAsync(
+                    scope.ServiceProvider.GetRequiredService<ResourceService>(),
+                    scope.ServiceProvider.GetRequiredService<PersonService>(),
+                    scope.ServiceProvider.GetRequiredService<OrganisationService>(),
+                    args, cancellationToken),
+                "find_related_items" => await HandleFindRelatedItemsAsync(
+                    scope.ServiceProvider.GetRequiredService<ResourceService>(),
+                    scope.ServiceProvider.GetRequiredService<PersonService>(),
+                    scope.ServiceProvider.GetRequiredService<OrganisationService>(),
+                    args, cancellationToken),
+                "search_attachment_content" => await HandleSearchAttachmentContentAsync(
+                    scope.ServiceProvider.GetRequiredService<ChatService>(),
+                    args, chatId, cancellationToken),
+                _ => "Error: unknown tool"
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Tool call failed for {ToolName} with args: {Args}", toolCall.Name, toolCall.Arguments);
+            return $"Tool call failed: {ex.Message}";
+        }
     }
 
     private async Task<string> FormatSearchResultsAsync(List<LibraryItemWithChunks> results, string userQuestion, string searchQuery, CancellationToken ct)
@@ -380,11 +428,11 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         return chatHistory;
     }
 
-    private async Task<bool> SaveUserMessageAsync(string message, string chatId)
+    private async Task<Guid?> SaveUserMessageAsync(string message, string chatId)
     {
         try
         {
-            await chatService.CreateMessageAsync(new MessagesCreateDto
+            Guid messageId = await chatService.CreateMessageAsync(new MessagesCreateDto
             {
                 SenderId = Guid.Parse(Context.UserIdentifier!),
                 ChatId = Guid.Parse(chatId),
@@ -392,13 +440,53 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
                 Content = message
             });
             logger.Information("User message saved for chat {ChatId}", chatId);
-            return true;
+            return messageId;
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Failed to save user message for chat {ChatId}", chatId);
-            return false;
+            return null;
         }
+    }
+
+    private static (string Content, string? AttachmentNote) BuildMessageWithAttachments(string message, List<MessageAttachments> attachments)
+    {
+        if (attachments.Count == 0) return (message, null);
+
+        StringBuilder content = new(message);
+        StringBuilder note = new();
+
+        foreach (var attachment in attachments) 
+        {
+            if (!attachment.IsChunked)
+            {
+                content.AppendLine();
+                content.AppendLine();
+                content.AppendLine($"[Attached file: {attachment.FileName}]");
+                content.AppendLine(attachment.ExtractedText);
+            }
+            else
+            {
+                note.AppendLine($"The user just attached a large file, \"{attachment.FileName}\" (id: {attachment.Id}). Use search_attachment_content with a relevant query to look up sections before answering.");
+            }
+        }
+
+        return (content.ToString(), note.Length > 0 ? note.ToString() : null);
+    }
+
+    private static string BuildAttachmentsListText(List<MessageAttachments> attachments)
+    {
+        StringBuilder sb = new();
+        sb.AppendLine("Files attached to this chat:");
+
+        foreach (var attachment in attachments)
+        {
+            string sizeLabel = attachment.IsChunked ? " [large document]" : " [small document]";
+            string descriptionLabel = string.IsNullOrEmpty(attachment.Description) ? "" : $" — {attachment.Description}";
+            sb.AppendLine($"- {attachment.FileName} (id: {attachment.Id}){sizeLabel}{descriptionLabel}");
+        }
+
+        return sb.ToString();
     }
 
     private async Task<bool> SaveAiResponseAsync(string response, string chatId)

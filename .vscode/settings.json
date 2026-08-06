@@ -18,6 +18,8 @@
     "qdrant_data": true
   },
   "dotnet.defaultSolution": "backend/backend.sln",
+  "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "openFiles",
+  "dotnet.backgroundAnalysis.compilerDiagnosticsScope": "openFiles",
   "eslint.workingDirectories": ["frontend"],
   "prettier.configPath": "frontend/.prettierrc",
   "tailwindCSS.includeLanguages": {

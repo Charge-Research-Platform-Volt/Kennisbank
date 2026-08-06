@@ -77,15 +77,18 @@
 	import { SvelteMap } from 'svelte/reactivity';
 	import ChatMessage from '$lib/components/chatbot/ChatMessage.svelte';
 	import { ArrowDown } from '@lucide/svelte';
+	import type { PendingAttachment } from '$lib/components/chatbot/chat-input.svelte';
 
 	let {
 		chatId,
 		projectId = null,
-		initialMessage = null
+		initialMessage = null,
+		initialAttachmentIds = []
 	}: {
 		chatId: string;
 		projectId?: string | null;
 		initialMessage?: string | null;
+		initialAttachmentIds?: string[];
 	} = $props();
 
 	type Message = {
@@ -219,7 +222,7 @@
 			});
 	}
 
-	function stream(message: string) {
+	function stream(message: string, attachmentIds: string[] = []) {
 		if (!ctx.connection) return;
 		loading = true;
 
@@ -234,7 +237,7 @@
 		];
 		tick().then(() => setTimeout(scrollToLastUserMessage, 100));
 
-		subscription = ctx.connection.stream('StreamAiResponse', message, chatId, projectId ?? null).subscribe({
+		subscription = ctx.connection.stream('StreamAiResponse', message, chatId, projectId ?? null, attachmentIds).subscribe({
 			next: (chunk) => {
 				messages = messages.map((m) =>
 					m.id === assistantId ? { ...m, content: m.content + chunk } : m
@@ -267,6 +270,11 @@
 		loading = false;
 	}
 
+	function handleSend(message: string, attachments: PendingAttachment[]) {
+		const attachmentIds = attachments.map((a) => a.attachedId).filter((id): id is string => id !== null);
+		stream(message, attachmentIds);
+	}
+
 	onMount(() => {
 		mountedChatId = chatId;
 
@@ -276,7 +284,7 @@
 				.then((result) => {
 					const existing = result ?? [];
 					if (existing.length === 0) {
-						stream(initialMessage!);
+						stream(initialMessage!, initialAttachmentIds);
 					} else {
 						messages = existing;
 						fetchSourcesForMessages(messages);
@@ -288,7 +296,7 @@
 						);
 					}
 				})
-				.catch(() => stream(initialMessage!));
+				.catch(() => stream(initialMessage!, initialAttachmentIds));
 		} else {
 			fetchMessages(chatId);
 		}
@@ -375,7 +383,7 @@
 			</div>
 		{/if}
 		<div class="mx-auto max-w-2xl px-4">
-			<ChatInput bind:this={chatInput} {loading} onSend={stream} onStop={stop} />
+			<ChatInput bind:this={chatInput} {chatId} {loading} onSend={handleSend} onStop={stop} />
 		</div>
 	</div>
 </div>
