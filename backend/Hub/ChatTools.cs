@@ -3,6 +3,7 @@ using System.Text.Json;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Domain;
+using KnowledgeBank.Services.Search;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Hubs;
@@ -75,6 +76,43 @@ public partial class Chat
         }
     );
 
+    private static readonly MistralFunction BrowseLibraryTool = new(
+        "browse_library",
+        "Browse resources using structured filters — tags, regions, resource types, journals, publication date range — instead of semantic text search. Use this when the user asks for items matching specific facets (e.g. \"what do I have tagged X from 2024?\") rather than a topical question. Facet values are names, not IDs — they are resolved automatically; unresolved names are reported back. Only matches resources, not people or organisations.",
+        new
+        {
+            type = "object",
+            properties = new
+            {
+                tagNames = new { type = "array", items = new { type = "string" }, description = "Filter by tag names" },
+                tagFilterMode = new { type = "string", @enum = new[] { "any", "all" }, description = "Match any or all of tagNames (default any)" },
+                regionNames = new { type = "array", items = new { type = "string" }, description = "Filter by region names" },
+                resourceTypeNames = new { type = "array", items = new { type = "string" }, description = "Filter by resource type names" },
+                journalNames = new { type = "array", items = new { type = "string" }, description = "Filter by journal names" },
+                pubdateMin = new { type = "string", description = "Earliest publication date, e.g. 2024-01-01" },
+                pubdateMax = new { type = "string", description = "Latest publication date, e.g. 2024-12-31" },
+                limit = new { type = "integer", description = "Number of results to return (default 20, max 50)" }
+            },
+            additionalProperties = false
+        }
+    );
+
+    private static readonly MistralFunction FindSimilarResourcesTool = new(
+        "find_similar_resources",
+        "Find resources similar in content to a given resource, based on vector similarity of their full text — not the same as find_related_items, which uses explicit tags/authors/organisations. Use this for \"more like this\" requests.",
+        new
+        {
+            type = "object",
+            properties = new
+            {
+                id = new { type = "string", description = "Resource UUID to find similar resources for" },
+                limit = new { type = "integer", description = "Number of results to return (default 10, max 20)" }
+            },
+            required = new[] { "id" },
+            additionalProperties = false
+        }
+    );
+
     private static readonly MistralFunction SearchAttachmentContentTool = new (
         "search_attachment_content",
         "Search within a specific attached file for relevant sections. The list of files attached to this chat, including their ids, is always provided as a system message. For small files this returns the full content, for large files this returns only the most relevant excerpts, not the full text — you may need multiple targeted queries to build a complete picture. Provide a focused query describing what you're looking for.",
@@ -111,6 +149,163 @@ public partial class Chat
         string formatted = await FormatSearchResultsAsync(results, userQuestion, query, ct);
         logger.Debug("Search tool result: {Result}", formatted);
         return formatted;
+    }
+
+    private async Task<string> HandleBrowseLibraryAsync(LibraryService libraryService, TagService tagService, RegionService regionService, JournalService journalService, ResourceTypeService resourceTypeService, ProjectService projectService, JsonDocument args, string? projectId, CancellationToken ct)
+    {
+        string[] tagNames = GetStringArray(args, "tagNames");
+        string[] regionNames = GetStringArray(args, "regionNames");
+        string[] resourceTypeNames = GetStringArray(args, "resourceTypeNames");
+        string[] journalNames = GetStringArray(args, "journalNames");
+        string tagFilterMode = args.RootElement.TryGetProperty("tagFilterMode", out var tfm) ? tfm.GetString() ?? "any" : "any";
+        string? pubdateMin = args.RootElement.TryGetProperty("pubdateMin", out var pdMin) ? pdMin.GetString() : null;
+        string? pubdateMax = args.RootElement.TryGetProperty("pubdateMax", out var pdMax) ? pdMax.GetString() : null;
+        int limit = args.RootElement.TryGetProperty("limit", out var l) ? Math.Clamp(l.GetInt32(), 1, 50) : 20;
+
+        List<string> unresolved = [];
+
+        async Task<string[]> ResolveAsync(string[] names, string label, Func<string, Task<(object[] Items, int Total)>> search)
+        {
+            List<string> ids = [];
+            foreach (string name in names)
+            {
+                (object[] items, _) = await search(name);
+                if (items.Length > 0) ids.Add(((dynamic)items[0]).Id.ToString());
+                else unresolved.Add($"{label} '{name}'");
+            }
+            return [.. ids];
+        }
+
+        string[] tagIds = await ResolveAsync(tagNames, "tag", async name =>
+        {
+            var (items, total) = await tagService.SearchAsync(name, 1, 1);
+            return (items.Cast<object>().ToArray(), total);
+        });
+        string[] regionIds = await ResolveAsync(regionNames, "region", async name =>
+        {
+            var (items, total) = await regionService.SearchAsync(name, 1, 1);
+            return (items.Cast<object>().ToArray(), total);
+        });
+        string[] resourceTypeIds = await ResolveAsync(resourceTypeNames, "resource type", async name =>
+        {
+            var (items, total) = await resourceTypeService.SearchAsync(name, 1, 1);
+            return (items.Cast<object>().ToArray(), total);
+        });
+        string[] journalIds = await ResolveAsync(journalNames, "journal", async name =>
+        {
+            var (items, total) = await journalService.SearchAsync(name, 1, 1);
+            return (items.Cast<object>().ToArray(), total);
+        });
+
+        logger.Information(
+            "LLM browsing library: tags=[{TagNames}]->{TagIds} (mode={TagFilterMode}), regions=[{RegionNames}]->{RegionIds}, resourceTypes=[{ResourceTypeNames}]->{ResourceTypeIds}, journals=[{JournalNames}]->{JournalIds}, pubdateMin={PubdateMin}, pubdateMax={PubdateMax}, unresolved=[{Unresolved}]",
+            string.Join(", ", tagNames), string.Join(", ", tagIds), tagFilterMode,
+            string.Join(", ", regionNames), string.Join(", ", regionIds),
+            string.Join(", ", resourceTypeNames), string.Join(", ", resourceTypeIds),
+            string.Join(", ", journalNames), string.Join(", ", journalIds),
+            pubdateMin, pubdateMax, string.Join(", ", unresolved));
+
+        bool anyFacetFullyUnresolved =
+            (tagNames.Length > 0 && tagIds.Length == 0) ||
+            (regionNames.Length > 0 && regionIds.Length == 0) ||
+            (resourceTypeNames.Length > 0 && resourceTypeIds.Length == 0) ||
+            (journalNames.Length > 0 && journalIds.Length == 0);
+
+        if (anyFacetFullyUnresolved)
+            return $"No matching resources found. Could not resolve {string.Join(", ", unresolved)} — no match found in the library.";
+
+        await Clients.Caller.SendAsync("ToolStatus", "browse_library", "Browsing library...", ct);
+
+        LibraryRequest request = new()
+        {
+            Page = 1,
+            PageSize = 100,
+            FilterOptions = new LibraryFilterOptions
+            {
+                TypeFilter = ["resource"],
+                TagFilter = tagIds,
+                TagFilterMode = tagFilterMode,
+                RegionFilter = regionIds,
+                ResourceTypeFilter = resourceTypeIds,
+                JournalFilter = journalIds,
+                PubdateMin = pubdateMin,
+                PubdateMax = pubdateMax
+            }
+        };
+
+        LibraryResult result = await libraryService.GetLibraryAsync(request);
+        IEnumerable<LibraryItem> items = result.Items;
+
+        if (projectId != null && Guid.TryParse(projectId, out var projGuid))
+        {
+            Guid[] projectItemIds = await projectService.GetProjectItemIdsAsync(projGuid);
+            HashSet<Guid> allowed = [.. projectItemIds];
+            items = items.Where(i => allowed.Contains(i.Id));
+        }
+
+        List<LibraryItem> limited = items.Take(limit).ToList();
+
+        logger.Debug("browse_library matched {TotalCount} resources ({ReturnedCount} returned)", result.TotalCount, limited.Count);
+
+        var sb = new StringBuilder();
+
+        if (unresolved.Count > 0)
+            sb.AppendLine($"Note: could not resolve {string.Join(", ", unresolved)} — no match found in the library.");
+
+        if (limited.Count == 0)
+        {
+            sb.AppendLine("No matching resources found.");
+            return sb.ToString();
+        }
+
+        foreach (LibraryItem item in limited)
+        {
+            sb.AppendLine($"{item.Name} ({item.Type})");
+            sb.AppendLine($"Cite as: [SRC:{item.Id}]");
+            if (item.PublicationDate.HasValue) sb.AppendLine($"Published: {item.PublicationDate.Value:yyyy-MM-dd}");
+            if (!string.IsNullOrWhiteSpace(item.Description)) sb.AppendLine($"Description: {item.Description}");
+            sb.AppendLine();
+        }
+
+        return sb.ToString();
+    }
+
+    private async Task<string> HandleFindSimilarResourcesAsync(ChunkSearchIndexService chunkSearchIndexService, ResourceService resourceService, JsonDocument args, CancellationToken ct)
+    {
+        if (!args.RootElement.TryGetProperty("id", out var idProp) || !Guid.TryParse(idProp.GetString(), out var resourceId))
+            return "Error: invalid or missing id";
+
+        int limit = args.RootElement.TryGetProperty("limit", out var l) ? Math.Clamp(l.GetInt32(), 1, 20) : 10;
+
+        logger.Information("LLM finding resources similar to: {ResourceId}", resourceId);
+        await Clients.Caller.SendAsync("ToolStatus", "find_similar_resources", "Finding similar resources...", ct);
+
+        List<(Guid ResourceId, float Score)> results = await chunkSearchIndexService.RecommendSimilarAsync(resourceId, limit, 0.65f);
+        logger.Debug("find_similar_resources matched {Count} resources: {Scores}", results.Count, string.Join(", ", results.Select(r => $"{r.ResourceId}={r.Score:F2}")));
+        if (results.Count == 0) return "No similar resources found.";
+
+        Resource[] resources = await resourceService.GetByIdsAsync(results.Select(r => r.ResourceId));
+        Dictionary<Guid, Resource> lookup = resources.ToDictionary(r => r.Id);
+
+        var sb = new StringBuilder();
+        foreach ((Guid id, float score) in results)
+        {
+            if (!lookup.TryGetValue(id, out Resource? resource)) continue;
+            sb.AppendLine($"{resource.Title} (resource)");
+            sb.AppendLine($"Cite as: [SRC:{resource.Id}]");
+            sb.AppendLine($"Similarity: {score:F2}");
+            sb.AppendLine();
+        }
+
+        return sb.Length > 0 ? sb.ToString() : "No similar resources found.";
+    }
+
+    private static string[] GetStringArray(JsonDocument args, string propertyName)
+    {
+        if (!args.RootElement.TryGetProperty(propertyName, out var prop) || prop.ValueKind != JsonValueKind.Array)
+            return [];
+
+        return [.. prop.EnumerateArray().Select(e => e.GetString() ?? "").Where(s => !string.IsNullOrWhiteSpace(s))];
     }
 
     private async Task<string> HandleSearchItemContentAsync(LibraryService libraryService, JsonDocument args, CancellationToken ct)

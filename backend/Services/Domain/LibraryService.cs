@@ -8,10 +8,16 @@ namespace KnowledgeBank.Services.Domain;
 
 public class LibraryService(DatabaseContext db, LibrarySearchIndexService librarySearchIndexService, ChunkSearchIndexService chunkSearchIndexService, EmbeddingService embeddingService)
 {
+    private readonly Serilog.ILogger logger = Serilog.Log.ForContext<LibraryService>();
+
     public async Task<List<LibraryItemWithChunks>> SearchContentAsync(string query, int limit, Guid[]? idsFilter = null, string? typeFilter = null, Guid[]? excludeIds = null, int chunksPerParent = 3)
     {
         float[] queryEmbedding = await embeddingService.GenerateEmbedding(query);
+
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         List<ChunkSearchResult> chunkResults = await chunkSearchIndexService.SearchAsync(query, queryEmbedding, limit, idsFilter, typeFilter, excludeIds, chunksPerParent);
+        stopwatch.Stop();
+        logger.Debug("Meilisearch chunk search took {ElapsedMs}ms for query: {Query}", stopwatch.ElapsedMilliseconds, query);
 
         Guid[] parentIds = chunkResults.Select(r => r.ParentId).ToArray();
         Dictionary<Guid, LibraryItem> itemLookup = await db.LibraryItems
@@ -135,7 +141,7 @@ public class LibraryService(DatabaseContext db, LibrarySearchIndexService librar
             query = query.Where(x => x.PublicationDate == null || x.PublicationDate >= minDate);
 
         if (filters.TryGetValue("pubdate_max", out var maxDateFilter) && maxDateFilter is DateTime maxDate)
-            query = query.Where(x => x.PublicationDate == null || x.PublicationDate <= maxDate);
+            query = query.Where(x => x.PublicationDate == null || x.PublicationDate < maxDate.AddDays(1));
 
         query = ApplyRelationFilter(query, filters, "tag_ids", "tag_filter_mode", "tag");
         query = ApplyRelationFilter(query, filters, "region_ids", "region_filter_mode", "region");

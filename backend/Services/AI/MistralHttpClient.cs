@@ -52,6 +52,7 @@ public class MistralHttpClient
     public async Task<MistralCompletion> CompleteAsync(MistralChatRequest request, string? modelOverride = null, CancellationToken ct = default)
     {
         logger.Debug("Mistral call [{Model}]", modelOverride ?? modelName);
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         var body = JsonSerializer.Serialize(BuildBody(request, modelOverride: modelOverride));
 
         HttpResponseMessage response = null!;
@@ -85,6 +86,9 @@ public class MistralHttpClient
         var message = choice.GetProperty("message");
         string finishReason = choice.GetProperty("finish_reason").GetString() ?? "stop";
 
+        stopwatch.Stop();
+        logger.Debug("Mistral call [{Model}] took {ElapsedMs}ms, finish_reason={FinishReason}, prompt_tokens={PromptTokens}", modelOverride ?? modelName, stopwatch.ElapsedMilliseconds, finishReason, promptTokens);
+
         if (finishReason == "tool_calls")
         {
             var toolCalls = message.GetProperty("tool_calls").EnumerateArray()
@@ -102,6 +106,7 @@ public class MistralHttpClient
 
     public async IAsyncEnumerable<string> StreamAsync(MistralChatRequest request, [EnumeratorCancellation] CancellationToken ct = default)
     {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         var body = JsonSerializer.Serialize(BuildBody(request, stream: true));
 
         HttpResponseMessage response = null!;
@@ -132,6 +137,8 @@ public class MistralHttpClient
             throw new HttpRequestException($"Mistral {response.StatusCode} — URL: {response.RequestMessage?.RequestUri} — Body: {err}");
         }
 
+        logger.Debug("Mistral stream headers received after {ElapsedMs}ms", stopwatch.ElapsedMilliseconds);
+
         using var stream = await response.Content.ReadAsStreamAsync(ct);
         using var reader = new StreamReader(stream);
 
@@ -142,7 +149,11 @@ public class MistralHttpClient
             if (!line.StartsWith("data: ")) continue;
 
             string data = line["data: ".Length..];
-            if (data == "[DONE]") yield break;
+            if (data == "[DONE]")
+            {
+                logger.Debug("Mistral stream completed after {ElapsedMs}ms", stopwatch.ElapsedMilliseconds);
+                yield break;
+            }
 
             using var doc = JsonDocument.Parse(data);
             var delta = doc.RootElement

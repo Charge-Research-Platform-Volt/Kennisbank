@@ -49,7 +49,10 @@ public class EmbeddingService
             }
         }
 
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         var result = await EmbeddingClient.GenerateEmbeddingAsync(query, new EmbeddingGenerationOptions { Dimensions = 1024 });
+        stopwatch.Stop();
+        logger.Debug("Embedding generation took {ElapsedMs}ms for query: {Query}", stopwatch.ElapsedMilliseconds, query);
         float[] embedding = result.Value.ToFloats().ToArray();
 
         lock (cacheLock)

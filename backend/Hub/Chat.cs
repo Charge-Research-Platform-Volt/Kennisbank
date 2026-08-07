@@ -35,6 +35,8 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         - Chain tools when needed: search → get_item_details → find_related_items to build a complete picture.
         - If a search returns no relevant results, try again with a broader or differently-worded query before giving up — but if two or three attempts still find nothing useful, stop searching rather than repeating similar queries. If a search already returned useful content, don't keep narrowing the query chasing more specific angles the user didn't ask for — use what you found.
         - search_library results are summarized for brevity. If a result looks relevant but you need more depth or detail than the summary gives, use search_item_content on that item's id to pull more from its full content — most useful for resources.
+        - Use browse_library instead of search_library when the user asks for items matching specific facets (tags, regions, resource types, journals, publication date range) rather than a topic — e.g. "what do I have tagged X" or "resources from 2024". It takes facet names directly, not IDs.
+        - Use find_similar_resources to broaden coverage of a subject once you've found one relevant resource — it surfaces content-similar resources a text search might miss, useful both when the user explicitly asks for "more like this" and whenever you want a fuller picture of a topic than search_library alone found. Distinct from find_related_items, which follows explicit tags/authors/organisations rather than content similarity.
         - You can call multiple tools in a single turn when you have several distinct angles to cover — e.g. multiple search_library calls with different queries, or search_item_content on several items at once — instead of spreading them one at a time across turns.
         - The list of files attached to this chat (if any) is always provided as a separate system message — use search_attachment_content with the attachment's id to look up relevant sections.
         - Attachments and {scope} search are complementary, not alternatives — even when an attached file directly and thoroughly answers the question, still call search_library for the same topic, since {scope} may hold separate relevant resources, people, or organisations the attachment doesn't cover.
@@ -280,7 +282,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
 
         for (int i = 0; i < MaxToolIterations; i++)
         {
-            MistralCompletion completion = await mistralClient.CompleteAsync(new MistralChatRequest { Messages = messages, Functions = [SearchTool, GetItemDetailsTool, FindRelatedItemsTool, SearchItemContentTool, SearchAttachmentContentTool] }, ct: cancellationToken);
+            MistralCompletion completion = await mistralClient.CompleteAsync(new MistralChatRequest { Messages = messages, Functions = [SearchTool, GetItemDetailsTool, FindRelatedItemsTool, SearchItemContentTool, BrowseLibraryTool, FindSimilarResourcesTool, SearchAttachmentContentTool] }, ct: cancellationToken);
 
             if (i == 0 && completion.PromptTokens is int promptTokens)
                 await chatService.UpdateLastContextTokensAsync(Guid.Parse(chatId), promptTokens);
@@ -358,6 +360,18 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
                     args, cancellationToken),
                 "search_item_content" => await HandleSearchItemContentAsync(
                     scope.ServiceProvider.GetRequiredService<LibraryService>(),
+                    args, cancellationToken),
+                "browse_library" => await HandleBrowseLibraryAsync(
+                    scope.ServiceProvider.GetRequiredService<LibraryService>(),
+                    scope.ServiceProvider.GetRequiredService<TagService>(),
+                    scope.ServiceProvider.GetRequiredService<RegionService>(),
+                    scope.ServiceProvider.GetRequiredService<JournalService>(),
+                    scope.ServiceProvider.GetRequiredService<ResourceTypeService>(),
+                    scope.ServiceProvider.GetRequiredService<ProjectService>(),
+                    args, projectId, cancellationToken),
+                "find_similar_resources" => await HandleFindSimilarResourcesAsync(
+                    scope.ServiceProvider.GetRequiredService<ChunkSearchIndexService>(),
+                    scope.ServiceProvider.GetRequiredService<ResourceService>(),
                     args, cancellationToken),
                 "search_attachment_content" => await HandleSearchAttachmentContentAsync(
                     scope.ServiceProvider.GetRequiredService<ChatService>(),
