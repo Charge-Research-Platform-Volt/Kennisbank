@@ -4,6 +4,7 @@ using KnowledgeBank.Services;
 using KnowledgeBank.Services.Search;
 using KnowledgeBank.Services.Storage;
 using KnowledgeBank.Utils;
+using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.AI;
 
@@ -50,6 +51,17 @@ public class MessageAttachmentService(DatabaseContext db, IStorageService storag
         }
 
         return attachment;
+    }
+
+    public async Task<bool> DetachAttachmentAsync(Guid chatId, Guid attachmentId)
+    {
+        MessageAttachments? attachment = await db.MessageAttachments.FirstOrDefaultAsync(a => a.Id == attachmentId && a.ChatId == chatId);
+        if (attachment == null) return false;
+
+        attachment.Detached = true;
+        await db.SaveChangesAsync();
+
+        return true;
     }
 
     private async Task IndexAttachmentChunksAsync(MessageAttachments attachment, string extractedText)

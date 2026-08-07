@@ -114,6 +114,23 @@ public class ChatsController(ChatService chatService, MessageAttachmentService m
         if (chat.UserId != userId) return Forbid();
 
         List<MessageAttachments> attachments = await chatService.GetAttachmentsForChatAsync(id);
-        return Ok(attachments.Select(a => new { a.Id, a.FileName }));
+        return Ok(attachments.Select(a => new { a.Id, a.FileName, a.Detached }));
+    }
+
+    [HttpDelete("{id}/attachments/{attachmentId}")]
+    [SwaggerOperation(Summary = "Detach an attachment from a chat so it's no longer used in future AI turns")]
+    [SwaggerResponse(204, "Detached")]
+    [SwaggerResponse(403, "Not your chat")]
+    [SwaggerResponse(404, "Not found")]
+    public async Task<IActionResult> RemoveAttachment(Guid id, Guid attachmentId)
+    {
+        Guid userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        Chats? chat = await chatService.GetByIdAsync(id);
+
+        if (chat == null) return NotFound();
+        if (chat.UserId != userId) return Forbid();
+
+        bool removed = await messageAttachmentService.DetachAttachmentAsync(id, attachmentId);
+        return NoContentOrNotFound(removed);
     }
 }

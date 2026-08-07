@@ -83,6 +83,7 @@
 	import { getContext, onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { api } from '$lib/api';
+	import { toast } from 'svelte-sonner';
 	import type { HubConnection, ISubscription } from '@microsoft/signalr';
 	import ChatInput from '$lib/components/chatbot/chat-input.svelte';
 	import { SvelteMap } from 'svelte/reactivity';
@@ -125,6 +126,7 @@
 	let mountedChatId: string | undefined;
 	let searchingQuery = $state<string | null>(null);
 	const attachmentsMap = new SvelteMap<string, ResolvedSource>();
+	let activeAttachments = $state<{ id: string; name: string }[]>([]);
 	let attachmentsLoaded: Promise<void> = Promise.resolve();
 
 	const itemGap = 16; // gap-4
@@ -182,14 +184,25 @@
 
 	function loadAttachments(id: string) {
 		attachmentsLoaded = api
-			.get<{ id: string; fileName: string }[]>(`/api/chats/${id}/attachments`)
+			.get<{ id: string; fileName: string; detached: boolean }[]>(`/api/chats/${id}/attachments`)
 			.then((result) => {
 				attachmentsMap.clear();
 				(result ?? []).forEach((a) => attachmentsMap.set(a.id, { id: a.id, name: a.fileName, type: 'attachment' }));
+				activeAttachments = (result ?? []).filter((a) => !a.detached).map((a) => ({ id: a.id, name: a.fileName }));
 			})
 			.catch(() => {
 				attachmentsMap.clear();
+				activeAttachments = [];
 			});
+	}
+
+	async function removeAttachment(id: string) {
+		try {
+			await api.delete(`/api/chats/${chatId}/attachments/${id}`);
+			activeAttachments = activeAttachments.filter((a) => a.id !== id);
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : 'Failed to remove attachment.');
+		}
 	}
 
 	function fetchLibraryItems(ids: string[]): Promise<ResolvedSource[]> {
@@ -295,6 +308,8 @@
 				loading = false;
 				thinking = false;
 				searchingQuery = null;
+
+				if (attachmentIds.length > 0) loadAttachments(chatId);
 
 				const content = messages.find((m) => m.id === assistantId)?.content ?? '';
 				fetchSources(content, assistantId);
@@ -440,7 +455,18 @@
 			</div>
 		{/if}
 		<div class="mx-auto max-w-2xl px-4">
-			<ChatInput bind:this={chatInput} {chatId} {loading} onSend={handleSend} onStop={stop} />
+			<ChatInput
+				bind:this={chatInput}
+				{chatId}
+				{loading}
+				{activeAttachments}
+				onRemoveAttachment={removeAttachment}
+				onSend={handleSend}
+				onStop={stop}
+			/>
+			<p class="mt-2 text-center text-xs text-muted-foreground">
+				AI can make mistakes. Verify important information.
+			</p>
 		</div>
 	</div>
 </div>

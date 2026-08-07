@@ -35,6 +35,9 @@ public class MessageAttachments
     [Column("created-on")]
     public required DateTime CreatedOn { get; set; }
 
+    [Column("detached")]
+    public bool Detached { get; set; } = false;
+
     // Navigation properties
     [JsonIgnore] public virtual Chats Chat { get; set; } = null!;
     [JsonIgnore] public virtual Messages? Message { get; set; }

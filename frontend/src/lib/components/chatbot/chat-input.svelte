@@ -9,21 +9,32 @@
 </script>
 
 <script lang="ts">
-	import { ArrowUp, CircleX, Paperclip, X } from '@lucide/svelte';
+	import { ArrowUp, CircleX, Paperclip, Trash2, X } from '@lucide/svelte';
 	import { api } from "$lib/api";
 	import { uploadFile } from '$lib/upload';
+	import * as Popover from '$lib/components/ui/popover';
 
 	let {
 		chatId = null,
 		onSend,
 		onStop,
-		loading = false
+		loading = false,
+		activeAttachments = [],
+		onRemoveAttachment
 	}: {
 		chatId?: string | null;
 		onSend: (message: string, attachments: PendingAttachment[]) => void;
 		onStop: () => void;
 		loading?: boolean;
+		activeAttachments?: { id: string; name: string }[];
+		onRemoveAttachment?: (id: string) => void;
 	} = $props();
+
+	let attachmentsOpen = $state(false);
+
+	$effect(() => {
+		if (activeAttachments.length === 0) attachmentsOpen = false;
+	});
 
 	let message = $state('');
 	let textarea = $state<HTMLTextAreaElement | null>(null);
@@ -120,22 +131,59 @@
 			<input bind:this={fileInput} type="file" class="hidden" onchange={handleFileSelect} />
 		</div>
 
-		{#if loading}
-			<button
-				class="cursor-pointer rounded-md bg-foreground p-1.5 text-background hover:bg-foreground/90 disabled:opacity-40"
-				onclick={onStop}
-			>
-				<CircleX size={18} />
-			</button>
-		{:else}
-			<button
-				class="cursor-pointer rounded-md bg-primary p-1.5 text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
-				onclick={handleSend}
-				disabled={!message.trim() || pendingAttachments.some((a) => a.uploading)}
-			>
-				<ArrowUp size={18} />
-			</button>
-		{/if}
+		<div class="flex items-center gap-2">
+			{#if activeAttachments.length > 0}
+				<Popover.Root bind:open={attachmentsOpen}>
+					<Popover.Trigger
+						class="flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+					>
+						<Paperclip size={12} />
+						{activeAttachments.length}
+					</Popover.Trigger>
+					<Popover.Content class="w-72 p-1" align="end">
+						{#each activeAttachments as attachment (attachment.id)}
+							<div class="flex items-center gap-1.5 rounded px-2 py-1.5 text-sm">
+								<Paperclip size={12} class="shrink-0 text-muted-foreground" />
+								<a
+									href="/api/files/{attachment.id}"
+									target="_blank"
+									rel="noopener noreferrer"
+									class="flex-1 truncate hover:underline"
+									title="Open {attachment.name}"
+								>
+									{attachment.name}
+								</a>
+								<button
+									type="button"
+									class="cursor-pointer text-red-500 hover:text-red-600"
+									onclick={() => onRemoveAttachment?.(attachment.id)}
+									aria-label="Remove attachment"
+								>
+									<Trash2 size={13} />
+								</button>
+							</div>
+						{/each}
+					</Popover.Content>
+				</Popover.Root>
+			{/if}
+
+			{#if loading}
+				<button
+					class="cursor-pointer rounded-md bg-foreground p-1.5 text-background hover:bg-foreground/90 disabled:opacity-40"
+					onclick={onStop}
+				>
+					<CircleX size={18} />
+				</button>
+			{:else}
+				<button
+					class="cursor-pointer rounded-md bg-primary p-1.5 text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+					onclick={handleSend}
+					disabled={!message.trim() || pendingAttachments.some((a) => a.uploading)}
+				>
+					<ArrowUp size={18} />
+				</button>
+			{/if}
+		</div>
 	</div>
 </div>
 

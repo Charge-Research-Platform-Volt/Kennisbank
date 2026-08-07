@@ -106,8 +106,11 @@ public class ChatService(DatabaseContext db)
     public async Task<List<MessageAttachments>> GetAttachmentsForMessageAsync(Guid messageId)
         => await db.MessageAttachments.Where(a => a.MessageId == messageId).ToListAsync();
 
-    public async Task<List<MessageAttachments>> GetAttachmentsForChatAsync(Guid chatId)
-        => await db.MessageAttachments.Where(a => a.ChatId == chatId).OrderBy(a => a.CreatedOn).ToListAsync();
+    public async Task<List<MessageAttachments>> GetAttachmentsForChatAsync(Guid chatId, bool activeOnly = false)
+        => await db.MessageAttachments
+            .Where(a => a.ChatId == chatId && (!activeOnly || !a.Detached))
+            .OrderBy(a => a.CreatedOn)
+            .ToListAsync();
 
     public async Task<MessageAttachments?> GetAttachmentByIdAsync(Guid id)
         => await db.MessageAttachments.FirstOrDefaultAsync(a => a.Id == id);

@@ -55,5 +55,6 @@
 
 	<div class="flex w-full max-w-2xl flex-col gap-2">
 		<ChatInput onSend={startChat} onStop={() => {}} loading={submitting} />
+		<p class="text-center text-xs text-muted-foreground">AI can make mistakes. Verify important information.</p>
 	</div>
 </div>

@@ -25,7 +25,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
 
         Always search {scopeAdverb} first before answering — even for general topics, there may be relevant resources, people, or organisations stored. Only skip searching if the question is purely conversational (greetings, thanks, etc.).
 
-        Always give a response. If search returns no relevant results, you MUST start your response with a single sentence stating that {scope} contains no relevant information on this topic, before providing any general knowledge. Never return an empty response.
+        Always give a response. State that {scope} contains no relevant information on this topic ONLY if every search this turn came back empty or irrelevant — if even one earlier search already returned usable content, use it; a later, narrower search finding nothing does not erase an earlier successful one. Never return an empty response.
         NEVER invent specific details like dates, roles, job titles, or relationships that are not explicitly stated in tool results. If a detail is not in the tool results, do not include it.
 
         TOOL USAGE:
@@ -33,7 +33,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         - When search returns a specific person or organisation, always follow up with get_item_details to retrieve full information before answering.
         - Use find_related_items to explore connections — e.g. resources by a person, members of an organisation, people linked to a resource.
         - Chain tools when needed: search → get_item_details → find_related_items to build a complete picture.
-        - If a search returns no relevant results, try again with a broader or differently-worded query before giving up — but if two or three attempts still find nothing useful, stop searching rather than repeating similar queries.
+        - If a search returns no relevant results, try again with a broader or differently-worded query before giving up — but if two or three attempts still find nothing useful, stop searching rather than repeating similar queries. If a search already returned useful content, don't keep narrowing the query chasing more specific angles the user didn't ask for — use what you found.
         - search_library results are summarized for brevity. If a result looks relevant but you need more depth or detail than the summary gives, use search_item_content on that item's id to pull more from its full content — most useful for resources.
         - You can call multiple tools in a single turn when you have several distinct angles to cover — e.g. multiple search_library calls with different queries, or search_item_content on several items at once — instead of spreading them one at a time across turns.
         - The list of files attached to this chat (if any) is always provided as a separate system message — use search_attachment_content with the attachment's id to look up relevant sections.
@@ -266,7 +266,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
     {
         List<object> messages = [new { role = "system", content = BuildSystemPrompt(projectId) }];
 
-        List<MessageAttachments> allAttachments = await chatService.GetAttachmentsForChatAsync(Guid.Parse(chatId));
+        List<MessageAttachments> allAttachments = await chatService.GetAttachmentsForChatAsync(Guid.Parse(chatId), activeOnly: true);
         if (allAttachments.Count > 0)
             messages.Add(new { role = "system", content = BuildAttachmentsListText(allAttachments) });
 

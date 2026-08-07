@@ -147,6 +147,7 @@
         </div>
         <div class="shrink-0 px-4 pb-4">
             <ChatInput loading={creating} onSend={startChat} onStop={() => {}} />
+            <p class="mt-2 text-center text-xs text-muted-foreground">AI can make mistakes. Verify important information.</p>
         </div>
     {/if}
 </div>
