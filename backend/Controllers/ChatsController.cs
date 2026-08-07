@@ -99,4 +99,21 @@ public class ChatsController(ChatService chatService, MessageAttachmentService m
 
         return Ok(new { attachment.Id, attachment.FileName });
     }
+
+    [HttpGet("{id}/attachments")]
+    [SwaggerOperation(Summary = "Get all attachments for a chat")]
+    [SwaggerResponse(200, "Attachments")]
+    [SwaggerResponse(403, "Not your chat")]
+    [SwaggerResponse(404, "Not found")]
+    public async Task<IActionResult> GetAttachments(Guid id)
+    {
+        Guid userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        Chats? chat = await chatService.GetByIdAsync(id);
+
+        if (chat == null) return NotFound();
+        if (chat.UserId != userId) return Forbid();
+
+        List<MessageAttachments> attachments = await chatService.GetAttachmentsForChatAsync(id);
+        return Ok(attachments.Select(a => new { a.Id, a.FileName }));
+    }
 }

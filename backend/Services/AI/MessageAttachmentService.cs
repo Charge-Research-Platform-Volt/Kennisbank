@@ -11,6 +11,7 @@ public class MessageAttachmentService(DatabaseContext db, IStorageService storag
 {
     private const int MaxInlineAttachmentTokens = 4000;
     private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
+    private readonly string smallModelName = environmentConfig.GetVariableValue(EnvironmentVariable.SMALL_MODEL_NAME);
     private static int EstimateTokens(string text) => Math.Max(1, text.Length / 3);
 
     public async Task<MessageAttachments> CreatePendingAttachmentAsync(Guid chatId, Guid objectId, string fileName)
@@ -87,7 +88,7 @@ public class MessageAttachmentService(DatabaseContext db, IStorageService storag
             Temperature = 0f,
             ReasoningEffort = MistralReasoningEffort.None,
             MaxTokens = 100
-        });
+        }, modelOverride: smallModelName);
 
         return result.Content?.Trim() ?? "";
     }

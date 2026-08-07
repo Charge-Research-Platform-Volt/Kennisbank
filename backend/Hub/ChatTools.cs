@@ -277,12 +277,14 @@ public partial class Chat
         if (attachment == null || attachment.ChatId != chatId)
             return "Error: attachment not found in this chat";
 
+        string citeLine = $"Cite as: [ATTACH:{attachment.Id}]";
+
         if (!attachment.IsChunked)
-            return attachment.ExtractedText ?? "No content available.";
+            return string.IsNullOrEmpty(attachment.ExtractedText) ? "No content available." : $"{citeLine}\n\n{attachment.ExtractedText}";
 
         float[] queryEmbedding = await embeddingService.GenerateEmbedding(query);
         List<string> matches = await attachmentChunkSearchIndexService.SearchAsync(query, queryEmbedding, attachmentId);
 
-        return matches.Count == 0 ? "No relevant sections found for that query." : string.Join("\n---\n", matches);
+        return matches.Count == 0 ? "No relevant sections found for that query." : $"{citeLine}\n\n{string.Join("\n---\n", matches)}";
     }
 }

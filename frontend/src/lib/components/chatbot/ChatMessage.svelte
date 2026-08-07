@@ -1,7 +1,18 @@
 <script lang="ts">
 	import * as Tooltip from '$lib/components/ui/tooltip';
 
-	type ResolvedSource = { id: string; name: string; type: string; fileType: string; sourceUrl?: string };
+	type AuthorRef = { id: string; name: string; fileType?: string };
+
+	type ResolvedSource = {
+		id: string;
+		name: string;
+		type: 'resource' | 'person' | 'organisation' | 'attachment';
+		fileType?: string;
+		sourceUrl?: string;
+		authors?: AuthorRef[] | null;
+	};
+
+	const maxAuthorsShown = 3;
 
 	let {
 		content,
@@ -50,7 +61,7 @@
 		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const order = new Map<string, number>();
 		let counter = 1;
-		for (const m of content.matchAll(/\[SRC:[^\]]+\]/gi)) {
+		for (const m of content.matchAll(/\[(?:SRC|ATTACH):[^\]]+\]/gi)) {
 			for (const u of m[0].matchAll(uuidRe)) {
 				if (!order.has(u[0])) order.set(u[0], counter++);
 			}
@@ -134,9 +145,10 @@
 			{#each [...sourceOrder.entries()].sort((a, b) => a[1] - b[1]) as [uuid, n] (uuid)}
 				{#if resolvedSources.has(uuid)}
 					{@const src = resolvedSources.get(uuid)!}
+					{@const href = src.type === 'attachment' ? `/api/files/${uuid}` : `/library?inspectorId=${uuid}&inspectorType=${src.type}`}
 					<li>
 						<a
-							href="/library?inspectorId={uuid}&inspectorType={src.type}"
+							{href}
 							class="chat-cite-source"
 							title={src.name}
 							target="_blank"
@@ -145,6 +157,9 @@
 							onpointerleave={scheduleDismiss}
 						>
 							[{n}] {src.name}
+							{#if src.type === 'attachment'}
+								<span class="chat-cite-source-tag">Attachment</span>
+							{/if}
 						</a>
 					</li>
 				{/if}
@@ -161,20 +176,49 @@
 		onpointerleave={scheduleDismiss}
 		role="tooltip"
 	>
+		<p class="cite-popover-kind">
+			{popover.source.type === 'attachment' ? 'Attachment' : 'Library Source'}
+		</p>
 		<p class="cite-popover-name" title={popover.source.name}>{popover.source.name}</p>
+		{#if popover.source.authors && popover.source.authors.length > 0}
+			{@const authors = popover.source.authors}
+			{@const shown = authors.slice(0, maxAuthorsShown)}
+			{@const hiddenCount = authors.length - shown.length}
+			<p class="cite-popover-authors" title={authors.map((a) => a.name).join(', ')}>
+				{#each shown as author, i (author.id)}
+					{#if author.fileType === 'person' || author.fileType === 'organisation'}
+						<a
+							href="/library?inspectorId={author.id}&inspectorType={author.fileType}"
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							{author.name}
+						</a>
+					{:else}
+						<span>{author.name}</span>
+					{/if}
+					{#if i < shown.length - 1}<span>, </span>{/if}
+				{/each}
+				{#if hiddenCount > 0}
+					<span> +{hiddenCount} more</span>
+				{/if}
+			</p>
+		{/if}
 		<div class="cite-popover-links">
-			<a
-				href="/library?inspectorId={popover.source.id}&inspectorType={popover.source.type}"
-				target="_blank"
-				rel="noopener noreferrer"
-			>
-				Open in library
-			</a>
+			{#if popover.source.type !== 'attachment'}
+				<a
+					href="/library?inspectorId={popover.source.id}&inspectorType={popover.source.type}"
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					Open in library
+				</a>
+			{/if}
 			{#if popover.source.fileType === 'website' && popover.source.sourceUrl}
 				<a href={popover.source.sourceUrl} target="_blank" rel="noopener noreferrer">
 					Open website
 				</a>
-			{:else if popover.source.type === 'resource' && popover.source.fileType !== 'website'}
+			{:else if popover.source.type === 'attachment' || (popover.source.type === 'resource' && popover.source.fileType !== 'website')}
 				<a href="/api/files/{popover.source.id}" target="_blank" rel="noopener noreferrer">
 					Open file
 				</a>
@@ -198,6 +242,15 @@
 		pointer-events: auto;
 	}
 
+	.cite-popover-kind {
+		font-size: 0.62rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--muted-foreground);
+		margin: 0 0 0.15rem 0;
+	}
+
 	.cite-popover-name {
 		font-size: 0.75rem;
 		font-weight: 500;
@@ -206,6 +259,26 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	.cite-popover-authors {
+		font-size: 0.7rem;
+		color: var(--muted-foreground);
+		margin: -0.2rem 0 0.4rem 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.cite-popover-authors a {
+		color: inherit;
+		text-decoration: underline;
+		text-decoration-color: color-mix(in oklch, var(--muted-foreground) 40%, transparent);
+		text-underline-offset: 2px;
+	}
+
+	.cite-popover-authors a:hover {
+		color: var(--foreground);
 	}
 
 	.cite-popover-links {

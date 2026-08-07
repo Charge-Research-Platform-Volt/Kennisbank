@@ -44,8 +44,30 @@ public class LibraryController(LibraryService libraryService) : AppControllerBas
     [HttpPost("items")]
     [SwaggerOperation(Summary = "Get library items by IDs")]
     [SwaggerResponse(200, "Library items")]
-    public async Task<IActionResult> GetItemsByIds([FromBody] Guid[] ids)
-        => Ok(await libraryService.GetLibraryItemsByIdsAsync(ids));
+    public async Task<IActionResult> GetItemsByIds([FromBody] Guid[] ids, [FromQuery] bool includeAuthors = false)
+    {
+        LibraryItem[] items = await libraryService.GetLibraryItemsByIdsAsync(ids);
+        if (!includeAuthors) return Ok(items);
+
+        Guid[] resourceIds = [.. items.Where(i => i.Type == "resource").Select(i => i.Id)];
+        Dictionary<Guid, List<RelationItemDto>> authorsByResource = await libraryService.GetAuthorNamesForResourcesAsync(resourceIds);
+
+        var result = items.Select(i => new
+        {
+            i.Id,
+            i.Name,
+            i.Description,
+            i.PublicationDate,
+            i.PublicationDatePrecision,
+            i.Type,
+            i.FileType,
+            i.SourceUrl,
+            i.CreatedOn,
+            Authors = authorsByResource.TryGetValue(i.Id, out List<RelationItemDto>? authors) ? authors : null
+        });
+
+        return Ok(result);
+    }
 
     [HttpGet("trash")]
     [SwaggerOperation(Summary = "Get all trashed items")]

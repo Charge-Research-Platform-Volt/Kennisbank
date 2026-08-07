@@ -96,6 +96,30 @@ public class LibraryService(DatabaseContext db, LibrarySearchIndexService librar
     public async Task<LibraryItem[]> GetLibraryItemsByIdsAsync(IEnumerable<Guid> ids)
         => await db.LibraryItems.Where(i => ids.Contains(i.Id)).ToArrayAsync();
 
+    public async Task<Dictionary<Guid, List<RelationItemDto>>> GetAuthorNamesForResourcesAsync(IEnumerable<Guid> resourceIds)
+    {
+        Guid[] ids = [.. resourceIds];
+        if (ids.Length == 0) return [];
+
+        var rows = await db.ResourceAuthorRelations
+            .Where(r => ids.Contains(r.ResourceId) && r.Author != null)
+            .Select(r => new
+            {
+                r.ResourceId,
+                r.AuthorId,
+                AuthorName = r.Author!.Name,
+                AuthorType = r.Author is Person ? "person" : "organisation"
+            })
+            .ToListAsync();
+
+        return rows
+            .GroupBy(r => r.ResourceId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(r => new RelationItemDto { Id = r.AuthorId, Name = r.AuthorName, FileType = r.AuthorType }).ToList()
+            );
+    }
+
     public async Task<bool> ItemExistsAsync(Guid id)
         => await db.LibraryItems.AnyAsync(i => i.Id == id);
 

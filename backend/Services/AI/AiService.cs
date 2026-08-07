@@ -1,7 +1,11 @@
+using KnowledgeBank.Utils;
+
 namespace KnowledgeBank.Services.AI;
 
-public class AiService(MistralHttpClient mistralClient)
+public class AiService(MistralHttpClient mistralClient, EnvironmentConfig environmentConfig)
 {
+    private readonly string smallModelName = environmentConfig.GetVariableValue(EnvironmentVariable.SMALL_MODEL_NAME);
+
     private const string summarizePrompt = """
         You are a precise research summarizer. Extract only facts directly stated in the excerpts that are relevant to the query context.
     """;
@@ -34,7 +38,7 @@ public class AiService(MistralHttpClient mistralClient)
             ReasoningEffort = MistralReasoningEffort.None
         };
 
-        MistralCompletion result = await mistralClient.CompleteAsync(request, ct: ct);
+        MistralCompletion result = await mistralClient.CompleteAsync(request, modelOverride: smallModelName, ct: ct);
         return result.Content ?? "";
     }
 }

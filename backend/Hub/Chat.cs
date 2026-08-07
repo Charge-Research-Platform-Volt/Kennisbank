@@ -47,17 +47,17 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         - Do NOT wrap individual sentences — wrap the whole section at once
         - Do NOT write "(AI)" labels, headers like "General Context", or any other annotations — the [AI]...[/AI] tags handle this automatically
         - If you are unsure whether something comes from {scope} or your training data, wrap it in [AI]...[/AI]
-        - Content from attached files is grounded, user-provided information, NOT general training data — treat it the same as {scope} sources and do NOT wrap it in [AI]...[/AI], even though it has no [SRC:...] marker.
+        - Content from attached files is grounded, user-provided information, NOT general training data — treat it the same as {scope} sources and do NOT wrap it in [AI]...[/AI].
 
         CITATION RULES (strictly enforced):
-        - ONLY cite sources that appear in tool results. No exceptions.
-        - Cite inline using ONLY the exact marker from tool results: [SRC:uuid]
-        - Each marker must be separate — NEVER group like [SRC:uuid,SRC:uuid]
-        - NEVER write [1], [2] or any numbered citation — ONLY [SRC:uuid] markers
-        - NEVER invent UUIDs — copy markers verbatim from "Cite as:" lines in tool results
+        - ONLY cite sources that appear in tool results or the attachments list. No exceptions.
+        - Cite {scope} items inline using ONLY the exact marker from tool results: [SRC:uuid]
+        - Cite attached files inline using ONLY the exact marker: [ATTACH:uuid]
+        - Each marker must be separate — NEVER group like [SRC:uuid,SRC:uuid] or [ATTACH:uuid,ATTACH:uuid]
+        - NEVER write [1], [2] or any numbered citation — ONLY [SRC:uuid] or [ATTACH:uuid] markers
+        - NEVER invent UUIDs — copy markers verbatim from "Cite as:" lines in tool results or the attachments list
         - Do NOT write a Sources section — it is generated automatically
-        - If you haven't used any tools, cite nothing.
-        - Attached files are NOT library sources — never use [SRC:...] markers for them, since no link can be generated for an attachment. Refer to them by name in plain text instead (e.g. "the attached file report.pdf states that...").
+        - If you haven't used any tools and no attachment informed your answer, cite nothing.
 
         For math use LaTeX: $$E=mc^2$$ for display, $x^2$ for inline.
         """;
@@ -69,6 +69,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
 
     private const float RelevanceThreshold = 0.25f;
     private const int MaxToolIterations = 14;
+    private const int MaxCallsPerTool = 5;
     private const int MaxHistoryTokens = 80_000;
     private const int MaxSummaryTokens = 2000;
     private const int MessagesKeptUncompacted = 10;
@@ -275,6 +276,8 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         if (attachmentNote != null)
             messages.Add(new { role = "system", content = attachmentNote });
 
+        Dictionary<string, int> toolCallCounts = [];
+
         for (int i = 0; i < MaxToolIterations; i++)
         {
             MistralCompletion completion = await mistralClient.CompleteAsync(new MistralChatRequest { Messages = messages, Functions = [SearchTool, GetItemDetailsTool, FindRelatedItemsTool, SearchItemContentTool, SearchAttachmentContentTool] }, ct: cancellationToken);
@@ -295,7 +298,14 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
                     }).ToArray()
                 });
 
-                string[] results = await Task.WhenAll(completion.ToolCalls!.Select(tc => HandleToolCallAsync(tc, message, projectId, Guid.Parse(chatId), cancellationToken)));
+                string[] results = await Task.WhenAll(completion.ToolCalls!.Select(tc =>
+                {
+                    int count = toolCallCounts[tc.Name] = toolCallCounts.GetValueOrDefault(tc.Name) + 1;
+                    if (count > MaxCallsPerTool)
+                        return Task.FromResult($"Error: {tc.Name} has already been called {MaxCallsPerTool} times this turn. Stop using this tool and answer with what you have, or try a different tool.");
+
+                    return HandleToolCallAsync(tc, message, projectId, Guid.Parse(chatId), cancellationToken);
+                }));
 
                 for (int j = 0; j < completion.ToolCalls!.Count; j++)
                     messages.Add(new { role = "tool", tool_call_id = completion.ToolCalls[j].Id, content = results[j] });
@@ -480,7 +490,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
             {
                 content.AppendLine();
                 content.AppendLine();
-                content.AppendLine($"[Attached file: {attachment.FileName}]");
+                content.AppendLine($"[Attached file: {attachment.FileName} (id: {attachment.Id})]");
                 content.AppendLine(attachment.ExtractedText);
             }
             else
@@ -501,7 +511,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         {
             string sizeLabel = attachment.IsChunked ? " [large document]" : " [small document]";
             string descriptionLabel = string.IsNullOrEmpty(attachment.Description) ? "" : $" — {attachment.Description}";
-            sb.AppendLine($"- {attachment.FileName} (id: {attachment.Id}){sizeLabel}{descriptionLabel}");
+            sb.AppendLine($"- {attachment.FileName} (id: {attachment.Id}){sizeLabel}{descriptionLabel} — Cite as: [ATTACH:{attachment.Id}]");
         }
 
         return sb.ToString();

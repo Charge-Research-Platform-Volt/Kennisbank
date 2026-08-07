@@ -5,7 +5,16 @@
 
 	marked.use(markedKatex({ throwOnError: false }));
 
-	type ResolvedSource = { id: string; name: string; type: string; fileType: string; sourceUrl?: string };
+	type AuthorRef = { id: string; name: string; fileType?: string };
+
+	type ResolvedSource = {
+		id: string;
+		name: string;
+		type: 'resource' | 'person' | 'organisation' | 'attachment';
+		fileType?: string;
+		sourceUrl?: string;
+		authors?: AuthorRef[] | null;
+	};
 
 	const renderer = new Renderer();
 	renderer.link = ({ href, text }) => {
@@ -21,8 +30,8 @@
 		}
 
 		if (/^\d+$/.test(text)) {
-			const uuidMatch = normalizedHref.match(/inspectorId=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
-			const uuid = uuidMatch?.[1] ?? '';
+			const uuidMatch = normalizedHref.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+			const uuid = uuidMatch?.[0] ?? '';
 			return `<a href="${normalizedHref}" class="chat-cite-num" data-uuid="${uuid}" target="_blank" rel="noopener noreferrer">${text}</a>`;
 		}
 		if (normalizedHref.startsWith('/library')) {
@@ -39,16 +48,18 @@
 
 		const uuidRe = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 
-		// Replace [SRC:uuid] and [SRC:uuid,SRC:uuid,...] markers
-		let processed = content.replace(/\[SRC:[^\]]+\]/gi, (match) => {
+		// Replace [SRC:uuid] / [ATTACH:uuid] markers (and comma-grouped variants)
+		let processed = content.replace(/\[(SRC|ATTACH):[^\]]+\]/gi, (match, kind: string) => {
 			const uuids = [...match.matchAll(uuidRe)].map((m) => m[0]);
+			const isAttachment = kind.toUpperCase() === 'ATTACH';
+
 			return uuids
 				.map((uuid) => {
 					if (!uuidOrder.has(uuid)) uuidOrder.set(uuid, counter++);
 					const n = uuidOrder.get(uuid);
-					if (resolvedSources?.has(uuid)) {
-						const { type } = resolvedSources.get(uuid)!;
-						const url = `/library?inspectorId=${uuid}&inspectorType=${type}`;
+					const source = resolvedSources?.get(uuid);
+					if (source) {
+						const url = isAttachment ? `/api/files/${uuid}` : `/library?inspectorId=${uuid}&inspectorType=${source.type}`;
 						return `[${n}](${url})`;
 					}
 					return `[[BADGE:${n}]]`;
@@ -113,6 +124,8 @@
 	let subscription: ISubscription<string> | null = null;
 	let mountedChatId: string | undefined;
 	let searchingQuery = $state<string | null>(null);
+	const attachmentsMap = new SvelteMap<string, ResolvedSource>();
+	let attachmentsLoaded: Promise<void> = Promise.resolve();
 
 	const itemGap = 16; // gap-4
 	const topPadding = 24;
@@ -157,50 +170,77 @@
 		return () => scrollContainerRef!.removeEventListener('scroll', onScroll);
 	});
 
-	function extractUuids(content: string): string[] {
+	function extractMarkerUuids(content: string, prefix: 'SRC' | 'ATTACH'): string[] {
 		const uuidRe = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+		const markerRe = new RegExp(`\\[${prefix}:[^\\]]+\\]`, 'gi');
 		return [
 			...new Set(
-				[...content.matchAll(/\[SRC:[^\]]+\]/gi)].flatMap((m) =>
-					[...m[0].matchAll(uuidRe)].map((u) => u[0])
-				)
+				[...content.matchAll(markerRe)].flatMap((m) => [...m[0].matchAll(uuidRe)].map((u) => u[0]))
 			)
 		];
 	}
 
-	function fetchSources(content: string, msgId: string) {
-		const uuids = extractUuids(content);
-		if (uuids.length === 0) return;
-		api.post<ResolvedSource[]>(`/api/library/items`, uuids).then((r) => {
-			const map = new SvelteMap<string, ResolvedSource>();
-			r.forEach((s: ResolvedSource) => map.set(s.id, s));
-			messages = messages.map((m) => (m.id === msgId ? { ...m, resolvedSources: map } : m));
-		});
+	function loadAttachments(id: string) {
+		attachmentsLoaded = api
+			.get<{ id: string; fileName: string }[]>(`/api/chats/${id}/attachments`)
+			.then((result) => {
+				attachmentsMap.clear();
+				(result ?? []).forEach((a) => attachmentsMap.set(a.id, { id: a.id, name: a.fileName, type: 'attachment' }));
+			})
+			.catch(() => {
+				attachmentsMap.clear();
+			});
 	}
 
-	function fetchSourcesForMessages(msgs: Message[]) {
+	function fetchLibraryItems(ids: string[]): Promise<ResolvedSource[]> {
+		if (ids.length === 0) return Promise.resolve([]);
+		return api.post<ResolvedSource[]>(`/api/library/items?includeAuthors=true`, ids);
+	}
+
+	async function fetchSources(content: string, msgId: string) {
+		await attachmentsLoaded;
+		const srcUuids = extractMarkerUuids(content, 'SRC');
+		const attachUuids = extractMarkerUuids(content, 'ATTACH');
+		if (srcUuids.length === 0 && attachUuids.length === 0) return;
+
+		const libraryItems = await fetchLibraryItems(srcUuids);
+
+		const map = new SvelteMap<string, ResolvedSource>();
+		attachUuids.forEach((uuid) => {
+			const a = attachmentsMap.get(uuid);
+			if (a) map.set(uuid, a);
+		});
+		libraryItems.forEach((s) => map.set(s.id, s));
+
+		messages = messages.map((m) => (m.id === msgId ? { ...m, resolvedSources: map } : m));
+	}
+
+	async function fetchSourcesForMessages(msgs: Message[]) {
+		await attachmentsLoaded;
 		const assistantMsgs = msgs.filter((m) => m.messageRole === 'Assistant');
-		const allUuids = [...new Set(assistantMsgs.flatMap((m) => extractUuids(m.content)))];
+		const allSrcUuids = [...new Set(assistantMsgs.flatMap((m) => extractMarkerUuids(m.content, 'SRC')))];
+		const hasAnyAttach = assistantMsgs.some((m) => extractMarkerUuids(m.content, 'ATTACH').length > 0);
 
-		if (allUuids.length === 0) return;
+		if (allSrcUuids.length === 0 && !hasAnyAttach) return;
 
-		api.post<ResolvedSource[]>(`/api/library/items`, allUuids).then((r) => {
-			// eslint-disable-next-line svelte/prefer-svelte-reactivity
-			const lookup = new Map<string, ResolvedSource>();
-			r.forEach((s: ResolvedSource) => lookup.set(s.id, s));
+		const libraryItems = await fetchLibraryItems(allSrcUuids);
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
+		const lookup = new Map<string, ResolvedSource>();
+		libraryItems.forEach((s: ResolvedSource) => lookup.set(s.id, s));
 
-			messages = msgs.map((m) => {
-				if (m.messageRole !== 'Assistant') return m;
+		messages = msgs.map((m) => {
+			if (m.messageRole !== 'Assistant') return m;
 
-				const uuids = extractUuids(m.content);
-				const map = new SvelteMap<string, ResolvedSource>();
-
-				uuids.forEach((uuid) => {
-					if (lookup.has(uuid)) map.set(uuid, lookup.get(uuid)!);
-				});
-
-				return { ...m, resolvedSources: map };
+			const map = new SvelteMap<string, ResolvedSource>();
+			extractMarkerUuids(m.content, 'ATTACH').forEach((uuid) => {
+				const a = attachmentsMap.get(uuid);
+				if (a) map.set(uuid, a);
 			});
+			extractMarkerUuids(m.content, 'SRC').forEach((uuid) => {
+				if (lookup.has(uuid)) map.set(uuid, lookup.get(uuid)!);
+			});
+
+			return { ...m, resolvedSources: map };
 		});
 	}
 
@@ -277,6 +317,7 @@
 
 	onMount(() => {
 		mountedChatId = chatId;
+		loadAttachments(chatId);
 
 		if (initialMessage) {
 			// Show the message and a loading indicator immediately so the page doesn't
@@ -330,6 +371,7 @@
 		subscription?.dispose();
 		subscription = null;
 		loading = false;
+		loadAttachments(id);
 		fetchMessages(id);
 	});
 
@@ -441,6 +483,19 @@
 	}
 	:global(.chat-cite-source:hover) {
 		color: var(--foreground);
+	}
+	:global(.chat-cite-source-tag) {
+		display: inline-block;
+		margin-left: 0.4rem;
+		padding: 0.05rem 0.35rem;
+		border-radius: 9999px;
+		background-color: color-mix(in oklch, var(--muted-foreground) 15%, transparent);
+		font-size: 0.62rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		text-decoration: none;
+		vertical-align: middle;
 	}
 	:global(.status-spinner) {
 		display: inline-block;
