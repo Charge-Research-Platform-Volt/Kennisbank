@@ -58,6 +58,23 @@ public partial class Chat
         }
     );
 
+    private static readonly MistralFunction SearchItemContentTool = new(
+        "search_item_content",
+        "Search within a specific library item's full indexed content for more detail than the initial search_library result summary provided. Use this after search_library or get_item_details has identified a relevant item and you need deeper or more specific information from it than the summary gave you. Most useful for resources with full document text — persons and organisations have limited indexed content beyond their description.",
+        new
+        {
+            type = "object",
+            properties = new
+            {
+                id = new { type = "string", description = "Item UUID" },
+                type = new { type = "string", @enum = new[] { "resource", "person", "organisation" }, description = "Item type" },
+                query = new { type = "string", description = "What to search for within the item's content" }
+            },
+            required = new[] { "id", "type", "query" },
+            additionalProperties = false
+        }
+    );
+
     private static readonly MistralFunction SearchAttachmentContentTool = new (
         "search_attachment_content",
         "Search within a specific attached file for relevant sections. The list of files attached to this chat, including their ids, is always provided as a system message. For small files this returns the full content, for large files this returns only the most relevant excerpts, not the full text — you may need multiple targeted queries to build a complete picture. Provide a focused query describing what you're looking for.",
@@ -94,6 +111,31 @@ public partial class Chat
         string formatted = await FormatSearchResultsAsync(results, userQuestion, query, ct);
         logger.Debug("Search tool result: {Result}", formatted);
         return formatted;
+    }
+
+    private async Task<string> HandleSearchItemContentAsync(LibraryService libraryService, JsonDocument args, CancellationToken ct)
+    {
+        if (!args.RootElement.TryGetProperty("id", out var idProp) || !Guid.TryParse(idProp.GetString(), out var itemId))
+            return "Error: invalid or missing id";
+
+        string type = args.RootElement.TryGetProperty("type", out var tp) ? tp.GetString() ?? "" : "";
+        string query = args.RootElement.TryGetProperty("query", out var q) ? q.GetString() ?? "" : "";
+        if (string.IsNullOrWhiteSpace(query))
+            return "Error: query is required";
+
+        await Clients.Caller.SendAsync("ToolStatus", "search_item_content", $"Searching item content: {query}", ct);
+
+        List<LibraryItemWithChunks> results = await libraryService.SearchContentAsync(query, 1, [itemId], type, chunksPerParent: 8);
+        LibraryItemWithChunks? match = results.FirstOrDefault(r => r.Item.Id == itemId);
+
+        if (match == null || match.MatchedChunks.Count == 0)
+            return "No relevant content found within this item.";
+
+        var sb = new StringBuilder();
+        sb.AppendLine($"Cite as: [SRC:{match.Item.Id}]");
+        sb.AppendLine();
+        sb.AppendLine(string.Join("\n---\n", match.MatchedChunks));
+        return sb.ToString();
     }
 
     private async Task<string> HandleGetItemDetailsAsync(ResourceService resourceService, PersonService personService, OrganisationService organisationService, JsonDocument args, CancellationToken ct = default)

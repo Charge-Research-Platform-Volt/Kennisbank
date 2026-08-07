@@ -8,10 +8,10 @@ namespace KnowledgeBank.Services.Domain;
 
 public class LibraryService(DatabaseContext db, LibrarySearchIndexService librarySearchIndexService, ChunkSearchIndexService chunkSearchIndexService, EmbeddingService embeddingService)
 {
-    public async Task<List<LibraryItemWithChunks>> SearchContentAsync(string query, int limit, Guid[]? idsFilter = null, string? typeFilter = null, Guid[]? excludeIds = null)
+    public async Task<List<LibraryItemWithChunks>> SearchContentAsync(string query, int limit, Guid[]? idsFilter = null, string? typeFilter = null, Guid[]? excludeIds = null, int chunksPerParent = 3)
     {
         float[] queryEmbedding = await embeddingService.GenerateEmbedding(query);
-        List<ChunkSearchResult> chunkResults = await chunkSearchIndexService.SearchAsync(query, queryEmbedding, limit, idsFilter, typeFilter, excludeIds);
+        List<ChunkSearchResult> chunkResults = await chunkSearchIndexService.SearchAsync(query, queryEmbedding, limit, idsFilter, typeFilter, excludeIds, chunksPerParent);
 
         Guid[] parentIds = chunkResults.Select(r => r.ParentId).ToArray();
         Dictionary<Guid, LibraryItem> itemLookup = await db.LibraryItems

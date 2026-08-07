@@ -17,9 +17,10 @@ public class AiService(MistralHttpClient mistralClient)
             Relevant excerpts:
             {excerpts}
 
-            Extract only information directly stated in the excerpts that is relevant to the user question and search query.
-            Do not infer, paraphrase beyond what is stated, or add outside knowledge.
-            If the excerpts contain no relevant information, respond with exactly: NO_RELEVANT_CONTENT
+            Summarize the information in the excerpts that relates to the topic of the user question and search query.
+            For broad or general questions, include the substantive content and detail from the excerpts rather than narrowing to only the sentences that literally answer the question — a topically relevant fact should be included even if it isn't a direct answer.
+            Do not infer beyond what is stated or add outside knowledge — every fact must come from the excerpts.
+            If the excerpts contain nothing related to the topic, respond with exactly: NO_RELEVANT_CONTENT
             Be as concise as possible while preserving all relevant detail — do not pad, do not truncate important facts.
         """;
 

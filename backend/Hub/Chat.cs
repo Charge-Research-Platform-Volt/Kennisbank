@@ -33,7 +33,11 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         - When search returns a specific person or organisation, always follow up with get_item_details to retrieve full information before answering.
         - Use find_related_items to explore connections — e.g. resources by a person, members of an organisation, people linked to a resource.
         - Chain tools when needed: search → get_item_details → find_related_items to build a complete picture.
+        - If a search returns no relevant results, try again with a broader or differently-worded query before giving up — but if two or three attempts still find nothing useful, stop searching rather than repeating similar queries.
+        - search_library results are summarized for brevity. If a result looks relevant but you need more depth or detail than the summary gives, use search_item_content on that item's id to pull more from its full content — most useful for resources.
+        - You can call multiple tools in a single turn when you have several distinct angles to cover — e.g. multiple search_library calls with different queries, or search_item_content on several items at once — instead of spreading them one at a time across turns.
         - The list of files attached to this chat (if any) is always provided as a separate system message — use search_attachment_content with the attachment's id to look up relevant sections.
+        - Attachments and {scope} search are complementary, not alternatives — even when an attached file directly and thoroughly answers the question, still call search_library for the same topic, since {scope} may hold separate relevant resources, people, or organisations the attachment doesn't cover.
 
         You can:
         - Answer questions grounded in {scope} sources
@@ -64,7 +68,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
     """;
 
     private const float RelevanceThreshold = 0.25f;
-    private const int MaxToolIterations = 10;
+    private const int MaxToolIterations = 14;
     private const int MaxHistoryTokens = 80_000;
     private const int MaxSummaryTokens = 2000;
     private const int MessagesKeptUncompacted = 10;
@@ -273,7 +277,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
 
         for (int i = 0; i < MaxToolIterations; i++)
         {
-            MistralCompletion completion = await mistralClient.CompleteAsync(new MistralChatRequest { Messages = messages, Functions = [SearchTool, GetItemDetailsTool, FindRelatedItemsTool, SearchAttachmentContentTool] }, ct: cancellationToken);
+            MistralCompletion completion = await mistralClient.CompleteAsync(new MistralChatRequest { Messages = messages, Functions = [SearchTool, GetItemDetailsTool, FindRelatedItemsTool, SearchItemContentTool, SearchAttachmentContentTool] }, ct: cancellationToken);
 
             if (i == 0 && completion.PromptTokens is int promptTokens)
                 await chatService.UpdateLastContextTokensAsync(Guid.Parse(chatId), promptTokens);
@@ -304,8 +308,19 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
 
         await Clients.Caller.SendAsync("Thinking", cancellationToken);
 
+        bool anyContent = false;
         await foreach (string chunk in mistralClient.StreamAsync(new MistralChatRequest { Messages = messages }, cancellationToken))
+        {
+            anyContent = true;
             yield return chunk;
+        }
+
+        if (!anyContent)
+        {
+            logger.Warning("Chat {ChatId} got an empty stream on the first attempt, retrying once", chatId);
+            await foreach (string chunk in mistralClient.StreamAsync(new MistralChatRequest { Messages = messages }, cancellationToken))
+                yield return chunk;
+        }
     }
 
     private async Task<string> HandleToolCallAsync(MistralToolCall toolCall, string message, string? projectId, Guid chatId, CancellationToken cancellationToken)
@@ -330,6 +345,9 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
                     scope.ServiceProvider.GetRequiredService<ResourceService>(),
                     scope.ServiceProvider.GetRequiredService<PersonService>(),
                     scope.ServiceProvider.GetRequiredService<OrganisationService>(),
+                    args, cancellationToken),
+                "search_item_content" => await HandleSearchItemContentAsync(
+                    scope.ServiceProvider.GetRequiredService<LibraryService>(),
                     args, cancellationToken),
                 "search_attachment_content" => await HandleSearchAttachmentContentAsync(
                     scope.ServiceProvider.GetRequiredService<ChatService>(),
