@@ -279,13 +279,25 @@
 		mountedChatId = chatId;
 
 		if (initialMessage) {
+			// Show the message and a loading indicator immediately so the page doesn't
+			// render blank (looking like a fresh, empty chat) while we check whether this
+			// conversation already has messages.
+			loading = true;
+			messages = [
+				{ id: 'optimistic-user', messageRole: 'User', content: initialMessage },
+				{ id: 'optimistic-assistant', messageRole: 'Assistant', content: '' }
+			];
+			tick().then(() => setTimeout(scrollToLastUserMessage, 100));
+
 			api
 				.get<Message[]>(`/api/chats/${chatId}/messages`)
 				.then((result) => {
 					const existing = result ?? [];
 					if (existing.length === 0) {
+						messages = [];
 						stream(initialMessage!, initialAttachmentIds);
 					} else {
+						loading = false;
 						messages = existing;
 						fetchSourcesForMessages(messages);
 						tick().then(() =>
@@ -296,7 +308,10 @@
 						);
 					}
 				})
-				.catch(() => stream(initialMessage!, initialAttachmentIds));
+				.catch(() => {
+					messages = [];
+					stream(initialMessage!, initialAttachmentIds);
+				});
 		} else {
 			fetchMessages(chatId);
 		}

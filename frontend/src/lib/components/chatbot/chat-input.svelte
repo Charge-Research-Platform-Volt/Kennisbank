@@ -74,7 +74,12 @@
 	}
 </script>
 
-<div class="rounded-lg border border-input bg-background shadow-sm">
+<div class="relative overflow-hidden rounded-lg border border-input bg-background shadow-sm">
+	{#if loading}
+		<div class="loading-bar-track">
+			<div class="loading-bar-fill"></div>
+		</div>
+	{/if}
 	{#if pendingAttachments.length > 0}
 		<div class="flex flex-wrap gap-2 px-3 pt-3">
 			{#each pendingAttachments as attachment (attachment.tempId)}
@@ -133,3 +138,32 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	.loading-bar-track {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 2px;
+		overflow: hidden;
+		z-index: 1;
+	}
+	.loading-bar-fill {
+		position: absolute;
+		top: 0;
+		height: 100%;
+		width: 40%;
+		border-radius: 9999px;
+		background-color: var(--primary);
+		animation: loading-bar-slide 1.2s ease-in-out infinite;
+	}
+	@keyframes loading-bar-slide {
+		0% {
+			left: -40%;
+		}
+		100% {
+			left: 100%;
+		}
+	}
+</style>
