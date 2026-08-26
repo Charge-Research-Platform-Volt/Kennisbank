@@ -6,12 +6,6 @@
 	let { children } = $props();
 
 	const insp = createInspectorState();
-	let inspectorPane: ReturnType<typeof Pane>;
-
-	$effect(() => {
-		if (insp.selectedItem) inspectorPane?.expand();
-		else inspectorPane?.collapse();
-	});
 </script>
 
 <PaneGroup direction="horizontal" autoSaveId="inspector-layout">
@@ -19,17 +13,11 @@
 		{@render children()}
 	</Pane>
 
-	<Handle withHandle class={insp.selectedItem ? '' : 'hidden'} />
+	{#if insp.selectedItem}
+		<Handle withHandle />
 
-	<Pane
-		bind:this={inspectorPane}
-		defaultSize={0}
-		minSize={20}
-		maxSize={45}
-		collapsible
-		collapsedSize={0}
-		onCollapse={() => { insp.selectedItem = null }}
-	>
-		<Inspector bind:this={insp.inspectorRef} bind:item={insp.selectedItem} onaftersave={insp.onAfterSave} />
-	</Pane>
+		<Pane defaultSize={25} minSize={20} maxSize={45}>
+			<Inspector bind:this={insp.inspectorRef} bind:item={insp.selectedItem} onaftersave={insp.onAfterSave} />
+		</Pane>
+	{/if}
 </PaneGroup>

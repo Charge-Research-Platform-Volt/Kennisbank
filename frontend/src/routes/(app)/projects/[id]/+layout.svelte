@@ -27,7 +27,7 @@
 </script>
 
 <PaneGroup direction="horizontal" autoSaveId="project-layout">
-	<Pane order={0} minSize={20}>
+	<Pane order={0} minSize={30}>
 		{@render children()}
 	</Pane>
 
