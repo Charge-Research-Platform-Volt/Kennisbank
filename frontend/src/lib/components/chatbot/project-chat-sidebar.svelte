@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { HubConnectionBuilder, HttpTransportType, LogLevel } from "@microsoft/signalr";
-    import type { HubConnection } from "@microsoft/signalr";
+    import { createChatConnection } from '$lib/state/chat-connection.svelte';
     import { setContext, onMount } from 'svelte';
     import ChatView from "./chat-view.svelte";
     import ChatInput from "./chat-input.svelte";
@@ -13,7 +12,6 @@
 
     let { projectId, onClose }: { projectId: string; onClose?: () => void } = $props();
 
-    let connection = $state<HubConnection | null>(null);
     let chatId = $state<string | null>(null);
     let pendingMessage = $state<string | null>(null);
     let creating = $state(false);
@@ -31,30 +29,16 @@
             .then(r => { history = Object.values(r ?? {}).flat();});
     })
 
-    setContext('chatConnection', {
-        get connection() { return connection; }
-    });
-
-    onMount(() => {
-        const conn = new HubConnectionBuilder()
-            .withUrl('/chat', { skipNegotiation: true, transport: HttpTransportType.WebSockets })
-            .withAutomaticReconnect()
-            .configureLogging(LogLevel.None)
-            .build();
-
-        conn.on('ChatTitleUpdated', () => historyVersion++);
-
-        conn.start().then(() => { connection = conn; }).catch((e) => console.error('SignalR connection error: ', e));
-
-        return () => { conn.stop(); };
-    });
+    const chat = createChatConnection(() => historyVersion++);
+    onMount(() => chat.start());
+    setContext('chatConnection', chat);
 
     async function startChat(message: string) {
-        if (!connection || creating) return;
+        if (!chat.connection || creating) return;
         creating = true;
 
         try {
-            const id: string = await connection.invoke('CreateChat', message, projectId);
+            const id: string = await chat.connection.invoke('CreateChat', message, projectId);
             pendingMessage = message;
             chatId = id;
         } catch (e) {
@@ -90,12 +74,12 @@
                         {#if history.length === 0}
                             <p class="px-2 py-4 text-center text-xs text-muted-foreground">No past chats.</p>
                         {:else}
-                            {#each history as chat (chat.id)}
+                            {#each history as chatItem (chatItem.id)}
                                 <button
-                                    onclick={() => { chatId = chat.id; pendingMessage = null; historyOpen = false; }}
+                                    onclick={() => { chatId = chatItem.id; pendingMessage = null; historyOpen = false; }}
                                     class="w-full cursor-pointer truncate rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
                                 >
-                                    {chat.title}
+                                    {chatItem.title}
                                 </button>
                             {/each}
                         {/if}

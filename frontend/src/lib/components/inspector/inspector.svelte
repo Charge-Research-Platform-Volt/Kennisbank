@@ -169,11 +169,7 @@
 	}
 </script>
 
-<aside
-	class="flex h-full flex-col border-l border-border bg-background transition-all duration-300 {item
-		? 'w-110'
-		: 'w-0'} overflow-hidden"
->
+<aside class="flex h-full flex-col border-l border-border bg-background overflow-hidden">
 	<TooltipProvider>
 		{#if item}
 			<!-- Toolbar row -->

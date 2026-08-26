@@ -1,51 +1,35 @@
 <script lang="ts">
-	import { afterNavigate } from '$app/navigation';
 	import Inspector from './inspector.svelte';
-	import type { ResourceItem, EntityType } from '$lib/types/resource';
-	import { getParam, setParams } from '$lib/utils/urlState';
-	import { onMount, setContext } from 'svelte';
+	import { createInspectorState } from '$lib/state/inspector.svelte';
+	import { PaneGroup, Pane, Handle } from '$lib/components/ui/resizable';
 
 	let { children } = $props();
 
-	let selectedItem = $state<ResourceItem | null>(null);
+	const insp = createInspectorState();
+	let inspectorPane: ReturnType<typeof Pane>;
 
-	function openInspector(item: ResourceItem) {
-		selectedItem = item;
-		setParams({ inspectorId: item.id, inspectorType: item.type });
-	}
-
-	function closeInspector() {
-		selectedItem = null;
-		setParams({ inspectorId: null, inspectorType: null });
-	}
-
-	setContext('openInspector', openInspector);
-	setContext('closeInspector', closeInspector);
-
-	let refreshFn: (() => void) | null = null;
-	setContext('registerRefresh', (fn: () => void) => {
-		refreshFn = fn;
-	});
-
-	let inspector: ReturnType<typeof Inspector>;
-	onMount(() => {
-		const id = getParam('inspectorId');
-		const rawType = getParam('inspectorType');
-		const urlType = ['resource', 'person', 'organisation'].includes(rawType)
-			? (rawType as EntityType)
-			: null;
-
-		if (id && urlType) inspector.navigate({ id, type: urlType, name: '' });
-		else selectedItem = null;
-	});
-
-	afterNavigate(() => {
-		if (!getParam('inspectorId')) closeInspector();
+	$effect(() => {
+		if (insp.selectedItem) inspectorPane?.expand();
+		else inspectorPane?.collapse();
 	});
 </script>
 
-<div class="flex h-full overflow-hidden">
-	{@render children()}
+<PaneGroup direction="horizontal" autoSaveId="inspector-layout">
+	<Pane minSize={30}>
+		{@render children()}
+	</Pane>
 
-	<Inspector bind:this={inspector} bind:item={selectedItem} onaftersave={() => refreshFn?.()} />
-</div>
+	<Handle withHandle class={insp.selectedItem ? '' : 'hidden'} />
+
+	<Pane
+		bind:this={inspectorPane}
+		defaultSize={0}
+		minSize={20}
+		maxSize={45}
+		collapsible
+		collapsedSize={0}
+		onCollapse={() => { insp.selectedItem = null }}
+	>
+		<Inspector bind:this={insp.inspectorRef} bind:item={insp.selectedItem} onaftersave={insp.onAfterSave} />
+	</Pane>
+</PaneGroup>
