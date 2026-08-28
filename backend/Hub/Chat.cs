@@ -279,59 +279,66 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
             messages.Add(new { role = "system", content = attachmentNote });
 
         Dictionary<string, int> toolCallCounts = [];
+        MistralFunction[] tools = [SearchTool, GetItemDetailsTool, FindRelatedItemsTool, SearchItemContentTool, BrowseLibraryTool, FindSimilarResourcesTool, SearchAttachmentContentTool];
 
-        for (int i = 0; i < MaxToolIterations; i++)
+
+        for (int i = 0; i <= MaxToolIterations; i++)
         {
-            MistralCompletion completion = await mistralClient.CompleteAsync(new MistralChatRequest { Messages = messages, Functions = [SearchTool, GetItemDetailsTool, FindRelatedItemsTool, SearchItemContentTool, BrowseLibraryTool, FindSimilarResourcesTool, SearchAttachmentContentTool] }, ct: cancellationToken);
+            await Clients.Caller.SendAsync("Thinking", cancellationToken);
 
-            if (i == 0 && completion.PromptTokens is int promptTokens)
-                await chatService.UpdateLastContextTokensAsync(Guid.Parse(chatId), promptTokens);
+            List<MistralToolCall>? toolCalls = null;
+            bool anyContent = false;
 
-            if (completion.HasToolCalls)
+            for (int attempt = 0; attempt < 2; attempt++)
             {
-                messages.Add(new
+                await foreach(MistralStreamChunk chunk in mistralClient.StreamAsync(new MistralChatRequest { Messages = messages, Functions = tools }, cancellationToken))
                 {
-                    role = "assistant",
-                    tool_calls = completion.ToolCalls!.Select(tc => new
+                    if (chunk.Content != null)
                     {
-                        id = tc.Id,
-                        type = "function",
-                        function = new { name = tc.Name, arguments = tc.Arguments }
-                    }).ToArray()
-                });
+                        anyContent = true;
+                        yield return chunk.Content;
+                    }
 
-                string[] results = await Task.WhenAll(completion.ToolCalls!.Select(tc =>
-                {
-                    int count = toolCallCounts[tc.Name] = toolCallCounts.GetValueOrDefault(tc.Name) + 1;
-                    if (count > MaxCallsPerTool)
-                        return Task.FromResult($"Error: {tc.Name} has already been called {MaxCallsPerTool} times this turn. Stop using this tool and answer with what you have, or try a different tool.");
+                    if (i == 0 && chunk.PromptTokens is int promptTokens)
+                        await chatService.UpdateLastContextTokensAsync(Guid.Parse(chatId), promptTokens);
 
-                    return HandleToolCallAsync(tc, message, projectId, Guid.Parse(chatId), cancellationToken);
-                }));
+                    if (chunk.ToolCalls != null)
+                        toolCalls = chunk.ToolCalls;
+                }
 
-                for (int j = 0; j < completion.ToolCalls!.Count; j++)
-                    messages.Add(new { role = "tool", tool_call_id = completion.ToolCalls[j].Id, content = results[j] });
+                if (anyContent || toolCalls != null) break;
 
-                if (i == MaxToolIterations - 1)
-                    messages.Add(new { role = "system", content = "You've reached the maximum number of tool calls for this turn. Provide your best answer now based on the information gathered so far." });
+                logger.Warning("Chat {ChatId} got an empty response on iteration {Iteration}, retrying once", chatId, i);
             }
-            else { break; }
-        }
 
-        await Clients.Caller.SendAsync("Thinking", cancellationToken);
+            if (toolCalls == null) yield break;
+            if (i == MaxToolIterations) yield break;
 
-        bool anyContent = false;
-        await foreach (string chunk in mistralClient.StreamAsync(new MistralChatRequest { Messages = messages }, cancellationToken))
-        {
-            anyContent = true;
-            yield return chunk;
-        }
+            messages.Add(new
+            {
+                role = "assistant",
+                tool_calls = toolCalls.Select(tc => new
+                {
+                    id = tc.Id,
+                    type = "function",
+                    function = new { name = tc.Name, arguments = tc.Arguments }
+                }).ToArray()
+            });
 
-        if (!anyContent)
-        {
-            logger.Warning("Chat {ChatId} got an empty stream on the first attempt, retrying once", chatId);
-            await foreach (string chunk in mistralClient.StreamAsync(new MistralChatRequest { Messages = messages }, cancellationToken))
-                yield return chunk;
+            string[] results = await Task.WhenAll(toolCalls.Select(tc =>
+            {
+                int count = toolCallCounts[tc.Name] = toolCallCounts.GetValueOrDefault(tc.Name) + 1;
+                if (count > MaxCallsPerTool)
+                    return Task.FromResult($"Error: {tc.Name} has already been called {MaxCallsPerTool} times this turn. Stop using this tool and answer with what you have, or try a different tool.");
+
+                return HandleToolCallAsync(tc, message, projectId, Guid.Parse(chatId), cancellationToken);
+            }));
+
+            for (int j = 0; j < toolCalls.Count; j++)
+                messages.Add(new { role = "tool", tool_call_id = toolCalls[j].Id, content = results[j] });
+            
+            if (i == MaxToolIterations - 1)
+                messages.Add(new { role = "system", content = "You've reached the maximum number of tool calls for this turn. Provide your best answer now based on the information gathered so far."});
         }
     }
 

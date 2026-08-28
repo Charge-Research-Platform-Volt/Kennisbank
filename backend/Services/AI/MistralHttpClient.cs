@@ -14,6 +14,16 @@ public record MistralCompletion(string? Content, List<MistralToolCall>? ToolCall
     public bool HasToolCalls => ToolCalls?.Count > 0;
 }
 public record MistralFunction(string Name, string Description, object Parameters);
+public record MistralStreamChunk(
+    string? Content = null, 
+    List<MistralToolCall>? ToolCalls = null, 
+    int? PromptTokens = null,
+    int? CompletionTokens = null,
+    int? TotalTokens = null,
+    int? CachedTokens = null,
+    string? Model = null,
+    string? Id = null
+);
 
 public class MistralContextLengthExceededException(string message) : Exception(message);
 
@@ -104,7 +114,7 @@ public class MistralHttpClient
         return new MistralCompletion(ExtractTextContent(message.GetProperty("content")), null, promptTokens);
     }
 
-    public async IAsyncEnumerable<string> StreamAsync(MistralChatRequest request, [EnumeratorCancellation] CancellationToken ct = default)
+    public async IAsyncEnumerable<MistralStreamChunk> StreamAsync(MistralChatRequest request, [EnumeratorCancellation] CancellationToken ct = default)
     {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         var body = JsonSerializer.Serialize(BuildBody(request, stream: true));
@@ -145,6 +155,13 @@ public class MistralHttpClient
         bool anyContent = false;
         string? finishReason = null;
         string? lastData = null;
+        string? model = null;
+        string? id = null;
+        int? promptTokens = null;
+        int? completionTokens = null;
+        int? totalTokens = null;
+        int? cachedTokens = null;
+        var toolCallBuilders = new Dictionary<int, ToolCallBuilder>();
 
         while (!reader.EndOfStream && !ct.IsCancellationRequested)
         {
@@ -157,10 +174,22 @@ public class MistralHttpClient
             {
                 logger.Debug("Mistral stream completed after {ElapsedMs}ms, finish_reason={FinishReason}", stopwatch.ElapsedMilliseconds, finishReason);
 
-                if (!anyContent)
-                    logger.Warning(
-                        "Mistral stream produced no content, finish_reason={FinishReason}, last_chunk={LastChunk}",
-                        finishReason, lastData);
+                List<MistralToolCall>? toolCalls = toolCallBuilders.Count > 0
+                    ? toolCallBuilders.OrderBy(kv => kv.Key).Select(kv => new MistralToolCall(kv.Value.Id ?? "", kv.Value.Name ?? "", kv.Value.Arguments.ToString())).ToList()
+                    : null;
+
+                if (!anyContent && toolCalls == null)
+                    logger.Warning("Mistral stream produced no content, finish_reason={FinishReason}, last_chunk={LastChunk}", finishReason, lastData);
+
+                yield return new MistralStreamChunk(
+                    ToolCalls: toolCalls,
+                    PromptTokens: promptTokens,
+                    CompletionTokens: completionTokens,
+                    TotalTokens: totalTokens,
+                    CachedTokens: cachedTokens,
+                    Model: model,
+                    Id: id
+                );
 
                 yield break;
             }
@@ -168,7 +197,22 @@ public class MistralHttpClient
             lastData = data;
 
             using var doc = JsonDocument.Parse(data);
-            var choice = doc.RootElement.GetProperty("choices")[0];
+            var root = doc.RootElement;
+
+            if (root.TryGetProperty("model", out var modelProp))
+                model = modelProp.GetString();
+            if (root.TryGetProperty("id", out var idProp))
+                id = idProp.GetString();
+
+            if (root.TryGetProperty("usage", out var usageProp) && usageProp.ValueKind == JsonValueKind.Object)
+            {
+                if (usageProp.TryGetProperty("prompt_tokens", out var pt)) promptTokens = pt.GetInt32();
+                if (usageProp.TryGetProperty("completion_tokens", out var compTokensProp)) completionTokens = compTokensProp.GetInt32();
+                if (usageProp.TryGetProperty("total_tokens", out var tt)) totalTokens = tt.GetInt32();
+                if (usageProp.TryGetProperty("prompt_tokens_details", out var ptd) && ptd.TryGetProperty("cached_tokens", out var cached)) cachedTokens = cached.GetInt32();
+            }
+
+            var choice = root.GetProperty("choices")[0];
 
             if (choice.TryGetProperty("finish_reason", out var frProp) && frProp.ValueKind != JsonValueKind.Null)
                 finishReason = frProp.GetString();
@@ -181,7 +225,28 @@ public class MistralHttpClient
                 if (!string.IsNullOrEmpty(chunk))
                 {
                     anyContent = true;
-                    yield return chunk;
+                    yield return new MistralStreamChunk(Content: chunk);
+                }
+            }
+
+            if (delta.TryGetProperty("tool_calls", out var toolCallsProp) && toolCallsProp.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var tc in toolCallsProp.EnumerateArray())
+                {
+                    int index = tc.TryGetProperty("index", out var idxProp) ? idxProp.GetInt32() : 0;
+                    if (!toolCallBuilders.TryGetValue(index, out var builder))
+                        toolCallBuilders[index] = builder = new ToolCallBuilder();
+
+                    if (tc.TryGetProperty("id", out var tcId) && tcId.ValueKind == JsonValueKind.String)
+                        builder.Id = tcId.GetString();
+
+                    if (tc.TryGetProperty("function", out var fn))
+                    {
+                        if (fn.TryGetProperty("name", out var fnName) && fnName.ValueKind == JsonValueKind.String)
+                            builder.Name = fnName.GetString();
+                        if (fn.TryGetProperty("arguments", out var fnArgs) && fnArgs.ValueKind == JsonValueKind.String)
+                            builder.Arguments.Append(fnArgs.GetString());
+                    }
                 }
             }
         }
@@ -251,4 +316,11 @@ public class MistralHttpClient
         MistralReasoningEffort.High => "high",
         _ => "none"
     };
+
+    private class ToolCallBuilder
+    {
+        public string? Id;
+        public string? Name;
+        public StringBuilder Arguments = new();
+    }
 }
