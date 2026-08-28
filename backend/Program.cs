@@ -137,6 +137,12 @@ namespace KnowledgeBank
 
             builder.Services.AddDbContextFactory<DatabaseContext>(options =>
                 options.UseNpgsql(dataSource, o => o.UseVector())
+                    // Person/Organisation self-referencing relationships (SourcePerson/TargetPerson,
+                    // SourceOrganisation/TargetOrganisation) are always populated via EF's own
+                    // change-tracker fix-up, not the explicit .Include(...).ThenInclude(...) chains
+                    // used for them across PersonService/OrganisationService — EF warns about this
+                    // by design, but throws by default; downgrade it back to a no-op warning.
+                    .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.NavigationBaseIncludeIgnored))
             );
 
             // Resource management
