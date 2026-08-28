@@ -142,6 +142,10 @@ public class MistralHttpClient
         using var stream = await response.Content.ReadAsStreamAsync(ct);
         using var reader = new StreamReader(stream);
 
+        bool anyContent = false;
+        string? finishReason = null;
+        string? lastData = null;
+
         while (!reader.EndOfStream && !ct.IsCancellationRequested)
         {
             string? line = await reader.ReadLineAsync(ct);
@@ -151,20 +155,34 @@ public class MistralHttpClient
             string data = line["data: ".Length..];
             if (data == "[DONE]")
             {
-                logger.Debug("Mistral stream completed after {ElapsedMs}ms", stopwatch.ElapsedMilliseconds);
+                logger.Debug("Mistral stream completed after {ElapsedMs}ms, finish_reason={FinishReason}", stopwatch.ElapsedMilliseconds, finishReason);
+
+                if (!anyContent)
+                    logger.Warning(
+                        "Mistral stream produced no content, finish_reason={FinishReason}, last_chunk={LastChunk}",
+                        finishReason, lastData);
+
                 yield break;
             }
 
+            lastData = data;
+
             using var doc = JsonDocument.Parse(data);
-            var delta = doc.RootElement
-                .GetProperty("choices")[0]
-                .GetProperty("delta");
+            var choice = doc.RootElement.GetProperty("choices")[0];
+
+            if (choice.TryGetProperty("finish_reason", out var frProp) && frProp.ValueKind != JsonValueKind.Null)
+                finishReason = frProp.GetString();
+
+            var delta = choice.GetProperty("delta");
 
             if (delta.TryGetProperty("content", out var contentProp))
             {
                 string chunk = ExtractTextContent(contentProp);
                 if (!string.IsNullOrEmpty(chunk))
+                {
+                    anyContent = true;
                     yield return chunk;
+                }
             }
         }
     }

@@ -45,7 +45,7 @@
 
 <div class="flex flex-1 flex-col items-center justify-center gap-6 p-8">
 	<div class="text-center">
-		<div class="flex items-center gap-2">
+		<div class="flex items-center justify-center gap-2">
 			<img src="/img/charge-icon.webp" alt="Charge Icon" class="h-8 w-8" />
 			<span class="text-4xl font-medium">GridAI</span>
 		</div>

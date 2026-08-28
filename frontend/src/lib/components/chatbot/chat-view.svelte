@@ -16,6 +16,8 @@
 		authors?: AuthorRef[] | null;
 	};
 
+	const libraryItemCache = new SvelteMap<string, ResolvedSource>();
+
 	const renderer = new Renderer();
 	renderer.link = ({ href, text }) => {
 		// Normalize library links — strip any origin the LLM may have prepended
@@ -157,9 +159,23 @@
 		});
 	}
 
+	let spacerUpdateScheduled = false;
+
+	function scheduleSpacerUpdate() {
+		if (spacerUpdateScheduled) return;
+
+		spacerUpdateScheduled = true;
+		tick().then(() => {
+			requestAnimationFrame(() => {
+				spacerUpdateScheduled = false;
+				updateSpacer();
+			});
+		});
+	}
+
 	$effect(() => {
 		void messages;
-		tick().then(() => setTimeout(updateSpacer, 50));
+		scheduleSpacerUpdate();
 	});
 
 	$effect(() => {
@@ -205,9 +221,20 @@
 		}
 	}
 
-	function fetchLibraryItems(ids: string[]): Promise<ResolvedSource[]> {
-		if (ids.length === 0) return Promise.resolve([]);
-		return api.post<ResolvedSource[]>(`/api/library/items?includeAuthors=true`, ids);
+	async function resolveLibraryItems(ids: string[]): Promise<SvelteMap<string, ResolvedSource>> {
+		const uncached = ids.filter((id) => !libraryItemCache.has(id));
+		if (uncached.length > 0) {
+			const items = await api.post<ResolvedSource[]>(`/api/library/items?includeAuthors=true`, uncached);
+			(items ?? []).forEach((item) => libraryItemCache.set(item.id, item));
+		}
+
+		const map = new SvelteMap<string, ResolvedSource>();
+		ids.forEach((id) =>{
+			const item = libraryItemCache.get(id);
+			if (item) map.set(id, item);
+		});
+
+		return map;
 	}
 
 	async function fetchSources(content: string, msgId: string) {
@@ -216,14 +243,15 @@
 		const attachUuids = extractMarkerUuids(content, 'ATTACH');
 		if (srcUuids.length === 0 && attachUuids.length === 0) return;
 
-		const libraryItems = await fetchLibraryItems(srcUuids);
+		const libraryLookup = await resolveLibraryItems(srcUuids);
 
 		const map = new SvelteMap<string, ResolvedSource>();
 		attachUuids.forEach((uuid) => {
 			const a = attachmentsMap.get(uuid);
 			if (a) map.set(uuid, a);
 		});
-		libraryItems.forEach((s) => map.set(s.id, s));
+		
+		libraryLookup.forEach((s, id) => map.set(id, s));
 
 		messages = messages.map((m) => (m.id === msgId ? { ...m, resolvedSources: map } : m));
 	}
@@ -236,10 +264,7 @@
 
 		if (allSrcUuids.length === 0 && !hasAnyAttach) return;
 
-		const libraryItems = await fetchLibraryItems(allSrcUuids);
-		// eslint-disable-next-line svelte/prefer-svelte-reactivity
-		const lookup = new Map<string, ResolvedSource>();
-		libraryItems.forEach((s: ResolvedSource) => lookup.set(s.id, s));
+		const libraryLookup = await resolveLibraryItems(allSrcUuids);
 
 		messages = msgs.map((m) => {
 			if (m.messageRole !== 'Assistant') return m;
@@ -250,7 +275,8 @@
 				if (a) map.set(uuid, a);
 			});
 			extractMarkerUuids(m.content, 'SRC').forEach((uuid) => {
-				if (lookup.has(uuid)) map.set(uuid, lookup.get(uuid)!);
+				const item = libraryLookup.get(uuid);
+				if (item) map.set(uuid, item);
 			});
 
 			return { ...m, resolvedSources: map };
