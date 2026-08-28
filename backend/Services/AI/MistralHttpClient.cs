@@ -290,9 +290,13 @@ public class MistralHttpClient
     private static string ExtractTextContent(JsonElement content) => content.ValueKind switch
     {
         JsonValueKind.String => content.GetString() ?? "",
+        // With reasoning enabled, a content array may hold only a ThinkChunk (type: "thinking")
+        // during the thinking phase, with no "text"-typed element at all — fall back to "" rather
+        // than calling GetProperty on the default/undefined JsonElement FirstOrDefault returns.
         JsonValueKind.Array => content.EnumerateArray()
-            .FirstOrDefault(e => e.TryGetProperty("type", out var t) && t.GetString() == "text")
-            .GetProperty("text").GetString() ?? "",
+            .FirstOrDefault(e => e.TryGetProperty("type", out var t) && t.GetString() == "text") is { ValueKind: JsonValueKind.Object } textChunk
+                ? textChunk.GetProperty("text").GetString() ?? ""
+                : "",
         _ => ""
     };
 

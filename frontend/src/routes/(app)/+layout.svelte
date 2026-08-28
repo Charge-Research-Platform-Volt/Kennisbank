@@ -8,6 +8,8 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { Sparkles } from '@lucide/svelte';
+	import { createChatConnection } from '$lib/state/chat-connection.svelte';
+	import { setContext, onMount } from 'svelte';
 
 	type ChangelogEntry = { title: string; body: string; createdAt: string };
 
@@ -15,6 +17,10 @@
 
 	let changelogEntries = $state<ChangelogEntry[]>([]);
 	let changelogDialogOpen = $state(false);
+
+	const chat = createChatConnection();
+	onMount(() => chat.start());
+	setContext('chatConnection', chat);
 
 	// Fetch user role, which also automatically checks authentication
 	api
@@ -54,7 +60,7 @@
 </Tooltip.Provider>
 
 <Dialog.Root bind:open={changelogDialogOpen}>
-	<Dialog.Content class="flex max-h-[80vh] !max-w-3xl flex-col p-5">
+	<Dialog.Content class="flex max-h-[80vh] max-w-3xl! flex-col p-5">
 		<Dialog.Header>
 			<Dialog.Title class="flex items-center gap-2"
 				><Sparkles size={14} class="text-amber-400" /> What's new</Dialog.Title

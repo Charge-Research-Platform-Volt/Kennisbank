@@ -1,7 +1,7 @@
 import { HubConnectionBuilder, HttpTransportType, LogLevel } from '@microsoft/signalr';
 import type { HubConnection } from '@microsoft/signalr';
 
-export function createChatConnection(onTitleUpdated?: () => void) {
+export function createChatConnection() {
     let connection = $state<HubConnection | null>(null);
 
     function start(): () => void {
@@ -10,8 +10,6 @@ export function createChatConnection(onTitleUpdated?: () => void) {
             .withAutomaticReconnect()
             .configureLogging(LogLevel.None)
             .build();
-
-        if (onTitleUpdated) conn.on('ChatTitleUpdated', onTitleUpdated);
 
         conn.start().then(() => { connection = conn; }).catch((e) => console.error('SignalR connection error: ', e));
 

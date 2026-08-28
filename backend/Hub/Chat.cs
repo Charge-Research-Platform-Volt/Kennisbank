@@ -33,7 +33,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         - When search returns a specific person or organisation, always follow up with get_item_details to retrieve full information before answering.
         - Use find_related_items to explore connections — e.g. resources by a person, members of an organisation, people linked to a resource.
         - Chain tools when needed: search → get_item_details → find_related_items to build a complete picture.
-        - Tool results sometimes reference other items by UUID outside of "Cite as:" lines (e.g. "- Author: Name [SRC:uuid]" in find_related_items output). That UUID is a valid id for a follow-up get_item_details or find_related_items call to get that item's own details (e.g. an author's email or occupation) — it isn't only a citation marker. Only chase this when the user's question actually needs that specific item's details, not by default for every reference you see.
+        - Tool results sometimes reference other items by UUID outside of "Cite as:" lines (e.g. "- Author: Name [SRC:uuid]" in find_related_items output). The UUID inside those brackets is also a valid id for a follow-up get_item_details or find_related_items call — extract just the UUID characters for the tool call's id argument (no brackets there, it's a JSON parameter, not text shown to the user). Only chase this when the user's question actually needs that specific item's details, not by default for every reference you see. This never changes how you cite: in your own answer text a UUID must always still appear as the full [SRC:uuid] or [ATTACH:uuid] form, never bare.
         - If a search returns no relevant results, try again with a broader or differently-worded query before giving up — but if two or three attempts still find nothing useful, stop searching rather than repeating similar queries. If a search already returned useful content, don't keep narrowing the query chasing more specific angles the user didn't ask for — use what you found.
         - search_library results are summarized for brevity. If a result looks relevant but you need more depth or detail than the summary gives, use search_item_content on that item's id to pull more from its full content — most useful for resources.
         - Use browse_library instead of search_library when the user asks for items matching specific facets (tags, regions, resource types, journals, publication date range) rather than a topic — e.g. "what do I have tagged X" or "resources from 2024". It takes facet names directly, not IDs.
@@ -46,9 +46,9 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         - Answer questions grounded in {scope} sources
         - Find relations and connections between topics, people, and organisations
         - Draw insights across multiple sources
-        - Add brief clarifying context from general knowledge when {scope} sources are insufficient — wrap the entire block of general knowledge (including any lists or paragraphs) in a single [AI]...[/AI] tag
+        - Add clarifying context from general knowledge when {scope} sources are insufficient or the user explicitly asks you to draw on your own knowledge — this can be as short as one clause or as long as several sections, whatever the question actually calls for — wrap the entire block of general knowledge (including any lists or paragraphs) in a single [AI]...[/AI] tag
         - Do NOT wrap individual sentences — wrap the whole section at once
-        - Do NOT write "(AI)" labels, headers like "General Context", or any other annotations — the [AI]...[/AI] tags handle this automatically
+        - Do NOT write "(AI)" labels, headers, or any other annotation calling out general knowledge, regardless of the exact wording (e.g. "General Context", "General Overview", "General Knowledge", "Broader Context", etc. are all equally wrong) — the [AI]...[/AI] tags handle this automatically and already render their own visual indicator. This applies to ANY heading placed immediately before the tag, not just specific phrasings — no heading of any kind belongs there, the tag alone is always sufficient
         - If you are unsure whether something comes from {scope} or your training data, wrap it in [AI]...[/AI]
         - Content from attached files is grounded, user-provided information, NOT general training data — treat it the same as {scope} sources and do NOT wrap it in [AI]...[/AI].
 
@@ -56,9 +56,11 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
         - ONLY cite sources that appear in tool results or the attachments list. No exceptions.
         - Cite {scope} items inline using ONLY the exact marker from tool results: [SRC:uuid]
         - Cite attached files inline using ONLY the exact marker: [ATTACH:uuid]
+        - Cite every distinct fact or claim drawn from a source immediately after that claim — not just once at the end of a paragraph or bullet-group summarizing several points. If several findings in a row come from the same source, cite after each one, not just the last.
         - Each marker must be separate — NEVER group like [SRC:uuid,SRC:uuid] or [ATTACH:uuid,ATTACH:uuid]
         - NEVER write [1], [2] or any numbered citation — ONLY [SRC:uuid] or [ATTACH:uuid] markers
-        - NEVER invent UUIDs — copy markers verbatim from "Cite as:" lines in tool results or the attachments list
+        - NEVER invent UUIDs — every marker you write must be copied verbatim from something that actually appeared in a tool result or the attachments list (a "Cite as:" line, or a UUID attached to a related item like "- Author: Name [SRC:uuid]") — never one you assembled or guessed yourself
+        - NEVER write a bare UUID without the surrounding brackets (e.g. "...as shown here:00000000-0000-4000-8000-000000000000" is WRONG) — always the full [SRC:uuid] or [ATTACH:uuid] form
         - Do NOT write a Sources section — it is generated automatically
         - If you haven't used any tools and no attachment informed your answer, cite nothing.
 
@@ -292,7 +294,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
 
             for (int attempt = 0; attempt < 2; attempt++)
             {
-                await foreach(MistralStreamChunk chunk in mistralClient.StreamAsync(new MistralChatRequest { Messages = messages, Functions = tools }, cancellationToken))
+                await foreach(MistralStreamChunk chunk in mistralClient.StreamAsync(new MistralChatRequest { Messages = messages, Functions = tools, ReasoningEffort = MistralReasoningEffort.High }, cancellationToken))
                 {
                     if (chunk.Content != null)
                     {

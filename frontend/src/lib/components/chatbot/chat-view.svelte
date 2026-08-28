@@ -50,24 +50,38 @@
 
 		const uuidRe = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 
-		// Replace [SRC:uuid] / [ATTACH:uuid] markers (and comma-grouped variants)
-		let processed = content.replace(/\[(SRC|ATTACH):[^\]]+\]/gi, (match, kind: string) => {
-			const uuids = [...match.matchAll(uuidRe)].map((m) => m[0]);
-			const isAttachment = kind.toUpperCase() === 'ATTACH';
+		// Replace [SRC:uuid] / [ATTACH:uuid] markers (and comma-grouped variants), and bare UUIDs
+		// the model occasionally emits without the required brackets — the resolved source's own
+		// type decides the link target, not the marker kind, so this is robust either way. Also
+		// swallow a stray colon glued directly in front of the marker with no space (another
+		// formatting tic the model sometimes produces) rather than leaving it dangling in the text.
+		let processed = content.replace(
+			/:?(\[(?:SRC|ATTACH):[^\]]+\]|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/gi,
+			(_fullMatch, marker: string) => {
+				const uuids = [...marker.matchAll(uuidRe)].map((m) => m[0]);
 
-			return uuids
-				.map((uuid) => {
-					if (!uuidOrder.has(uuid)) uuidOrder.set(uuid, counter++);
-					const n = uuidOrder.get(uuid);
-					const source = resolvedSources?.get(uuid);
-					if (source) {
-						const url = isAttachment ? `/api/files/${uuid}` : `/library?inspectorId=${uuid}&inspectorType=${source.type}`;
-						return `[${n}](${url})`;
-					}
-					return `[[BADGE:${n}]]`;
-				})
-				.join('');
-		});
+				return uuids
+					.map((uuid) => {
+						if (!uuidOrder.has(uuid)) uuidOrder.set(uuid, counter++);
+						const n = uuidOrder.get(uuid);
+						const source = resolvedSources?.get(uuid);
+						if (source) {
+							const url = source.type === 'attachment' ? `/api/files/${uuid}` : `/library?inspectorId=${uuid}&inspectorType=${source.type}`;
+							return `[${n}](${url})`;
+						}
+						return `[[BADGE:${n}]]`;
+					})
+					.join('');
+			}
+		);
+
+		// Citations often land immediately before the sentence's terminal period, wherever the
+		// model happened to place the marker in its own text — move a run of one or more
+		// consecutive citations to after the period instead, matching normal citation style.
+		processed = processed.replace(/((?:\[\d+\]\([^)]+\)|\[\[BADGE:\d+\]\])+)\./g, '.$1');
+
+		// Collapse a run of consecutive horizontal rules (blank lines in between) into a single one.
+		processed = processed.replace(/(?:^---$\n*){2,}/gm, '---\n\n');
 
 		let html = marked(processed) as string;
 
@@ -188,14 +202,9 @@
 		return () => scrollContainerRef!.removeEventListener('scroll', onScroll);
 	});
 
-	function extractMarkerUuids(content: string, prefix: 'SRC' | 'ATTACH'): string[] {
+	function extractAllUuids(content: string): string[] {
 		const uuidRe = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
-		const markerRe = new RegExp(`\\[${prefix}:[^\\]]+\\]`, 'gi');
-		return [
-			...new Set(
-				[...content.matchAll(markerRe)].flatMap((m) => [...m[0].matchAll(uuidRe)].map((u) => u[0]))
-			)
-		];
+		return [...new Set([...content.matchAll(uuidRe)].map((m) => m[0]))];
 	}
 
 	function loadAttachments(id: string) {
@@ -239,19 +248,19 @@
 
 	async function fetchSources(content: string, msgId: string) {
 		await attachmentsLoaded;
-		const srcUuids = extractMarkerUuids(content, 'SRC');
-		const attachUuids = extractMarkerUuids(content, 'ATTACH');
-		if (srcUuids.length === 0 && attachUuids.length === 0) return;
+		const allUuids = extractAllUuids(content);
+		if (allUuids.length === 0) return;
 
+		const srcUuids = allUuids.filter((u) => !attachmentsMap.has(u));
 		const libraryLookup = await resolveLibraryItems(srcUuids);
 
 		const map = new SvelteMap<string, ResolvedSource>();
-		attachUuids.forEach((uuid) => {
+		allUuids.forEach((uuid) => {
 			const a = attachmentsMap.get(uuid);
-			if (a) map.set(uuid, a);
+			if (a) { map.set(uuid, a); return; }
+			const item = libraryLookup.get(uuid);
+			if (item) map.set(uuid, item);
 		});
-		
-		libraryLookup.forEach((s, id) => map.set(id, s));
 
 		messages = messages.map((m) => (m.id === msgId ? { ...m, resolvedSources: map } : m));
 	}
@@ -259,22 +268,19 @@
 	async function fetchSourcesForMessages(msgs: Message[]) {
 		await attachmentsLoaded;
 		const assistantMsgs = msgs.filter((m) => m.messageRole === 'Assistant');
-		const allSrcUuids = [...new Set(assistantMsgs.flatMap((m) => extractMarkerUuids(m.content, 'SRC')))];
-		const hasAnyAttach = assistantMsgs.some((m) => extractMarkerUuids(m.content, 'ATTACH').length > 0);
+		const allUuids = [...new Set(assistantMsgs.flatMap((m) => extractAllUuids(m.content)))];
+		if (allUuids.length === 0) return;
 
-		if (allSrcUuids.length === 0 && !hasAnyAttach) return;
-
-		const libraryLookup = await resolveLibraryItems(allSrcUuids);
+		const srcUuids = allUuids.filter((u) => !attachmentsMap.has(u));
+		const libraryLookup = await resolveLibraryItems(srcUuids);
 
 		messages = msgs.map((m) => {
 			if (m.messageRole !== 'Assistant') return m;
 
 			const map = new SvelteMap<string, ResolvedSource>();
-			extractMarkerUuids(m.content, 'ATTACH').forEach((uuid) => {
+			extractAllUuids(m.content).forEach((uuid) => {
 				const a = attachmentsMap.get(uuid);
-				if (a) map.set(uuid, a);
-			});
-			extractMarkerUuids(m.content, 'SRC').forEach((uuid) => {
+				if (a) { map.set(uuid, a); return; }
 				const item = libraryLookup.get(uuid);
 				if (item) map.set(uuid, item);
 			});

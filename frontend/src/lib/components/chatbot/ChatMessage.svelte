@@ -61,7 +61,7 @@
 		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const order = new Map<string, number>();
 		let counter = 1;
-		for (const m of content.matchAll(/\[(?:SRC|ATTACH):[^\]]+\]/gi)) {
+		for (const m of content.matchAll(/\[(?:SRC|ATTACH):[^\]]+\]|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi)) {
 			for (const u of m[0].matchAll(uuidRe)) {
 				if (!order.has(u[0])) order.set(u[0], counter++);
 			}
