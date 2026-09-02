@@ -185,13 +185,6 @@
 			0,
 			containerH - topPadding - bottomPadding - userH - itemGap * 2 - assistantH
 		);
-		console.log('spacer', {
-			spacerHeight,
-			userH,
-			assistantH,
-			containerH,
-			lastUserText: lastUser.textContent?.slice(0, 30)
-		});
 	}
 
 	function scrollToLastUserMessage() {
@@ -378,7 +371,7 @@
 
 		try {
 			const result = await api.get<{ items: Message[]; hasMore: boolean }>(
-				`/api/chats/${chatId}/messages?before=${encodeURIComponent(oldestCreatedOn ?? '')}&limit=3`
+				`/api/chats/${chatId}/messages?before=${encodeURIComponent(oldestCreatedOn ?? '')}&limit=50`
 			);
 			messages = [...(result?.items ?? []), ...messages];
 			hasMoreMessages = result?.hasMore ?? false;
@@ -389,15 +382,7 @@
 			if (container) {
 				const newScrollHeight = container.scrollHeight;
 				const delta = newScrollHeight - prevScrollHeight;
-				console.log('compensate', {
-					prevScrollHeight,
-					newScrollHeight,
-					delta,
-					spacerHeight,
-					scrollTopBefore: container.scrollTop
-				});
 				container.scrollTop += delta;
-				console.log('scrollTopAfter', container.scrollTop);
 			}
 
 			fetchSourcesForMessages(messages);

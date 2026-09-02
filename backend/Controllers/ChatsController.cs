@@ -63,7 +63,7 @@ public class ChatsController(ChatService chatService, MessageAttachmentService m
     [SwaggerResponse(200, "Messages")]
     [SwaggerResponse(403, "Not your chat")]
     [SwaggerResponse(404, "Not found")]
-    public async Task<IActionResult> GetMessages(Guid id, [FromQuery] DateTime? before, [FromQuery] int limit = 3)
+    public async Task<IActionResult> GetMessages(Guid id, [FromQuery] DateTime? before, [FromQuery] int limit = 50)
     {
         Guid userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         Chats? chat = await chatService.GetByIdAsync(id);
