@@ -130,11 +130,15 @@
 		content: string;
 		resolvedSources?: Map<string, ResolvedSource>;
 		reasoning?: string;
+		createdOn?: string;
 	};
 
 	const ctx = getContext<{ connection: HubConnection | null }>('chatConnection');
 
 	let messages = $state<Message[]>([]);
+	let hasMoreMessages = $state(true);
+	let loadingOlder = $state(false);
+	let topSentinel: HTMLDivElement | null = $state(null);
 	let streamingAssistantId: string | null = null;
 	let loading = $state(false);
 	let thinking = $state(false);
@@ -161,13 +165,33 @@
 			spacerHeight = 0;
 			return;
 		}
+
+		const userEls = scrollContainerRef.querySelectorAll<HTMLElement>('[data-role="user"]');
+		const lastUser = userEls[userEls.length - 1];
+
+		if (!lastUser) {
+			spacerHeight = 0;
+			return;
+		}
+
+		const assistantEls =
+			scrollContainerRef.querySelectorAll<HTMLElement>('[data-role="assistant"]');
+		const lastAssistant = assistantEls[assistantEls.length - 1];
+
 		const containerH = scrollContainerRef.clientHeight;
-		const userH = userMessageRef.offsetHeight;
-		const assistantH = assistantMessageRef?.offsetHeight ?? 0;
+		const userH = lastUser.offsetHeight;
+		const assistantH = lastAssistant?.offsetHeight ?? 0;
 		spacerHeight = Math.max(
 			0,
 			containerH - topPadding - bottomPadding - userH - itemGap * 2 - assistantH
 		);
+		console.log('spacer', {
+			spacerHeight,
+			userH,
+			assistantH,
+			containerH,
+			lastUserText: lastUser.textContent?.slice(0, 30)
+		});
 	}
 
 	function scrollToLastUserMessage() {
@@ -199,6 +223,7 @@
 		scheduleSpacerUpdate();
 	});
 
+	// Show scroll button trigger
 	$effect(() => {
 		if (!scrollContainerRef) return;
 		const onScroll = () => {
@@ -207,6 +232,21 @@
 		};
 		scrollContainerRef.addEventListener('scroll', onScroll);
 		return () => scrollContainerRef!.removeEventListener('scroll', onScroll);
+	});
+
+	// Load older messages sentinel trigger
+	$effect(() => {
+		if (!topSentinel || !scrollContainerRef) return;
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0].isIntersecting) loadOlderMessages();
+			},
+			{ root: scrollContainerRef, rootMargin: '400px 0px 0px 0px' }
+		);
+
+		observer.observe(topSentinel);
+		return () => observer.disconnect();
 	});
 
 	function extractAllUuids(content: string): string[] {
@@ -311,20 +351,59 @@
 
 	function fetchMessages(id: string) {
 		api
-			.get<Message[]>(`/api/chats/${id}/messages`)
+			.get<{ items: Message[]; hasMore: boolean }>(`/api/chats/${id}/messages`)
 			.then((result) => {
-				messages = result ?? [];
+				messages = result?.items ?? [];
+				hasMoreMessages = result?.hasMore ?? false;
 				fetchSourcesForMessages(messages);
-				tick().then(() =>
+				tick().then(() => {
 					setTimeout(
 						() => (userMessageRef ? scrollToLastUserMessage() : bottomRef?.scrollIntoView()),
 						100
-					)
-				);
+					);
+				});
 			})
 			.catch(() => {
 				messages = [{ id: 'error', messageRole: 'Assistant', content: 'Failed to load messages.' }];
 			});
+	}
+
+	async function loadOlderMessages() {
+		if (loadingOlder || !hasMoreMessages || messages.length === 0) return;
+		loadingOlder = true;
+
+		const oldestCreatedOn = messages[0]?.createdOn;
+		const container = scrollContainerRef;
+		const prevScrollHeight = container?.scrollHeight ?? 0;
+
+		try {
+			const result = await api.get<{ items: Message[]; hasMore: boolean }>(
+				`/api/chats/${chatId}/messages?before=${encodeURIComponent(oldestCreatedOn ?? '')}&limit=3`
+			);
+			messages = [...(result?.items ?? []), ...messages];
+			hasMoreMessages = result?.hasMore ?? false;
+			loadingOlder = false;
+
+			await tick();
+			await new Promise(requestAnimationFrame);
+			if (container) {
+				const newScrollHeight = container.scrollHeight;
+				const delta = newScrollHeight - prevScrollHeight;
+				console.log('compensate', {
+					prevScrollHeight,
+					newScrollHeight,
+					delta,
+					spacerHeight,
+					scrollTopBefore: container.scrollTop
+				});
+				container.scrollTop += delta;
+				console.log('scrollTopAfter', container.scrollTop);
+			}
+
+			fetchSourcesForMessages(messages);
+		} catch {
+			loadingOlder = false;
+		}
 	}
 
 	function stream(message: string, attachmentIds: string[] = []) {
@@ -405,15 +484,16 @@
 			tick().then(() => setTimeout(scrollToLastUserMessage, 100));
 
 			api
-				.get<Message[]>(`/api/chats/${chatId}/messages`)
+				.get<{ items: Message[]; hasMore: boolean }>(`/api/chats/${chatId}/messages`)
 				.then((result) => {
-					const existing = result ?? [];
+					const existing = result?.items ?? [];
 					if (existing.length === 0) {
 						messages = [];
 						stream(initialMessage!, initialAttachmentIds);
 					} else {
 						loading = false;
 						messages = existing;
+						hasMoreMessages = result?.hasMore ?? false;
 						fetchSourcesForMessages(messages);
 						tick().then(() =>
 							setTimeout(
@@ -436,12 +516,15 @@
 		};
 	});
 
+	// Reset variables on chat switch
 	$effect(() => {
 		const id = chatId;
 		if (id === mountedChatId) return; // skip initial run, onMount handled it
 		mountedChatId = id;
 
 		messages = [];
+		hasMoreMessages = true;
+		loadingOlder = false;
 		subscription?.dispose();
 		subscription = null;
 		loading = false;
@@ -461,7 +544,9 @@
 			thinking = true;
 			if (streamingAssistantId) {
 				const id = streamingAssistantId;
-				messages = messages.map((m) => (m.id === id && m.reasoning ? { ...m, reasoning: m.reasoning + '\n\n' } : m));
+				messages = messages.map((m) =>
+					m.id === id && m.reasoning ? { ...m, reasoning: m.reasoning + '\n\n' } : m
+				);
 			}
 		});
 		ctx.connection.on('ReasoningChunk', (text: string) => {
@@ -475,17 +560,31 @@
 </script>
 
 <div class="flex h-full flex-col">
-	<div bind:this={scrollContainerRef} class="flex-1 overflow-y-auto pt-6">
+	<div bind:this={scrollContainerRef} class="chat-scroll-container flex-1 overflow-y-auto pt-6">
 		<div class="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4">
+			<div bind:this={topSentinel}></div>
+
+			<div class="flex justify-center py-2 text-xs text-muted-foreground" class:invisible={!loadingOlder}>
+				<span class="status-spinner"></span>
+			</div>
+
 			{#each messages as msg (msg.id)}
 				{#if msg.messageRole === 'User'}
-					<div bind:this={userMessageRef} class="max-w-[80%] self-end rounded-2xl bg-accent px-4 py-2 text-sm">
+					<div
+						bind:this={userMessageRef}
+						data-role="user"
+						class="max-w-[80%] self-end rounded-2xl bg-accent px-4 py-2 text-sm"
+					>
 						{msg.content}
 					</div>
 				{:else}
 					<div class="flex flex-col gap-1">
 						{#if msg.content === '' && loading}
-							<div bind:this={assistantMessageRef} class="flex items-center gap-1 text-xs text-muted-foreground">
+							<div
+								bind:this={assistantMessageRef}
+								data-role="assistant"
+								class="flex items-center gap-1 text-xs text-muted-foreground"
+							>
 								{#if searchingQuery}
 									<span class="status-spinner"></span>{searchingQuery}
 								{:else if thinking}
@@ -500,13 +599,19 @@
 
 						{#if msg.reasoning}
 							<details class="chat-thinking-block" open={msg.content === ''}>
-								<summary class="chat-thinking-summary">{msg.content === '' ? 'Thinking...' : 'View reasoning'}</summary>
+								<summary class="chat-thinking-summary"
+									>{msg.content === '' ? 'Thinking...' : 'View reasoning'}</summary
+								>
 								<div class="chat-thinking-content">{msg.reasoning}</div>
 							</details>
 						{/if}
 
 						{#if msg.content !== ''}
-							<div bind:this={assistantMessageRef} class="prose prose-sm max-w-none text-sm">
+							<div
+								bind:this={assistantMessageRef}
+								data-role="assistant"
+								class="prose prose-sm max-w-none text-sm"
+							>
 								<ChatMessage content={msg.content} resolvedSources={msg.resolvedSources} {render} />
 							</div>
 						{/if}
@@ -681,5 +786,9 @@
 		margin-top: 0.35rem;
 		border-left: 2px solid var(--muted-foreground);
 		padding-left: 0.75rem;
+	}
+
+	.chat-scroll-container {
+		overflow-anchor: none;
 	}
 </style>

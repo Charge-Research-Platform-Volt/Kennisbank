@@ -59,11 +59,11 @@ public class ChatsController(ChatService chatService, MessageAttachmentService m
     }
 
     [HttpGet("{id}/messages")]
-    [SwaggerOperation(Summary = "Get messages for a chat")]
+    [SwaggerOperation(Summary = "Get messages for a chat, most recent page first")]
     [SwaggerResponse(200, "Messages")]
     [SwaggerResponse(403, "Not your chat")]
     [SwaggerResponse(404, "Not found")]
-    public async Task<IActionResult> GetMessages(Guid id)
+    public async Task<IActionResult> GetMessages(Guid id, [FromQuery] DateTime? before, [FromQuery] int limit = 3)
     {
         Guid userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         Chats? chat = await chatService.GetByIdAsync(id);
@@ -71,7 +71,8 @@ public class ChatsController(ChatService chatService, MessageAttachmentService m
         if (chat == null) return NotFound();
         if (chat.UserId != userId) return Forbid();
 
-        return Ok(await chatService.GetMessagesAsync(id));
+        var (items, hasMore) = await chatService.GetMessagesAsync(id, before, limit);
+        return Ok(new { items, hasMore });
     }
 
     [HttpPost("{id}/attachments")]

@@ -18,8 +18,19 @@ public class ChatService(DatabaseContext db)
     public async Task<Chats?> GetByIdAsync(Guid id)
         => await db.Chats.FirstOrDefaultAsync(c => c.Id == id);
 
-    public async Task<Messages[]> GetMessagesAsync(Guid chatId)
-        => await db.Messages.Where(m => m.ChatId == chatId).OrderBy(m => m.CreatedOn).ToArrayAsync();
+    public async Task<(Messages[] Items, bool HasMore)> GetMessagesAsync(Guid chatId, DateTime? before = null, int limit = 50)
+    {
+        IQueryable<Messages> query = db.Messages.Where(m => m.ChatId == chatId);
+        if (before != null)
+            query = query.Where(m => m.CreatedOn < before);
+
+        Messages[] page = await query.OrderByDescending(m => m.CreatedOn).Take(limit + 1).ToArrayAsync();
+
+        bool hasMore = page.Length > limit;
+        Messages[] items = page.Take(limit).OrderBy(m => m.CreatedOn).ToArray();
+
+        return (items, hasMore);
+    }
 
     public async Task<Messages[]> GetMessagesForContextAsync(Guid chatId, DateTime? after)
         => await db.Messages
