@@ -9,6 +9,7 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { Sparkles } from '@lucide/svelte';
 	import { createChatConnection } from '$lib/state/chat-connection.svelte';
+	import { renderChangelog } from '$lib/changelog';
 	import { setContext, onMount } from 'svelte';
 
 	type ChangelogEntry = { title: string; body: string; createdAt: string };
@@ -82,7 +83,10 @@
 							>{new Date(entry.createdAt).toLocaleDateString()}</span
 						>
 					</div>
-					<p class="text-sm text-muted-foreground whitespace-pre-line">{entry.body}</p>
+					<div class="prose prose-sm max-w-none text-sm text-muted-foreground">
+						<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+						{@html renderChangelog(entry.body)}
+					</div>
 				</div>
 			{/each}
 		</div>

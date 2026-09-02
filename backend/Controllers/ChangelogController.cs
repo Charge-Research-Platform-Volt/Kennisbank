@@ -12,6 +12,27 @@ namespace KnowledgeBank.Controllers;
 [Route("[controller]")]
 public class ChangelogController(IDbContextFactory<DatabaseContext> dbFactory, UserManager<User> userManager) : AppControllerBase
 {
+    [HttpGet]
+    [Authorize]
+    [SwaggerOperation(Summary = "Get all changelog entries, most recent first")]
+    [SwaggerResponse(200, "Entries returned")]
+    public async Task<IActionResult> GetAll([FromQuery] int? before, [FromQuery] int limit = 20)
+    {
+        await using var database = await dbFactory.CreateDbContextAsync();
+
+        IQueryable<ChangelogEntry> query = database.Changelog;
+
+        if (before != null)
+            query = query.Where(c => c.Id < before);
+
+        List<ChangelogEntry> page = await query.OrderByDescending(c => c.Id).Take(limit + 1).ToListAsync();
+
+        bool hasMore = page.Count > limit;
+        List<ChangelogEntry> items = page.Take(limit).ToList();
+
+        return Ok(new { items, hasMore });
+    }
+
     [HttpGet("unseen")]
     [Authorize]
     [SwaggerOperation(Summary = "Get unseen changelog entries for current user")]
