@@ -15,7 +15,8 @@ public record MistralCompletion(string? Content, List<MistralToolCall>? ToolCall
 }
 public record MistralFunction(string Name, string Description, object Parameters);
 public record MistralStreamChunk(
-    string? Content = null, 
+    string? Content = null,
+    string? Reasoning = null,
     List<MistralToolCall>? ToolCalls = null, 
     int? PromptTokens = null,
     int? CompletionTokens = null,
@@ -221,11 +222,52 @@ public class MistralHttpClient
 
             if (delta.TryGetProperty("content", out var contentProp))
             {
-                string chunk = ExtractTextContent(contentProp);
-                if (!string.IsNullOrEmpty(chunk))
+                if (contentProp.ValueKind == JsonValueKind.String)
                 {
-                    anyContent = true;
-                    yield return new MistralStreamChunk(Content: chunk);
+                    string chunk = contentProp.GetString() ?? "";
+                    if (!string.IsNullOrEmpty(chunk))
+                    {
+                        anyContent = true;
+                        yield return new MistralStreamChunk(Content: chunk);
+                    }
+                }
+                else if (contentProp.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var element in contentProp.EnumerateArray())
+                    {
+                        string type = element.TryGetProperty("type", out var t) ? t.GetString() ?? "" : "";
+                        
+                        if (type == "thinking")
+                        {
+                            if (element.TryGetProperty("thinking", out var thinkingArr) && thinkingArr.ValueKind == JsonValueKind.Array)
+                            {
+                                foreach (var thinkPart in thinkingArr.EnumerateArray())
+                                {
+                                    string thinkText = thinkPart.TryGetProperty("text", out var tt) && tt.ValueKind == JsonValueKind.String
+                                        ? tt.GetString() ?? ""
+                                        : "";
+
+                                    if (!string.IsNullOrEmpty(thinkText))
+                                        yield return new MistralStreamChunk(Reasoning: thinkText);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            string text = element.TryGetProperty("text", out var txt) && txt.ValueKind == JsonValueKind.String
+                                ? txt.GetString() ?? ""
+                                : "";
+
+                            if (string.IsNullOrEmpty(text))
+                            {
+                                logger.Debug("Unrecognized content chunk shape: {Chunk}", element.GetRawText());
+                                continue;
+                            }
+
+                            anyContent = true;
+                            yield return new MistralStreamChunk(Content: text);
+                        }
+                    }
                 }
             }
 

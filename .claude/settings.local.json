@@ -10,7 +10,8 @@
       "Bash(ls -la /home/ablos/Coding/knowledgebank/frontend/src/app/\\\\\\(knowledgebank\\\\\\)/new/person/)",
       "Bash(ls -la /home/ablos/Coding/knowledgebank/frontend/src/app/\\\\\\(knowledgebank\\\\\\)/new/organisation/)",
       "Bash(ls -la /home/ablos/Coding/knowledgebank/frontend/src/app/\\\\\\(knowledgebank\\\\\\)/new/resource/)",
-      "Bash(wc -l /home/ablos/Coding/knowledgebank/frontend/src/app/\\\\\\(knowledgebank\\\\\\)/new/resource/page.tsx)"
+      "Bash(wc -l /home/ablos/Coding/knowledgebank/frontend/src/app/\\\\\\(knowledgebank\\\\\\)/new/resource/page.tsx)",
+      "Bash(dotnet build *)"
     ],
     "deny": [],
     "ask": []

@@ -32,7 +32,9 @@
 		}
 
 		if (/^\d+$/.test(text)) {
-			const uuidMatch = normalizedHref.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+			const uuidMatch = normalizedHref.match(
+				/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
+			);
 			const uuid = uuidMatch?.[0] ?? '';
 			return `<a href="${normalizedHref}" class="chat-cite-num" data-uuid="${uuid}" target="_blank" rel="noopener noreferrer">${text}</a>`;
 		}
@@ -66,7 +68,10 @@
 						const n = uuidOrder.get(uuid);
 						const source = resolvedSources?.get(uuid);
 						if (source) {
-							const url = source.type === 'attachment' ? `/api/files/${uuid}` : `/library?inspectorId=${uuid}&inspectorType=${source.type}`;
+							const url =
+								source.type === 'attachment'
+									? `/api/files/${uuid}`
+									: `/library?inspectorId=${uuid}&inspectorType=${source.type}`;
 							return `[${n}](${url})`;
 						}
 						return `[[BADGE:${n}]]`;
@@ -124,11 +129,13 @@
 		messageRole: 'User' | 'Assistant';
 		content: string;
 		resolvedSources?: Map<string, ResolvedSource>;
+		reasoning?: string;
 	};
 
 	const ctx = getContext<{ connection: HubConnection | null }>('chatConnection');
 
 	let messages = $state<Message[]>([]);
+	let streamingAssistantId: string | null = null;
 	let loading = $state(false);
 	let thinking = $state(false);
 	let showScrollButton = $state(false);
@@ -212,8 +219,12 @@
 			.get<{ id: string; fileName: string; detached: boolean }[]>(`/api/chats/${id}/attachments`)
 			.then((result) => {
 				attachmentsMap.clear();
-				(result ?? []).forEach((a) => attachmentsMap.set(a.id, { id: a.id, name: a.fileName, type: 'attachment' }));
-				activeAttachments = (result ?? []).filter((a) => !a.detached).map((a) => ({ id: a.id, name: a.fileName }));
+				(result ?? []).forEach((a) =>
+					attachmentsMap.set(a.id, { id: a.id, name: a.fileName, type: 'attachment' })
+				);
+				activeAttachments = (result ?? [])
+					.filter((a) => !a.detached)
+					.map((a) => ({ id: a.id, name: a.fileName }));
 			})
 			.catch(() => {
 				attachmentsMap.clear();
@@ -233,12 +244,15 @@
 	async function resolveLibraryItems(ids: string[]): Promise<SvelteMap<string, ResolvedSource>> {
 		const uncached = ids.filter((id) => !libraryItemCache.has(id));
 		if (uncached.length > 0) {
-			const items = await api.post<ResolvedSource[]>(`/api/library/items?includeAuthors=true`, uncached);
+			const items = await api.post<ResolvedSource[]>(
+				`/api/library/items?includeAuthors=true`,
+				uncached
+			);
 			(items ?? []).forEach((item) => libraryItemCache.set(item.id, item));
 		}
 
 		const map = new SvelteMap<string, ResolvedSource>();
-		ids.forEach((id) =>{
+		ids.forEach((id) => {
 			const item = libraryItemCache.get(id);
 			if (item) map.set(id, item);
 		});
@@ -257,7 +271,10 @@
 		const map = new SvelteMap<string, ResolvedSource>();
 		allUuids.forEach((uuid) => {
 			const a = attachmentsMap.get(uuid);
-			if (a) { map.set(uuid, a); return; }
+			if (a) {
+				map.set(uuid, a);
+				return;
+			}
 			const item = libraryLookup.get(uuid);
 			if (item) map.set(uuid, item);
 		});
@@ -280,7 +297,10 @@
 			const map = new SvelteMap<string, ResolvedSource>();
 			extractAllUuids(m.content).forEach((uuid) => {
 				const a = attachmentsMap.get(uuid);
-				if (a) { map.set(uuid, a); return; }
+				if (a) {
+					map.set(uuid, a);
+					return;
+				}
 				const item = libraryLookup.get(uuid);
 				if (item) map.set(uuid, item);
 			});
@@ -315,40 +335,45 @@
 
 		const userId = `${Date.now()}-user`;
 		const assistantId = `${Date.now()}-assistant`;
+		streamingAssistantId = assistantId;
 		messages = [
 			...messages,
 			{ id: userId, messageRole: 'User', content: message },
-			{ id: assistantId, messageRole: 'Assistant', content: '' }
+			{ id: assistantId, messageRole: 'Assistant', content: '', reasoning: '' }
 		];
 		tick().then(() => setTimeout(scrollToLastUserMessage, 100));
 
-		subscription = ctx.connection.stream('StreamAiResponse', message, chatId, projectId ?? null, attachmentIds).subscribe({
-			next: (chunk) => {
-				messages = messages.map((m) =>
-					m.id === assistantId ? { ...m, content: m.content + chunk } : m
-				);
-			},
-			error: () => {
-				loading = false;
-				thinking = false;
-				messages = messages.map((m) =>
-					m.id === assistantId ? { ...m, content: 'Something went wrong, please try again.' } : m
-				);
-				searchingQuery = null;
-			},
-			complete: () => {
-				loading = false;
-				thinking = false;
-				searchingQuery = null;
+		subscription = ctx.connection
+			.stream('StreamAiResponse', message, chatId, projectId ?? null, attachmentIds)
+			.subscribe({
+				next: (chunk) => {
+					messages = messages.map((m) =>
+						m.id === assistantId ? { ...m, content: m.content + chunk } : m
+					);
+				},
+				error: () => {
+					streamingAssistantId = null;
+					loading = false;
+					thinking = false;
+					messages = messages.map((m) =>
+						m.id === assistantId ? { ...m, content: 'Something went wrong, please try again.' } : m
+					);
+					searchingQuery = null;
+				},
+				complete: () => {
+					streamingAssistantId = null;
+					loading = false;
+					thinking = false;
+					searchingQuery = null;
 
-				if (attachmentIds.length > 0) loadAttachments(chatId);
+					if (attachmentIds.length > 0) loadAttachments(chatId);
 
-				const content = messages.find((m) => m.id === assistantId)?.content ?? '';
-				fetchSources(content, assistantId);
+					const content = messages.find((m) => m.id === assistantId)?.content ?? '';
+					fetchSources(content, assistantId);
 
-				tick().then(() => chatInput?.focus());
-			}
-		});
+					tick().then(() => chatInput?.focus());
+				}
+			});
 	}
 
 	function stop() {
@@ -358,7 +383,9 @@
 	}
 
 	function handleSend(message: string, attachments: PendingAttachment[]) {
-		const attachmentIds = attachments.map((a) => a.attachedId).filter((id): id is string => id !== null);
+		const attachmentIds = attachments
+			.map((a) => a.attachedId)
+			.filter((id): id is string => id !== null);
 		stream(message, attachmentIds);
 	}
 
@@ -432,6 +459,17 @@
 		ctx.connection.on('Thinking', () => {
 			searchingQuery = null;
 			thinking = true;
+			if (streamingAssistantId) {
+				const id = streamingAssistantId;
+				messages = messages.map((m) => (m.id === id && m.reasoning ? { ...m, reasoning: m.reasoning + '\n\n' } : m));
+			}
+		});
+		ctx.connection.on('ReasoningChunk', (text: string) => {
+			if (!streamingAssistantId) return;
+			const id = streamingAssistantId;
+			messages = messages.map((m) =>
+				m.id === id ? { ...m, reasoning: (m.reasoning ?? '') + text } : m
+			);
 		});
 	});
 </script>
@@ -441,30 +479,37 @@
 		<div class="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4">
 			{#each messages as msg (msg.id)}
 				{#if msg.messageRole === 'User'}
-					<div
-						bind:this={userMessageRef}
-						class="max-w-[80%] self-end rounded-2xl bg-accent px-4 py-2 text-sm"
-					>
+					<div bind:this={userMessageRef} class="max-w-[80%] self-end rounded-2xl bg-accent px-4 py-2 text-sm">
 						{msg.content}
 					</div>
-				{:else if msg.content === '' && loading}
-					<div
-						bind:this={assistantMessageRef}
-						class="flex items-center gap-1 text-xs text-muted-foreground"
-					>
-						{#if searchingQuery}
-							<span class="status-spinner"></span>{searchingQuery}
-						{:else if thinking}
-							<span class="status-spinner"></span>Thinking...
-						{:else}
-							<span class="thinking-dot"></span>
-							<span class="thinking-dot" style="animation-delay: 0.15s"></span>
-							<span class="thinking-dot" style="animation-delay: 0.3s"></span>
-						{/if}
-					</div>
 				{:else}
-					<div bind:this={assistantMessageRef} class="prose prose-sm max-w-none text-sm">
-						<ChatMessage content={msg.content} resolvedSources={msg.resolvedSources} {render} />
+					<div class="flex flex-col gap-1">
+						{#if msg.content === '' && loading}
+							<div bind:this={assistantMessageRef} class="flex items-center gap-1 text-xs text-muted-foreground">
+								{#if searchingQuery}
+									<span class="status-spinner"></span>{searchingQuery}
+								{:else if thinking}
+									<span class="status-spinner"></span>Thinking...
+								{:else}
+									<span class="thinking-dot"></span>
+									<span class="thinking-dot" style="animation-delay: 0.15s"></span>
+									<span class="thinking-dot" style="animation-delay: 0.3s"></span>
+								{/if}
+							</div>
+						{/if}
+
+						{#if msg.reasoning}
+							<details class="chat-thinking-block" open={msg.content === ''}>
+								<summary class="chat-thinking-summary">{msg.content === '' ? 'Thinking...' : 'View reasoning'}</summary>
+								<div class="chat-thinking-content">{msg.reasoning}</div>
+							</details>
+						{/if}
+
+						{#if msg.content !== ''}
+							<div bind:this={assistantMessageRef} class="prose prose-sm max-w-none text-sm">
+								<ChatMessage content={msg.content} resolvedSources={msg.resolvedSources} {render} />
+							</div>
+						{/if}
 					</div>
 				{/if}
 			{/each}
@@ -616,5 +661,25 @@
 		vertical-align: middle;
 		margin-right: 0.2rem;
 		cursor: default;
+	}
+
+	.chat-thinking-block {
+		opacity: 0.75;
+		font-size: 0.8rem;
+	}
+
+	.chat-thinking-summary {
+		cursor: pointer;
+		color: var(--muted-foreground);
+		font-weight: 500;
+		user-select: none;
+	}
+
+	.chat-thinking-content {
+		white-space: pre-wrap;
+		color: var(--muted-foreground);
+		margin-top: 0.35rem;
+		border-left: 2px solid var(--muted-foreground);
+		padding-left: 0.75rem;
 	}
 </style>

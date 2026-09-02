@@ -296,6 +296,9 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
             {
                 await foreach(MistralStreamChunk chunk in mistralClient.StreamAsync(new MistralChatRequest { Messages = messages, Functions = tools, ReasoningEffort = MistralReasoningEffort.High }, cancellationToken))
                 {
+                    if (chunk.Reasoning != null)
+                        await Clients.Caller.SendAsync("ReasoningChunk", chunk.Reasoning, cancellationToken);
+
                     if (chunk.Content != null)
                     {
                         anyContent = true;
