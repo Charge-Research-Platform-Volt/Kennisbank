@@ -77,6 +77,9 @@ public class Resource
     [Column("embedding-status")]
     public EmbeddingStatus EmbeddingStatus { get; set; } = EmbeddingStatus.Pending;
 
+    [Column("embedding-error")]
+    public string? EmbeddingError { get; set; }
+
     #region Direct navigation properties
     [JsonIgnore] public ResourceType? ResourceType { get; set; }
 

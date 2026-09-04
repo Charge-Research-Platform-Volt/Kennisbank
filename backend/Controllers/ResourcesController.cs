@@ -53,18 +53,31 @@ public class ResourcesController(ResourceService resourceService, ChunkSearchInd
             using var scope = serviceScopeFactory.CreateScope();
             var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
 
-            if (!string.IsNullOrEmpty(dto.FileExtension))
+            try
             {
-                var storageService = scope.ServiceProvider.GetRequiredService<IStorageService>();
-                var dlResponse = await storageService.DownloadObjectAsync(bucketName, id.ToString());
-                using var memStream = new MemoryStream();
-                await dlResponse.Stream.CopyToAsync(memStream, token);
-                memStream.Position = 0;
-                await ingestionService.RunResourcePipelineAsync(id, dto.FileExtension, memStream);
+                if (!string.IsNullOrEmpty(dto.FileExtension))
+                {
+                    var storageService = scope.ServiceProvider.GetRequiredService<IStorageService>();
+                    var dlResponse = await storageService.DownloadObjectAsync(bucketName, id.ToString());
+                    using var memStream = new MemoryStream();
+                    await dlResponse.Stream.CopyToAsync(memStream, token);
+                    memStream.Position = 0;
+                    await ingestionService.RunResourcePipelineAsync(id, dto.FileExtension, memStream);
+                }
+                else
+                {
+                    await ingestionService.RunResourcePipelineAsync(id);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                await ingestionService.RunResourcePipelineAsync(id);
+                Serilog.Log.Error(ex, "Failed to process new resource {Id} before its pipeline could start", id);
+                var resourceServiceScoped = scope.ServiceProvider.GetRequiredService<ResourceService>();
+                await resourceServiceScoped.UpdateAsync(id, r =>
+                {
+                    r.EmbeddingStatus = EmbeddingStatus.Failed;
+                    r.EmbeddingError = ex.Message;
+                });
             }
         });
 

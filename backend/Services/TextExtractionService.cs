@@ -149,15 +149,17 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
 
         // Step 1: Upload file to Mistral Files API
-        ms.Position = 0;
-        using MultipartFormDataContent uploadForm = new();
-        uploadForm.Add(new StreamContent(ms), "file", $"document{fileExtension}");
-        uploadForm.Add(new StringContent("ocr"), "purpose");
+        byte[] fileBytes = ms.ToArray();
 
-        using HttpRequestMessage uploadRequest = new(HttpMethod.Post, mistralEndpoint + "/files");
-        uploadRequest.Content = uploadForm;
-
-        using HttpResponseMessage uploadResponse = await httpClient.SendAsync(uploadRequest);
+        using HttpResponseMessage uploadResponse = await SendWithRetryAsync(httpClient, () =>
+        {
+            MultipartFormDataContent uploadForm = new()
+            {
+                { new StreamContent(new MemoryStream(fileBytes)), "file", $"document{fileExtension}" },
+                { new StringContent("ocr"), "purpose" }
+            };
+            return new HttpRequestMessage(HttpMethod.Post, mistralEndpoint + "/files") { Content = uploadForm };
+        });
         string uploadResponseBody = await uploadResponse.Content.ReadAsStringAsync();
         logger.LogInformation("Mistral file upload response ({Status}): {Body}", (int)uploadResponse.StatusCode, uploadResponseBody);
         uploadResponse.EnsureSuccessStatusCode();
@@ -166,8 +168,8 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         logger.LogInformation("Uploaded file to Mistral Files API: {FileId}", mistralFileId);
 
         // Step 2: Get signed download URL
-        using HttpRequestMessage signedUrlRequest = new(HttpMethod.Get, $"{mistralEndpoint}/files/{mistralFileId}/url?expiry=1");
-        using HttpResponseMessage signedUrlResponse = await httpClient.SendAsync(signedUrlRequest);
+        using HttpResponseMessage signedUrlResponse = await SendWithRetryAsync(httpClient, () =>
+            new HttpRequestMessage(HttpMethod.Get, $"{mistralEndpoint}/files/{mistralFileId}/url?expiry=1"));
         string signedUrlResponseBody = await signedUrlResponse.Content.ReadAsStringAsync();
         logger.LogInformation("Mistral signed URL response ({Status}): {Body}", (int)signedUrlResponse.StatusCode, signedUrlResponseBody);
         signedUrlResponse.EnsureSuccessStatusCode();
@@ -178,11 +180,12 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         var requestBody = isPdf
             ? (object)new { model = resolvedModel, document = new { type = "document_url", document_url = fileUrl }, extract_header = true, extract_footer = true }
             : new { model = resolvedModel, document = new { type = "image_url", image_url = fileUrl }, extract_header = true, extract_footer = true };
+        string requestBodyJson = JsonSerializer.Serialize(requestBody);
 
-        using HttpRequestMessage ocrRequest = new(HttpMethod.Post, mistralEndpoint + "/ocr");
-        ocrRequest.Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
-
-        using HttpResponseMessage response = await httpClient.SendAsync(ocrRequest);
+        using HttpResponseMessage response = await SendWithRetryAsync(httpClient, () => new HttpRequestMessage(HttpMethod.Post, mistralEndpoint + "/ocr")
+        {
+            Content = new StringContent(requestBodyJson, Encoding.UTF8, "application/json")
+        });
         string responseBody = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode)
             logger.LogError("Mistral OCR failed ({Status}): {Body}", (int)response.StatusCode, responseBody);
@@ -228,6 +231,33 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         }
 
         return new OcrResult { Text = result, HeaderFooterText = string.Join("\n", headerFooterLines), Model = responseModel };
+    }
+
+    /// <summary>
+    /// Sends a request built fresh by <paramref name="createRequest"/> on every attempt (required since
+    /// HttpRequestMessage/HttpContent can't be resent once sent), retrying with exponential backoff on
+    /// 429/502/503 responses specifically. Returns the last response either way if the final attempt
+    /// still isn't successful; the caller's own EnsureSuccessStatusCode() surfaces that as an error.
+    /// </summary>
+    private async Task<HttpResponseMessage> SendWithRetryAsync(HttpClient client, Func<HttpRequestMessage> createRequest, int maxAttempts = 3)
+    {
+        for (int attempt = 1; ; attempt++)
+        {
+            using HttpRequestMessage request = createRequest();
+            HttpResponseMessage response = await client.SendAsync(request);
+
+            bool isRetriable = response.StatusCode is System.Net.HttpStatusCode.TooManyRequests
+                or System.Net.HttpStatusCode.BadGateway
+                or System.Net.HttpStatusCode.ServiceUnavailable;
+
+            if (response.IsSuccessStatusCode || !isRetriable || attempt >= maxAttempts)
+                return response;
+
+            TimeSpan delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
+            logger.LogWarning("Mistral request returned {Status}, retrying in {Delay}s (attempt {Attempt}/{Max})", (int)response.StatusCode, delay.TotalSeconds, attempt, maxAttempts);
+            response.Dispose();
+            await Task.Delay(delay);
+        }
     }
 
     private async Task<OcrResult?> TryReadOcrCacheAsync(string bucketName, string fileId, string currentModelId)

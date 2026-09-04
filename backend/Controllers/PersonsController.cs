@@ -56,7 +56,21 @@ public class PersonsController(PersonService personService, IBackgroundTaskQueue
         {
             using var scope = serviceScopeFactory.CreateScope();
             IngestionService ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
-            await ingestionService.RunPersonEntityPipelineAsync(id);
+
+            try
+            {
+                await ingestionService.RunPersonEntityPipelineAsync(id);
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "Failed to process person {Id} before its pipeline could start", id);
+                var personServiceScoped = scope.ServiceProvider.GetRequiredService<PersonService>();
+                await personServiceScoped.UpdateAsync(id, p =>
+                {
+                    p.EmbeddingStatus = EmbeddingStatus.Failed;
+                    p.EmbeddingError = ex.Message;
+                });
+            }
         });
 
         return Ok(id);
@@ -91,7 +105,21 @@ public class PersonsController(PersonService personService, IBackgroundTaskQueue
         {
             using var scope = serviceScopeFactory.CreateScope();
             IngestionService ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
-            await ingestionService.RunPersonEntityPipelineAsync(id);
+
+            try
+            {
+                await ingestionService.RunPersonEntityPipelineAsync(id);
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "Failed to process person {Id} before its pipeline could start", id);
+                var personServiceScoped = scope.ServiceProvider.GetRequiredService<PersonService>();
+                await personServiceScoped.UpdateAsync(id, p =>
+                {
+                    p.EmbeddingStatus = EmbeddingStatus.Failed;
+                    p.EmbeddingError = ex.Message;
+                });
+            }
         });
 
         return NoContent();

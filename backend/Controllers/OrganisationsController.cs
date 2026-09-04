@@ -62,7 +62,21 @@ public class OrganisationsController(OrganisationService organisationService, IB
         {
             using var scope = serviceScopeFactory.CreateScope();
             var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
-            await ingestionService.RunOrganisationEntityPipelineAsync(id);
+
+            try
+            {
+                await ingestionService.RunOrganisationEntityPipelineAsync(id);
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "Failed to process organisation {Id} before its pipeline could start", id);
+                var organisationServiceScoped = scope.ServiceProvider.GetRequiredService<OrganisationService>();
+                await organisationServiceScoped.UpdateAsync(id, o =>
+                {
+                    o.EmbeddingStatus = EmbeddingStatus.Failed;
+                    o.EmbeddingError = ex.Message;
+                });
+            }
         });
 
         return Ok(id);
@@ -89,7 +103,21 @@ public class OrganisationsController(OrganisationService organisationService, IB
         {
             using var scope = serviceScopeFactory.CreateScope();
             var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
-            await ingestionService.RunOrganisationEntityPipelineAsync(id);
+
+            try
+            {
+                await ingestionService.RunOrganisationEntityPipelineAsync(id);
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error(ex, "Failed to process organisation {Id} before its pipeline could start", id);
+                var organisationServiceScoped = scope.ServiceProvider.GetRequiredService<OrganisationService>();
+                await organisationServiceScoped.UpdateAsync(id, o =>
+                {
+                    o.EmbeddingStatus = EmbeddingStatus.Failed;
+                    o.EmbeddingError = ex.Message;
+                });
+            }
         });
 
         return NoContent();

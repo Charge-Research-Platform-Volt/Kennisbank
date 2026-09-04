@@ -20,10 +20,11 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
     public async Task RunResourcePipelineAsync(Guid id, string? fileType = null, Stream? fileStream = null)
     {
         logger.Information("Resource pipeline started for ID: {Id}", id);
-        await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Processing);
 
         try
         {
+            await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Processing);
+
             var (richMetadata, resource) = await BuildRichMetadataChunkAsync(id);
             List<string> chunks = [richMetadata];
 
@@ -38,7 +39,7 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
                 if (string.IsNullOrEmpty(ocrResult.Text))
                 {
                     logger.Warning("No text extracted from file for resource {Id}", id);
-                    await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Completed);
+                    await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Completed, null);
                     return;
                 }
 
@@ -69,17 +70,18 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
         } catch (Exception ex)
         {
             logger.Error(ex, "Resource pipeline failed for ID: {Id}", id);
-            await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Failed);
+            await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Failed, ex.Message);
         }
     }
 
     public async Task RunEntityPipelineAsync(Guid id, string entityType, string chunk)
     {
         logger.Information("Entity pipeline started for entity ID: {Id}", id);
-        await SetEntityEmbeddingStatusAsync(id, entityType, EmbeddingStatus.Processing);
 
         try
         {
+            await SetEntityEmbeddingStatusAsync(id, entityType, EmbeddingStatus.Processing);
+
             await vectorStore.DeletePointsByEntityIdAsync(id);
             await vectorStore.CreateEntityPointsAsync(id, entityType, [(chunk, ChunkType.MetaData, 0)]);
 
@@ -88,7 +90,7 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
         } catch (Exception ex)
         {
             logger.Error(ex, "Entity pipeline failed for ID: {Id}", id);
-            await SetEntityEmbeddingStatusAsync(id, entityType, EmbeddingStatus.Failed);
+            await SetEntityEmbeddingStatusAsync(id, entityType, EmbeddingStatus.Failed, ex.Message);
         }
     }
 
@@ -204,19 +206,43 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
         }
     }
 
-    private async Task SetResourceEmbeddingStatusAsync(Guid id, EmbeddingStatus status)
+    private async Task SetResourceEmbeddingStatusAsync(Guid id, EmbeddingStatus status, string? error = null)
     {
-        await resourceService.UpdateAsync(id, r => r.EmbeddingStatus = status);
-        await hubContext.Clients.All.SendAsync("EmbeddingStatusChanged", id, status.ToString());
+        await resourceService.UpdateAsync(id, r =>
+        {
+            r.EmbeddingStatus = status;
+            r.EmbeddingError = error;
+        });
+        await BroadcastEmbeddingStatusAsync(id, status);
     }
 
-    private async Task SetEntityEmbeddingStatusAsync(Guid id, string entityType, EmbeddingStatus status)
+    private async Task SetEntityEmbeddingStatusAsync(Guid id, string entityType, EmbeddingStatus status, string? error = null)
     {
         if (entityType == "person")
-            await personService.UpdateAsync(id, p => p.EmbeddingStatus = status);
+            await personService.UpdateAsync(id, p =>
+            {
+                p.EmbeddingStatus = status;
+                p.EmbeddingError = error;
+            });
         else if (entityType == "organisation")
-            await organisationService.UpdateAsync(id, o => o.EmbeddingStatus = status);
+            await organisationService.UpdateAsync(id, o =>
+            {
+                o.EmbeddingStatus = status;
+                o.EmbeddingError = error;
+            });
 
-        await hubContext.Clients.All.SendAsync("EmbeddingStatusChanged", id, status.ToString());
+        await BroadcastEmbeddingStatusAsync(id, status);
+    }
+
+    private async Task BroadcastEmbeddingStatusAsync(Guid id, EmbeddingStatus status)
+    {
+        try
+        {
+            await hubContext.Clients.All.SendAsync("EmbeddingStatusChanged", id, status.ToString());
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to broadcast embedding status change for {Id}", id);
+        }
     }
 }

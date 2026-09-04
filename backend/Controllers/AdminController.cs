@@ -26,9 +26,9 @@ public class AdminController(
 
     [HttpPost("reembed")]
     [Authorize(Policy = "RequireAdminRole")]
-    [SwaggerOperation(Summary = "Re-embed all resources, persons, and organisations")]
+    [SwaggerOperation(Summary = "Re-embed resources, persons, and organisations (optionally only those not currently Completed)")]
     [SwaggerResponse(202, "Queued")]
-    public IActionResult ReEmbed()
+    public IActionResult ReEmbed([FromQuery] bool onlyIncomplete = false)
     {
         taskQueue.QueueBackgroundWorkItem(async token =>
         {
@@ -38,9 +38,19 @@ public class AdminController(
 
             using (var scope = serviceScopeFactory.CreateScope())
             {
-                resources = await scope.ServiceProvider.GetRequiredService<ResourceService>().GetAllAsync();
-                persons = await scope.ServiceProvider.GetRequiredService<PersonService>().GetAllAsync();
-                organisations = await scope.ServiceProvider.GetRequiredService<OrganisationService>().GetAllAsync();
+                resources = await scope.ServiceProvider.GetRequiredService<ResourceService>().GetAllAsync(r => !r.Trashed);
+                persons = await scope.ServiceProvider.GetRequiredService<PersonService>().GetAllAsync(p => !p.Trashed);
+                organisations = await scope.ServiceProvider.GetRequiredService<OrganisationService>().GetAllAsync(o => !o.Trashed);
+            }
+
+            if (onlyIncomplete)
+            {
+                // Covers Pending (never started), Processing (stuck mid-pipeline), and Failed —
+                // not just Failed, since a resource/entity can end up stuck at Pending if something
+                // throws before its pipeline even starts.
+                resources = resources.Where(r => r.EmbeddingStatus != EmbeddingStatus.Completed).ToArray();
+                persons = persons.Where(p => p.EmbeddingStatus != EmbeddingStatus.Completed).ToArray();
+                organisations = organisations.Where(o => o.EmbeddingStatus != EmbeddingStatus.Completed).ToArray();
             }
 
             logger.Information("Re-embedding {Count} resources", resources.Length);
@@ -92,6 +102,50 @@ public class AdminController(
         });
 
         return Accepted();
+    }
+
+    [HttpGet("reembed/status")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerOperation(Summary = "Get embedding status counts and currently-failed items for resources, persons, and organisations")]
+    [SwaggerResponse(200, "Status summary")]
+    public async Task<IActionResult> ReEmbedStatus()
+    {
+        using var scope = serviceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+
+        Dictionary<string, int> resourceCounts = await db.Resources
+            .Where(r => !r.Trashed)
+            .GroupBy(r => r.EmbeddingStatus)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Status.ToString(), x => x.Count);
+
+        Dictionary<string, int> entityCounts = await db.Entities
+            .Where(e => !e.Trashed)
+            .GroupBy(e => e.EmbeddingStatus)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Status.ToString(), x => x.Count);
+
+        var incompleteResources = await db.Resources
+            .Where(r => !r.Trashed && r.EmbeddingStatus != EmbeddingStatus.Completed)
+            .Select(r => new FailedEmbeddingItemDto { Id = r.Id, Name = r.Title, Type = "resource", Status = r.EmbeddingStatus.ToString(), Error = r.EmbeddingError })
+            .ToListAsync();
+
+        var incompletePersons = await db.Persons
+            .Where(p => !p.Trashed && p.EmbeddingStatus != EmbeddingStatus.Completed)
+            .Select(p => new FailedEmbeddingItemDto { Id = p.Id, Name = p.Name, Type = "person", Status = p.EmbeddingStatus.ToString(), Error = p.EmbeddingError })
+            .ToListAsync();
+
+        var incompleteOrganisations = await db.Organisations
+            .Where(o => !o.Trashed && o.EmbeddingStatus != EmbeddingStatus.Completed)
+            .Select(o => new FailedEmbeddingItemDto { Id = o.Id, Name = o.Name, Type = "organisation", Status = o.EmbeddingStatus.ToString(), Error = o.EmbeddingError })
+            .ToListAsync();
+
+        return Ok(new EmbeddingStatusSummaryDto
+        {
+            ResourceCounts = resourceCounts,
+            EntityCounts = entityCounts,
+            IncompleteItems = [.. incompleteResources, .. incompletePersons, .. incompleteOrganisations]
+        });
     }
 
     private static async Task RunBoundedAsync<T>(IEnumerable<T> items, int maxConcurrency, Func<T, Task> action)

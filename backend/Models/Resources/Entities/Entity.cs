@@ -40,6 +40,9 @@ public abstract class Entity
     [Column("embedding-status")]
     public EmbeddingStatus EmbeddingStatus { get; set; } = EmbeddingStatus.Pending;
 
+    [Column("embedding-error")]
+    public string? EmbeddingError { get; set; }
+
     [NotMapped]
     public string EntityType => GetType().Name.ToLower();
 

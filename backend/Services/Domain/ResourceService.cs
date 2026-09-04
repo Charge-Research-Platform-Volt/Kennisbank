@@ -277,12 +277,33 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
             {
                 using var scope = scopeFactory.CreateScope();
                 var ingestion = scope.ServiceProvider.GetRequiredService<IngestionService>();
+
                 foreach (var (entityId, entityType) in toEmbed)
                 {
-                    if (entityType == "organisation")
-                        await ingestion.RunOrganisationEntityPipelineAsync(entityId);
-                    else
-                        await ingestion.RunPersonEntityPipelineAsync(entityId);
+                    try
+                    {
+                        if (entityType == "organisation")
+                            await ingestion.RunOrganisationEntityPipelineAsync(entityId);
+                        else
+                            await ingestion.RunPersonEntityPipelineAsync(entityId);
+                    }
+                    catch (Exception ex)
+                    {
+                        Serilog.Log.Error(ex, "Failed to process {Type} {Id} before its pipeline could start", entityType, entityId);
+
+                        if (entityType == "organisation")
+                            await scope.ServiceProvider.GetRequiredService<OrganisationService>().UpdateAsync(entityId, o =>
+                            {
+                                o.EmbeddingStatus = EmbeddingStatus.Failed;
+                                o.EmbeddingError = ex.Message;
+                            });
+                        else
+                            await scope.ServiceProvider.GetRequiredService<PersonService>().UpdateAsync(entityId, p =>
+                            {
+                                p.EmbeddingStatus = EmbeddingStatus.Failed;
+                                p.EmbeddingError = ex.Message;
+                            });
+                    }
                 }
             });
         }
