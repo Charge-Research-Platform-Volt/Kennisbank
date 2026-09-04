@@ -10,7 +10,9 @@
 		Trash2,
 		Ellipsis,
 		Share2,
-		BookmarkPlus
+		BookmarkPlus,
+		LoaderCircle,
+		CircleAlert
 	} from '@lucide/svelte';
 	import { getFileAction, getFileIcon } from '$lib/utils/icons';
 	import { untrack, setContext, getContext } from 'svelte';
@@ -303,6 +305,19 @@
 					>
 						<Trash2 size={12} class="shrink-0" />
 						This item is in the trash.
+					</div>
+				{/if}
+
+				<!-- Embedding status banner -->
+				{#if item.embeddingStatus === 'Pending' || item.embeddingStatus === 'Processing'}
+					<div class="flex items-center gap-2 border-b bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+						<LoaderCircle size={12} class="shrink-0 animate-spin" />
+						Still processing embeddings…
+					</div>
+				{:else if item.embeddingStatus === 'Failed'}
+					<div class="flex items-center gap-2 border-b border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+						<CircleAlert size={12} class="shrink-0" />
+						Embedding failed.
 					</div>
 				{/if}
 

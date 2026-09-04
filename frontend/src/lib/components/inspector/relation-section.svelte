@@ -110,7 +110,7 @@
 							navigate({
 								id: relItem.id,
 								name: relItem.name,
-								type: itemType ?? (relItem.authorType as EntityType)
+								type: itemType ?? (relItem.fileType as EntityType)
 							})}
 						title={relItem.name}
 						class="flex w-full min-w-0 items-center gap-2 text-left text-muted-foreground {editMode

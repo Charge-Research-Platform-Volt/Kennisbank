@@ -37,6 +37,9 @@ public abstract class Entity
     [Column("trash-date")]
     public DateTime? TrashDate { get; set; } = null;
 
+    [Column("embedding-status")]
+    public EmbeddingStatus EmbeddingStatus { get; set; } = EmbeddingStatus.Pending;
+
     [NotMapped]
     public string EntityType => GetType().Name.ToLower();
 

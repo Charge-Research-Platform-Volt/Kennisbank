@@ -112,12 +112,17 @@ public class PersonService(DatabaseContext db, LibrarySearchIndexService library
             .Where(p => p.Id == id)
             .Select(p => new PersonDetailDto
             {
+                Id = p.Id,
                 Name = p.Name,
                 Aliases = p.Aliases,
                 Description = p.Description,
                 Occupation = p.Occupation,
                 EmailAddress = p.EmailAddress,
                 Linkedin = p.Linkedin,
+                CreatedOn = p.CreatedOn,
+                Trashed = p.Trashed,
+                TrashDate = p.TrashDate,
+                EmbeddingStatus = p.EmbeddingStatus,
                 Authored = p.ResourceAuthorRelations!
                     .Select(r => new RelationItemDto { Id = r.Resource!.Id, Name = r.Resource.Title })
                     .ToArray(),

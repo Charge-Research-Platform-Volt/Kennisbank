@@ -112,12 +112,16 @@ public class OrganisationService(DatabaseContext db, LibrarySearchIndexService l
             .Where(o => o.Id == id)
             .Select(o => new OrganisationDetailDto
             {
+                Id = o.Id,
                 Name = o.Name,
                 Aliases = o.Aliases,
                 Description = o.Description,
                 EmailAddress = o.EmailAddress,
                 Website = o.Website,
                 CreatedOn = o.CreatedOn,
+                Trashed = o.Trashed,
+                TrashDate = o.TrashDate,
+                EmbeddingStatus = o.EmbeddingStatus,
                 Authored = o.ResourceAuthorRelations!
                     .Select(r => new RelationItemDto
                     {

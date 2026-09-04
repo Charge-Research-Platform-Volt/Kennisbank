@@ -52,6 +52,14 @@ namespace KnowledgeBank.Data
             modelBuilder.Entity<Entity>()
                 .UseTptMappingStrategy();
 
+            modelBuilder.Entity<Entity>()
+                .Property(e => e.EmbeddingStatus)
+                .HasConversion<string>();
+
+            modelBuilder.Entity<Resource>()
+                .Property(r => r.EmbeddingStatus)
+                .HasConversion<string>();
+
             modelBuilder.Entity<Person>()
                 .ToTable("persons");
 
@@ -197,6 +205,8 @@ namespace KnowledgeBank.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.ToView("libraryview");
+                entity.Property(e => e.EmbeddingStatus)
+                    .HasConversion<string>();
             });
 
             modelBuilder.Entity<LibrarySearchResult>(entity =>

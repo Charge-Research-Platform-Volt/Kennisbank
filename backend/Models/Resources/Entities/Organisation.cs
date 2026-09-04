@@ -41,12 +41,16 @@ public class OrganisationUpdateDto
 
 public class OrganisationDetailDto
 {
+    public Guid Id { get; set; }
     public string Name { get; set; } = null!;
     public List<string> Aliases { get; set; } = [];
     public string? Description { get; set; }
     public string? EmailAddress { get; set; }
     public string? Website { get; set; }
     public DateTime CreatedOn { get; set; }
+    public bool Trashed { get; set; }
+    public DateTime? TrashDate { get; set; }
+    public EmbeddingStatus EmbeddingStatus { get; set; }
     public RelationItemDto[] Authored { get; set; } = [];
     public RelationItemDto[] RelatedResources { get; set; } = [];
     public RelationItemDto[] TargetOrganisations { get; set; } = [];

@@ -2,13 +2,14 @@ using System.Linq.Expressions;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.AI;
+using KnowledgeBank.Services.Background;
 using KnowledgeBank.Services.Search;
 using KnowledgeBank.Services.Vector;
 using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.Domain;
 
-public class ResourceService(DatabaseContext db, TagService tagService, PersonService personService, OrganisationService organisationService, RegionService regionService, IServiceScopeFactory scopeFactory, LibrarySearchIndexService librarySearchIndexService, EmbeddingService embeddingService, IVectorStore vectorStore)
+public class ResourceService(DatabaseContext db, TagService tagService, PersonService personService, OrganisationService organisationService, RegionService regionService, IServiceScopeFactory scopeFactory, LibrarySearchIndexService librarySearchIndexService, EmbeddingService embeddingService, IVectorStore vectorStore, IBackgroundTaskQueue taskQueue)
 {
     public const string TypeTag = "resource";
 
@@ -143,6 +144,7 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
                 SourceUrl = r.SourceUrl,
                 Trashed = r.Trashed,
                 TrashDate = r.TrashDate,
+                EmbeddingStatus = r.EmbeddingStatus,
                 Authors = r.ResourceAuthorRelations!
                     .Select(a => new RelationItemDto { Id = a.AuthorId, Name = a.Author!.Name, FileType = a.Author.EntityType })
                     .ToArray(),
@@ -169,7 +171,7 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
     {
         await using var transaction = await db.Database.BeginTransactionAsync();
 
-        List<(Guid Id, string Type)> aliasedEntities = [];
+        List<(Guid Id, string Type)> entitiesToEmbed = [];
 
         bool isFile = !string.IsNullOrEmpty(dto.FileExtension);
 
@@ -217,10 +219,11 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
                     ? await organisationService.FindIdByNameAsync(author.Value) ?? await organisationService.CreateAsync(new OrganisationCreateDto { Name = author.Value, Website = author.Website, EmailAddress = author.Email }, createdBy)
                     : await personService.FindIdByNameAsync(author.Value) ?? await personService.CreateAsync(new PersonCreateDto { Name = author.Value, Occupation = author.Occupation, EmailAddress = author.Email }, createdBy);
             db.ResourceAuthorRelations.Add(new ResourceAuthorRelation { ResourceId = resourceId, AuthorId = authorId });
+            entitiesToEmbed.Add((authorId, author.Type?.ToLower() == "organisation" ? "organisation" : "person"));
 
             if (author.SuggestedAliases.Count > 0)
                 foreach (string alias in author.SuggestedAliases)
-                    await TryAppendAliasAsync(authorId, alias, author.Type?.ToLower() == "organisation" ? "organisation" : "person", aliasedEntities);
+                    await TryAppendAliasAsync(authorId, alias, author.Type?.ToLower() == "organisation" ? "organisation" : "person", entitiesToEmbed);
             if (isExisting)
                 await TryPatchEntityMetadataAsync(authorId, author.Type?.ToLower() == "organisation" ? "organisation" : "person", author.Occupation, author.Website, author.Email);
         }
@@ -231,10 +234,11 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
             Guid orgId = isExisting ? parsedOrg
                 : await organisationService.FindIdByNameAsync(org.Id) ?? await organisationService.CreateAsync(new OrganisationCreateDto { Name = org.Id, Website = org.Website, EmailAddress = org.Email }, createdBy);
             db.ResourceOrganisationRelations.Add(new ResourceOrganisationRelation { ResourceId = resourceId, OrganisationId = orgId, Role = org.Relation });
+            entitiesToEmbed.Add((orgId, "organisation"));
 
             if (org.SuggestedAliases.Count > 0)
                 foreach (string alias in org.SuggestedAliases)
-                    await TryAppendAliasAsync(orgId, alias, "organisation", aliasedEntities);
+                    await TryAppendAliasAsync(orgId, alias, "organisation", entitiesToEmbed);
             if (isExisting)
                 await TryPatchEntityMetadataAsync(orgId, "organisation", null, org.Website, org.Email);
         }
@@ -252,10 +256,11 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
             Guid personId = isExisting ? parsedPerson
                 : await personService.FindIdByNameAsync(person.Id) ?? await personService.CreateAsync(new PersonCreateDto { Name = person.Id, Occupation = person.Occupation, EmailAddress = person.Email }, createdBy);
             db.ResourceRelatedPersonRelations.Add(new ResourceRelatedPersonRelation { ResourceId = resourceId, PersonId = personId, Role = person.Relation });
+            entitiesToEmbed.Add((personId, "person"));
 
             if (person.SuggestedAliases.Count > 0)
                 foreach (string alias in person.SuggestedAliases)
-                    await TryAppendAliasAsync(personId, alias, "person", aliasedEntities);
+                    await TryAppendAliasAsync(personId, alias, "person", entitiesToEmbed);
             if (isExisting)
                 await TryPatchEntityMetadataAsync(personId, "person", person.Occupation, null, person.Email);
         }
@@ -264,17 +269,22 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
         await transaction.CommitAsync();
         await librarySearchIndexService.SyncResourceAsync(resourceId);
 
-        if (aliasedEntities.Count > 0)
+        if (entitiesToEmbed.Count > 0)
         {
-            using var scope = scopeFactory.CreateScope();
-            var ingestion = scope.ServiceProvider.GetRequiredService<IngestionService>();
-            foreach (var (entityId, entityType) in aliasedEntities)
+            List<(Guid Id, string Type)> toEmbed = entitiesToEmbed.DistinctBy(e => e.Id).ToList();
+
+            taskQueue.QueueBackgroundWorkItem(async token =>
             {
-                if (entityType == "organisation")
-                    await ingestion.RunOrganisationEntityPipelineAsync(entityId);
-                else
-                    await ingestion.RunPersonEntityPipelineAsync(entityId);
-            }
+                using var scope = scopeFactory.CreateScope();
+                var ingestion = scope.ServiceProvider.GetRequiredService<IngestionService>();
+                foreach (var (entityId, entityType) in toEmbed)
+                {
+                    if (entityType == "organisation")
+                        await ingestion.RunOrganisationEntityPipelineAsync(entityId);
+                    else
+                        await ingestion.RunPersonEntityPipelineAsync(entityId);
+                }
+            });
         }
 
         return resourceId;

@@ -74,6 +74,9 @@ public class Resource
     [Column("trash-date")]
     public DateTime? TrashDate { get; set; } = null;
 
+    [Column("embedding-status")]
+    public EmbeddingStatus EmbeddingStatus { get; set; } = EmbeddingStatus.Pending;
+
     #region Direct navigation properties
     [JsonIgnore] public ResourceType? ResourceType { get; set; }
 
@@ -189,6 +192,7 @@ public class ResourceDetailDto
     public string? SourceUrl { get; set; }
     public bool Trashed { get; set; }
     public DateTime? TrashDate { get; set; }
+    public EmbeddingStatus EmbeddingStatus { get; set; }
     public RelationItemDto[] Authors { get; set; } = [];
     public RelationItemDto[] Organisations { get; set; } = [];
     public RelationItemDto[] Regions { get; set; } = [];

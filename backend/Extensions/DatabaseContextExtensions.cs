@@ -97,6 +97,7 @@ public static class DatabaseContextExtensions
                 CREATE MATERIALIZED VIEW LibraryView AS
                 SELECT
                     ""id"" as ""Id"",
+                    ""embedding-status"" as ""EmbeddingStatus"",
                     ""title"" as ""Name"",
                     ""description"" as ""Description"",
                     ""publication-date"" as ""PublicationDate"",
@@ -125,6 +126,7 @@ public static class DatabaseContextExtensions
 
                 SELECT
                     p.""id"" as ""Id"",
+                    e.""embedding-status"" as ""EmbeddingStatus"",
                     e.""name"" as ""Name"",
                     e.""description"" as ""Description"",
                     NULL as ""PublicationDate"",
@@ -153,6 +155,7 @@ public static class DatabaseContextExtensions
 
                 SELECT
                     o.""id"" as ""Id"",
+                    e.""embedding-status"" as ""EmbeddingStatus"",
                     e.""name"" as ""Name"",
                     e.""description"" as ""Description"",
                     NULL as ""PublicationDate"",

@@ -5,12 +5,14 @@ using KnowledgeBank.Utils;
 using Microsoft.SemanticKernel.Text;
 using Serilog;
 using System.Text;
+using Microsoft.AspNetCore.SignalR;
+using Hubs;
 
 namespace KnowledgeBank.Services.AI;
 
 #pragma warning disable SKEXP0050, SKEXP0001
 
-public class IngestionService(IVectorStore vectorStore, TextExtractionService textExtractionService, ResourceService resourceService, PersonService personService, OrganisationService organisationService, EnvironmentConfig environmentConfig)
+public class IngestionService(IVectorStore vectorStore, TextExtractionService textExtractionService, ResourceService resourceService, PersonService personService, OrganisationService organisationService, EnvironmentConfig environmentConfig, IHubContext<Chat> hubContext)
 {
     private readonly Serilog.ILogger logger = Log.ForContext<IngestionService>();
     private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
@@ -18,55 +20,76 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
     public async Task RunResourcePipelineAsync(Guid id, string? fileType = null, Stream? fileStream = null)
     {
         logger.Information("Resource pipeline started for ID: {Id}", id);
+        await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Processing);
 
-        var (richMetadata, resource) = await BuildRichMetadataChunkAsync(id);
-        List<string> chunks = [richMetadata];
-
-        if (fileStream != null)
+        try
         {
-            string ext = fileType != null
-                ? (fileType.StartsWith('.') ? fileType : $".{fileType}")
-                : ".pdf";
+            var (richMetadata, resource) = await BuildRichMetadataChunkAsync(id);
+            List<string> chunks = [richMetadata];
 
-            OcrResult ocrResult = await textExtractionService.ExtractOcrResultFromFileAsync(fileStream, ext, bucketName, id.ToString());
-
-            if (string.IsNullOrEmpty(ocrResult.Text))
+            if (fileStream != null)
             {
-                logger.Warning("No text extracted from file for resource {Id}", id);
-                return;
+                string ext = fileType != null
+                    ? (fileType.StartsWith('.') ? fileType : $".{fileType}")
+                    : ".pdf";
+
+                OcrResult ocrResult = await textExtractionService.ExtractOcrResultFromFileAsync(fileStream, ext, bucketName, id.ToString());
+
+                if (string.IsNullOrEmpty(ocrResult.Text))
+                {
+                    logger.Warning("No text extracted from file for resource {Id}", id);
+                    await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Completed);
+                    return;
+                }
+
+                chunks.AddRange(SplitTextIntoChunks(ocrResult.Text, markdownSplit: true));
+            }
+            else if (resource?.FileType == "website" && !string.IsNullOrEmpty(resource.SourceUrl))
+            {
+                ReadabilityResult result = await textExtractionService.ExtractTextFromWebAsync(resource.SourceUrl);
+
+                if (!string.IsNullOrWhiteSpace(result.TextContent))
+                    chunks.AddRange(SplitTextIntoChunks(result.TextContent, markdownSplit: false));
+                else
+                    logger.Warning("No text extracted from website for resource {Id}", id);
             }
 
-            chunks.AddRange(SplitTextIntoChunks(ocrResult.Text, markdownSplit: true));
-        }
-        else if (resource?.FileType == "website" && !string.IsNullOrEmpty(resource.SourceUrl))
+            await vectorStore.DeletePointsByResourceIdAsync(id);
+
+            var chunkData = chunks.Select((text, index) => (
+                Text: text,
+                Type: index == 0 ? ChunkType.MetaData : ChunkType.ContentText,
+                Part: index
+            )).ToList();
+
+            await vectorStore.CreateResourcePointsAsync(id, chunkData);
+
+            await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Completed);
+            logger.Information("Resource pipeline completed for ID: {Id}", id);
+        } catch (Exception ex)
         {
-            ReadabilityResult result = await textExtractionService.ExtractTextFromWebAsync(resource.SourceUrl);
-
-            if (!string.IsNullOrWhiteSpace(result.TextContent))
-                chunks.AddRange(SplitTextIntoChunks(result.TextContent, markdownSplit: false));
-            else
-                logger.Warning("No text extracted from website for resource {Id}", id);
+            logger.Error(ex, "Resource pipeline failed for ID: {Id}", id);
+            await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Failed);
         }
-
-        await vectorStore.DeletePointsByResourceIdAsync(id);
-
-        var chunkData = chunks.Select((text, index) => (
-            Text: text,
-            Type: index == 0 ? ChunkType.MetaData : ChunkType.ContentText,
-            Part: index
-        )).ToList();
-
-        await vectorStore.CreateResourcePointsAsync(id, chunkData);
-
-        logger.Information("Resource pipeline completed for ID: {Id}", id);
     }
 
     public async Task RunEntityPipelineAsync(Guid id, string entityType, string chunk)
     {
         logger.Information("Entity pipeline started for entity ID: {Id}", id);
-        await vectorStore.DeletePointsByEntityIdAsync(id);
-        await vectorStore.CreateEntityPointsAsync(id, entityType, [(chunk, ChunkType.MetaData, 0)]);
-        logger.Information("Entity pipeline completed for entity ID: {Id}", id);
+        await SetEntityEmbeddingStatusAsync(id, entityType, EmbeddingStatus.Processing);
+
+        try
+        {
+            await vectorStore.DeletePointsByEntityIdAsync(id);
+            await vectorStore.CreateEntityPointsAsync(id, entityType, [(chunk, ChunkType.MetaData, 0)]);
+
+            await SetEntityEmbeddingStatusAsync(id, entityType, EmbeddingStatus.Completed);
+            logger.Information("Entity pipeline completed for entity ID: {Id}", id);
+        } catch (Exception ex)
+        {
+            logger.Error(ex, "Entity pipeline failed for ID: {Id}", id);
+            await SetEntityEmbeddingStatusAsync(id, entityType, EmbeddingStatus.Failed);
+        }
     }
 
     public Task RunEntityPipelineAsync(Person person)
@@ -179,5 +202,21 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
             logger.Warning(ex, "Failed to build rich metadata for resource {Id}", id);
             return (string.Empty, null);
         }
+    }
+
+    private async Task SetResourceEmbeddingStatusAsync(Guid id, EmbeddingStatus status)
+    {
+        await resourceService.UpdateAsync(id, r => r.EmbeddingStatus = status);
+        await hubContext.Clients.All.SendAsync("EmbeddingStatusChanged", id, status.ToString());
+    }
+
+    private async Task SetEntityEmbeddingStatusAsync(Guid id, string entityType, EmbeddingStatus status)
+    {
+        if (entityType == "person")
+            await personService.UpdateAsync(id, p => p.EmbeddingStatus = status);
+        else if (entityType == "organisation")
+            await organisationService.UpdateAsync(id, o => o.EmbeddingStatus = status);
+
+        await hubContext.Clients.All.SendAsync("EmbeddingStatusChanged", id, status.ToString());
     }
 }

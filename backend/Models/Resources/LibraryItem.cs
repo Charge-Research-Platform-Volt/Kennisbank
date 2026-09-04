@@ -15,6 +15,7 @@ public class LibraryItem
     public DateTime CreatedOn { get; set; }
     public Guid? TypeId { get; set; }
     public Guid? JournalId { get; set; }
+    public EmbeddingStatus EmbeddingStatus { get; set; }
     [NotMapped]
     public List<string> Chunks { get; set; } = [];
 }

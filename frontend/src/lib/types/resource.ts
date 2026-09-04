@@ -1,6 +1,6 @@
 export type EntityType = 'resource' | 'person' | 'organisation';
-
 export type DatePrecision = 'Year' | 'Month' | 'Day';
+export type EmbeddingStatus = 'Pending' | 'Processing' | 'Completed' | 'Failed';
 
 export type ResourceItem = {
 	id: string;
@@ -14,6 +14,7 @@ export type ResourceItem = {
 	trashed?: boolean;
 	chunks?: string[];
 	sourceUrl?: string;
+	embeddingStatus: EmbeddingStatus;
 };
 
 export type RawResourceItem = ResourceItem & {
@@ -56,9 +57,11 @@ export type ResourceDetail = {
 	regions: RelationItem[];
 	relatedPersons: RelationItem[];
 	tags: RelationItem[];
+	embeddingStatus: EmbeddingStatus;
 };
 
 export type PersonDetail = {
+	id: string;
 	name: string;
 	aliases?: string[];
 	description?: string;
@@ -66,6 +69,9 @@ export type PersonDetail = {
 	createdOn?: string;
 	emailAddress?: string;
 	linkedin?: string;
+	trashed: boolean;
+	trashDate?: string;
+	embeddingStatus: EmbeddingStatus;
 	authored: RelationItem[];
 	relatedResources: RelationItem[];
 	targetPersons: RelationItem[];
@@ -74,12 +80,16 @@ export type PersonDetail = {
 };
 
 export type OrganisationDetail = {
+	id: string;
 	name: string;
 	aliases?: string[];
 	website?: string;
 	description?: string;
 	createdOn?: string;
 	emailAddress?: string;
+	trashed: boolean;
+	trashDate?: string;
+	embeddingStatus: EmbeddingStatus;
 	authored: RelationItem[];
 	relatedResources: RelationItem[];
 	targetOrganisations: RelationItem[];

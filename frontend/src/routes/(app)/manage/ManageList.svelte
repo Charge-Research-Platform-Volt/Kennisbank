@@ -550,9 +550,9 @@
 						<div class="flex items-center gap-2 p-3">
 							<!-- Names -->
 							<div class="flex min-w-0 flex-1 flex-col gap-0.5">
-								<span class="text-sm leading-tight font-medium break-words">{s.name1}</span>
+								<span class="text-sm leading-tight font-medium wrap-break-word">{s.name1}</span>
 								<span class="text-xs text-muted-foreground">vs</span>
-								<span class="text-sm leading-tight font-medium break-words">{s.name2}</span>
+								<span class="text-sm leading-tight font-medium wrap-break-word">{s.name2}</span>
 							</div>
 
 							<div class="flex flex-col items-end justify-between gap-5">

@@ -12,7 +12,9 @@
 		ArrowUp,
 		ArrowDown,
 		ArrowUpDown,
-		Trash2
+		Trash2,
+		LoaderCircle,
+		CircleAlert
 	} from '@lucide/svelte';
 	import { userState } from '$lib/state/user.svelte';
 	import * as Table from '$lib/components/ui/table';
@@ -28,6 +30,8 @@
 	import { getContext, onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import type { PagedResult, ListItem } from '$lib/types/results';
+	import { HubConnection } from '@microsoft/signalr';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 
 	// Search
 	let searchInput = $state('');
@@ -44,11 +48,11 @@
 
 	let activeFilterCount = $derived(
 		(typeFilter.length ? 1 : 0) +
-		(dateMin || dateMax ? 1 : 0) +
-		(tagFilter.length ? 1 : 0) +
-		(regionFilter.length ? 1 : 0) +
-		(resourceTypeFilter.length ? 1 : 0) +
-		(journalFilter.length ? 1 : 0)
+			(dateMin || dateMax ? 1 : 0) +
+			(tagFilter.length ? 1 : 0) +
+			(regionFilter.length ? 1 : 0) +
+			(resourceTypeFilter.length ? 1 : 0) +
+			(journalFilter.length ? 1 : 0)
 	);
 
 	// Sorting
@@ -73,25 +77,24 @@
 	async function fetchItems() {
 		loading = true;
 		try {
-			const result = await api.post<PagedResult<ResourceItem> & { typeCounts?: Record<string, number> }>(
-				'/api/library',
-				{
-					page: currentPage,
-					pageSize: PAGE_SIZE,
-					search: searchInput || undefined,
-					filterOptions: {
-						typeFilter: typeFilter.length === 0 ? undefined : typeFilter,
-						pubdateMin: dateMin ? `${dateMin}-01-01` : undefined,
-						pubdateMax: dateMax ? `${dateMax}-12-31` : undefined,
-						tagFilter: tagFilter.length ? tagFilter : undefined,
-						regionFilter: regionFilter.length ? regionFilter : undefined,
-						resourceTypeFilter: resourceTypeFilter.length ? resourceTypeFilter : undefined,
-						journalFilter: journalFilter.length ? journalFilter : undefined
-					},
-					sortBy: sortBy || undefined,
-					sortDirection
-				}
-			);
+			const result = await api.post<
+				PagedResult<ResourceItem> & { typeCounts?: Record<string, number> }
+			>('/api/library', {
+				page: currentPage,
+				pageSize: PAGE_SIZE,
+				search: searchInput || undefined,
+				filterOptions: {
+					typeFilter: typeFilter.length === 0 ? undefined : typeFilter,
+					pubdateMin: dateMin ? `${dateMin}-01-01` : undefined,
+					pubdateMax: dateMax ? `${dateMax}-12-31` : undefined,
+					tagFilter: tagFilter.length ? tagFilter : undefined,
+					regionFilter: regionFilter.length ? regionFilter : undefined,
+					resourceTypeFilter: resourceTypeFilter.length ? resourceTypeFilter : undefined,
+					journalFilter: journalFilter.length ? journalFilter : undefined
+				},
+				sortBy: sortBy || undefined,
+				sortDirection
+			});
 			items = result.items;
 			totalItems = result.totalCount;
 			typeCounts = result.typeCounts ?? {};
@@ -120,12 +123,16 @@
 	}
 
 	async function searchTags(q: string) {
-		const result = await api.get<PagedResult<ListItem>>(`/api/tags?page=1&pageSize=20&search=${encodeURIComponent(q)}`);
+		const result = await api.get<PagedResult<ListItem>>(
+			`/api/tags?page=1&pageSize=20&search=${encodeURIComponent(q)}`
+		);
 		return result.items;
 	}
 
 	async function searchRegions(q: string) {
-		const result = await api.get<PagedResult<ListItem>>(`/api/regions?page=1&pageSize=20&search=${encodeURIComponent(q)}`);
+		const result = await api.get<PagedResult<ListItem>>(
+			`/api/regions?page=1&pageSize=20&search=${encodeURIComponent(q)}`
+		);
 		return result.items;
 	}
 
@@ -249,6 +256,22 @@
 		fetchItems();
 	}
 
+	const chat = getContext<{ connection: HubConnection | null }>('chatConnection');
+
+	// Embedding status updates
+	$effect(() => {
+		const conn = chat.connection;
+		if (!conn) return;
+
+		function onStatusChanged(id: string, status: string) {
+			const item = items.find((i) => i.id === id);
+			if (item) item.embeddingStatus = status as ResourceItem['embeddingStatus'];
+		}
+
+		conn.on('EmbeddingStatusChanged', onStatusChanged);
+		return () => conn.off('EmbeddingStatusChanged', onStatusChanged);
+	});
+
 	registerRefresh(fetchItems);
 
 	onMount(() => syncFromUrl());
@@ -288,7 +311,9 @@
 					/>
 
 					{#if activeFilterCount > 0}
-						<span class="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[9px] font-medium text-primary-foreground">
+						<span
+							class="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[9px] font-medium text-primary-foreground"
+						>
 							{activeFilterCount}
 						</span>
 					{/if}
@@ -323,10 +348,14 @@
 						onValueChange={handleTypeFilterChange}
 					>
 						<ToggleGroup.Item value="resource" class="cursor-pointer text-xs"
-							>Resources{typeCounts.resource !== undefined ? ` (${typeCounts.resource})` : ''}</ToggleGroup.Item
+							>Resources{typeCounts.resource !== undefined
+								? ` (${typeCounts.resource})`
+								: ''}</ToggleGroup.Item
 						>
 						<ToggleGroup.Item value="person" class="cursor-pointer text-xs"
-							>Persons{typeCounts.person !== undefined ? ` (${typeCounts.person})` : ''}</ToggleGroup.Item
+							>Persons{typeCounts.person !== undefined
+								? ` (${typeCounts.person})`
+								: ''}</ToggleGroup.Item
 						>
 						<ToggleGroup.Item value="organisation" class="cursor-pointer text-xs"
 							>Organisations{typeCounts.organisation !== undefined
@@ -526,7 +555,32 @@
 						<Table.Cell class="py-3">
 							<div class="flex items-center gap-3">
 								<Icon size={16} class="shrink-0 text-muted-foreground" />
-								{item.name}
+								<span class="min-w-0 flex-1 truncate">{item.name}</span>
+
+								<!-- Embedding status badge -->
+								{#if item.embeddingStatus === 'Pending' || item.embeddingStatus === 'Processing'}
+									<div class="shrink-0">
+										<Tooltip.Root>
+											<Tooltip.Trigger>
+												<LoaderCircle size={13} class="shrink-0 animate-spin text-muted-foreground" />
+											</Tooltip.Trigger>
+											<Tooltip.Content>
+												Still processing...
+											</Tooltip.Content>
+										</Tooltip.Root>
+									</div>
+								{:else if item.embeddingStatus === 'Failed'}
+									<div class="shrink-0">
+										<Tooltip.Root>
+											<Tooltip.Trigger>
+												<CircleAlert size={13} class="shrink-0 text-destructive" />
+											</Tooltip.Trigger>
+											<Tooltip.Content>
+												Embedding failed
+											</Tooltip.Content>
+										</Tooltip.Root>
+									</div>
+								{/if}
 							</div>
 						</Table.Cell>
 						<Table.Cell class="px-5 py-3 text-center whitespace-nowrap"
