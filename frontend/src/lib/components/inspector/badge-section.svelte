@@ -11,7 +11,8 @@
 		search,
 		onadd,
 		oncreate,
-		onremove
+		onremove,
+		itemHref
 	}: {
 		label: string;
 		items: RelationItem[];
@@ -19,6 +20,7 @@
 		onadd?: (id: string, name: string) => Promise<void>;
 		oncreate?: (name: string) => Promise<ListItem | null>;
 		onremove?: (item: RelationItem) => Promise<void>;
+		itemHref?: (item: RelationItem) => string;
 	} = $props();
 
 	const getEditMode = getContext<() => boolean>('getEditMode');
@@ -83,22 +85,20 @@
 			<div class="flex flex-wrap gap-1">
 				{#each localItems as item (item.id)}
 					{#if editMode && onremove}
-						<span
-							class="flex items-center gap-1 rounded-full border border-border bg-muted py-0.5 pr-1 pl-2 text-xs text-muted-foreground"
-						>
+						<span class="flex items-center gap-1 rounded-full border border-border bg-muted py-0.5 pr-1 pl-2 text-xs text-muted-foreground">
 							{item.name}
-							<button
-								onclick={() => removeItem(item)}
-								class="cursor-pointer transition-colors hover:text-foreground"
-							>
+							<button onclick={() => removeItem(item)} class="cursor-pointer transition-colors hover:text-foreground">
 								<X size={10} />
 							</button>
 						</span>
+					{:else if itemHref}
+						<a href={itemHref(item)} class="rounded-full border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground">
+							{item.name}
+						</a>
 					{:else}
-						<span
-							class="rounded-full border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground"
-							>{item.name}</span
-						>
+						<span class="rounded-full border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+							{item.name}
+						</span>
 					{/if}
 				{/each}
 			</div>

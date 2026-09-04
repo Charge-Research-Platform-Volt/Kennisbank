@@ -134,6 +134,7 @@
 			icon={Layers}
 			label="Resource Type"
 			value={detail.typeName !== 'Unknown' ? detail.typeName : undefined}
+			internalHref={detail.typeId ? `/library?resourceTypes=${detail.typeId}&type=resource` : undefined}
 		>
 			{#snippet editContent()}
 				<AsyncSelect
@@ -227,6 +228,7 @@
 		onremove={async (rel) => {
 			await api.delete(`/api/resources/${item.id}/tags/${rel.id}`);
 		}}
+		itemHref={(item) => `/library?tags=${item.id}&type=resource`}
 	/>
 	<BadgeSection
 		label="Regions"
@@ -239,6 +241,7 @@
 		onremove={async (rel) => {
 			await api.delete(`/api/resources/${item.id}/regions/${rel.id}`);
 		}}
+		itemHref={(item) => `/library?regions=${item.id}&type=resource`}
 	/>
 
 	<!-- Authors, Related People, Organisations -->

@@ -8,6 +8,7 @@
 		label,
 		value,
 		href,
+		internalHref,
 		onsave,
 		editContent
 	}: {
@@ -15,6 +16,7 @@
 		label: string;
 		value?: string;
 		href?: string;
+		internalHref?: string;
 		onsave?: (value: string) => Promise<void>;
 		editContent?: Snippet;
 	} = $props();
@@ -49,11 +51,17 @@
 				/>
 			{/if}
 		{:else if href}
-			<a {href} title={value} target="_blank" class="min-w-0 truncate text-sm hover:underline"
-				>{value}</a
-			>
+			<a {href} title={value} target="_blank" class="min-w-0 truncate text-sm hover:underline">
+				{value}
+			</a>
+		{:else if internalHref}
+			<a href={internalHref} title={value} class="min-w-0 truncate text-sm hover:underline">
+				{value}
+			</a>
 		{:else}
-			<span title={value} class="min-w-0 truncate text-sm">{value}</span>
+			<span title={value} class="min-w-0 truncate text-sm">
+				{value}
+			</span>
 		{/if}
 	</div>
 {/if}

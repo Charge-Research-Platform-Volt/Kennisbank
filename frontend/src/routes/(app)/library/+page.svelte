@@ -42,6 +42,15 @@
 	let resourceTypeFilter = $state<string[]>([]);
 	let journalFilter = $state<string[]>([]);
 
+	let activeFilterCount = $derived(
+		(typeFilter.length ? 1 : 0) +
+		(dateMin || dateMax ? 1 : 0) +
+		(tagFilter.length ? 1 : 0) +
+		(regionFilter.length ? 1 : 0) +
+		(resourceTypeFilter.length ? 1 : 0) +
+		(journalFilter.length ? 1 : 0)
+	);
+
 	// Sorting
 	let sortBy = $state('');
 	let sortDirection = $state<'asc' | 'desc'>('asc');
@@ -268,13 +277,22 @@
 						onclick={() => onSearchInput('')}
 					/>
 				{/if}
-				<ListFilter
-					size={16}
-					class="shrink-0 cursor-pointer text-zinc-600"
-					onclick={() => {
-						filtersOpen = !filtersOpen;
-					}}
-				/>
+
+				<div class="relative shrink-0">
+					<ListFilter
+						size={16}
+						class="cursor-pointer text-zinc-600"
+						onclick={() => {
+							filtersOpen = !filtersOpen;
+						}}
+					/>
+
+					{#if activeFilterCount > 0}
+						<span class="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[9px] font-medium text-primary-foreground">
+							{activeFilterCount}
+						</span>
+					{/if}
+				</div>
 			</div>
 			{#if userState.role === 'admin'}
 				<a
@@ -290,7 +308,7 @@
 		<!-- Filter section -->
 		<div
 			class="overflow-hidden transition-all duration-300 ease-in-out {filtersOpen
-				? 'max-h-[500px]'
+				? 'max-h-125'
 				: 'max-h-0'}"
 		>
 			<div class="flex flex-wrap gap-x-8 gap-y-3 border-b border-border px-1 py-3">
