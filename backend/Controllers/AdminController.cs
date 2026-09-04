@@ -53,6 +53,27 @@ public class AdminController(
                 organisations = organisations.Where(o => o.EmbeddingStatus != EmbeddingStatus.Completed).ToArray();
             }
 
+            // Reset everything selected for this run to Pending up front, rather than leaving stale
+            // Completed/Failed statuses sitting there until each item's turn comes up in the bounded
+            // concurrency loops below — otherwise the status dashboard can't tell "queued for this run"
+            // apart from "untouched since before".
+            using (var scope = serviceScopeFactory.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+                Guid[] resourceIds = [.. resources.Select(r => r.Id)];
+                Guid[] entityIds = [.. persons.Select(p => p.Id), .. organisations.Select(o => o.Id)];
+
+                await db.Resources.Where(r => resourceIds.Contains(r.Id))
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(r => r.EmbeddingStatus, EmbeddingStatus.Pending)
+                        .SetProperty(r => r.EmbeddingError, (string?)null));
+
+                await db.Entities.Where(e => entityIds.Contains(e.Id))
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(e => e.EmbeddingStatus, EmbeddingStatus.Pending)
+                        .SetProperty(e => e.EmbeddingError, (string?)null));
+            }
+
             logger.Information("Re-embedding {Count} resources", resources.Length);
             await RunBoundedAsync(resources, 3, async resource =>
             {
