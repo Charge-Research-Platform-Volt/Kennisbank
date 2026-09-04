@@ -85,9 +85,7 @@
 					? 'persons'
 					: 'organisations';
 
-		const result = await api.get<Partial<RawResourceItem>>(
-			`/api/${endpoint}/${target.id}`
-		);
+		const result = await api.get<Partial<RawResourceItem>>(`/api/${endpoint}/${target.id}`);
 		const fullItem: ResourceItem = {
 			fileType: target.type,
 			publicationDate: '',
@@ -96,7 +94,8 @@
 			description: '',
 			...target,
 			...result,
-			name: result.title ?? result.name ?? ""
+			name: result.title ?? result.name ?? '',
+			embeddingStatus: result.embeddingStatus ?? 'Completed'
 		};
 
 		history = [...history.slice(0, historyIndex + 1), fullItem];
@@ -171,7 +170,7 @@
 	}
 </script>
 
-<aside class="flex h-full flex-col border-l border-border bg-background overflow-hidden">
+<aside class="flex h-full flex-col overflow-hidden border-l border-border bg-background">
 	<TooltipProvider>
 		{#if item}
 			<!-- Toolbar row -->
@@ -310,12 +309,16 @@
 
 				<!-- Embedding status banner -->
 				{#if item.embeddingStatus === 'Pending' || item.embeddingStatus === 'Processing'}
-					<div class="flex items-center gap-2 border-b bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+					<div
+						class="flex items-center gap-2 border-b bg-muted/50 px-3 py-2 text-xs text-muted-foreground"
+					>
 						<LoaderCircle size={12} class="shrink-0 animate-spin" />
 						Still processing embeddings…
 					</div>
 				{:else if item.embeddingStatus === 'Failed'}
-					<div class="flex items-center gap-2 border-b border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+					<div
+						class="flex items-center gap-2 border-b border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+					>
 						<CircleAlert size={12} class="shrink-0" />
 						Embedding failed.
 					</div>
