@@ -4,12 +4,15 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { toast } from 'svelte-sonner';
+	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
+	import { onMount } from 'svelte';
 
 	const redirect = page.url.searchParams.get('redirect');
 
 	let email = $state('');
 	let password = $state('');
 	let loading = $state(false);
+	let rememberMe = $state(true);
 
 	async function handleSubmit(e: SubmitEvent) {
 		// Prevent default page reload
@@ -19,11 +22,14 @@
 
 		try {
 			// Log in on backend
-			const response = await fetch('/api/auth/login?useCookies=true&useSessionCookies=true', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ email, password })
-			});
+			const response = await fetch(
+				`/api/auth/login?useCookies=true&useSessionCookies=${!rememberMe}`,
+				{
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ email, password })
+				}
+			);
 
 			if (response.ok) {
 				goto(redirect ?? '/');
@@ -38,26 +44,45 @@
 			loading = false;
 		}
 	}
+
+	onMount(async () => {
+		try {
+			const res = await fetch('/api/users/me', { credentials: 'include' });
+			if (res.ok) goto(redirect ?? '/');
+		} catch {
+			// Not logged in, so stay on page
+		}
+	})
 </script>
 
 <!-- Form -->
 <div class="w-full max-w-lg px-8 py-4">
 	<form class="flex flex-col gap-4" onsubmit={handleSubmit}>
+		<!-- Welcome message -->
 		<div class="flex flex-col gap-1">
 			<h1 class="text-3xl font-bold">Sign in</h1>
 			<p>Welcome back!</p>
 		</div>
 
+		<!-- Email input -->
 		<div class="flex flex-col gap-1">
 			<label for="email" class="font-bold">Email</label>
 			<Input bind:value={email} type="email" name="email" id="email" required />
 		</div>
 
+		<!-- Password input -->
 		<div class="flex flex-col gap-1">
 			<label for="password" class="font-bold">Password</label>
 			<Input bind:value={password} type="password" name="password" id="password" required />
 		</div>
 
+		<!-- Remember me checkbox -->
+		<div class="flex items-center gap-2">
+			<Checkbox id="remember-me" bind:checked={rememberMe} class="cursor-pointer" />
+			<label for="remember-me" class="cursor-pointer text-sm font-medium">Remember me</label>
+		</div>
+
+		<!-- Submit button -->
 		<Button type="submit" class="w-full cursor-pointer" disabled={!email || !password || loading}>
 			{#if loading}
 				Signing in...
