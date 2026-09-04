@@ -181,6 +181,7 @@ namespace KnowledgeBank
 
             // Background services
             builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
+            builder.Services.AddSingleton<ReembedRunState>();
             builder.Services.AddHostedService<QueuedHostedService>();
 
             // # Mailer;

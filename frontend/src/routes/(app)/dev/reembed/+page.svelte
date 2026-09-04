@@ -4,10 +4,12 @@
 	import type { HubConnection } from '@microsoft/signalr';
 	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
 	import { RefreshCw } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
 	type StatusSummary = {
+		isRunning: boolean;
 		resourceCounts: Record<string, number>;
 		entityCounts: Record<string, number>;
 		incompleteItems: { id: string; name: string; type: string; status: string; error: string | null }[];
@@ -15,9 +17,19 @@
 
 	let summary = $state<StatusSummary | null>(null);
 	let loading = $state(true);
-	let reembedding = $state(false);
+	let submitting = $state(false);
+	let includeResources = $state(true);
+	let includeEntities = $state(true);
+
+	let busy = $derived(submitting || summary?.isRunning === true);
 
 	const STATUS_ORDER = ['Pending', 'Processing', 'Completed', 'Failed'];
+
+	let scopedIncompleteCount = $derived(
+		(summary?.incompleteItems ?? []).filter((item) =>
+			item.type === 'resource' ? includeResources : includeEntities
+		).length
+	);
 
 	async function fetchStatus() {
 		try {
@@ -28,14 +40,30 @@
 	}
 
 	async function reembed(onlyIncomplete: boolean) {
-		reembedding = true;
+		submitting = true;
 		try {
-			await api.post(`/api/admin/reembed?onlyIncomplete=${onlyIncomplete}`);
+			await api.post(
+				`/api/admin/reembed?onlyIncomplete=${onlyIncomplete}&includeResources=${includeResources}&includeEntities=${includeEntities}`
+			);
 			toast.success(onlyIncomplete ? 'Retrying incomplete items...' : 'Re-embedding everything...');
 		} catch (e) {
 			toast.error(e instanceof Error ? e.message : 'Failed to start re-embed.');
 		} finally {
-			reembedding = false;
+			submitting = false;
+			await fetchStatus();
+		}
+	}
+
+	async function cancelReembed() {
+		submitting = true;
+		try {
+			await api.post('/api/admin/reembed/cancel');
+			toast.success('Cancelling...');
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : 'Failed to cancel.');
+		} finally {
+			submitting = false;
+			await fetchStatus();
 		}
 	}
 
@@ -102,18 +130,37 @@
 			</div>
 		</div>
 
+		<!-- Scope -->
+		<div class="flex items-center gap-4">
+			<label class="flex items-center gap-2 text-sm {busy ? '' : 'cursor-pointer'}">
+				<Checkbox bind:checked={includeResources} disabled={busy} class="cursor-pointer" />
+				Resources
+			</label>
+			<label class="flex items-center gap-2 text-sm {busy ? '' : 'cursor-pointer'}">
+				<Checkbox bind:checked={includeEntities} disabled={busy} class="cursor-pointer" />
+				Persons + Organisations
+			</label>
+		</div>
+
 		<!-- Actions -->
 		<div class="flex gap-2">
-			<Button variant="outline" onclick={() => reembed(false)} disabled={reembedding} class="cursor-pointer">
-				Re-embed All
-			</Button>
-			<Button
-				onclick={() => reembed(true)}
-				disabled={reembedding || summary.incompleteItems.length === 0}
-				class="cursor-pointer"
-			>
-				Retry Incomplete Only ({summary.incompleteItems.length})
-			</Button>
+			{#if summary.isRunning}
+				<Button variant="destructive" onclick={cancelReembed} disabled={submitting} class="cursor-pointer">
+					Cancel Re-embed
+				</Button>
+			{:else}
+				<Button
+					variant="outline"
+					onclick={() => reembed(false)}
+					disabled={busy || (!includeResources && !includeEntities)}
+					class="cursor-pointer"
+				>
+					Re-embed All
+				</Button>
+				<Button onclick={() => reembed(true)} disabled={busy || scopedIncompleteCount === 0} class="cursor-pointer">
+					Retry Incomplete Only ({scopedIncompleteCount})
+				</Button>
+			{/if}
 		</div>
 
 		<!-- Incomplete items -->

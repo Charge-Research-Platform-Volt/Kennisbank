@@ -50,7 +50,7 @@ public class EmbeddingService
         }
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        var result = await EmbeddingClient.GenerateEmbeddingAsync(query, new EmbeddingGenerationOptions { Dimensions = 1024 });
+        var result = await WithRetryAsync(() => EmbeddingClient.GenerateEmbeddingAsync(query, new EmbeddingGenerationOptions { Dimensions = 1024 }));
         stopwatch.Stop();
         logger.Debug("Embedding generation took {ElapsedMs}ms for query: {Query}", stopwatch.ElapsedMilliseconds, query);
         float[] embedding = result.Value.ToFloats().ToArray();
@@ -69,11 +69,34 @@ public class EmbeddingService
         return embedding;
     }
 
+    // A resource with many chunks (a long document) would otherwise batch all of them into a single
+    // embeddings request — a much bigger/heavier request than a typical one-chunk entity, and more
+    // likely to trip a rate limit on its own regardless of how many resources are processed concurrently.
+    // Capping the batch size keeps every individual request roughly the same size no matter how large
+    // the source document is.
+    private const int MaxEmbeddingBatchSize = 20;
+
     public async Task<float[][]> GenerateEmbeddings(IReadOnlyList<string> texts)
     {
         if (texts.Count == 0) return [];
 
-        var result = await EmbeddingClient.GenerateEmbeddingsAsync(texts, new EmbeddingGenerationOptions { Dimensions = 1024 });
+        if (texts.Count <= MaxEmbeddingBatchSize)
+            return await GenerateEmbeddingsBatchAsync(texts);
+
+        float[][] embeddings = new float[texts.Count][];
+        for (int offset = 0; offset < texts.Count; offset += MaxEmbeddingBatchSize)
+        {
+            List<string> batch = [.. texts.Skip(offset).Take(MaxEmbeddingBatchSize)];
+            float[][] batchEmbeddings = await GenerateEmbeddingsBatchAsync(batch);
+            Array.Copy(batchEmbeddings, 0, embeddings, offset, batchEmbeddings.Length);
+        }
+
+        return embeddings;
+    }
+
+    private async Task<float[][]> GenerateEmbeddingsBatchAsync(IReadOnlyList<string> texts)
+    {
+        var result = await WithRetryAsync(() => EmbeddingClient.GenerateEmbeddingsAsync(texts, new EmbeddingGenerationOptions { Dimensions = 1024 }));
 
         float[][] embeddings = new float[texts.Count][];
 
@@ -95,5 +118,26 @@ public class EmbeddingService
         }
 
         return embeddings;
+    }
+
+    /// <summary>
+    /// Retries a call with exponential backoff on 429/502/503 specifically — same treatment as the
+    /// Mistral OCR calls in TextExtractionService, since this SDK call had no retry logic at all.
+    /// </summary>
+    private async Task<T> WithRetryAsync<T>(Func<Task<T>> action, int maxAttempts = 3)
+    {
+        for (int attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await action();
+            }
+            catch (ClientResultException ex) when (attempt < maxAttempts && ex.Status is 429 or 502 or 503)
+            {
+                TimeSpan delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
+                logger.Warning(ex, "Embedding request returned {Status}, retrying in {Delay}s (attempt {Attempt}/{Max})", ex.Status, delay.TotalSeconds, attempt, maxAttempts);
+                await Task.Delay(delay);
+            }
+        }
     }
 }

@@ -22,6 +22,7 @@ public class FailedEmbeddingItemDto
 
 public class EmbeddingStatusSummaryDto
 {
+    public bool IsRunning { get; set; }
     public Dictionary<string, int> ResourceCounts { get; set; } = [];
     public Dictionary<string, int> EntityCounts { get; set; } = [];
     public List<FailedEmbeddingItemDto> IncompleteItems { get; set; } = [];

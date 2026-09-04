@@ -19,110 +19,142 @@ namespace KnowledgeBank.Controllers;
 public class AdminController(
     IBackgroundTaskQueue taskQueue,
     IServiceScopeFactory serviceScopeFactory,
-    EnvironmentConfig environmentConfig) : AppControllerBase
+    EnvironmentConfig environmentConfig,
+    ReembedRunState reembedRunState) : AppControllerBase
 {
     private readonly Serilog.ILogger logger = Log.ForContext<AdminController>();
     private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
 
     [HttpPost("reembed")]
     [Authorize(Policy = "RequireAdminRole")]
-    [SwaggerOperation(Summary = "Re-embed resources, persons, and organisations (optionally only those not currently Completed)")]
+    [SwaggerOperation(Summary = "Re-embed resources, persons, and organisations (optionally scoped to only resources/entities, and/or only those not currently Completed)")]
     [SwaggerResponse(202, "Queued")]
-    public IActionResult ReEmbed([FromQuery] bool onlyIncomplete = false)
+    [SwaggerResponse(409, "A re-embed is already running")]
+    public IActionResult ReEmbed([FromQuery] bool onlyIncomplete = false, [FromQuery] bool includeResources = true, [FromQuery] bool includeEntities = true)
     {
-        taskQueue.QueueBackgroundWorkItem(async token =>
+        if (!reembedRunState.TryStart(out CancellationToken runToken))
+            return Conflict("A re-embed is already running.");
+
+        taskQueue.QueueBackgroundWorkItem(async hostToken =>
         {
-            Resource[] resources;
-            Person[] persons;
-            Organisation[] organisations;
+            using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(hostToken, runToken);
+            CancellationToken token = linkedCts.Token;
 
-            using (var scope = serviceScopeFactory.CreateScope())
+            try
             {
-                resources = await scope.ServiceProvider.GetRequiredService<ResourceService>().GetAllAsync(r => !r.Trashed);
-                persons = await scope.ServiceProvider.GetRequiredService<PersonService>().GetAllAsync(p => !p.Trashed);
-                organisations = await scope.ServiceProvider.GetRequiredService<OrganisationService>().GetAllAsync(o => !o.Trashed);
-            }
+                Resource[] resources = [];
+                Person[] persons = [];
+                Organisation[] organisations = [];
 
-            if (onlyIncomplete)
-            {
-                // Covers Pending (never started), Processing (stuck mid-pipeline), and Failed —
-                // not just Failed, since a resource/entity can end up stuck at Pending if something
-                // throws before its pipeline even starts.
-                resources = resources.Where(r => r.EmbeddingStatus != EmbeddingStatus.Completed).ToArray();
-                persons = persons.Where(p => p.EmbeddingStatus != EmbeddingStatus.Completed).ToArray();
-                organisations = organisations.Where(o => o.EmbeddingStatus != EmbeddingStatus.Completed).ToArray();
-            }
-
-            // Reset everything selected for this run to Pending up front, rather than leaving stale
-            // Completed/Failed statuses sitting there until each item's turn comes up in the bounded
-            // concurrency loops below — otherwise the status dashboard can't tell "queued for this run"
-            // apart from "untouched since before".
-            using (var scope = serviceScopeFactory.CreateScope())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
-                Guid[] resourceIds = [.. resources.Select(r => r.Id)];
-                Guid[] entityIds = [.. persons.Select(p => p.Id), .. organisations.Select(o => o.Id)];
-
-                await db.Resources.Where(r => resourceIds.Contains(r.Id))
-                    .ExecuteUpdateAsync(s => s
-                        .SetProperty(r => r.EmbeddingStatus, EmbeddingStatus.Pending)
-                        .SetProperty(r => r.EmbeddingError, (string?)null));
-
-                await db.Entities.Where(e => entityIds.Contains(e.Id))
-                    .ExecuteUpdateAsync(s => s
-                        .SetProperty(e => e.EmbeddingStatus, EmbeddingStatus.Pending)
-                        .SetProperty(e => e.EmbeddingError, (string?)null));
-            }
-
-            logger.Information("Re-embedding {Count} resources", resources.Length);
-            await RunBoundedAsync(resources, 3, async resource =>
-            {
-                using var scope = serviceScopeFactory.CreateScope();
-                var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
-                var storageService = scope.ServiceProvider.GetRequiredService<IStorageService>();
-
-                try
+                using (var scope = serviceScopeFactory.CreateScope())
                 {
-                    if (resource.FileType == "document" && resource.FileExt != null)
+                    if (includeResources)
+                        resources = await scope.ServiceProvider.GetRequiredService<ResourceService>().GetAllAsync(r => !r.Trashed);
+
+                    if (includeEntities)
                     {
-                        var dlResponse = await storageService.DownloadObjectAsync(bucketName, resource.Id.ToString());
-                        using var memStream = new MemoryStream();
-                        await dlResponse.Stream.CopyToAsync(memStream, token);
-                        memStream.Position = 0;
-                        await ingestionService.RunResourcePipelineAsync(resource.Id, resource.FileExt, memStream);
-                    }
-                    else
-                    {
-                        await ingestionService.RunResourcePipelineAsync(resource.Id);
+                        persons = await scope.ServiceProvider.GetRequiredService<PersonService>().GetAllAsync(p => !p.Trashed);
+                        organisations = await scope.ServiceProvider.GetRequiredService<OrganisationService>().GetAllAsync(o => !o.Trashed);
                     }
                 }
-                catch (Exception ex) { logger.Error(ex, "Failed to re-embed resource {Id}", resource.Id); }
-            });
 
-            logger.Information("Re-embedding {Count} persons", persons.Length);
-            await RunBoundedAsync(persons, 5, async person =>
+                if (onlyIncomplete)
+                {
+                    // Covers Pending (never started), Processing (stuck mid-pipeline), and Failed —
+                    // not just Failed, since a resource/entity can end up stuck at Pending if something
+                    // throws before its pipeline even starts.
+                    resources = resources.Where(r => r.EmbeddingStatus != EmbeddingStatus.Completed).ToArray();
+                    persons = persons.Where(p => p.EmbeddingStatus != EmbeddingStatus.Completed).ToArray();
+                    organisations = organisations.Where(o => o.EmbeddingStatus != EmbeddingStatus.Completed).ToArray();
+                }
+
+                // Reset everything selected for this run to Pending up front, rather than leaving stale
+                // Completed/Failed statuses sitting there until each item's turn comes up in the bounded
+                // concurrency loops below — otherwise the status dashboard can't tell "queued for this run"
+                // apart from "untouched since before".
+                using (var scope = serviceScopeFactory.CreateScope())
+                {
+                    var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+                    Guid[] resourceIds = [.. resources.Select(r => r.Id)];
+                    Guid[] entityIds = [.. persons.Select(p => p.Id), .. organisations.Select(o => o.Id)];
+
+                    await db.Resources.Where(r => resourceIds.Contains(r.Id))
+                        .ExecuteUpdateAsync(s => s
+                            .SetProperty(r => r.EmbeddingStatus, EmbeddingStatus.Pending)
+                            .SetProperty(r => r.EmbeddingError, (string?)null));
+
+                    await db.Entities.Where(e => entityIds.Contains(e.Id))
+                        .ExecuteUpdateAsync(s => s
+                            .SetProperty(e => e.EmbeddingStatus, EmbeddingStatus.Pending)
+                            .SetProperty(e => e.EmbeddingError, (string?)null));
+                }
+
+                logger.Information("Re-embedding {Count} resources", resources.Length);
+                await RunBoundedAsync(resources, 3, async resource =>
+                {
+                    using var scope = serviceScopeFactory.CreateScope();
+                    var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
+                    var storageService = scope.ServiceProvider.GetRequiredService<IStorageService>();
+
+                    try
+                    {
+                        if (resource.FileType == "document" && resource.FileExt != null)
+                        {
+                            var dlResponse = await storageService.DownloadObjectAsync(bucketName, resource.Id.ToString());
+                            using var memStream = new MemoryStream();
+                            await dlResponse.Stream.CopyToAsync(memStream, token);
+                            memStream.Position = 0;
+                            await ingestionService.RunResourcePipelineAsync(resource.Id, resource.FileExt, memStream);
+                        }
+                        else
+                        {
+                            await ingestionService.RunResourcePipelineAsync(resource.Id);
+                        }
+                    }
+                    catch (Exception ex) { logger.Error(ex, "Failed to re-embed resource {Id}", resource.Id); }
+                }, token);
+
+                logger.Information("Re-embedding {Count} persons", persons.Length);
+                await RunBoundedAsync(persons, 5, async person =>
+                {
+                    using var scope = serviceScopeFactory.CreateScope();
+                    var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
+
+                    try { await ingestionService.RunPersonEntityPipelineAsync(person.Id); }
+                    catch (Exception ex) { logger.Error(ex, "Failed to re-embed person {Id}", person.Id); }
+                }, token);
+
+                logger.Information("Re-embedding {Count} organisations", organisations.Length);
+                await RunBoundedAsync(organisations, 5, async organisation =>
+                {
+                    using var scope = serviceScopeFactory.CreateScope();
+                    var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
+
+                    try { await ingestionService.RunOrganisationEntityPipelineAsync(organisation.Id); }
+                    catch (Exception ex) { logger.Error(ex, "Failed to re-embed organisation {Id}", organisation.Id); }
+                }, token);
+
+                logger.Information(token.IsCancellationRequested ? "Re-embedding cancelled" : "Re-embedding complete");
+            }
+            finally
             {
-                using var scope = serviceScopeFactory.CreateScope();
-                var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
-
-                try { await ingestionService.RunPersonEntityPipelineAsync(person.Id); }
-                catch (Exception ex) { logger.Error(ex, "Failed to re-embed person {Id}", person.Id); }
-            });
-
-            logger.Information("Re-embedding {Count} organisations", organisations.Length);
-            await RunBoundedAsync(organisations, 5, async organisation =>
-            {
-                using var scope = serviceScopeFactory.CreateScope();
-                var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
-
-                try { await ingestionService.RunOrganisationEntityPipelineAsync(organisation.Id); }
-                catch (Exception ex) { logger.Error(ex, "Failed to re-embed organisation {Id}", organisation.Id); }
-            });
-
-            logger.Information("Re-embedding complete");
+                reembedRunState.Complete();
+            }
         });
 
         return Accepted();
+    }
+
+    [HttpPost("reembed/cancel")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerOperation(Summary = "Cancel the currently running re-embed, if any")]
+    [SwaggerResponse(204, "Cancellation requested")]
+    [SwaggerResponse(404, "No re-embed is currently running")]
+    public IActionResult CancelReEmbed()
+    {
+        if (!reembedRunState.IsRunning) return NotFound();
+        reembedRunState.Cancel();
+        return NoContent();
     }
 
     [HttpGet("reembed/status")]
@@ -163,20 +195,38 @@ public class AdminController(
 
         return Ok(new EmbeddingStatusSummaryDto
         {
+            IsRunning = reembedRunState.IsRunning,
             ResourceCounts = resourceCounts,
             EntityCounts = entityCounts,
             IncompleteItems = [.. incompleteResources, .. incompletePersons, .. incompleteOrganisations]
         });
     }
 
-    private static async Task RunBoundedAsync<T>(IEnumerable<T> items, int maxConcurrency, Func<T, Task> action)
+    private static async Task RunBoundedAsync<T>(IEnumerable<T> items, int maxConcurrency, Func<T, Task> action, CancellationToken cancellationToken = default)
     {
         using SemaphoreSlim semaphore = new(maxConcurrency);
 
+        // Cooperative cancellation: an item already running is left to finish (aborting an in-flight
+        // OCR/embedding call mid-flight isn't worth the complexity), but nothing new starts once
+        // cancellation is requested — anything still waiting on the semaphore exits immediately.
         IEnumerable<Task> tasks = items.Select(async item =>
         {
-            await semaphore.WaitAsync();
-            try { await action(item); }
+            if (cancellationToken.IsCancellationRequested) return;
+
+            try
+            {
+                await semaphore.WaitAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            try
+            {
+                if (!cancellationToken.IsCancellationRequested)
+                    await action(item);
+            }
             finally { semaphore.Release(); }
         });
 
