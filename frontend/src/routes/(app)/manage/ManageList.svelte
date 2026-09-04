@@ -31,18 +31,18 @@
 
 	let {
 		type
-	}: { type: 'tags' | 'regions' | 'resourceTypes' | 'persons' | 'organisations' | 'journals' } =
+	}: { type: 'tag' | 'region' | 'resourcetype' | 'person' | 'organisation' | 'journal' } =
 		$props();
 
 	type EntityConfig = { label: string; icon: typeof Tag; basePath: string; canCreate: boolean; renameViaBody?: boolean };
 
 	const configs: Record<string, EntityConfig> = {
-		tags:          { label: 'Tag',           icon: Tag,       basePath: 'tags',           canCreate: true },
-		regions:       { label: 'Region',        icon: MapPin,    basePath: 'regions',        canCreate: true },
-		resourceTypes: { label: 'Resource Type', icon: Layers,    basePath: 'resource-types', canCreate: true },
-		persons:       { label: 'Person',        icon: User,      basePath: 'persons',        canCreate: false, renameViaBody: true },
-		organisations: { label: 'Organisation',  icon: Building2, basePath: 'organisations',  canCreate: false, renameViaBody: true },
-		journals:      { label: 'Journal',       icon: Newspaper, basePath: 'journals',       canCreate: true },
+		tag:          { label: 'Tag',           icon: Tag,       basePath: 'tags',           canCreate: true },
+		region:       { label: 'Region',        icon: MapPin,    basePath: 'regions',        canCreate: true },
+		resourcetype: { label: 'Resource Type', icon: Layers,    basePath: 'resource-types', canCreate: true },
+		person:       { label: 'Person',        icon: User,      basePath: 'persons',        canCreate: false, renameViaBody: true },
+		organisation: { label: 'Organisation',  icon: Building2, basePath: 'organisations',  canCreate: false, renameViaBody: true },
+		journal:      { label: 'Journal',       icon: Newspaper, basePath: 'journals',       canCreate: true },
 	};
 
 	const cfg = $derived(configs[type]);
@@ -124,6 +124,32 @@
 		}
 	}
 
+	async function dismissSuggestion(s: MergeSuggestion) {
+		suggestions = suggestions.filter((x) => !(x.id1 === s.id1 && x.id2 === s.id2));
+
+		try {
+			await api.post(`/api/merge-suggestions/dismiss/${type}/${s.id1}/${s.id2}`);
+		} catch (e) {
+			suggestions = [s, ...suggestions];
+			toast.error(e instanceof Error ? e.message : 'Failed to dismiss suggestion.');
+			return;
+		}
+
+		toast('Suggestion dismissed.', {
+			action: {
+				label: 'Undo',
+				onClick: async () => {
+					try {
+						await api.delete(`/api/merge-suggestions/dismiss/${type}/${s.id1}/${s.id2}`);
+						suggestions = [s, ...suggestions];
+					} catch {
+						toast.error('Failed to undo.');
+					}
+				}
+			}
+		})
+	}
+
 	const debouncedSearch = debounce(onSearch);
 	function onSearch() {
 		currentPage = 1;
@@ -157,9 +183,11 @@
 		}
 		submitting = true;
 		try {
-			cfg.renameViaBody
-				? await api.patch(`${base}/${editingId}`, { name: editingName.trim() })
-				: await api.patch(`${base}/${editingId}/name`, { name: editingName.trim() });
+			if (cfg.renameViaBody)
+				await api.patch(`${base}/${editingId}`, { name: editingName.trim() });
+			else
+				await api.patch(`${base}/${editingId}/name`, { name: editingName.trim() });
+
 			editingId = null;
 			await fetchItems();
 			toast.success(`${cfg.label} renamed.`);
@@ -216,9 +244,10 @@
 			mergeSurvivorName = mergeSurvivorName.trim();
 
 			if (mergeSurvivorName && mergeSurvivorName !== survivorOriginalName) {
-				cfg.renameViaBody
-					? await api.patch(`${base}/${mergeSurvivorId}`, { name: mergeSurvivorName })
-					: await api.patch(`${base}/${mergeSurvivorId}/name`, { name: mergeSurvivorName });
+				if (cfg.renameViaBody)
+					await api.patch(`${base}/${mergeSurvivorId}`, { name: mergeSurvivorName });
+				else
+					await api.patch(`${base}/${mergeSurvivorId}/name`, { name: mergeSurvivorName });
 			}
 
 			mergeDialogOpen = false;
@@ -528,22 +557,33 @@
 
 							<div class="flex flex-col items-end justify-between gap-5">
 								<!-- Score -->
-								<span
-									class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
-									>{Math.round(s.score * 100)}%</span
-								>
+								<span class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+									{Math.round(s.score * 100)}%
+								</span>
 
-								<!-- Merge button -->
-								<button
-									class="flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-									onclick={() =>
-										openMergeDialog([
-											{ id: s.id1, name: s.name1 },
-											{ id: s.id2, name: s.name2 }
-										])}
-								>
-									<Merge size={14} /> Merge
-								</button>
+								<!-- Actions -->
+								<div class="flex items-center gap-1">
+									<!-- Merge button -->
+									<button
+										class="flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+										onclick={() =>
+											openMergeDialog([
+												{ id: s.id1, name: s.name1 },
+												{ id: s.id2, name: s.name2 }
+											])}
+									>
+										<Merge size={14} /> Merge
+									</button>
+
+									<!-- Dismiss button -->
+									<button
+										class="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
+										title="Decline suggestion"
+										onclick={() => dismissSuggestion(s)}
+									>
+										<X size={14} />
+									</button>
+								</div>
 							</div>
 						</div>
 					{/each}

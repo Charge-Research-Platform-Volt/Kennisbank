@@ -163,7 +163,7 @@ public class TagService(DatabaseContext db, TaxonomySearchIndexService taxonomyS
 
     #region Suggestions
 
-    public async Task<List<MergeSuggestion>> GetMergeSuggestionsAsync(float threshold = 0.6f, int limit = 20)
+    public async Task<List<MergeSuggestion>> GetMergeSuggestionsAsync(float threshold = 0.5f, int limit = 20)
     {
         return await db.Database.SqlQuery<MergeSuggestion>($"""
             SELECT
@@ -175,6 +175,10 @@ public class TagService(DatabaseContext db, TaxonomySearchIndexService taxonomyS
             FROM tags a
             JOIN tags b ON a.id < b.id
             WHERE similarity(a.name, b.name) > {threshold}
+                AND NOT EXISTS (
+                    SELECT 1 FROM "dismissed-merge-suggestions" d
+                    WHERE d."entity-type" = {TypeTag} AND d.id1 = a.id AND d.id2 = b.id
+                )
             ORDER BY "Score" DESC
             LIMIT {limit}
         """).ToListAsync();

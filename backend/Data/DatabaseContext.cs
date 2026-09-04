@@ -44,6 +44,8 @@ namespace KnowledgeBank.Data
 
         public DbSet<ChangelogEntry> Changelog { get; set; }
 
+        public DbSet<DismissedMergeSuggestion> DismissedMergeSuggestions { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Configure TPT inheritance for Entity hierarchy
@@ -242,6 +244,10 @@ namespace KnowledgeBank.Data
                 entity.HasKey(e => e.Id);
                 entity.ToView("trashview");
             });
+
+            // Dismissed merge suggestions
+            modelBuilder.Entity<DismissedMergeSuggestion>()
+                .HasKey(d => new { d.EntityType, d.Id1, d.Id2 });
 
             base.OnModelCreating(modelBuilder);
         }

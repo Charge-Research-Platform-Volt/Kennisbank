@@ -144,7 +144,7 @@ public class ResourceTypeService(DatabaseContext db, TaxonomySearchIndexService 
 
     #region Suggestions
 
-    public async Task<List<MergeSuggestion>> GetMergeSuggestionsAsync(float threshold = 0.6f, int limit = 20)
+    public async Task<List<MergeSuggestion>> GetMergeSuggestionsAsync(float threshold = 0.5f, int limit = 20)
     {
         return await db.Database.SqlQuery<MergeSuggestion>($"""
             SELECT
@@ -156,6 +156,10 @@ public class ResourceTypeService(DatabaseContext db, TaxonomySearchIndexService 
             FROM "resource-types" a
             JOIN "resource-types" b ON a.id < b.id
             WHERE similarity(a.name, b.name) > {threshold}
+                AND NOT EXISTS (
+                    SELECT 1 FROM "dismissed-merge-suggestions" d
+                    WHERE d."entity-type" = {TypeTag} AND d.id1 = a.id AND d.id2 = b.id
+                )
             ORDER BY "Score" DESC
             LIMIT {limit}
         """).ToListAsync();

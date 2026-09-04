@@ -128,6 +128,6 @@ public class ResourceTypesController(ResourceTypeService resourceTypeService) : 
     [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(Summary = "(Admin only) Get merge suggestions based on name similarity")]
     [SwaggerResponse(200, "List of suggestions", typeof(List<MergeSuggestion>))]
-    public async Task<IActionResult> Suggestions([FromQuery] float threshold = 0.6f, [FromQuery] int limit = 20)
+    public async Task<IActionResult> Suggestions([FromQuery] float threshold = 0.5f, [FromQuery] int limit = 20)
         => Ok(await resourceTypeService.GetMergeSuggestionsAsync(threshold, limit));
 }

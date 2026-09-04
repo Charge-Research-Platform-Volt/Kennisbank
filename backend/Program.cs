@@ -158,6 +158,7 @@ namespace KnowledgeBank
             builder.Services.AddScoped<ProjectService>();
             builder.Services.AddScoped<ChatService>();
             builder.Services.AddScoped<MessageAttachmentService>();
+            builder.Services.AddScoped<MergeSuggestionService>();
 
             // Retrieval Augmented Generation system
             builder.Services.AddSingleton<MistralHttpClient>();

@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Identity;
 namespace KnowledgeBank.Controllers;
 
 [Route("[controller]")]
-public class ChangelogController(IDbContextFactory<DatabaseContext> dbFactory, UserManager<User> userManager) : AppControllerBase
+public class ChangelogController(DatabaseContext database, UserManager<User> userManager) : AppControllerBase
 {
     [HttpGet]
     [Authorize]
@@ -18,8 +18,6 @@ public class ChangelogController(IDbContextFactory<DatabaseContext> dbFactory, U
     [SwaggerResponse(200, "Entries returned")]
     public async Task<IActionResult> GetAll([FromQuery] int? before, [FromQuery] int limit = 20)
     {
-        await using var database = await dbFactory.CreateDbContextAsync();
-
         IQueryable<ChangelogEntry> query = database.Changelog;
 
         if (before != null)
@@ -42,8 +40,6 @@ public class ChangelogController(IDbContextFactory<DatabaseContext> dbFactory, U
         string userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? throw new Exception("User authenticated yet not found.");
         User user = await userManager.FindByIdAsync(userId) ?? throw new Exception("User authenticated yet not found.");
 
-        await using var database = await dbFactory.CreateDbContextAsync();
-
         List<ChangelogEntry> entries = await database.Changelog
             .Where(c => c.Id > user.LastSeenChangelogId)
             .OrderBy(c => c.Id)
@@ -64,8 +60,6 @@ public class ChangelogController(IDbContextFactory<DatabaseContext> dbFactory, U
     [SwaggerResponse(200, "Entry added")]
     public async Task<IActionResult> AddEntry([FromBody] ChangelogEntryCreateDto dto)
     {
-        await using var database = await dbFactory.CreateDbContextAsync();
-
         var entry = new ChangelogEntry
         {
             Title = dto.Title,

@@ -3,17 +3,17 @@
 	import ManageUsers from './ManageUsers.svelte';
 
 	const tabs = [
-		{ id: 'tags', label: 'Tags' },
-		{ id: 'regions', label: 'Regions' },
-		{ id: 'resourceTypes', label: 'Resource Types' },
-		{ id: 'journals', label: 'Journals' },
-		{ id: 'persons', label: 'Persons' },
-		{ id: 'organisations', label: 'Organisations' },
-		{ id: 'users', label: 'Users' }
+		{ id: 'tag', label: 'Tags' },
+		{ id: 'region', label: 'Regions' },
+		{ id: 'resourcetype', label: 'Resource Types' },
+		{ id: 'journal', label: 'Journals' },
+		{ id: 'person', label: 'Persons' },
+		{ id: 'organisation', label: 'Organisations' },
+		{ id: 'user', label: 'Users' }
 	] as const;
 
 	type TabId = (typeof tabs)[number]['id'];
-	let activeTab = $state<TabId>('tags');
+	let activeTab = $state<TabId>('tag');
 </script>
 
 <div class="flex h-full flex-1 flex-col overflow-hidden">
@@ -32,7 +32,7 @@
 	</div>
 
 	<div class="flex flex-1 flex-col overflow-hidden">
-		{#if activeTab === 'users'}
+		{#if activeTab === 'user'}
 			<ManageUsers />
 		{:else}
 			<ManageList type={activeTab} />

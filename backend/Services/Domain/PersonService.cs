@@ -411,7 +411,7 @@ public class PersonService(DatabaseContext db, LibrarySearchIndexService library
 
     #region Suggestions
 
-    public async Task<List<MergeSuggestion>> GetMergeSuggestionsAsync(float threshold = 0.6f, int limit = 20)
+    public async Task<List<MergeSuggestion>> GetMergeSuggestionsAsync(float threshold = 0.5f, int limit = 20)
     {
         return await db.Database.SqlQuery<MergeSuggestion>($"""
             SELECT
@@ -427,9 +427,13 @@ public class PersonService(DatabaseContext db, LibrarySearchIndexService library
             JOIN entities ea ON a.id = ea.id
             JOIN persons b ON a.id < b.id
             JOIN entities eb ON b.id = eb.id
-            WHERE similarity(ea.name, eb.name) > {threshold}
+            WHERE similarity(ea.name, eb.name) > {threshold} (
                OR ea.name ILIKE ANY(eb.aliases)
                OR eb.name ILIKE ANY(ea.aliases)
+            ) AND NOT EXISTS (
+                SELECT 1 FROM "dismissed-merge-suggestions" d
+                WHERE d."entity-type" = {TypeTag} AND d.id1 = a.id AND d.id2 = b.id
+            )
             ORDER BY "Score" DESC
             LIMIT {limit}
         """).ToListAsync();
