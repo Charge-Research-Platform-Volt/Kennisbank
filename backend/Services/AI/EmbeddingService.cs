@@ -123,11 +123,17 @@ public class EmbeddingService
     /// <summary>
     /// Retries a call with exponential backoff on 429/502/503 specifically — same treatment as the
     /// Mistral OCR calls in TextExtractionService, since this SDK call had no retry logic at all.
+    /// Also paces every attempt (first try and retries alike) so the actual request rate reaching
+    /// the embeddings provider stays capped app-wide, regardless of how many resources/entities are
+    /// being processed concurrently — bounded concurrency alone only limits how many pipelines run
+    /// at once, not how many embedding HTTP requests land in the same second.
     /// </summary>
     private async Task<T> WithRetryAsync<T>(Func<Task<T>> action, int maxAttempts = 3)
     {
         for (int attempt = 1; ; attempt++)
         {
+            await PaceAsync();
+
             try
             {
                 return await action();
@@ -138,6 +144,31 @@ public class EmbeddingService
                 logger.Warning(ex, "Embedding request returned {Status}, retrying in {Delay}s (attempt {Attempt}/{Max})", ex.Status, delay.TotalSeconds, attempt, maxAttempts);
                 await Task.Delay(delay);
             }
+        }
+    }
+
+    private readonly SemaphoreSlim _paceLock = new(1, 1);
+    private DateTime _lastRequestAt = DateTime.MinValue;
+
+    // Conservative default — Scaleway's exact per-account rate limit for qwen3-embedding-8b lives in
+    // your account's own "Organization quotas for Generative APIs - Serverless" page, not in public
+    // docs, so this wasn't picked against a verified number. Check that page and tune this constant
+    // (lower = more conservative/slower, higher = faster but more likely to still 429) if needed.
+    private static readonly TimeSpan MinEmbeddingRequestInterval = TimeSpan.FromMilliseconds(300);
+
+    private async Task PaceAsync()
+    {
+        await _paceLock.WaitAsync();
+        try
+        {
+            TimeSpan wait = MinEmbeddingRequestInterval - (DateTime.UtcNow - _lastRequestAt);
+            if (wait > TimeSpan.Zero)
+                await Task.Delay(wait);
+            _lastRequestAt = DateTime.UtcNow;
+        }
+        finally
+        {
+            _paceLock.Release();
         }
     }
 }

@@ -26,6 +26,10 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
             await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Processing);
 
             var (richMetadata, resource) = await BuildRichMetadataChunkAsync(id);
+
+            if (string.IsNullOrWhiteSpace(richMetadata))
+                throw new InvalidOperationException($"Resource {id} could not be found or has no metadata to embed.");
+
             List<string> chunks = [richMetadata];
 
             if (fileStream != null)
@@ -37,13 +41,9 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
                 OcrResult ocrResult = await textExtractionService.ExtractOcrResultFromFileAsync(fileStream, ext, bucketName, id.ToString());
 
                 if (string.IsNullOrEmpty(ocrResult.Text))
-                {
                     logger.Warning("No text extracted from file for resource {Id}", id);
-                    await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Completed, null);
-                    return;
-                }
-
-                chunks.AddRange(SplitTextIntoChunks(ocrResult.Text, markdownSplit: true));
+                else
+                    chunks.AddRange(SplitTextIntoChunks(ocrResult.Text, markdownSplit: true));
             }
             else if (resource?.FileType == "website" && !string.IsNullOrEmpty(resource.SourceUrl))
             {

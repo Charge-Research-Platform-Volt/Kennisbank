@@ -178,6 +178,23 @@ public class AdminController(
             .Select(g => new { Status = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Status.ToString(), x => x.Count);
 
+        // Independent of EmbeddingStatus entirely — catches drift the status field alone can miss,
+        // e.g. historical data from before today's fixes, or any future bug that marks something
+        // Completed without actually creating its chunks. Content is resource-only: entities never
+        // get a ContentText chunk (RunEntityPipelineAsync always embeds a single MetaData chunk), so
+        // checking it for entities would just always read "100%" — not a useful number.
+        int resourcesWithoutMetadataEmbeddings = await db.Resources
+            .Where(r => !r.Trashed && !db.ResourceChunks.Any(c => c.ResourceId == r.Id && c.ChunkType == ChunkType.MetaData))
+            .CountAsync();
+
+        int resourcesWithoutContentEmbeddings = await db.Resources
+            .Where(r => !r.Trashed && !db.ResourceChunks.Any(c => c.ResourceId == r.Id && c.ChunkType == ChunkType.ContentText))
+            .CountAsync();
+
+        int entitiesWithoutEmbeddings = await db.Entities
+            .Where(e => !e.Trashed && !db.EntityChunks.Any(c => c.EntityId == e.Id && c.ChunkType == ChunkType.MetaData))
+            .CountAsync();
+
         var incompleteResources = await db.Resources
             .Where(r => !r.Trashed && r.EmbeddingStatus != EmbeddingStatus.Completed)
             .Select(r => new FailedEmbeddingItemDto { Id = r.Id, Name = r.Title, Type = "resource", Status = r.EmbeddingStatus.ToString(), Error = r.EmbeddingError })
@@ -198,6 +215,9 @@ public class AdminController(
             IsRunning = reembedRunState.IsRunning,
             ResourceCounts = resourceCounts,
             EntityCounts = entityCounts,
+            ResourcesWithoutMetadataEmbeddings = resourcesWithoutMetadataEmbeddings,
+            ResourcesWithoutContentEmbeddings = resourcesWithoutContentEmbeddings,
+            EntitiesWithoutEmbeddings = entitiesWithoutEmbeddings,
             IncompleteItems = [.. incompleteResources, .. incompletePersons, .. incompleteOrganisations]
         });
     }

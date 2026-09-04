@@ -12,6 +12,9 @@
 		isRunning: boolean;
 		resourceCounts: Record<string, number>;
 		entityCounts: Record<string, number>;
+		resourcesWithoutMetadataEmbeddings: number;
+		resourcesWithoutContentEmbeddings: number;
+		entitiesWithoutEmbeddings: number;
 		incompleteItems: { id: string; name: string; type: string; status: string; error: string | null }[];
 	};
 
@@ -126,6 +129,31 @@
 							<span class="font-mono">{summary.entityCounts[status] ?? 0}</span>
 						</div>
 					{/each}
+				</div>
+			</div>
+		</div>
+
+		<!-- Missing embeddings, independent of status -->
+		<div class="flex flex-col gap-2 rounded-md border p-4">
+			<span class="text-sm font-medium text-muted-foreground">Missing embeddings (regardless of status)</span>
+			<div class="flex flex-col gap-1">
+				<div class="flex items-center justify-between text-sm">
+					<span class={summary.resourcesWithoutMetadataEmbeddings > 0 ? 'text-destructive' : ''}>
+						Resources without metadata embedding
+					</span>
+					<span class="font-mono">{summary.resourcesWithoutMetadataEmbeddings}</span>
+				</div>
+				<div class="flex items-center justify-between text-sm">
+					<span class={summary.resourcesWithoutContentEmbeddings > 0 ? 'text-destructive' : ''}>
+						Resources without content embedding
+					</span>
+					<span class="font-mono">{summary.resourcesWithoutContentEmbeddings}</span>
+				</div>
+				<div class="flex items-center justify-between text-sm">
+					<span class={summary.entitiesWithoutEmbeddings > 0 ? 'text-destructive' : ''}>
+						Persons/Organisations without embedding
+					</span>
+					<span class="font-mono">{summary.entitiesWithoutEmbeddings}</span>
 				</div>
 			</div>
 		</div>
