@@ -22,7 +22,8 @@ public class UserService(DatabaseContext db)
 
     public async Task<(User[] Users, int TotalCount)> GetPageAsync(int page, int pageSize, string? searchQuery = null, string? excludeId = null)
     {
-        IQueryable<User> query = db.Users;
+        IQueryable<User> query = db.Users.Where(u => !u.IsDeleted);
+
         if (!string.IsNullOrEmpty(searchQuery))
             query = query.Where(u => EF.Functions.ILike(u.FirstName + " " + u.LastName, $"%{searchQuery}%"));
         if (!string.IsNullOrEmpty(excludeId))
@@ -30,13 +31,14 @@ public class UserService(DatabaseContext db)
 
         int skip = (page - 1) * pageSize;
         User[] users = await query.OrderBy(u => u.Email).Skip(skip).Take(pageSize).ToArrayAsync();
-        int totalCount = await db.Users.CountAsync();
+        int totalCount = await db.Users.CountAsync(u => !u.IsDeleted);
         return (users, totalCount);
     }
 
     public async Task<(User[] MatchedUsers, Invitation[] MatchedInvites)> GetCombinedAsync(string? searchQuery = null)
     {
-        IQueryable<User> userQuery = db.Users;
+        IQueryable<User> userQuery = db.Users.Where(u => !u.IsDeleted);
+
         if (!string.IsNullOrEmpty(searchQuery))
             userQuery = userQuery.Where(u =>
                 EF.Functions.ILike(u.Email!, $"%{searchQuery}%") ||
@@ -129,4 +131,7 @@ public class UserService(DatabaseContext db)
 
     public async Task<int> GetLatestChangelogIdAsync()
         => await db.Changelog.MaxAsync(c => (int?)c.Id) ?? 0;
+
+    public async Task RemoveFromAllProjectsAsync(string userId)
+        => await db.ProjectMemberRelations.Where(m => m.UserId == userId).ExecuteDeleteAsync();
 }

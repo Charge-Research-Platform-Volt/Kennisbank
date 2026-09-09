@@ -20,6 +20,8 @@ public class User : IdentityUser
 
     public int LastSeenChangelogId { get; set; } = 0;
 
+    public bool IsDeleted { get; set; } = false;
+
     [Obsolete("Only for EF Core and Identity or testing without a real database. Use the parameterized constructor instead.")]
     public User() { } // Default constructor for EF Core
 

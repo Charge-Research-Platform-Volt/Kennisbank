@@ -22,6 +22,7 @@
 	let pageCount = $state(1);
 	let totalCount = $state(0);
 	let submitting = $state(false);
+	let deleting = $state(false);
 
 	// edit dialog
 	let openUser = $state<UserEntry | null>(null);
@@ -134,12 +135,20 @@
 	async function deleteUser(entry: UserEntry) {
 		const ok = await confirm(`Delete ${entry.email}? This cannot be undone.`);
 		if (!ok) return;
+
+		deleting = true;
+
 		try {
 			await api.delete(`/api/users/${entry.id}`);
+
+			if (openUser?.id === entry.id) openUser = null;
+
 			await fetchItems();
 			toast.success('User deleted.');
 		} catch (e) {
 			toast.error(e instanceof Error ? e.message : 'Failed to delete user.');
+		} finally {
+			deleting = false;
 		}
 	}
 
@@ -469,14 +478,27 @@
 		</div>
 
 		<!-- Footer -->
-		<div class="flex shrink-0 justify-end gap-2 border-t p-4">
-			<Button class="cursor-pointer" variant="ghost" onclick={() => (openUser = null)}>
-				Cancel
+		<div class="flex shrink-0 justify-between gap-2 border-t p-4">
+			<Button
+				class="cursor-pointer"
+				variant="destructive"
+				onclick={() => openUser && deleteUser(openUser)}
+				disabled={deleting || submitting}
+			>
+				{#if deleting}<Spinner class="h-4 w-4" />
+				{/if}Delete user
 			</Button>
 
-			<Button class="cursor-pointer" onclick={saveUser} disabled={submitting}>
-				{#if submitting}<Spinner class="h-4 w-4" />{/if} Save
-			</Button>
+			<div class="flex gap-2">
+				<Button class="cursor-pointer" variant="ghost" onclick={() => (openUser = null)}>
+					Cancel
+				</Button>
+
+				<Button class="cursor-pointer" onclick={saveUser} disabled={submitting}>
+					{#if submitting}<Spinner class="h-4 w-4" />
+					{/if}Save
+				</Button>
+			</div>
 		</div>
 	</aside>
 

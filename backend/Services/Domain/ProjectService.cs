@@ -150,7 +150,7 @@ public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxon
             TypeId = x.Item.TypeId,
             JournalId = x.Item.JournalId,
             AddedBy = x.Relation.AddedBy != null && userNames.TryGetValue(x.Relation.AddedBy, out string? n)
-                ? n : x.Relation.AddedBy ?? "Unknown"
+                ? n : "Unknown"
         }).ToList();
 
         List<ProjectAncestor> ancestors = await GetAncestorsAsync(id);

@@ -380,11 +380,37 @@ public class UsersController(UserService userService, IStorageService storageSer
             }
         }
 
-        IdentityResult response = await userManager.DeleteAsync(user);
+        // Anonymize rather than hard-delete so various "Added/Created by" relations stay in tact.
+        // We only keep ID + Name so it can resolve to a real name
+        string originalEmail = user.Email!;
+
+        if (user.HasCustom)
+        {
+            await storageService.DeleteObjectAsync(bucketName, user.Id);
+            user.HasCustom = false;
+        }
+
+        IList<string> userRoles = await userManager.GetRolesAsync(user);
+        if (userRoles.Count > 0)
+            await userManager.RemoveFromRolesAsync(user, userRoles);
+
+        await userService.RemoveFromAllProjectsAsync(user.Id);
+
+        string placeholderEmail = $"deleted-{user.Id}@deleted.invalid";
+        
+        await userManager.SetEmailAsync(user, placeholderEmail);
+        await userManager.SetUserNameAsync(user, placeholderEmail);
+        await userManager.RemovePasswordAsync(user);
+        await userManager.SetLockoutEnabledAsync(user, true);
+        await userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+
+        user.IsDeleted = true;
+        IdentityResult response = await userManager.UpdateAsync(user);
+
         if (!response.Succeeded)
             return BadRequest(response.Errors);
 
-        logger.Information("User {Email} deleted by {ActorId}", user.Email, currentUserId);
+        logger.Information("User {Email} anonymized (deleted) by {ActorId}", originalEmail, currentUserId);
         return Ok(new { message = "User deleted successfully." });
     }
 
