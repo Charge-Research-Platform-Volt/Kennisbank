@@ -27,6 +27,10 @@
 	let openUser = $state<UserEntry | null>(null);
 	let editMail = $state('');
 	let editRole = $state('');
+	let editFirstName = $state('');
+	let editLastName = $state('');
+	let avatarInputElement = $state<HTMLInputElement | null>(null);
+	let avatarSubmitting = $state(false);
 
 	// invite dialog
 	let inviteOpen = $state(false);
@@ -58,16 +62,25 @@
 		openUser = user;
 		editMail = user.email;
 		editRole = user.role;
+		editFirstName = user.firstName;
+		editLastName = user.lastName;
 	}
 
 	async function saveUser() {
 		if (!openUser) return;
 		submitting = true;
 		try {
+			if (editFirstName !== openUser.firstName || editLastName !== openUser.lastName)
+				await api.patch(`/api/users/${openUser.id}/name`, {
+					newFirstName: editFirstName,
+					newLastName: editLastName
+				});
+
 			if (editMail !== openUser.email)
 				await api.patch(`/api/users/${openUser.id}/email`, { email: editMail });
 			if (editRole !== openUser.role)
 				await api.patch(`/api/users/${openUser.id}/role`, { roleName: editRole });
+
 			await fetchItems();
 			openUser = null;
 			toast.success('User updated.');
@@ -75,6 +88,46 @@
 			toast.error(e instanceof Error ? e.message : 'Failed to update user.');
 		} finally {
 			submitting = false;
+		}
+	}
+
+	async function handleAvatarChange() {
+		const file = avatarInputElement?.files?.[0];
+		if (!file || !openUser) return;
+
+		avatarSubmitting = true;
+		const formData = new FormData();
+		formData.append('newAvatar', file);
+
+		try {
+			const version = await api.form<number>(`/api/users/${openUser.id}/avatar`, formData);
+			openUser = { ...openUser, customAvatarVersion: version };
+			items = items.map((i) =>
+				i.type === 'user' && i.id === openUser!.id ? { ...i, customAvatarVersion: version } : i
+			);
+			toast.success('Avatar updated.');
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : 'Failed to update avatar.');
+		} finally {
+			avatarSubmitting = false;
+		}
+	}
+
+	async function removeAvatar() {
+		if (!openUser) return;
+		avatarSubmitting = true;
+
+		try {
+			await api.delete(`/api/users/${openUser.id}/avatar`);
+			openUser = { ...openUser, customAvatarVersion: null };
+			items = items.map((i) =>
+				i.type === 'user' && i.id === openUser!.id ? { ...i, customAvatarVersion: null } : i
+			);
+			toast.success('Avatar removed');
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : 'Failed to remove avatar.');
+		} finally {
+			avatarSubmitting = false;
 		}
 	}
 
@@ -319,19 +372,59 @@
 	>
 		<!-- Header -->
 		<div class="flex items-start justify-between border-b p-4">
-			<div class="flex gap-4">
+			<div class="flex items-start gap-4">
 				{#if openUser}
-					<Avatar
-						userId={openUser?.id}
-						name="{openUser?.firstName} {openUser?.lastName}"
-						customAvatarVersion={openUser?.customAvatarVersion}
-						size={40}
+					<button
+						type="button"
+						onclick={() => avatarInputElement?.click()}
+						class="group relative shrink-0 cursor-pointer"
+						disabled={avatarSubmitting}
+					>
+						{#if avatarSubmitting}
+							<div
+								style="width: 40px; height: 40px;"
+								class="flex items-center justify-center rounded-full bg-muted"
+							>
+								<Spinner class="h-4 w-4" />
+							</div>
+						{:else}
+							<Avatar
+								userId={openUser?.id}
+								name="{openUser?.firstName} {openUser?.lastName}"
+								customAvatarVersion={openUser?.customAvatarVersion}
+								size={40}
+							/>
+
+							<div
+								class="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
+							>
+								<Pencil class="text-white" size={14} />
+							</div>
+						{/if}
+					</button>
+
+					<input
+						type="file"
+						accept="image/png,image/jpeg,image/webp"
+						bind:this={avatarInputElement}
+						onchange={handleAvatarChange}
+						hidden
 					/>
 				{/if}
 
 				<div class="flex flex-col gap-0.5">
 					<span class="font-semibold">{openUser?.firstName} {openUser?.lastName}</span>
 					<span class="text-xs text-muted-foreground">{openUser?.email}</span>
+
+					{#if openUser?.customAvatarVersion !== null}
+						<button
+							type="button"
+							onclick={removeAvatar}
+							class="cursor-pointer text-left text-xs text-muted-foreground transition-colors hover:text-destructive"
+						>
+							Remove avatar
+						</button>
+					{/if}
 				</div>
 			</div>
 
@@ -342,11 +435,26 @@
 
 		<!-- Content -->
 		<div class="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
+			<!-- Name -->
+			<div class="flex gap-3">
+				<div class="flex flex-1 flex-col gap-1.5">
+					<label class="text-sm font-medium" for="edit-first-name">First name</label>
+					<Input id="edit-first-name" bind:value={editFirstName} />
+				</div>
+
+				<div class="flex flex-1 flex-col gap-1.5">
+					<label class="text-sm font-medium" for="edit-last-name">Last name</label>
+					<Input id="edit-last-name" bind:value={editLastName} />
+				</div>
+			</div>
+
+			<!-- Email -->
 			<div class="flex flex-col gap-1.5">
 				<label class="text-sm font-medium" for="edit-email">Email</label>
 				<Input id="edit-email" type="email" bind:value={editMail} />
 			</div>
 
+			<!-- Role -->
 			<div class="flex flex-col gap-1.5">
 				<label class="text-sm font-medium" for="edit-role">Role</label>
 				<select

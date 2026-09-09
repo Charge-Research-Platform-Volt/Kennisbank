@@ -199,15 +199,51 @@ public class UsersController(UserService userService, IStorageService storageSer
         return Ok(new { message = "User email changed successfully." });
     }
 
+    [HttpPatch("{userId}/name")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerOperation(Summary = "Update a user's name (admin only).")]
+    [SwaggerResponse(200, "User name updated successfully.")]
+    [SwaggerResponse(403, "This action is forbidden")]
+    [SwaggerResponse(404, "User not found.")]
+    public async Task<IActionResult> UpdateName(string userId, [FromBody] UpdateNameDto dto)
+    {
+        User? user = await userManager.FindByIdAsync(userId);
+        if (user == null) return NotFound("Invalid user ID.");
+
+        if (user.Email == ownerConfig.Email)
+            return Problem("Name of the owner account cannot be changed.", statusCode: 403);
+
+        user.FirstName = dto.NewFirstName;
+        user.LastName = dto.NewLastName;
+
+        IdentityResult result = await userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+            return BadRequest(result.Errors);
+
+        logger.Information("User name changed. User ID: {UserId}", userId);
+        return Ok(new { message = "User name changed successfully." });
+    }
+
     [HttpPost("avatar")]
     [Authorize]
     [SwaggerOperation(Summary = "Upload or replace the current user's avatar.")]
     [SwaggerResponse(200, "Avatar uploaded successfully.")]
     [SwaggerResponse(400, "Invalid file.")]
     [SwaggerResponse(404, "User not found.")]
-    public async Task<IActionResult> UploadAvatar(IFormFile newAvatar)
+    public Task<IActionResult> UploadAvatar(IFormFile newAvatar)
+        => UploadAvatarForUserAsync(User.FindFirstValue(ClaimTypes.NameIdentifier)!, newAvatar);
+
+    [HttpPost("{userId}/avatar")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerOperation(Summary = "Upload or replace another user's avatar (admin only).")]
+    [SwaggerResponse(200, "Avatar uploaded successfully.")]
+    [SwaggerResponse(400, "Invalid file")]
+    [SwaggerResponse(404, "User not found.")]
+    public Task<IActionResult> UploadAvatarForUser(string userId, IFormFile newAvatar)
+        => UploadAvatarForUserAsync(userId, newAvatar);
+
+    private async Task<IActionResult> UploadAvatarForUserAsync(string userId, IFormFile newAvatar)
     {
-        string userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         User? user = await userManager.FindByIdAsync(userId);
         if (user == null) return NotFound("User not found.");
 
@@ -235,9 +271,19 @@ public class UsersController(UserService userService, IStorageService storageSer
     [SwaggerOperation(Summary = "Remove the current user's avatar.")]
     [SwaggerResponse(200, "Avatar removed successfully.")]
     [SwaggerResponse(404, "User not found.")]
-    public async Task<IActionResult> DeleteAvatar()
+    public Task<IActionResult> DeleteAvatar()
+        => DeleteAvatarForUserAsync(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+    [HttpDelete("{userId}/avatar")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerOperation(Summary = "Remove another user's avatar")]
+    [SwaggerResponse(200, "Avatar removed successfully.")]
+    [SwaggerResponse(404, "User not found.")]
+    public Task<IActionResult> DeleteAvatarForUser(string userId)
+        => DeleteAvatarForUserAsync(userId);
+
+    private async Task<IActionResult> DeleteAvatarForUserAsync(string userId)
     {
-        string userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         User? user = await userManager.FindByIdAsync(userId);
         if (user == null) return NotFound("User not found.");
 

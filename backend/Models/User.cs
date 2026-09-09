@@ -63,3 +63,14 @@ public class UpdateUserDto
     [RegularExpression(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", ErrorMessage = "Incorrect email format.")]  
     public string? NewEmail { get; set; }
 }
+
+public class UpdateNameDto
+{
+    [Required]
+    [MaxLength(100)]
+    public required string NewFirstName { get; set; }
+
+    [Required]
+    [MaxLength(100)]
+    public required string NewLastName { get; set; }
+}
