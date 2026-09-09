@@ -52,7 +52,7 @@
 		} catch {
 			// Not logged in, so stay on page
 		}
-	})
+	});
 </script>
 
 <!-- Form -->
@@ -72,7 +72,10 @@
 
 		<!-- Password input -->
 		<div class="flex flex-col gap-1">
-			<label for="password" class="font-bold">Password</label>
+			<div class="flex items-center justify-between">
+				<label for="password" class="font-bold">Password</label>
+				<a href="/forgot-password" tabindex="-1" class="text-sm text-blue-500">Forgot password?</a>
+			</div>
 			<Input bind:value={password} type="password" name="password" id="password" required />
 		</div>
 

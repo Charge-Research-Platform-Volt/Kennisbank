@@ -47,5 +47,24 @@ namespace KnowledgeBank.Utils
             client.Send(message);
             client.Disconnect(true);
         }
+
+        public void SendResetPasswordMail(string to, string resetUrl)
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(fromName, address));
+            message.To.Add(new MailboxAddress(to, to));
+            message.Subject = "Reset your Charge Kennisbank password";
+
+            var htmlBody = File.ReadAllText("Templates/reset-password-email.html")
+                .Replace("{{RESET_URL}}", resetUrl);
+
+            message.Body = new TextPart("html") { Text = htmlBody };
+
+            using var client = new SmtpClient();
+            client.Connect(smtpHost, tlsPort, MailKit.Security.SecureSocketOptions.StartTls);
+            client.Authenticate(address, password);
+            client.Send(message);
+            client.Disconnect(true);
+        }
     }
 }

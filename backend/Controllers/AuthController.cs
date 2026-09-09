@@ -13,7 +13,7 @@ using KnowledgeBank.Services.Domain;
 namespace KnowledgeBank.Controllers
 {
     [Route("[controller]")]
-    public class AuthController(SignInManager<User> signInManager, UserService userService, EnvironmentConfig environmentConfig, IStorageService storageService, VPNService vpnService) : AppControllerBase
+    public class AuthController(SignInManager<User> signInManager, UserService userService, EnvironmentConfig environmentConfig, IStorageService storageService, VPNService vpnService, MailUtils mailUtils) : AppControllerBase
     {
         private readonly Serilog.ILogger logger = Log.ForContext<AuthController>();
         private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
@@ -128,6 +128,44 @@ namespace KnowledgeBank.Controllers
 
             logger.Information("Password changed for user {UserId}", userId);
             return Ok(new { message = "Password updated successfully" });
+        }
+
+        [HttpPost("forgot-password")]
+        [SwaggerOperation(Summary = "Sends a password reset email if the address is registered.")]
+        [SwaggerResponse(200, "If the email is registered, a reset link has been sent.")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+        {
+            User? user = await signInManager.UserManager.FindByEmailAsync(dto.Email);
+
+            if (user != null)
+            {
+                string token = await signInManager.UserManager.GeneratePasswordResetTokenAsync(user);
+                string resetUrl = $"{environmentConfig.GetVariableValue(EnvironmentVariable.HOST_URL)}/reset-password?email={Uri.EscapeDataString(dto.Email)}&token={Uri.EscapeDataString(token)}";
+
+                mailUtils.SendResetPasswordMail(dto.Email, resetUrl);
+                logger.Information("Password reset requested for {Email}", dto.Email);
+            }
+
+            // Always 200 regardless of whethere the email exists, to avoid leaking which emails are registered
+            return Ok(new { message = "A reset link has been sent, if that email is registered." });
+        }
+
+        [HttpPost("reset-password")]
+        [SwaggerOperation(Summary = "Resets a user's password using a token from the forgot-password email.")]
+        [SwaggerResponse(200, "Password reset successfully.")]
+        [SwaggerResponse(400, "Invalid or expired token.")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            User? user = await signInManager.UserManager.FindByEmailAsync(dto.Email);
+            if (user == null)
+                return BadRequest(new { message = "Invalid or expired reset link." });
+
+            IdentityResult result = await signInManager.UserManager.ResetPasswordAsync(user, dto.Token, dto.NewPassword);
+            if (!result.Succeeded)
+                return BadRequest(new { message = string.Join(" ", result.Errors.Select(e => e.Description)) });
+
+            logger.Information("Password reset completed for {Email}", dto.Email);
+            return Ok(new { message = "Password updated successfully." });
         }
     }
 }
