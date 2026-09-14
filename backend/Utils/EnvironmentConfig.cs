@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using DotNetEnv;
 
 namespace KnowledgeBank.Utils;
 
@@ -27,14 +28,21 @@ public enum EnvironmentVariable
     EMBEDDINGS_MODEL_NAME,
     EMBEDDINGS_ENDPOINT,
     EMBEDDINGS_API_KEY,
+    EMBEDDINGS_REQUESTS_PER_MINUTE,
+    EMBEDDINGS_TOKENS_PER_MINUTE,
+    EMBEDDINGS_MAX_CONCURRENT_REQUESTS,
 
     // Chat Completions
     MISTRAL_ENDPOINT,
     MISTRAL_API_KEY,
-    SMALL_MODEL_NAME,
-    MEDIUM_MODEL_NAME,
-    CHAT_MODEL_NAME,
-    OCR_MODEL_NAME,
+    MISTRAL_SMALL_MODEL_NAME,
+    MISTRAL_SMALL_REQUESTS_PER_MINUTE,
+    MISTRAL_SMALL_TOKENS_PER_MINUTE,
+    MISTRAL_MEDIUM_MODEL_NAME,
+    MISTRAL_MEDIUM_REQUESTS_PER_MINUTE,
+    MISTRAL_MEDIUM_TOKENS_PER_MINUTE,
+    MISTRAL_OCR_MODEL_NAME,
+    MISTRAL_OCR_PAGES_PER_MINUTE,
 
     // Headscale
     HEADSCALE_URL,
@@ -81,14 +89,23 @@ public class EnvironmentConfig
         _variableNames.Add(EnvironmentVariable.EMBEDDINGS_MODEL_NAME, "EMBEDDINGS_MODEL_NAME");
         _variableNames.Add(EnvironmentVariable.EMBEDDINGS_ENDPOINT, "EMBEDDINGS_ENDPOINT");
         _variableNames.Add(EnvironmentVariable.EMBEDDINGS_API_KEY, "EMBEDDINGS_API_KEY");
+        _variableNames.Add(EnvironmentVariable.EMBEDDINGS_REQUESTS_PER_MINUTE, "EMBEDDINGS_REQUESTS_PER_MINUTE");
+        _variableNames.Add(EnvironmentVariable.EMBEDDINGS_TOKENS_PER_MINUTE, "EMBEDDINGS_TOKENS_PER_MINUTE");
+        _variableNames.Add(EnvironmentVariable.EMBEDDINGS_MAX_CONCURRENT_REQUESTS, "EMBEDDINGS_MAX_CONCURRENT_REQUESTS");
 
         // Chat Completions
         _variableNames.Add(EnvironmentVariable.MISTRAL_ENDPOINT, "MISTRAL_ENDPOINT");
         _variableNames.Add(EnvironmentVariable.MISTRAL_API_KEY, "MISTRAL_API_KEY");
-        _variableNames.Add(EnvironmentVariable.SMALL_MODEL_NAME, "SMALL_MODEL_NAME");
-        _variableNames.Add(EnvironmentVariable.MEDIUM_MODEL_NAME, "MEDIUM_MODEL_NAME");
-        _variableNames.Add(EnvironmentVariable.CHAT_MODEL_NAME, "CHAT_MODEL_NAME");
-        _variableNames.Add(EnvironmentVariable.OCR_MODEL_NAME, "OCR_MODEL_NAME");
+        _variableNames.Add(EnvironmentVariable.MISTRAL_SMALL_MODEL_NAME, "MISTRAL_SMALL_MODEL_NAME");
+        _variableNames.Add(EnvironmentVariable.MISTRAL_SMALL_REQUESTS_PER_MINUTE, "MISTRAL_SMALL_REQUESTS_PER_MINUTE");
+        _variableNames.Add(EnvironmentVariable.MISTRAL_SMALL_TOKENS_PER_MINUTE, "MISTRAL_SMALL_TOKENS_PER_MINUTE");
+
+        _variableNames.Add(EnvironmentVariable.MISTRAL_MEDIUM_MODEL_NAME, "MISTRAL_MEDIUM_MODEL_NAME");
+        _variableNames.Add(EnvironmentVariable.MISTRAL_MEDIUM_REQUESTS_PER_MINUTE, "MISTRAL_MEDIUM_REQUESTS_PER_MINUTE");
+        _variableNames.Add(EnvironmentVariable.MISTRAL_MEDIUM_TOKENS_PER_MINUTE, "MISTRAL_MEDIUM_TOKENS_PER_MINUTE");
+
+        _variableNames.Add(EnvironmentVariable.MISTRAL_OCR_MODEL_NAME, "MISTRAL_OCR_MODEL_NAME");
+        _variableNames.Add(EnvironmentVariable.MISTRAL_OCR_PAGES_PER_MINUTE, "MISTRAL_OCR_PAGES_PER_MINUTE");
 
         // Headscale
         _variableNames.Add(EnvironmentVariable.HEADSCALE_URL, "HEADSCALE_URL");

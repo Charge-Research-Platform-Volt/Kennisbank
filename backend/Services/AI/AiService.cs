@@ -4,7 +4,7 @@ namespace KnowledgeBank.Services.AI;
 
 public class AiService(MistralHttpClient mistralClient, EnvironmentConfig environmentConfig)
 {
-    private readonly string smallModelName = environmentConfig.GetVariableValue(EnvironmentVariable.SMALL_MODEL_NAME);
+    private readonly string smallModelName = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_SMALL_MODEL_NAME);
 
     private const string summarizePrompt = """
         You are a precise research summarizer. Extract only facts directly stated in the excerpts that are relevant to the query context.

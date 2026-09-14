@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
@@ -47,20 +48,40 @@ public class MistralHttpClient
 {
     private const int MaxRetries = 3;
 
+    private const double SafetyMargin = 0.9;
+    private static readonly TimeSpan LimiterWindow = TimeSpan.FromSeconds(60);
+
     private readonly HttpClient textHttpClient;
     private readonly HttpClient filesHttpClient;
-    private readonly string modelName;
+    private readonly string smallModelName;
+    private readonly string mediumModelName;
     private readonly MistralStatusService mistralStatusService;
     private readonly Serilog.ILogger logger = Serilog.Log.ForContext<MistralHttpClient>();
+
+    private readonly RequestTokenLimiter smallRateLimiter;
+    private readonly RequestTokenLimiter mediumRateLimiter;
+    private readonly RollingWindowLimiter ocrPageLimiter;
 
     public MistralHttpClient(EnvironmentConfig environmentConfig, MistralStatusService mistralStatusService)
     {
         this.mistralStatusService = mistralStatusService;
 
         // Load values
-        modelName = environmentConfig.GetVariableValue(EnvironmentVariable.MEDIUM_MODEL_NAME);
+        smallModelName = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_SMALL_MODEL_NAME);
+        mediumModelName = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_MEDIUM_MODEL_NAME);
         Uri endpoint = new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_ENDPOINT).TrimEnd('/') + "/");
         string apiKey = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_API_KEY);
+
+        int smallRpm = int.Parse(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_SMALL_REQUESTS_PER_MINUTE));
+        int smallTpm = int.Parse(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_SMALL_TOKENS_PER_MINUTE));
+        int mediumRpm = int.Parse(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_MEDIUM_REQUESTS_PER_MINUTE));
+        int mediumTpm = int.Parse(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_MEDIUM_TOKENS_PER_MINUTE));
+        int ocrPpm = int.Parse(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_OCR_PAGES_PER_MINUTE));
+
+        // Initialize request limiters
+        smallRateLimiter = new RequestTokenLimiter((long)(smallRpm * SafetyMargin), (long)(smallTpm * SafetyMargin), LimiterWindow);
+        mediumRateLimiter = new RequestTokenLimiter((long)(mediumRpm * SafetyMargin), (long)(mediumTpm * SafetyMargin), LimiterWindow);
+        ocrPageLimiter = new RollingWindowLimiter((long)(ocrPpm * SafetyMargin), LimiterWindow);
 
         // Initialize HTTP Client for text
         textHttpClient = new HttpClient { BaseAddress = endpoint, Timeout = TimeSpan.FromSeconds(120) };
@@ -71,16 +92,23 @@ public class MistralHttpClient
         filesHttpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
     }
 
+    private RequestTokenLimiter GetLimiter(string model)
+        => model == smallModelName ? smallRateLimiter : mediumRateLimiter;
+
     public async Task<MistralCompletion> CompleteAsync(MistralChatRequest request, string? modelOverride = null, CancellationToken ct = default)
     {
-        logger.Debug("Mistral call [{Model}]", modelOverride ?? modelName);
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        var body = JsonSerializer.Serialize(BuildBody(request, modelOverride: modelOverride));
+        string effectiveModel = modelOverride ?? mediumModelName;
+        logger.Debug("Mistral call [{Model}]", effectiveModel);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        string body = JsonSerializer.Serialize(BuildBody(request, modelOverride: modelOverride));
+
+        RequestTokenLimiter limiter = GetLimiter(effectiveModel);
+        await limiter.WaitForSlotAsync(ct);
 
         HttpResponseMessage response = await SendWithRetryAsync(
             textHttpClient,
             () => new HttpRequestMessage(HttpMethod.Post, "chat/completions") { Content = new StringContent(body, Encoding.UTF8, "application/json") },
-            HttpCompletionOption.ResponseContentRead, 
+            HttpCompletionOption.ResponseContentRead,
             ct
         );
 
@@ -99,12 +127,22 @@ public class MistralHttpClient
 
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
         var choice = doc.RootElement.GetProperty("choices")[0];
-        int? promptTokens = doc.RootElement.TryGetProperty("usage", out var usage) && usage.TryGetProperty("prompt_tokens", out var pt) ? pt.GetInt32() : null;
+
+        int? promptTokens = null;
+        int? completionTokens = null;
+        if (doc.RootElement.TryGetProperty("usage", out var usage))
+        {
+            if (usage.TryGetProperty("prompt_tokens", out var pt)) promptTokens = pt.GetInt32();
+            if (usage.TryGetProperty("completion_tokens", out var ctok)) completionTokens = ctok.GetInt32();
+        }
+
+        limiter.RecordTokens((promptTokens ?? 0) + (completionTokens ?? 0));
+
         var message = choice.GetProperty("message");
         string finishReason = choice.GetProperty("finish_reason").GetString() ?? "stop";
 
         stopwatch.Stop();
-        logger.Debug("Mistral call [{Model}] took {ElapsedMs}ms, finish_reason={FinishReason}, prompt_tokens={PromptTokens}", modelOverride ?? modelName, stopwatch.ElapsedMilliseconds, finishReason, promptTokens);
+        logger.Debug("Mistral call [{Model}] took {ElapsedMs}ms, finish_reason={FinishReason}, prompt_tokens={PromptTokens}", effectiveModel, stopwatch.ElapsedMilliseconds, finishReason, promptTokens);
 
         if (finishReason == "tool_calls")
         {
@@ -123,8 +161,11 @@ public class MistralHttpClient
 
     public async IAsyncEnumerable<MistralStreamChunk> StreamAsync(MistralChatRequest request, [EnumeratorCancellation] CancellationToken ct = default)
     {
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        var body = JsonSerializer.Serialize(BuildBody(request, stream: true));
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        string body = JsonSerializer.Serialize(BuildBody(request, stream: true));
+
+        RequestTokenLimiter limiter = GetLimiter(mediumModelName);
+        await limiter.WaitForSlotAsync(ct);
 
         HttpResponseMessage response = await SendWithRetryAsync(
             textHttpClient,
@@ -179,6 +220,8 @@ public class MistralHttpClient
 
                 if (!anyContent && toolCalls == null)
                     logger.Warning("Mistral stream produced no content, finish_reason={FinishReason}, last_chunk={LastChunk}", finishReason, lastData);
+
+                limiter.RecordTokens(totalTokens ?? (promptTokens ?? 0) + (completionTokens ?? 0));
 
                 yield return new MistralStreamChunk(
                     ToolCalls: toolCalls,
@@ -374,6 +417,8 @@ public class MistralHttpClient
             ? new { model, document = new { type = "document_url", document_url = fileUrl }, extract_header = true, extract_footer = true }
             : new { model, document = new { type = "image_url", image_url = fileUrl }, extract_header = true, extract_footer = true };
 
+        await ocrPageLimiter.WaitForCapacityAsync(ct);
+
         using HttpResponseMessage ocrResponse = await SendWithRetryAsync(
             filesHttpClient,
             () => new HttpRequestMessage(HttpMethod.Post, "ocr")
@@ -395,6 +440,8 @@ public class MistralHttpClient
                 page.TryGetProperty("footer", out JsonElement f) && f.ValueKind == JsonValueKind.String ? f.GetString() : null
             ))
             .ToList();
+
+        ocrPageLimiter.RecordUsage(pages.Count);
 
         string responseModel = doc.RootElement.GetProperty("model").GetString() ?? model;
 
@@ -475,7 +522,7 @@ public class MistralHttpClient
 
         return new
         {
-            model = modelOverride ?? modelName,
+            model = modelOverride ?? mediumModelName,
             messages = request.Messages,
             temperature = request.Temperature,
             reasoning_effort = request.ReasoningEffort == MistralReasoningEffort.Default ? null : EffortToString(request.ReasoningEffort),

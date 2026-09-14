@@ -17,6 +17,8 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
     private readonly Serilog.ILogger logger = Log.ForContext<IngestionService>();
     private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
 
+    public const int MaxChunkTokens = 512;
+
     public async Task RunResourcePipelineAsync(Guid id, string? fileType = null, Stream? fileStream = null)
     {
         logger.Information("Resource pipeline started for ID: {Id}", id);
@@ -149,10 +151,10 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
         return await vectorStore.UpdateMetadataPointAsync(id, richMetadata);
     }
     
-    public static List<string> SplitTextIntoChunks(string text, bool markdownSplit = false, int chunkSize = 512, int overlapSize = 128)
+    public static List<string> SplitTextIntoChunks(string text, bool markdownSplit = false, int chunkSize = MaxChunkTokens, int overlapSize = 128)
     {
         if (string.IsNullOrWhiteSpace(text)) return [];
-        if (overlapSize >= chunkSize) { chunkSize = 512; overlapSize = 128; }
+        if (overlapSize >= chunkSize) { chunkSize = MaxChunkTokens; overlapSize = 128; }
 
         try
         {

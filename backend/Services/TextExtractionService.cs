@@ -97,7 +97,7 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
     /// </summary>
     private async Task<string> ResolveOcrModelIdAsync()
     {
-        string configuredOcrModel = environmentConfig.GetVariableValue(EnvironmentVariable.OCR_MODEL_NAME);
+        string configuredOcrModel = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_OCR_MODEL_NAME);
 
         return configuredOcrModel == "mistral-ocr-latest"
             ? await mistralClient.ResolveModelAliasAsync(configuredOcrModel)

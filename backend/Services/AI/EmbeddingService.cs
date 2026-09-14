@@ -4,6 +4,7 @@ using OpenAI.Embeddings;
 using KnowledgeBank.Utils;
 using OpenAI.Chat;
 using Serilog;
+using System.Diagnostics;
 
 namespace KnowledgeBank.Services.AI;
 
@@ -17,6 +18,13 @@ public class EmbeddingService
     private readonly Lock cacheLock = new();
     private const int MaxCacheSize = 1000;
 
+    private const double SafetyMargin = 0.9;
+    private readonly RequestTokenLimiter rateLimiter;
+    private readonly SemaphoreSlim concurrencyLimiter;
+
+    private const int MaxBatchTokenBudget = 50_000;
+    private const int MaxEmbeddingBatchSize = MaxBatchTokenBudget / IngestionService.MaxChunkTokens;
+
     public EmbeddingClient EmbeddingClient { get; private set; }
 
     public EmbeddingService(EnvironmentConfig environmentConfig)
@@ -27,6 +35,13 @@ public class EmbeddingService
         OpenAIClientOptions embeddingsOptions = new() { Endpoint = new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_ENDPOINT)) };
         OpenAIClient embeddingsClient = new(new ApiKeyCredential(environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_API_KEY)), embeddingsOptions);
         EmbeddingClient = embeddingsClient.GetEmbeddingClient(environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_MODEL_NAME));
+
+        int requestsPerMinute = int.Parse(environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_REQUESTS_PER_MINUTE));
+        int tokensPerMinute = int.Parse(environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_TOKENS_PER_MINUTE));
+        int maxConcurrentRequests = int.Parse(environmentConfig.GetVariableValue(EnvironmentVariable.EMBEDDINGS_MAX_CONCURRENT_REQUESTS));
+
+        rateLimiter = new RequestTokenLimiter((long)(requestsPerMinute * SafetyMargin), (long)(tokensPerMinute * SafetyMargin), TimeSpan.FromSeconds(60));
+        concurrencyLimiter = new SemaphoreSlim(maxConcurrentRequests, maxConcurrentRequests);
 
         logger.Information("AI client provider initialized");
     }
@@ -49,32 +64,13 @@ public class EmbeddingService
             }
         }
 
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        var result = await WithRetryAsync(() => EmbeddingClient.GenerateEmbeddingAsync(query, new EmbeddingGenerationOptions { Dimensions = 1024 }));
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        float[][] result = await GenerateEmbeddingsBatchAsync([query]);
         stopwatch.Stop();
         logger.Debug("Embedding generation took {ElapsedMs}ms for query: {Query}", stopwatch.ElapsedMilliseconds, query);
-        float[] embedding = result.Value.ToFloats().ToArray();
-
-        lock (cacheLock)
-        {
-            if (embeddingCache.Count >= MaxCacheSize)
-            {
-                var oldestKey = embeddingCache.OrderBy(kvp => kvp.Value.CachedAt).First().Key;
-                embeddingCache.Remove(oldestKey);
-            }
-
-            embeddingCache[cacheKey] = (embedding, DateTime.UtcNow);
-        }
-
-        return embedding;
+        
+        return result[0];
     }
-
-    // A resource with many chunks (a long document) would otherwise batch all of them into a single
-    // embeddings request — a much bigger/heavier request than a typical one-chunk entity, and more
-    // likely to trip a rate limit on its own regardless of how many resources are processed concurrently.
-    // Capping the batch size keeps every individual request roughly the same size no matter how large
-    // the source document is.
-    private const int MaxEmbeddingBatchSize = 20;
 
     public async Task<float[][]> GenerateEmbeddings(IReadOnlyList<string> texts)
     {
@@ -121,54 +117,36 @@ public class EmbeddingService
     }
 
     /// <summary>
-    /// Retries a call with exponential backoff on 429/502/503 specifically — same treatment as the
-    /// Mistral OCR calls in TextExtractionService, since this SDK call had no retry logic at all.
-    /// Also paces every attempt (first try and retries alike) so the actual request rate reaching
-    /// the embeddings provider stays capped app-wide, regardless of how many resources/entities are
-    /// being processed concurrently — bounded concurrency alone only limits how many pipelines run
-    /// at once, not how many embedding HTTP requests land in the same second.
+    /// Retries a call with exponential backoff on 429/502/503 specifically.
+    /// Also waits for rate limiter slot and concurrency slot before every attempt.
     /// </summary>
-    private async Task<T> WithRetryAsync<T>(Func<Task<T>> action, int maxAttempts = 3)
+    private async Task<ClientResult<OpenAIEmbeddingCollection>> WithRetryAsync(Func<Task<ClientResult<OpenAIEmbeddingCollection>>> action, int maxAttempts = 3)
     {
-        for (int attempt = 1; ; attempt++)
-        {
-            await PaceAsync();
+        await concurrencyLimiter.WaitAsync();
 
-            try
-            {
-                return await action();
-            }
-            catch (ClientResultException ex) when (attempt < maxAttempts && ex.Status is 429 or 502 or 503)
-            {
-                TimeSpan delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
-                logger.Warning(ex, "Embedding request returned {Status}, retrying in {Delay}s (attempt {Attempt}/{Max})", ex.Status, delay.TotalSeconds, attempt, maxAttempts);
-                await Task.Delay(delay);
-            }
-        }
-    }
-
-    private readonly SemaphoreSlim _paceLock = new(1, 1);
-    private DateTime _lastRequestAt = DateTime.MinValue;
-
-    // Conservative default — Scaleway's exact per-account rate limit for qwen3-embedding-8b lives in
-    // your account's own "Organization quotas for Generative APIs - Serverless" page, not in public
-    // docs, so this wasn't picked against a verified number. Check that page and tune this constant
-    // (lower = more conservative/slower, higher = faster but more likely to still 429) if needed.
-    private static readonly TimeSpan MinEmbeddingRequestInterval = TimeSpan.FromMilliseconds(300);
-
-    private async Task PaceAsync()
-    {
-        await _paceLock.WaitAsync();
         try
         {
-            TimeSpan wait = MinEmbeddingRequestInterval - (DateTime.UtcNow - _lastRequestAt);
-            if (wait > TimeSpan.Zero)
-                await Task.Delay(wait);
-            _lastRequestAt = DateTime.UtcNow;
+            await rateLimiter.WaitForSlotAsync();
+
+            for (int attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    ClientResult<OpenAIEmbeddingCollection> result = await action();
+                    rateLimiter.RecordTokens(result.Value.Usage.InputTokenCount);
+                    return result;
+                }
+                catch (ClientResultException ex) when (attempt < maxAttempts && ex.Status is 429 or 502 or 503)
+                {
+                    TimeSpan delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
+                    logger.Warning(ex, "Embedding request returned {Status}, retrying in {Delay}s (attempt {Attempt}/{Max})", ex.Status, delay.TotalSeconds, attempt, maxAttempts);
+                    await Task.Delay(delay);
+                }
+            }
         }
         finally
         {
-            _paceLock.Release();
+            concurrencyLimiter.Release();
         }
     }
 }

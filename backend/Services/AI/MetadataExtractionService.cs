@@ -22,16 +22,13 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
     private const string RoleSubject = "subject";
 
 
-    private readonly string smallModelName = environmentConfig.GetVariableValue(EnvironmentVariable.SMALL_MODEL_NAME);
-    private readonly string mediumModelName = environmentConfig.GetVariableValue(EnvironmentVariable.MEDIUM_MODEL_NAME);
+    private readonly string smallModelName = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_SMALL_MODEL_NAME);
+    private readonly string mediumModelName = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_MEDIUM_MODEL_NAME);
 
     private const int EntityChunkSize = 16_000;
     private const int EntityChunkOverlap = 500;
-    private const int EntityChunkRequestIntervalMs = 600;
 
 
-    private static readonly SemaphoreSlim AiSemaphore = new(5, 5);
-    private static readonly SemaphoreSlim SearchSemaphore = new(10, 10);
     private static readonly JsonSerializerOptions IndentedJson = new() { WriteIndented = true };
 
 
@@ -385,15 +382,20 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
         string docContext = $"Document title: {biblio.Title}\nDocument description: {biblio.Description}";
 
         // Search on each chunk
-        for (int i = 0; i < chunks.Length; i++)
+        int completedChunks = 0;
+        TempSubjectList?[] chunkResults = await Task.WhenAll(chunks.Select(async chunk =>
         {
-            progress?.Invoke($"Extracting entities (chunk {i + 1}/{chunks.Length})...", 55 + (i * 20 / chunks.Length));
-
-            if (i > 0) await Task.Delay(EntityChunkRequestIntervalMs);
-
-            string chunkPrompt = $"{docContext}\n\n{chunks[i]}";
+            string chunkPrompt = $"{docContext}\n\n{chunk}";
             TempSubjectList? result = await CallLLMAsync<TempSubjectList>(ContentSystemPrompt, chunkPrompt, ContentJsonSchema);
 
+            int completed = Interlocked.Increment(ref completedChunks);
+            progress?.Invoke($"Extracting entities (chunk {completed}/{chunks.Length})...", 55 + (completed * 20 / chunks.Length));
+
+            return result;
+        }));
+
+        foreach (TempSubjectList? result in chunkResults)
+        {
             if (result == null) continue;
             allSubjects.AddRange(result.Subjects);
             if (!string.IsNullOrWhiteSpace(result.KeyInsight))
@@ -440,18 +442,9 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
             ReasoningEffort = reasoningEffort
         };
 
-        await AiSemaphore.WaitAsync();
-
-        try
-        {
-            MistralCompletion completion = await mistralHttpClient.CompleteAsync(request, modelOverride: modelOverride);
-            if (string.IsNullOrWhiteSpace(completion.Content)) return null;
-            return JsonSerializer.Deserialize<T>(completion.Content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        }
-        finally
-        {
-            AiSemaphore.Release();
-        }
+        MistralCompletion completion = await mistralHttpClient.CompleteAsync(request, modelOverride: modelOverride);
+        if (string.IsNullOrWhiteSpace(completion.Content)) return null;
+        return JsonSerializer.Deserialize<T>(completion.Content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
 
     private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
@@ -617,59 +610,51 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
             if (o != null) return [o];
         }
 
-        await SearchSemaphore.WaitAsync();
-        try
+        var hits = await librarySearchIndexService.SearchWithScoresAsync(
+            name.Replace(".", ""),
+            new LibraryFilterOptions { TypeFilter = typeFilter },
+            limit: 6
+        );
+
+        var relevantHits = hits.Where(h => h.Score >= 0.35f).ToList();
+        Guid[] hitIds = relevantHits.Select(h => h.Id).ToArray();
+        var itemLookup = await db.LibraryItems.Where(i => hitIds.Contains(i.Id)).ToDictionaryAsync(i => i.Id);
+
+        var similars = relevantHits
+            .Where(h => itemLookup.ContainsKey(h.Id))
+            .Select(h => new SimilarEntity { Id = h.Id, Name = itemLookup[h.Id].Name, Type = h.Type, Score = h.Score, Description = itemLookup[h.Id].Description })
+            .ToList();
+
+        if (similars.Count > 0)
         {
-            var hits = await librarySearchIndexService.SearchWithScoresAsync(
-                name.Replace(".", ""),
-                new LibraryFilterOptions { TypeFilter = typeFilter },
-                limit: 6
-            );
+            var personIds = similars.Where(s => s.Type == "person").Select(s => s.Id).ToHashSet();
+            var orgIds = similars.Where(s => s.Type == "organisation").Select(s => s.Id).ToHashSet();
 
-            var relevantHits = hits.Where(h => h.Score >= 0.35f).ToList();
-            Guid[] hitIds = relevantHits.Select(h => h.Id).ToArray();
-            var itemLookup = await db.LibraryItems.Where(i => hitIds.Contains(i.Id)).ToDictionaryAsync(i => i.Id);
-
-            var similars = relevantHits
-                .Where(h => itemLookup.ContainsKey(h.Id))
-                .Select(h => new SimilarEntity { Id = h.Id, Name = itemLookup[h.Id].Name, Type = h.Type, Score = h.Score, Description = itemLookup[h.Id].Description })
-                .ToList();
-
-            if (similars.Count > 0)
+            if (personIds.Count > 0)
             {
-                var personIds = similars.Where(s => s.Type == "person").Select(s => s.Id).ToHashSet();
-                var orgIds = similars.Where(s => s.Type == "organisation").Select(s => s.Id).ToHashSet();
-
-                if (personIds.Count > 0)
-                {
-                    var persons = await db.Persons.Where(p => personIds.Contains(p.Id))
-                        .Select(p => new { p.Id, p.EmailAddress, p.Occupation }).ToDictionaryAsync(p => p.Id);
-                    foreach (var s in similars.Where(s => s.Type == "person"))
-                        if (persons.TryGetValue(s.Id, out var p)) { s.ExistingEmail = p.EmailAddress; s.ExistingOccupation = p.Occupation; }
-                }
-                if (orgIds.Count > 0)
-                {
-                    var orgs = await db.Organisations.Where(o => orgIds.Contains(o.Id))
-                        .Select(o => new { o.Id, o.EmailAddress, o.Website }).ToDictionaryAsync(o => o.Id);
-                    foreach (var s in similars.Where(s => s.Type == "organisation"))
-                        if (orgs.TryGetValue(s.Id, out var o)) { s.ExistingEmail = o.EmailAddress; s.ExistingWebsite = o.Website; }
-                }
+                var persons = await db.Persons.Where(p => personIds.Contains(p.Id))
+                    .Select(p => new { p.Id, p.EmailAddress, p.Occupation }).ToDictionaryAsync(p => p.Id);
+                foreach (var s in similars.Where(s => s.Type == "person"))
+                    if (persons.TryGetValue(s.Id, out var p)) { s.ExistingEmail = p.EmailAddress; s.ExistingOccupation = p.Occupation; }
             }
-
-            // Auto-confirm if a candidate is an initial-name match (e.g. "John Smith" ↔ "J. Smith")
-            var initialMatch = similars.FirstOrDefault(s => IsInitialNameMatch(name.Trim(), s.Name));
-            if (initialMatch != null)
+            if (orgIds.Count > 0)
             {
-                initialMatch.Score = 1.0f;
-                return [initialMatch];
+                var orgs = await db.Organisations.Where(o => orgIds.Contains(o.Id))
+                    .Select(o => new { o.Id, o.EmailAddress, o.Website }).ToDictionaryAsync(o => o.Id);
+                foreach (var s in similars.Where(s => s.Type == "organisation"))
+                    if (orgs.TryGetValue(s.Id, out var o)) { s.ExistingEmail = o.EmailAddress; s.ExistingWebsite = o.Website; }
             }
-
-            return similars;
         }
-        finally
+
+        // Auto-confirm if a candidate is an initial-name match (e.g. "John Smith" ↔ "J. Smith")
+        var initialMatch = similars.FirstOrDefault(s => IsInitialNameMatch(name.Trim(), s.Name));
+        if (initialMatch != null)
         {
-            SearchSemaphore.Release();
+            initialMatch.Score = 1.0f;
+            return [initialMatch];
         }
+
+        return similars;
     }
 
     private async Task RunEntityQcAsync(ExtractedMetadata metadata, List<string> keyInsights)
