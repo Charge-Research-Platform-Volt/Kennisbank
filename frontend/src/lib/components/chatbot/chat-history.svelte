@@ -83,7 +83,7 @@
 		fetchHistory();
 	});
 </script>
-·
+
 <div class="flex h-full flex-col overflow-hidden">
 	<div class="border-b border-border p-3">
 		<Button class="w-full cursor-pointer" onclick={() => goto('/chatbot')}>+ New Chat</Button>

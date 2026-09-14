@@ -25,8 +25,6 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
     private readonly string smallModelName = environmentConfig.GetVariableValue(EnvironmentVariable.SMALL_MODEL_NAME);
     private readonly string mediumModelName = environmentConfig.GetVariableValue(EnvironmentVariable.MEDIUM_MODEL_NAME);
 
-
-    private const int maxRetries = 3;
     private const int EntityChunkSize = 16_000;
     private const int EntityChunkOverlap = 500;
     private const int EntityChunkRequestIntervalMs = 600;
@@ -442,41 +440,18 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
             ReasoningEffort = reasoningEffort
         };
 
-        // Attempt multiple times (rate limits and unavailability happen)
-        for (int attempt = 1; attempt <= maxRetries; attempt++)
+        await AiSemaphore.WaitAsync();
+
+        try
         {
-            try
-            {
-                // Wait for semaphore availability
-                await AiSemaphore.WaitAsync();
-
-                // Try LLM call
-                try
-                {
-                    MistralCompletion completion = await mistralHttpClient.CompleteAsync(request, modelOverride: modelOverride);
-                    if (string.IsNullOrWhiteSpace(completion.Content)) return null;
-                    return JsonSerializer.Deserialize<T>(completion.Content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                }
-                finally { AiSemaphore.Release(); }
-            }
-            // Rate limit or unavailability request error
-            catch (HttpRequestException ex) when (ex.Message.Contains("429") || ex.Message.Contains("503") || ex.Message.Contains("ServiceUnavailable"))
-            {
-                if (attempt == maxRetries) throw;
-                int waitSeconds = ex.Message.Contains("429") ? 60 * attempt : 5 * attempt;
-                logger.Warning("Transient error on LLM call. Waiting {Wait}s before retry {Attempt}/{Max}", waitSeconds, attempt, maxRetries);
-                await Task.Delay(TimeSpan.FromSeconds(waitSeconds));
-            }
-            // Other errors
-            catch (Exception ex)
-            {
-                logger.Error(ex, "LLM call error (attempt {Attempt}/{Max})", attempt, maxRetries);
-                if (attempt == maxRetries) throw;
-                await Task.Delay(TimeSpan.FromSeconds(10 * attempt));
-            }
+            MistralCompletion completion = await mistralHttpClient.CompleteAsync(request, modelOverride: modelOverride);
+            if (string.IsNullOrWhiteSpace(completion.Content)) return null;
+            return JsonSerializer.Deserialize<T>(completion.Content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         }
-
-        return null;
+        finally
+        {
+            AiSemaphore.Release();
+        }
     }
 
     private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();

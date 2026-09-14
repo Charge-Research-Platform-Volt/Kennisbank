@@ -7,10 +7,12 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import Button from '$lib/components/ui/button/button.svelte';
-	import { Sparkles } from '@lucide/svelte';
+	import { Sparkles, TriangleAlert, X } from '@lucide/svelte';
 	import { createChatConnection } from '$lib/state/chat-connection.svelte';
 	import { renderChangelog } from '$lib/changelog';
 	import { setContext, onMount } from 'svelte';
+	import { mistralStatusState } from '$lib/state/mistral-status.svelte';
+	import type { MistralStatus } from '$lib/state/mistral-status.svelte';
 
 	type ChangelogEntry = { title: string; body: string; createdAt: string };
 
@@ -22,6 +24,25 @@
 	const chat = createChatConnection();
 	onMount(() => chat.start());
 	setContext('chatConnection', chat);
+
+	api
+		.get<MistralStatus>('/api/status/mistral')
+		.then((res) => {
+			mistralStatusState.current = res;
+		})
+		.catch(() => {});
+
+	$effect(() => {
+		if (!chat.connection) return;
+		chat.connection.on('MistralStatusChanged', (status: MistralStatus) => {
+			mistralStatusState.current = status;
+		});
+	});
+
+	let mistralDegradedDismissed = $state(false);
+	$effect(() => {
+		if (mistralStatusState.current.status === 'operational') mistralDegradedDismissed = false;
+	});
 
 	// Fetch user role, which also automatically checks authentication
 	api
@@ -53,9 +74,39 @@
 			<Sidebar />
 
 			<!-- Page content -->
-			<main class="flex-1 overflow-y-auto">
-				{@render children()}
-			</main>
+			<div class="flex flex-1 flex-col">
+				<!-- Mistral status banner -->
+				{#if mistralStatusState.current.status === 'down' && !mistralDegradedDismissed}
+					<div
+						class="flex items-center gap-2 border-b border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm text-amber-600 dark:text-amber-400"
+					>
+						<TriangleAlert size={14} class="shrink-0" />
+						<span>
+							Mistral's AI service currently appears to be having trouble. Chat and document
+							processing may be affected, but some requests might still go through. This is not a bug on our end. Check
+							<a
+								href="https://status.mistral.ai"
+								target="_blank"
+								rel="noopener noreferrer"
+								class="underline">status.mistral.ai</a
+							>
+							for the latest status.
+						</span>
+						<button
+							type="button"
+							onclick={() => (mistralDegradedDismissed = true)}
+							class="ml-auto shrink-0 cursor-pointer rounded p-0.5 hover:bg-amber-500/20"
+							aria-label="Dismiss"
+						>
+							<X size={14} />
+						</button>
+					</div>
+				{/if}
+
+				<main class="flex-1 overflow-y-auto">
+					{@render children()}
+				</main>
+			</div>
 		</div>
 	{/if}
 </Tooltip.Provider>

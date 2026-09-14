@@ -12,7 +12,7 @@ namespace KnowledgeBank.Services.AI;
 
 #pragma warning disable SKEXP0050, SKEXP0001
 
-public class IngestionService(IVectorStore vectorStore, TextExtractionService textExtractionService, ResourceService resourceService, PersonService personService, OrganisationService organisationService, EnvironmentConfig environmentConfig, IHubContext<Chat> hubContext)
+public class IngestionService(IVectorStore vectorStore, TextExtractionService textExtractionService, ResourceService resourceService, PersonService personService, OrganisationService organisationService, EnvironmentConfig environmentConfig, MistralStatusService mistralStatusService, IHubContext<Chat> hubContext)
 {
     private readonly Serilog.ILogger logger = Log.ForContext<IngestionService>();
     private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
@@ -70,7 +70,10 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
         } catch (Exception ex)
         {
             logger.Error(ex, "Resource pipeline failed for ID: {Id}", id);
-            await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Failed, ex.Message);
+            string message = mistralStatusService.Current.Status == MistralAvailability.Down
+                ? "Mistral's AI service currently appears to be down or degraded, this isn't a bug on our end. Chech status.mistral.ai for the latest status and try again once it recovers."
+                : ex.Message;
+            await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Failed, message);
         }
     }
 
@@ -90,7 +93,10 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
         } catch (Exception ex)
         {
             logger.Error(ex, "Entity pipeline failed for ID: {Id}", id);
-            await SetEntityEmbeddingStatusAsync(id, entityType, EmbeddingStatus.Failed, ex.Message);
+            string message = mistralStatusService.Current.Status == MistralAvailability.Down
+                ? "Mistral's AI service currently appears to be down or degraded, this isn't a bug on our end. Check status.mistral.ai for the latest status and try again once it recovers."
+                : ex.Message;
+            await SetEntityEmbeddingStatusAsync(id, entityType, EmbeddingStatus.Failed, message);
         }
     }
 

@@ -40,24 +40,35 @@ public class MistralChatRequest
     public object? JsonSchema { get; init; }
 }
 
+public record MistralOcrPage(string? Markdown, string? Header, string? Footer);
+public record MistralOcrResult(List<MistralOcrPage> Pages, string Model);
+
 public class MistralHttpClient
 {
     private const int MaxRetries = 3;
 
-    private readonly HttpClient httpClient;
+    private readonly HttpClient textHttpClient;
+    private readonly HttpClient filesHttpClient;
     private readonly string modelName;
+    private readonly MistralStatusService mistralStatusService;
     private readonly Serilog.ILogger logger = Serilog.Log.ForContext<MistralHttpClient>();
 
-    public MistralHttpClient(EnvironmentConfig environmentConfig)
+    public MistralHttpClient(EnvironmentConfig environmentConfig, MistralStatusService mistralStatusService)
     {
+        this.mistralStatusService = mistralStatusService;
+
+        // Load values
         modelName = environmentConfig.GetVariableValue(EnvironmentVariable.MEDIUM_MODEL_NAME);
-        httpClient = new HttpClient
-        {
-            BaseAddress = new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_ENDPOINT).TrimEnd('/') + "/"),
-            Timeout = TimeSpan.FromSeconds(120)
-        };
-        httpClient.DefaultRequestHeaders.Add("Authorization",
-            $"Bearer {environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_API_KEY)}");
+        Uri endpoint = new Uri(environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_ENDPOINT).TrimEnd('/') + "/");
+        string apiKey = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_API_KEY);
+
+        // Initialize HTTP Client for text
+        textHttpClient = new HttpClient { BaseAddress = endpoint, Timeout = TimeSpan.FromSeconds(120) };
+        textHttpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+
+        // Initialize HTTP Client for files (OCR)
+        filesHttpClient = new HttpClient { BaseAddress = endpoint, Timeout = TimeSpan.FromMinutes(5) };
+        filesHttpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
     }
 
     public async Task<MistralCompletion> CompleteAsync(MistralChatRequest request, string? modelOverride = null, CancellationToken ct = default)
@@ -66,20 +77,15 @@ public class MistralHttpClient
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         var body = JsonSerializer.Serialize(BuildBody(request, modelOverride: modelOverride));
 
-        HttpResponseMessage response = null!;
-        for (int attempt = 0; attempt < MaxRetries; attempt++)
+        HttpResponseMessage response = await SendWithRetryAsync(
+            textHttpClient,
+            () => new HttpRequestMessage(HttpMethod.Post, "chat/completions") { Content = new StringContent(body, Encoding.UTF8, "application/json") },
+            HttpCompletionOption.ResponseContentRead, 
+            ct
+        );
+
+        if (!response.IsSuccessStatusCode)
         {
-            var content = new StringContent(body, Encoding.UTF8, "application/json");
-            response = await httpClient.PostAsync("chat/completions", content, ct);
-
-            if (response.IsSuccessStatusCode) break;
-
-            if ((int)response.StatusCode is 503 or 529 or 429 && attempt < MaxRetries - 1)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
-                continue;
-            }
-
             string err = await response.Content.ReadAsStringAsync(ct);
 
             if ((int)response.StatusCode == 400)
@@ -88,7 +94,7 @@ public class MistralHttpClient
                 else
                     logger.Warning("Mistral returned 400 but not a context length error: {Error}", err);
 
-            throw new HttpRequestException($"Mistral {response.StatusCode} — URL: {response.RequestMessage?.RequestUri} — Body: {err}");
+            throw new HttpRequestException($"Mistral {response.StatusCode} - URL: {response.RequestMessage?.RequestUri} - Body: {err}");
         }
 
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
@@ -120,23 +126,15 @@ public class MistralHttpClient
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         var body = JsonSerializer.Serialize(BuildBody(request, stream: true));
 
-        HttpResponseMessage response = null!;
-        for (int attempt = 0; attempt < MaxRetries; attempt++)
+        HttpResponseMessage response = await SendWithRetryAsync(
+            textHttpClient,
+            () => new HttpRequestMessage(HttpMethod.Post, "chat/completions") { Content = new StringContent(body, Encoding.UTF8, "application/json") },
+            HttpCompletionOption.ResponseHeadersRead,
+            ct
+        );
+
+        if (!response.IsSuccessStatusCode)
         {
-            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "chat/completions")
-            {
-                Content = new StringContent(body, Encoding.UTF8, "application/json")
-            };
-            response = await httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, ct);
-
-            if (response.IsSuccessStatusCode) break;
-
-            if ((int)response.StatusCode is 503 or 529 or 429 && attempt < MaxRetries - 1)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
-                continue;
-            }
-
             string err = await response.Content.ReadAsStringAsync(ct);
 
             if ((int)response.StatusCode == 400)
@@ -145,7 +143,7 @@ public class MistralHttpClient
                 else
                     logger.Warning("Mistral returned 400 but not a context length error: {Error}", err);
 
-            throw new HttpRequestException($"Mistral {response.StatusCode} — URL: {response.RequestMessage?.RequestUri} — Body: {err}");
+            throw new HttpRequestException($"Mistral {response.StatusCode} - URL: {response.RequestMessage?.RequestUri} - Body: {err}");
         }
 
         logger.Debug("Mistral stream headers received after {ElapsedMs}ms", stopwatch.ElapsedMilliseconds);
@@ -292,6 +290,170 @@ public class MistralHttpClient
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Resolves a model alias (e.g. "mistral-ocr-latest") to the concrete dated model id it currently points to.
+    /// Falls back to returning the alias unchanged if resolution fails for any reason.
+    /// </summary>
+    public async Task<string> ResolveModelAliasAsync(string alias, CancellationToken ct = default)
+    {
+        try
+        {
+            using HttpResponseMessage response = await SendWithRetryAsync(
+                filesHttpClient,
+                () => new HttpRequestMessage(HttpMethod.Get, "models"),
+                HttpCompletionOption.ResponseContentRead, 
+                ct
+            );
+            response.EnsureSuccessStatusCode();
+
+            using JsonDocument doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+
+            foreach (JsonElement model in doc.RootElement.GetProperty("data").EnumerateArray())
+            {
+                if (model.TryGetProperty("aliases", out JsonElement aliases) && aliases.EnumerateArray().Any(a => a.GetString() == alias))
+                {
+                    return model.GetProperty("id").GetString() ?? alias;
+                }
+            }
+
+            logger.Warning("Could not find a model with alias {Alias} in Mistral's model list, falling back to alias", alias);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to resolve {Alias} to a pinned model id, falling back to alias", alias);
+        }
+
+        return alias;
+    }
+
+    /// <summary>
+    /// Uploads a file to Mistral's Files API, runs OCR on it via a signed URL, and deletes the uploaded
+    /// file afterwards (best-effort, to avoid storage charges). Returns the raw per-page OCR result;
+    /// callers handle any app-specific post-processing (markdown cleanup, caching) themselves.
+    /// </summary>
+    public async Task<MistralOcrResult> RunOcrAsync(byte[] fileBytes, string fileExtension, string model, bool isPdf, CancellationToken ct = default)
+    {
+        using HttpResponseMessage uploadResponse = await SendWithRetryAsync(
+            filesHttpClient,
+            () =>
+            {
+                MultipartFormDataContent uploadForm = new()
+                {
+                    { new StreamContent(new MemoryStream(fileBytes)), "file", $"document{fileExtension}" },
+                    { new StringContent("ocr"), "purpose" }
+                };
+                return new HttpRequestMessage(HttpMethod.Post, "files") { Content = uploadForm };
+            },
+            HttpCompletionOption.ResponseContentRead,
+            ct
+        );
+
+        string uploadResponseBody = await uploadResponse.Content.ReadAsStringAsync(ct);
+        logger.Information("Mistral file upload response ({Status}): {Body}", (int)uploadResponse.StatusCode, uploadResponseBody);
+        uploadResponse.EnsureSuccessStatusCode();
+
+        string mistralFileId = JsonDocument.Parse(uploadResponseBody).RootElement.GetProperty("id").GetString()!;
+        logger.Information("Uploaded file to Mistral Files API: {FileId}", mistralFileId);
+
+        using HttpResponseMessage signedUrlResponse = await SendWithRetryAsync(
+            filesHttpClient,
+            () => new HttpRequestMessage(HttpMethod.Get, $"files/{mistralFileId}/url?expiry=1"),
+            HttpCompletionOption.ResponseContentRead,
+            ct
+        );
+
+        string signedUrlResponseBody = await signedUrlResponse.Content.ReadAsStringAsync(ct);
+        logger.Information("Mistral signed URL response ({Status}): {Body}", (int)signedUrlResponse.StatusCode, signedUrlResponseBody);
+        signedUrlResponse.EnsureSuccessStatusCode();
+
+        string fileUrl = JsonDocument.Parse(signedUrlResponseBody).RootElement.GetProperty("url").GetString()!;
+
+        object requestBody = isPdf
+            ? new { model, document = new { type = "document_url", document_url = fileUrl }, extract_header = true, extract_footer = true }
+            : new { model, document = new { type = "image_url", image_url = fileUrl }, extract_header = true, extract_footer = true };
+
+        using HttpResponseMessage ocrResponse = await SendWithRetryAsync(
+            filesHttpClient,
+            () => new HttpRequestMessage(HttpMethod.Post, "ocr")
+                { Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json") },
+            HttpCompletionOption.ResponseContentRead,
+            ct
+        );
+
+        string ocrResponseBody = await ocrResponse.Content.ReadAsStringAsync(ct);
+        if (!ocrResponse.IsSuccessStatusCode)
+            logger.Error("Mistral OCR failed ({Status}): {Body}", (int)ocrResponse.StatusCode, ocrResponseBody);
+        ocrResponse.EnsureSuccessStatusCode();
+
+        using JsonDocument doc = JsonDocument.Parse(ocrResponseBody);
+        List<MistralOcrPage> pages = doc.RootElement.GetProperty("pages").EnumerateArray()
+            .Select(page => new MistralOcrPage(
+                page.GetProperty("markdown").GetString(),
+                page.TryGetProperty("header", out JsonElement h) && h.ValueKind == JsonValueKind.String ? h.GetString() : null,
+                page.TryGetProperty("footer", out JsonElement f) && f.ValueKind == JsonValueKind.String ? f.GetString() : null
+            ))
+            .ToList();
+
+        string responseModel = doc.RootElement.GetProperty("model").GetString() ?? model;
+
+        try
+        {
+            using HttpRequestMessage deleteRequest = new(HttpMethod.Delete, $"files/{mistralFileId}");
+            await filesHttpClient.SendAsync(deleteRequest, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Failed to delete Mistral file {FileId} after OCR", mistralFileId);
+        }
+
+        return new MistralOcrResult(pages, responseModel);
+    }
+
+    private async Task<HttpResponseMessage> SendWithRetryAsync(HttpClient client, Func<HttpRequestMessage> requestFactory, HttpCompletionOption completionOption, CancellationToken ct)
+    {
+        HttpResponseMessage? response = null;
+        Exception? transportException = null;
+
+        for (int attempt = 0; attempt < MaxRetries; attempt++)
+        {
+            transportException = null;
+            using HttpRequestMessage request = requestFactory();
+
+            try
+            {
+                response = await client.SendAsync(request, completionOption, ct);
+            }
+            catch (HttpRequestException ex) { transportException = ex; }
+            catch (TaskCanceledException ex) when (!ct.IsCancellationRequested) { transportException = ex; }
+
+            if (transportException == null && response!.IsSuccessStatusCode)
+            {
+                await mistralStatusService.ReportSuccess();
+                return response;
+            }
+
+            bool retryable = transportException != null || (int)response!.StatusCode is 503 or 529 or 429;
+            if (retryable && attempt < MaxRetries - 1)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
+                continue;
+            }
+
+            break;
+        }
+
+        if (transportException != null)
+        {
+            await mistralStatusService.ReportFailure($"Mistral is unreachable: {transportException.Message}");
+            throw new HttpRequestException($"Mistral request failed: {transportException.Message}", transportException);
+        }
+
+        if (MistralStatusService.IsOutageStatusCode((int)response!.StatusCode))
+            await mistralStatusService.ReportFailure($"Mistral returned HTTP {(int)response.StatusCode}");
+
+        return response;
     }
 
     private object BuildBody(MistralChatRequest request, bool stream = false, string? modelOverride = null)

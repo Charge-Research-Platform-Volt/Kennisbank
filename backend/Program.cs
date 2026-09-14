@@ -162,6 +162,7 @@ namespace KnowledgeBank
 
             // Retrieval Augmented Generation system
             builder.Services.AddSingleton<MistralHttpClient>();
+            builder.Services.AddSingleton<MistralStatusService>();
             builder.Services.AddSingleton<AiService>();
             builder.Services.AddSingleton<EmbeddingService>();
             builder.Services.AddScoped<IngestionService>();

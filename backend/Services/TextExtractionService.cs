@@ -10,6 +10,7 @@ using KnowledgeBank.Data;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using KnowledgeBank.Services.Storage;
+using KnowledgeBank.Services.AI;
 
 namespace KnowledgeBank.Services;
 
@@ -17,7 +18,7 @@ namespace KnowledgeBank.Services;
 /// Service for extracting text from various document formats
 /// Uses free methods when possible, falls back to OCR
 /// </summary>
-public class TextExtractionService(ILogger<TextExtractionService> logger, EnvironmentConfig environmentConfig, BrowserService browserService, IStorageService storageService)
+public class TextExtractionService(ILogger<TextExtractionService> logger, EnvironmentConfig environmentConfig, BrowserService browserService, IStorageService storageService, MistralHttpClient mistralClient)
 {
     #region File Text Extraction
 
@@ -98,38 +99,9 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
     {
         string configuredOcrModel = environmentConfig.GetVariableValue(EnvironmentVariable.OCR_MODEL_NAME);
 
-        if (configuredOcrModel != "mistral-ocr-latest")
-            return configuredOcrModel;
-
-        try
-        {
-            string apiKey = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_API_KEY);
-            string mistralEndpoint = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_ENDPOINT);
-
-            using HttpClient httpClient = new();
-            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
-
-            using HttpResponseMessage response = await httpClient.GetAsync(mistralEndpoint + "/models");
-            response.EnsureSuccessStatusCode();
-            using JsonDocument doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-
-            foreach (JsonElement model in doc.RootElement.GetProperty("data").EnumerateArray())
-            {
-                if (model.TryGetProperty("aliases", out JsonElement aliases) &&
-                    aliases.EnumerateArray().Any(a => a.GetString() == configuredOcrModel))
-                {
-                    return model.GetProperty("id").GetString() ?? configuredOcrModel;
-                }
-            }
-
-            logger.LogWarning("Could not find a model with alias {Alias} in Mistral's model list, falling back to alias", configuredOcrModel);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to resolve {Alias} to a pinned model id, falling back to alias", configuredOcrModel);
-        }
-
-        return configuredOcrModel;
+        return configuredOcrModel == "mistral-ocr-latest"
+            ? await mistralClient.ResolveModelAliasAsync(configuredOcrModel)
+            : configuredOcrModel;
     }
 
     private async Task<OcrResult> ExtractWithMistralOCR(Stream stream, string fileExtension, string? model = null)
@@ -142,122 +114,25 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         await stream.CopyToAsync(ms);
 
         bool isPdf = string.Equals(fileExtension, ".pdf", StringComparison.OrdinalIgnoreCase);
-        string apiKey = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_API_KEY);
-        string mistralEndpoint = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_ENDPOINT);
 
-        using HttpClient httpClient = new() { Timeout = TimeSpan.FromMinutes(5) };
-        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
-
-        // Step 1: Upload file to Mistral Files API
-        byte[] fileBytes = ms.ToArray();
-
-        using HttpResponseMessage uploadResponse = await SendWithRetryAsync(httpClient, () =>
-        {
-            MultipartFormDataContent uploadForm = new()
-            {
-                { new StreamContent(new MemoryStream(fileBytes)), "file", $"document{fileExtension}" },
-                { new StringContent("ocr"), "purpose" }
-            };
-            return new HttpRequestMessage(HttpMethod.Post, mistralEndpoint + "/files") { Content = uploadForm };
-        });
-        string uploadResponseBody = await uploadResponse.Content.ReadAsStringAsync();
-        logger.LogInformation("Mistral file upload response ({Status}): {Body}", (int)uploadResponse.StatusCode, uploadResponseBody);
-        uploadResponse.EnsureSuccessStatusCode();
-
-        string mistralFileId = JsonDocument.Parse(uploadResponseBody).RootElement.GetProperty("id").GetString()!;
-        logger.LogInformation("Uploaded file to Mistral Files API: {FileId}", mistralFileId);
-
-        // Step 2: Get signed download URL
-        using HttpResponseMessage signedUrlResponse = await SendWithRetryAsync(httpClient, () =>
-            new HttpRequestMessage(HttpMethod.Get, $"{mistralEndpoint}/files/{mistralFileId}/url?expiry=1"));
-        string signedUrlResponseBody = await signedUrlResponse.Content.ReadAsStringAsync();
-        logger.LogInformation("Mistral signed URL response ({Status}): {Body}", (int)signedUrlResponse.StatusCode, signedUrlResponseBody);
-        signedUrlResponse.EnsureSuccessStatusCode();
-        string fileUrl = JsonDocument.Parse(signedUrlResponseBody).RootElement.GetProperty("url").GetString()!;
-        logger.LogInformation("Got signed URL for OCR");
-
-        // Step 3: Run OCR using signed URL
-        var requestBody = isPdf
-            ? (object)new { model = resolvedModel, document = new { type = "document_url", document_url = fileUrl }, extract_header = true, extract_footer = true }
-            : new { model = resolvedModel, document = new { type = "image_url", image_url = fileUrl }, extract_header = true, extract_footer = true };
-        string requestBodyJson = JsonSerializer.Serialize(requestBody);
-
-        using HttpResponseMessage response = await SendWithRetryAsync(httpClient, () => new HttpRequestMessage(HttpMethod.Post, mistralEndpoint + "/ocr")
-        {
-            Content = new StringContent(requestBodyJson, Encoding.UTF8, "application/json")
-        });
-        string responseBody = await response.Content.ReadAsStringAsync();
-        if (!response.IsSuccessStatusCode)
-            logger.LogError("Mistral OCR failed ({Status}): {Body}", (int)response.StatusCode, responseBody);
-        response.EnsureSuccessStatusCode();
-        using JsonDocument doc = JsonDocument.Parse(responseBody);
+        MistralOcrResult ocrResult = await mistralClient.RunOcrAsync(ms.ToArray(), fileExtension, resolvedModel, isPdf);
 
         StringBuilder sb = new();
         HashSet<string> headerFooterLines = new(StringComparer.OrdinalIgnoreCase);
 
-        foreach (JsonElement page in doc.RootElement.GetProperty("pages").EnumerateArray())
+        foreach (MistralOcrPage page in ocrResult.Pages)
         {
-            string? pageText = page.GetProperty("markdown").GetString();
-
-            if (!string.IsNullOrWhiteSpace(pageText))
-                sb.AppendLine(pageText);
-
-            if (page.TryGetProperty("header", out JsonElement header) && header.ValueKind == JsonValueKind.String)
-            {
-                string? text = header.GetString();
-                if (!string.IsNullOrWhiteSpace(text)) headerFooterLines.Add(text.Trim());
-            }
-
-            if (page.TryGetProperty("footer", out JsonElement footer) && footer.ValueKind == JsonValueKind.String)
-            {
-                string? text = footer.GetString();
-                if (!string.IsNullOrWhiteSpace(text)) headerFooterLines.Add(text.Trim());
-            }
+            if (!string.IsNullOrWhiteSpace(page.Markdown))
+                sb.AppendLine(page.Markdown);
+            
+            if (!string.IsNullOrWhiteSpace(page.Header)) headerFooterLines.Add(page.Header.Trim());
+            if (!string.IsNullOrWhiteSpace(page.Footer)) headerFooterLines.Add(page.Footer.Trim());
         }
 
         string result = CleanOcrMarkdown(sb.ToString());
-        string responseModel = doc.RootElement.GetProperty("model").GetString() ?? "";
         logger.LogInformation("Mistral OCR extracted {Length} characters.", result.Length);
 
-        // Step 4: Delete uploaded file from Mistral (avoid storage charges)
-        try
-        {
-            using HttpRequestMessage deleteRequest = new(HttpMethod.Delete, $"{mistralEndpoint}/files/{mistralFileId}");
-            await httpClient.SendAsync(deleteRequest);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to delete Mistral file {FileId} after OCR", mistralFileId);
-        }
-
-        return new OcrResult { Text = result, HeaderFooterText = string.Join("\n", headerFooterLines), Model = responseModel };
-    }
-
-    /// <summary>
-    /// Sends a request built fresh by <paramref name="createRequest"/> on every attempt (required since
-    /// HttpRequestMessage/HttpContent can't be resent once sent), retrying with exponential backoff on
-    /// 429/502/503 responses specifically. Returns the last response either way if the final attempt
-    /// still isn't successful; the caller's own EnsureSuccessStatusCode() surfaces that as an error.
-    /// </summary>
-    private async Task<HttpResponseMessage> SendWithRetryAsync(HttpClient client, Func<HttpRequestMessage> createRequest, int maxAttempts = 3)
-    {
-        for (int attempt = 1; ; attempt++)
-        {
-            using HttpRequestMessage request = createRequest();
-            HttpResponseMessage response = await client.SendAsync(request);
-
-            bool isRetriable = response.StatusCode is System.Net.HttpStatusCode.TooManyRequests
-                or System.Net.HttpStatusCode.BadGateway
-                or System.Net.HttpStatusCode.ServiceUnavailable;
-
-            if (response.IsSuccessStatusCode || !isRetriable || attempt >= maxAttempts)
-                return response;
-
-            TimeSpan delay = TimeSpan.FromSeconds(Math.Pow(2, attempt));
-            logger.LogWarning("Mistral request returned {Status}, retrying in {Delay}s (attempt {Attempt}/{Max})", (int)response.StatusCode, delay.TotalSeconds, attempt, maxAttempts);
-            response.Dispose();
-            await Task.Delay(delay);
-        }
+        return new OcrResult { Text = result, HeaderFooterText = string.Join("\n", headerFooterLines), Model = ocrResult.Model };
     }
 
     private async Task<OcrResult?> TryReadOcrCacheAsync(string bucketName, string fileId, string currentModelId)

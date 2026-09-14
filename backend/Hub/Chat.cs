@@ -14,7 +14,7 @@ namespace Hubs;
 
 [SignalRHub]
 [Authorize]
-public partial class Chat(MistralHttpClient mistralClient, AiService aiService, ChatService chatService, AttachmentChunkSearchIndexService attachmentChunkSearchIndexService, EmbeddingService embeddingService, IServiceScopeFactory scopeFactory) : Hub
+public partial class Chat(MistralHttpClient mistralClient, AiService aiService, ChatService chatService, AttachmentChunkSearchIndexService attachmentChunkSearchIndexService, EmbeddingService embeddingService, MistralStatusService mistralStatusService, IServiceScopeFactory scopeFactory) : Hub
 {
     private static string BuildSystemPrompt(string? projectId)
     {
@@ -239,7 +239,9 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
             }
             catch (Exception ex) {
                 logger.Error(ex, "Streaming failed for chat {ChatId}", chatId);
-                errorNotice = "Something went wrong while generating a response. Please try again.";
+                errorNotice = mistralStatusService.Current.Status == MistralAvailability.Down
+                    ? "Mistral's AI service currently appears to be down or degraded, this is not a bug on our end. Check [status.mistral.ai](https://status.mistral.ai) for the latest status and try again once it recovers."
+                    : "Something went wrong while generating a response. Please try again.";
             }
 
             if (errorNotice != null) {

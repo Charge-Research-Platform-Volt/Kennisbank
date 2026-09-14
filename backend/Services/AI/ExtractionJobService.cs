@@ -11,7 +11,8 @@ public class ExtractionJobService(
     IServiceScopeFactory serviceScopeFactory,
     IStorageService storageService,
     TextExtractionService textExtractionService,
-    EnvironmentConfig environmentConfig)
+    EnvironmentConfig environmentConfig,
+    MistralStatusService mistralStatusService)
 {
     private readonly Serilog.ILogger logger = Log.ForContext<ExtractionJobService>();
     private readonly ConcurrentDictionary<string, MetadataExtractionJob> _jobs = new();
@@ -190,7 +191,9 @@ public class ExtractionJobService(
         catch (Exception e)
         {
             logger.Error(e, "Error extracting metadata from {Type} '{Value}'", type, value);
-            SetJobError(jobId, $"Internal error: {e.Message}");
+            SetJobError(jobId, mistralStatusService.Current.Status == MistralAvailability.Down
+                ? "Mistral's AI service currently appears to be down or degraded, this isn't a bug on our end. Check status.mistral.ai for the latest status and try again once it recovers."
+                : $"Internal error: {e.Message}");
         }
     }
 
