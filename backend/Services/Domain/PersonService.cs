@@ -235,8 +235,12 @@ public class PersonService(DatabaseContext db, LibrarySearchIndexService library
 
         db.Persons.Remove(person);
         await db.SaveChangesAsync();
-        await librarySearchIndexService.SyncPersonAsync(id);
-        await vectorStore.DeletePointsByEntityIdAsync(id);
+
+        await Task.WhenAll(
+            librarySearchIndexService.SyncPersonAsync(id),
+            vectorStore.DeletePointsByEntityIdAsync(id)
+        );
+
         return true;
     }
 

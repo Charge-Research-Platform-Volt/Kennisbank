@@ -19,9 +19,23 @@ public class TrashbinCleanupService(IServiceProvider serviceProvider) : Backgrou
             Guid[] persons = (await personService.GetAllAsync(predicate: p => p.TrashDate < threshold)).Select(p => p.Id).ToArray();
             Guid[] organisations = (await organisationService.GetAllAsync(predicate: o => o.TrashDate < threshold)).Select(o => o.Id).ToArray();
 
-            foreach (Guid id in resources) await resourceService.DeleteAsync(id);
-            foreach (Guid id in persons) await personService.DeleteAsync(id);
-            foreach (Guid id in organisations) await organisationService.DeleteAsync(id);
+            await ConcurrencyUtils.RunBoundedAsync(resources, 10, async id =>
+            {
+                using var itemScope = serviceProvider.CreateScope();
+                await itemScope.ServiceProvider.GetRequiredService<ResourceService>().DeleteAsync(id);
+            }, stoppingToken);
+
+            await ConcurrencyUtils.RunBoundedAsync(persons, 10, async id =>
+            {
+                using var itemScope = serviceProvider.CreateScope();
+                await itemScope.ServiceProvider.GetRequiredService<PersonService>().DeleteAsync(id);
+            }, stoppingToken);
+
+            await ConcurrencyUtils.RunBoundedAsync(organisations, 10, async id =>
+            {
+                using var itemScope = serviceProvider.CreateScope();
+                await itemScope.ServiceProvider.GetRequiredService<OrganisationService>().DeleteAsync(id);
+            }, stoppingToken);
 
             await WaitUntilUtils.WaitUntilTime(new TimeSpan(0, 0, 0), stoppingToken);
         }

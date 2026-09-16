@@ -5,6 +5,7 @@ using KnowledgeBank.Services.Storage;
 using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Search;
 using KnowledgeBank.Utils;
+using static KnowledgeBank.Utils.ConcurrencyUtils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
@@ -90,7 +91,7 @@ public class AdminController(
                 }
 
                 logger.Information("Re-embedding {Count} resources", resources.Length);
-                await RunBoundedAsync(resources, 3, async resource =>
+                await RunBoundedAsync(resources, 10, async resource =>
                 {
                     using var scope = serviceScopeFactory.CreateScope();
                     var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
@@ -115,7 +116,7 @@ public class AdminController(
                 }, token);
 
                 logger.Information("Re-embedding {Count} persons", persons.Length);
-                await RunBoundedAsync(persons, 5, async person =>
+                await RunBoundedAsync(persons, 15, async person =>
                 {
                     using var scope = serviceScopeFactory.CreateScope();
                     var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
@@ -125,7 +126,7 @@ public class AdminController(
                 }, token);
 
                 logger.Information("Re-embedding {Count} organisations", organisations.Length);
-                await RunBoundedAsync(organisations, 5, async organisation =>
+                await RunBoundedAsync(organisations, 15, async organisation =>
                 {
                     using var scope = serviceScopeFactory.CreateScope();
                     var ingestionService = scope.ServiceProvider.GetRequiredService<IngestionService>();
@@ -222,37 +223,6 @@ public class AdminController(
         });
     }
 
-    private static async Task RunBoundedAsync<T>(IEnumerable<T> items, int maxConcurrency, Func<T, Task> action, CancellationToken cancellationToken = default)
-    {
-        using SemaphoreSlim semaphore = new(maxConcurrency);
-
-        // Cooperative cancellation: an item already running is left to finish (aborting an in-flight
-        // OCR/embedding call mid-flight isn't worth the complexity), but nothing new starts once
-        // cancellation is requested — anything still waiting on the semaphore exits immediately.
-        IEnumerable<Task> tasks = items.Select(async item =>
-        {
-            if (cancellationToken.IsCancellationRequested) return;
-
-            try
-            {
-                await semaphore.WaitAsync(cancellationToken);
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-
-            try
-            {
-                if (!cancellationToken.IsCancellationRequested)
-                    await action(item);
-            }
-            finally { semaphore.Release(); }
-        });
-
-        await Task.WhenAll(tasks);
-    }
-
     [HttpPost("reindex-search")]
     [Authorize(Policy = "RequireAdminRole")]
     [SwaggerOperation(Summary = "Rebuild the Meilisearch index for all resources, persons, and organisations")]
@@ -270,34 +240,34 @@ public class AdminController(
             var resources = await resourceService.GetAllAsync();
             logger.Information("Reindexing {Count} resources", resources.Length);
 
-            foreach (var resource in resources)
+            await RunBoundedAsync(resources, 10, async resource =>
             {
                 try { await searchIndexService.SyncResourceAsync(resource.Id); }
                 catch (Exception ex) { logger.Error(ex, "Failed to reindex resource {Id}", resource.Id); }
-            }
+            }, token);
 
             var persons = await personService.GetAllAsync();
             logger.Information("Reindexing {Count} persons", persons.Length);
 
-            foreach (var person in persons)
+            await RunBoundedAsync(persons, 10, async person =>
             {
                 try { await searchIndexService.SyncPersonAsync(person.Id); }
                 catch (Exception ex) { logger.Error(ex, "Failed to reindex person {Id}", person.Id); }
-            }
+            }, token);
 
             var organisations = await organisationService.GetAllAsync();
             logger.Information("Reindexing {Count} organisations", organisations.Length);
 
-            foreach (var organisation in organisations)
+            await RunBoundedAsync(organisations, 10, async organisation =>
             {
                 try { await searchIndexService.SyncOrganisationAsync(organisation.Id); }
                 catch (Exception ex) { logger.Error(ex, "Failed to reindex organisation {Id}", organisation.Id); }
-            }
+            }, token);
 
             var db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
             var chunkSearchIndexService = scope.ServiceProvider.GetRequiredService<ChunkSearchIndexService>();
 
-            var resourceChunks = await db.ResourceChunks.Where(c => c.Embedding != null).ToListAsync();
+            var resourceChunks = await db.ResourceChunks.Where(c => c.Embedding != null).ToListAsync(token);
             logger.Information("Reindexing {Count} resource chunks", resourceChunks.Count);
             var resourceChunkDocs = resourceChunks.Select(c => new ChunkSearchDocument
             {
@@ -328,11 +298,11 @@ public class AdminController(
 
             await chunkSearchIndexService.IndexChunksAsync(entityChunkDocs);
 
-            foreach (var c in resourceChunks.Where(c => c.ChunkType == ChunkType.MetaData))
-                await searchIndexService.UpdateVectorAsync(c.ResourceId, c.Embedding!.ToArray());
+            await RunBoundedAsync(resourceChunks.Where(c => c.ChunkType == ChunkType.MetaData).ToList(), 10, async c =>
+                await searchIndexService.UpdateVectorAsync(c.ResourceId, c.Embedding!.ToArray()), token);
 
-            foreach (var c in entityChunks.Where(c => c.ChunkType == ChunkType.MetaData))
-                await searchIndexService.UpdateVectorAsync(c.EntityId, c.Embedding!.ToArray());
+            await RunBoundedAsync(entityChunks.Where(c => c.ChunkType == ChunkType.MetaData).ToList(), 10, async c =>
+                await searchIndexService.UpdateVectorAsync(c.EntityId, c.Embedding!.ToArray()), token);
 
             var taxonomySearchIndexService = scope.ServiceProvider.GetRequiredService<TaxonomySearchIndexService>();
             var tagService = scope.ServiceProvider.GetRequiredService<TagService>();
@@ -342,43 +312,43 @@ public class AdminController(
 
             var tags = await tagService.GetAllAsync();
             logger.Information("Reindexing {Count} tags", tags.Length);
-            foreach (var tag in tags)
+            await RunBoundedAsync(tags, 10, async tag =>
             {
                 try { await taxonomySearchIndexService.SyncAsync(tag.Id, tag.Name, TagService.TypeTag); }
                 catch (Exception ex) { logger.Error(ex, "Failed to reindex tag {Id}", tag.Id); }
-            }
+            }, token);
 
             var regions = await regionService.GetAllAsync();
             logger.Information("Reindexing {Count} regions", regions.Length);
-            foreach (var region in regions)
+            await RunBoundedAsync(regions, 10, async region =>
             {
                 try { await taxonomySearchIndexService.SyncAsync(region.Id, region.Name, RegionService.TypeTag); }
                 catch (Exception ex) { logger.Error(ex, "Failed to reindex region {Id}", region.Id); }
-            }
+            }, token);
 
             var resourceTypes = await resourceTypeService.GetAllAsync();
             logger.Information("Reindexing {Count} resource types", resourceTypes.Length);
-            foreach (var resourceType in resourceTypes)
+            await RunBoundedAsync(resourceTypes, 10, async resourceType =>
             {
                 try { await taxonomySearchIndexService.SyncAsync(resourceType.Id, resourceType.Name, ResourceTypeService.TypeTag); }
                 catch (Exception ex) { logger.Error(ex, "Failed to reindex resource type {Id}", resourceType.Id); }
-            }
+            }, token);
 
             var journals = await journalService.GetAllAsync();
             logger.Information("Reindexing {Count} journals", journals.Length);
-            foreach (var journal in journals)
+            await RunBoundedAsync(journals, 10, async journal =>
             {
                 try { await taxonomySearchIndexService.SyncAsync(journal.Id, journal.Name, JournalService.TypeTag); }
                 catch (Exception ex) { logger.Error(ex, "Failed to reindex journal {Id}", journal.Id); }
-            }
+            }, token);
 
             var projects = await db.Projects.ToListAsync();
             logger.Information("Reindexing {Count} projects", projects.Count);
-            foreach (var project in projects)
+            await RunBoundedAsync(projects, 10, async project =>
             {
                 try { await taxonomySearchIndexService.SyncAsync(project.Id, project.Title, ProjectService.TypeTag); }
                 catch (Exception ex) { logger.Error(ex, "Failed to reindex project {Id}", project.Id); }
-            }
+            }, token);
 
             logger.Information("Search reindex complete");
         });

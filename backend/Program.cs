@@ -175,7 +175,7 @@ namespace KnowledgeBank
                 var config = sp.GetRequiredService<EnvironmentConfig>();
                 return new MeilisearchClient(config.GetVariableValue(EnvironmentVariable.MEILISEARCH_URL), config.GetVariableValue(EnvironmentVariable.MEILISEARCH_API_KEY));
             });
-            builder.Services.AddScoped<LibrarySearchIndexService>();
+            builder.Services.AddSingleton<LibrarySearchIndexService>();
             builder.Services.AddScoped<ChunkSearchIndexService>();
             builder.Services.AddScoped<TaxonomySearchIndexService>();
             builder.Services.AddScoped<AttachmentChunkSearchIndexService>();
@@ -290,16 +290,16 @@ namespace KnowledgeBank
                 await db.EnsureDatabaseSetupAsync();
 
                 var librarySearchIndexService = scope.ServiceProvider.GetRequiredService<LibrarySearchIndexService>();
-                await librarySearchIndexService.EnsureIndexConfiguredAsync();
-
                 var chunkSearchIndexService = scope.ServiceProvider.GetRequiredService<ChunkSearchIndexService>();
-                await chunkSearchIndexService.EnsureIndexConfiguredAsync();
-
                 var taxonomySearchIndexService = scope.ServiceProvider.GetRequiredService<TaxonomySearchIndexService>();
-                await taxonomySearchIndexService.EnsureIndexConfiguredAsync();
-
                 var attachmentChunkSearchIndexService = scope.ServiceProvider.GetRequiredService<AttachmentChunkSearchIndexService>();
-                await attachmentChunkSearchIndexService.EnsureIndexConfiguredAsync();
+
+                await Task.WhenAll(
+                    librarySearchIndexService.EnsureIndexConfiguredAsync(),
+                    chunkSearchIndexService.EnsureIndexConfiguredAsync(),
+                    taxonomySearchIndexService.EnsureIndexConfiguredAsync(),
+                    attachmentChunkSearchIndexService.EnsureIndexConfiguredAsync()
+                );
             }
 
             app.UseRouting();

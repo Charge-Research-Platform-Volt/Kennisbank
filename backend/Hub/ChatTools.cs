@@ -151,7 +151,7 @@ public partial class Chat
         return formatted;
     }
 
-    private async Task<string> HandleBrowseLibraryAsync(LibraryService libraryService, TagService tagService, RegionService regionService, JournalService journalService, ResourceTypeService resourceTypeService, ProjectService projectService, JsonDocument args, string? projectId, CancellationToken ct)
+    private async Task<string> HandleBrowseLibraryAsync(LibraryService libraryService, TaxonomySearchIndexService taxonomySearchIndexService, ProjectService projectService, JsonDocument args, string? projectId, CancellationToken ct)
     {
         string[] tagNames = GetStringArray(args, "tagNames");
         string[] regionNames = GetStringArray(args, "regionNames");
@@ -162,40 +162,45 @@ public partial class Chat
         string? pubdateMax = args.RootElement.TryGetProperty("pubdateMax", out var pdMax) ? pdMax.GetString() : null;
         int limit = args.RootElement.TryGetProperty("limit", out var l) ? Math.Clamp(l.GetInt32(), 1, 50) : 20;
 
-        List<string> unresolved = [];
+        (string Name, string Type)[] facetQueries = [
+            .. tagNames.Select(n => (n, TagService.TypeTag)),
+            .. regionNames.Select(n => (n, RegionService.TypeTag)),
+            .. resourceTypeNames.Select(n => (n, ResourceTypeService.TypeTag)),
+            .. journalNames.Select(n => (n, JournalService.TypeTag))
+        ];
 
-        async Task<string[]> ResolveAsync(string[] names, string label, Func<string, Task<(object[] Items, int Total)>> search)
+        (Guid? Id, string? MatchedName)[] resolved = await taxonomySearchIndexService.SearchManyAsync(facetQueries);
+
+        List<string> unresolved = [];
+        List<string> fuzzyMatches = [];
+        int cursor = 0;
+
+        string[] ExtractIds(string[] names, string label)
         {
             List<string> ids = [];
             foreach (string name in names)
             {
-                (object[] items, _) = await search(name);
-                if (items.Length > 0) ids.Add(((dynamic)items[0]).Id.ToString());
-                else unresolved.Add($"{label} '{name}'");
+                (Guid? id, string? matchedName) = resolved[cursor++];
+
+                if (!id.HasValue)
+                {
+                    unresolved.Add($"{label} '{name}'");
+                    continue;
+                }
+
+                ids.Add(id.Value.ToString());
+
+                if (!string.Equals(name, matchedName, StringComparison.OrdinalIgnoreCase))
+                    fuzzyMatches.Add($"{label} '{name}' matched '{matchedName}'");
             }
+
             return [.. ids];
         }
 
-        string[] tagIds = await ResolveAsync(tagNames, "tag", async name =>
-        {
-            var (items, total) = await tagService.SearchAsync(name, 1, 1);
-            return (items.Cast<object>().ToArray(), total);
-        });
-        string[] regionIds = await ResolveAsync(regionNames, "region", async name =>
-        {
-            var (items, total) = await regionService.SearchAsync(name, 1, 1);
-            return (items.Cast<object>().ToArray(), total);
-        });
-        string[] resourceTypeIds = await ResolveAsync(resourceTypeNames, "resource type", async name =>
-        {
-            var (items, total) = await resourceTypeService.SearchAsync(name, 1, 1);
-            return (items.Cast<object>().ToArray(), total);
-        });
-        string[] journalIds = await ResolveAsync(journalNames, "journal", async name =>
-        {
-            var (items, total) = await journalService.SearchAsync(name, 1, 1);
-            return (items.Cast<object>().ToArray(), total);
-        });
+        string[] tagIds = ExtractIds(tagNames, "tag");
+        string[] regionIds = ExtractIds(regionNames, "region");
+        string[] resourceTypeIds = ExtractIds(resourceTypeNames, "resource type");
+        string[] journalIds = ExtractIds(journalNames, "journal");
 
         logger.Information(
             "LLM browsing library: tags=[{TagNames}]->{TagIds} (mode={TagFilterMode}), regions=[{RegionNames}]->{RegionIds}, resourceTypes=[{ResourceTypeNames}]->{ResourceTypeIds}, journals=[{JournalNames}]->{JournalIds}, pubdateMin={PubdateMin}, pubdateMax={PubdateMax}, unresolved=[{Unresolved}]",
@@ -251,6 +256,9 @@ public partial class Chat
 
         if (unresolved.Count > 0)
             sb.AppendLine($"Note: could not resolve {string.Join(", ", unresolved)} — no match found in the library.");
+
+        if (fuzzyMatches.Count > 0)
+            sb.AppendLine($"Note: some names were matched approximately - {string.Join("; ", fuzzyMatches)}. Mention this to the user if the results don't look right.");
 
         if (limited.Count == 0)
         {

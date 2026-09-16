@@ -354,6 +354,11 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
 
     private async Task<ExtractedMetadata?> RunPipelineAsync(string fullText, string trimmedText, string contextHint, Action<string, int>? progress, string headerFooterText = "")
     {
+        // Strip back matter for subject extraction and publication code
+        // Start it now and only await before Phase 2 so it can run concurrently with
+        // the biblio extraction
+        Task<string> strippedTextTask = StripBackMatterAsync(fullText);
+
         // Fetch resource types
         ResourceType[] resourceTypes = await resourceTypeService.GetAllAsync();
         string biblioSchema = GetBiblioJsonSchema(resourceTypes.Select(r => r.Name));
@@ -372,8 +377,8 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
             return null;
         }
 
-        // Strip back matter for subject extraction and publication code
-        string strippedText = await StripBackMatterAsync(fullText);
+        // Await the stripped text task
+        string strippedText = await strippedTextTask;
 
         // PHASE 2: Extract subjects and key insights
         List<TempEntity> allSubjects = [];

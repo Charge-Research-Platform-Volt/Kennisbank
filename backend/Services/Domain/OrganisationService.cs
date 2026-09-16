@@ -244,8 +244,12 @@ public class OrganisationService(DatabaseContext db, LibrarySearchIndexService l
 
         db.Organisations.Remove(organisation);
         await db.SaveChangesAsync();
-        await librarySearchIndexService.SyncOrganisationAsync(id);
-        await vectorStore.DeletePointsByEntityIdAsync(id);
+
+        await Task.WhenAll(
+            librarySearchIndexService.SyncOrganisationAsync(id),
+            vectorStore.DeletePointsByEntityIdAsync(id)
+        );
+
         return true;
     }
 

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.Search;
 
-public class LibrarySearchIndexService(MeilisearchClient client, DatabaseContext db)
+public class LibrarySearchIndexService(MeilisearchClient client, IDbContextFactory<DatabaseContext> dbFactory)
 {
     private const string IndexName = "library";
 
@@ -17,13 +17,16 @@ public class LibrarySearchIndexService(MeilisearchClient client, DatabaseContext
         await client.CreateIndexAsync(IndexName, "id");
         Meilisearch.Index index = client.Index(IndexName);
 
-        await index.UpdateSearchableAttributesAsync(["name", "aliases", "description", "occupation", "website", "emailAddress"]);
-        await index.UpdateFilterableAttributesAsync(["type", "typeId", "journalId", "tagIds", "regionIds", "publicationDateTimestamp"]);
-        await index.UpdateSortableAttributesAsync(["createdOnTimestamp", "name", "publicationDateTimestamp"]);
-        await index.UpdateEmbeddersAsync(new Dictionary<string, Embedder>
-        {
-            ["default"] = new Embedder { Source = EmbedderSource.UserProvided, Dimensions = 1024 }
-        });
+
+        await Task.WhenAll(
+            index.UpdateSearchableAttributesAsync(["name", "aliases", "description", "occupation", "website", "emailAddress"]),
+            index.UpdateFilterableAttributesAsync(["type", "typeId", "journalId", "tagIds", "regionIds", "publicationDateTimestamp"]),
+            index.UpdateSortableAttributesAsync(["createdOnTimestamp", "name", "publicationDateTimestamp"]),
+            index.UpdateEmbeddersAsync(new Dictionary<string, Embedder>
+            {
+                ["default"] = new Embedder { Source = EmbedderSource.UserProvided, Dimensions = 1024 }
+            })
+        );
     }
 
     public async Task UpdateVectorAsync(Guid id, float[] vector)
@@ -36,6 +39,8 @@ public class LibrarySearchIndexService(MeilisearchClient client, DatabaseContext
 
     public async Task SyncResourceAsync(Guid id)
     {
+        await using DatabaseContext db = await dbFactory.CreateDbContextAsync();
+
         Resource? resource = await db.Resources
             .Include(r => r.ResourceTagRelations!)
             .Include(r => r.ResourceRegionRelations!)
@@ -72,6 +77,8 @@ public class LibrarySearchIndexService(MeilisearchClient client, DatabaseContext
 
     public async Task SyncPersonAsync(Guid id)
     {
+        await using DatabaseContext db = await dbFactory.CreateDbContextAsync();
+
         Person? person = await db.Persons.FirstOrDefaultAsync(p => p.Id == id);
 
         if (person == null || person.Trashed)
@@ -105,6 +112,8 @@ public class LibrarySearchIndexService(MeilisearchClient client, DatabaseContext
 
     public async Task SyncOrganisationAsync(Guid id)
     {
+        await using DatabaseContext db = await dbFactory.CreateDbContextAsync();
+
         Organisation? org = await db.Organisations.FirstOrDefaultAsync(o => o.Id == id);
 
         if (org == null || org.Trashed)

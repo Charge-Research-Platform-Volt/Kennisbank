@@ -5,6 +5,7 @@ using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Background;
 using KnowledgeBank.Services.Search;
 using KnowledgeBank.Services.Vector;
+using KnowledgeBank.Utils;
 using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Services.Domain;
@@ -275,11 +276,12 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
 
             taskQueue.QueueBackgroundWorkItem(async token =>
             {
-                using var scope = scopeFactory.CreateScope();
-                var ingestion = scope.ServiceProvider.GetRequiredService<IngestionService>();
-
-                foreach (var (entityId, entityType) in toEmbed)
+                await ConcurrencyUtils.RunBoundedAsync(toEmbed, 10, async item =>
                 {
+                    var (entityId, entityType) = item;
+                    using var scope = scopeFactory.CreateScope();
+                    var ingestion = scope.ServiceProvider.GetRequiredService<IngestionService>();
+
                     try
                     {
                         if (entityType == "organisation")
@@ -292,19 +294,23 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
                         Serilog.Log.Error(ex, "Failed to process {Type} {Id} before its pipeline could start", entityType, entityId);
 
                         if (entityType == "organisation")
+                        {
                             await scope.ServiceProvider.GetRequiredService<OrganisationService>().UpdateAsync(entityId, o =>
                             {
                                 o.EmbeddingStatus = EmbeddingStatus.Failed;
                                 o.EmbeddingError = ex.Message;
                             });
+                        }
                         else
+                        {
                             await scope.ServiceProvider.GetRequiredService<PersonService>().UpdateAsync(entityId, p =>
                             {
                                 p.EmbeddingStatus = EmbeddingStatus.Failed;
                                 p.EmbeddingError = ex.Message;
                             });
+                        }
                     }
-                }
+                }, token);
             });
         }
 
@@ -379,8 +385,12 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
 
         db.Resources.Remove(resource);
         await db.SaveChangesAsync();
-        await librarySearchIndexService.SyncResourceAsync(id);
-        await vectorStore.DeletePointsByResourceIdAsync(id);
+
+        await Task.WhenAll(
+            librarySearchIndexService.SyncResourceAsync(id),
+            vectorStore.DeletePointsByResourceIdAsync(id)
+        );
+        
         return true;
     }
 

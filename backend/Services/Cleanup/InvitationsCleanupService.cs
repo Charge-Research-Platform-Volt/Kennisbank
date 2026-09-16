@@ -42,7 +42,7 @@ public class InvitationsCleanupService : BackgroundService
                     .Where(i => i.CreatedAt < threshold)
                     .ToListAsync(stoppingToken);
 
-                foreach (Invitation invitation in oldInvitations)
+                await ConcurrencyUtils.RunBoundedAsync(oldInvitations, 10, async invitation =>
                 {
                     try
                     {
@@ -52,7 +52,7 @@ public class InvitationsCleanupService : BackgroundService
                     {
                         _logger.Error(e, "Failed to delete VPN user for expired invitation {InvitationId}", invitation.Id);
                     }
-                }
+                }, stoppingToken);
 
                 if (oldInvitations.Count != 0)
                 {

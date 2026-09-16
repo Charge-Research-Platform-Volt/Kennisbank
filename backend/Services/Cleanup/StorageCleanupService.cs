@@ -73,12 +73,9 @@ public class StorageCleanupService : BackgroundService
 
         _logger.Information("Found {Count} objects in bucket {BucketName}", objects.Length, _bucketName);
 
-        await using var context = await dbFactory.CreateDbContextAsync(stoppingToken);
-
-        foreach (string objectName in objects)
+        await ConcurrencyUtils.RunBoundedAsync(objects, 10, async objectName =>
         {
-            if (stoppingToken.IsCancellationRequested)
-                break;
+            await using var context = await dbFactory.CreateDbContextAsync(stoppingToken);
 
             try
             {
@@ -90,8 +87,8 @@ public class StorageCleanupService : BackgroundService
                 if (!Guid.TryParse(guidPart, out Guid objectId))
                 {
                     _logger.Warning("Object {ObjectName} is not a valid GUID, skipping", objectName);
-                    skippedCount++;
-                    continue;
+                    Interlocked.Increment(ref skippedCount);
+                    return;
                 }
 
                 if (!isOcrCache)
@@ -105,8 +102,8 @@ public class StorageCleanupService : BackgroundService
                         // Skip if uploaded less than 24 hours ago
                         if (uploadTime > DateTime.UtcNow.AddHours(-24))
                         {
-                            skippedCount++;
-                            continue;
+                            Interlocked.Increment(ref skippedCount);
+                            return;
                         }
                     }
                 }
@@ -116,8 +113,8 @@ public class StorageCleanupService : BackgroundService
                 bool isMessageAttachment = await context.MessageAttachments.AnyAsync(a => a.Id == objectId, stoppingToken);
                 if (isResource || isMessageAttachment)
                 {
-                    skippedCount++;
-                    continue;
+                    Interlocked.Increment(ref skippedCount);
+                    return;
                 }
 
                 // OCR cache for a resource that no longer exists — falls through to delete below
@@ -127,22 +124,22 @@ public class StorageCleanupService : BackgroundService
                     bool isUserAvatar = await context.Users.AnyAsync(u => u.Id == objectName, stoppingToken);
                     if (isUserAvatar)
                     {
-                        skippedCount++;
-                        continue;
+                        Interlocked.Increment(ref skippedCount);
+                        return;
                     }
                 }
 
                 // Object is orphaned - delete it
                 _logger.Information("Deleting orphaned object {ObjectName}", objectName);
                 await storageService.DeleteObjectAsync(_bucketName, objectName);
-                deletedCount++;
+                Interlocked.Increment(ref deletedCount);
             }
             catch (Exception ex)
             {
-                errorCount++;
+                Interlocked.Increment(ref errorCount);
                 _logger.Error(ex, "Error processing object {ObjectName}", objectName);
             }
-        }
+        }, stoppingToken);
 
         _logger.Information(
             "Storage cleanup finished. Deleted: {Deleted}, Skipped: {Skipped}, Errors: {Errors}",

@@ -59,11 +59,14 @@ public class LibraryService(DatabaseContext db, LibrarySearchIndexService librar
             { "journal_ids", ParseGuids(request.FilterOptions?.JournalFilter) },
         };
 
+        // Start embedding to run concurrently with library search
+        Task<float[]>? embeddingTask = string.IsNullOrWhiteSpace(request.Search) ? null : embeddingService.GenerateEmbedding(request.Search);
+
         Dictionary<string, int> typeCounts = await librarySearchIndexService.GetTypeFacetsAsync(request.Search ?? "", request.FilterOptions);
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            float[] queryEmbedding = await embeddingService.GenerateEmbedding(request.Search);
+            float[] queryEmbedding = await embeddingTask!;
             var (ids, searchTotalCount) = await librarySearchIndexService.SearchAsync(request.Search, request.FilterOptions, request.Page, request.PageSize, queryEmbedding);
 
             Dictionary<Guid, LibraryItem> itemLookup = await db.LibraryItems.Where(i => ids.Contains(i.Id)).ToDictionaryAsync(i => i.Id);

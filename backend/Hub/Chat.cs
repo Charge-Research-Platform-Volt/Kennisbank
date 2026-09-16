@@ -378,10 +378,7 @@ public partial class Chat(MistralHttpClient mistralClient, AiService aiService, 
                     args, cancellationToken),
                 "browse_library" => await HandleBrowseLibraryAsync(
                     scope.ServiceProvider.GetRequiredService<LibraryService>(),
-                    scope.ServiceProvider.GetRequiredService<TagService>(),
-                    scope.ServiceProvider.GetRequiredService<RegionService>(),
-                    scope.ServiceProvider.GetRequiredService<JournalService>(),
-                    scope.ServiceProvider.GetRequiredService<ResourceTypeService>(),
+                    scope.ServiceProvider.GetRequiredService<TaxonomySearchIndexService>(),
                     scope.ServiceProvider.GetRequiredService<ProjectService>(),
                     args, projectId, cancellationToken),
                 "find_similar_resources" => await HandleFindSimilarResourcesAsync(

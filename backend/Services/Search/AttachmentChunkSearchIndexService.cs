@@ -13,12 +13,14 @@ public class AttachmentChunkSearchIndexService(MeilisearchClient client)
         await client.CreateIndexAsync(IndexName, "id");
         Meilisearch.Index index = client.Index(IndexName);
 
-        await index.UpdateSearchableAttributesAsync(["chunkText"]);
-        await index.UpdateFilterableAttributesAsync(["attachmentId", "chatId"]);
-        await index.UpdateEmbeddersAsync(new Dictionary<string, Embedder>
-        {
-            ["default"] = new Embedder { Source = EmbedderSource.UserProvided, Dimensions = 1024 }
-        });
+        await Task.WhenAll(
+            index.UpdateSearchableAttributesAsync(["chunkText"]),
+            index.UpdateFilterableAttributesAsync(["attachmentId", "chatId"]),
+            index.UpdateEmbeddersAsync(new Dictionary<string, Embedder>
+            {
+                ["default"] = new Embedder { Source = EmbedderSource.UserProvided, Dimensions = 1024 }
+            })
+        );
     }
 
     public async Task IndexChunksAsync(IEnumerable<AttachmentChunkDocument> documents)

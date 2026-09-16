@@ -42,10 +42,11 @@ public class VPNCleanupService : BackgroundService
                 HashSet<string> userIds = (await dbContext.Users.Select(u => u.Id).ToListAsync(stoppingToken)).ToHashSet();
                 HashSet<string> invitationIds = (await dbContext.Invitations.Select(i => i.Id.ToString()).ToListAsync(stoppingToken)).ToHashSet();
 
-                foreach (var (id, name) in vpnUsers)
+                await ConcurrencyUtils.RunBoundedAsync(vpnUsers, 10, async user =>
                 {
+                    var (id, name) = user;
                     if (!Guid.TryParse(name, out _) || userIds.Contains(name) || invitationIds.Contains(name))
-                        continue;
+                        return;
 
                     try
                     {
@@ -58,7 +59,7 @@ public class VPNCleanupService : BackgroundService
                     {
                         _logger.Error(e, "Failed to delete orphaned VPN user {VPNUserName}", name);
                     }
-                }
+                }, stoppingToken);
             }
             catch (Exception e)
             {
