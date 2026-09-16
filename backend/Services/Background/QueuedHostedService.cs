@@ -4,6 +4,8 @@ public class QueuedHostedService(IBackgroundTaskQueue taskQueue, ILogger<QueuedH
 {
     private const int WorkerCount = 5;
 
+    private int busyWorkers;
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation("Queued Hosted Service is starting.");
@@ -28,6 +30,9 @@ public class QueuedHostedService(IBackgroundTaskQueue taskQueue, ILogger<QueuedH
                 break;
             }
 
+            int busy = Interlocked.Increment(ref busyWorkers);
+            logger.LogInformation("Processing background work item ({Busy}/{WorkerCount} workers busy, {Pending} still queued)", busy, WorkerCount, taskQueue.PendingCount);
+
             try
             {
                 await workItem(stoppingToken);
@@ -35,6 +40,10 @@ public class QueuedHostedService(IBackgroundTaskQueue taskQueue, ILogger<QueuedH
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error occurred executing the work item.");
+            }
+            finally
+            {
+                Interlocked.Decrement(ref busyWorkers);
             }
         }
     }

@@ -49,6 +49,7 @@ public class MistralHttpClient
     private const int MaxRetries = 3;
 
     private const double SafetyMargin = 0.9;
+    private const int LimiterWaitLogThresholdMs = 50;
     private static readonly TimeSpan LimiterWindow = TimeSpan.FromSeconds(60);
 
     private readonly HttpClient textHttpClient;
@@ -103,7 +104,10 @@ public class MistralHttpClient
         string body = JsonSerializer.Serialize(BuildBody(request, modelOverride: modelOverride));
 
         RequestTokenLimiter limiter = GetLimiter(effectiveModel);
+        Stopwatch limiterWait = Stopwatch.StartNew();
         await limiter.WaitForSlotAsync(ct);
+        if (limiterWait.ElapsedMilliseconds > LimiterWaitLogThresholdMs)
+            logger.Warning("Mistral rate limiter delayed [{Model}] completion by {DelayMs}ms", effectiveModel, limiterWait.ElapsedMilliseconds);
 
         HttpResponseMessage response = await SendWithRetryAsync(
             textHttpClient,
@@ -165,7 +169,10 @@ public class MistralHttpClient
         string body = JsonSerializer.Serialize(BuildBody(request, stream: true));
 
         RequestTokenLimiter limiter = GetLimiter(mediumModelName);
+        Stopwatch limiterWait = Stopwatch.StartNew();
         await limiter.WaitForSlotAsync(ct);
+        if (limiterWait.ElapsedMilliseconds > LimiterWaitLogThresholdMs)
+            logger.Warning("Mistral rate limiter delayed [{Model}] stream by {DelayMs}ms", mediumModelName, limiterWait.ElapsedMilliseconds);
 
         HttpResponseMessage response = await SendWithRetryAsync(
             textHttpClient,
@@ -417,7 +424,10 @@ public class MistralHttpClient
             ? new { model, document = new { type = "document_url", document_url = fileUrl }, extract_header = true, extract_footer = true }
             : new { model, document = new { type = "image_url", image_url = fileUrl }, extract_header = true, extract_footer = true };
 
+        Stopwatch pageLimiterWait = Stopwatch.StartNew();
         await ocrPageLimiter.WaitForCapacityAsync(ct);
+        if (pageLimiterWait.ElapsedMilliseconds > LimiterWaitLogThresholdMs)
+            logger.Warning("Mistral OCR page rate limiter delayed request by {DelayMs}ms", pageLimiterWait.ElapsedMilliseconds);
 
         using HttpResponseMessage ocrResponse = await SendWithRetryAsync(
             filesHttpClient,

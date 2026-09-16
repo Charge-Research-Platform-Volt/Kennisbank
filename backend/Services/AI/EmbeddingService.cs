@@ -19,6 +19,7 @@ public class EmbeddingService
     private const int MaxCacheSize = 1000;
 
     private const double SafetyMargin = 0.9;
+    private const int LimiterWaitLogThresholdMs = 50;
     private readonly RequestTokenLimiter rateLimiter;
     private readonly SemaphoreSlim concurrencyLimiter;
 
@@ -122,11 +123,17 @@ public class EmbeddingService
     /// </summary>
     private async Task<ClientResult<OpenAIEmbeddingCollection>> WithRetryAsync(Func<Task<ClientResult<OpenAIEmbeddingCollection>>> action, int maxAttempts = 3)
     {
+        System.Diagnostics.Stopwatch concurrencyWait = System.Diagnostics.Stopwatch.StartNew();
         await concurrencyLimiter.WaitAsync();
+        if (concurrencyWait.ElapsedMilliseconds > LimiterWaitLogThresholdMs)
+            logger.Warning("Embedding concurrency limiter delayed request by {DelayMs}ms", concurrencyWait.ElapsedMilliseconds);
 
         try
         {
+            System.Diagnostics.Stopwatch rateWait = System.Diagnostics.Stopwatch.StartNew();
             await rateLimiter.WaitForSlotAsync();
+            if (rateWait.ElapsedMilliseconds > LimiterWaitLogThresholdMs)
+                logger.Warning("Embedding rate limiter delayed request by {DelayMs}ms", rateWait.ElapsedMilliseconds);
 
             for (int attempt = 1; ; attempt++)
             {

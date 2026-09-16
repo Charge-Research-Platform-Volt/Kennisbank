@@ -16,6 +16,7 @@ public class MistralStatusService(IHubContext<Chat> hubContext)
 {
     private const int FailureThreshold = 2;
 
+    private readonly Serilog.ILogger logger = Serilog.Log.ForContext<MistralStatusService>();
     private readonly Lock statusLock = new();
     private MistralAvailability status = MistralAvailability.Operational;
     private DateTime? downSinceUtc;
@@ -47,7 +48,10 @@ public class MistralStatusService(IHubContext<Chat> hubContext)
         }
 
         if (changed != null)
+        {
+            logger.Information("Mistral status changed to Operational");
             await BroadcastAsync(changed);
+        }
     }
 
     public async Task ReportFailure(string reason)
@@ -74,7 +78,10 @@ public class MistralStatusService(IHubContext<Chat> hubContext)
         }
 
         if (changed != null)
+        {
+            logger.Warning("Mistral status changed to Down: {Reason}", reason);
             await BroadcastAsync(changed);
+        }
     }
 
     private async Task BroadcastAsync(MistralStatusSnapshot snapshot)
