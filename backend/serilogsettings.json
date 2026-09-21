@@ -11,7 +11,7 @@
         "Args": {
           "path": "../backend_logs/log.txt",
           "rollingInterval": "Day",
-          "retainedFileCountLimit": 10
+          "retainedFileCountLimit": 30
         }
       }
     ]
