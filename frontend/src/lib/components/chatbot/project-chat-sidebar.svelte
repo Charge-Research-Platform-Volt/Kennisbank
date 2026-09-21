@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
-	import type { HubConnection } from '@microsoft/signalr';
+	import { onHubEvent, type HubConnectionContext } from '$lib/state/hub-connection.svelte';
 	import ChatView from './chat-view.svelte';
 	import ChatInput from './chat-input.svelte';
 	import { api } from '$lib/api';
@@ -30,22 +30,16 @@
 		});
 	});
 
-	const chat = getContext<{ connection: HubConnection | null }>('chatConnection');
+	const hub = getContext<HubConnectionContext>('hubConnection');
 
-	$effect(() => {
-		const conn = chat.connection;
-		if (!conn) return;
-		const handler = () => historyVersion++;
-		conn.on('ChatTitleUpdated', handler);
-		return () => conn.off('ChatTitleUpdated', handler);
-	});
+	onHubEvent(hub, 'ChatTitleUpdated', () => historyVersion++);
 
 	async function startChat(message: string) {
-		if (!chat.connection || creating) return;
+		if (!hub.connection || creating) return;
 		creating = true;
 
 		try {
-			const id: string = await chat.connection.invoke('CreateChat', message, projectId);
+			const id: string = await hub.connection.invoke('CreateChat', message, projectId);
 			pendingMessage = message;
 			chatId = id;
 		} catch (e) {

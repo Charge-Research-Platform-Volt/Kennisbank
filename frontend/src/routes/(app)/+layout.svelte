@@ -8,7 +8,7 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { Sparkles, TriangleAlert, X } from '@lucide/svelte';
-	import { createChatConnection } from '$lib/state/chat-connection.svelte';
+	import { createHubConnection, onHubEvent } from '$lib/state/hub-connection.svelte';
 	import { renderChangelog } from '$lib/changelog';
 	import { setContext, onMount } from 'svelte';
 	import { mistralStatusState } from '$lib/state/mistral-status.svelte';
@@ -21,9 +21,9 @@
 	let changelogEntries = $state<ChangelogEntry[]>([]);
 	let changelogDialogOpen = $state(false);
 
-	const chat = createChatConnection();
-	onMount(() => chat.start());
-	setContext('chatConnection', chat);
+	const hub = createHubConnection();
+	onMount(() => hub.start());
+	setContext('hubConnection', hub);
 
 	api
 		.get<MistralStatus>('/api/status/mistral')
@@ -32,11 +32,8 @@
 		})
 		.catch(() => {});
 
-	$effect(() => {
-		if (!chat.connection) return;
-		chat.connection.on('MistralStatusChanged', (status: MistralStatus) => {
-			mistralStatusState.current = status;
-		});
+	onHubEvent(hub, 'MistralStatusChanged', (status) => {
+		mistralStatusState.current = status;
 	});
 
 	let mistralDegradedDismissed = $state(false);

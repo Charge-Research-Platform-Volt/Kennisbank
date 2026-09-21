@@ -1,18 +1,27 @@
-using Hubs;
+using KnowledgeBank.Hubs;
 using Microsoft.AspNetCore.SignalR;
 
 namespace KnowledgeBank.Services.AI;
 
 public enum MistralAvailability { Operational, Down }
 
-public record MistralStatusSnapshot(MistralAvailability Status, DateTime? DownSinceUtc, DateTime LastCheckedUtc, string? LastError);
+public record MistralStatusSnapshot(MistralAvailability Status, DateTime? DownSinceUtc, DateTime LastCheckedUtc, string? LastError)
+{
+    public MistralStatusPayload ToPayload() => new(
+        Status == MistralAvailability.Down ? "down" : "operational",
+        DownSinceUtc,
+        LastCheckedUtc,
+        LastError
+    );
+};
+public record MistralStatusPayload(string Status, DateTime? DownSince, DateTime LastChecked, string? LastError);
 
 /// <summary>
 /// Tracks whether Mistral's API currently appears reachable, based purely on the outcome of real calls
 /// (MistralHttpClient's chat/streaming/OCR methods). Only flips to Down after a couple of consecutive
 /// failures, to avoid crying wolf over one flaky request; any single success clears it immediately.
 /// </summary>
-public class MistralStatusService(IHubContext<Chat> hubContext)
+public class MistralStatusService(IHubContext<AppHub, IAppHubClient> hubContext)
 {
     private const int FailureThreshold = 2;
 
@@ -88,13 +97,7 @@ public class MistralStatusService(IHubContext<Chat> hubContext)
     {
         try
         {
-            await hubContext.Clients.All.SendAsync("MistralStatusChanged", new
-            {
-                status = snapshot.Status == MistralAvailability.Down ? "down" : "operational",
-                downSince = snapshot.DownSinceUtc,
-                lastChecked = snapshot.LastCheckedUtc,
-                lastError = snapshot.LastError
-            });
+            await hubContext.Clients.All.MistralStatusChanged(snapshot.ToPayload());
         }
         catch
         {

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Net.Http.Headers;
 using KnowledgeBank.Utils;
 
 namespace KnowledgeBank.Services.AI;
@@ -47,6 +48,7 @@ public record MistralOcrResult(List<MistralOcrPage> Pages, string Model);
 public class MistralHttpClient
 {
     private const int MaxRetries = 3;
+    private const int MaxRetryAfterSeconds = 30;
 
     private const double SafetyMargin = 0.9;
     private const int LimiterWaitLogThresholdMs = 50;
@@ -494,7 +496,8 @@ public class MistralHttpClient
             bool retryable = transportException != null || (int)response!.StatusCode is 503 or 529 or 429;
             if (retryable && attempt < MaxRetries - 1)
             {
-                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
+                TimeSpan delay = GetRetryDelay(transportException == null ? response : null, attempt);
+                await Task.Delay(delay, ct);
                 continue;
             }
 
@@ -511,6 +514,26 @@ public class MistralHttpClient
             await mistralStatusService.ReportFailure($"Mistral returned HTTP {(int)response.StatusCode}");
 
         return response;
+    }
+
+    /// <summary>
+    /// Uses the server's own Retry-After header when present instead of guessing.
+    /// Falls back to exponential backoff when header is absent.
+    /// </summary>
+    private TimeSpan GetRetryDelay(HttpResponseMessage? response, int attempt)
+    {
+        TimeSpan fallback = TimeSpan.FromSeconds(Math.Pow(2, attempt));
+        RetryConditionHeaderValue? retryAfter = response?.Headers.RetryAfter;
+
+        TimeSpan? serverDelay = retryAfter?.Delta
+            ?? (retryAfter?.Date is DateTimeOffset date ? date - DateTimeOffset.UtcNow : null);
+
+        if (serverDelay is not TimeSpan delay || delay <= TimeSpan.Zero)
+            return fallback;
+
+        TimeSpan capped = delay > TimeSpan.FromSeconds(MaxRetryAfterSeconds) ? TimeSpan.FromSeconds(MaxRetryAfterSeconds) : delay;
+        logger.Debug("Using server-provided Retry-After of {DelaySeconds}s (capped at {MaxSeconds}s)", delay.TotalSeconds, MaxRetryAfterSeconds);
+        return capped;
     }
 
     private object BuildBody(MistralChatRequest request, bool stream = false, string? modelOverride = null)

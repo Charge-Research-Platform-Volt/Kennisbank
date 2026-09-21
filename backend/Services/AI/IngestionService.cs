@@ -6,13 +6,13 @@ using Microsoft.SemanticKernel.Text;
 using Serilog;
 using System.Text;
 using Microsoft.AspNetCore.SignalR;
-using Hubs;
+using KnowledgeBank.Hubs;
 
 namespace KnowledgeBank.Services.AI;
 
 #pragma warning disable SKEXP0050, SKEXP0001
 
-public class IngestionService(IVectorStore vectorStore, TextExtractionService textExtractionService, ResourceService resourceService, PersonService personService, OrganisationService organisationService, EnvironmentConfig environmentConfig, MistralStatusService mistralStatusService, IHubContext<Chat> hubContext)
+public class IngestionService(IVectorStore vectorStore, TextExtractionService textExtractionService, ResourceService resourceService, PersonService personService, OrganisationService organisationService, EnvironmentConfig environmentConfig, MistralStatusService mistralStatusService, IHubContext<AppHub, IAppHubClient> hubContext)
 {
     private readonly Serilog.ILogger logger = Log.ForContext<IngestionService>();
     private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
@@ -246,7 +246,7 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
     {
         try
         {
-            await hubContext.Clients.All.SendAsync("EmbeddingStatusChanged", id, status.ToString());
+            await hubContext.Clients.All.EmbeddingStatusChanged(id, status.ToString());
         }
         catch (Exception ex)
         {

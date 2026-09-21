@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { api } from '$lib/api';
 	import { getContext, onMount } from 'svelte';
-	import type { HubConnection } from '@microsoft/signalr';
+	import { onHubEvent, type HubConnectionContext } from '$lib/state/hub-connection.svelte';
 	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
@@ -76,15 +76,9 @@
 		refreshTimer = setTimeout(fetchStatus, 1000);
 	}
 
-	const chat = getContext<{ connection: HubConnection | null }>('chatConnection');
+	const hub = getContext<HubConnectionContext>('hubConnection');
 
-	$effect(() => {
-		const conn = chat.connection;
-		if (!conn) return;
-
-		conn.on('EmbeddingStatusChanged', scheduleRefresh);
-		return () => conn.off('EmbeddingStatusChanged', scheduleRefresh);
-	});
+	onHubEvent(hub, 'EmbeddingStatusChanged', scheduleRefresh);
 
 	onMount(fetchStatus);
 </script>

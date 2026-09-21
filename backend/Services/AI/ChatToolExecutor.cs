@@ -1,135 +1,98 @@
 using System.Text;
 using System.Text.Json;
+using KnowledgeBank.Hubs;
 using KnowledgeBank.Models;
-using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Domain;
 using KnowledgeBank.Services.Search;
 using Microsoft.AspNetCore.SignalR;
 
-namespace Hubs;
+namespace KnowledgeBank.Services.AI;
 
-public partial class Chat
+public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingService, AttachmentChunkSearchIndexService attachmentChunkSearchIndexService, IServiceScopeFactory scopeFactory, IHubContext<AppHub, IAppHubClient> hubContext)
 {
-    private static readonly MistralFunction SearchTool = new(
-        "search_library",
-        "Search the personal library for resources, people, or organisations",
-        new
-        {
-            type = "object",
-            properties = new
-            {
-                query = new { type = "string", description = "Search query" },
-                type = new { type = "string", @enum = new[] { "resource", "person", "organisation" }, description = "Filter by item type. Omit to search all." },
-                limit = new { type = "integer", description = "Number of results to return (default 15, max 30)" }
-            },
-            required = new[] { "query" },
-            additionalProperties = false
-        }
-    );
+    private const float RelevanceThreshold = 0.25f;
+    private readonly Serilog.ILogger logger = Serilog.Log.ForContext<ChatToolExecutor>();
 
-    private static readonly MistralFunction GetItemDetailsTool = new(
-        "get_item_details",
-        "Get full details of a specific library item by ID, including authors, tags, organisations, related persons, and description",
-        new
+    public async Task<string> ExecuteAsync(MistralToolCall toolCall, string userQuestion, string? projectId, Guid chatId, string connectionId, CancellationToken cancellationToken)
+    {
+        try
         {
-            type = "object",
-            properties = new
-            {
-                id = new { type = "string", description = "Item UUID" },
-                type = new { type = "string", @enum = new[] { "resource", "person", "organisation" }, description = "Item type" }
-            },
-            required = new[] { "id", "type" },
-            additionalProperties = false
-        }
-    );
+            using var args = JsonDocument.Parse(toolCall.Arguments);
+            await using var scope = scopeFactory.CreateAsyncScope();
 
-    private static readonly MistralFunction FindRelatedItemsTool = new(
-        "find_related_items",
-        "Find items connected to a given library item — e.g. all resources by a person, all persons in an organisation, all organisations linked to a resource",
-        new
+            return toolCall.Name switch
+            {
+                "search_library" => await HandleSearchAsync(
+                    scope.ServiceProvider.GetRequiredService<LibraryService>(),
+                    scope.ServiceProvider.GetRequiredService<ProjectService>(),
+                    args, userQuestion, projectId, connectionId, cancellationToken),
+                "get_item_details" => await HandleGetItemDetailsAsync(
+                    scope.ServiceProvider.GetRequiredService<ResourceService>(),
+                    scope.ServiceProvider.GetRequiredService<PersonService>(),
+                    scope.ServiceProvider.GetRequiredService<OrganisationService>(),
+                    args, connectionId, cancellationToken),
+                "find_related_items" => await HandleFindRelatedItemsAsync(
+                    scope.ServiceProvider.GetRequiredService<ResourceService>(),
+                    scope.ServiceProvider.GetRequiredService<PersonService>(),
+                    scope.ServiceProvider.GetRequiredService<OrganisationService>(),
+                    args, connectionId, cancellationToken),
+                "search_item_content" => await HandleSearchItemContentAsync(
+                    scope.ServiceProvider.GetRequiredService<LibraryService>(),
+                    args, connectionId, cancellationToken),
+                "browse_library" => await HandleBrowseLibraryAsync(
+                    scope.ServiceProvider.GetRequiredService<LibraryService>(),
+                    scope.ServiceProvider.GetRequiredService<TaxonomySearchIndexService>(),
+                    scope.ServiceProvider.GetRequiredService<ProjectService>(),
+                    args, projectId, connectionId, cancellationToken),
+                "find_similar_resources" => await HandleFindSimilarResourcesAsync(
+                    scope.ServiceProvider.GetRequiredService<ChunkSearchIndexService>(),
+                    scope.ServiceProvider.GetRequiredService<ResourceService>(),
+                    args, connectionId, cancellationToken),
+                "search_attachment_content" => await HandleSearchAttachmentContentAsync(
+                    scope.ServiceProvider.GetRequiredService<ChatService>(),
+                    args, chatId, connectionId, cancellationToken),
+                _ => "Error: unknown tool"
+            };
+        }
+        catch (Exception ex)
         {
-            type = "object",
-            properties = new
-            {
-                id = new { type = "string", description = "Item UUID" },
-                type = new { type = "string", @enum = new[] { "resource", "person", "organisation" }, description = "Item type" }
-            },
-            required = new[] { "id", "type" },
-            additionalProperties = false
+            logger.Error(ex, "Tool call failed for {ToolName} with args: {Args}", toolCall.Name, toolCall.Arguments);
+            return $"Tool call failed: {ex.Message}";
         }
-    );
+    }
 
-    private static readonly MistralFunction SearchItemContentTool = new(
-        "search_item_content",
-        "Search within a specific library item's full indexed content for more detail than the initial search_library result summary provided. Use this after search_library or get_item_details has identified a relevant item and you need deeper or more specific information from it than the summary gave you. Most useful for resources with full document text — persons and organisations have limited indexed content beyond their description.",
-        new
+    public async Task<string> FormatSearchResultsAsync(List<LibraryItemWithChunks> results, string userQuestion, string searchQuery, CancellationToken ct)
+    {
+        var relevant = results.Where(i => i.Score >= RelevanceThreshold).ToList();
+
+        if (relevant.Count == 0)
+            return "No relevant results found";
+
+        var summaryTasks = relevant.Select(item => item.MatchedChunks.Count > 0
+            ? aiService.SummarizeChunksAsync(userQuestion, searchQuery, item.Item.Name, item.MatchedChunks, ct)
+            : Task.FromResult(item.Item.Description ?? ""));
+
+        string[] summaries = await Task.WhenAll(summaryTasks);
+
+        StringBuilder sb = new();
+
+        for (int i = 0; i < relevant.Count; i++)
         {
-            type = "object",
-            properties = new
-            {
-                id = new { type = "string", description = "Item UUID" },
-                type = new { type = "string", @enum = new[] { "resource", "person", "organisation" }, description = "Item type" },
-                query = new { type = "string", description = "What to search for within the item's content" }
-            },
-            required = new[] { "id", "type", "query" },
-            additionalProperties = false
-        }
-    );
+            var item = relevant[i];
+            sb.AppendLine($"{item.Item.Name} ({item.Item.Type})");
+            sb.AppendLine($"Cite as: [SRC:{item.Item.Id}]");
+            sb.AppendLine($"Relevance: {item.Score:F2}");
 
-    private static readonly MistralFunction BrowseLibraryTool = new(
-        "browse_library",
-        "Browse resources using structured filters — tags, regions, resource types, journals, publication date range — instead of semantic text search. Use this when the user asks for items matching specific facets (e.g. \"what do I have tagged X from 2024?\") rather than a topical question. Facet values are names, not IDs — they are resolved automatically; unresolved names are reported back. Only matches resources, not people or organisations.",
-        new
-        {
-            type = "object",
-            properties = new
-            {
-                tagNames = new { type = "array", items = new { type = "string" }, description = "Filter by tag names" },
-                tagFilterMode = new { type = "string", @enum = new[] { "any", "all" }, description = "Match any or all of tagNames (default any)" },
-                regionNames = new { type = "array", items = new { type = "string" }, description = "Filter by region names" },
-                resourceTypeNames = new { type = "array", items = new { type = "string" }, description = "Filter by resource type names" },
-                journalNames = new { type = "array", items = new { type = "string" }, description = "Filter by journal names" },
-                pubdateMin = new { type = "string", description = "Earliest publication date, e.g. 2024-01-01" },
-                pubdateMax = new { type = "string", description = "Latest publication date, e.g. 2024-12-31" },
-                limit = new { type = "integer", description = "Number of results to return (default 20, max 50)" }
-            },
-            additionalProperties = false
-        }
-    );
+            if (!string.IsNullOrWhiteSpace(summaries[i]) && summaries[i] != "NO_RELEVANT_CONTENT")
+                sb.AppendLine($"Content: {summaries[i]}");
 
-    private static readonly MistralFunction FindSimilarResourcesTool = new(
-        "find_similar_resources",
-        "Find resources similar in content to a given resource, based on vector similarity of their full text — not the same as find_related_items, which uses explicit tags/authors/organisations. Use this for \"more like this\" requests.",
-        new
-        {
-            type = "object",
-            properties = new
-            {
-                id = new { type = "string", description = "Resource UUID to find similar resources for" },
-                limit = new { type = "integer", description = "Number of results to return (default 10, max 20)" }
-            },
-            required = new[] { "id" },
-            additionalProperties = false
+            sb.AppendLine();
         }
-    );
 
-    private static readonly MistralFunction SearchAttachmentContentTool = new (
-        "search_attachment_content",
-        "Search within a specific attached file for relevant sections. The list of files attached to this chat, including their ids, is always provided as a system message. For small files this returns the full content, for large files this returns only the most relevant excerpts, not the full text — you may need multiple targeted queries to build a complete picture. Provide a focused query describing what you're looking for.",
-        new
-        {
-            type = "object",
-            properties = new
-            {
-                attachmentId = new { type = "string", description = "The attachment's ID" },
-                query = new { type = "string", description = "What to search for within the file" }
-            },
-            required = new[] { "attachmentId", "query" },
-            additionalProperties = false
-        }
-    );
+        return sb.ToString();
+    }
 
-    private async Task<string> HandleSearchAsync(LibraryService libraryService, ProjectService projectService, JsonDocument args, string userQuestion, string? projectId, CancellationToken ct)
+    private async Task<string> HandleSearchAsync(LibraryService libraryService, ProjectService projectService, JsonDocument args, string userQuestion, string? projectId, string connectionId, CancellationToken ct)
     {
         string query = args.RootElement.GetProperty("query").GetString() ?? userQuestion;
         string? typeFilter = args.RootElement.TryGetProperty("type", out var t) ? t.GetString() : null;
@@ -143,7 +106,7 @@ public partial class Chat
         }
 
         logger.Information("LLM searching for: {Query}", query);
-        await Clients.Caller.SendAsync("ToolStatus", "search_library", $"Searching: {query}", ct);
+        await hubContext.Clients.Client(connectionId).ChatToolStatus("search_library", $"Searching: {query}");
 
         List<LibraryItemWithChunks> results = await libraryService.SearchContentAsync(query, limit, idsFilter, typeFilter);
         string formatted = await FormatSearchResultsAsync(results, userQuestion, query, ct);
@@ -151,7 +114,7 @@ public partial class Chat
         return formatted;
     }
 
-    private async Task<string> HandleBrowseLibraryAsync(LibraryService libraryService, TaxonomySearchIndexService taxonomySearchIndexService, ProjectService projectService, JsonDocument args, string? projectId, CancellationToken ct)
+    private async Task<string> HandleBrowseLibraryAsync(LibraryService libraryService, TaxonomySearchIndexService taxonomySearchIndexService, ProjectService projectService, JsonDocument args, string? projectId, string connectionId, CancellationToken ct)
     {
         string[] tagNames = GetStringArray(args, "tagNames");
         string[] regionNames = GetStringArray(args, "regionNames");
@@ -219,7 +182,7 @@ public partial class Chat
         if (anyFacetFullyUnresolved)
             return $"No matching resources found. Could not resolve {string.Join(", ", unresolved)} — no match found in the library.";
 
-        await Clients.Caller.SendAsync("ToolStatus", "browse_library", "Browsing library...", ct);
+        await hubContext.Clients.Client(connectionId).ChatToolStatus("browse_library", "Browsing library...");
 
         LibraryRequest request = new()
         {
@@ -278,7 +241,7 @@ public partial class Chat
         return sb.ToString();
     }
 
-    private async Task<string> HandleFindSimilarResourcesAsync(ChunkSearchIndexService chunkSearchIndexService, ResourceService resourceService, JsonDocument args, CancellationToken ct)
+    private async Task<string> HandleFindSimilarResourcesAsync(ChunkSearchIndexService chunkSearchIndexService, ResourceService resourceService, JsonDocument args, string connectionId, CancellationToken ct)
     {
         if (!args.RootElement.TryGetProperty("id", out var idProp) || !Guid.TryParse(idProp.GetString(), out var resourceId))
             return "Error: invalid or missing id";
@@ -286,7 +249,7 @@ public partial class Chat
         int limit = args.RootElement.TryGetProperty("limit", out var l) ? Math.Clamp(l.GetInt32(), 1, 20) : 10;
 
         logger.Information("LLM finding resources similar to: {ResourceId}", resourceId);
-        await Clients.Caller.SendAsync("ToolStatus", "find_similar_resources", "Finding similar resources...", ct);
+        await hubContext.Clients.Client(connectionId).ChatToolStatus("find_similar_resources", "Finding similar resources...");
 
         List<(Guid ResourceId, float Score)> results = await chunkSearchIndexService.RecommendSimilarAsync(resourceId, limit, 0.65f);
         logger.Debug("find_similar_resources matched {Count} resources: {Scores}", results.Count, string.Join(", ", results.Select(r => $"{r.ResourceId}={r.Score:F2}")));
@@ -308,15 +271,7 @@ public partial class Chat
         return sb.Length > 0 ? sb.ToString() : "No similar resources found.";
     }
 
-    private static string[] GetStringArray(JsonDocument args, string propertyName)
-    {
-        if (!args.RootElement.TryGetProperty(propertyName, out var prop) || prop.ValueKind != JsonValueKind.Array)
-            return [];
-
-        return [.. prop.EnumerateArray().Select(e => e.GetString() ?? "").Where(s => !string.IsNullOrWhiteSpace(s))];
-    }
-
-    private async Task<string> HandleSearchItemContentAsync(LibraryService libraryService, JsonDocument args, CancellationToken ct)
+    private async Task<string> HandleSearchItemContentAsync(LibraryService libraryService, JsonDocument args, string connectionId, CancellationToken ct)
     {
         if (!args.RootElement.TryGetProperty("id", out var idProp) || !Guid.TryParse(idProp.GetString(), out var itemId))
             return "Error: invalid or missing id";
@@ -326,7 +281,7 @@ public partial class Chat
         if (string.IsNullOrWhiteSpace(query))
             return "Error: query is required";
 
-        await Clients.Caller.SendAsync("ToolStatus", "search_item_content", $"Searching item content: {query}", ct);
+        await hubContext.Clients.Client(connectionId).ChatToolStatus("search_item_content", $"Searching item content: {query}");
 
         List<LibraryItemWithChunks> results = await libraryService.SearchContentAsync(query, 1, [itemId], type, chunksPerParent: 8);
         LibraryItemWithChunks? match = results.FirstOrDefault(r => r.Item.Id == itemId);
@@ -341,14 +296,14 @@ public partial class Chat
         return sb.ToString();
     }
 
-    private async Task<string> HandleGetItemDetailsAsync(ResourceService resourceService, PersonService personService, OrganisationService organisationService, JsonDocument args, CancellationToken ct = default)
+    private async Task<string> HandleGetItemDetailsAsync(ResourceService resourceService, PersonService personService, OrganisationService organisationService, JsonDocument args, string connectionId, CancellationToken ct = default)
     {
         if (!args.RootElement.TryGetProperty("id", out var idProp) || !Guid.TryParse(idProp.GetString(), out var guid))
             return "Error: invalid or missing ID";
 
         string type = args.RootElement.TryGetProperty("type", out var tp) ? tp.GetString() ?? "" : "";
 
-        await Clients.Caller.SendAsync("ToolStatus", "get_item_details", $"Getting details...", ct);
+        await hubContext.Clients.Client(connectionId).ChatToolStatus("get_item_details", "Getting details...");
 
         var sb = new StringBuilder();
 
@@ -411,13 +366,13 @@ public partial class Chat
         return sb.ToString();
     }
 
-    private async Task<string> HandleFindRelatedItemsAsync(ResourceService resourceService, PersonService personService, OrganisationService organisationService, JsonDocument args, CancellationToken ct = default)
+    private async Task<string> HandleFindRelatedItemsAsync(ResourceService resourceService, PersonService personService, OrganisationService organisationService, JsonDocument args, string connectionId, CancellationToken ct = default)
     {
         if (!args.RootElement.TryGetProperty("id", out var idProp) || !Guid.TryParse(idProp.GetString(), out var guid))
             return "Error: invalid or missing ID";
 
         string type = args.RootElement.TryGetProperty("type", out var tp) ? tp.GetString() ?? "" : "";
-        await Clients.Caller.SendAsync("ToolStatus", "find_related_items", "Finding related items...", ct);
+        await hubContext.Clients.Client(connectionId).ChatToolStatus("find_related_items", "Finding related items...");
 
         var sb = new StringBuilder();
 
@@ -465,7 +420,7 @@ public partial class Chat
         return sb.Length > 0 ? sb.ToString() : "No related items found";
     }
 
-    private async Task<string> HandleSearchAttachmentContentAsync(ChatService chatService, JsonDocument args, Guid chatId, CancellationToken ct)
+    private async Task<string> HandleSearchAttachmentContentAsync(ChatService chatService, JsonDocument args, Guid chatId, string connectionId, CancellationToken ct)
     {
         if (!args.RootElement.TryGetProperty("attachmentId", out var idProp) || !Guid.TryParse(idProp.GetString(), out var attachmentId))
             return "Error: invalid or missing attachmentId";
@@ -474,7 +429,7 @@ public partial class Chat
         if (string.IsNullOrWhiteSpace(query))
             return "Error: query is required";
 
-        await Clients.Caller.SendAsync("ToolStatus", "search_attachment_content", $"Searching attached file: {query}", ct);
+        await hubContext.Clients.Client(connectionId).ChatToolStatus("search_attachment_content", $"Searching attached file: {query}");
 
         MessageAttachments? attachment = await chatService.GetAttachmentByIdAsync(attachmentId);
         if (attachment == null || attachment.ChatId != chatId)
@@ -489,5 +444,13 @@ public partial class Chat
         List<string> matches = await attachmentChunkSearchIndexService.SearchAsync(query, queryEmbedding, attachmentId);
 
         return matches.Count == 0 ? "No relevant sections found for that query." : $"{citeLine}\n\n{string.Join("\n---\n", matches)}";
+    }
+
+    private static string[] GetStringArray(JsonDocument args, string propertyName)
+    {
+        if (!args.RootElement.TryGetProperty(propertyName, out var prop) || prop.ValueKind != JsonValueKind.Array)
+            return [];
+
+        return [.. prop.EnumerateArray().Select(e => e.GetString() ?? "").Where(s => !string.IsNullOrWhiteSpace(s))];
     }
 }

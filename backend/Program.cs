@@ -13,7 +13,7 @@ using KnowledgeBank.Services.Background;
 using KnowledgeBank.Services;
 using KnowledgeBank.Services.AI;
 using KnowledgeBank.Services.Vector;
-using Hubs;
+using KnowledgeBank.Hubs;
 
 using Microsoft.AspNetCore.Http.Features;
 using KnowledgeBank.Utils;
@@ -158,6 +158,8 @@ namespace KnowledgeBank
             builder.Services.AddScoped<ProjectService>();
             builder.Services.AddScoped<ChatService>();
             builder.Services.AddScoped<MessageAttachmentService>();
+            builder.Services.AddScoped<ChatOrchestrationService>();
+            builder.Services.AddScoped<ChatToolExecutor>();
             builder.Services.AddScoped<MergeSuggestionService>();
 
             // Retrieval Augmented Generation system
@@ -308,7 +310,7 @@ namespace KnowledgeBank
             app.UseAuthorization();
 
             // Hub and Controllers must be added after Authentication and Authorization
-            app.MapHub<Chat>("/chat"); // SignalR hub for chat functionality
+            app.MapHub<AppHub>("/hub"); // SignalR hub for chat functionality
             app.MapControllers();
 
             app.MapGroup("Auth").MapIdentityApi<User>().WithTags("Auth").WithOpenApi(ConfigureIdentityApiOptions).AddEndpointFilter(async (efiContext, next) =>

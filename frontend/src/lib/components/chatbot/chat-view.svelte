@@ -105,7 +105,8 @@
 	import { fade } from 'svelte/transition';
 	import { api } from '$lib/api';
 	import { toast } from 'svelte-sonner';
-	import type { HubConnection, ISubscription } from '@microsoft/signalr';
+	import type { ISubscription } from '@microsoft/signalr';
+	import { onHubEvent, type HubConnectionContext } from '$lib/state/hub-connection.svelte';
 	import ChatInput from '$lib/components/chatbot/chat-input.svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import ChatMessage from '$lib/components/chatbot/ChatMessage.svelte';
@@ -133,7 +134,7 @@
 		createdOn?: string;
 	};
 
-	const ctx = getContext<{ connection: HubConnection | null }>('chatConnection');
+	const hub = getContext<HubConnectionContext>('hubConnection');
 
 	let messages = $state<Message[]>([]);
 	let hasMoreMessages = $state(true);
@@ -392,7 +393,7 @@
 	}
 
 	function stream(message: string, attachmentIds: string[] = []) {
-		if (!ctx.connection) return;
+		if (!hub.connection) return;
 		loading = true;
 
 		messages = messages.filter((m) => !(m.messageRole === 'Assistant' && m.content === ''));
@@ -407,8 +408,8 @@
 		];
 		tick().then(() => setTimeout(scrollToLastUserMessage, 100));
 
-		subscription = ctx.connection
-			.stream('StreamAiResponse', message, chatId, projectId ?? null, attachmentIds)
+		subscription = hub.connection
+			.stream('StreamChatResponse', message, chatId, projectId ?? null, attachmentIds)
 			.subscribe({
 				next: (chunk) => {
 					messages = messages.map((m) =>
@@ -517,30 +518,28 @@
 		fetchMessages(id);
 	});
 
-	$effect(() => {
-		if (!ctx.connection) return;
+	onHubEvent(hub, 'ChatToolStatus', (_tool, label) => {
+		searchingQuery = label;
+		thinking = false;
+	});
 
-		ctx.connection.on('ToolStatus', (_tool: string, label: string) => {
-			searchingQuery = label;
-			thinking = false;
-		});
-		ctx.connection.on('Thinking', () => {
-			searchingQuery = null;
-			thinking = true;
-			if (streamingAssistantId) {
-				const id = streamingAssistantId;
-				messages = messages.map((m) =>
-					m.id === id && m.reasoning ? { ...m, reasoning: m.reasoning + '\n\n' } : m
-				);
-			}
-		});
-		ctx.connection.on('ReasoningChunk', (text: string) => {
-			if (!streamingAssistantId) return;
+	onHubEvent(hub, 'ChatThinking', () => {
+		searchingQuery = null;
+		thinking = true;
+		if (streamingAssistantId) {
 			const id = streamingAssistantId;
 			messages = messages.map((m) =>
-				m.id === id ? { ...m, reasoning: (m.reasoning ?? '') + text } : m
+				m.id === id && m.reasoning ? { ...m, reasoning: m.reasoning + '\n\n' } : m
 			);
-		});
+		}
+	});
+
+	onHubEvent(hub, 'ChatReasoningChunk', (text) => {
+		if (!streamingAssistantId) return;
+		const id = streamingAssistantId;
+		messages = messages.map((m) =>
+			m.id === id ? { ...m, reasoning: (m.reasoning ?? '') + text } : m
+		);
 	});
 </script>
 

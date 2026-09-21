@@ -1,24 +1,24 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
-	import { HubConnection } from '@microsoft/signalr';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 	import ChatInput from '$lib/components/chatbot/chat-input.svelte';
 	import type { PendingAttachment } from '$lib/components/chatbot/chat-input.svelte';
 	import { chatRefresh } from '$lib/state/chat-refresh.svelte';
 	import { toast } from 'svelte-sonner';
+	import type { HubConnectionContext } from '$lib/state/hub-connection.svelte';
 
-	const ctx = getContext<{ connection: HubConnection | null}>('chatConnection');
+	const hub = getContext<HubConnectionContext>('hubConnection');
 
 	let submitting = $state(false);
 
 	async function startChat(message: string, attachments: PendingAttachment[]) {
-		if (!ctx.connection || submitting) return;
+		if (!hub.connection || submitting) return;
 
 		submitting = true;
 
 		try {
-			const chatId: string = await ctx.connection.invoke('CreateChat', message, null);
+			const chatId: string = await hub.connection.invoke('CreateChat', message, null);
 
 			const attachmentIds = await Promise.all(
 				attachments.map(async (a) => {

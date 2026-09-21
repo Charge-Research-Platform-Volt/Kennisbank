@@ -14,9 +14,7 @@ public class StatusController(MistralStatusService mistralStatusService) : AppCo
     )]
     [SwaggerResponse(200, "Server online")]
     public IActionResult Status()
-    {
-        return Ok("online");
-    }
+        => Ok("online");
 
     [HttpGet("mistral")]
     [SwaggerOperation(
@@ -25,15 +23,5 @@ public class StatusController(MistralStatusService mistralStatusService) : AppCo
     )]
     [SwaggerResponse(200, "Status returned")]
     public IActionResult MistralStatus()
-    {
-        MistralStatusSnapshot snapshot = mistralStatusService.Current;
-
-        return Ok(new
-        {
-            status = snapshot.Status == MistralAvailability.Down ? "down" : "operational",
-            downSince = snapshot.DownSinceUtc,
-            lastChecked = snapshot.LastCheckedUtc,
-            lastError = snapshot.LastError
-        });
-    }
+        => Ok(mistralStatusService.Current.ToPayload());
 }

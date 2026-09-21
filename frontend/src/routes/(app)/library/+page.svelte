@@ -30,7 +30,7 @@
 	import { getContext, onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import type { PagedResult, ListItem } from '$lib/types/results';
-	import { HubConnection } from '@microsoft/signalr';
+	import { onHubEvent, type HubConnectionContext } from '$lib/state/hub-connection.svelte';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 
 	// Search
@@ -256,20 +256,12 @@
 		fetchItems();
 	}
 
-	const chat = getContext<{ connection: HubConnection | null }>('chatConnection');
+	const hub = getContext<HubConnectionContext>('hubConnection');
 
 	// Embedding status updates
-	$effect(() => {
-		const conn = chat.connection;
-		if (!conn) return;
-
-		function onStatusChanged(id: string, status: string) {
-			const item = items.find((i) => i.id === id);
-			if (item) item.embeddingStatus = status as ResourceItem['embeddingStatus'];
-		}
-
-		conn.on('EmbeddingStatusChanged', onStatusChanged);
-		return () => conn.off('EmbeddingStatusChanged', onStatusChanged);
+	onHubEvent(hub, 'EmbeddingStatusChanged', (id, status) => {
+		const item = items.find((i) => i.id === id);
+		if (item) item.embeddingStatus = status as ResourceItem['embeddingStatus'];
 	});
 
 	registerRefresh(fetchItems);

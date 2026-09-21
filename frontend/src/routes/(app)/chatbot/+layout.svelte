@@ -2,17 +2,12 @@
 	import { getContext } from 'svelte';
 	import ChatHistory from '$lib/components/chatbot/chat-history.svelte';
 	import { chatRefresh } from '$lib/state/chat-refresh.svelte';
-	import type { HubConnection } from '@microsoft/signalr';
+	import { onHubEvent, type HubConnectionContext } from '$lib/state/hub-connection.svelte';
 
 	let { children } = $props();
-	const chat = getContext<{ connection: HubConnection | null }>('chatConnection');
+	const hub = getContext<HubConnectionContext>('hubConnection');
 
-	$effect(() => {
-		const conn = chat.connection;
-		if (!conn) return;
-		conn.on('ChatTitleUpdated', chatRefresh.trigger);
-		return () => conn.off('ChatTitleUpdated', chatRefresh.trigger);
-	})
+	onHubEvent(hub, 'ChatTitleUpdated', chatRefresh.trigger);
 </script>
 
 <div class="flex h-full flex-1 overflow-hidden">
