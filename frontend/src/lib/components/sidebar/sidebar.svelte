@@ -117,7 +117,7 @@
 		</button>
 	</div>
 
-	<!-- New + Quicksearch -->
+	<!-- New -->
 	<div class="flex w-full flex-col gap-1">
 		<Button
 			href="/new"
@@ -132,22 +132,6 @@
 					: 'max-w-0 opacity-0'}"
 			>
 				New
-			</span>
-		</Button>
-
-		<Button
-			variant="outline"
-			class="cursor-pointer items-center transition-colors {collapsed
-				? 'w-9 justify-center gap-0 px-0'
-				: 'w-full justify-start px-2'}"
-		>
-			<Search size={18} class="shrink-0" />
-			<span
-				class="overflow-hidden whitespace-nowrap transition-all duration-300 {sidebar.open
-					? 'max-w-full opacity-100'
-					: 'max-w-0 opacity-0'}"
-			>
-				Quicksearch
 			</span>
 		</Button>
 	</div>

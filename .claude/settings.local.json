@@ -12,7 +12,8 @@
       "Bash(ls -la /home/ablos/Coding/knowledgebank/frontend/src/app/\\\\\\(knowledgebank\\\\\\)/new/resource/)",
       "Bash(wc -l /home/ablos/Coding/knowledgebank/frontend/src/app/\\\\\\(knowledgebank\\\\\\)/new/resource/page.tsx)",
       "Bash(dotnet build *)",
-      "Bash(npx svelte-check *)"
+      "Bash(npx svelte-check *)",
+      "Bash(git log *)"
     ],
     "deny": [],
     "ask": []
