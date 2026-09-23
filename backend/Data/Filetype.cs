@@ -110,8 +110,8 @@ namespace KnowledgeBank.Data
 
         public static bool IsDocumentUrl(string url)
         {
-            string ext = Path.GetExtension(new Uri(url).LocalPath);
-            return SupportedText(ext);
+            string ext = TrimExtension(Path.GetExtension(new Uri(url).LocalPath));
+            return ext != "html" && SupportedText(ext);
         }
 
         public static string GetDocumentUrlExtension(string url) =>
