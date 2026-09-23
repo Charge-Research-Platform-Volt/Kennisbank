@@ -19,7 +19,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    restart: no
+    restart: "no"
 
   # S3-compatible Object Storage (MinIO)
   storage:
@@ -39,7 +39,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    restart: no
+    restart: "no"
 
   # Meilisearch
   meilisearch:
@@ -58,7 +58,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    restart: no
+    restart: "no"
 
   webscrape:
     build:
@@ -71,7 +71,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    restart: no
+    restart: "no"
 
 volumes:
   postgres_data_local:
