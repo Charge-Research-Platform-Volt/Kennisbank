@@ -9,8 +9,6 @@ RUN dotnet restore
 COPY . .
 RUN dotnet publish backend.csproj -c Release -o /app/publish
 
-
-
 # Development stage - used for local development with hot reload
 FROM base AS development
 ENV ASPNETCORE_ENVIRONMENT=Development
@@ -25,9 +23,9 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS production
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV PORT=8080
 WORKDIR /app
-RUN apt-get update && apt-get install -y wget curl && rm -rf /var/lib/apt/lists/* \
-    && groupadd --gid 1000 appuser && useradd --uid 1000 --gid appuser --create-home appuser
-COPY --from=build --chown=appuser:appuser /app/publish .
-USER appuser
+RUN apt-get update && apt-get install -y wget curl && rm -rf /var/lib/apt/lists/*
+COPY --from=build --chown=app:app /app/publish .
+RUN mkdir -p /app/logs && chown app:app /app /app/logs
+USER app
 EXPOSE $PORT
 ENTRYPOINT exec dotnet backend.dll --urls http://+:${PORT}

@@ -9,7 +9,7 @@
       {
         "Name": "File",
         "Args": {
-          "path": "../backend_logs/log.txt",
+          "path": "logs/log.txt",
           "rollingInterval": "Day",
           "retainedFileCountLimit": 30
         }
