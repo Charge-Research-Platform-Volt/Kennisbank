@@ -157,7 +157,7 @@ public class ExtractionJobService(
                 logger.Information("Metadata extraction requested for web URL '{Url}'", value);
                 UpdateJobStatus(jobId, JobStatus.Processing, "Fetching webpage...", 20);
 
-                ReadabilityResult readabilityResult = await textExtractionService.ExtractTextFromWebAsync(value);
+                WebscrapeResult readabilityResult = await textExtractionService.ExtractTextFromWebAsync(value);
 
                 if (string.IsNullOrWhiteSpace(readabilityResult.TextContent))
                 {

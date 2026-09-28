@@ -221,8 +221,8 @@ namespace KnowledgeBank
             builder.Services.AddHostedService<VPNCleanupService>(); // Add the background service for cleaning up orphaned VPN users
             builder.Services.AddHostedService<StorageCleanupService>();
 
-            // Headless browser service
-            builder.Services.AddSingleton<BrowserService>();
+            // Webscrape service client
+            builder.Services.AddSingleton<WebscrapeClient>();
 
             // VPN Service
             builder.Services.AddSingleton<VPNService>();

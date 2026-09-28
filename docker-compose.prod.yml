@@ -65,6 +65,7 @@ services:
       - EMBEDDINGS_MODEL_NAME=${EMBEDDINGS_MODEL_NAME:-embed-v-4-0}
       - EMBEDDINGS_CLIENT_ENDPOINT=${EMBEDDINGS_CLIENT_ENDPOINT}
       - EMBEDDINGS_CLIENT_API_KEY=${EMBEDDINGS_CLIENT_API_KEY}
+      - WEBSCRAPE_SERVICE_URL=http://webscrape:3050
     depends_on:
       database:
         condition: service_healthy

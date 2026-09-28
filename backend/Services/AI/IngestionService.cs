@@ -49,7 +49,7 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
             }
             else if (resource?.FileType == "website" && !string.IsNullOrEmpty(resource.SourceUrl))
             {
-                ReadabilityResult result = await textExtractionService.ExtractTextFromWebAsync(resource.SourceUrl);
+                WebscrapeResult result = await textExtractionService.ExtractTextFromWebAsync(resource.SourceUrl);
 
                 if (!string.IsNullOrWhiteSpace(result.TextContent))
                     chunks.AddRange(SplitTextIntoChunks(result.TextContent, markdownSplit: false));

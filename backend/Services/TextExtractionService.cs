@@ -3,8 +3,6 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Presentation;
 using ClosedXML.Excel;
 using System.Text;
-using SmartReader;
-using PuppeteerSharp;
 using KnowledgeBank.Utils;
 using KnowledgeBank.Data;
 using System.Text.Json;
@@ -18,7 +16,7 @@ namespace KnowledgeBank.Services;
 /// Service for extracting text from various document formats
 /// Uses free methods when possible, falls back to OCR
 /// </summary>
-public class TextExtractionService(ILogger<TextExtractionService> logger, EnvironmentConfig environmentConfig, BrowserService browserService, IStorageService storageService, MistralHttpClient mistralClient)
+public class TextExtractionService(ILogger<TextExtractionService> logger, EnvironmentConfig environmentConfig, WebscrapeClient webscrapeClient, IStorageService storageService, MistralHttpClient mistralClient)
 {
     #region File Text Extraction
 
@@ -52,6 +50,7 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
                 ".docx" => ExtractWithOpenXmlDocx(stream),
                 ".pptx" => ExtractWithOpenXmlPptx(stream),
                 ".xlsx" => ExtractWithClosedXmlXlsx(stream),
+                ".html" => await ExtractHtmlFileAsync(stream),
                 _ when Filetype.SupportedImage(fileExtension) => (await ExtractWithMistralOCR(stream, fileExtension)).Text,
                 _ => throw new NotSupportedException($"Unsupported file type: {fileExtension}")
             };
@@ -184,6 +183,18 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         return await reader.ReadToEndAsync();
     }
 
+    private async Task<string> ExtractHtmlFileAsync(Stream stream)
+    {
+        logger.LogInformation("Extracting text from HTML document");
+
+        stream.Position = 0;
+        using StreamReader reader = new(stream, leaveOpen: true);
+        string html = await reader.ReadToEndAsync();
+
+        WebscrapeResult result = await webscrapeClient.ExtractFromHtmlAsync(html);
+        return result.TextContent ?? "";
+    }
+
     private static string ExtractWithOpenXmlDocx(Stream stream)
     {
         stream.Position = 0;
@@ -267,151 +278,24 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
     
     #region Web Text Extraction
 
-    public async Task<ReadabilityResult> ExtractTextFromWebAsync(string url)
+    public async Task<WebscrapeResult> ExtractTextFromWebAsync(string url)
     {
         logger.LogInformation("Extracting text from webpage with url '{url}'", url);
 
-        // Handle direct document URLs - download and extract as file instead of using a headless browser
+        // Handle direct document URLs (download and extract as file instead of using webscrape)
         if (Filetype.IsDocumentUrl(url))
         {
             logger.LogInformation("URL points to a document file, downloading and extracting directly");
             return await ExtractFromDocumentUrlAsync(url, Filetype.GetDocumentUrlExtension(url));
         }
 
-        ReadabilityResult result = await ExtractWithSmartReaderAsync(url);
-        
-        if (result.Title != null) 
-        {
-            logger.LogInformation("Extracted successfully.");
-            return result;
-        }
+        WebscrapeResult result = await webscrapeClient.ExtractFromUrlAsync(url);
+        logger.LogInformation(result.Title != null ? "Extracted successfully!" : "Extraction failed.");
 
-        logger.LogInformation("SmartReader failed, trying with Puppeteer Headless Browser");
-        result = await ExtractWithPuppeteerAsync(url);
-        
-        if (result.Title != null) 
-        {
-            logger.LogInformation("Extracted successfully.");
-            return result;
-        }
-
-        logger.LogInformation("Extraction failed.");
-        return new ReadabilityResult();
-    }
-    
-    private async Task<ReadabilityResult> ExtractWithSmartReaderAsync(string url) 
-    {
-        logger.LogInformation("Extracting webpage with SmartReader...");
-
-        try 
-        {
-            // Fetch article using SmartReader (Mozilla Readability wrapper)
-            Article article = await Reader.ParseArticleAsync(url);
-
-            logger.LogInformation("Article readable: {readable}", article.IsReadable);
-            
-            if (article.IsReadable) 
-            {
-                ReadabilityResult result = new()
-                {
-                    Title = article.Title,
-                    TextContent = article.TextContent,
-                    Byline = article.Byline,
-                    Excerpt = article.Excerpt,
-                    SiteName = article.SiteName ?? new Uri(url).Host.Replace("www.", "")
-                };
-                
-                return result;
-            }
-        }
-        catch (Exception e) 
-        {
-            logger.LogWarning("SmartReader threw an exception: {message}", e.Message);
-        }
-
-        return new ReadabilityResult();
-    }
-    
-    private async Task<ReadabilityResult> ExtractWithPuppeteerAsync(string url) 
-    {
-        logger.LogInformation("Extracting webpage with Puppeteer...");
-
-        // Get shared headless browser instance and create new page
-        IBrowser browser = await browserService.GetBrowserAsync();
-        IPage page = await browser.NewPageAsync();
-        
-        try 
-        {
-            // Go to the url
-            await page.GoToAsync(url, new NavigationOptions
-            {
-                WaitUntil = [ WaitUntilNavigation.Networkidle0 ],
-                Timeout = 15000 // 15 seconds
-            });
-
-            try 
-            {
-                // Add Mozilla readability directly in the browser
-                await page.EvaluateExpressionAsync(await browserService.GetReadabilityScriptAsync());
-
-                ReadabilityResult? result = await page.EvaluateFunctionAsync<ReadabilityResult>(@"
-                    () => {
-                        const article = new Readability(document.cloneNode(true)).parse();
-                        if (!article) return null;
-                        return {
-                            title: article.title,
-                            textContent: article.textContent,
-                            byline: article.byline,
-                            excerpt: article.excerpt
-                        };
-                    }
-                ");
-                
-                if (result != null) 
-                {
-                    result.SiteName = new Uri(url).Host.Replace("www.", "");
-                    return result;
-                }
-            }
-            catch (Exception e) 
-            {
-                logger.LogInformation("Failed to inject Readability.js: {message}", e.Message);
-            }
-            
-            try 
-            {
-                // Retrieve inner text as fallback, which has a bit more noise, but is better then raw HTML
-                logger.LogInformation("Retrieving inner text...");
-
-                return new ReadabilityResult
-                {
-                    Title = await page.EvaluateFunctionAsync<string>("() => document.title"),
-                    TextContent = await page.EvaluateFunctionAsync<string>("() => document.body.innerText"),
-                    SiteName = new Uri(url).Host.Replace("www.", ""),
-                    Byline = await page.EvaluateFunctionAsync<string>(@"
-                        () => document.querySelector('meta[name=""author""]')?.content
-                            || document.querySelector('meta[property=""article:author""]')?.content
-                            || null"),
-                    Excerpt = await page.EvaluateFunctionAsync<string>(@"
-                        () => document.querySelector('meta[name=""description""]')?.content
-                            || document.querySelector('meta[property=""og:description""]')?.content
-                            || null")
-                };
-            }
-            catch (Exception e) 
-            {
-                logger.LogWarning("Failed to retrieve inner text using puppeteer: {message}", e.Message);
-            }
-
-            return new ReadabilityResult();
-        }
-        finally
-        {
-            await page.CloseAsync();
-        }
+        return result;
     }
 
-    private async Task<ReadabilityResult> ExtractFromDocumentUrlAsync(string url, string extension)
+    private async Task<WebscrapeResult> ExtractFromDocumentUrlAsync(string url, string extension)
     {
         try
         {
@@ -430,13 +314,13 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
             if (string.IsNullOrWhiteSpace(text))
             {
                 logger.LogWarning("No text could be extracted from document URL '{url}'", url);
-                return new ReadabilityResult();
+                return new WebscrapeResult();
             }
 
             string fileName = Path.GetFileNameWithoutExtension(new Uri(url).LocalPath);
             string siteName = new Uri(url).Host.Replace("www.", "");
 
-            return new ReadabilityResult
+            return new WebscrapeResult
             {
                 Title = fileName,
                 TextContent = text,
@@ -446,13 +330,13 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Failed to download and extract document from URL '{url}'", url);
-            return new ReadabilityResult();
+            return new WebscrapeResult();
         }
     }
     #endregion
 }
 
-public class ReadabilityResult
+public class WebscrapeResult
 {
     public string? Title { get; set; }
     public string? TextContent { get; set; }

@@ -315,7 +315,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
         return await RunPipelineAsync(text, trimmed, contextHint, progress, headerFooterText);
     }
 
-    public async Task<ExtractedMetadata?> ExtractMetadataFromWebAsync(ReadabilityResult readabilityResult, string url, Action<string, int>? progress = null)
+    public async Task<ExtractedMetadata?> ExtractMetadataFromWebAsync(WebscrapeResult readabilityResult, string url, Action<string, int>? progress = null)
     {
         if (string.IsNullOrWhiteSpace(readabilityResult.TextContent))
         {
