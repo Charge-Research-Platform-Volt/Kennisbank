@@ -143,6 +143,9 @@ namespace KnowledgeBank
                     // used for them across PersonService/OrganisationService — EF warns about this
                     // by design, but throws by default; downgrade it back to a no-op warning.
                     .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.NavigationBaseIncludeIgnored))
+                    // TEMPORARY: diagnosing the production login issue - shows real parameter
+                    // values in SQL logs instead of redacted '?'. Remove once resolved.
+                    .EnableSensitiveDataLogging()
             );
 
             // Resource management
