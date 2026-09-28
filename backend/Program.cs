@@ -5,7 +5,7 @@ using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
@@ -313,7 +313,7 @@ namespace KnowledgeBank
             app.MapHub<AppHub>("/hub"); // SignalR hub for chat functionality
             app.MapControllers();
 
-            app.MapGroup("Auth").MapIdentityApi<User>().WithTags("Auth").WithOpenApi(ConfigureIdentityApiOptions).AddEndpointFilter(async (efiContext, next) =>
+            app.MapGroup("Auth").MapIdentityApi<User>().WithTags("Auth").AddEndpointFilter(async (efiContext, next) =>
             {
                 if (HideEndpointFilter.PathsToHide.Any(p => p == efiContext.HttpContext.Request.Path))
                     return Results.Forbid();
@@ -377,20 +377,6 @@ namespace KnowledgeBank
             Log.Logger = new LoggerConfiguration()
                                 .ReadFrom.Configuration(configuration)
                                 .CreateLogger();
-        }
-
-        /// <summary>
-        /// Configures the OpenAPI operation metadata for identity API endpoints.
-        /// </summary>
-        /// <param name="operation">The OpenAPI operation to configure.</param>
-        /// <returns>The configured OpenAPI operation with updated summary information.</returns>
-        /// <remarks>
-        /// This method sets the summary description for identity-related API endpoints that handle user management operations.
-        /// </remarks>
-        private static OpenApiOperation ConfigureIdentityApiOptions(OpenApiOperation operation)
-        {
-            operation.Summary = "Identity endpoints for user management";
-            return operation;
         }
     }
 }

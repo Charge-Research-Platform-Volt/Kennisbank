@@ -212,9 +212,11 @@ public class MistralHttpClient
         int? cachedTokens = null;
         var toolCallBuilders = new Dictionary<int, ToolCallBuilder>();
 
-        while (!reader.EndOfStream && !ct.IsCancellationRequested)
+        while (!ct.IsCancellationRequested)
         {
             string? line = await reader.ReadLineAsync(ct);
+            if (line == null) break;
+
             if (string.IsNullOrWhiteSpace(line)) continue;
             if (!line.StartsWith("data: ")) continue;
 
