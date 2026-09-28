@@ -56,71 +56,10 @@ public enum EnvironmentVariable
     WEBSCRAPE_SERVICE_URL,
 }
 
-public class EnvironmentConfig
+public class EnvironmentConfig(IConfiguration configuration)
 {
-    private readonly IConfiguration configuration;
     private readonly ConcurrentDictionary<EnvironmentVariable, string> variableValues = new();
-    private readonly Dictionary<EnvironmentVariable, string> variableNames = [];
 
-    /// <summary>
-    /// Initializes a new instance of the EnvironmentConfig class with the specified configuration.
-    /// </summary>
-    /// <param name="configuration">The IConfiguration instance used to access application configuration settings.</param>
-    public EnvironmentConfig(IConfiguration configuration)
-    {
-        this.configuration = configuration;
-
-        // Initialize environment variable names
-        // ASP.NET
-        variableNames.Add(EnvironmentVariable.ASPNETCORE_ENVIRONMENT, "ASPNETCORE_ENVIRONMENT");
-
-        // PostgreSQL
-        variableNames.Add(EnvironmentVariable.DATABASE_CONNECTION_STRING, "DATABASE_CONNECTION_STRING");
-
-        // S3 Storage
-        variableNames.Add(EnvironmentVariable.S3_ENDPOINT, "S3_ENDPOINT");
-        variableNames.Add(EnvironmentVariable.S3_ACCESS_KEY, "S3_ACCESS_KEY");
-        variableNames.Add(EnvironmentVariable.S3_SECRET_KEY, "S3_SECRET_KEY");
-        variableNames.Add(EnvironmentVariable.S3_USE_SSL, "S3_USE_SSL");
-        variableNames.Add(EnvironmentVariable.S3_REGION, "S3_REGION");
-        variableNames.Add(EnvironmentVariable.S3_BUCKET_NAME, "S3_BUCKET_NAME");
-
-        // Client URL
-        variableNames.Add(EnvironmentVariable.HOST_URL, "HOST_URL");
-
-        // Embeddings
-        variableNames.Add(EnvironmentVariable.EMBEDDINGS_MODEL_NAME, "EMBEDDINGS_MODEL_NAME");
-        variableNames.Add(EnvironmentVariable.EMBEDDINGS_ENDPOINT, "EMBEDDINGS_ENDPOINT");
-        variableNames.Add(EnvironmentVariable.EMBEDDINGS_API_KEY, "EMBEDDINGS_API_KEY");
-        variableNames.Add(EnvironmentVariable.EMBEDDINGS_REQUESTS_PER_MINUTE, "EMBEDDINGS_REQUESTS_PER_MINUTE");
-        variableNames.Add(EnvironmentVariable.EMBEDDINGS_TOKENS_PER_MINUTE, "EMBEDDINGS_TOKENS_PER_MINUTE");
-        variableNames.Add(EnvironmentVariable.EMBEDDINGS_MAX_CONCURRENT_REQUESTS, "EMBEDDINGS_MAX_CONCURRENT_REQUESTS");
-
-        // Chat Completions
-        variableNames.Add(EnvironmentVariable.MISTRAL_ENDPOINT, "MISTRAL_ENDPOINT");
-        variableNames.Add(EnvironmentVariable.MISTRAL_API_KEY, "MISTRAL_API_KEY");
-        variableNames.Add(EnvironmentVariable.MISTRAL_SMALL_MODEL_NAME, "MISTRAL_SMALL_MODEL_NAME");
-        variableNames.Add(EnvironmentVariable.MISTRAL_SMALL_REQUESTS_PER_MINUTE, "MISTRAL_SMALL_REQUESTS_PER_MINUTE");
-        variableNames.Add(EnvironmentVariable.MISTRAL_SMALL_TOKENS_PER_MINUTE, "MISTRAL_SMALL_TOKENS_PER_MINUTE");
-
-        variableNames.Add(EnvironmentVariable.MISTRAL_MEDIUM_MODEL_NAME, "MISTRAL_MEDIUM_MODEL_NAME");
-        variableNames.Add(EnvironmentVariable.MISTRAL_MEDIUM_REQUESTS_PER_MINUTE, "MISTRAL_MEDIUM_REQUESTS_PER_MINUTE");
-        variableNames.Add(EnvironmentVariable.MISTRAL_MEDIUM_TOKENS_PER_MINUTE, "MISTRAL_MEDIUM_TOKENS_PER_MINUTE");
-
-        variableNames.Add(EnvironmentVariable.MISTRAL_OCR_MODEL_NAME, "MISTRAL_OCR_MODEL_NAME");
-        variableNames.Add(EnvironmentVariable.MISTRAL_OCR_PAGES_PER_MINUTE, "MISTRAL_OCR_PAGES_PER_MINUTE");
-
-        // Headscale
-        variableNames.Add(EnvironmentVariable.HEADSCALE_URL, "HEADSCALE_URL");
-        variableNames.Add(EnvironmentVariable.HEADSCALE_API_KEY, "HEADSCALE_API_KEY");
-
-        // Meilisearch
-        variableNames.Add(EnvironmentVariable.MEILISEARCH_URL, "MEILISEARCH_URL");
-        variableNames.Add(EnvironmentVariable.MEILISEARCH_API_KEY, "MEILISEARCH_API_KEY");
-
-        // Webscrape service
-        variableNames.Add(EnvironmentVariable.WEBSCRAPE_SERVICE_URL, "WEBSCRAPE_SERVICE_URL");
-    }
 
     /// <summary>
     /// Gets the value of the specified environment variable.
@@ -155,15 +94,17 @@ public class EnvironmentConfig
     /// </exception>
     public void CheckEnvironmentVariables()
     {
-        foreach (var variable in variableNames)
+        foreach (EnvironmentVariable variable in Enum.GetValues<EnvironmentVariable>())
         {
-            string? value = configuration.GetValue<string>(variable.Value);
+            string name = variable.ToString();
+            string? value = configuration.GetValue<string>(name);
+
             if (string.IsNullOrEmpty(value))
             {
-                throw new ArgumentException($"Environment variable {variable.Value} is not defined. Check the .env file and EnvironmentConfig.cs.");
+                throw new ArgumentException($"Environment variable {name} is not defined. Check the .env file and EnvironmentConfig.cs.");
             }
 
-            variableValues[variable.Key] = value;
+            variableValues[variable] = value;
         }
     }
 }
