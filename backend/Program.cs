@@ -227,6 +227,7 @@ namespace KnowledgeBank
             builder.Services.AddHostedService<InvitationsCleanupService>(); // Add the background service for cleaning up invitations
             builder.Services.AddHostedService<VPNCleanupService>(); // Add the background service for cleaning up orphaned VPN users
             builder.Services.AddHostedService<StorageCleanupService>();
+            builder.Services.AddHostedService<EmbeddingRetryService>();
 
             // Webscrape service client
             builder.Services.AddSingleton<WebscrapeClient>();
@@ -297,6 +298,24 @@ namespace KnowledgeBank
                 await db.SaveChangesAsync();
 
                 await db.EnsureDatabaseSetupAsync();
+
+                // Set all pending embeddings to failed, since the work queue gets reset upon restart
+                const string interruptedMessage = "Interrupted by a server restart, will be retried automatically.";
+
+                int interruptedResources = await db.Resources
+                    .Where(r => r.EmbeddingStatus == EmbeddingStatus.Pending || r.EmbeddingStatus == EmbeddingStatus.Processing)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(r => r.EmbeddingStatus, EmbeddingStatus.Failed)
+                        .SetProperty(r => r.EmbeddingError, interruptedMessage));
+
+                int interruptedEntities = await db.Entities
+                    .Where(e => e.EmbeddingStatus == EmbeddingStatus.Pending || e.EmbeddingStatus == EmbeddingStatus.Processing)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(e => e.EmbeddingStatus, EmbeddingStatus.Failed)
+                        .SetProperty(e => e.EmbeddingError, interruptedMessage));
+
+                if (interruptedResources + interruptedEntities > 0)
+                    Log.Warning("Marked {Resources} resources and {Entities} entities as failed after an interrupted embedding run", interruptedResources, interruptedEntities);
 
                 var librarySearchIndexService = scope.ServiceProvider.GetRequiredService<LibrarySearchIndexService>();
                 var chunkSearchIndexService = scope.ServiceProvider.GetRequiredService<ChunkSearchIndexService>();

@@ -80,6 +80,12 @@ public class Resource
     [Column("embedding-error")]
     public string? EmbeddingError { get; set; }
 
+    [Column("embedding-failures")]
+    public int EmbeddingFailures { get; set; }
+
+    [Column("embedding-last-attempt")]
+    public DateTime? EmbeddingLastAttempt { get; set; }
+
     #region Direct navigation properties
     [JsonIgnore] public ResourceType? ResourceType { get; set; }
 

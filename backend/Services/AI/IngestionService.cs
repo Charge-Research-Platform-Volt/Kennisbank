@@ -7,12 +7,13 @@ using Serilog;
 using System.Text;
 using Microsoft.AspNetCore.SignalR;
 using KnowledgeBank.Hubs;
+using KnowledgeBank.Services.Storage;
 
 namespace KnowledgeBank.Services.AI;
 
 #pragma warning disable SKEXP0050, SKEXP0001
 
-public class IngestionService(IVectorStore vectorStore, TextExtractionService textExtractionService, ResourceService resourceService, PersonService personService, OrganisationService organisationService, EnvironmentConfig environmentConfig, MistralStatusService mistralStatusService, IHubContext<AppHub, IAppHubClient> hubContext)
+public class IngestionService(IVectorStore vectorStore, TextExtractionService textExtractionService, ResourceService resourceService, PersonService personService, OrganisationService organisationService, EnvironmentConfig environmentConfig, MistralStatusService mistralStatusService, IHubContext<AppHub, IAppHubClient> hubContext, IStorageService storageService)
 {
     private readonly Serilog.ILogger logger = Log.ForContext<IngestionService>();
     private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
@@ -93,6 +94,38 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
                 ? "Mistral's AI service currently appears to be down or degraded, this isn't a bug on our end. Chech status.mistral.ai for the latest status and try again once it recovers."
                 : ex.Message;
             await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Failed, message);
+        }
+    }
+
+    /// <summary>
+    /// Runs the resource pipeline for an existing resource, fetching its file from storage when it has one.
+    /// A failure to load the resource or its file is recorded as a failed attempt, same as a pipeline failure.
+    /// </summary>
+    public async Task RunResourcePipelineFromStorageAsync(Guid id)
+    {
+        try
+        {
+            Resource? resource = await resourceService.GetByIdAsync(id);
+            if (resource == null) return;
+
+            if (resource.FileType == "document" && resource.FileExt != null)
+            {
+                ObjectDownloadResponse download = await storageService.DownloadObjectAsync(bucketName, id.ToString());
+                await using Stream downloadStream = download.Stream;
+                using MemoryStream memoryStream = new();
+                await downloadStream.CopyToAsync(memoryStream);
+                memoryStream.Position = 0;
+                await RunResourcePipelineAsync(id, resource.FileExt, memoryStream);
+            }
+            else
+            {
+                await RunResourcePipelineAsync(id);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Failed to load resource {Id} for its pipeline", id);
+            await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Failed, ex.Message);
         }
     }
 
@@ -233,24 +266,31 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
         {
             r.EmbeddingStatus = status;
             r.EmbeddingError = error;
+
+            if (status is EmbeddingStatus.Processing or EmbeddingStatus.Failed) r.EmbeddingLastAttempt = DateTime.UtcNow;
+            if (status == EmbeddingStatus.Failed) r.EmbeddingFailures++;
+            if (status == EmbeddingStatus.Completed) r.EmbeddingFailures = 0;
         });
+
         await BroadcastEmbeddingStatusAsync(id, status);
     }
 
     private async Task SetEntityEmbeddingStatusAsync(Guid id, string entityType, EmbeddingStatus status, string? error = null)
     {
+        void Apply(Entity e)
+        {
+            e.EmbeddingStatus = status;
+            e.EmbeddingError = error;
+
+            if (status is EmbeddingStatus.Processing or EmbeddingStatus.Failed) e.EmbeddingLastAttempt = DateTime.UtcNow;
+            if (status == EmbeddingStatus.Failed) e.EmbeddingFailures++;
+            if (status == EmbeddingStatus.Completed) e.EmbeddingFailures = 0;
+        }
+
         if (entityType == "person")
-            await personService.UpdateAsync(id, p =>
-            {
-                p.EmbeddingStatus = status;
-                p.EmbeddingError = error;
-            });
+            await personService.UpdateAsync(id, Apply);
         else if (entityType == "organisation")
-            await organisationService.UpdateAsync(id, o =>
-            {
-                o.EmbeddingStatus = status;
-                o.EmbeddingError = error;
-            });
+            await organisationService.UpdateAsync(id, Apply);
 
         await BroadcastEmbeddingStatusAsync(id, status);
     }

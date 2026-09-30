@@ -82,12 +82,14 @@ public class AdminController(
                     await db.Resources.Where(r => resourceIds.Contains(r.Id))
                         .ExecuteUpdateAsync(s => s
                             .SetProperty(r => r.EmbeddingStatus, EmbeddingStatus.Pending)
-                            .SetProperty(r => r.EmbeddingError, (string?)null));
+                            .SetProperty(r => r.EmbeddingError, (string?)null)
+                            .SetProperty(r => r.EmbeddingFailures, 0));
 
                     await db.Entities.Where(e => entityIds.Contains(e.Id))
                         .ExecuteUpdateAsync(s => s
                             .SetProperty(e => e.EmbeddingStatus, EmbeddingStatus.Pending)
-                            .SetProperty(e => e.EmbeddingError, (string?)null));
+                            .SetProperty(e => e.EmbeddingError, (string?)null)
+                            .SetProperty(e => e.EmbeddingFailures, 0));
                 }
 
                 logger.Information("Re-embedding {Count} resources", resources.Length);
