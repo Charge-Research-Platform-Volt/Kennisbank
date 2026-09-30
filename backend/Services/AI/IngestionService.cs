@@ -33,9 +33,13 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
                 throw new InvalidOperationException($"Resource {id} could not be found or has no metadata to embed.");
 
             List<string> chunks = [richMetadata];
+            List<string> contentChunks = [];
+            bool hasContentSource = false;
 
             if (fileStream != null)
             {
+                hasContentSource = true;
+
                 string ext = fileType != null
                     ? (fileType.StartsWith('.') ? fileType : $".{fileType}")
                     : ".pdf";
@@ -45,17 +49,32 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
                 if (string.IsNullOrEmpty(ocrResult.Text))
                     logger.Warning("No text extracted from file for resource {Id}", id);
                 else
-                    chunks.AddRange(SplitTextIntoChunks(ocrResult.Text, markdownSplit: true));
+                    contentChunks = SplitTextIntoChunks(ocrResult.Text, markdownSplit: true);
             }
             else if (resource?.FileType == "website" && !string.IsNullOrEmpty(resource.SourceUrl))
             {
+                hasContentSource = true;
+
                 WebscrapeResult result = await textExtractionService.ExtractTextFromWebAsync(resource.SourceUrl);
 
                 if (!string.IsNullOrWhiteSpace(result.TextContent))
-                    chunks.AddRange(SplitTextIntoChunks(result.TextContent, markdownSplit: false));
+                    contentChunks = SplitTextIntoChunks(result.TextContent, markdownSplit: false);
                 else
                     logger.Warning("No text extracted from website for resource {Id}", id);
             }
+
+            // Extraction came back empty, so rather than wiping the content
+            // that was embedded successfully before, re-embed the chunk text we already
+            // have stored.
+            if (hasContentSource && contentChunks.Count == 0)
+            {
+                contentChunks = await vectorStore.GetContentChunkTextsAsync(id);
+
+                if (contentChunks.Count > 0)
+                    logger.Warning("Reusing {Count} stored content chunks for resource {Id} because extraction returned no text", contentChunks.Count, id);
+            }
+
+            chunks.AddRange(contentChunks);
 
             await vectorStore.DeletePointsByResourceIdAsync(id);
 

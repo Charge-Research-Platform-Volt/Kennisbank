@@ -155,4 +155,15 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, E
         return true;
     }
 
+    /// <inheritdoc/>
+    public async Task<List<string>> GetContentChunkTextsAsync(Guid resourceId)
+    {
+        await using var database = await dbFactory.CreateDbContextAsync();
+
+        return await database.ResourceChunks
+            .Where(c => c.ResourceId == resourceId && c.ChunkType == ChunkType.ContentText)
+            .OrderBy(c => c.ChunkPart)
+            .Select(c => c.ChunkText)
+            .ToListAsync();
+    }
 }

@@ -1,10 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
 
 namespace KnowledgeBank.Models;
 
 [Table("resource-types")]
+[Index(nameof(Name), IsUnique = true)]
 public class ResourceType
 {
     [Column("id")]

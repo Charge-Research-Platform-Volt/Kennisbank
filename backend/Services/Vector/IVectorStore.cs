@@ -29,4 +29,9 @@ public interface IVectorStore
     /// Update the metadata chunk text and embedding for a resource
     /// </summary>
     Task<bool> UpdateMetadataPointAsync(Guid resourceId, string newChunkText);
+
+    /// <summary>
+    /// Get the stored text of a resource's content chunks, in document order
+    /// </summary>
+    Task<List<string>> GetContentChunkTextsAsync(Guid resourceId);
 }

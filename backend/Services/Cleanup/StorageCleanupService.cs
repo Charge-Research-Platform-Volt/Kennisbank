@@ -7,32 +7,27 @@ namespace KnowledgeBank.Services.Storage;
 
 /// <summary>
 /// Background service that cleans up orphaned objects from storage.
-/// Runs daily and deletes objects older than 24 hours that are neither:
+/// Runs daily and deletes objects older than 48 hours (based on lastModified) that are neither:
 /// - A resource file (ID exists in Resources table)
 /// - A user avatar (ID exists in Users table)
+/// - A OCR cache (ID exists in Resources table)
+/// - A chat attachment (ID exists in chat attachments)
 /// </summary>
-public class StorageCleanupService : BackgroundService
+public class StorageCleanupService(IServiceProvider serviceProvider, EnvironmentConfig environmentConfig) : BackgroundService
 {
-    private readonly IServiceProvider _serviceProvider;
-    private readonly Serilog.ILogger _logger;
-    private readonly string _bucketName;
-
-    public StorageCleanupService(IServiceProvider serviceProvider, EnvironmentConfig environmentConfig)
-    {
-        _serviceProvider = serviceProvider;
-        _logger = Log.ForContext<StorageCleanupService>();
-        _bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
-    }
+    private readonly Serilog.ILogger logger = Log.ForContext<StorageCleanupService>();
+    private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
+    private static readonly TimeSpan GracePeriod = TimeSpan.FromHours(48);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.Information("StorageCleanupService started");
+        logger.Information("StorageCleanupService started");
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            _logger.Information("Starting storage cleanup");
+            logger.Information("Starting storage cleanup");
 
-            using var scope = _serviceProvider.CreateScope();
+            using var scope = serviceProvider.CreateScope();
             var storageService = scope.ServiceProvider.GetRequiredService<IStorageService>();
             var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<DatabaseContext>>();
 
@@ -42,15 +37,15 @@ public class StorageCleanupService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, "Error during storage cleanup");
+                logger.Error(ex, "Error during storage cleanup");
             }
 
-            _logger.Information("Storage cleanup completed");
+            logger.Information("Storage cleanup completed");
 
             await WaitUntilUtils.WaitUntilTime(new TimeSpan(0, 0, 0), stoppingToken); // Next midnight
         }
 
-        _logger.Information("StorageCleanupService stopped");
+        logger.Information("StorageCleanupService stopped");
     }
 
     private async Task CleanupOrphanedObjects(
@@ -63,18 +58,31 @@ public class StorageCleanupService : BackgroundService
         int errorCount = 0;
 
         // List all objects in the bucket
-        string[] objects = await storageService.ListObjectsAsync(_bucketName);
+        StorageObjectInfo[] objects = await storageService.ListObjectsAsync(bucketName);
 
         if (objects.Length == 0)
         {
-            _logger.Information("No objects found in bucket {BucketName}", _bucketName);
+            logger.Information("No objects found in bucket {BucketName}", bucketName);
             return;
         }
 
-        _logger.Information("Found {Count} objects in bucket {BucketName}", objects.Length, _bucketName);
+        logger.Information("Found {Count} objects in bucket {BucketName}", objects.Length, bucketName);
 
-        await ConcurrencyUtils.RunBoundedAsync(objects, 10, async objectName =>
+        DateTime cutoff = DateTime.UtcNow - GracePeriod;
+
+        await ConcurrencyUtils.RunBoundedAsync(objects, 10, async obj =>
         {
+            string objectName = obj.Key;
+
+            // Anything recently written may belong to an upload whose db row does not exist yet
+            // (user still in upload form). Dont treat these as orphaned. Same for OCR cache objects
+            // A missing timestamp is treated as "too young" so we fail towards keeping the file
+            if (obj.LastModifiedUtc is not DateTime lastModified || lastModified > cutoff)
+            {
+                Interlocked.Increment(ref skippedCount);
+                return;
+            }
+
             await using var context = await dbFactory.CreateDbContextAsync(stoppingToken);
 
             try
@@ -86,26 +94,9 @@ public class StorageCleanupService : BackgroundService
                 // Check if this is a valid GUID (our object names are resource IDs)
                 if (!Guid.TryParse(guidPart, out Guid objectId))
                 {
-                    _logger.Warning("Object {ObjectName} is not a valid GUID, skipping", objectName);
+                    logger.Warning("Object {ObjectName} is not a valid GUID, skipping", objectName);
                     Interlocked.Increment(ref skippedCount);
                     return;
-                }
-
-                if (!isOcrCache)
-                {
-                    // Check upload timestamp from metadata
-                    var metadata = await storageService.GetObjectMetadataAsync(_bucketName, objectName);
-
-                    if (metadata.TryGetValue("uploadTimestamp", out string? timestampStr) &&
-                        DateTime.TryParse(timestampStr, out DateTime uploadTime))
-                    {
-                        // Skip if uploaded less than 24 hours ago
-                        if (uploadTime > DateTime.UtcNow.AddHours(-24))
-                        {
-                            Interlocked.Increment(ref skippedCount);
-                            return;
-                        }
-                    }
                 }
 
                 // Check if resource exists in database or if it is a chat attachment
@@ -130,18 +121,18 @@ public class StorageCleanupService : BackgroundService
                 }
 
                 // Object is orphaned - delete it
-                _logger.Information("Deleting orphaned object {ObjectName}", objectName);
-                await storageService.DeleteObjectAsync(_bucketName, objectName);
+                logger.Information("Deleting orphaned object {ObjectName}", objectName);
+                await storageService.DeleteObjectAsync(bucketName, objectName);
                 Interlocked.Increment(ref deletedCount);
             }
             catch (Exception ex)
             {
                 Interlocked.Increment(ref errorCount);
-                _logger.Error(ex, "Error processing object {ObjectName}", objectName);
+                logger.Error(ex, "Error processing object {ObjectName}", objectName);
             }
         }, stoppingToken);
 
-        _logger.Information(
+        logger.Information(
             "Storage cleanup finished. Deleted: {Deleted}, Skipped: {Skipped}, Errors: {Errors}",
             deletedCount, skippedCount, errorCount);
     }

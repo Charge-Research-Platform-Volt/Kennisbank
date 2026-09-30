@@ -41,6 +41,7 @@ namespace KnowledgeBank
             // # Builder
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
             ConfigureLogging();
+            builder.Host.UseSerilog();
 
             // The environment variables are loaded from the .env file or environment
             EnvironmentConfig environmentConfig = new EnvironmentConfig(builder.Configuration);
@@ -136,7 +137,13 @@ namespace KnowledgeBank
             var dataSource = dataSourceBuilder.Build();
 
             builder.Services.AddDbContextFactory<DatabaseContext>(options =>
-                options.UseNpgsql(dataSource, o => o.UseVector())
+                options.UseNpgsql(dataSource, o =>
+                {
+                    o.UseVector();
+                    // Load each included collection with its own query intead of one big JOIN,
+                    // which multiplies rows for every extra collection (authors x tags x regions ...)
+                    o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                })
                     // Person/Organisation self-referencing relationships (SourcePerson/TargetPerson,
                     // SourceOrganisation/TargetOrganisation) are always populated via EF's own
                     // change-tracker fix-up, not the explicit .Include(...).ThenInclude(...) chains
@@ -372,6 +379,7 @@ namespace KnowledgeBank
             IConfigurationRoot configuration = new ConfigurationBuilder()
                                         .SetBasePath(Directory.GetCurrentDirectory())
                                         .AddJsonFile("serilogsettings.json")
+                                        .AddEnvironmentVariables()
                                         .Build();
 
             Log.Logger = new LoggerConfiguration()

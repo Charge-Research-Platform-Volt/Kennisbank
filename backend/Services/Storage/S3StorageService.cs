@@ -148,7 +148,7 @@ public class S3StorageService : IStorageService
     // ==================== Listing ====================
 
     /// <inheritdoc />
-    public async Task<string[]> ListObjectsAsync(string bucketName, string? prefix = null)
+    public async Task<StorageObjectInfo[]> ListObjectsAsync(string bucketName, string? prefix = null)
     {
         logger.Information("Listing objects in {BucketName} with prefix '{Prefix}'", bucketName, prefix ?? "(none)");
 
@@ -158,17 +158,17 @@ public class S3StorageService : IStorageService
             Prefix = prefix
         };
 
-        var keys = new List<string>();
+        var objects = new List<StorageObjectInfo>();
         ListObjectsV2Response response;
 
         do
         {
             response = await client.ListObjectsV2Async(request);
-            keys.AddRange((response.S3Objects ?? []).Select(o => o.Key));
+            objects.AddRange((response.S3Objects ?? []).Select(o => new StorageObjectInfo(o.Key, o.LastModified?.ToUniversalTime())));
             request.ContinuationToken = response.NextContinuationToken;
         } while (response.IsTruncated == true);
 
-        return keys.ToArray();
+        return objects.ToArray();
     }
 
     // ==================== Multipart Uploads ====================

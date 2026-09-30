@@ -423,12 +423,14 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
         progress?.Invoke("Matching against library...", 85);
 
         ExtractedMetadata extractedMetadata = await BuildMetadataAsync(biblio, productions, subjects);
-        logger.Information("Metadata before QC: {Metadata}", JsonSerializer.Serialize(extractedMetadata, IndentedJson));
+        if (logger.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+            logger.Debug("Metadata before QC: {Metadata}", JsonSerializer.Serialize(extractedMetadata, IndentedJson));
         progress?.Invoke("Running entity quality check...", 92);
         await RunEntityQcAsync(extractedMetadata, keyInsights);
         extractedMetadata.RelatedPersons.RemoveAll(e => !e.IsValid);
         extractedMetadata.Organisations.RemoveAll(e => !e.IsValid);
-        logger.Information("Metadata after QC: {Metadata}", JsonSerializer.Serialize(extractedMetadata, IndentedJson));
+        if (logger.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+            logger.Information("Metadata after QC: {Metadata}", JsonSerializer.Serialize(extractedMetadata, IndentedJson));
         extractedMetadata.PublicationCode = ExtractPublicationCode(string.IsNullOrWhiteSpace(headerFooterText) ? strippedText : strippedText + "\n" + headerFooterText);
         extractedMetadata.LanguageCode = DetectLanguage(strippedText);
 

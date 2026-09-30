@@ -8,6 +8,8 @@ public record ObjectDownloadResponse(
     string? ContentType = null
 );
 
+public record StorageObjectInfo(string Key, DateTime? LastModifiedUtc);
+
 /// <summary>
 /// Abstraction for object storage (S3, MinIO, etc.).
 /// All methods throw on failure - if it returns, it succeeded.
@@ -45,7 +47,7 @@ public interface IStorageService
     // ==================== Listing ====================
 
     /// <summary>Lists all object keys in a bucket, optionally filtered by prefix.</summary>
-    Task<string[]> ListObjectsAsync(string bucketName, string? prefix = null);
+    Task<StorageObjectInfo[]> ListObjectsAsync(string bucketName, string? prefix = null);
 
     // ==================== Multipart Uploads ====================
 

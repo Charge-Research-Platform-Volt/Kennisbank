@@ -1,7 +1,14 @@
 {
   "Serilog": {
     "Using": ["Serilog.Sinks.Console"],
-    "MinimumLevel": "Debug",
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "Microsoft": "Warning",
+        "System": "Warning",
+        "Microsoft.Hosting.Lifetime": "Information"
+      }
+    },
     "WriteTo": [
       {
         "Name": "Console"

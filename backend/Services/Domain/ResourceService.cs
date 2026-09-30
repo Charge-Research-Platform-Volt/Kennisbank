@@ -74,6 +74,7 @@ public class ResourceService(DatabaseContext db, TagService tagService, PersonSe
 
         Resource[] items = await query
             .OrderBy(r => r.Title)
+            .ThenBy(r => r.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToArrayAsync();

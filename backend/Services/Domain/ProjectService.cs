@@ -59,6 +59,7 @@ public class ProjectService(DatabaseContext db, TaxonomySearchIndexService taxon
 
         Project[] projects = await query
             .OrderByDescending(p => p.CreatedOn)
+            .ThenBy(p => p.Id)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
             .ToArrayAsync();

@@ -49,6 +49,7 @@ public class ResourceTypeService(DatabaseContext db, TaxonomySearchIndexService 
 
         ResourceType[] items = await query
             .OrderBy(r => r.Name)
+            .ThenBy(r => r.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToArrayAsync();

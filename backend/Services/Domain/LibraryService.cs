@@ -188,7 +188,7 @@ public class LibraryService(DatabaseContext db, LibrarySearchIndexService librar
 
     private static IQueryable<LibraryItem> ApplySorting(IQueryable<LibraryItem> query, string? sortBy, string? sortDirection)
     {
-        return (sortBy?.ToLower(), sortDirection?.ToLower()) switch
+        IOrderedQueryable<LibraryItem> ordered = (sortBy?.ToLower(), sortDirection?.ToLower()) switch
         {
             ("name", "desc") => query.OrderByDescending(x => x.Name),
             ("name", _) => query.OrderBy(x => x.Name),
@@ -200,6 +200,9 @@ public class LibraryService(DatabaseContext db, LibrarySearchIndexService librar
             ("createdon", _) => query.OrderBy(x => x.CreatedOn),
             _ => query.OrderByDescending(x => x.CreatedOn)
         };
+
+        // Unique tiebreaker
+        return ordered.ThenBy(x => x.Id);
     }
 
     private static Guid[] ParseGuids(string[]? strings)
