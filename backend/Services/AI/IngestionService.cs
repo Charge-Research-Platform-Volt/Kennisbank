@@ -76,15 +76,13 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
 
             chunks.AddRange(contentChunks);
 
-            await vectorStore.DeletePointsByResourceIdAsync(id);
-
             var chunkData = chunks.Select((text, index) => (
                 Text: text,
                 Type: index == 0 ? ChunkType.MetaData : ChunkType.ContentText,
                 Part: index
             )).ToList();
 
-            await vectorStore.CreateResourcePointsAsync(id, chunkData);
+            await vectorStore.ReplaceResourcePointsAsync(id, chunkData);
 
             await SetResourceEmbeddingStatusAsync(id, EmbeddingStatus.Completed);
             logger.Information("Resource pipeline completed for ID: {Id}", id);
@@ -106,18 +104,14 @@ public class IngestionService(IVectorStore vectorStore, TextExtractionService te
         {
             await SetEntityEmbeddingStatusAsync(id, entityType, EmbeddingStatus.Processing);
 
-            await vectorStore.DeletePointsByEntityIdAsync(id);
-            await vectorStore.CreateEntityPointsAsync(id, entityType, [(chunk, ChunkType.MetaData, 0)]);
+            await vectorStore.ReplaceEntityPointsAsync(id, entityType, [(chunk, ChunkType.MetaData, 0)]);
 
             await SetEntityEmbeddingStatusAsync(id, entityType, EmbeddingStatus.Completed);
             logger.Information("Entity pipeline completed for entity ID: {Id}", id);
         } catch (Exception ex)
         {
             logger.Error(ex, "Entity pipeline failed for ID: {Id}", id);
-            string message = mistralStatusService.Current.Status == MistralAvailability.Down
-                ? "Mistral's AI service currently appears to be down or degraded, this isn't a bug on our end. Check status.mistral.ai for the latest status and try again once it recovers."
-                : ex.Message;
-            await SetEntityEmbeddingStatusAsync(id, entityType, EmbeddingStatus.Failed, message);
+            await SetEntityEmbeddingStatusAsync(id, entityType, EmbeddingStatus.Failed, ex.Message);
         }
     }
 

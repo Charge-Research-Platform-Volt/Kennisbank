@@ -5,14 +5,16 @@ namespace KnowledgeBank.Services.Vector;
 public interface IVectorStore
 {
     /// <summary>
-    /// Store chunks with embeddings for a resource
+    /// Embed the given chunks, then replace all existing chunks of the resource with them.
+    /// Existing chunks are left untouched if embedding fails.
     /// </summary>
-    Task CreateResourcePointsAsync(Guid resourceId, List<(string Text, ChunkType Type, int Part)> chunks);
+    Task ReplaceResourcePointsAsync(Guid resourceId, List<(string Text, ChunkType Type, int Part)> chunks);
 
     /// <summary>
-    /// Store chunks with embeddings for an entity
+    /// Embed the given chunks, then replace all existing chunks of the entity with them.
+    /// Existing chunks are left untouched if embedding fails.
     /// </summary>
-    Task CreateEntityPointsAsync(Guid entityId, string entityType, List<(string Text, ChunkType Type, int Part)> chunks);
+    Task ReplaceEntityPointsAsync(Guid entityId, string entityType, List<(string Text, ChunkType Type, int Part)> chunks);
 
     /// <summary>
     /// Delete all chunks for a resource

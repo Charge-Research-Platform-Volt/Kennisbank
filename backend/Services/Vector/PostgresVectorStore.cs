@@ -9,20 +9,22 @@ namespace KnowledgeBank.Services.Vector;
 
 public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, EmbeddingService aiClientProvider, ChunkSearchIndexService chunkSearchIndexService, LibrarySearchIndexService librarySearchIndexService) : IVectorStore
 {
-    /// <inheritdoc />
-    public async Task CreateResourcePointsAsync(Guid resourceId, List<(string Text, ChunkType Type, int Part)> chunks)
+    /// <inheritdoc/>
+    public async Task ReplaceResourcePointsAsync(Guid resourceId, List<(string Text, ChunkType Type, int Part)> chunks)
     {
+        // Embed first
+        float[][] embeddings = await aiClientProvider.GenerateEmbeddings(chunks.Select(c => c.Text).ToList());
+
         await using var database = await dbFactory.CreateDbContextAsync();
         List<ChunkSearchDocument> searchDocs = [];
-
-        float[][] embeddings = await aiClientProvider.GenerateEmbeddings(chunks.Select(c => c.Text).ToList());
+        float[]? metadataEmbedding = null;
 
         for (int i = 0; i < chunks.Count; i++)
         {
             var chunk = chunks[i];
             float[] embeddingArray = embeddings[i];
 
-            ResourceChunk resourceChunk = new ResourceChunk
+            ResourceChunk resourceChunk = new()
             {
                 Id = Guid.NewGuid(),
                 ResourceId = resourceId,
@@ -46,27 +48,41 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, E
             });
 
             if (chunk.Type == ChunkType.MetaData)
-                await librarySearchIndexService.UpdateVectorAsync(resourceId, embeddingArray);
+                metadataEmbedding = embeddingArray;
         }
 
-        await database.SaveChangesAsync();
+        // Swap old for new in one transaction
+        await using (var transaction = await database.Database.BeginTransactionAsync())
+        {
+            await database.ResourceChunks.Where(c => c.ResourceId == resourceId).ExecuteDeleteAsync();
+            await database.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+
+        // Send chunk embeddings to Meilisearch
+        await chunkSearchIndexService.DeleteByParentIdAsync(resourceId);
         await chunkSearchIndexService.IndexChunksAsync(searchDocs);
+
+        // Send metadata embeddings to Meilisearch
+        if (metadataEmbedding != null)
+            await librarySearchIndexService.UpdateVectorAsync(resourceId, metadataEmbedding);
     }
 
     /// <inheritdoc />
-    public async Task CreateEntityPointsAsync(Guid entityId, string entityType, List<(string Text, ChunkType Type, int Part)> chunks)
+    public async Task ReplaceEntityPointsAsync(Guid entityId, string entityType, List<(string Text, ChunkType Type, int Part)> chunks)
     {
+        float[][] embeddings = await aiClientProvider.GenerateEmbeddings(chunks.Select(c => c.Text).ToList());
+
         await using var database = await dbFactory.CreateDbContextAsync();
         List<ChunkSearchDocument> searchDocs = [];
-
-        float[][] embeddings = await aiClientProvider.GenerateEmbeddings(chunks.Select(c => c.Text).ToList());
+        float[]? metadataEmbedding = null;
 
         for (int i = 0; i < chunks.Count; i++)
         {
             var chunk = chunks[i];
             float[] embeddingArray = embeddings[i];
 
-            EntityChunk entityChunk = new EntityChunk
+            EntityChunk entityChunk = new()
             {
                 Id = Guid.NewGuid(),
                 EntityId = entityId,
@@ -90,11 +106,23 @@ public class PostgresVectorStore(IDbContextFactory<DatabaseContext> dbFactory, E
             });
 
             if (chunk.Type == ChunkType.MetaData)
-                await librarySearchIndexService.UpdateVectorAsync(entityId, embeddingArray);
+                metadataEmbedding = embeddingArray;
         }
 
-        await database.SaveChangesAsync();
+        await using (var transaction = await database.Database.BeginTransactionAsync())
+        {
+            await database.EntityChunks.Where(c => c.EntityId == entityId).ExecuteDeleteAsync();
+            await database.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+
+        // Store chunk embeddings in Meilisearch
+        await chunkSearchIndexService.DeleteByParentIdAsync(entityId);
         await chunkSearchIndexService.IndexChunksAsync(searchDocs);
+
+        // Store metadata embedding
+        if (metadataEmbedding != null)
+            await librarySearchIndexService.UpdateVectorAsync(entityId, metadataEmbedding);
     }
 
     /// <inheritdoc />
