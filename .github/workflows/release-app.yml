@@ -18,7 +18,7 @@ jobs:
       pull-requests: read
   
   backend:
-    name: Backend
+    name: Build backend image
     needs: test
     runs-on: ubuntu-latest
     permissions:
@@ -63,7 +63,7 @@ jobs:
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.OWNER }}/knowledgebank-backend:buildcache
 
   frontend:
-    name: Frontend
+    name: Build frontend image
     needs: test
     runs-on: ubuntu-latest
     permissions:
