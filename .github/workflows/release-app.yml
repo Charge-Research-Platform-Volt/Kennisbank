@@ -1,26 +1,35 @@
-name: Build and push Docker images
+name: Release app
 
 on:
   push:
-    branches: [main]
+    tags: ['v*.*.*']
 
 env:
   REGISTRY: ghcr.io
   OWNER: ${{ github.repository_owner }}
 
 jobs:
+  test:
+    name: Test
+    uses: ./.github/workflows/ci.yml
+    with:
+      run_all: true
+    permissions:
+      contents: read
+      pull-requests: read
+  
   backend:
     name: Backend
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Log in to GitHub Container Registry
+      - name: Log in to Github Container Registry
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
@@ -33,7 +42,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.OWNER }}/knowledgebank-backend
           tags: |
-            type=sha,prefix=
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest
 
       - name: Build and push
@@ -44,14 +54,16 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
 
   frontend:
     name: Frontend
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -69,7 +81,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.OWNER }}/knowledgebank-frontend
           tags: |
-            type=sha,prefix=
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest
 
       - name: Build and push
@@ -80,38 +93,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-
-  webscrape:
-    name: Webscrape service
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-      
-      - name: Log in to Github Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.OWNER }}/knowledgebank-webscrape
-          tags: |
-            type=sha,prefix=
-            type=raw,value=latest
-      
-      - name: Build and push
-        uses: docker/build-push-action@v7
-        with:
-          context: ./webscrape-service
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
