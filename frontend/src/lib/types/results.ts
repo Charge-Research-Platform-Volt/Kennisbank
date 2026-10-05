@@ -1,9 +1,9 @@
 export type PagedResult<T> = {
-    items: T[];
-    totalCount: number;
-}
+	items: T[];
+	totalCount: number;
+};
 
 export type ListItem = {
-    id: string;
-    name: string;
+	id: string;
+	name: string;
 };

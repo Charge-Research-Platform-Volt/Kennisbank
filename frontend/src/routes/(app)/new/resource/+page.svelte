@@ -43,14 +43,35 @@
 	});
 
 	function openAddModal(section: ModalSection) {
-		entityModal = { open: true, mode: 'add', section, index: -1, name: '', entityType: 'person', role: '', occupation: '', email: '', website: '', selectedId: null, aliases: [] };
+		entityModal = {
+			open: true,
+			mode: 'add',
+			section,
+			index: -1,
+			name: '',
+			entityType: 'person',
+			role: '',
+			occupation: '',
+			email: '',
+			website: '',
+			selectedId: null,
+			aliases: []
+		};
 	}
 
 	function openEditModal(section: ModalSection, index: number) {
-		const arr = section === 'authors' ? authors : section === 'relatedPersons' ? relatedPersons : organisations;
+		const arr =
+			section === 'authors'
+				? authors
+				: section === 'relatedPersons'
+					? relatedPersons
+					: organisations;
 		const e = arr[index];
 		entityModal = {
-			open: true, mode: 'edit', section, index,
+			open: true,
+			mode: 'edit',
+			section,
+			index,
 			name: e.displayValue || e.extracted || '',
 			entityType: e.authorType ?? 'person',
 			role: e.role ?? '',
@@ -58,7 +79,7 @@
 			email: e.email ?? '',
 			website: e.website ?? '',
 			selectedId: /^[0-9a-f-]{36}$/i.test(e.value) ? e.value : null,
-			aliases: (e.suggestedAliases ?? []).map(a => ({ id: a, name: a }))
+			aliases: (e.suggestedAliases ?? []).map((a) => ({ id: a, name: a }))
 		};
 	}
 
@@ -67,33 +88,40 @@
 		const name = entityModal.name.trim();
 		if (mode === 'add') {
 			if (!name) return;
-			
+
 			const entry: EntityEntry = {
-				extracted: name, value: entityModal.selectedId ?? name, displayValue: name,
+				extracted: name,
+				value: entityModal.selectedId ?? name,
+				displayValue: name,
 				authorType: section === 'authors' ? entityModal.entityType : undefined,
 				role: section !== 'authors' ? entityModal.role || undefined : undefined,
 				occupation: entityModal.occupation || undefined,
 				email: entityModal.email || undefined,
 				website: entityModal.website || undefined,
-				suggestedAliases: entityModal.aliases.map(a => a.name)
+				suggestedAliases: entityModal.aliases.map((a) => a.name)
 			};
 
 			if (section === 'authors') authors = [...authors, entry];
 			else if (section === 'relatedPersons') relatedPersons = [...relatedPersons, entry];
 			else organisations = [...organisations, entry];
 		} else {
-			const patch = (arr: EntityEntry[]) => arr.map((e, i) => i !== index ? e : {
-				...e,
-				value: entityModal.selectedId || e.value,
-				displayValue: name || e.displayValue,
-				extracted: name || e.extracted,
-				authorType: section === 'authors' ? entityModal.entityType : e.authorType,
-				role: section !== 'authors' ? entityModal.role || undefined : e.role,
-				occupation: entityModal.occupation || undefined,
-				email: entityModal.email || undefined,
-				website: entityModal.website || undefined,
-				suggestedAliases: entityModal.aliases.map(a => a.name)
-			});
+			const patch = (arr: EntityEntry[]) =>
+				arr.map((e, i) =>
+					i !== index
+						? e
+						: {
+								...e,
+								value: entityModal.selectedId || e.value,
+								displayValue: name || e.displayValue,
+								extracted: name || e.extracted,
+								authorType: section === 'authors' ? entityModal.entityType : e.authorType,
+								role: section !== 'authors' ? entityModal.role || undefined : e.role,
+								occupation: entityModal.occupation || undefined,
+								email: entityModal.email || undefined,
+								website: entityModal.website || undefined,
+								suggestedAliases: entityModal.aliases.map((a) => a.name)
+							}
+				);
 
 			if (section === 'authors') authors = patch(authors);
 			else if (section === 'relatedPersons') relatedPersons = patch(relatedPersons);
@@ -120,9 +148,7 @@
 	let journalDisplay = $state<string | null>(null);
 
 	const searchResourceTypes = async (q: string) => {
-		const url = q
-			? `/api/resource-types?search=${encodeURIComponent(q)}`
-			: '/api/resource-types';
+		const url = q ? `/api/resource-types?search=${encodeURIComponent(q)}` : '/api/resource-types';
 		const result = await api.get<PagedResult<ListItem>>(url);
 		return result.items;
 	};
@@ -140,7 +166,7 @@
 			}))
 		);
 
-async function searchTags(q: string) {
+	async function searchTags(q: string) {
 		const url = q
 			? `/api/tags?page=1&pageSize=20&search=${encodeURIComponent(q)}`
 			: '/api/tags?page=1&pageSize=20';
@@ -184,13 +210,17 @@ async function searchTags(q: string) {
 	}
 
 	async function searchPersons(q: string) {
-		const url = q ? `/api/persons?page=1&pageSize=20&search=${encodeURIComponent(q)}` : '/api/persons?page=1&pageSize=20';
+		const url = q
+			? `/api/persons?page=1&pageSize=20&search=${encodeURIComponent(q)}`
+			: '/api/persons?page=1&pageSize=20';
 		const r = await api.get<PagedResult<ListItem>>(url);
 		return r.items ?? [];
 	}
 
 	async function searchOrgs(q: string) {
-		const url = q ? `/api/organisations?page=1&pageSize=20&search=${encodeURIComponent(q)}` : '/api/organisations?page=1&pageSize=20';
+		const url = q
+			? `/api/organisations?page=1&pageSize=20&search=${encodeURIComponent(q)}`
+			: '/api/organisations?page=1&pageSize=20';
 		const r = await api.get<PagedResult<ListItem>>(url);
 		return r.items ?? [];
 	}
@@ -285,17 +315,17 @@ async function searchTags(q: string) {
 					occupation: a.occupation ?? null,
 					email: a.email ?? null
 				})),
-				Organisations: organisations.map((o) => ({ 
-					Id: o.value, 
-					Relation: o.role || null, 
+				Organisations: organisations.map((o) => ({
+					Id: o.value,
+					Relation: o.role || null,
 					SuggestedAliases: o.suggestedAliases ?? [],
 					Occupation: o.occupation ?? null,
 					Website: o.website ?? null,
 					Email: o.email ?? null
 				})),
-				RelatedPersons: relatedPersons.map((p) => ({ 
-					Id: p.value, 
-					Relation: p.role || null, 
+				RelatedPersons: relatedPersons.map((p) => ({
+					Id: p.value,
+					Relation: p.role || null,
 					SuggestedAliases: p.suggestedAliases ?? [],
 					Occupation: p.occupation ?? null,
 					Website: p.website ?? null,
@@ -413,7 +443,9 @@ async function searchTags(q: string) {
 							displayValue: confirmed.name,
 							authorType: e.type,
 							role: e.role,
-							suggestedAliases: [...new Set([...(confirmed.suggestedAliases ?? []), ...(e.suggestedAliases ?? [])])],
+							suggestedAliases: [
+								...new Set([...(confirmed.suggestedAliases ?? []), ...(e.suggestedAliases ?? [])])
+							],
 							...meta
 						}
 					: {
@@ -811,7 +843,11 @@ async function searchTags(q: string) {
 		<Dialog.Header>
 			<Dialog.Title>
 				{entityModal.mode === 'add' ? 'Add' : 'Edit'}
-				{entityModal.section === 'authors' ? 'Author' : entityModal.section === 'relatedPersons' ? 'Person' : 'Organisation'}
+				{entityModal.section === 'authors'
+					? 'Author'
+					: entityModal.section === 'relatedPersons'
+						? 'Person'
+						: 'Organisation'}
 			</Dialog.Title>
 		</Dialog.Header>
 
@@ -820,9 +856,21 @@ async function searchTags(q: string) {
 			{#if entityModal.section === 'authors'}
 				<div class="flex flex-col gap-1.5">
 					<Label>Type</Label>
-					<ToggleGroup.Root class="w-full" type="single" variant="outline" bind:value={entityModal.entityType} onValueChange={(v) => { if (v) entityModal.entityType = v; }}>
-						<ToggleGroup.Item value="person" class="text-xs flex-1 cursor-pointer">Person</ToggleGroup.Item>
-						<ToggleGroup.Item value="organisation" class="text-xs flex-1 cursor-pointer">Organisation</ToggleGroup.Item>
+					<ToggleGroup.Root
+						class="w-full"
+						type="single"
+						variant="outline"
+						bind:value={entityModal.entityType}
+						onValueChange={(v) => {
+							if (v) entityModal.entityType = v;
+						}}
+					>
+						<ToggleGroup.Item value="person" class="flex-1 cursor-pointer text-xs"
+							>Person</ToggleGroup.Item
+						>
+						<ToggleGroup.Item value="organisation" class="flex-1 cursor-pointer text-xs"
+							>Organisation</ToggleGroup.Item
+						>
 					</ToggleGroup.Root>
 				</div>
 			{/if}
@@ -830,10 +878,13 @@ async function searchTags(q: string) {
 			<!-- Name -->
 			<div class="flex flex-col gap-1.5">
 				<Label>Name</Label>
-				<AsyncSelect 
-					value={entityModal.selectedId} 
-					displayValue={entityModal.name} 
-					search={entityModal.section === 'organisations' || (entityModal.section === 'authors' && entityModal.entityType === 'organisation') ? searchOrgs : searchPersons}
+				<AsyncSelect
+					value={entityModal.selectedId}
+					displayValue={entityModal.name}
+					search={entityModal.section === 'organisations' ||
+					(entityModal.section === 'authors' && entityModal.entityType === 'organisation')
+						? searchOrgs
+						: searchPersons}
 					onchange={(id, name) => {
 						entityModal.selectedId = id;
 						entityModal.name = name ?? '';
@@ -854,14 +905,23 @@ async function searchTags(q: string) {
 					placeholder="Add alias..."
 				/>
 			</div>
-			
+
 			<!-- Role for non-authors -->
 			{#if entityModal.section !== 'authors'}
 				<div class="flex flex-col gap-1.5">
 					<Label>Role</Label>
-					<ToggleGroup.Root class="w-full" type="single" variant="outline" bind:value={entityModal.role}>
-						<ToggleGroup.Item value="subject" class="text-xs flex-1 cursor-pointer">Subject</ToggleGroup.Item>
-						<ToggleGroup.Item value="production" class="text-xs flex-1 cursor-pointer">Production</ToggleGroup.Item>
+					<ToggleGroup.Root
+						class="w-full"
+						type="single"
+						variant="outline"
+						bind:value={entityModal.role}
+					>
+						<ToggleGroup.Item value="subject" class="flex-1 cursor-pointer text-xs"
+							>Subject</ToggleGroup.Item
+						>
+						<ToggleGroup.Item value="production" class="flex-1 cursor-pointer text-xs"
+							>Production</ToggleGroup.Item
+						>
 					</ToggleGroup.Root>
 				</div>
 			{/if}
@@ -890,8 +950,12 @@ async function searchTags(q: string) {
 		</div>
 
 		<Dialog.Footer>
-			<Button class="cursor-pointer" variant="outline" onclick={() => (entityModal.open = false)}>Cancel</Button>
-			<Button class="cursor-pointer" onclick={confirmModal}>{entityModal.mode === 'add' ? 'Add' : 'Save'}</Button>
+			<Button class="cursor-pointer" variant="outline" onclick={() => (entityModal.open = false)}
+				>Cancel</Button
+			>
+			<Button class="cursor-pointer" onclick={confirmModal}
+				>{entityModal.mode === 'add' ? 'Add' : 'Save'}</Button
+			>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>

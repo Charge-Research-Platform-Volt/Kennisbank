@@ -21,7 +21,7 @@
 		const url = q
 			? `/api/persons?page=1&pageSize=20&search=${encodeURIComponent(q)}`
 			: '/api/persons?page=1&pageSize=20';
-		const r = await api.get<PagedResult<{ id: string; name: string; }>>(url);
+		const r = await api.get<PagedResult<{ id: string; name: string }>>(url);
 		return r.items ?? [];
 	}
 
@@ -48,7 +48,7 @@
 			? `/api/resources?page=1&pageSize=20&search=${encodeURIComponent(q)}`
 			: '/api/resources?page=1&pageSize=20';
 		const r = await api.get<PagedResult<{ id: string; title: string }>>(url);
-		return r.items.map(i => ({ id: i.id, name: i.title }));
+		return r.items.map((i) => ({ id: i.id, name: i.title }));
 	}
 </script>
 
@@ -84,7 +84,13 @@
 	{/if}
 
 	<!-- Aliases -->
-	<AliasSection label="Aliases" value={detail.aliases} onsave={async (aliases) => { await api.patch(`/api/organisations/${item.id}`, { aliases }); }} />
+	<AliasSection
+		label="Aliases"
+		value={detail.aliases}
+		onsave={async (aliases) => {
+			await api.patch(`/api/organisations/${item.id}`, { aliases });
+		}}
+	/>
 
 	<!-- Authored, Related Resources, Related Organisations, Related People -->
 	<RelationSection
@@ -128,9 +134,7 @@
 		}}
 		oncreate={createOrg}
 		onremove={async (rel) => {
-			await api.delete(
-				`/api/organisations/${item.id}/related-organisations/${rel.id}`
-			);
+			await api.delete(`/api/organisations/${item.id}/related-organisations/${rel.id}`);
 		}}
 		onupdaterole={async (rel, role) => {
 			await api.patch(

@@ -41,8 +41,10 @@
 		isCheckingDuplicate = true;
 
 		try {
-			const result = await api.get<PagedResult<ListItem>>(`/api/persons?search=${encodeURIComponent(name)}&pageSize=5`);
-			const exact = result.items.find(i => i.name.toLowerCase() === name.toLowerCase());
+			const result = await api.get<PagedResult<ListItem>>(
+				`/api/persons?search=${encodeURIComponent(name)}&pageSize=5`
+			);
+			const exact = result.items.find((i) => i.name.toLowerCase() === name.toLowerCase());
 			duplicate = exact ? { exists: true, id: exact.id } : { exists: false, id: '' };
 			similar = result.items;
 		} catch {
@@ -155,7 +157,12 @@
 			<!-- Aliases -->
 			<div class="flex flex-col gap-1.5">
 				<Label>Aliases</Label>
-				<BadgeInput bind:items={aliasItems} search={async () => []} oncreate={async (name) => ({ id: name, name })} placeholder="Add alias..." />
+				<BadgeInput
+					bind:items={aliasItems}
+					search={async () => []}
+					oncreate={async (name) => ({ id: name, name })}
+					placeholder="Add alias..."
+				/>
 			</div>
 
 			<!-- Occupation -->

@@ -15,7 +15,13 @@
 		resourcesWithoutMetadataEmbeddings: number;
 		resourcesWithoutContentEmbeddings: number;
 		entitiesWithoutEmbeddings: number;
-		incompleteItems: { id: string; name: string; type: string; status: string; error: string | null }[];
+		incompleteItems: {
+			id: string;
+			name: string;
+			type: string;
+			status: string;
+			error: string | null;
+		}[];
 	};
 
 	let summary = $state<StatusSummary | null>(null);
@@ -129,7 +135,9 @@
 
 		<!-- Missing embeddings, independent of status -->
 		<div class="flex flex-col gap-2 rounded-md border p-4">
-			<span class="text-sm font-medium text-muted-foreground">Missing embeddings (regardless of status)</span>
+			<span class="text-sm font-medium text-muted-foreground"
+				>Missing embeddings (regardless of status)</span
+			>
 			<div class="flex flex-col gap-1">
 				<div class="flex items-center justify-between text-sm">
 					<span class={summary.resourcesWithoutMetadataEmbeddings > 0 ? 'text-destructive' : ''}>
@@ -167,7 +175,12 @@
 		<!-- Actions -->
 		<div class="flex gap-2">
 			{#if summary.isRunning}
-				<Button variant="destructive" onclick={cancelReembed} disabled={submitting} class="cursor-pointer">
+				<Button
+					variant="destructive"
+					onclick={cancelReembed}
+					disabled={submitting}
+					class="cursor-pointer"
+				>
 					Cancel Re-embed
 				</Button>
 			{:else}
@@ -179,7 +192,11 @@
 				>
 					Re-embed All
 				</Button>
-				<Button onclick={() => reembed(true)} disabled={busy || scopedIncompleteCount === 0} class="cursor-pointer">
+				<Button
+					onclick={() => reembed(true)}
+					disabled={busy || scopedIncompleteCount === 0}
+					class="cursor-pointer"
+				>
 					Retry Incomplete Only ({scopedIncompleteCount})
 				</Button>
 			{/if}
@@ -193,7 +210,9 @@
 					{#each summary.incompleteItems as item (item.id)}
 						<div class="flex flex-col gap-1 p-3">
 							<div class="flex items-center gap-2">
-								<span class="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{item.type}</span>
+								<span class="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+									>{item.type}</span
+								>
 								<span
 									class="rounded-full px-2 py-0.5 text-xs {item.status === 'Failed'
 										? 'bg-destructive/10 text-destructive'
@@ -202,7 +221,9 @@
 								<span class="text-sm font-medium">{item.name}</span>
 							</div>
 							{#if item.error}
-								<span class="truncate text-xs text-destructive" title={item.error}>{item.error}</span>
+								<span class="truncate text-xs text-destructive" title={item.error}
+									>{item.error}</span
+								>
 							{/if}
 						</div>
 					{/each}

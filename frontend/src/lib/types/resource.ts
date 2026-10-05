@@ -19,7 +19,7 @@ export type ResourceItem = {
 
 export type RawResourceItem = ResourceItem & {
 	title: string;
-}
+};
 
 export type TrashItem = ResourceItem & {
 	trashDate: string;

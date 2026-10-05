@@ -32,7 +32,7 @@
 				<div class="flex min-w-0 flex-1 flex-col gap-0.5">
 					<span class="truncate text-sm font-medium">{entry.displayValue || entry.extracted}</span>
 					{#if variant !== 'authors' && entry.reason && entry.role !== 'production'}
-						<span class="text-xs italic text-muted-foreground">{entry.reason}</span>
+						<span class="text-xs text-muted-foreground italic">{entry.reason}</span>
 					{/if}
 				</div>
 				<button
@@ -50,7 +50,12 @@
 			</div>
 			<div class="flex flex-wrap items-center gap-1 pt-0.5">
 				{#if variant === 'authors' && entry.authorType}
-					<button onclick={() => { entry.authorType = entry.authorType === 'organisation' ? 'person' : 'organisation'}} class="flex items-center gap-1 rounded border border-border/50 px-1.5 py-0.5 text-xs text-muted-foreground cursor-pointer">
+					<button
+						onclick={() => {
+							entry.authorType = entry.authorType === 'organisation' ? 'person' : 'organisation';
+						}}
+						class="flex cursor-pointer items-center gap-1 rounded border border-border/50 px-1.5 py-0.5 text-xs text-muted-foreground"
+					>
 						{#if entry.authorType === 'organisation'}
 							<Building2 size={10} />Org
 						{:else}
@@ -68,7 +73,12 @@
 					>
 						<Tag size={10} />{alias}
 						<button
-							onclick={() => (entries = entries.map((e, j) => j === i ? { ...e, suggestedAliases: e.suggestedAliases?.filter(a => a !== alias) } : e))}
+							onclick={() =>
+								(entries = entries.map((e, j) =>
+									j === i
+										? { ...e, suggestedAliases: e.suggestedAliases?.filter((a) => a !== alias) }
+										: e
+								))}
 							class="cursor-pointer opacity-60 hover:opacity-100"
 						>
 							<X size={10} />
@@ -78,8 +88,8 @@
 				{#if entry.value && !entry.value.match(/^[0-9a-f-]{36}$/i)}
 					<span
 						class="rounded bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400"
-						title="Not present in the database"
-					>New</span>
+						title="Not present in the database">New</span
+					>
 				{/if}
 			</div>
 			{#if variant === 'organisations'}
@@ -87,7 +97,7 @@
 					<div class="flex flex-wrap items-center gap-1 pt-0.5">
 						{#if entry.website}
 							<a
-								href={entry.website.startsWith("http") ? entry.website : 'https://' + entry.website}
+								href={entry.website.startsWith('http') ? entry.website : 'https://' + entry.website}
 								target="_blank"
 								rel="noreferrer"
 								class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground"
@@ -97,7 +107,10 @@
 							</a>
 						{/if}
 						{#if entry.email}
-							<span class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground" title="Email">
+							<span
+								class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
+								title="Email"
+							>
 								<Mail size={10} />{entry.email}
 							</span>
 						{/if}
@@ -106,12 +119,18 @@
 			{:else if entry.occupation || entry.email}
 				<div class="flex flex-wrap items-center gap-1 pt-0.5">
 					{#if entry.occupation}
-						<span class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground" title="Occupation">
+						<span
+							class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
+							title="Occupation"
+						>
 							<Briefcase size={10} />{entry.occupation}
 						</span>
 					{/if}
 					{#if entry.email}
-						<span class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground" title="Email">
+						<span
+							class="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
+							title="Email"
+						>
 							<Mail size={10} />{entry.email}
 						</span>
 					{/if}
@@ -122,5 +141,6 @@
 	<button
 		onclick={onadd}
 		class="w-full cursor-pointer rounded border border-dashed border-border py-1.5 text-xs text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
-	>+ Add</button>
+		>+ Add</button
+	>
 </div>

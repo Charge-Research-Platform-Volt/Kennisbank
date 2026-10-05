@@ -548,7 +548,10 @@
 		<div class="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4">
 			<div bind:this={topSentinel}></div>
 
-			<div class="flex justify-center py-2 text-xs text-muted-foreground" class:invisible={!loadingOlder}>
+			<div
+				class="flex justify-center py-2 text-xs text-muted-foreground"
+				class:invisible={!loadingOlder}
+			>
 				<span class="status-spinner"></span>
 			</div>
 

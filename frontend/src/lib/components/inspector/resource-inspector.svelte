@@ -21,9 +21,7 @@
 	let { item }: { item: ResourceItem } = $props();
 
 	async function searchResourceTypes(q: string) {
-		const url = q
-			? `/api/resource-types?search=${encodeURIComponent(q)}`
-			: '/api/resource-types';
+		const url = q ? `/api/resource-types?search=${encodeURIComponent(q)}` : '/api/resource-types';
 		const result = await api.get<PagedResult<ListItem>>(url);
 		return result.items;
 	}
@@ -108,15 +106,9 @@
 		return { id: r, name };
 	}
 
-	let detailPromise = $derived(
-		api.get<ResourceDetail>(
-			`/api/resources/${item.id}`
-		)
-	);
+	let detailPromise = $derived(api.get<ResourceDetail>(`/api/resources/${item.id}`));
 	let similarPromise = $derived(
-		api.get<{ id: string; title: string; fileType: string }[]>(
-			`/api/resources/${item.id}/similar`
-		)
+		api.get<{ id: string; title: string; fileType: string }[]>(`/api/resources/${item.id}/similar`)
 	);
 </script>
 
@@ -134,22 +126,20 @@
 			icon={Layers}
 			label="Resource Type"
 			value={detail.typeName !== 'Unknown' ? detail.typeName : undefined}
-			internalHref={detail.typeId ? `/library?resourceTypes=${detail.typeId}&type=resource` : undefined}
+			internalHref={detail.typeId
+				? `/library?resourceTypes=${detail.typeId}&type=resource`
+				: undefined}
 		>
 			{#snippet editContent()}
 				<AsyncSelect
 					value={detail.typeId ?? null}
-					displayValue={detail.typeName !== 'Unknown'
-						? (detail.typeName ?? null)
-						: null}
+					displayValue={detail.typeName !== 'Unknown' ? (detail.typeName ?? null) : null}
 					search={searchResourceTypes}
 					placeholder="Resource Type"
 					variant="ghost"
 					allowClear={false}
 					onchange={(id) =>
-						registerSave(
-							api.patch(`/api/resources/${item.id}`, { typeId: id }).then(() => {})
-						)}
+						registerSave(api.patch(`/api/resources/${item.id}`, { typeId: id }).then(() => {}))}
 				/>
 			{/snippet}
 		</CharacteristicRow>
@@ -199,9 +189,7 @@
 					placeholder="Journal"
 					variant="ghost"
 					onchange={(id) =>
-						registerSave(
-							api.patch(`/api/resources/${item.id}`, { journalId: id }).then(() => {})
-						)}
+						registerSave(api.patch(`/api/resources/${item.id}`, { journalId: id }).then(() => {}))}
 				/>
 			{/snippet}
 		</CharacteristicRow>

@@ -554,11 +554,12 @@
 									<div class="shrink-0">
 										<Tooltip.Root>
 											<Tooltip.Trigger>
-												<LoaderCircle size={13} class="shrink-0 animate-spin text-muted-foreground" />
+												<LoaderCircle
+													size={13}
+													class="shrink-0 animate-spin text-muted-foreground"
+												/>
 											</Tooltip.Trigger>
-											<Tooltip.Content>
-												Still processing...
-											</Tooltip.Content>
+											<Tooltip.Content>Still processing...</Tooltip.Content>
 										</Tooltip.Root>
 									</div>
 								{:else if item.embeddingStatus === 'Failed'}
@@ -567,9 +568,7 @@
 											<Tooltip.Trigger>
 												<CircleAlert size={13} class="shrink-0 text-destructive" />
 											</Tooltip.Trigger>
-											<Tooltip.Content>
-												Embedding failed
-											</Tooltip.Content>
+											<Tooltip.Content>Embedding failed</Tooltip.Content>
 										</Tooltip.Root>
 									</div>
 								{/if}

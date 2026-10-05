@@ -62,12 +62,16 @@
 	}
 
 	async function searchTags(q: string) {
-		const result = await api.get<PagedResult<ListItem>>(`/api/tags?search=${encodeURIComponent(q)}`);
+		const result = await api.get<PagedResult<ListItem>>(
+			`/api/tags?search=${encodeURIComponent(q)}`
+		);
 		return result.items;
 	}
 
 	async function searchUsers(q: string) {
-		const result = await api.get<{ users: { id: string; firstName: string; lastName: string }[] }>(`/api/users?search=${encodeURIComponent(q)}&excludeId=${userState.user?.id ?? ''}`);
+		const result = await api.get<{ users: { id: string; firstName: string; lastName: string }[] }>(
+			`/api/users?search=${encodeURIComponent(q)}&excludeId=${userState.user?.id ?? ''}`
+		);
 
 		return result.users.map((u) => ({
 			id: u.id.toString(),

@@ -27,7 +27,10 @@
 	</div>
 
 	<!-- Link to changelog -->
-	<a href="/changelog" class="text-sm text-gray-500 underline underline-offset-4 hover:text-gray-700">
+	<a
+		href="/changelog"
+		class="text-sm text-gray-500 underline underline-offset-4 hover:text-gray-700"
+	>
 		See what's new
 	</a>
 </div>

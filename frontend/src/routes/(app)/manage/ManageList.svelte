@@ -31,18 +31,40 @@
 
 	let {
 		type
-	}: { type: 'tag' | 'region' | 'resourcetype' | 'person' | 'organisation' | 'journal' } =
-		$props();
+	}: { type: 'tag' | 'region' | 'resourcetype' | 'person' | 'organisation' | 'journal' } = $props();
 
-	type EntityConfig = { label: string; icon: typeof Tag; basePath: string; canCreate: boolean; renameViaBody?: boolean };
+	type EntityConfig = {
+		label: string;
+		icon: typeof Tag;
+		basePath: string;
+		canCreate: boolean;
+		renameViaBody?: boolean;
+	};
 
 	const configs: Record<string, EntityConfig> = {
-		tag:          { label: 'Tag',           icon: Tag,       basePath: 'tags',           canCreate: true },
-		region:       { label: 'Region',        icon: MapPin,    basePath: 'regions',        canCreate: true },
-		resourcetype: { label: 'Resource Type', icon: Layers,    basePath: 'resource-types', canCreate: true },
-		person:       { label: 'Person',        icon: User,      basePath: 'persons',        canCreate: false, renameViaBody: true },
-		organisation: { label: 'Organisation',  icon: Building2, basePath: 'organisations',  canCreate: false, renameViaBody: true },
-		journal:      { label: 'Journal',       icon: Newspaper, basePath: 'journals',       canCreate: true },
+		tag: { label: 'Tag', icon: Tag, basePath: 'tags', canCreate: true },
+		region: { label: 'Region', icon: MapPin, basePath: 'regions', canCreate: true },
+		resourcetype: {
+			label: 'Resource Type',
+			icon: Layers,
+			basePath: 'resource-types',
+			canCreate: true
+		},
+		person: {
+			label: 'Person',
+			icon: User,
+			basePath: 'persons',
+			canCreate: false,
+			renameViaBody: true
+		},
+		organisation: {
+			label: 'Organisation',
+			icon: Building2,
+			basePath: 'organisations',
+			canCreate: false,
+			renameViaBody: true
+		},
+		journal: { label: 'Journal', icon: Newspaper, basePath: 'journals', canCreate: true }
 	};
 
 	const cfg = $derived(configs[type]);
@@ -147,7 +169,7 @@
 					}
 				}
 			}
-		})
+		});
 	}
 
 	const debouncedSearch = debounce(onSearch);
@@ -183,10 +205,8 @@
 		}
 		submitting = true;
 		try {
-			if (cfg.renameViaBody)
-				await api.patch(`${base}/${editingId}`, { name: editingName.trim() });
-			else
-				await api.patch(`${base}/${editingId}/name`, { name: editingName.trim() });
+			if (cfg.renameViaBody) await api.patch(`${base}/${editingId}`, { name: editingName.trim() });
+			else await api.patch(`${base}/${editingId}/name`, { name: editingName.trim() });
 
 			editingId = null;
 			await fetchItems();
@@ -246,8 +266,7 @@
 			if (mergeSurvivorName && mergeSurvivorName !== survivorOriginalName) {
 				if (cfg.renameViaBody)
 					await api.patch(`${base}/${mergeSurvivorId}`, { name: mergeSurvivorName });
-				else
-					await api.patch(`${base}/${mergeSurvivorId}/name`, { name: mergeSurvivorName });
+				else await api.patch(`${base}/${mergeSurvivorId}/name`, { name: mergeSurvivorName });
 			}
 
 			mergeDialogOpen = false;
@@ -557,7 +576,9 @@
 
 							<div class="flex flex-col items-end justify-between gap-5">
 								<!-- Score -->
-								<span class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+								<span
+									class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+								>
 									{Math.round(s.score * 100)}%
 								</span>
 

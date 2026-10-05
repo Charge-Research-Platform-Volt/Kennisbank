@@ -77,7 +77,9 @@
 			through as-is.
 		</p>
 
-		<div class="flex min-h-0 flex-1 flex-col divide-y divide-border overflow-y-auto rounded-md border">
+		<div
+			class="flex min-h-0 flex-1 flex-col divide-y divide-border overflow-y-auto rounded-md border"
+		>
 			{#each tips as tip (tip.label)}
 				<div class="flex flex-col gap-1.5 p-3">
 					<span class="text-xs font-medium text-muted-foreground">{tip.label}</span>

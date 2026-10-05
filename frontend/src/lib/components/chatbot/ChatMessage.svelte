@@ -61,7 +61,9 @@
 		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const order = new Map<string, number>();
 		let counter = 1;
-		for (const m of content.matchAll(/\[(?:SRC|ATTACH):[^\]]+\]|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi)) {
+		for (const m of content.matchAll(
+			/\[(?:SRC|ATTACH):[^\]]+\]|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi
+		)) {
 			for (const u of m[0].matchAll(uuidRe)) {
 				if (!order.has(u[0])) order.set(u[0], counter++);
 			}
@@ -98,7 +100,9 @@
 
 	function handlePointerOver(e: PointerEvent) {
 		if (!resolvedSources) return;
-		const badge = (e.target as HTMLElement).closest('.chat-cite-num[data-uuid]') as HTMLAnchorElement | null;
+		const badge = (e.target as HTMLElement).closest(
+			'.chat-cite-num[data-uuid]'
+		) as HTMLAnchorElement | null;
 		if (!badge) return;
 		const uuid = badge.dataset.uuid;
 		if (!uuid) return;
@@ -145,7 +149,10 @@
 			{#each [...sourceOrder.entries()].sort((a, b) => a[1] - b[1]) as [uuid, n] (uuid)}
 				{#if resolvedSources.has(uuid)}
 					{@const src = resolvedSources.get(uuid)!}
-					{@const href = src.type === 'attachment' ? `/api/files/${uuid}` : `/library?inspectorId=${uuid}&inspectorType=${src.type}`}
+					{@const href =
+						src.type === 'attachment'
+							? `/api/files/${uuid}`
+							: `/library?inspectorId=${uuid}&inspectorType=${src.type}`}
 					<li>
 						<a
 							{href}

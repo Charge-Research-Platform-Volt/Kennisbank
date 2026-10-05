@@ -14,7 +14,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 	if (response.status === 401) {
 		const target = window.location.pathname + window.location.search;
-		window.location.href = target === '/' ? '/login' : `/login?redirect=${encodeURIComponent(target)}`;
+		window.location.href =
+			target === '/' ? '/login' : `/login?redirect=${encodeURIComponent(target)}`;
 		throw new Error('Unauthorized');
 	}
 

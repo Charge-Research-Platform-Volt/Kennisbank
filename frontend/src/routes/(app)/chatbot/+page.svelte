@@ -23,7 +23,10 @@
 			const attachmentIds = await Promise.all(
 				attachments.map(async (a) => {
 					if (a.attachedId) return a.attachedId;
-					const result = await api.post<{ id: string; fileName: string}>(`/api/chats/${chatId}/attachments`, { ObjectName: a.objectName, FileName: a.fileName});
+					const result = await api.post<{ id: string; fileName: string }>(
+						`/api/chats/${chatId}/attachments`,
+						{ ObjectName: a.objectName, FileName: a.fileName }
+					);
 					return result.id;
 				})
 			);
@@ -33,11 +36,9 @@
 			});
 
 			chatRefresh.trigger();
-		}
-		catch (e) {
+		} catch (e) {
 			toast.error(e instanceof Error ? e.message : 'Failed to create chat.');
-		}
-		finally {
+		} finally {
 			submitting = false;
 		}
 	}
@@ -55,6 +56,8 @@
 
 	<div class="flex w-full max-w-2xl flex-col gap-2">
 		<ChatInput onSend={startChat} onStop={() => {}} loading={submitting} />
-		<p class="text-center text-xs text-muted-foreground">AI can make mistakes. Verify important information.</p>
+		<p class="text-center text-xs text-muted-foreground">
+			AI can make mistakes. Verify important information.
+		</p>
 	</div>
 </div>

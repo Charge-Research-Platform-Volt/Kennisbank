@@ -182,7 +182,7 @@
 								</button>
 							{:else}
 								{#if !showCreate}
-									<p class="text-xs text-muted-foreground px-2 py-1.5">No results.</p>
+									<p class="px-2 py-1.5 text-xs text-muted-foreground">No results.</p>
 								{/if}
 							{/each}
 							{#if showCreate}

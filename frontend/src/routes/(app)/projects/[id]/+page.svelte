@@ -54,14 +54,11 @@
 	let searchInput = $state('');
 
 	let filteredFolders = $derived(
-		projectInfo?.folders.filter((e) =>
-			e.title.toLowerCase().includes(searchInput.toLowerCase())
-		) ?? []
+		projectInfo?.folders.filter((e) => e.title.toLowerCase().includes(searchInput.toLowerCase())) ??
+			[]
 	);
 	let filteredItems = $derived(
-		projectInfo?.items.filter((e) =>
-			e.name.toLowerCase().includes(searchInput.toLowerCase())
-		) ?? []
+		projectInfo?.items.filter((e) => e.name.toLowerCase().includes(searchInput.toLowerCase())) ?? []
 	);
 
 	let visibleTags = $derived(projectInfo?.tags.filter(Boolean).slice(0, MAX_VISIBLE_TAGS) ?? []);
@@ -120,15 +117,12 @@
 		itemSearchLoading = true;
 
 		try {
-			const result = await api.post<PagedResult<ResourceItem>>(
-				'/api/library',
-				{
-					page: 1,
-					pageSize: 20,
-					search: itemSearch || undefined,
-					filterOptions: {}
-				}
-			);
+			const result = await api.post<PagedResult<ResourceItem>>('/api/library', {
+				page: 1,
+				pageSize: 20,
+				search: itemSearch || undefined,
+				filterOptions: {}
+			});
 
 			itemSearchResults = result.items;
 		} finally {
@@ -244,7 +238,9 @@
 	}
 
 	async function searchTags(q: string) {
-		const result = await api.get<PagedResult<ListItem>>(`/api/tags?search=${encodeURIComponent(q)}`);
+		const result = await api.get<PagedResult<ListItem>>(
+			`/api/tags?search=${encodeURIComponent(q)}`
+		);
 		return result.items;
 	}
 
@@ -516,9 +512,7 @@
 							<ContextMenu.Item
 								class="text-destructive focus:text-destructive"
 								onclick={async () => {
-									if (
-										await confirm(`Delete folder "${entry.title}"? This cannot be undone.`)
-									)
+									if (await confirm(`Delete folder "${entry.title}"? This cannot be undone.`))
 										await deleteFolder(entry.id);
 								}}>Delete</ContextMenu.Item
 							>

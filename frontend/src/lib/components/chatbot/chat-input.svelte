@@ -10,7 +10,7 @@
 
 <script lang="ts">
 	import { ArrowUp, CircleX, Paperclip, Trash2, X } from '@lucide/svelte';
-	import { api } from "$lib/api";
+	import { api } from '$lib/api';
 	import { uploadFile } from '$lib/upload';
 	import * as Popover from '$lib/components/ui/popover';
 
@@ -61,21 +61,26 @@
 			const objectName = await uploadFile(file);
 
 			if (chatId) {
-				const result = await api.post<{ id: string; fileName: string }>(`/api/chats/${chatId}/attachments`, { ObjectName: objectName, FileName: file.name });
-				pendingAttachments = pendingAttachments.map((a) => a.tempId === tempId ? { ... a, objectName, uploading: false, attachedId: result.id } : a);
+				const result = await api.post<{ id: string; fileName: string }>(
+					`/api/chats/${chatId}/attachments`,
+					{ ObjectName: objectName, FileName: file.name }
+				);
+				pendingAttachments = pendingAttachments.map((a) =>
+					a.tempId === tempId ? { ...a, objectName, uploading: false, attachedId: result.id } : a
+				);
+			} else {
+				pendingAttachments = pendingAttachments.map((a) =>
+					a.tempId === tempId ? { ...a, objectName, uploading: false } : a
+				);
 			}
-			else {
-				pendingAttachments = pendingAttachments.map((a) => a.tempId === tempId ? { ...a, objectName, uploading: false } : a);
-			}
-		}
-		catch {
+		} catch {
 			pendingAttachments = pendingAttachments.filter((a) => a.tempId !== tempId);
 		}
 	}
 
 	function removeAttachment(tempId: string) {
 		pendingAttachments = pendingAttachments.filter((a) => a.tempId !== tempId);
-	} 
+	}
 
 	function handleSend() {
 		if (!message.trim() || loading || pendingAttachments.some((a) => a.uploading)) return;
@@ -99,7 +104,11 @@
 						<span class="status-spinner"></span>
 					{/if}
 					<span class="max-w-40 truncate">{attachment.fileName}</span>
-					<button type="button" class="cursor-pointer text-muted-foreground hover:text-foreground" onclick={() => removeAttachment(attachment.tempId)}>
+					<button
+						type="button"
+						class="cursor-pointer text-muted-foreground hover:text-foreground"
+						onclick={() => removeAttachment(attachment.tempId)}
+					>
 						<X size={12} />
 					</button>
 				</div>
@@ -119,13 +128,17 @@
 				handleSend();
 			}
 		}}
-		disabled={loading}
-	></textarea>
+		disabled={loading}></textarea>
 
 	<div class="flex items-center justify-between px-3 pb-2">
 		<!-- Toolbar -->
 		<div class="flex items-center gap-2 px-3 pb-3">
-			<button type="button" class="cursor-pointer text-muted-foreground hover:text-foreground disabled:opacity-40" onclick={() => fileInput?.click()} disabled={loading}>
+			<button
+				type="button"
+				class="cursor-pointer text-muted-foreground hover:text-foreground disabled:opacity-40"
+				onclick={() => fileInput?.click()}
+				disabled={loading}
+			>
 				<Paperclip size={16} />
 			</button>
 			<input bind:this={fileInput} type="file" class="hidden" onchange={handleFileSelect} />

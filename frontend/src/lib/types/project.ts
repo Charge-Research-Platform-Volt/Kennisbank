@@ -8,7 +8,13 @@ export type Project = {
 	projectType: 'root' | 'folder';
 	projectMemberRelations?: { memberId: string }[];
 	projectTagRelations?: { tag: { id: string; name: string } }[];
-	members?: { id: string; firstName: string; lastName: string; customAvatarVersion: number | null; hasCustom: boolean }[];
+	members?: {
+		id: string;
+		firstName: string;
+		lastName: string;
+		customAvatarVersion: number | null;
+		hasCustom: boolean;
+	}[];
 	tags?: { id: string; name: string }[];
 };
 

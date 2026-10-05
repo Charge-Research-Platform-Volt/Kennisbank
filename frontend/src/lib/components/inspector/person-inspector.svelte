@@ -48,7 +48,7 @@
 			? `/api/resources?page=1&pageSize=20&search=${encodeURIComponent(q)}`
 			: '/api/resources?page=1&pageSize=20';
 		const r = await api.get<PagedResult<{ id: string; title: string }>>(url);
-		return r.items.map(i => ({ id: i.id, name: i.title }));
+		return r.items.map((i) => ({ id: i.id, name: i.title }));
 	}
 </script>
 
@@ -92,7 +92,13 @@
 	{/if}
 
 	<!-- Aliases -->
-	<AliasSection label="Aliases" value={detail.aliases} onsave={async (aliases) => { await api.patch(`/api/persons/${item.id}`, { aliases }); }} />
+	<AliasSection
+		label="Aliases"
+		value={detail.aliases}
+		onsave={async (aliases) => {
+			await api.patch(`/api/persons/${item.id}`, { aliases });
+		}}
+	/>
 
 	<!-- Authored, Related Resources, Related People, Related Organisations -->
 	<RelationSection

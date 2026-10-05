@@ -33,11 +33,14 @@
 		loading = true;
 
 		try {
-			const result = await api.post<{ items: ResourceItem[]; hasMore: boolean }>('/api/library/search-content', {
-				search: searchInput,
-				pageSize: 20,
-				excludeIds: items.map((i) => i.id)
-			});
+			const result = await api.post<{ items: ResourceItem[]; hasMore: boolean }>(
+				'/api/library/search-content',
+				{
+					search: searchInput,
+					pageSize: 20,
+					excludeIds: items.map((i) => i.id)
+				}
+			);
 
 			items = items.concat(result.items);
 			hasMore = result.hasMore;
@@ -70,10 +73,7 @@
 	}
 
 	function renderSnippet(raw: string) {
-		const escaped = raw
-			.replace(/&/g, '&amp;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;');
+		const escaped = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 		return escaped.replaceAll('\u0001', '<mark>').replaceAll('\u0002', '</mark>');
 	}
@@ -112,7 +112,9 @@
 			</div>
 			{#if snippet}
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-				<p class="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{@html renderSnippet(snippet)}</p>
+				<p class="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+					{@html renderSnippet(snippet)}
+				</p>
 			{/if}
 		</div>
 	</button>

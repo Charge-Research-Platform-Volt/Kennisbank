@@ -80,7 +80,8 @@
 						<TriangleAlert size={14} class="shrink-0" />
 						<span>
 							Mistral's AI service currently appears to be having trouble. Chat and document
-							processing may be affected, but some requests might still go through. This is not a bug on our end. Check
+							processing may be affected, but some requests might still go through. This is not a
+							bug on our end. Check
 							<a
 								href="https://status.mistral.ai"
 								target="_blank"
