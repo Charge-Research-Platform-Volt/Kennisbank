@@ -18,7 +18,7 @@ jobs:
       pull-requests: read
 
   webscrape:
-    name: Webscrape
+    name: Build webscrape image
     needs: test
     runs-on: ubuntu-latest
     permissions:
