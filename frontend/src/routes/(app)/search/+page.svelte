@@ -111,8 +111,8 @@
 				{/if}
 			</div>
 			{#if snippet}
-				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 				<p class="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 					{@html renderSnippet(snippet)}
 				</p>
 			{/if}

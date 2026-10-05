@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+    inputs:
+      run_all:
+        description: Skip change detection and run every job (used by releases)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ inputs.run_all && 'true' || steps.filter.outputs.backend }}
+      frontend: ${{ inputs.run_all && 'true' || steps.filter.outputs.frontend }}
+      webscrape: ${{ inputs.run_all && 'true' || steps.filter.outputs.webscrape }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v3
+        id: filter
+        if: ${{ !inputs.run_all }}
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - 'backend.Tests/**'
+            frontend:
+              - 'frontend/**'
+            webscrape:
+              - 'webscrape-service/**'
+
+  backend:
+    name: Backend
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet build backend/backend.sln -c Release
+
+  frontend:
+    name: Frontend
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - run: corepack enable pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm lint
+
+  webscrape:
+    name: Webscrape
+    needs: changes
+    if: needs.changes.outputs.webscrape == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/build-push-action@v7
+        with:
+          context: ./webscrape-service
+          push: false

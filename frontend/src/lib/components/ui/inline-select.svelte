@@ -3,6 +3,7 @@
 	import { debounce } from '$lib/utils/debounce';
 
 	let {
+		// eslint-disable-next-line no-useless-assignment -- written to propagate to the parent via bind:, never read here
 		value = $bindable<string | null>(null),
 		displayValue = $bindable<string | null>(null),
 		search,
@@ -26,15 +27,10 @@
 		if (!open) searchQuery = displayValue ?? '';
 	});
 
-	// Reset highlight when results change
-	$effect(() => {
-		results;
-		highlightedIndex = -1;
-	});
-
 	const debouncedSearch = debounce((q: string) => {
 		search(q).then((r) => {
 			results = r;
+			highlightedIndex = -1;
 		});
 	}, 200);
 
@@ -93,6 +89,7 @@
 	function onFocus() {
 		search(searchQuery).then((r) => {
 			results = r;
+			highlightedIndex = -1;
 			open = true;
 		});
 	}
