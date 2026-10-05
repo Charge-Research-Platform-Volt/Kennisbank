@@ -24,8 +24,8 @@ jobs:
       frontend: ${{ inputs.run_all && 'true' || steps.filter.outputs.frontend }}
       webscrape: ${{ inputs.run_all && 'true' || steps.filter.outputs.webscrape }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
         id: filter
         if: ${{ !inputs.run_all }}
         with:
@@ -44,8 +44,8 @@ jobs:
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
       - run: dotnet build backend/backend.sln -c Release
@@ -59,8 +59,8 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
       - run: corepack enable pnpm
@@ -74,7 +74,7 @@ jobs:
     if: needs.changes.outputs.webscrape == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: docker/build-push-action@v7
         with:
           context: ./webscrape-service
