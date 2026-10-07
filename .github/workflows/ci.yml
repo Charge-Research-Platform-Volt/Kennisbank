@@ -49,6 +49,7 @@ jobs:
         with:
           dotnet-version: '10.0.x'
       - run: dotnet build backend/backend.sln -c Release
+      - run: dotnet test backend/backend.sln -c Release --no-build
 
   frontend:
     name: Frontend

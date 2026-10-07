@@ -64,4 +64,8 @@
     <Content Include="Templates/**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="backend.Tests" />
+  </ItemGroup>
+
 </Project>
