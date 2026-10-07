@@ -14,7 +14,6 @@ namespace KnowledgeBank.Utils
         /// <returns>A task that completes when the specified time is reached or the operation is cancelled.</returns>
         public static async Task WaitUntilTime(TimeSpan runTime, CancellationToken stoppingToken)
         {
-            TimeSpan normalizedRunTime = runTime.Add(TimeSpan.FromDays(runTime.TotalDays % 1));
             DateTime now = DateTime.Now;
             DateTime nextRun = now.Date.Add(runTime);
 

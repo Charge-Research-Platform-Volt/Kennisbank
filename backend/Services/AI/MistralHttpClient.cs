@@ -472,7 +472,7 @@ public class MistralHttpClient
         return new MistralOcrResult(pages, responseModel);
     }
 
-    private async Task<HttpResponseMessage> SendWithRetryAsync(HttpClient client, Func<HttpRequestMessage> requestFactory, HttpCompletionOption completionOption, CancellationToken ct)
+    internal async Task<HttpResponseMessage> SendWithRetryAsync(HttpClient client, Func<HttpRequestMessage> requestFactory, HttpCompletionOption completionOption, CancellationToken ct)
     {
         HttpResponseMessage? response = null;
         Exception? transportException = null;
@@ -522,7 +522,7 @@ public class MistralHttpClient
     /// Uses the server's own Retry-After header when present instead of guessing.
     /// Falls back to exponential backoff when header is absent.
     /// </summary>
-    private TimeSpan GetRetryDelay(HttpResponseMessage? response, int attempt)
+    internal TimeSpan GetRetryDelay(HttpResponseMessage? response, int attempt)
     {
         TimeSpan fallback = TimeSpan.FromSeconds(Math.Pow(2, attempt));
         RetryConditionHeaderValue? retryAfter = response?.Headers.RetryAfter;
@@ -573,7 +573,7 @@ public class MistralHttpClient
         };
     }
 
-    private static string ExtractTextContent(JsonElement content) => content.ValueKind switch
+    internal static string ExtractTextContent(JsonElement content) => content.ValueKind switch
     {
         JsonValueKind.String => content.GetString() ?? "",
         // With reasoning enabled, a content array may hold only a ThinkChunk (type: "thinking")
@@ -586,7 +586,7 @@ public class MistralHttpClient
         _ => ""
     };
 
-    private static bool IsContextLengthError(string body) =>
+    internal static bool IsContextLengthError(string body) =>
         body.Contains("context length", StringComparison.OrdinalIgnoreCase) ||
         body.Contains("maximum context", StringComparison.OrdinalIgnoreCase) ||
         body.Contains("too many tokens", StringComparison.OrdinalIgnoreCase);

@@ -250,14 +250,27 @@ public class LibrarySearchIndexService(MeilisearchClient client, IDbContextFacto
             : [];
     }
 
-    private static string? BuildFilterExpressions(LibraryFilterOptions? options)
+    // Filter values come straight from the request and are inserted into the filter string, so only
+    // known types and well-formed GUIDs are allowed through
+    private static readonly HashSet<string> KnownTypes = ["resource", "person", "organisation"];
+
+    private static string[] ValidIds(string[]? ids) =>
+        ids?.Select(id => Guid.TryParse(id, out Guid guid) ? guid.ToString() : null).OfType<string>().ToArray() ?? [];
+
+    internal static string? BuildFilterExpressions(LibraryFilterOptions? options)
     {
         if (options == null) return null;
 
         List<string> clauses = [];
 
-        if (options.TypeFilter?.Length > 0)
-            clauses.Add($"type IN [{string.Join(", ", options.TypeFilter.Select(t => $"\"{t}\""))}]");
+        string[] types = options.TypeFilter?.Where(KnownTypes.Contains).ToArray() ?? [];
+        string[] tagIds = ValidIds(options.TagFilter);
+        string[] regionIds = ValidIds(options.RegionFilter);
+        string[] resourceTypeIds = ValidIds(options.ResourceTypeFilter);
+        string[] journalIds = ValidIds(options.JournalFilter);
+
+        if (types.Length > 0)
+            clauses.Add($"type IN [{string.Join(", ", types.Select(t => $"\"{t}\""))}]");
 
         if (!string.IsNullOrEmpty(options.PubdateMin) && DateTime.TryParse(options.PubdateMin, out var minDate))
             clauses.Add($"(publicationDateTimestamp IS NULL OR publicationDateTimestamp >= {new DateTimeOffset(DateTime.SpecifyKind(minDate, DateTimeKind.Utc)).ToUnixTimeSeconds()})");
@@ -265,17 +278,17 @@ public class LibrarySearchIndexService(MeilisearchClient client, IDbContextFacto
         if (!string.IsNullOrEmpty(options.PubdateMax) && DateTime.TryParse(options.PubdateMax, out var maxDate))
             clauses.Add($"(publicationDateTimestamp IS NULL OR publicationDateTimestamp <= {new DateTimeOffset(DateTime.SpecifyKind(maxDate, DateTimeKind.Utc)).ToUnixTimeSeconds()})");
 
-        if (options.TagFilter?.Length > 0)
-            clauses.Add(BuildRelationClause("tagIds", options.TagFilter, options.TagFilterMode));
+        if (tagIds.Length > 0)
+            clauses.Add(BuildRelationClause("tagIds", tagIds, options.TagFilterMode));
 
-        if (options.RegionFilter?.Length > 0)
-            clauses.Add(BuildRelationClause("regionIds", options.RegionFilter, options.RegionFilterMode));
+        if (regionIds.Length > 0)
+            clauses.Add(BuildRelationClause("regionIds", regionIds, options.RegionFilterMode));
 
-        if (options.ResourceTypeFilter?.Length > 0)
-            clauses.Add($"(type != \"resource\" OR typeId IN [{string.Join(", ", options.ResourceTypeFilter.Select(t => $"\"{t}\""))}])");
+        if (resourceTypeIds.Length > 0)
+            clauses.Add($"(type != \"resource\" OR typeId IN [{string.Join(", ", resourceTypeIds.Select(t => $"\"{t}\""))}])");
 
-        if (options.JournalFilter?.Length > 0)
-            clauses.Add($"(type != \"resource\" OR journalId IN [{string.Join(", ", options.JournalFilter.Select(t => $"\"{t}\""))}])");
+        if (journalIds.Length > 0)
+            clauses.Add($"(type != \"resource\" OR journalId IN [{string.Join(", ", journalIds.Select(t => $"\"{t}\""))}])");
 
         return clauses.Count > 0 ? string.Join(" AND ", clauses) : null;
     }

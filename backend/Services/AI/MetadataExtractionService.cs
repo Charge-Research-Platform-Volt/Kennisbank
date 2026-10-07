@@ -15,7 +15,8 @@ namespace KnowledgeBank.Services.AI;
 public class MetadataExtractionService(MistralHttpClient mistralHttpClient, LibrarySearchIndexService librarySearchIndexService, EnvironmentConfig environmentConfig, ResourceTypeService resourceTypeService, IDbContextFactory<DatabaseContext> dbFactory)
 {
     private readonly Serilog.ILogger logger = Log.ForContext<MetadataExtractionService>();
-    private static readonly LanguageDetector languageDetector = LanguageDetectorBuilder.FromAllLanguages().WithPreloadedLanguageModels().Build();
+    // Lazy so touching this class's other static members (e.g. in tests) doesn't load every language model
+    private static readonly Lazy<LanguageDetector> languageDetector = new(() => LanguageDetectorBuilder.FromAllLanguages().WithPreloadedLanguageModels().Build());
 
 
     private const string RoleProduction = "production";
@@ -456,7 +457,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
 
     private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 
-    private static bool IsInitialNameMatch(string name1, string name2)
+    internal static bool IsInitialNameMatch(string name1, string name2)
     {
         var parts1 = name1.Split([' ', '.'], StringSplitOptions.RemoveEmptyEntries);
         var parts2 = name2.Split([' ', '.'], StringSplitOptions.RemoveEmptyEntries);
@@ -560,7 +561,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
         return [.. await Task.WhenAll(tasks)];
     }
 
-    private static (DateTime? Date, PublicationDatePrecision? Precision) ParsePublicationDate(string? raw)
+    internal static (DateTime? Date, PublicationDatePrecision? Precision) ParsePublicationDate(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw)) return (null, null);
 
@@ -581,7 +582,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
         }
     }
 
-    private static List<TempEntity> GroundAndFilter(IEnumerable<TempEntity> entities, string sourceText, HashSet<string> authorNames) =>
+    internal static List<TempEntity> GroundAndFilter(IEnumerable<TempEntity> entities, string sourceText, HashSet<string> authorNames) =>
         [.. entities
             .Where(e => !string.IsNullOrWhiteSpace(e.Name) && e.Name.Length > 2)
             .Where(e => !e.Name.Contains("et al.", StringComparison.OrdinalIgnoreCase))
@@ -773,7 +774,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
         }
     }
 
-    private static string TrimText(string text, int firstChars, int lastChars)
+    internal static string TrimText(string text, int firstChars, int lastChars)
     {
         int maxTotal = firstChars + lastChars;
         if (text.Length <= maxTotal) return text;
@@ -785,7 +786,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
         return beginning + "\n\n[...middle section omitted...]\n\n" + ending;
     }
 
-    private static string[] ChunkText(string text, int chunkSize = 4000, int overlap = 300)
+    internal static string[] ChunkText(string text, int chunkSize = 4000, int overlap = 300)
     {
         List<string> chunks = [];
         int start = 0;
@@ -801,7 +802,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
         return chunks.ToArray();
     }
 
-    private static string? ExtractPublicationCode(string text)
+    internal static string? ExtractPublicationCode(string text)
     {
         var doi = DoiRegex.Match(text);
         if (doi.Success) return $"DOI: {doi.Value.TrimEnd('.', ',', ')', ']')}";
@@ -828,7 +829,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
     {
         if (text.Length <= 500)
         {
-            Language lang = languageDetector.DetectLanguageOf(text);
+            Language lang = languageDetector.Value.DetectLanguageOf(text);
             return lang.IsoCode6391().ToString().ToLowerInvariant();
         }
 
@@ -837,7 +838,7 @@ public class MetadataExtractionService(MistralHttpClient mistralHttpClient, Libr
         int step = (text.Length - sampleSize) / (sampleCount - 1);
 
         var votes = Enumerable.Range(0, sampleCount)
-            .Select(i => languageDetector.DetectLanguageOf(text.Substring(i * step, sampleSize)))
+            .Select(i => languageDetector.Value.DetectLanguageOf(text.Substring(i * step, sampleSize)))
             .GroupBy(l => l)
             .OrderByDescending(g => g.Count())
             .FirstOrDefault();

@@ -12,8 +12,9 @@ namespace KnowledgeBank.Utils;
 /// checked can still push the total slightly over budget once its usage lands; callers should configure
 /// the budget with some safety margin below the provider's real limit to absorb that.
 /// </summary>
-public class RollingWindowLimiter(long budget, TimeSpan window)
+public class RollingWindowLimiter(long budget, TimeSpan window, TimeProvider? timeProvider = null)
 {
+    private readonly TimeProvider time = timeProvider ?? TimeProvider.System;
     private readonly Lock gate = new();
     private readonly Queue<(DateTime Timestamp, long Amount)> events = new();
     private long currentTotal;
@@ -32,11 +33,11 @@ public class RollingWindowLimiter(long budget, TimeSpan window)
                     return;
 
                 // Add random jitter to prevent all waiting tasks from waking up at the same time
-                wait = events.Peek().Timestamp + window - DateTime.UtcNow + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 50));
+                wait = events.Peek().Timestamp + window - time.GetUtcNow().UtcDateTime + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 50));
             }
 
             if (wait > TimeSpan.Zero)
-                await Task.Delay(wait, ct);
+                await Task.Delay(wait, time, ct);
         }
     }
 
@@ -46,14 +47,14 @@ public class RollingWindowLimiter(long budget, TimeSpan window)
 
         lock (gate)
         {
-            events.Enqueue((DateTime.UtcNow, amount));
+            events.Enqueue((time.GetUtcNow().UtcDateTime, amount));
             currentTotal += amount;
         }
     }
 
     private void Prune()
     {
-        DateTime cutoff = DateTime.UtcNow - window;
+        DateTime cutoff = time.GetUtcNow().UtcDateTime - window;
         while (events.Count > 0 && events.Peek().Timestamp < cutoff)
             currentTotal -= events.Dequeue().Amount;
     }

@@ -71,10 +71,11 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
         Generate a concise title (max 6 words) for a chat starting with the given message. Output only the title, nothing else. No markdown, no quotes, no punctuation.
     """;
 
-    private static readonly Regex SourceMarkerPattern = new(@"\[SRC:[0-9a-fA-F]+\]", RegexOptions.Compiled);
+    // Same marker shapes the frontend renders: [SRC:uuid] / [ATTACH:uuid], including comma-grouped ids
+    private static readonly Regex SourceMarkerPattern = new(@"\[(?:SRC|ATTACH):[^\]]+\]", RegexOptions.Compiled);
     private static readonly Regex AiTagPattern = new(@"\[/?AI\]", RegexOptions.Compiled);
-    private static string StripCitationMarkers(string text) => SourceMarkerPattern.Replace(text, "").Trim();
-    private static string StripAiTags(string text) => AiTagPattern.Replace(text, "").Trim();
+    internal static string StripCitationMarkers(string text) => SourceMarkerPattern.Replace(text, "").Trim();
+    internal static string StripAiTags(string text) => AiTagPattern.Replace(text, "").Trim();
 
     private readonly Serilog.ILogger logger = Serilog.Log.ForContext<ChatOrchestrationService>();
 
@@ -409,7 +410,7 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
         }
     }
 
-    private static (string Content, string? AttachmentNote) BuildMessageWithAttachments(string message, List<MessageAttachments> attachments)
+    internal static (string Content, string? AttachmentNote) BuildMessageWithAttachments(string message, List<MessageAttachments> attachments)
     {
         if (attachments.Count == 0) return (message, null);
 
@@ -434,7 +435,7 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
         return (content.ToString(), note.Length > 0 ? note.ToString() : null);
     }
 
-    private static string BuildAttachmentsListText(List<MessageAttachments> attachments)
+    internal static string BuildAttachmentsListText(List<MessageAttachments> attachments)
     {
         StringBuilder sb = new();
         sb.AppendLine("Files attached to this chat:");

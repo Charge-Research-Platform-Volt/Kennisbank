@@ -53,12 +53,9 @@
   <PropertyGroup>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn> <!-- Optional: hides missing doc comment warnings -->
+    <!-- Log files aren't part of the project; this also keeps dotnet watch from reacting to every log write -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);logs/**</DefaultItemExcludes>
   </PropertyGroup>
-
-  <ItemGroup>
-    <!-- Exclude logs directory from dotnet watch to prevent hot reload on log file changes -->
-    <Watch Remove="logs\**\*" />
-  </ItemGroup>
 
   <ItemGroup>
     <Content Include="Templates/**" CopyToOutputDirectory="PreserveNewest" />

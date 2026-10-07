@@ -186,7 +186,7 @@ public class LibraryService(DatabaseContext db, LibrarySearchIndexService librar
         return query;
     }
 
-    private static IQueryable<LibraryItem> ApplySorting(IQueryable<LibraryItem> query, string? sortBy, string? sortDirection)
+    internal static IQueryable<LibraryItem> ApplySorting(IQueryable<LibraryItem> query, string? sortBy, string? sortDirection)
     {
         IOrderedQueryable<LibraryItem> ordered = (sortBy?.ToLower(), sortDirection?.ToLower()) switch
         {
@@ -205,7 +205,7 @@ public class LibraryService(DatabaseContext db, LibrarySearchIndexService librar
         return ordered.ThenBy(x => x.Id);
     }
 
-    private static Guid[] ParseGuids(string[]? strings)
+    internal static Guid[] ParseGuids(string[]? strings)
     {
         if (strings == null || strings.Length == 0) return [];
         return strings

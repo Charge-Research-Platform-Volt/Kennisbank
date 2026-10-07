@@ -12,8 +12,9 @@ namespace KnowledgeBank.Utils;
 /// known once a response comes back — call RecordTokens afterward with the actual figure. Configure both
 /// budgets with some safety margin below the provider's real limits to absorb that reactive gap.
 /// </summary>
-public class RequestTokenLimiter(long requestBudget, long tokenBudget, TimeSpan window)
+public class RequestTokenLimiter(long requestBudget, long tokenBudget, TimeSpan window, TimeProvider? timeProvider = null)
 {
+    private readonly TimeProvider time = timeProvider ?? TimeProvider.System;
     private readonly Lock gate = new();
     private readonly Queue<(DateTime Timestamp, long Amount)> requestEvents = new();
     private readonly Queue<(DateTime Timestamp, long Amount)> tokenEvents = new();
@@ -32,16 +33,16 @@ public class RequestTokenLimiter(long requestBudget, long tokenBudget, TimeSpan 
 
                 if (currentRequests < requestBudget && currentTokens < tokenBudget)
                 {
-                    requestEvents.Enqueue((DateTime.UtcNow, 1));
+                    requestEvents.Enqueue((time.GetUtcNow().UtcDateTime, 1));
                     currentRequests += 1;
                     return;
                 }
 
                 TimeSpan requestWait = currentRequests >= requestBudget
-                    ? requestEvents.Peek().Timestamp + window - DateTime.UtcNow
+                    ? requestEvents.Peek().Timestamp + window - time.GetUtcNow().UtcDateTime
                     : TimeSpan.Zero;
                 TimeSpan tokenWait = currentTokens >= tokenBudget
-                    ? tokenEvents.Peek().Timestamp + window - DateTime.UtcNow
+                    ? tokenEvents.Peek().Timestamp + window - time.GetUtcNow().UtcDateTime
                     : TimeSpan.Zero;
 
                 // Add random jitter to prevent all waiting tasks from waking up at the same time
@@ -49,7 +50,7 @@ public class RequestTokenLimiter(long requestBudget, long tokenBudget, TimeSpan 
             }
 
             if (wait > TimeSpan.Zero)
-                await Task.Delay(wait, ct);
+                await Task.Delay(wait, time, ct);
         }
     }
 
@@ -59,14 +60,14 @@ public class RequestTokenLimiter(long requestBudget, long tokenBudget, TimeSpan 
 
         lock (gate)
         {
-            tokenEvents.Enqueue((DateTime.UtcNow, amount));
+            tokenEvents.Enqueue((time.GetUtcNow().UtcDateTime, amount));
             currentTokens += amount;
         }
     }
 
     private void Prune()
     {
-        DateTime cutoff = DateTime.UtcNow - window;
+        DateTime cutoff = time.GetUtcNow().UtcDateTime - window;
 
         while (requestEvents.Count > 0 && requestEvents.Peek().Timestamp < cutoff)
             currentRequests -= requestEvents.Dequeue().Amount;

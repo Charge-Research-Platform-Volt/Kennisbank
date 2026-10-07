@@ -114,6 +114,6 @@ public class EmbeddingRetryService(IServiceProvider serviceProvider, ReembedRunS
     }
 
     // Never-counted failures (interrupted by a restart, or failed before the pipeline started) are due immediately
-    private static bool IsDue(int failures, DateTime? lastAttempt, DateTime now)
+    internal static bool IsDue(int failures, DateTime? lastAttempt, DateTime now)
         => failures == 0 || lastAttempt == null || now - lastAttempt.Value >= Backoff[failures - 1];
 }

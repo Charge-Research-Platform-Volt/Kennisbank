@@ -263,7 +263,7 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         return sb.ToString();
     }
 
-    private static string CleanOcrMarkdown(string text)
+    internal static string CleanOcrMarkdown(string text)
     {
         text = Regex.Replace(text, @"!\[[^\]]*\]\([^\)]*\)", "");
         text = Regex.Replace(text, @"\^\{\}\[\]", "");
