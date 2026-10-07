@@ -1,16 +1,6 @@
 <script lang="ts">
 	import * as Tooltip from '$lib/components/ui/tooltip';
-
-	type AuthorRef = { id: string; name: string; fileType?: string };
-
-	type ResolvedSource = {
-		id: string;
-		name: string;
-		type: 'resource' | 'person' | 'organisation' | 'attachment';
-		fileType?: string;
-		sourceUrl?: string;
-		authors?: AuthorRef[] | null;
-	};
+	import { buildSourceOrder, parseSegments, type ResolvedSource } from '$lib/chat/render';
 
 	const maxAuthorsShown = 3;
 
@@ -24,54 +14,9 @@
 		render: (content: string, resolvedSources?: Map<string, ResolvedSource>) => string;
 	} = $props();
 
-	type Segment = { type: 'text' | 'ai'; content: string };
-
-	function parseSegments(raw: string): Segment[] {
-		const segments: Segment[] = [];
-		const re = /\[AI\](.*?)\[\/AI\]/gs;
-
-		let last = 0;
-
-		for (const m of raw.matchAll(re)) {
-			if (m.index! > last) segments.push({ type: 'text', content: raw.slice(last, m.index) });
-
-			segments.push({ type: 'ai', content: m[1] });
-			last = m.index! + m[0].length;
-		}
-
-		if (last < raw.length) {
-			const remaining = raw.slice(last);
-			const openTag = remaining.indexOf('[AI]');
-			if (openTag !== -1) {
-				if (openTag > 0) segments.push({ type: 'text', content: remaining.slice(0, openTag) });
-				segments.push({ type: 'ai', content: remaining.slice(openTag + 4) });
-			} else {
-				segments.push({ type: 'text', content: remaining });
-			}
-		}
-
-		return segments;
-	}
-
 	const segments = $derived(parseSegments(content));
 
-	const uuidRe = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
-
-	function buildSourceOrder(): Map<string, number> {
-		// eslint-disable-next-line svelte/prefer-svelte-reactivity
-		const order = new Map<string, number>();
-		let counter = 1;
-		for (const m of content.matchAll(
-			/\[(?:SRC|ATTACH):[^\]]+\]|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi
-		)) {
-			for (const u of m[0].matchAll(uuidRe)) {
-				if (!order.has(u[0])) order.set(u[0], counter++);
-			}
-		}
-		return order;
-	}
-
-	const sourceOrder = $derived(buildSourceOrder());
+	const sourceOrder = $derived(buildSourceOrder(content));
 
 	// Popover
 	type PopoverState = { source: ResolvedSource; x: number; y: number };
