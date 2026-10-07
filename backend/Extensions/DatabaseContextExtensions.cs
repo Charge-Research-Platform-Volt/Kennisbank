@@ -105,7 +105,7 @@ public static class DatabaseContextExtensions
                     'resource' as ""Type"",
                     CASE
                         WHEN ""filetype"" = 'website' THEN 'website'
-                        WHEN ""file-ext"" = NULL THEN 'document'
+                        WHEN ""file-ext"" IS NULL THEN 'document'
                         ELSE ""file-ext""
                     END as ""FileType"",
                     ""source-url"" as ""SourceUrl"",
@@ -205,6 +205,10 @@ public static class DatabaseContextExtensions
                 CREATE OR REPLACE FUNCTION refresh_library_view()
                 RETURNS TRIGGER AS $$
                 BEGIN
+                    -- Serialize refreshes until the transaction ends: a refresh that has to wait must read
+                    -- the data only after the other transaction committed, otherwise it would overwrite
+                    -- the view with a snapshot from before that commit and lose the other change
+                    PERFORM pg_advisory_xact_lock(hashtext('refresh_library_view'));
                     REFRESH MATERIALIZED VIEW CONCURRENTLY LibraryView;
                     RETURN NULL;
                 END;
@@ -284,7 +288,7 @@ public static class DatabaseContextExtensions
                     'resource' as ""Type"",
                     CASE
                         WHEN ""filetype"" = 'website' THEN 'website'
-                        WHEN ""file-ext"" = NULL THEN 'document'
+                        WHEN ""file-ext"" IS NULL THEN 'document'
                         ELSE ""file-ext""
                     END as ""FileType""
                 FROM ""resources""
@@ -326,6 +330,10 @@ public static class DatabaseContextExtensions
                 CREATE OR REPLACE FUNCTION refresh_trash_view()
                 RETURNS TRIGGER AS $$
                 BEGIN
+                    -- Serialize refreshes until the transaction ends: a refresh that has to wait must read
+                    -- the data only after the other transaction committed, otherwise it would overwrite
+                    -- the view with a snapshot from before that commit and lose the other change
+                    PERFORM pg_advisory_xact_lock(hashtext('refresh_trash_view'));
                     REFRESH MATERIALIZED VIEW CONCURRENTLY TrashView;
                     RETURN NULL;
                 END;
