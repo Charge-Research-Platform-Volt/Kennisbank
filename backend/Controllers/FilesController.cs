@@ -131,7 +131,7 @@ public class FilesController(IStorageService storageService, ResourceService res
         return new EmptyResult();
     }
 
-    private static string SanitizeFileName(string fileName, bool preserveSpaces = true)
+    internal static string SanitizeFileName(string fileName, bool preserveSpaces = true)
     {
         if (string.IsNullOrEmpty(fileName))
             return "unnamed";

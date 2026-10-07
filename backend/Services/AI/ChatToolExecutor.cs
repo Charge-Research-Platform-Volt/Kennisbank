@@ -446,7 +446,7 @@ public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingSer
         return matches.Count == 0 ? "No relevant sections found for that query." : $"{citeLine}\n\n{string.Join("\n---\n", matches)}";
     }
 
-    private static string[] GetStringArray(JsonDocument args, string propertyName)
+    internal static string[] GetStringArray(JsonDocument args, string propertyName)
     {
         if (!args.RootElement.TryGetProperty(propertyName, out var prop) || prop.ValueKind != JsonValueKind.Array)
             return [];

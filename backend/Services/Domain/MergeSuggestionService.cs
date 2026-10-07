@@ -35,6 +35,6 @@ public class MergeSuggestionService(DatabaseContext db)
         await db.SaveChangesAsync();
     }
 
-    private static (Guid, Guid) Normalize(Guid id1, Guid id2)
+    internal static (Guid, Guid) Normalize(Guid id1, Guid id2)
         => id1 < id2 ? (id1, id2) : (id2, id1);
 }
