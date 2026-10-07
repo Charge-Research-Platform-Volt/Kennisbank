@@ -127,7 +127,8 @@ public class ResourcesController(ResourceService resourceService, ChunkSearchInd
     }
 
     [HttpDelete("{id}")]
-    [SwaggerOperation(Summary = "Permanently delete a resource")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerOperation(Summary = "(Admin only) Permanently delete a resource")]
     [SwaggerResponse(204, "Deleted")]
     [SwaggerResponse(404, "Not found")]
     public async Task<IActionResult> Delete(Guid id)
@@ -152,7 +153,8 @@ public class ResourcesController(ResourceService resourceService, ChunkSearchInd
         => NoContentOrNotFound(await resourceService.TrashAsync(id));
 
     [HttpPatch("{id}/untrash")]
-    [SwaggerOperation(Summary = "Restore resource from trash")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [SwaggerOperation(Summary = "(Admin only) Restore resource from trash")]
     [SwaggerResponse(204, "Restored")]
     [SwaggerResponse(404, "Not found")]
     public async Task<IActionResult> Untrash(Guid id)

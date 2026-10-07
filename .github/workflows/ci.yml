@@ -33,6 +33,7 @@ jobs:
             backend:
               - 'backend/**'
               - 'backend.Tests/**'
+              - 'backend.IntegrationTests/**'
             frontend:
               - 'frontend/**'
             webscrape:
