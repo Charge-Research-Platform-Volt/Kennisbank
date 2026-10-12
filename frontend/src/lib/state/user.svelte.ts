@@ -4,6 +4,7 @@ export type User = {
 	lastName: string;
 	email: string;
 	role: string;
+	isOwner: boolean;
 	customAvatarVersion: number | null;
 } | null;
 
@@ -19,6 +20,9 @@ export const userState = {
 	},
 	get loading() {
 		return _loading;
+	},
+	get isOwner() {
+		return _user?.isOwner ?? false;
 	},
 
 	set user(v: User) {

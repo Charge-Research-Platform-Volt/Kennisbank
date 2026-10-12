@@ -3,7 +3,6 @@
 		LayoutDashboard,
 		Search,
 		Library,
-		BookMarked,
 		PanelLeftOpen,
 		PanelLeftClose,
 		CirclePlus,
@@ -12,7 +11,13 @@
 		Wrench,
 		Settings,
 		LogOut,
-		type LucideIcon
+		type LucideIcon,
+
+		Gauge,
+
+		BookBookmark
+
+
 	} from '@lucide/svelte';
 	import Avatar from '$lib/components/ui/avatar/avatar.svelte';
 	import { sidebar } from '$lib/state/sidebar.svelte';
@@ -142,11 +147,14 @@
 		{@render navItem('/', LayoutDashboard, 'Home')}
 		{@render navItem('/search', Search, 'Search')}
 		{@render navItem('/library', Library, 'Library')}
-		{@render navItem('/projects', BookMarked, 'Projects')}
+		{@render navItem('/projects', BookBookmark, 'Projects')}
 		{@render navItem('/chatbot', MessageCircleMore, 'ChatBot')}
 
 		{#if userState.role === 'admin'}
 			{@render navItem('/manage', Wrench, 'Manage')}
+		{/if}
+		{#if userState.isOwner}
+			{@render navItem('dev', Gauge, 'Dashboard')}
 		{/if}
 	</div>
 

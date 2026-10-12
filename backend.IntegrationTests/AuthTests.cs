@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using KnowledgeBank.IntegrationTests.Infrastructure;
 
 namespace KnowledgeBank.IntegrationTests;
@@ -83,5 +84,51 @@ public class AuthTests(KennisbankFixture fixture)
         Assert.Equal(HttpStatusCode.Forbidden, (await admin.PatchAsJsonAsync($"/users/{ownerId}/role", new { roleName = "user" })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await admin.PatchAsJsonAsync($"/users/{ownerId}/email", new { email = "other@kennisbank.test" })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await admin.PatchAsJsonAsync($"/users/{ownerId}/name", new { newFirstName = "New", newLastName = "Name" })).StatusCode);
+    }
+
+    [Theory]
+    [InlineData("GET", "/dashboard/live")]
+    [InlineData("POST", "/admin/reembed")]
+    [InlineData("POST", "/admin/reembed/cancel")]
+    [InlineData("GET", "/admin/reembed/status")]
+    [InlineData("POST", "/admin/reindex-search")]
+    [InlineData("POST", "/admin/cleanup-orphans")]
+    public async Task NonOwnerAdmin_IsForbiddenFromDeveloperEndpoints(string method, string path)
+    {
+        var (client, _) = await fixture.LoginAsNewUserAsync("admin");
+
+        HttpResponseMessage response = await client.SendAsync(new HttpRequestMessage(new HttpMethod(method), path));
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task NonOwnerAdmin_CannotPostChangelog()
+    {
+        var (client, _) = await fixture.LoginAsNewUserAsync("admin");
+
+        HttpResponseMessage response = await client.PostAsJsonAsync("/Changelog", new { title = "Hacked", body = "Not allowed" });
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Owner_CanReadDashboard()
+    {
+        HttpClient owner = await fixture.LoginAsAdminAsync();
+
+        HttpResponseMessage response = await owner.GetAsync("/dashboard/live");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task IsOwnerFlag_IsOnlyTrueForOwner()
+    {
+        HttpClient owner = await fixture.LoginAsAdminAsync();
+        var (admin, _) = await fixture.LoginAsNewUserAsync("admin");
+
+        Assert.True((await owner.GetFromJsonAsync<JsonElement>("/users/me")).GetProperty("isOwner").GetBoolean());
+        Assert.False((await admin.GetFromJsonAsync<JsonElement>("/users/me")).GetProperty("isOwner").GetBoolean());
     }
 }

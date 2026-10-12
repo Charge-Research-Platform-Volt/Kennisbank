@@ -19,6 +19,8 @@ public class ExtractionJobService(
     private readonly TimeSpan _jobRetentionPeriod = TimeSpan.FromHours(24);
     private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
 
+    public int ActiveJobCount => _jobs.Values.Count(j => j.Status is JobStatus.Pending or JobStatus.Processing);
+
     public MetadataExtractionJob CreateJob(string type, string value)
     {
         var job = new MetadataExtractionJob
