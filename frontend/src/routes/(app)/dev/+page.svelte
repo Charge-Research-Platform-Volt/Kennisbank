@@ -73,7 +73,14 @@
 </script>
 
 <div class="mx-auto flex h-full max-w-4xl flex-col gap-6 overflow-y-auto p-8">
-    <h1 class="text-lg font-semibold">Dashboard</h1>
+    <div class="flex items-center justify-between">
+        <h1 class="text-lg font-semibold">Dashboard</h1>
+
+        <div class="flex gap-4 text-sm">
+            <a href="/dev/new-changelog" class="text-muted-foreground underline hover:text-foreground">New changelog entry</a>
+            <a href="/dev/reembed" class="text-muted-foreground underline hover:text-foreground">Embedding status</a>
+        </div>
+    </div>
 
     {#if !live}
         <div class="flex h-full items-center justify-center">
@@ -199,10 +206,5 @@
                 </div>
             </div>
         {/each}
-    </div>
-
-    <div class="flex gap-4 text-sm">
-        <a href="/dev/new-changelog" class="text-muted-foreground underline hover:text-foreground">New changelog entry</a>
-        <a href="/dev/reembed" class="text-muted-foreground underline hover:text-foreground">Embedding status</a>
     </div>
 </div>
