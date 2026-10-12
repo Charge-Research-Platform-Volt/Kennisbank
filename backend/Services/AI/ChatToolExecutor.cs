@@ -105,7 +105,7 @@ public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingSer
             if (ids.Length > 0) idsFilter = ids;
         }
 
-        logger.Information("LLM searching for: {Query}", query);
+        logger.Debug("LLM searching for: {Query}", query);
         await hubContext.Clients.Client(connectionId).ChatToolStatus("search_library", $"Searching: {query}");
 
         List<LibraryItemWithChunks> results = await libraryService.SearchContentAsync(query, limit, idsFilter, typeFilter);
