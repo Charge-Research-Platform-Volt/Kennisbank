@@ -284,6 +284,25 @@ namespace KnowledgeBank.Data.Migrations
                     b.ToTable("journals");
                 });
 
+            modelBuilder.Entity("KnowledgeBank.Models.KnownMistralModel", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Acknowledged")
+                        .HasColumnType("boolean")
+                        .HasColumnName("acknowledged");
+
+                    b.Property<DateTime>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_seen_at");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("known_mistral_models");
+                });
+
             modelBuilder.Entity("KnowledgeBank.Models.LibraryItem", b =>
                 {
                     b.Property<Guid>("Id")

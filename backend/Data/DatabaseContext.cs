@@ -43,6 +43,7 @@ namespace KnowledgeBank.Data
         public DbSet<TrashItem> TrashItems { get; set; }
 
         public DbSet<ChangelogEntry> Changelog { get; set; }
+        public DbSet<KnownMistralModel> KnownMistralModels { get; set; }
 
         public DbSet<DismissedMergeSuggestion> DismissedMergeSuggestions { get; set; }
 

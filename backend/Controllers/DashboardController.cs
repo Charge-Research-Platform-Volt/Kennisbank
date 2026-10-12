@@ -9,7 +9,7 @@ namespace KnowledgeBank.Controllers;
 
 [Route("[controller]")]
 [Authorize(Policy = "RequireOwner")]
-public class DashboardController(PresenceTracker presenceTracker, IBackgroundTaskQueue taskQueue, ReembedRunState reembedRunState, ExtractionJobService extractionJobService) : AppControllerBase
+public class DashboardController(PresenceTracker presenceTracker, IBackgroundTaskQueue taskQueue, ReembedRunState reembedRunState, ExtractionJobService extractionJobService, MistralModelWatchService modelWatch) : AppControllerBase
 {
     private static readonly TimeSpan ActiveWindow = TimeSpan.FromMinutes(5);
 
@@ -38,5 +38,29 @@ public class DashboardController(PresenceTracker presenceTracker, IBackgroundTas
             extractionJobs,
             safeToDeploy = chatStreams == 0 && pending == 0 && running == 0 && !reembedRunning && extractionJobs == 0
         });
+    }
+
+    [HttpGet("models")]
+    [SwaggerOperation(Summary = "Result of the last check for newer Mistral model versions")]
+    [SwaggerResponse(200, "Model status returned")]
+    public IActionResult Models()
+        => Ok(new { checkedAt = modelWatch.LastCheckedUtc, error = modelWatch.LastError, families = modelWatch.Current });
+
+    [HttpPost("models/refresh")]
+    [SwaggerOperation(Summary = "Check Mistral's model list now instead of waiting for the daily check")]
+    [SwaggerResponse(200, "Model status returned")]
+    public async Task<IActionResult> RefreshModels()
+    {
+        await modelWatch.RefreshAsync(HttpContext.RequestAborted);
+        return Models();
+    }
+
+    [HttpPost("models/acknowledge")]
+    [SwaggerOperation(Summary = "Stop flagging the currently new models as new")]
+    [SwaggerResponse(200, "Model status returned")]
+    public async Task<IActionResult> AcknowledgeModels()
+    {
+        await modelWatch.AcknowledgeAllAsync(HttpContext.RequestAborted);
+        return Models();
     }
 }

@@ -154,7 +154,7 @@
 			{@render navItem('/manage', Wrench, 'Manage')}
 		{/if}
 		{#if userState.isOwner}
-			{@render navItem('dev', Gauge, 'Dashboard')}
+			{@render navItem('/dev', Gauge, 'Dashboard')}
 		{/if}
 	</div>
 

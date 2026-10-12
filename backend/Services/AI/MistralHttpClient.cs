@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Net.Http.Headers;
 using KnowledgeBank.Utils;
+using DotNetEnv;
 
 namespace KnowledgeBank.Services.AI;
 
@@ -27,6 +28,12 @@ public record MistralStreamChunk(
     string? Model = null,
     string? Id = null
 );
+
+public record MistralModelCard(string Id, IReadOnlyList<string> Aliases, DateTime? Deprecation, string? DeprecationReplacement)
+{
+    public IEnumerable<string> Names => Aliases.Prepend(Id);
+    public bool IsKnownAs(string name) => Id == name || Aliases.Contains(name);
+}
 
 public class MistralContextLengthExceededException(string message) : Exception(message);
 
@@ -347,30 +354,44 @@ public class MistralHttpClient
     }
 
     /// <summary>
-    /// Resolves a model alias (e.g. "mistral-ocr-latest") to the concrete dated model id it currently points to.
+    /// Fetches Mistral's model list. Every alias is also listed as its own card, with the other names of the same model as its aliases.
+    /// </summary>
+    public async Task<List<MistralModelCard>> GetModelCardsAsync(CancellationToken ct = default)
+    {
+        using HttpResponseMessage response = await SendWithRetryAsync(
+            filesHttpClient,
+            () => new HttpRequestMessage(HttpMethod.Get, "models"),
+            HttpCompletionOption.ResponseContentRead,
+            ct
+        );
+        response.EnsureSuccessStatusCode();
+
+        using JsonDocument doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+
+        return doc.RootElement.GetProperty("data").EnumerateArray().Select(m => new MistralModelCard(
+            m.GetProperty("id").GetString()!,
+            m.TryGetProperty("aliases", out JsonElement aliases) && aliases.ValueKind == JsonValueKind.Array
+                ? aliases.EnumerateArray().Select(a => a.GetString()!).ToList()
+                : [],
+            m.TryGetProperty("deprecation", out JsonElement deprecation) && deprecation.ValueKind == JsonValueKind.String && deprecation.TryGetDateTime(out DateTime date)
+                ? date
+                : null,
+            m.TryGetProperty("deprecation_replacement_model", out JsonElement replacement) && replacement.ValueKind == JsonValueKind.String
+                ? replacement.GetString()
+                : null
+        )).ToList();
+    }
+
+    /// <summary>
+    /// Resolves a model alias (e.g. "mistral-ocr-latest") to the concrete model id it currently points to.
     /// Falls back to returning the alias unchanged if resolution fails for any reason.
     /// </summary>
     public async Task<string> ResolveModelAliasAsync(string alias, CancellationToken ct = default)
     {
         try
         {
-            using HttpResponseMessage response = await SendWithRetryAsync(
-                filesHttpClient,
-                () => new HttpRequestMessage(HttpMethod.Get, "models"),
-                HttpCompletionOption.ResponseContentRead, 
-                ct
-            );
-            response.EnsureSuccessStatusCode();
-
-            using JsonDocument doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
-
-            foreach (JsonElement model in doc.RootElement.GetProperty("data").EnumerateArray())
-            {
-                if (model.TryGetProperty("aliases", out JsonElement aliases) && aliases.EnumerateArray().Any(a => a.GetString() == alias))
-                {
-                    return model.GetProperty("id").GetString() ?? alias;
-                }
-            }
+            MistralModelCard? match = (await GetModelCardsAsync(ct)).FirstOrDefault(c => c.Aliases.Contains(alias));
+            if (match != null) return match.Id;
 
             logger.Warning("Could not find a model with alias {Alias} in Mistral's model list, falling back to alias", alias);
         }
