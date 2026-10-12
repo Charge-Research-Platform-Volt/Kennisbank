@@ -202,6 +202,9 @@ namespace KnowledgeBank
             builder.Services.AddSingleton<ReembedRunState>();
             builder.Services.AddHostedService<QueuedHostedService>();
             builder.Services.AddSingleton<PresenceTracker>();
+            builder.Services.AddSingleton<UsageMetrics>();
+            builder.Services.AddSingleton<UsageFlushService>();
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<UsageFlushService>());
 
             // # Mailer;
             builder.Services.AddSingleton(new MailUtils(
@@ -294,6 +297,29 @@ namespace KnowledgeBank
                 app.UseSwagger();
                 app.UseSwaggerUI(ConfigureSwaggerUI);
             }
+            // Daily request and server error totals for the dashboard. Sits outside the exception handler so it sees the final 500.
+            // The dashboard's own polling and the long-lived SignalR connection are left out
+            UsageMetrics usageMetrics = app.Services.GetRequiredService<UsageMetrics>();
+            app.Use(async (context, next) =>
+            {
+                if (context.Request.Path.StartsWithSegments("/dashboard") || context.Request.Path.StartsWithSegments("/hub"))
+                {
+                    await next();
+                    return;
+                }
+
+                bool failed = true;
+                try
+                {
+                    await next();
+                    failed = context.Response.StatusCode >= 500;
+                }
+                finally
+                {
+                    usageMetrics.Record("http.request", success: !failed);
+                }
+            });
+
             app.UseExceptionHandler();
             app.UseStatusCodePages();
 

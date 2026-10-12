@@ -1,3 +1,4 @@
+using KnowledgeBank.Services.Background;
 using KnowledgeBank.Services.Domain;
 using KnowledgeBank.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +15,7 @@ namespace KnowledgeBank.Controllers;
 
 [Route("[controller]")]
 [Authorize]
-public class FilesController(IStorageService storageService, ResourceService resourceService, EnvironmentConfig environmentConfig) : AppControllerBase
+public class FilesController(IStorageService storageService, ResourceService resourceService, EnvironmentConfig environmentConfig, UsageMetrics usageMetrics) : AppControllerBase
 {
     private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
 
@@ -73,6 +74,7 @@ public class FilesController(IStorageService storageService, ResourceService res
             return Problem("No ETags provided.", statusCode: 400);
 
         await storageService.CompleteMultipartUploadAsync(bucketName, dto.ObjectName, dto.UploadId, dto.PartETags);
+        usageMetrics.Record("files.upload");
 
         return NoContent();
     }

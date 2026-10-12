@@ -12,12 +12,8 @@
 		Settings,
 		LogOut,
 		type LucideIcon,
-
 		Gauge,
-
 		BookBookmark
-
-
 	} from '@lucide/svelte';
 	import Avatar from '$lib/components/ui/avatar/avatar.svelte';
 	import { sidebar } from '$lib/state/sidebar.svelte';

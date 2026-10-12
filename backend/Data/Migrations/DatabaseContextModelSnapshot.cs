@@ -1025,6 +1025,33 @@ namespace KnowledgeBank.Data.Migrations
                     b.ToView("trashview", (string)null);
                 });
 
+            modelBuilder.Entity("KnowledgeBank.Models.UsageCounter", b =>
+                {
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<string>("Metric")
+                        .HasColumnType("text")
+                        .HasColumnName("metric");
+
+                    b.Property<long>("Count")
+                        .HasColumnType("bigint")
+                        .HasColumnName("count");
+
+                    b.Property<long>("FailureCount")
+                        .HasColumnType("bigint")
+                        .HasColumnName("failure_count");
+
+                    b.Property<long>("TotalDurationMs")
+                        .HasColumnType("bigint")
+                        .HasColumnName("total_duration_ms");
+
+                    b.HasKey("Date", "Metric");
+
+                    b.ToTable("usage_counters");
+                });
+
             modelBuilder.Entity("KnowledgeBank.Models.User", b =>
                 {
                     b.Property<string>("Id")

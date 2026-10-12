@@ -88,6 +88,7 @@ public class AuthTests(KennisbankFixture fixture)
 
     [Theory]
     [InlineData("GET", "/dashboard/live")]
+    [InlineData("GET", "/dashboard/usage")]
     [InlineData("POST", "/admin/reembed")]
     [InlineData("POST", "/admin/reembed/cancel")]
     [InlineData("GET", "/admin/reembed/status")]

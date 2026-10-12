@@ -9,6 +9,8 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using KnowledgeBank.Services.Storage;
 using KnowledgeBank.Services.AI;
+using KnowledgeBank.Services.Background;
+using System.Diagnostics;
 
 namespace KnowledgeBank.Services;
 
@@ -16,7 +18,7 @@ namespace KnowledgeBank.Services;
 /// Service for extracting text from various document formats
 /// Uses free methods when possible, falls back to OCR
 /// </summary>
-public class TextExtractionService(ILogger<TextExtractionService> logger, EnvironmentConfig environmentConfig, WebscrapeClient webscrapeClient, IStorageService storageService, MistralHttpClient mistralClient)
+public class TextExtractionService(ILogger<TextExtractionService> logger, EnvironmentConfig environmentConfig, WebscrapeClient webscrapeClient, IStorageService storageService, MistralHttpClient mistralClient, UsageMetrics usageMetrics)
 {
     #region File Text Extraction
 
@@ -78,7 +80,11 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
         if (canCache)
         {
             OcrResult? cached = await TryReadOcrCacheAsync(bucketName!, fileId!, modelId);
-            if (cached != null) return cached;
+            if (cached != null)
+            {
+                usageMetrics.Record("ocr.cache_hit");
+                return cached;
+            }
         }
 
         OcrResult result = await ExtractWithMistralOCR(stream, fileExtension, modelId);
@@ -114,7 +120,20 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
 
         bool isPdf = string.Equals(fileExtension, ".pdf", StringComparison.OrdinalIgnoreCase);
 
-        MistralOcrResult ocrResult = await mistralClient.RunOcrAsync(ms.ToArray(), fileExtension, resolvedModel, isPdf);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        MistralOcrResult ocrResult;
+        try
+        {
+            ocrResult = await mistralClient.RunOcrAsync(ms.ToArray(), fileExtension, resolvedModel, isPdf);
+        }
+        catch
+        {
+            usageMetrics.Record("ocr.document", success: false, duration: stopwatch.Elapsed);
+            throw;
+        }
+
+        usageMetrics.Record("ocr.document", duration: stopwatch.Elapsed);
+        usageMetrics.Record("ocr.pages", count: ocrResult.Pages.Count);
 
         StringBuilder sb = new();
         HashSet<string> headerFooterLines = new(StringComparer.OrdinalIgnoreCase);
@@ -289,7 +308,19 @@ public class TextExtractionService(ILogger<TextExtractionService> logger, Enviro
             return await ExtractFromDocumentUrlAsync(url, Filetype.GetDocumentUrlExtension(url));
         }
 
-        WebscrapeResult result = await webscrapeClient.ExtractFromUrlAsync(url);
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        WebscrapeResult result;
+        try
+        {
+            result = await webscrapeClient.ExtractFromUrlAsync(url);
+        }
+        catch
+        {
+            usageMetrics.Record("webscrape.page", success: false, duration: stopwatch.Elapsed);
+            throw;
+        }
+
+        usageMetrics.Record("webscrape.page", success: !string.IsNullOrWhiteSpace(result.TextContent), duration: stopwatch.Elapsed);
         logger.LogInformation(result.Title != null ? "Extracted successfully!" : "Extraction failed.");
 
         return result;

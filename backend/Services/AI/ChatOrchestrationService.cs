@@ -1,13 +1,15 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using KnowledgeBank.Hubs;
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.Background;
 using Microsoft.AspNetCore.SignalR;
 
 namespace KnowledgeBank.Services.AI;
 
-public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatService chatService, MistralStatusService mistralStatusService, IServiceScopeFactory scopeFactory, IHubContext<AppHub, IAppHubClient> hubContext, ChatToolExecutor toolExecutor)
+public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatService chatService, MistralStatusService mistralStatusService, IServiceScopeFactory scopeFactory, IHubContext<AppHub, IAppHubClient> hubContext, ChatToolExecutor toolExecutor, UsageMetrics usageMetrics)
 {
     private const int MaxToolIterations = 14;
     private const int MaxCallsPerTool = 5;
@@ -173,6 +175,9 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
 
         var (messageContent, attachmentNote) = BuildMessageWithAttachments(message, attachments);
 
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        bool failed = false;
+
         var response = new StringBuilder();
         var stream = StreamAgenticResponse(connectionId, chatId, message, messageContent, attachmentNote, chatHistory, projectId, cancellationToken);
         await using var enumerator = stream.GetAsyncEnumerator(cancellationToken);
@@ -196,6 +201,7 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
             }
 
             if (errorNotice != null) {
+                failed = true;
                 response.Append(errorNotice);
                 yield return errorNotice;
                 break;
@@ -211,11 +217,13 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
         {
             logger.Warning("Chat {ChatId} received an empty response from the model", chatId);
             string fallback = "I wasn't able to generate a response. Please try again.";
+            failed = true;
             response.Append(fallback);
             yield return fallback;
         }
 
         await SaveResponseAsync(response.ToString(), chatId, userId);
+        usageMetrics.Record("chat.response", success: !failed, duration: stopwatch.Elapsed);
 
         logger.Information("Finished streaming AI response to {UserIdentifier}", userId);
     }

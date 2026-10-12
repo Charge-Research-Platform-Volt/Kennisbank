@@ -1,13 +1,13 @@
 <script lang="ts">
-    import { userState } from '$lib/state/user.svelte';
+	import { userState } from '$lib/state/user.svelte';
 
-    let { children } = $props();
+	let { children } = $props();
 </script>
 
 {#if userState.isOwner}
-    {@render children()}
+	{@render children()}
 {:else}
-    <div class="flex h-full items-center justify-center text-sm text-muted-foreground">
-        Page not found
-    </div>
+	<div class="flex h-full items-center justify-center text-sm text-muted-foreground">
+		Page not found
+	</div>
 {/if}

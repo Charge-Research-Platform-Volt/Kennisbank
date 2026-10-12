@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using KnowledgeBank.Hubs;
 using KnowledgeBank.Services.AI;
+using KnowledgeBank.Services.Background;
 using KnowledgeBank.Tests.Helpers;
 using Microsoft.AspNetCore.SignalR;
 using NSubstitute;
@@ -19,7 +20,7 @@ public class MistralHttpClientTests
         var hub = Substitute.For<IHubContext<AppHub, IAppHubClient>>();
         hub.Clients.All.Returns(Substitute.For<IAppHubClient>());
         statusService = new MistralStatusService(hub);
-        client = new MistralHttpClient(TestEnvironment.CreateConfig(), statusService);
+        client = new MistralHttpClient(TestEnvironment.CreateConfig(), statusService, new UsageMetrics());
     }
 
     // GetRetryDelay

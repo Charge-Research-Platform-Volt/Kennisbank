@@ -2,7 +2,9 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Net;
 using System.Net.Http.Headers;
+using KnowledgeBank.Services.Background;
 using KnowledgeBank.Utils;
 using DotNetEnv;
 
@@ -66,15 +68,17 @@ public class MistralHttpClient
     private readonly string smallModelName;
     private readonly string mediumModelName;
     private readonly MistralStatusService mistralStatusService;
+    private readonly UsageMetrics usageMetrics;
     private readonly Serilog.ILogger logger = Serilog.Log.ForContext<MistralHttpClient>();
 
     private readonly RequestTokenLimiter smallRateLimiter;
     private readonly RequestTokenLimiter mediumRateLimiter;
     private readonly RollingWindowLimiter ocrPageLimiter;
 
-    public MistralHttpClient(EnvironmentConfig environmentConfig, MistralStatusService mistralStatusService)
+    public MistralHttpClient(EnvironmentConfig environmentConfig, MistralStatusService mistralStatusService, UsageMetrics usageMetrics)
     {
         this.mistralStatusService = mistralStatusService;
+        this.usageMetrics = usageMetrics;
 
         // Load values
         smallModelName = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_SMALL_MODEL_NAME);
@@ -497,6 +501,7 @@ public class MistralHttpClient
     {
         HttpResponseMessage? response = null;
         Exception? transportException = null;
+        Stopwatch stopwatch = Stopwatch.StartNew();
 
         for (int attempt = 0; attempt < MaxRetries; attempt++)
         {
@@ -513,12 +518,17 @@ public class MistralHttpClient
             if (transportException == null && response!.IsSuccessStatusCode)
             {
                 await mistralStatusService.ReportSuccess();
+                usageMetrics.Record("mistral.request", duration: stopwatch.Elapsed);
                 return response;
             }
+
+            if (transportException == null && response!.StatusCode == HttpStatusCode.TooManyRequests)
+                usageMetrics.Record("mistral.rate_limited");
 
             bool retryable = transportException != null || (int)response!.StatusCode is 503 or 529 or 429;
             if (retryable && attempt < MaxRetries - 1)
             {
+                usageMetrics.Record("mistral.retry");
                 TimeSpan delay = GetRetryDelay(transportException == null ? response : null, attempt);
                 await Task.Delay(delay, ct);
                 continue;
@@ -526,6 +536,8 @@ public class MistralHttpClient
 
             break;
         }
+
+        usageMetrics.Record("mistral.request", success: false, duration: stopwatch.Elapsed);
 
         if (transportException != null)
         {

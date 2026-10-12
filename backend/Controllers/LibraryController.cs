@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.Background;
 using KnowledgeBank.Services.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +11,7 @@ namespace KnowledgeBank.Controllers;
 
 [Route("library")]
 [Authorize]
-public class LibraryController(LibraryService libraryService) : AppControllerBase
+public class LibraryController(LibraryService libraryService, UsageMetrics usageMetrics) : AppControllerBase
 {
     [HttpPost]
     [SwaggerOperation(Summary = "Browse or search the library with filters and pagination")]
@@ -22,7 +24,15 @@ public class LibraryController(LibraryService libraryService) : AppControllerBas
     [SwaggerResponse(200, "Search results with matched content snippets")]
     public async Task<IActionResult> SearchContent([FromBody]LibraryContentSearchRequest request)
     {
+        Stopwatch stopwatch = Stopwatch.StartNew();
         List<LibraryItemWithChunks> results = await libraryService.SearchContentAsync(request.Search, request.PageSize, excludeIds: request.ExcludeIds);
+
+        // Loading more results re-sends the search with the shown items excluded; only the first page counts as a search
+        if (request.ExcludeIds is not { Length: > 0 })
+        {
+            usageMetrics.Record("search.content", duration: stopwatch.Elapsed);
+            if (results.Count == 0) usageMetrics.Record("search.zero_results");
+        }
 
         var items = results.Select(r => new
         {
