@@ -55,7 +55,7 @@ public class ChangelogController(DatabaseContext database, UserManager<User> use
     }
 
     [HttpPost]
-    [Authorize(Policy = "RequireAdminRole")]
+    [Authorize(Policy = "RequireOwner")]
     [SwaggerOperation(Summary = "Add a new changelog entry")]
     [SwaggerResponse(200, "Entry added")]
     public async Task<IActionResult> AddEntry([FromBody] ChangelogEntryCreateDto dto)

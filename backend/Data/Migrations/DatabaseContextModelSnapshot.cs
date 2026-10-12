@@ -284,6 +284,25 @@ namespace KnowledgeBank.Data.Migrations
                     b.ToTable("journals");
                 });
 
+            modelBuilder.Entity("KnowledgeBank.Models.KnownMistralModel", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Acknowledged")
+                        .HasColumnType("boolean")
+                        .HasColumnName("acknowledged");
+
+                    b.Property<DateTime>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_seen_at");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("known_mistral_models");
+                });
+
             modelBuilder.Entity("KnowledgeBank.Models.LibraryItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1004,6 +1023,33 @@ namespace KnowledgeBank.Data.Migrations
                     b.ToTable((string)null);
 
                     b.ToView("trashview", (string)null);
+                });
+
+            modelBuilder.Entity("KnowledgeBank.Models.UsageCounter", b =>
+                {
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<string>("Metric")
+                        .HasColumnType("text")
+                        .HasColumnName("metric");
+
+                    b.Property<long>("Count")
+                        .HasColumnType("bigint")
+                        .HasColumnName("count");
+
+                    b.Property<long>("FailureCount")
+                        .HasColumnType("bigint")
+                        .HasColumnName("failure_count");
+
+                    b.Property<long>("TotalDurationMs")
+                        .HasColumnType("bigint")
+                        .HasColumnName("total_duration_ms");
+
+                    b.HasKey("Date", "Metric");
+
+                    b.ToTable("usage_counters");
                 });
 
             modelBuilder.Entity("KnowledgeBank.Models.User", b =>

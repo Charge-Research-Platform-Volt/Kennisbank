@@ -16,7 +16,7 @@ using Microsoft.EntityFrameworkCore;
 namespace KnowledgeBank.Controllers;
 
 [Route("users")]
-public class UsersController(UserService userService, IStorageService storageService, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IOptions<OwnerUserConfig> ownerConfig, EnvironmentConfig environmentConfig, VPNService vpnService, IWebHostEnvironment env, MailUtils mailUtils) : AppControllerBase
+public class UsersController(UserService userService, IStorageService storageService, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IOptions<OwnerUserConfig> ownerConfig, EnvironmentConfig environmentConfig, VPNService vpnService, IWebHostEnvironment env, MailUtils mailUtils, IAuthorizationService authorizationService) : AppControllerBase
 {
     private readonly Serilog.ILogger logger = Log.ForContext<UsersController>();
     private readonly OwnerUserConfig ownerConfig = ownerConfig.Value;
@@ -33,6 +33,7 @@ public class UsersController(UserService userService, IStorageService storageSer
         if (user == null) return NotFound();
 
         IList<string> roles = await userManager.GetRolesAsync(user);
+        bool isOwner = (await authorizationService.AuthorizeAsync(User, "RequireOwner")).Succeeded;
 
         return Ok(new {
             Id = new Guid(user.Id),
@@ -41,7 +42,8 @@ public class UsersController(UserService userService, IStorageService storageSer
             user.Email,
             CustomAvatarVersion = user.HasCustom ? user.CustomAvatarVersion : (int?)null,
             user.EmailConfirmed,
-            Role = roles.FirstOrDefault() ?? "No Role"
+            Role = roles.FirstOrDefault() ?? "No Role",
+            IsOwner = isOwner
         });
     }
 

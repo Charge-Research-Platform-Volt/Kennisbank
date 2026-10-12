@@ -2,8 +2,11 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Net;
 using System.Net.Http.Headers;
+using KnowledgeBank.Services.Background;
 using KnowledgeBank.Utils;
+using DotNetEnv;
 
 namespace KnowledgeBank.Services.AI;
 
@@ -27,6 +30,12 @@ public record MistralStreamChunk(
     string? Model = null,
     string? Id = null
 );
+
+public record MistralModelCard(string Id, IReadOnlyList<string> Aliases, DateTime? Deprecation, string? DeprecationReplacement)
+{
+    public IEnumerable<string> Names => Aliases.Prepend(Id);
+    public bool IsKnownAs(string name) => Id == name || Aliases.Contains(name);
+}
 
 public class MistralContextLengthExceededException(string message) : Exception(message);
 
@@ -59,15 +68,17 @@ public class MistralHttpClient
     private readonly string smallModelName;
     private readonly string mediumModelName;
     private readonly MistralStatusService mistralStatusService;
+    private readonly UsageMetrics usageMetrics;
     private readonly Serilog.ILogger logger = Serilog.Log.ForContext<MistralHttpClient>();
 
     private readonly RequestTokenLimiter smallRateLimiter;
     private readonly RequestTokenLimiter mediumRateLimiter;
     private readonly RollingWindowLimiter ocrPageLimiter;
 
-    public MistralHttpClient(EnvironmentConfig environmentConfig, MistralStatusService mistralStatusService)
+    public MistralHttpClient(EnvironmentConfig environmentConfig, MistralStatusService mistralStatusService, UsageMetrics usageMetrics)
     {
         this.mistralStatusService = mistralStatusService;
+        this.usageMetrics = usageMetrics;
 
         // Load values
         smallModelName = environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_SMALL_MODEL_NAME);
@@ -347,30 +358,44 @@ public class MistralHttpClient
     }
 
     /// <summary>
-    /// Resolves a model alias (e.g. "mistral-ocr-latest") to the concrete dated model id it currently points to.
+    /// Fetches Mistral's model list. Every alias is also listed as its own card, with the other names of the same model as its aliases.
+    /// </summary>
+    public async Task<List<MistralModelCard>> GetModelCardsAsync(CancellationToken ct = default)
+    {
+        using HttpResponseMessage response = await SendWithRetryAsync(
+            filesHttpClient,
+            () => new HttpRequestMessage(HttpMethod.Get, "models"),
+            HttpCompletionOption.ResponseContentRead,
+            ct
+        );
+        response.EnsureSuccessStatusCode();
+
+        using JsonDocument doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+
+        return doc.RootElement.GetProperty("data").EnumerateArray().Select(m => new MistralModelCard(
+            m.GetProperty("id").GetString()!,
+            m.TryGetProperty("aliases", out JsonElement aliases) && aliases.ValueKind == JsonValueKind.Array
+                ? aliases.EnumerateArray().Select(a => a.GetString()!).ToList()
+                : [],
+            m.TryGetProperty("deprecation", out JsonElement deprecation) && deprecation.ValueKind == JsonValueKind.String && deprecation.TryGetDateTime(out DateTime date)
+                ? date
+                : null,
+            m.TryGetProperty("deprecation_replacement_model", out JsonElement replacement) && replacement.ValueKind == JsonValueKind.String
+                ? replacement.GetString()
+                : null
+        )).ToList();
+    }
+
+    /// <summary>
+    /// Resolves a model alias (e.g. "mistral-ocr-latest") to the concrete model id it currently points to.
     /// Falls back to returning the alias unchanged if resolution fails for any reason.
     /// </summary>
     public async Task<string> ResolveModelAliasAsync(string alias, CancellationToken ct = default)
     {
         try
         {
-            using HttpResponseMessage response = await SendWithRetryAsync(
-                filesHttpClient,
-                () => new HttpRequestMessage(HttpMethod.Get, "models"),
-                HttpCompletionOption.ResponseContentRead, 
-                ct
-            );
-            response.EnsureSuccessStatusCode();
-
-            using JsonDocument doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
-
-            foreach (JsonElement model in doc.RootElement.GetProperty("data").EnumerateArray())
-            {
-                if (model.TryGetProperty("aliases", out JsonElement aliases) && aliases.EnumerateArray().Any(a => a.GetString() == alias))
-                {
-                    return model.GetProperty("id").GetString() ?? alias;
-                }
-            }
+            MistralModelCard? match = (await GetModelCardsAsync(ct)).FirstOrDefault(c => c.Aliases.Contains(alias));
+            if (match != null) return match.Id;
 
             logger.Warning("Could not find a model with alias {Alias} in Mistral's model list, falling back to alias", alias);
         }
@@ -476,6 +501,7 @@ public class MistralHttpClient
     {
         HttpResponseMessage? response = null;
         Exception? transportException = null;
+        Stopwatch stopwatch = Stopwatch.StartNew();
 
         for (int attempt = 0; attempt < MaxRetries; attempt++)
         {
@@ -492,12 +518,17 @@ public class MistralHttpClient
             if (transportException == null && response!.IsSuccessStatusCode)
             {
                 await mistralStatusService.ReportSuccess();
+                usageMetrics.Record("mistral.request", duration: stopwatch.Elapsed);
                 return response;
             }
+
+            if (transportException == null && response!.StatusCode == HttpStatusCode.TooManyRequests)
+                usageMetrics.Record("mistral.rate_limited");
 
             bool retryable = transportException != null || (int)response!.StatusCode is 503 or 529 or 429;
             if (retryable && attempt < MaxRetries - 1)
             {
+                usageMetrics.Record("mistral.retry");
                 TimeSpan delay = GetRetryDelay(transportException == null ? response : null, attempt);
                 await Task.Delay(delay, ct);
                 continue;
@@ -505,6 +536,8 @@ public class MistralHttpClient
 
             break;
         }
+
+        usageMetrics.Record("mistral.request", success: false, duration: stopwatch.Elapsed);
 
         if (transportException != null)
         {

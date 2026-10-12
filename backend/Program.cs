@@ -23,6 +23,7 @@ using KnowledgeBank.Services.Search;
 using Npgsql;
 using KnowledgeBank.Services.Domain;
 using Meilisearch;
+using System.Security.Claims;
 
 namespace KnowledgeBank
 {
@@ -88,6 +89,11 @@ namespace KnowledgeBank
                 {
                     options.AddPolicy($"Require{char.ToUpper(roleName[0]) + roleName.Substring(1)}Role", policy => policy.RequireRole(roleName));
                 }
+
+                // Developer tooling (dashboard, re-embeds, changelog) is tied to the configured owner account instead of a role,
+                // so it can't be granted to anyone through the user management UI
+                options.AddPolicy("RequireOwner", policy => policy.RequireAssertion(ctx =>
+                    string.Equals(ctx.User.FindFirstValue(ClaimTypes.Email), ownerConfig.Email, StringComparison.OrdinalIgnoreCase)));
 
                 // This line terminates the handler on first failure, when more information is required, set this to true.
                 // This gives an increase in performance, but omits some information which might be required for complex
@@ -172,6 +178,8 @@ namespace KnowledgeBank
             // Retrieval Augmented Generation system
             builder.Services.AddSingleton<MistralHttpClient>();
             builder.Services.AddSingleton<MistralStatusService>();
+            builder.Services.AddSingleton<MistralModelWatchService>();
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<MistralModelWatchService>());
             builder.Services.AddSingleton<AiService>();
             builder.Services.AddSingleton<EmbeddingService>();
             builder.Services.AddScoped<IngestionService>();
@@ -193,6 +201,10 @@ namespace KnowledgeBank
             builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
             builder.Services.AddSingleton<ReembedRunState>();
             builder.Services.AddHostedService<QueuedHostedService>();
+            builder.Services.AddSingleton<PresenceTracker>();
+            builder.Services.AddSingleton<UsageMetrics>();
+            builder.Services.AddSingleton<UsageFlushService>();
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<UsageFlushService>());
 
             // # Mailer;
             builder.Services.AddSingleton(new MailUtils(
@@ -285,6 +297,29 @@ namespace KnowledgeBank
                 app.UseSwagger();
                 app.UseSwaggerUI(ConfigureSwaggerUI);
             }
+            // Daily request and server error totals for the dashboard. Sits outside the exception handler so it sees the final 500.
+            // The dashboard's own polling and the long-lived SignalR connection are left out
+            UsageMetrics usageMetrics = app.Services.GetRequiredService<UsageMetrics>();
+            app.Use(async (context, next) =>
+            {
+                if (context.Request.Path.StartsWithSegments("/dashboard") || context.Request.Path.StartsWithSegments("/hub"))
+                {
+                    await next();
+                    return;
+                }
+
+                bool failed = true;
+                try
+                {
+                    await next();
+                    failed = context.Response.StatusCode >= 500;
+                }
+                finally
+                {
+                    usageMetrics.Record("http.request", success: !failed);
+                }
+            });
+
             app.UseExceptionHandler();
             app.UseStatusCodePages();
 
@@ -334,6 +369,18 @@ namespace KnowledgeBank
             app.UseCors("AllowFrontend");
             app.UseAuthentication();
             app.UseAuthorization();
+
+            // Marks users as recently active for the dashboard's deploy indicator; the dashboard's own polling is excluded
+            PresenceTracker presenceTracker = app.Services.GetRequiredService<PresenceTracker>();
+            app.Use(async (context, next) =>
+            {
+                string? userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                
+                if (userId != null && !context.Request.Path.StartsWithSegments("/dashboard"))
+                    presenceTracker.Touch(userId);
+
+                await next();
+            });
 
             // Hub and Controllers must be added after Authentication and Authorization
             app.MapHub<AppHub>("/hub"); // SignalR hub for chat functionality

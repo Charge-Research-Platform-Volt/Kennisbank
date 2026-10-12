@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using KnowledgeBank.Hubs;
+using KnowledgeBank.Services.Background;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.Domain;
 using KnowledgeBank.Services.Search;
@@ -8,19 +10,23 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace KnowledgeBank.Services.AI;
 
-public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingService, AttachmentChunkSearchIndexService attachmentChunkSearchIndexService, IServiceScopeFactory scopeFactory, IHubContext<AppHub, IAppHubClient> hubContext)
+public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingService, AttachmentChunkSearchIndexService attachmentChunkSearchIndexService, IServiceScopeFactory scopeFactory, IHubContext<AppHub, IAppHubClient> hubContext, UsageMetrics usageMetrics)
 {
     private const float RelevanceThreshold = 0.25f;
     private readonly Serilog.ILogger logger = Serilog.Log.ForContext<ChatToolExecutor>();
 
     public async Task<string> ExecuteAsync(MistralToolCall toolCall, string userQuestion, string? projectId, Guid chatId, string connectionId, CancellationToken cancellationToken)
     {
+        // Tool names come from the model, so unknown ones share one metric instead of each creating their own
+        string metric = ChatToolDefinitions.All.Any(t => t.Name == toolCall.Name) ? $"chat.tool.{toolCall.Name}" : "chat.tool.unknown";
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
         try
         {
             using var args = JsonDocument.Parse(toolCall.Arguments);
             await using var scope = scopeFactory.CreateAsyncScope();
 
-            return toolCall.Name switch
+            string result = toolCall.Name switch
             {
                 "search_library" => await HandleSearchAsync(
                     scope.ServiceProvider.GetRequiredService<LibraryService>(),
@@ -53,9 +59,13 @@ public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingSer
                     args, chatId, connectionId, cancellationToken),
                 _ => "Error: unknown tool"
             };
+
+            usageMetrics.Record(metric, success: metric != "chat.tool.unknown", duration: stopwatch.Elapsed);
+            return result;
         }
         catch (Exception ex)
         {
+            usageMetrics.Record(metric, success: false, duration: stopwatch.Elapsed);
             logger.Error(ex, "Tool call failed for {ToolName} with args: {Args}", toolCall.Name, toolCall.Arguments);
             return $"Tool call failed: {ex.Message}";
         }
@@ -105,7 +115,7 @@ public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingSer
             if (ids.Length > 0) idsFilter = ids;
         }
 
-        logger.Information("LLM searching for: {Query}", query);
+        logger.Debug("LLM searching for: {Query}", query);
         await hubContext.Clients.Client(connectionId).ChatToolStatus("search_library", $"Searching: {query}");
 
         List<LibraryItemWithChunks> results = await libraryService.SearchContentAsync(query, limit, idsFilter, typeFilter);

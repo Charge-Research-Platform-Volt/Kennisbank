@@ -27,7 +27,7 @@ public class AdminController(
     private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
 
     [HttpPost("reembed")]
-    [Authorize(Policy = "RequireAdminRole")]
+    [Authorize(Policy = "RequireOwner")]
     [SwaggerOperation(Summary = "Re-embed resources, persons, and organisations (optionally scoped to only resources/entities, and/or only those not currently Completed)")]
     [SwaggerResponse(202, "Queued")]
     [SwaggerResponse(409, "A re-embed is already running")]
@@ -149,7 +149,7 @@ public class AdminController(
     }
 
     [HttpPost("reembed/cancel")]
-    [Authorize(Policy = "RequireAdminRole")]
+    [Authorize(Policy = "RequireOwner")]
     [SwaggerOperation(Summary = "Cancel the currently running re-embed, if any")]
     [SwaggerResponse(204, "Cancellation requested")]
     [SwaggerResponse(404, "No re-embed is currently running")]
@@ -161,7 +161,7 @@ public class AdminController(
     }
 
     [HttpGet("reembed/status")]
-    [Authorize(Policy = "RequireAdminRole")]
+    [Authorize(Policy = "RequireOwner")]
     [SwaggerOperation(Summary = "Get embedding status counts and currently-failed items for resources, persons, and organisations")]
     [SwaggerResponse(200, "Status summary")]
     public async Task<IActionResult> ReEmbedStatus()
@@ -226,7 +226,7 @@ public class AdminController(
     }
 
     [HttpPost("reindex-search")]
-    [Authorize(Policy = "RequireAdminRole")]
+    [Authorize(Policy = "RequireOwner")]
     [SwaggerOperation(Summary = "Rebuild the Meilisearch index for all resources, persons, and organisations")]
     [SwaggerResponse(202, "Queued")]
     public IActionResult ReindexSearch()
@@ -359,7 +359,7 @@ public class AdminController(
     }
 
     [HttpPost("cleanup-orphans")]
-    [Authorize(Policy = "RequireAdminRole")]
+    [Authorize(Policy = "RequireOwner")]
     [SwaggerOperation(Summary = "Find and remove orphaned chunks and search index documents whose parent entity no longer exists")]
     [SwaggerResponse(200, "Cleanup summary")]
     public async Task<IActionResult> CleanupOrphans()

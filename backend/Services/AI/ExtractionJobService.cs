@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
+using KnowledgeBank.Services.Background;
 using KnowledgeBank.Services.Storage;
 using KnowledgeBank.Utils;
 using Serilog;
@@ -12,12 +14,15 @@ public class ExtractionJobService(
     IStorageService storageService,
     TextExtractionService textExtractionService,
     EnvironmentConfig environmentConfig,
-    MistralStatusService mistralStatusService)
+    MistralStatusService mistralStatusService,
+    UsageMetrics usageMetrics)
 {
     private readonly Serilog.ILogger logger = Log.ForContext<ExtractionJobService>();
     private readonly ConcurrentDictionary<string, MetadataExtractionJob> _jobs = new();
     private readonly TimeSpan _jobRetentionPeriod = TimeSpan.FromHours(24);
     private readonly string bucketName = environmentConfig.GetVariableValue(EnvironmentVariable.S3_BUCKET_NAME);
+
+    public int ActiveJobCount => _jobs.Values.Count(j => j.Status is JobStatus.Pending or JobStatus.Processing);
 
     public MetadataExtractionJob CreateJob(string type, string value)
     {
@@ -79,6 +84,11 @@ public class ExtractionJobService(
         using var scope = serviceScopeFactory.CreateScope();
         var metadataExtractionService = scope.ServiceProvider.GetRequiredService<MetadataExtractionService>();
 
+        // The wait the user sees after adding a resource: reading the document plus AI metadata extraction
+        string metric = type == "file" ? "document.extraction.file" : Filetype.IsDocumentUrl(value) ? "document.extraction.url" : "document.extraction.web";
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        bool succeeded = false;
+
         try
         {
             UpdateJobStatus(jobId, JobStatus.Processing, "Starting extraction...", 10);
@@ -114,8 +124,8 @@ public class ExtractionJobService(
                     return;
                 }
 
-                metadata = await metadataExtractionService.ExtractMetadataFromFileAsync(ocrResult.Text, fileName, ocrResult.HeaderFooterText,
-                    (msg, pct) => UpdateJobStatus(jobId, JobStatus.Processing, msg, pct));
+                metadata = await TimeMetadataStepAsync(() => metadataExtractionService.ExtractMetadataFromFileAsync(ocrResult.Text, fileName, ocrResult.HeaderFooterText,
+                    (msg, pct) => UpdateJobStatus(jobId, JobStatus.Processing, msg, pct)));
             }
             else if (Filetype.IsDocumentUrl(value))
             {
@@ -149,8 +159,8 @@ public class ExtractionJobService(
                     return;
                 }
 
-                metadata = await metadataExtractionService.ExtractMetadataFromFileAsync(ocrResult.Text, fileName, ocrResult.HeaderFooterText,
-                    (msg, pct) => UpdateJobStatus(jobId, JobStatus.Processing, msg, pct));
+                metadata = await TimeMetadataStepAsync(() => metadataExtractionService.ExtractMetadataFromFileAsync(ocrResult.Text, fileName, ocrResult.HeaderFooterText,
+                    (msg, pct) => UpdateJobStatus(jobId, JobStatus.Processing, msg, pct)));
             }
             else
             {
@@ -171,8 +181,8 @@ public class ExtractionJobService(
                     return;
                 }
 
-                metadata = await metadataExtractionService.ExtractMetadataFromWebAsync(readabilityResult, value,
-                    (msg, pct) => UpdateJobStatus(jobId, JobStatus.Processing, msg, pct));
+                metadata = await TimeMetadataStepAsync(() => metadataExtractionService.ExtractMetadataFromWebAsync(readabilityResult, value,
+                    (msg, pct) => UpdateJobStatus(jobId, JobStatus.Processing, msg, pct)));
             }
 
             if (metadata == null)
@@ -181,6 +191,7 @@ public class ExtractionJobService(
                 return;
             }
 
+            succeeded = true;
             SetJobResult(jobId, metadata);
         }
         catch (InvalidOperationException e)
@@ -194,6 +205,26 @@ public class ExtractionJobService(
             SetJobError(jobId, mistralStatusService.Current.Status == MistralAvailability.Down
                 ? "Mistral's AI service currently appears to be down or degraded, this isn't a bug on our end. Check status.mistral.ai for the latest status and try again once it recovers."
                 : $"Internal error: {e.Message}");
+        }
+        finally
+        {
+            usageMetrics.Record(metric, success: succeeded, duration: stopwatch.Elapsed);
+        }
+    }
+
+    private async Task<ExtractedMetadata?> TimeMetadataStepAsync(Func<Task<ExtractedMetadata?>> extract)
+    {
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        ExtractedMetadata? metadata = null;
+
+        try
+        {
+            metadata = await extract();
+            return metadata;
+        }
+        finally
+        {
+            usageMetrics.Record("metadata.ai", success: metadata != null, duration: stopwatch.Elapsed);
         }
     }
 

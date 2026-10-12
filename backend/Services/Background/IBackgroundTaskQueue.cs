@@ -12,4 +12,7 @@ public interface IBackgroundTaskQueue
     void QueueBackgroundWorkItem(Func<CancellationToken, Task> workItem);
     Task<Func<CancellationToken, Task>> DequeueAsync(CancellationToken cancellationToken);
     int PendingCount { get; }
+    int RunningCount { get; }
+    int MarkStarted();
+    void MarkFinished();
 }
