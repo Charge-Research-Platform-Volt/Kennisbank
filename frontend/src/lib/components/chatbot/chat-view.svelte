@@ -48,6 +48,7 @@
 	let streamingAssistantId: string | null = null;
 	let loading = $state(false);
 	let thinking = $state(false);
+	let reasoningRoundStart = false;
 	let showScrollButton = $state(false);
 	let bottomRef = $state<HTMLDivElement | null>(null);
 	let userMessageRef = $state<HTMLDivElement | null>(null);
@@ -431,19 +432,21 @@
 	onHubEvent(hub, 'ChatThinking', () => {
 		searchingQuery = null;
 		thinking = true;
-		if (streamingAssistantId) {
-			const id = streamingAssistantId;
-			messages = messages.map((m) =>
-				m.id === id && m.reasoning ? { ...m, reasoning: m.reasoning + '\n\n' } : m
-			);
-		}
+		reasoningRoundStart = true;
 	});
 
 	onHubEvent(hub, 'ChatReasoningChunk', (text) => {
 		if (!streamingAssistantId) return;
+
+		// Only separate tool rounds that actually produce reasoning, so empty rounds don't stack newlines
+		if (reasoningRoundStart && !text.trim()) return;
+
+		const separator = reasoningRoundStart ? '\n\n' : '';
+		reasoningRoundStart = false;
+
 		const id = streamingAssistantId;
 		messages = messages.map((m) =>
-			m.id === id ? { ...m, reasoning: (m.reasoning ?? '') + text } : m
+			m.id === id ? { ...m, reasoning: m.reasoning ? m.reasoning + separator + text : text } : m
 		);
 	});
 </script>
