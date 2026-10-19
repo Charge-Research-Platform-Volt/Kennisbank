@@ -5,6 +5,7 @@
 .env.local
 
 todo.txt
+todo.md
 
 /database
 /storage
