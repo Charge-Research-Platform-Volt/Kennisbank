@@ -1,12 +1,19 @@
 namespace KnowledgeBank.Models;
 
 /// <summary>
-/// One case from Eval/chat-eval.json: one or more user messages, asked in order within the same conversation
+/// One chat eval case: one or more user messages, asked in order within the same conversation
 /// </summary>
 public class ChatEvalCase
 {
     public required string Id { get; init; }
     public required List<string> Turns { get; init; }
+}
+
+public class ChatEvalRunRequestDto
+{
+    public string? Model { get; init; }
+    public string? Label { get; init; }
+    public required List<ChatEvalCase> Cases { get; init; }
 }
 
 public class ChatEvalCaseResult

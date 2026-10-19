@@ -69,10 +69,14 @@ public class ChatEvalTests
         => Assert.Throws<InvalidDataException>(() => ChatEvalService.ParseCases("""[{ "id": "a", "turns": ["x"] }, { "id": "a", "turns": ["y"] }]"""));
 
     [Fact]
-    public void LoadCases_ShippedFile_IsValid()
-        => Assert.NotEmpty(ChatEvalService.LoadCases());
+    public void ValidateCases_NoCases_ReturnsError()
+        => Assert.NotNull(ChatEvalService.ValidateCases([]));
 
-        private static ChatEvalRun RunWith(ChatEvalRunStatus status, params ChatEvalTurnResult[] turns) => new()
+    [Fact]
+    public void ParseCases_NullTurns_Throws()
+        => Assert.Throws<InvalidDataException>(() => ChatEvalService.ParseCases("""[{ "id": "a", "turns": null }]"""));
+
+    private static ChatEvalRun RunWith(ChatEvalRunStatus status, params ChatEvalTurnResult[] turns) => new()
     {
         Model = "mistral-medium-test",
         Status = status,

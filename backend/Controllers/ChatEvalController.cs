@@ -1,3 +1,4 @@
+using System.Text.Json;
 using KnowledgeBank.Data;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.AI;
@@ -20,22 +21,27 @@ public class ChatEvalController(
     DatabaseContext database) : AppControllerBase
 {
     [HttpPost("run")]
-    [SwaggerOperation(Summary = "Run the chat eval cases from Eval/chat-eval.json in the background, optionally with a different model than the chat's default")]
+    [SwaggerOperation(Summary = "Run the given chat eval cases in the background, optionally with a different model than the chat's default")]
     [SwaggerResponse(202, "Queued, returns the run id")]
+    [SwaggerResponse(400, "The cases aren't valid")]
     [SwaggerResponse(409, "A chat eval is already running")]
-    public async Task<IActionResult> Run([FromQuery] string? model = null, [FromQuery] string? label = null)
+    public async Task<IActionResult> Run([FromBody] ChatEvalRunRequestDto request)
     {
-        List<ChatEvalCase> cases = ChatEvalService.LoadCases();
+        // Problem() instead of BadRequest(string), so the frontend can show the reason from the detail field
+        if (ChatEvalService.ValidateCases(request.Cases) is string error)
+            return Problem(error, statusCode: StatusCodes.Status400BadRequest);
 
         if (!runState.TryStart(out CancellationToken runToken))
-            return Conflict("A chat eval is already running.");
+            return Problem("A chat eval is already running.", statusCode: StatusCodes.Status409Conflict);
 
-        string? modelOverride = string.IsNullOrWhiteSpace(model) ? null : model.Trim();
+        string? modelOverride = string.IsNullOrWhiteSpace(request.Model) ? null : request.Model.Trim();
+        List<ChatEvalCase> cases = request.Cases;
         ChatEvalRun run = new()
         {
             Model = modelOverride ?? environmentConfig.GetVariableValue(EnvironmentVariable.MISTRAL_MEDIUM_MODEL_NAME),
-            Label = string.IsNullOrWhiteSpace(label) ? null : label.Trim(),
-            CasesTotal = cases.Count
+            Label = string.IsNullOrWhiteSpace(request.Label) ? null : request.Label.Trim(),
+            CasesTotal = cases.Count,
+            Cases = JsonSerializer.Serialize(cases)
         };
 
         try
@@ -64,6 +70,21 @@ public class ChatEvalController(
         });
 
         return Accepted(new { id = runId });
+    }
+
+    [HttpGet("cases/latest")]
+    [SwaggerOperation(Summary = "The cases of the most recent run, or an empty list when no run has stored any yet, to start a new run from")]
+    [SwaggerResponse(200, "Cases returned")]
+    public async Task<IActionResult> LatestCases()
+    {
+        // Runs from before cases were stored have "[]"
+        string? latest = await database.ChatEvalRuns
+            .Where(r => r.Cases != "[]")
+            .OrderByDescending(r => r.StartedAt)
+            .Select(r => r.Cases)
+            .FirstOrDefaultAsync();
+
+        return Ok(latest == null ? [] : ChatEvalService.ParseCases(latest));
     }
 
     [HttpPost("cancel")]

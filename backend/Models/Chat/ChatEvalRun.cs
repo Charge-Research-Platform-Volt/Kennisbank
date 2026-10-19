@@ -36,6 +36,10 @@ public class ChatEvalRun
     [Column("cases-done")]
     public int CasesDone { get; set; }
 
+    // Serialized List<ChatEvalCase>, so it's clear afterwards what a run was asked
+    [Column("cases", TypeName = "jsonb")]
+    public string Cases { get; set; } = "[]";
+
     // Serialized List<ChatEvalCaseResult>
     [Column("results", TypeName = "jsonb")]
     public string Results { get; set; } = "[]";

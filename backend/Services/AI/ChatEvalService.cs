@@ -7,12 +7,11 @@ using KnowledgeBank.Models;
 namespace KnowledgeBank.Services.AI;
 
 /// <summary>
-/// Runs the fixed questions in Eval/chat-eval.json through the real chat loop and records how each answer went:
-/// rounds, timings, tokens, and whether every citation points at something the tools actually returned.
+/// Runs chat eval cases through the real chat loop and records how each answer went: rounds, timings, tokens,
+/// and whether every citation points at something the tools actually returned.
 /// </summary>
 public class ChatEvalService(IServiceScopeFactory scopeFactory)
 {
-    private static readonly string CasesPath = Path.Combine(AppContext.BaseDirectory, "Eval", "chat-eval.json");
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     private static readonly Regex SourceMarkerPattern = new(@"\[SRC:[^\]]+\]", RegexOptions.Compiled);
@@ -20,18 +19,32 @@ public class ChatEvalService(IServiceScopeFactory scopeFactory)
 
     private readonly Serilog.ILogger logger = Serilog.Log.ForContext<ChatEvalService>();
 
-    public static List<ChatEvalCase> LoadCases() => ParseCases(File.ReadAllText(CasesPath));
-
     internal static List<ChatEvalCase> ParseCases(string json)
     {
         List<ChatEvalCase> cases = JsonSerializer.Deserialize<List<ChatEvalCase>>(json, JsonOptions) ?? [];
 
-        if (cases.Any(c => c.Turns.Count == 0))
-            throw new InvalidDataException("Every chat eval case needs at least one turn.");
-        if (cases.Select(c => c.Id).Distinct().Count() != cases.Count)
-            throw new InvalidDataException("Chat eval case ids must be unique");
+        if (ValidateCases(cases) is string error)
+            throw new InvalidDataException(error);
 
         return cases;
+    }
+
+    /// <summary>
+    /// Returns why the cases can't be run, or null when they're fine.
+    /// </summary>
+    public static string? ValidateCases(List<ChatEvalCase> cases)
+    {
+        if (cases.Count == 0)
+            return "Add at least one case.";
+        if (cases.Any(c => string.IsNullOrWhiteSpace(c.Id)))
+            return "Every case needs an id.";
+        // "turns": null in pasted JSON gets past required, which only checks that the key is there
+        if (cases.Any(c => c.Turns is null || c.Turns.Count == 0 || c.Turns.Any(string.IsNullOrWhiteSpace)))
+            return "Every case needs at least one non-empty turn.";
+        if (cases.Select(c => c.Id).Distinct().Count() != cases.Count)
+            return "Case ids must be unique.";
+
+        return null;
     }
 
     /// <summary>

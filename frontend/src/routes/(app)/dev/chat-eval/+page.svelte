@@ -4,6 +4,7 @@
 	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
+	import { Textarea } from '$lib/components/ui/textarea';
 	import { confirm } from '$lib/state/confirm.svelte';
 	import { RefreshCw, Trash, X } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
@@ -49,13 +50,39 @@
 
 	type RunDetail = { summary: RunSummary; cases: { id: string; turns: TurnResult[] }[] };
 
+	type EvalCase = { id: string; turns: string[] };
+
 	let runs = $state<RunSummary[] | null>(null);
 	let selected = $state<RunDetail | null>(null);
 	let model = $state('');
 	let label = $state('');
+	let casesJson = $state('');
 	let submitting = $state(false);
 
 	let running = $derived(runs?.some((r) => r.status === 'Running') ?? false);
+
+	// Only catches what's obvious while typing; the backend checks the rest (ids, empty turns) when the run starts
+	let parsedCases = $derived.by((): { cases: EvalCase[] | null; error: string | null } => {
+		if (!casesJson.trim()) return { cases: null, error: 'Paste the cases to run.' };
+		try {
+			const value: unknown = JSON.parse(casesJson);
+			if (!Array.isArray(value) || value.length === 0)
+				return { cases: null, error: 'Expected a non-empty array of cases.' };
+			return { cases: value as EvalCase[], error: null };
+		} catch (e) {
+			return { cases: null, error: e instanceof Error ? e.message : 'Invalid JSON.' };
+		}
+	});
+
+	// Starts from the questions of the latest run, so running again right after compares like with like
+	async function loadLatestCases() {
+		try {
+			const cases = await api.get<EvalCase[]>('/api/admin/chat-eval/cases/latest');
+			casesJson = JSON.stringify(cases, null, 2);
+		} catch (e) {
+			toast.error(e instanceof Error ? e.message : 'Failed to load the latest cases.');
+		}
+	}
 
 	async function fetchRuns() {
 		try {
@@ -72,12 +99,15 @@
 	}
 
 	async function startRun() {
+		if (!parsedCases.cases) return;
+
 		submitting = true;
 		try {
-			const params = new URLSearchParams(
-				Object.entries({ model: model.trim(), label: label.trim() }).filter(([, value]) => value)
-			);
-			await api.post(`/api/admin/chat-eval/run?${params}`);
+			await api.post('/api/admin/chat-eval/run', {
+				model: model.trim() || null,
+				label: label.trim() || null,
+				cases: parsedCases.cases
+			});
 			toast.success('Chat eval started');
 		} catch (e) {
 			toast.error(e instanceof Error ? e.message : 'Failed to start the chat eval.');
@@ -120,7 +150,10 @@
 		return () => clearInterval(timer);
 	});
 
-	onMount(fetchRuns);
+	onMount(() => {
+		fetchRuns();
+		loadLatestCases();
+	});
 
 	const formatDate = (iso: string) => new Date(iso).toLocaleString();
 	const seconds = (ms: number | null) => (ms == null ? '—' : `${(ms / 1000).toFixed(1)} s`);
@@ -148,10 +181,41 @@
 	</div>
 
 	<p class="text-sm text-muted-foreground">
-		Runs the questions from <span class="font-mono text-xs">backend/Eval/chat-eval.json</span> through
-		the real chat, one after another, against the live library. Nothing is saved as a chat. Unsupported
-		citations are sources an answer cites that none of its tool calls returned.
+		Runs the cases below through the real chat, one after another, against the live library. Nothing
+		is saved as a chat. Runs are only comparable with the same cases on the same library, so compare
+		runs done shortly after each other. Unsupported citations are sources an answer cites that none
+		of its tool calls returned.
 	</p>
+
+	<!-- Cases to run -->
+	<label class="flex flex-col gap-1 text-sm">
+		<span class="flex items-center justify-between text-muted-foreground">
+			Cases: an array of {'{ "id": "...", "turns": ["question", "follow-up"] }'}
+			<button
+				onclick={loadLatestCases}
+				disabled={running}
+				class="cursor-pointer text-xs underline hover:text-foreground disabled:cursor-default disabled:opacity-40"
+			>
+				Reset to latest run's cases
+			</button>
+		</span>
+		<Textarea
+			bind:value={casesJson}
+			disabled={running}
+			spellcheck={false}
+			class="h-64 font-mono text-xs"
+		/>
+		{#if parsedCases.error && casesJson.trim()}
+			<span class="text-xs text-destructive">{parsedCases.error}</span>
+		{:else if parsedCases.cases}
+			<span class="text-xs text-muted-foreground">
+				{parsedCases.cases.length} cases, {parsedCases.cases.reduce(
+					(n, c) => n + (Array.isArray(c.turns) ? c.turns.length : 0),
+					0
+				)} turns
+			</span>
+		{/if}
+	</label>
 
 	<!-- Start a run -->
 	<div class="flex flex-wrap items-end gap-2">
@@ -179,7 +243,9 @@
 				Cancel run
 			</Button>
 		{:else}
-			<Button onclick={startRun} disabled={submitting} class="cursor-pointer">Run eval</Button>
+			<Button onclick={startRun} disabled={submitting || !parsedCases.cases} class="cursor-pointer"
+				>Run eval</Button
+			>
 		{/if}
 	</div>
 

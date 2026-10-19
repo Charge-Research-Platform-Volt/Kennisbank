@@ -59,6 +59,11 @@ namespace KnowledgeBank.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("Cases")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("cases");
+
                     b.Property<int>("CasesDone")
                         .HasColumnType("integer")
                         .HasColumnName("cases-done");

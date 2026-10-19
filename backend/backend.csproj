@@ -61,7 +61,6 @@
 
   <ItemGroup>
     <Content Include="Templates/**" CopyToOutputDirectory="PreserveNewest" />
-    <Content Update="Eval/**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
