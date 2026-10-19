@@ -104,6 +104,9 @@
 			<a href="/dev/reembed" class="text-muted-foreground underline hover:text-foreground"
 				>Embedding status</a
 			>
+			<a href="/dev/chat-eval" class="text-muted-foreground underline hover:text-foreground"
+				>Chat eval</a
+			>
 		</div>
 	</div>
 

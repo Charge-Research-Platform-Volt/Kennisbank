@@ -45,6 +45,7 @@ namespace KnowledgeBank.Data
         public DbSet<ChangelogEntry> Changelog { get; set; }
         public DbSet<KnownMistralModel> KnownMistralModels { get; set; }
         public DbSet<UsageCounter> UsageCounters { get; set; }
+        public DbSet<ChatEvalRun> ChatEvalRuns { get; set; }
 
         public DbSet<DismissedMergeSuggestion> DismissedMergeSuggestions { get; set; }
 
@@ -60,6 +61,10 @@ namespace KnowledgeBank.Data
 
             modelBuilder.Entity<Resource>()
                 .Property(r => r.EmbeddingStatus)
+                .HasConversion<string>();
+
+            modelBuilder.Entity<ChatEvalRun>()
+                .Property(r => r.Status)
                 .HasConversion<string>();
 
             modelBuilder.Entity<Person>()

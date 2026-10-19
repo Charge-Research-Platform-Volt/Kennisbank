@@ -175,16 +175,17 @@ public class MistralHttpClient
         return new MistralCompletion(ExtractTextContent(message.GetProperty("content")), null, promptTokens);
     }
 
-    public async IAsyncEnumerable<MistralStreamChunk> StreamAsync(MistralChatRequest request, [EnumeratorCancellation] CancellationToken ct = default)
+    public async IAsyncEnumerable<MistralStreamChunk> StreamAsync(MistralChatRequest request, string? modelOverride = null, [EnumeratorCancellation] CancellationToken ct = default)
     {
+        string effectiveModel = modelOverride ?? mediumModelName;
         Stopwatch stopwatch = Stopwatch.StartNew();
-        string body = JsonSerializer.Serialize(BuildBody(request, stream: true));
+        string body = JsonSerializer.Serialize(BuildBody(request, stream: true, modelOverride: modelOverride));
 
-        RequestTokenLimiter limiter = GetLimiter(mediumModelName);
+        RequestTokenLimiter limiter = GetLimiter(effectiveModel);
         Stopwatch limiterWait = Stopwatch.StartNew();
         await limiter.WaitForSlotAsync(ct);
         if (limiterWait.ElapsedMilliseconds > LimiterWaitLogThresholdMs)
-            logger.Warning("Mistral rate limiter delayed [{Model}] stream by {DelayMs}ms", mediumModelName, limiterWait.ElapsedMilliseconds);
+            logger.Warning("Mistral rate limiter delayed [{Model}] stream by {DelayMs}ms", effectiveModel, limiterWait.ElapsedMilliseconds);
 
         HttpResponseMessage response = await SendWithRetryAsync(
             textHttpClient,

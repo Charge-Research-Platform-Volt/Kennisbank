@@ -107,6 +107,15 @@
 
 		const search = series('search.content');
 		const chat = series('chat.response');
+		const firstToken = series('chat.first_token');
+		const finalRound = series('chat.final_round');
+		const rounds = series('chat.rounds');
+		// Only answers on days that recorded rounds, so days from before these metrics existed don't dilute the average
+		const answersWithRounds = sum(chat.counts.filter((_, i) => rounds.counts[i] > 0));
+		const perAnswer = (s: UsageSeries, label: string) =>
+			answersWithRounds > 0
+				? `avg ${(sum(s.counts) / answersWithRounds).toFixed(1)} ${label}`
+				: null;
 		const ocr = series('ocr.document');
 		const ocrPages = sum(series('ocr.pages').counts);
 		const documents = combine(
@@ -204,8 +213,22 @@
 					{
 						label: 'Chat responses',
 						counts: chat.counts,
-						detail: detail(failed(chat), formatMs(avgMs(chat))),
-						info: METRIC_INFO['chat.response']
+						detail: detail(
+							failed(chat),
+							formatMs(avgMs(chat)),
+							perAnswer(rounds, 'rounds'),
+							perAnswer(series('chat.tool_calls'), 'tool calls')
+						),
+						info: `${METRIC_INFO['chat.response']} Rounds and tool calls are averaged per answer.`
+					},
+					{
+						label: 'Time to first answer text',
+						counts: firstToken.counts,
+						detail: detail(
+							formatMs(avgMs(firstToken)),
+							formatMs(avgMs(finalRound))?.replace('avg', 'final round') ?? null
+						),
+						info: `${METRIC_INFO['chat.first_token']} Final round: ${METRIC_INFO['chat.final_round']}`
 					},
 					{
 						label: 'Mistral requests',

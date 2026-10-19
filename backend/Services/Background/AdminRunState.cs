@@ -1,11 +1,11 @@
 namespace KnowledgeBank.Services.Background;
 
 /// <summary>
-/// Tracks whether an admin-triggered re-embed run is currently in progress, so the endpoint can
-/// refuse to start a second overlapping run and the frontend can grey out its buttons and offer
-/// a cancel action. Singleton by design — this state needs to outlive any single request/scope.
+/// Tracks whether an admin-triggered background run is in progress, so its endpoint can refuse to start a second
+/// overlapping run and the frontend can grey out its buttons and offer a cancel action. Register each subclass as a
+/// singleton, since this state needs to outlive any single request/scope.
 /// </summary>
-public class ReembedRunState
+public abstract class AdminRunState
 {
     private readonly object _lock = new();
     private CancellationTokenSource? _cts;
@@ -45,3 +45,15 @@ public class ReembedRunState
         }
     }
 }
+
+
+/// <summary>
+/// Run state for admin re-embed. See <see cref="AdminRunState"/>. 
+/// </summary>
+public class ReembedRunState : AdminRunState;
+
+/// <summary>
+/// Run state for chat evaluation. See <see cref="AdminRunState"/>. 
+/// </summary>
+public class ChatEvalRunState : AdminRunState;
+

@@ -200,6 +200,8 @@ namespace KnowledgeBank
             // Background services
             builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();
             builder.Services.AddSingleton<ReembedRunState>();
+            builder.Services.AddSingleton<ChatEvalRunState>();
+            builder.Services.AddSingleton<ChatEvalService>();
             builder.Services.AddHostedService<QueuedHostedService>();
             builder.Services.AddSingleton<PresenceTracker>();
             builder.Services.AddSingleton<UsageMetrics>();
