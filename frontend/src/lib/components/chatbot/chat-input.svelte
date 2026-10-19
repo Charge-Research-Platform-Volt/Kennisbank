@@ -9,7 +9,7 @@
 </script>
 
 <script lang="ts">
-	import { ArrowUp, CircleX, Paperclip, Trash2, X } from '@lucide/svelte';
+	import { ArrowUp, CircleX, Paperclip, Trash, X } from '@lucide/svelte';
 	import { api } from '$lib/api';
 	import { uploadFile } from '$lib/upload';
 	import * as Popover from '$lib/components/ui/popover';
@@ -172,7 +172,7 @@
 									onclick={() => onRemoveAttachment?.(attachment.id)}
 									aria-label="Remove attachment"
 								>
-									<Trash2 size={13} />
+									<Trash size={13} />
 								</button>
 							</div>
 						{/each}

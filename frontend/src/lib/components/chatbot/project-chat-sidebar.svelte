@@ -6,7 +6,7 @@
 	import { api } from '$lib/api';
 	import * as Popover from '$lib/components/ui/popover';
 	import * as Tooltip from '$lib/components/ui/tooltip';
-	import { SquarePen, History, X, Info } from '@lucide/svelte';
+	import { SquarePen, RotateCcwClock, X, Info } from '@lucide/svelte';
 
 	type ChatSummary = { id: string; title: string; createdOn: string };
 
@@ -67,7 +67,7 @@
 							<Popover.Trigger
 								class="cursor-pointer rounded p-1 text-muted-foreground hover:text-foreground"
 							>
-								<History size={15} />
+								<RotateCcwClock size={15} />
 							</Popover.Trigger>
 						</Tooltip.Trigger>
 						<Tooltip.Content>Chat history</Tooltip.Content>

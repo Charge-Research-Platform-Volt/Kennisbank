@@ -7,7 +7,7 @@
 	import { afterNavigate, goto } from '$app/navigation';
 	import type { Project, ProjectListResponse } from '$lib/types/project';
 	import { api } from '$lib/api';
-	import { Search, X, BookMarked, Plus } from '@lucide/svelte';
+	import { Search, X, BookBookmark, Plus } from '@lucide/svelte';
 	import { userState } from '$lib/state/user.svelte';
 	import * as Table from '$lib/components/ui/table';
 	import Spinner from '$lib/components/ui/spinner/spinner.svelte';
@@ -212,7 +212,7 @@
 					<Table.Row class="cursor-pointer" onclick={() => goto(`/projects/${item.id}`)}>
 						<Table.Cell class="py-3">
 							<div class="flex items-center gap-3">
-								<BookMarked size={16} class="shrink-0 text-muted-foreground" />
+								<BookBookmark size={16} class="shrink-0 text-muted-foreground" />
 								<div class="flex flex-col">
 									<span>{item.title}</span>
 									{#if item.description}

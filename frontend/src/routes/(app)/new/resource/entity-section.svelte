@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { X, User, Building2, Briefcase, Globe, Mail, Tag, Pencil } from '@lucide/svelte';
+	import { X, User, BuildingComplex, Briefcase, Globe, Mail, Tag, Pencil } from '@lucide/svelte';
 	import RoleBadge from '$lib/components/role-badge.svelte';
 	import type { EntityEntry } from './types.js';
 
@@ -57,7 +57,7 @@
 						class="flex cursor-pointer items-center gap-1 rounded border border-border/50 px-1.5 py-0.5 text-xs text-muted-foreground"
 					>
 						{#if entry.authorType === 'organisation'}
-							<Building2 size={10} />Org
+							<BuildingComplex size={10} />Org
 						{:else}
 							<User size={10} />Person
 						{/if}
