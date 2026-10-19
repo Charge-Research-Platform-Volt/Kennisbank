@@ -6,6 +6,7 @@ using KnowledgeBank.Hubs;
 using KnowledgeBank.Models;
 using KnowledgeBank.Services.Background;
 using Microsoft.AspNetCore.SignalR;
+using System.Text.Json;
 
 namespace KnowledgeBank.Services.AI;
 
@@ -243,7 +244,7 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
             messages.Add(new { role = "system", content = attachmentNote });
 
         Dictionary<string, int> toolCallCounts = [];
-
+        HashSet<string> executedToolCalls = [];
 
         for (int i = 0; i <= MaxToolIterations; i++)
         {
@@ -296,6 +297,12 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
                 int count = toolCallCounts[tc.Name] = toolCallCounts.GetValueOrDefault(tc.Name) + 1;
                 if (count > MaxCallsPerTool)
                     return Task.FromResult($"Error: {tc.Name} has already been called {MaxCallsPerTool} times this turn. Stop using this tool and answer with what you have, or try a different tool.");
+
+                if (!executedToolCalls.Add($"{tc.Name}:{NormalizeToolArguments(tc.Arguments)}"))
+                {
+                    logger.Information("Chat {chatId} repeated identical {Tool} call, skipped", chatId, tc.Name);
+                    return Task.FromResult($"You already called {tc.Name} with these exact arguments this turn — the result is above and would be identical. Don't repeat it: use a substantially different query, a different tool, or answer with what you have.");
+                }
 
                 return toolExecutor.ExecuteAsync(tc, message, projectId, Guid.Parse(chatId), connectionId, cancellationToken);
             }));
@@ -478,6 +485,20 @@ public class ChatOrchestrationService(MistralHttpClient mistralClient, ChatServi
         {
             logger.Error(ex, "Failed to save AI response for chat {ChatId}", chatId);
             return false;
+        }
+    }
+
+    // Re-serializing drops whitespace differences, lowercasing catches "Compaction" vs "compaction
+    private static string NormalizeToolArguments(string arguments)
+    {
+        try
+        {
+            using JsonDocument doc = JsonDocument.Parse(arguments);
+            return JsonSerializer.Serialize(doc.RootElement).ToLowerInvariant();
+        }
+        catch (JsonException)
+        {
+            return arguments.Trim().ToLowerInvariant();
         }
     }
 }

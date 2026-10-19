@@ -112,7 +112,6 @@ public class MistralHttpClient
     public async Task<MistralCompletion> CompleteAsync(MistralChatRequest request, string? modelOverride = null, CancellationToken ct = default)
     {
         string effectiveModel = modelOverride ?? mediumModelName;
-        logger.Debug("Mistral call [{Model}]", effectiveModel);
         Stopwatch stopwatch = Stopwatch.StartNew();
         string body = JsonSerializer.Serialize(BuildBody(request, modelOverride: modelOverride));
 
@@ -159,7 +158,7 @@ public class MistralHttpClient
         string finishReason = choice.GetProperty("finish_reason").GetString() ?? "stop";
 
         stopwatch.Stop();
-        logger.Debug("Mistral call [{Model}] took {ElapsedMs}ms, finish_reason={FinishReason}, prompt_tokens={PromptTokens}", effectiveModel, stopwatch.ElapsedMilliseconds, finishReason, promptTokens);
+        logger.Verbose("Mistral call [{Model}] took {ElapsedMs}ms, finish_reason={FinishReason}, prompt_tokens={PromptTokens}", effectiveModel, stopwatch.ElapsedMilliseconds, finishReason, promptTokens);
 
         if (finishReason == "tool_calls")
         {

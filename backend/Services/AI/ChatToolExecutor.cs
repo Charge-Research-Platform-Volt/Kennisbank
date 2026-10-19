@@ -115,12 +115,12 @@ public class ChatToolExecutor(AiService aiService, EmbeddingService embeddingSer
             if (ids.Length > 0) idsFilter = ids;
         }
 
-        logger.Debug("LLM searching for: {Query}", query);
+        logger.Debug("LLM searching for: {Query} (type={Type}, limit={Limit})", query, typeFilter ?? "any", limit);
         await hubContext.Clients.Client(connectionId).ChatToolStatus("search_library", $"Searching: {query}");
 
         List<LibraryItemWithChunks> results = await libraryService.SearchContentAsync(query, limit, idsFilter, typeFilter);
         string formatted = await FormatSearchResultsAsync(results, userQuestion, query, ct);
-        logger.Debug("Search tool result: {Result}", formatted);
+        logger.Verbose("Search tool result: {Result}", formatted);
         return formatted;
     }
 
