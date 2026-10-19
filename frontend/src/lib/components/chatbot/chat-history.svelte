@@ -2,7 +2,7 @@
 	import { api } from '$lib/api';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Trash2 } from '@lucide/svelte';
+	import { Trash } from '@lucide/svelte';
 	import Button from '../ui/button/button.svelte';
 	import { SvelteDate } from 'svelte/reactivity';
 	import { chatRefresh } from '$lib/state/chat-refresh.svelte';
@@ -124,7 +124,7 @@
 									class="absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive"
 									onclick={() => deleteChat(chat.id)}
 								>
-									<Trash2 size={13} />
+									<Trash size={13} />
 								</button>
 							{/if}
 						</div>

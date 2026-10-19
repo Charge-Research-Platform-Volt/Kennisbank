@@ -237,7 +237,8 @@ namespace KnowledgeBank
 
             builder.Services.AddHostedService<TrashbinCleanupService>(); // Add the background service for cleaning up the trashbin
             builder.Services.AddHostedService<InvitationsCleanupService>(); // Add the background service for cleaning up invitations
-            builder.Services.AddHostedService<VPNCleanupService>(); // Add the background service for cleaning up orphaned VPN users
+            if (!builder.Environment.IsDevelopment())
+                builder.Services.AddHostedService<VPNCleanupService>(); // Add the background service for cleaning up orphaned VPN users
             builder.Services.AddHostedService<StorageCleanupService>();
             builder.Services.AddHostedService<EmbeddingRetryService>();
 
@@ -442,9 +443,12 @@ namespace KnowledgeBank
         /// </remarks>
         private static void ConfigureLogging()
         {
+            string environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+
             IConfigurationRoot configuration = new ConfigurationBuilder()
                                         .SetBasePath(Directory.GetCurrentDirectory())
                                         .AddJsonFile("serilogsettings.json")
+                                        .AddJsonFile($"serilogsettings.{environment}.json", optional: true)
                                         .AddEnvironmentVariables()
                                         .Build();
 

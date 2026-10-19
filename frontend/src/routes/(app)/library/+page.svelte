@@ -12,7 +12,7 @@
 		ArrowUp,
 		ArrowDown,
 		ArrowUpDown,
-		Trash2,
+		Trash,
 		LoaderCircle,
 		CircleAlert
 	} from '@lucide/svelte';
@@ -317,7 +317,7 @@
 					class="px-2 text-zinc-600 transition-colors hover:text-foreground"
 					title="Trash"
 				>
-					<Trash2 size={18} class="shrink-0" />
+					<Trash size={18} class="shrink-0" />
 				</a>
 			{/if}
 		</div>

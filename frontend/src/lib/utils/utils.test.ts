@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { File, FileText, Globe, Music, Video, User, Building2 } from '@lucide/svelte';
+import { File, FileText, Globe, Music, Video, User, BuildingComplex } from '@lucide/svelte';
 import { debounce } from './debounce';
 import { getFileAction, getFileIcon } from './icons';
 import { formatLanguage } from './locale';
@@ -54,7 +54,7 @@ describe('getFileIcon', () => {
 		['mov', Video],
 		['website', Globe],
 		['person', User],
-		['organisation', Building2],
+		['organisation', BuildingComplex],
 		['something-else', File]
 	])('%s', (fileType, expected) => {
 		expect(getFileIcon(fileType)).toBe(expected);

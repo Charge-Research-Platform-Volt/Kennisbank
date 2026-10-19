@@ -9,13 +9,13 @@
 		Check,
 		X,
 		Pencil,
-		Trash2,
+		Trash,
 		Merge,
 		Tag,
 		MapPin,
 		Layers,
 		User,
-		Building2,
+		BuildingComplex,
 		Newspaper
 	} from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -59,7 +59,7 @@
 		},
 		organisation: {
 			label: 'Organisation',
-			icon: Building2,
+			icon: BuildingComplex,
 			basePath: 'organisations',
 			canCreate: false,
 			renameViaBody: true
@@ -481,7 +481,7 @@
 													deleteItem(item);
 												}}
 												class="cursor-pointer rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-destructive"
-												><Trash2 size={14} /></button
+												><Trash size={14} /></button
 											>
 										{/if}
 									</div>
@@ -529,7 +529,7 @@
 					onclick={deleteSelected}
 					class="flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
 				>
-					<Trash2 size={13} /> Delete
+					<Trash size={13} /> Delete
 				</button>
 				{#if selectedIds.size >= 2}
 					<button

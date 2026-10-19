@@ -34,11 +34,7 @@
 	{#if insp.selectedItem}
 		<Handle withHandle />
 		<Pane id="inspector-pane" order={1} defaultSize={25} minSize={20} maxSize={45}>
-			<Inspector
-				bind:this={insp.inspectorRef}
-				bind:item={insp.selectedItem}
-				onaftersave={insp.onAfterSave}
-			/>
+			<Inspector bind:item={insp.selectedItem} onaftersave={insp.onAfterSave} />
 		</Pane>
 	{/if}
 

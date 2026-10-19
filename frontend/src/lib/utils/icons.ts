@@ -1,4 +1,4 @@
-import { File, FileText, Globe, Music, Video, User, Building2 } from '@lucide/svelte';
+import { File, FileText, Globe, Music, Video, User, BuildingComplex } from '@lucide/svelte';
 
 export function getFileIcon(fileType: string) {
 	switch (fileType.toLowerCase()) {
@@ -27,7 +27,7 @@ export function getFileIcon(fileType: string) {
 		case 'person':
 			return User;
 		case 'organisation':
-			return Building2;
+			return BuildingComplex;
 		default:
 			return File;
 	}

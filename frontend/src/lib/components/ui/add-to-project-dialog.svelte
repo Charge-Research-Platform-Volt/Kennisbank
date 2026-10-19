@@ -5,7 +5,7 @@
 	import { debounce } from '$lib/utils/debounce';
 	import { toast } from 'svelte-sonner';
 	import * as Command from '$lib/components/ui/command';
-	import { Folder, BookMarked, ArrowLeft } from '@lucide/svelte';
+	import { Folder, BookBookmark, ArrowLeft } from '@lucide/svelte';
 
 	let { open = $bindable(false), item }: { open: boolean; item: ResourceItem | null } = $props();
 
@@ -102,7 +102,7 @@
 				<Command.Group heading="Projects">
 					{#each projectResults as project (project.id)}
 						<Command.Item class="cursor-pointer gap-2" onSelect={() => selectProject(project)}>
-							<BookMarked size={14} class="shrink-0 text-muted-foreground" />
+							<BookBookmark size={14} class="shrink-0 text-muted-foreground" />
 							{project.title}
 						</Command.Item>
 					{/each}
@@ -127,7 +127,7 @@
 					class="mt-2 cursor-pointer gap-2"
 					onSelect={() => addToLocation(selectedProject!.id, selectedProject!.title)}
 				>
-					<BookMarked size={14} class="shrink-0 text-muted-foreground" />
+					<BookBookmark size={14} class="shrink-0 text-muted-foreground" />
 					Project root
 				</Command.Item>
 

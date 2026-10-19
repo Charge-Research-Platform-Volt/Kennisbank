@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ResourceItem, NavigationTarget, RawResourceItem } from '$lib/types/resource';
+	import type { ResourceItem, NavigationTarget, EmbeddingStatus } from '$lib/types/resource';
 	import {
 		ArrowLeft,
 		ArrowRight,
@@ -7,7 +7,7 @@
 		X,
 		Pencil,
 		PencilOff,
-		Trash2,
+		Trash,
 		Ellipsis,
 		Share2,
 		BookmarkPlus,
@@ -29,6 +29,8 @@
 	import * as DropdownMenu from '../ui/dropdown-menu';
 	import { toast } from 'svelte-sonner';
 	import AddToProjectDialog from '../ui/add-to-project-dialog.svelte';
+	import { fetchInspectorItem } from '$lib/state/inspector.svelte';
+	import { onHubEvent, type HubConnectionContext } from '$lib/state/hub-connection.svelte';
 
 	let {
 		item = $bindable<ResourceItem | null>(null),
@@ -57,6 +59,14 @@
 
 	const closeInspector: () => void = getContext('closeInspector');
 
+	const hub = getContext<HubConnectionContext>('hubConnection');
+
+	onHubEvent(hub, 'EmbeddingStatusChanged', (id, status) => {
+		const embeddingStatus = status as EmbeddingStatus;
+		if (item?.id === id) item.embeddingStatus = embeddingStatus;
+		for (const entry of history) if (entry.id === id) entry.embeddingStatus = embeddingStatus;
+	});
+
 	let nameInput = $state('');
 	let addToProjectOpen = $state(false);
 
@@ -78,25 +88,7 @@
 	setContext('navigate', navigate);
 
 	export async function navigate(target: NavigationTarget) {
-		const endpoint =
-			target.type === 'resource'
-				? 'resources'
-				: target.type === 'person'
-					? 'persons'
-					: 'organisations';
-
-		const result = await api.get<Partial<RawResourceItem>>(`/api/${endpoint}/${target.id}`);
-		const fullItem: ResourceItem = {
-			fileType: target.type,
-			publicationDate: '',
-			publicationDatePrecision: 'Day',
-			createdOn: '',
-			description: '',
-			...target,
-			...result,
-			name: result.title ?? result.name ?? '',
-			embeddingStatus: result.embeddingStatus ?? 'Completed'
-		};
+		const fullItem = await fetchInspectorItem(target);
 
 		history = [...history.slice(0, historyIndex + 1), fullItem];
 		historyIndex = history.length - 1;
@@ -249,7 +241,7 @@
 									class="cursor-pointer text-destructive focus:text-destructive"
 									onclick={trashItem}
 								>
-									<Trash2 size={14} class="mr-2" /> Move to trash
+									<Trash size={14} class="mr-2" /> Move to trash
 								</DropdownMenu.Item>
 							{/if}
 						</DropdownMenu.Content>
@@ -302,7 +294,7 @@
 					<div
 						class="flex items-center gap-2 border-b border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive"
 					>
-						<Trash2 size={12} class="shrink-0" />
+						<Trash size={12} class="shrink-0" />
 						This item is in the trash.
 					</div>
 				{/if}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { FileText, User, Building2, type LucideIcon } from '@lucide/svelte';
+	import { FileText, User, BuildingComplex, type LucideIcon } from '@lucide/svelte';
 	import { page } from '$app/state';
 
 	const projectId = $derived(page.url.searchParams.get('projectId'));
@@ -32,7 +32,7 @@
 		{@render card(`/new/person${suffix}`, User, 'Person', 'Add a person to the library')}
 		{@render card(
 			`/new/organisation${suffix}`,
-			Building2,
+			BuildingComplex,
 			'Organisation',
 			'Add an organisation to the library'
 		)}
