@@ -1,7 +1,7 @@
-import { afterNavigate } from "$app/navigation";
-import { api } from "$lib/api";
+import { afterNavigate } from '$app/navigation';
+import { api } from '$lib/api';
 import { getParam, setParams } from '$lib/utils/urlState';
-import { onMount, setContext } from "svelte";
+import { onMount, setContext } from 'svelte';
 import type {
 	ResourceItem,
 	EntityType,
@@ -10,7 +10,12 @@ import type {
 } from '$lib/types/resource';
 
 export async function fetchInspectorItem(target: NavigationTarget): Promise<ResourceItem> {
-	const endpoint = target.type === 'resource' ? 'resources' : target.type === 'person' ? 'persons' : 'organisations';
+	const endpoint =
+		target.type === 'resource'
+			? 'resources'
+			: target.type === 'person'
+				? 'persons'
+				: 'organisations';
 
 	const result = await api.get<Partial<RawResourceItem>>(`/api/${endpoint}/${target.id}`);
 

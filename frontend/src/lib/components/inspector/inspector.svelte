@@ -60,7 +60,7 @@
 	const closeInspector: () => void = getContext('closeInspector');
 
 	const hub = getContext<HubConnectionContext>('hubConnection');
-	
+
 	onHubEvent(hub, 'EmbeddingStatusChanged', (id, status) => {
 		const embeddingStatus = status as EmbeddingStatus;
 		if (item?.id === id) item.embeddingStatus = embeddingStatus;
